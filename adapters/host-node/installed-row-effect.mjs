@@ -30,6 +30,10 @@
 //   `{providerNamespace, resourceKind, boundaryCid}`, or the provider's
 //   complete write footprint (`kind` and its fields).
 // Optionally:
+// - `prepareRequestChild({member, value, selector, current, content, signal,
+//   authorizationForRow})` (command): synchronously returns the same original
+//   `{prepare, release, retry, status}` child. Capture retains it before await;
+//   missing physical funding/read authority must refuse before acquisition.
 // - `describe({member, runInvocationCid, dispatchRequestCid, label,
 //   signal})`: the provider's current description of the member's Resource
 //   (`current`), taken for the Preview and again for each apply.
@@ -89,7 +93,7 @@ import {captureClaimedEffectResponse, snapshotEffectDispatchClaim} from
   './effect-physical-dispatch.mjs';
 import {recoverProjectedEffectResponse} from './effect-response-recovery.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
-import {releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
+import {prepareInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {issueUpdateTargetInstallation, assertUpdateTargetSelectionCurrent,
   assertUpdateTargetSelectionMembersCurrent} from './update-target-original-shape.mjs';
 
@@ -150,6 +154,72 @@ const pendingCid = `sha256:${'0'.repeat(64)}`;
 const sameValue = (left, right) =>
   canonicalValueJson(left, {dataKeys: true}) ===
     canonicalValueJson(right, {dataKeys: true});
+
+// Private wiring over this capture's original Common materials. Escaped
+// callbacks keep only this retireable projection, not the captured Run graph.
+function commandContentBorrower(configuration) {
+  let original = configuration;
+  const views = [];
+  const observe = operation => {
+    const current = original;
+    if (current === undefined) fail('OriginalEffectContentUnavailable');
+    current.assertCurrent?.();
+    if (original !== current) fail('OriginalEffectContentUnavailable');
+    const result = operation();
+    current.assertCurrent?.();
+    if (original !== current) fail('OriginalEffectContentUnavailable');
+    return result;
+  };
+  return Object.freeze({
+    borrow(row, inputName) {
+      const current = original;
+      if (current === undefined || typeof inputName !== 'string' ||
+          inputName.length > current.limits.maxWork) {
+        fail('OriginalEffectContentUnavailable');
+      }
+      current.assertCurrent?.();
+      if (original !== current) fail('OriginalEffectContentUnavailable');
+      const prior = views.find(value => value.row === row && value.inputName === inputName);
+      if (prior !== undefined) {
+        if (!prior.borrow.current()) fail('OriginalEffectContentUnavailable');
+        current.assertCurrent?.();
+        if (original !== current) fail('OriginalEffectContentUnavailable');
+        return prior.borrow;
+      }
+      const {maxRows, maxFields, maxWork} = current.limits;
+      if (maxFields === 0 || Math.ceil((views.length + 1) / maxFields) > maxRows) {
+        fail('InstalledRowEffectContentBorrowLimit');
+      }
+      const common = current.control.borrowEffectCommandContent(current.prepared,
+        current.inputs, current.memberIndex, current.artifact, row, inputName,
+        {maxFields, maxWork});
+      if (original !== current) {
+        common.release();
+        fail('OriginalEffectContentUnavailable');
+      }
+      const borrow = Object.freeze({
+        binding: common.binding,
+        current: () => original !== undefined && observe(() => common.current()),
+        wire: () => observe(() => common.wire()),
+        release: () => common.release(),
+      });
+      // Retain before another caller callback can throw or retire this input.
+      views.push({row, inputName, borrow});
+      current.assertCurrent?.();
+      if (original !== current) fail('OriginalEffectContentUnavailable');
+      return borrow;
+    },
+    release() {
+      original = undefined;
+      for (const {borrow} of views) borrow.release();
+      views.length = 0;
+    },
+  });
+}
+
+function commandContentRow(port, row) {
+  return inputName => port.borrow(row, inputName);
+}
 
 // This is the existing installation projection used by composed recovery.
 // Its canonical bytes identify an owner without admitting structural copies
@@ -231,7 +301,7 @@ function checkDriver(driver) {
       ![driver.describe, driver.recheckRequests, driver.issueCapability,
         driver.observeTargets, driver.recoveryEntry, driver.recoverRequests,
         driver.requestCid, driver.checkRequest,
-        driver.admitTargetReadApproval].every(optionalFunction) ||
+        driver.admitTargetReadApproval, driver.prepareRequestChild].every(optionalFunction) ||
       (driver.check !== undefined && (!text(driver.check?.resource) ||
         !text(driver.check.operation) ||
         typeof driver.checkRequest !== 'function')) ||
@@ -575,16 +645,19 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   // The exact request of every row of a member, from its mapped values and
   // selectors. A request that writes another value, or selects another
   // target, than the Program's row is refused.
-  const requestsOf = (member, rows, current) => Object.freeze(rows.map(row => {
-    const {owned} = ownerOf(member);
-    const prepared = owned.prepareRequest({member, value: row.value,
-      selector: row.selector, current});
+  const requestEntry = (member, row, prepared) => {
     const entry = entryOf(member, prepared?.request, prepared?.requestCid);
     if (!sameValue(entry.value, row.value) ||
         (targeted(member.kind) && !sameValue(entry.target, row.selector))) {
       fail('ForeignInstalledRowEffectRequest');
     }
     return entry;
+  };
+  const requestsOf = (member, rows, current, contentOf) => Object.freeze(rows.map((row, index) => {
+    const {owned} = ownerOf(member);
+    return requestEntry(member, row, owned.prepareRequest({member, value: row.value,
+      selector: row.selector, current,
+      ...(contentOf === undefined ? {} : {content: commandContentRow(contentOf, index)})}));
   }));
 
   // The common sealed capability of an installation whose driver issues
@@ -1163,11 +1236,36 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   async function captureStage({control, store, execution, checkedHost,
     prepared, identity, plan, previewContext, unit, members,
     runInvocationCid, dispatches, requestScope, storedResults, signal,
-    targetReads, own, ownInputs, assertCurrent}) {
+    targetReads, own, ownInputs, ownChildren, assertCurrent}) {
     assertCurrent?.();
     const inputs = checked(moon.clientProgramPinEffectSources(checkedHost,
       limits.maxPinnedResults));
-    const releaseInputs = () => {
+    const contentBorrowers = [];
+    const contentArtifacts = [];
+    const requestChildren = [];
+    ownChildren(requestChildren);
+    const childrenPending = () => requestChildren.some(value =>
+      typeof value?.prepared?.status !== 'function' ||
+      value.prepared.status()?.pending !== false);
+    const releaseInputs = async () => {
+      // This is the same prepared cleanup owner as on capture failure. Never
+      // retire the parent pin/Artifact/Source based on Promise completion alone.
+      if (requestChildren.length) {
+        const marker = Object.freeze(new Error('InstalledRowEffectRequestCleanup'));
+        try { await releaseInstalledRowCapture({children: requestChildren,
+          payloads: sourceSet.payloads, control}, marker); }
+        catch (error) { if (error !== marker) throw error; }
+      }
+      for (const borrower of contentBorrowers) borrower.release();
+      contentBorrowers.length = 0;
+      let retired = true;
+      for (const artifact of contentArtifacts) {
+        // Scrub every original inventory, but do not return the parent pin
+        // merely because one bounded cleanup quantum was exhausted.
+        if (!control.releaseEffectCommandContentArtifact(artifact, limits.maxWork)) retired = false;
+      }
+      if (!retired) fail('InstalledRowEffectContentCleanupPending');
+      contentArtifacts.length = 0;
       moon.clientProgramReleaseEffectInputs(inputs);
     };
     ownInputs(releaseInputs);
@@ -1192,6 +1290,13 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         maxBytes: limits.body.maxBytes, maxNodes: limits.body.maxNodes,
         maxDepth: limits.body.maxDepth,
         maxUtf16Units: limits.body.maxBytes},
+      onOriginalArtifact(artifact, memberIndex) {
+        if (members[memberIndex]?.kind !== 'command') return;
+        if (!contentArtifacts.includes(artifact)) contentArtifacts.push(artifact);
+        // Retain before a Common/source callback can fail after the move.
+        control.prepareEffectCommandContentArtifact(prepared, inputs,
+          memberIndex, artifact, limits);
+      },
       onProposalRow(memberIndex, rowIndex, proposal) {
         if (rowIndex !== proposals[memberIndex]?.length ||
             rowIndex >= limits.maxRows || proposalCount >= limits.maxRows) {
@@ -1227,12 +1332,31 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           approval: reads[index]?.approval, signal});
       assertCurrent?.();
       currents.push(description);
-      const entries = requestsOf(member, proposals[index].map(proposal => {
+      const contentOf = member.kind !== 'command' ? undefined : commandContentBorrower({
+        control, prepared, inputs, memberIndex: member.memberIndex,
+        artifact: sourceSet.members[index].payload.localResultArtifact,
+        limits, assertCurrent});
+      if (contentOf !== undefined) contentBorrowers.push(contentOf);
+      const rows = proposals[index].map(proposal => {
         const changes = JSON.parse(proposal.changesWire);
         return {value: changes.value,
           selector: targeted(member.kind)
             ? JSON.parse(proposal.selectorWire) : undefined};
-      }), description);
+      });
+      let entries;
+      if (member.kind === 'command' && owned.prepareRequestChild !== undefined) {
+        const preparedEntries = [];
+        for (const [rowIndex, row] of rows.entries()) {
+          if (requestChildren.length >= limits.maxRows) fail('InstalledRowEffectRowLimit');
+          const context = {member, value: row.value, selector: row.selector,
+            current: description, content: commandContentRow(contentOf, rowIndex), signal,
+            authorizationForRow: reads[index]?.authorizationForRow};
+          const preparedRequest = await prepareInstalledRowCaptureChild({children: requestChildren,
+            create: () => owned.prepareRequestChild(context), assertCurrent, signal});
+          preparedEntries.push(requestEntry(member, row, preparedRequest));
+        }
+        entries = Object.freeze(preparedEntries);
+      } else entries = requestsOf(member, rows, description, contentOf);
       if (member.kind === 'create') {
         // Rows are put in canonical order before anything is derived.
         rowsOf.push(canonicalRows(entries));
@@ -1348,7 +1472,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       contractLimits: plan.contractLimits, signal});
     assertCurrent?.();
     for (const payload of sourceSet.payloads) {
-      if (payload.prepared.status().pending) await payload.prepared.release();
+      if (!childrenPending() && payload.prepared.status().pending) await payload.prepared.release();
       assertCurrent?.();
     }
     const ledger = openLedger(identity);
@@ -1390,7 +1514,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         continuationWire: continuationOf(plan, unit, members, dispatches,
           assertCurrent !== undefined),
         releaseInputs,
-        dispose: () => { releaseInputs(); ledger.close(); }});
+        dispose: async () => { await releaseInputs(); ledger.close(); }});
     } catch (error) {
       ledger.close();
       throw error;
@@ -1433,14 +1557,17 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       outputLimits: plan.outputLimits, contractLimits: plan.contractLimits});
     let sourceSet;
     let releaseInputs;
+    let requestChildren;
     try {
       return await captureStage({control, store, execution, checkedHost,
         prepared, identity, plan, previewContext, unit, members,
         runInvocationCid, dispatches, requestScope, storedResults, signal,
         targetReads, assertCurrent, own: value => { sourceSet = value; },
+        ownChildren: value => { requestChildren = value; },
         ownInputs: release => { releaseInputs = release; }});
     } catch (error) {
       await releaseInstalledRowCapture({payloads: sourceSet?.payloads,
+        children: requestChildren,
         // This owner's false means already released, not pending cleanup.
         releaseResults: async () => { await releaseCompletedRunPreparedPayloads(storedResults, control); },
         releaseInputs, control}, error);

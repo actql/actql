@@ -6426,6 +6426,56 @@
         "LookupFoundRef",
         "LookupNotFound",
         "LookupUnknown",
+        "NamedSubmissionAttempt",
+        "NamedSubmissionAttempt0",
+        "NamedSubmissionAttempt0AttemptRef",
+        "NamedSubmissionAttempt0Outcome0",
+        "NamedSubmissionAttempt0Outcome0Admission",
+        "NamedSubmissionAttempt0Outcome0AdmissionRef",
+        "NamedSubmissionAttempt0Outcome0SubmissionRef",
+        "NamedSubmissionAttempt0Outcome0SubmissionRefEpoch",
+        "NamedSubmissionAttempt0Outcome0UnresolvedHistory",
+        "NamedSubmissionAttempt0Outcome0UnresolvedHistorySubmissionRef",
+        "NamedSubmissionAttempt0Outcome0UnresolvedHistorySubmissionRefEpoch",
+        "NamedSubmissionAttempt0Outcome1",
+        "NamedSubmissionAttempt0Outcome1Held",
+        "NamedSubmissionAttempt0Outcome1HeldCheckpoint",
+        "NamedSubmissionAttempt0Outcome1SubmissionRef",
+        "NamedSubmissionAttempt0Outcome1SubmissionRefEpoch",
+        "NamedSubmissionAttempt0Outcome1UnresolvedHistory",
+        "NamedSubmissionAttempt0Outcome1UnresolvedHistorySubmissionRef",
+        "NamedSubmissionAttempt0Outcome1UnresolvedHistorySubmissionRefEpoch",
+        "NamedSubmissionAttempt0Outcome2",
+        "NamedSubmissionAttempt0Outcome2SubmissionRef",
+        "NamedSubmissionAttempt0Outcome2SubmissionRefEpoch",
+        "NamedSubmissionAttempt0Outcome2UnresolvedHistory",
+        "NamedSubmissionAttempt0Outcome2UnresolvedHistorySubmissionRef",
+        "NamedSubmissionAttempt0Outcome2UnresolvedHistorySubmissionRefEpoch",
+        "NamedSubmissionAttempt0Outcome3",
+        "NamedSubmissionAttempt0Outcome3Problem",
+        "NamedSubmissionAttempt0Outcome3SubmissionRef",
+        "NamedSubmissionAttempt0Outcome3SubmissionRefEpoch",
+        "NamedSubmissionAttempt0Outcome3UnresolvedHistory",
+        "NamedSubmissionAttempt0Outcome3UnresolvedHistorySubmissionRef",
+        "NamedSubmissionAttempt0Outcome3UnresolvedHistorySubmissionRefEpoch",
+        "NamedSubmissionAttempt0Outcome4",
+        "NamedSubmissionAttempt0Outcome4Problem",
+        "NamedSubmissionAttempt0Outcome4SubmissionRef",
+        "NamedSubmissionAttempt0Outcome4SubmissionRefEpoch",
+        "NamedSubmissionAttempt0Outcome4UnresolvedHistory",
+        "NamedSubmissionAttempt0Outcome4UnresolvedHistorySubmissionRef",
+        "NamedSubmissionAttempt0Outcome4UnresolvedHistorySubmissionRefEpoch",
+        "NamedSubmissionAttempt0Outcome5",
+        "NamedSubmissionAttempt0Outcome5Problem",
+        "NamedSubmissionAttempt0Outcome5SubmissionRef",
+        "NamedSubmissionAttempt0Outcome5SubmissionRefEpoch",
+        "NamedSubmissionAttempt0Outcome5UnresolvedHistory",
+        "NamedSubmissionAttempt0Outcome5UnresolvedHistorySubmissionRef",
+        "NamedSubmissionAttempt0Outcome5UnresolvedHistorySubmissionRefEpoch",
+        "NamedSubmissionAttempt1",
+        "NamedSubmissionAttempt1AttemptRef",
+        "NamedSubmissionAttempt2",
+        "NamedSubmissionAttempt2AttemptRef",
         "NotRequired",
         "OperationAttemptRef",
         "OwnerCursor",
@@ -6619,6 +6669,7 @@
         "SubmissionLookup5UnresolvedHistory",
         "SubmissionLookup5UnresolvedHistorySubmissionRef",
         "SubmissionLookup5UnresolvedHistorySubmissionRefEpoch",
+        "SubmissionName",
         "SubmissionOutcome",
         "SubmissionOutcome0",
         "SubmissionOutcome0Admission",
@@ -6682,7 +6733,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_types.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "9fd3f472b7799e3d29bf1108b16c6453f0782687f2f20693f210b006f2c4711d",
+      "sha256": "94b5b056c2e54c9015632dc76eb54bad66200bfd00c9026a39c5f6951014af0f",
       "role": "public-wire-codec",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -7318,6 +7369,172 @@
               {
                 "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "NamedSubmissionAttempt",
+            "NamedSubmissionAttempt0",
+            "NamedSubmissionAttempt0AttemptRef",
+            "NamedSubmissionAttempt0Outcome0",
+            "NamedSubmissionAttempt0Outcome0Admission",
+            "NamedSubmissionAttempt0Outcome0AdmissionRef",
+            "NamedSubmissionAttempt0Outcome0SubmissionRef",
+            "NamedSubmissionAttempt0Outcome0SubmissionRefEpoch",
+            "NamedSubmissionAttempt0Outcome0UnresolvedHistory",
+            "NamedSubmissionAttempt0Outcome0UnresolvedHistorySubmissionRef",
+            "NamedSubmissionAttempt0Outcome0UnresolvedHistorySubmissionRefEpoch",
+            "NamedSubmissionAttempt0Outcome1",
+            "NamedSubmissionAttempt0Outcome1Held",
+            "NamedSubmissionAttempt0Outcome1HeldCheckpoint",
+            "NamedSubmissionAttempt0Outcome1SubmissionRef",
+            "NamedSubmissionAttempt0Outcome1SubmissionRefEpoch",
+            "NamedSubmissionAttempt0Outcome1UnresolvedHistory",
+            "NamedSubmissionAttempt0Outcome1UnresolvedHistorySubmissionRef",
+            "NamedSubmissionAttempt0Outcome1UnresolvedHistorySubmissionRefEpoch",
+            "NamedSubmissionAttempt0Outcome2",
+            "NamedSubmissionAttempt0Outcome2SubmissionRef",
+            "NamedSubmissionAttempt0Outcome2SubmissionRefEpoch",
+            "NamedSubmissionAttempt0Outcome2UnresolvedHistory",
+            "NamedSubmissionAttempt0Outcome2UnresolvedHistorySubmissionRef",
+            "NamedSubmissionAttempt0Outcome2UnresolvedHistorySubmissionRefEpoch",
+            "NamedSubmissionAttempt0Outcome3",
+            "NamedSubmissionAttempt0Outcome3Problem",
+            "NamedSubmissionAttempt0Outcome3SubmissionRef",
+            "NamedSubmissionAttempt0Outcome3SubmissionRefEpoch",
+            "NamedSubmissionAttempt0Outcome3UnresolvedHistory",
+            "NamedSubmissionAttempt0Outcome3UnresolvedHistorySubmissionRef",
+            "NamedSubmissionAttempt0Outcome3UnresolvedHistorySubmissionRefEpoch",
+            "NamedSubmissionAttempt0Outcome4",
+            "NamedSubmissionAttempt0Outcome4Problem",
+            "NamedSubmissionAttempt0Outcome4SubmissionRef",
+            "NamedSubmissionAttempt0Outcome4SubmissionRefEpoch",
+            "NamedSubmissionAttempt0Outcome4UnresolvedHistory",
+            "NamedSubmissionAttempt0Outcome4UnresolvedHistorySubmissionRef",
+            "NamedSubmissionAttempt0Outcome4UnresolvedHistorySubmissionRefEpoch",
+            "NamedSubmissionAttempt0Outcome5",
+            "NamedSubmissionAttempt0Outcome5Problem",
+            "NamedSubmissionAttempt0Outcome5SubmissionRef",
+            "NamedSubmissionAttempt0Outcome5SubmissionRefEpoch",
+            "NamedSubmissionAttempt0Outcome5UnresolvedHistory",
+            "NamedSubmissionAttempt0Outcome5UnresolvedHistorySubmissionRef",
+            "NamedSubmissionAttempt0Outcome5UnresolvedHistorySubmissionRefEpoch",
+            "NamedSubmissionAttempt1",
+            "NamedSubmissionAttempt1AttemptRef",
+            "NamedSubmissionAttempt2",
+            "NamedSubmissionAttempt2AttemptRef",
+            "SubmissionName"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "## Scoped durable submission names"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"submit-named-intent\": ["
+              },
+              {
+                "path": "packages/client-wire/index.d.ts",
+                "anchor": "export declare function validNamedSubmissionAttempt("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "original workspace, actor and authority"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "a newly supplied connection epoch is not its"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "The physical index belongs to this same Journal and transaction owner."
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "resolveOrBindSubmittedName(name, intent, {namespaceId, actorId, authorityScopeCid,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Only the first confirmed insertion can enter preparation."
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission({"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named unresolved and refused replies remain distinct from committed original admission'"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Missing retained outcome, formal retirement,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Names are not"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Run/Effect reconciliation, current authorization and resource rules remain separate."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Names have finite admission capacity under the existing Journal limit."
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "rejectSubmission('ClientSubmissionNameCapacity', 'refused', 'admission_capacity');"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named packet identities pin new projections without changing old submission bodies'"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "The old explicit-epoch submission response still requires its original exact"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named observations correlate the original reference without weakening explicit epochs'"
+              },
+              {
+                "path": "adapters/host-node/client-named-submission-host.integration.test.mjs",
+                "anchor": "actual Host named submission survives a new process"
+              },
+              {
+                "path": "packages/client-wire/named-submission.typecheck.mts",
+                "anchor": "const retained: WireNamedSubmissionAttempt = value;"
+              },
+              {
+                "path": "scripts/generate-python-client-wire.mjs",
+                "anchor": "export function pythonTypes(schemas) {"
               }
             ]
           }

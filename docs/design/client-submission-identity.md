@@ -108,6 +108,63 @@ publication or cleanup responsibility. Lost issuance custody also refuses new
 work. Neither refusal nor successful new work establishes that the original did
 not execute.
 
+## Scoped durable request names
+
+The public Python `request_id` convenience denotes a scoped durable name for
+one original submitted operation, not a nonce to reuse under each connection's
+new epoch. The existing request Journal resolves or binds the authenticated
+workspace/actor/name key before preparation or I/O. Its authority scope and
+original submitted intent are immutable. A changed scope, input, readOnly or
+stopBefore choice conflicts instead of issuing another Run. Names are not
+lookup, cancellation or execution authority; the Host rechecks current scope.
+
+The physical index belongs to this same Journal and transaction owner. First
+binding records the original epoch-bound preparing intent and its name together
+under `BEGIN IMMEDIATE` and confirmed COMMIT. An existing binding returns that
+original reference and outcome; a newly supplied connection epoch is not its
+replacement. Only the first confirmed insertion can enter preparation. Merely
+observing a preparing record, including after response loss or reopening, does
+not establish permission to repeat its work.
+
+The private index is authenticated with the existing Journal's epoch custody
+key, covering namespace, actor, exact name, authority scope, submission identity
+and intent identity. This authentication is neither a canonical public CID nor
+a bearer permit. The key and original Common-admitted epoch/intent remain
+necessary. Equal-looking data from a different Journal cannot issue a reference.
+Old explicit epoch nonces are not searched, inferred, or retroactively named.
+
+Names have finite admission capacity under the existing Journal limit. There
+is no automatic eviction: formal pre-Run intent retirement leaves its named
+binding unresolved and occupied rather than making the name unused. Missing
+or corrupt custody refuses new binding. A transaction-maintained retained count
+and monotonic issued count fence deleted names; physical startup checks the
+index/cardinality and trigger definitions without retaining an all-history JS
+array. Normal resolution uses the exact indexed key and singleton control, not
+a scan of historical Programs or a process-local name cache. These controls are
+not a claim of whole Host heap funding or unlimited permanent name capacity.
+
+The closed `submit-named-intent` packet carries the exact `requestName`, ordinary
+submitted intent and intent CID, operation attempt, and a newly retained candidate
+submission reference. The candidate is used only when this same Journal confirms
+that the name has never been bound. An observed reply correlates the same name,
+intent and attempt with the original authenticated reference, which can differ
+from the candidate on reconnection. Refusal certifies only this uncommitted
+attempt; conflict does not replace any saved original. The name uses the same
+bounded caller-ID string domain, without normalization or coercion.
+
+The old explicit-epoch submission response still requires its original exact
+reference match; it is not weakened to accommodate named resolution. A named
+observation can include the existing initial check observation, but never
+manufactures it on a later lookup. Missing retained outcome, formal retirement,
+and ambiguous transaction outcomes stay unresolved. An existing preparing name
+is observation-only; it does not grant automatic continuation or resend.
+
+This is an intentional extension of the initial contract, not reinterpretation
+of a bare legacy request ID or a per-client mapping from a name to a fresh epoch.
+The existing explicit-epoch and explicit-risk-restart paths retain their own
+identity and uncertainty rules. The private Journal primitive alone does not
+establish a public installed Python producer/consumer or whole Host funding.
+
 ## Submitted intent and outcome projection
 
 `actql-submitted-intent/0.1` identifies the original JSON submission before a

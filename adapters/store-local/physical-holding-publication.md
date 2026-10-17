@@ -1,5 +1,49 @@
 # Physical holding metadata publication
 
+## Original ownership retirement
+
+The existing Store ownership handle remembers successful owner-record unlink
+and ownership-directory removal separately from final root durability. An
+error after one acknowledged phase cannot force a retry to reconstruct that
+record or repeat its deletion. Once the original directory was removed, only
+root durability remains; a legitimate successor's owner record is not read or
+modified by the predecessor's retry. The original key stays held until the
+whole original release returns success.
+
+Root device/inode are observed before acquiring ownership. During original
+retirement the handle pins ownership-directory device/inode before removal;
+retries refuse a replacement directory or root. Initial absence and foreign
+token/pid remain refusal, not evidence of retirement. These path checks do not
+claim hostile-filesystem race isolation. Unknown syscall outcome is not an
+acknowledged phase, and this change is not the separate directory-FD
+failed-close carrier implementation.
+
+Two additional phase Booleans and four device/inode scalars remain in the
+existing handle, overlapping temporary Stats objects, read/parse state and
+the existing close Promise/error/key. They are explicit lifetime components,
+not a new Owner, lease, byte price or a normal numerical resource profile.
+
+## Bounded metadata reader close acknowledgement
+
+The existing bounded metadata reader does not publish bytes or invoke its FD
+retirement callback after an explicit false close. Its existing cleanup facade
+keeps the same native handle and callback through rejected or false close-only
+retries, without reopening the pathname or repeating a read. Only successful
+original close clears the reference and acknowledges that same reader duty.
+The ordinary mutable primary failure is retained where diagnostics can safely
+be attached; readonly diagnostic fields use a fresh wrapper with the original
+failure as its cause. Field inspection or attachment must not mask that failure
+or discard the cleanup facade. Existing frozen status snapshots stay unchanged.
+
+The three-name descriptor-check Array, temporary property descriptors and an
+optional error wrapper/cause can overlap the original error, raw metadata,
+callback and pending retry Promise. Their finite reference count is not a byte
+price or a bound on arbitrary Error graphs. The original read reservation and
+Store reader count remain responsible until actual acknowledgement; no new
+grant, reservation, Owner or normal numerical profile is supplied here.
+
+## Existing atomic metadata publication
+
 Physical holding creation, sharing and deletion intent use the existing Store's
 staging directory and exclusive hard-link publication. The complete original
 record is written, file-synced and closed before it receives a final name.
@@ -17,8 +61,8 @@ is interpreted as an unapplied operation, permission or cleanup success.
 ## Same-owner cleanup and inventory
 
 The existing Store retains each active metadata writer's record in its private
-writer set before opening its staging FD. A pending writer prevents another
-record write. A false or rejected close keeps that exact FD and forbids final
+writer set before opening its staging FD. Holding publication keeps its existing
+exclusive writer-admission fence. A false or rejected close keeps that exact FD and forbids final
 publication or staging unlink; retry only closes/unlinks/syncs the original
 staging alias, never rewrites bytes or creates a new holding. Cleanup is
 single-flight, and `Store.close` retains/drains the same duty even if the
@@ -37,6 +81,39 @@ weak reference or GC opportunity is not a physical acknowledgement. This
 inventory is not a byte grant or a normal four-role Model profile; unknown
 layout/bootstrap costs remain unknown, and existing limits do not increase.
 
+## Prepared-object custody records
+
+Original prepared-object custody now uses this same Store-owned metadata
+writer: only a complete, file-synced and closed record receives its exclusive
+final `prepared-custody/<UUID>.json` name. The original custody directory still
+needs its separate durability acknowledgement before the object writer links
+its payload. Record bytes, recorded payload device/inode, custody/reclamation
+identity and recovery validation are unchanged. Empty or partial bytes from an
+interrupted write remain in the existing staging namespace, where original
+restart recovery already reclaims unpublished aliases. A corrupt final record
+from an older process remains refused, not repaired or treated as absence.
+
+Independent prepared writers retain their existing concurrent behavior; they
+do not acquire the holding-publication exclusive fence or a new queue. Their
+metadata FDs join the same Store duty set before acquisition. Failed/false close
+is retained there even if the object writer's error is discarded; shutdown or
+the same single-flight handle performs close-only cleanup. Completion never
+reseals or resends a request. The additional staging path, record/Buffer,
+writer-set entry, closure/Promise and original error/FD overlap with the payload
+writer and reservation until actual retirement. This is explicit inventory,
+not numerical funding or a physical-byte exemption.
+
+A failed metadata duty also prevents a new metadata FD acquisition until the
+same duty retires. Its payload reservation can already have been returned, so
+that reservation's original object limit cannot be reused as evidence that the
+failed metadata lifetime ended. The existing writer record adds one private
+failure Boolean; admission scans the existing duty set without copying it.
+Healthy in-flight metadata writes do not activate this fence and may proceed
+in parallel. Retry only retires the original FD/staging duty, without rewriting
+the record; after actual retirement ordinary preparation is admitted again.
+The Boolean and scan iterator/workspace remain explicit control inventory,
+not a new Owner, counter, FD quota, numerical profile or permission grant.
+
 ## Verification boundary
 
 The independent tests interrupt the actual filesystem write before any byte
@@ -47,3 +124,13 @@ commit replies and delayed directory ACKs. Protocol admission uses the explicit
 contract-control fixture; these are real Store/filesystem/process tests, not
 genuine Core admission, installed Model acceptance, Provider I/O or numerical
 funding proof. Original installed failures remain separately source-qualified.
+# Bounded-reader diagnostic transfer
+
+The failed metadata reader defines own cleanup data properties rather than
+invoking inherited setters on the primary Error. Safe writable own properties
+retain their original attributes; readonly/frozen primaries remain the cause of
+a fresh diagnostic wrapper. The same FD, retry flight and original retirement
+callback are unchanged. Three definition descriptors and the fallback
+descriptor object overlap the existing inspection descriptors/control frame;
+they are not free storage or a proof of the retained error graph's byte size.
+

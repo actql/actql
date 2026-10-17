@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "120b70a2b3163e47526ed4ac174a9136e00c3a623daf361c3b92ad4983c16ee3",
+      "sha256": "ca9ea5f2c8679029576f5d781075b62bd7120512260c636740b1dce4236369c2",
       "exports": [
         "PublicationStoreError",
         "openLocalPublicationStore",
@@ -6571,7 +6571,8 @@
           "name": "openLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord",
           "parameters": [
             "path",
-            "bytes"
+            "bytes",
+            "exclusive"
           ],
           "async": true
         },
@@ -6647,12 +6648,21 @@
         },
         {
           "name": "readBounded/cleanup/init:retry/init:retry/init:retry#2",
-          "parameters": [],
+          "parameters": [
+            "result"
+          ],
           "async": false
         },
         {
           "name": "readBounded/cleanup/init:retry/init:retry/init:retry#3",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBounded/readBounded",
+          "parameters": [
+            "name"
+          ],
           "async": false
         },
         {
@@ -7258,6 +7268,7 @@
             "readBounded/cleanup/init:retry/init:retry/init:retry",
             "readBounded/cleanup/init:retry/init:retry/init:retry#2",
             "readBounded/cleanup/init:retry/init:retry/init:retry#3",
+            "readBounded/readBounded",
             "readBounded/sameFile/sameFile",
             "readBounded/status/status",
             "removeOpeningTree",

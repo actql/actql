@@ -1902,7 +1902,7 @@
     },
     {
       "module": "adapters/host-node/effect-input-export.mjs",
-      "sha256": "3756cf05d8704c10e9e9fe8a9cb8cf040eddaef0dbf5e7cc2d370418e940806d",
+      "sha256": "c334db7fe27376f9db92a304a96004e01e2e74c686bc6e4f580bb028335b41a4",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -2163,6 +2163,7 @@
             "onProposalRow",
             "proposalMemberIndexes",
             "proposalLimits",
+            "onOriginalArtifact",
             "manifestSet",
             "local",
             "duplicateManifestMember"
@@ -2512,6 +2513,10 @@
               {
                 "path": "adapters/host-node/effect-input-export.mjs",
                 "anchor": "Assemble existing owned Results, never caller-authored roots"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
               }
             ],
             "inputsOutputs": [
@@ -2522,36 +2527,60 @@
               {
                 "path": "src/run_publication_host/client_effect_original_materials.mbt",
                 "anchor": "pub fn"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/effect-input-export.mjs",
                 "anchor": "preparedEffectSourceSets.get(sources)"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/effect-input-export.mjs",
                 "anchor": "All prepared payloads stay under the existing publication cleanup owner"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/effect-input-export.mjs",
                 "anchor": "commitPinnedEffectSourceHolding"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/effect-input-export.mjs",
                 "anchor": "Pending owners escape on error"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/client-dispatch-owner.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
               }
             ],
             "resources": [
@@ -2562,12 +2591,20 @@
               {
                 "path": "adapters/host-node/effect-input-export.mjs",
                 "anchor": "EffectDependencyBodyByteLimit"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/acquired-effect-computation.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
               }
             ],
             "verification": [
@@ -2578,6 +2615,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-source-binding.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
               }
             ]
           }
@@ -3181,7 +3222,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "300259c200b5ae36a4b7bce3f16d520e577b8627cefbda9d8af39ad3d48a7ac4",
+      "sha256": "7c3c8464c32234ed37451b8206b219e33e0484f07e52bb882b572d245b872bc8",
       "exports": [
         "connectEmbeddedLocal",
         "openInstalledRemoteHttpHost",

@@ -14,7 +14,7 @@ import {clientHostOperations, clientWorkspaceMatches, validCheckpointPage, valid
   validRequestCancellation, validResourceInspection, validResourceListing,
   validResourcePeek, validRunState, validResultDescription, validOwnerObservations,
   validCheckOutcome,
-  validSubmissionAttempt, validSubmissionLookup} from
+  validSubmissionAttempt, validNamedSubmissionAttempt, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
 import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape, validWireRunViewShape, validWireRunPlanViewShape} from '../../packages/client-wire/index.mjs';
 
@@ -162,7 +162,7 @@ function observationAttempt(response) {
 
 export function createClientHttpHandler({
   authenticate, authorizeConnection, workspaceForPrincipal, stateService, resultService,
-  negotiate, submit, submitIntent, lookupSubmission, attach, lookupRequest, observeRun, observeOwners, wait, cancel, lookupCancellation,
+  negotiate, submit, submitIntent, submitNamedIntent, lookupSubmission, attach, lookupRequest, observeRun, observeOwners, wait, cancel, lookupCancellation,
   reconcile, deliveryAttempt, prepareSubmit, checkpoints, checkpointReview,
   resolve, cancelRequest, resources, inspectResource, peekResource,
   check, plan, inspectRun, runPlan, maxRequestBytes = 65536, observe, loopbackHttp = false,
@@ -264,6 +264,11 @@ export function createClientHttpHandler({
             () => invoke(prepareSubmit),
           submit: prepared => invoke(submit, undefined, prepared)});
         sendJson(admission);
+      } else if (operation === 'submit-named-intent') {
+        const answer = await invoke(submitNamedIntent);
+        if (!validNamedSubmissionAttempt(answer, connection, body.requestName,
+          body.submissionRef, body.intentCid, body.attemptRef)) invalid('InvalidClientHostSubmissionOutcome');
+        sendJson(answer);
       } else if (['submit-intent', 'restart-intent', 'lookup-submission'].includes(operation)) {
         const submitting = operation !== 'lookup-submission';
         const answer = await invoke(submitting ? submitIntent : lookupSubmission);

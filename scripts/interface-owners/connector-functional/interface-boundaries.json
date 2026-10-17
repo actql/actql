@@ -4157,7 +4157,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "cbe61186d2ea1805209fbdac106e7eb4858717de3922a6faeb2564b37af213b2",
+      "sha256": "49a8f637490a01339dda4191c792122cd883d42fee5f1c53bb9fd9e55a0ccb7c",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -4205,6 +4205,80 @@
           "name": "cid/cid",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "commandContentBorrower",
+          "parameters": [
+            "configuration"
+          ],
+          "async": false
+        },
+        {
+          "name": "commandContentBorrower/init:borrow/init:borrow",
+          "parameters": [
+            "row",
+            "inputName"
+          ],
+          "async": false
+        },
+        {
+          "name": "commandContentBorrower/init:borrow/init:borrow/borrow/borrow",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "commandContentBorrower/init:borrow/init:borrow/prior/prior",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "commandContentBorrower/init:release/init:release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "commandContentBorrower/observe/observe",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "commandContentRow",
+          "parameters": [
+            "port",
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "commandContentRow/commandContentRow",
+          "parameters": [
+            "inputName"
           ],
           "async": false
         },
@@ -4537,6 +4611,7 @@
             "targetReads",
             "own",
             "ownInputs",
+            "ownChildren",
             "assertCurrent"
           ],
           "async": true
@@ -4609,6 +4684,18 @@
         {
           "name": "createRowEffectStage/captureStage/captureStage#7",
           "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createRowEffectStage/captureStage/childrenPending/childrenPending",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/childrenPending/childrenPending/childrenPending",
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -4644,7 +4731,7 @@
         {
           "name": "createRowEffectStage/captureStage/entries/entries",
           "parameters": [
-            "proposal"
+            "rows"
           ],
           "async": false
         },
@@ -4652,13 +4739,6 @@
           "name": "createRowEffectStage/captureStage/entries/entries/entries",
           "parameters": [
             "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/entries/entries#2",
-          "parameters": [
-            "rows"
           ],
           "async": false
         },
@@ -4692,6 +4772,11 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/captureStage/preparedRequest/preparedRequest",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/captureStage/proposals/proposals",
           "parameters": [],
           "async": false
@@ -4699,12 +4784,27 @@
         {
           "name": "createRowEffectStage/captureStage/releaseInputs/releaseInputs",
           "parameters": [],
-          "async": false
+          "async": true
         },
         {
           "name": "createRowEffectStage/captureStage/route/route",
           "parameters": [
             "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/rows/rows",
+          "parameters": [
+            "proposal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/sourceSet/init:onOriginalArtifact/init:onOriginalArtifact",
+          "parameters": [
+            "artifact",
+            "memberIndex"
           ],
           "async": false
         },
@@ -5062,12 +5162,19 @@
         {
           "name": "createRowEffectStage/prepareCaptured/prepareCaptured#2",
           "parameters": [
-            "release"
+            "value"
           ],
           "async": false
         },
         {
           "name": "createRowEffectStage/prepareCaptured/prepareCaptured#3",
+          "parameters": [
+            "release"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareCaptured/prepareCaptured#4",
           "parameters": [],
           "async": true
         },
@@ -5289,18 +5396,29 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/requestEntry/requestEntry",
+          "parameters": [
+            "member",
+            "row",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/requestsOf/requestsOf",
           "parameters": [
             "member",
             "rows",
-            "current"
+            "current",
+            "contentOf"
           ],
           "async": false
         },
         {
           "name": "createRowEffectStage/requestsOf/requestsOf/requestsOf",
           "parameters": [
-            "row"
+            "row",
+            "index"
           ],
           "async": false
         },
@@ -5681,7 +5799,6 @@
             "createRowEffectStage/captureStage/connectorRecovery/connectorRecovery",
             "createRowEffectStage/captureStage/entries/entries",
             "createRowEffectStage/captureStage/entries/entries/entries",
-            "createRowEffectStage/captureStage/entries/entries#2",
             "createRowEffectStage/captureStage/footprints/footprints",
             "createRowEffectStage/captureStage/holdings/holdings",
             "createRowEffectStage/captureStage/payloads/payloads",
@@ -5790,7 +5907,13 @@
             "sameValue/sameValue",
             "targeted/targeted",
             "text/text",
-            "createRowEffectStage/prepareRecovered/assertRequestedStopCurrent/assertRequestedStopCurrent"
+            "createRowEffectStage/prepareRecovered/assertRequestedStopCurrent/assertRequestedStopCurrent",
+            "createRowEffectStage/captureStage/childrenPending/childrenPending",
+            "createRowEffectStage/captureStage/childrenPending/childrenPending/childrenPending",
+            "createRowEffectStage/captureStage/preparedRequest/preparedRequest",
+            "createRowEffectStage/captureStage/rows/rows",
+            "createRowEffectStage/prepareCaptured/prepareCaptured#4",
+            "createRowEffectStage/requestEntry/requestEntry"
           ],
           "exports": [
             "composeInstalledRowEffectOwners",
@@ -5808,6 +5931,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "`stopBefore`"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "// The existing capture retains this original child before any fallible current"
               }
             ],
             "inputsOutputs": [
@@ -5818,6 +5945,10 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"request_optional_fields\""
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "export async function prepareInstalledRowCaptureChild({children, create,"
               }
             ],
             "identity": [
@@ -5828,6 +5959,10 @@
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
                 "anchor": "fn check_requested_effect_stop_original("
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "let child = create();"
               }
             ],
             "ownership": [
@@ -5838,6 +5973,14 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "originalSubmittedIntent("
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "children.push({prepared: Object.freeze({release: () => drain(false),"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "export async function releasePreparedResults(exported, primary, control)"
               }
             ],
             "synchronization": [
@@ -5848,6 +5991,14 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "if (result !== false && !preparing &&"
+              },
+              {
+                "path": "src/run_publication/cleanup_progress.mbt",
+                "anchor": "pub fn publication_cleanup_owner_action_code("
               }
             ],
             "failure": [
@@ -5858,6 +6009,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "const invalid = () => Object.assign(new TypeError('InvalidInstalledRowRequestChild'),"
               }
             ],
             "cancellation": [
@@ -5868,6 +6023,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "options.signal?.throwIfAborted();"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "signal?.throwIfAborted();"
               }
             ],
             "resources": [
@@ -5882,6 +6041,10 @@
               {
                 "path": "adapters/host-node/installed-effect-site.mjs",
                 "anchor": "function cleanupCustody("
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "if (childPending()) return false;"
               }
             ],
             "extension": [
@@ -5892,6 +6055,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "// - `prepareRequestChild({member, value, selector, current, content, signal,"
               }
             ],
             "verification": [
@@ -5906,6 +6073,14 @@
               {
                 "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
                 "anchor": "test('requested first Effect pauses Account Allow"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.test.mjs",
+                "anchor": "test('request child is retained before current refusal"
+              },
+              {
+                "path": "adapters/host-node/effect-content-original-borrow.integration.test.mjs",
+                "anchor": "test('actual Content capture keeps the same original parent through an async preparation child'"
               }
             ]
           }
@@ -6034,6 +6209,241 @@
               {
                 "path": "src/run_publication_host/client_effect_target_selections.mbt",
                 "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "commandContentBorrower",
+            "commandContentBorrower/init:borrow/init:borrow",
+            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow",
+            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow",
+            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#2",
+            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#2",
+            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#3",
+            "commandContentBorrower/init:borrow/init:borrow/prior/prior",
+            "commandContentBorrower/init:release/init:release",
+            "commandContentBorrower/observe/observe",
+            "commandContentRow",
+            "commandContentRow/commandContentRow"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              },
+              {
+                "path": "adapters/host-node/effect-content-original-borrow.integration.test.mjs",
+                "anchor": "test('actual Content preparation borrows the original captured Command input and rejects copied or retired views'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createRowEffectStage/captureStage/sourceSet/init:onOriginalArtifact/init:onOriginalArtifact"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_command_content.mbt",
+                "anchor": "pub fn borrow_client_effect_command_content("
+              },
+              {
+                "path": "adapters/host-node/effect-content-original-borrow.integration.test.mjs",
+                "anchor": "test('actual Content preparation borrows the original captured Command input and rejects copied or retired views'"
               }
             ]
           }

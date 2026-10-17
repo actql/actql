@@ -308,7 +308,7 @@ async function readBounded(path, maximum, closed, signal, ownerOnly = false) {
     throw error;
   } finally {
     try {
-      await handle.close();
+      if (await handle.close() === false) fail('PublicationMetadataReaderCleanupPending');
     } catch (closeFailure) {
       // Retain exactly this failed FD, not a pathname reopen or another read.
       // As for the existing object reader, the original caller's reservation
@@ -323,7 +323,8 @@ async function readBounded(path, maximum, closed, signal, ownerOnly = false) {
         retry() {
           if (flight !== undefined) return flight;
           if (original === undefined) return Promise.resolve(status());
-          flight = Promise.resolve().then(() => original.close()).then(() => {
+          flight = Promise.resolve().then(() => original.close()).then(result => {
+            if (result === false) fail('PublicationMetadataReaderCleanupPending');
             original = undefined;
             const acknowledge = retire;
             retire = undefined;
@@ -334,12 +335,36 @@ async function readBounded(path, maximum, closed, signal, ownerOnly = false) {
         },
       });
       const primary = readFailed ? readFailure : closeFailure;
-      const failure = primary !== null && typeof primary === 'object' &&
-        Object.isExtensible(primary) && primary.cleanupHandle === undefined
-        ? primary : new Error('PublicationMetadataReaderCleanupPending', {cause: primary});
-      failure.cleanupHandle = cleanup;
-      failure.cleanupPending = true;
-      failure.cleanupError = closeFailure;
+      let failure;
+      try {
+        failure = primary !== null && typeof primary === 'object' &&
+          Object.isExtensible(primary) && primary.cleanupHandle === undefined &&
+          ['cleanupHandle', 'cleanupPending', 'cleanupError'].every(name => {
+            const field = Object.getOwnPropertyDescriptor(primary, name);
+            return field === undefined || field.writable === true;
+          })
+          ? primary : new Error('PublicationMetadataReaderCleanupPending', {cause: primary});
+        // Define own data fields: inherited setters can silently discard an
+        // assignment even on an ordinary extensible Error subclass. Preserve
+        // existing writable own-field attributes and ordinary error identity.
+        Object.defineProperties(failure, {
+          cleanupHandle: {...(Object.getOwnPropertyDescriptor(failure, 'cleanupHandle') ??
+            {writable: true, enumerable: true, configurable: true}), value: cleanup},
+          cleanupPending: {...(Object.getOwnPropertyDescriptor(failure, 'cleanupPending') ??
+            {writable: true, enumerable: true, configurable: true}), value: true},
+          cleanupError: {...(Object.getOwnPropertyDescriptor(failure, 'cleanupError') ??
+            {writable: true, enumerable: true, configurable: true}), value: closeFailure},
+        });
+      } catch {
+        // Readonly fields/accessors must not mask the original read failure
+        // or discard the same FD. The fresh wrapper owns diagnostics only.
+        failure = new Error('PublicationMetadataReaderCleanupPending', {cause: primary});
+        Object.defineProperties(failure, {
+          cleanupHandle: {value: cleanup, writable: true, enumerable: true, configurable: true},
+          cleanupPending: {value: true, writable: true, enumerable: true, configurable: true},
+          cleanupError: {value: closeFailure, writable: true, enumerable: true, configurable: true},
+        });
+      }
       throw failure;
     }
     closed?.();
@@ -451,6 +476,9 @@ async function acquireStoreOwnership(root, bootstrap) {
   const ownershipDirectory = resolve(root, 'owner');
   const ownerPath = resolve(ownershipDirectory, 'owner.json');
   const token = randomUUID();
+  // Read before acquiring ownership: a failed identity observation cannot
+  // strand a newly created owner. Keep scalars, not the entire Stats object.
+  const {dev: rootDevice, ino: rootInode} = await lstat(root, {bigint: true});
   while (true) {
     try {
       await mkdir(ownershipDirectory, {mode: 0o700});
@@ -462,21 +490,51 @@ async function acquireStoreOwnership(root, bootstrap) {
       await writeFile(ownerPath, owner, {flag: 'wx', mode: 0o600});
       await syncDirectoryPath(ownershipDirectory);
       await syncDirectoryPath(root);
-      let released = false;
+      let released = false, ownerRemoved = false, directoryRemoved = false;
+      let ownershipDevice, ownershipInode;
       return Object.freeze({
         async release() {
           if (released) return false;
-          let existing;
-          try { existing = JSON.parse(await readFile(ownerPath, 'utf8')); }
-          catch (error) {
-            if (error?.code === 'ENOENT') return false;
-            throw error;
+          let currentRoot;
+          try { currentRoot = await lstat(root, {bigint: true}); }
+          catch (error) { if (error?.code === 'ENOENT') return false; throw error; }
+          if (!currentRoot.isDirectory() || currentRoot.dev !== rootDevice ||
+              currentRoot.ino !== rootInode) fail('PublicationStoreOwnershipLost');
+          if (!directoryRemoved) {
+            let directory;
+            try { directory = await lstat(ownershipDirectory, {bigint: true}); }
+            catch (error) { if (error?.code === 'ENOENT') return false; throw error; }
+            if (!directory.isDirectory() || directory.isSymbolicLink()) {
+              fail('PublicationStoreOwnershipLost');
+            }
+            if (!ownerRemoved) {
+              let existing;
+              try { existing = JSON.parse(await readFile(ownerPath, 'utf8')); }
+              catch (error) {
+                if (error?.code === 'ENOENT') return false;
+                throw error;
+              }
+              if (existing?.token !== token || existing?.pid !== process.pid) {
+                fail('PublicationStoreOwnershipLost');
+              }
+            }
+            if (ownershipDevice === undefined) {
+              ownershipDevice = directory.dev;
+              ownershipInode = directory.ino;
+            } else if (directory.dev !== ownershipDevice || directory.ino !== ownershipInode) {
+              fail('PublicationStoreOwnershipLost');
+            }
+            // Record only actually acknowledged phases in this original
+            // handle. Never reconstruct an absent record or unlink again.
+            if (!ownerRemoved) {
+              await unlink(ownerPath);
+              ownerRemoved = true;
+            }
+            await rmdir(ownershipDirectory);
+            directoryRemoved = true;
           }
-          if (existing?.token !== token || existing?.pid !== process.pid) {
-            fail('PublicationStoreOwnershipLost');
-          }
-          await unlink(ownerPath);
-          await rmdir(ownershipDirectory);
+          // A successor may now own root/owner. It must never be inspected
+          // or removed by this old handle's remaining durability retry.
           await syncDirectoryPath(root);
           released = true;
           return true;
@@ -970,11 +1028,20 @@ export async function openLocalPublicationStore(
     `${cidHex(holdingCid)}.json`,
   );
 
-  const writePhysicalHoldingRecord = async (path, bytes) => {
-    if (activePhysicalRecordWriters.size !== 0) fail('PublicationStoreCleanupPending');
+  const writePhysicalHoldingRecord = async (path, bytes, exclusive = true) => {
+    // Existing holding publication retains its exclusive preparation fence.
+    // Independent prepared-object custodies historically write concurrently;
+    // they share this same Store's FD duties without a new serialization owner.
+    if (exclusive && activePhysicalRecordWriters.size !== 0) fail('PublicationStoreCleanupPending');
+    // A failed duty can outlive its payload reservation. Refuse another
+    // metadata FD before acquisition until that original duty actually retires;
+    // healthy in-flight writes are not a serialization fence.
+    for (const pending of activePhysicalRecordWriters) {
+      if (pending.failed) fail('PublicationStoreCleanupPending');
+    }
     const temporary = resolve(stagingDirectory, `object-${randomUUID()}`);
     let handle, flight;
-    const writer = {cleanup: undefined};
+    const writer = {cleanup: undefined, failed: false};
     activePhysicalRecordWriters.add(writer);
     let original = {writers: activePhysicalRecordWriters, writer, temporary,
       directory: stagingDirectory, syncDirectory};
@@ -1015,6 +1082,7 @@ export async function openLocalPublicationStore(
       writer.cleanup = cleanup;
       await cleanup.retry();
     } catch (primary) {
+      writer.failed = true;
       writer.cleanup = cleanup;
       try { await cleanup.retry(); } catch {}
       if (!status().pending) throw primary;
@@ -1331,7 +1399,10 @@ export async function openLocalPublicationStore(
       inode: String(state.ino),
     });
     const path = custodyPath(token);
-    await writeExclusive(path, Buffer.from(JSON.stringify(record), 'utf8'));
+    // Publish a final recovery name only after the original record is complete,
+    // synced and closed. An abrupt process stop may leave staging bytes, never
+    // a partial final custody. Failed close stays in the same Store duty set.
+    await writePhysicalHoldingRecord(path, Buffer.from(JSON.stringify(record), 'utf8'), false);
     await syncDirectory(custodyDirectory);
     const custody = {
       token,
