@@ -39,6 +39,13 @@ test "Native requested stop is an explicit closed option without a default" {
 ///|
 test "Native requested stop rejects unsupported boundaries before project or input IO" {
   for boundary in ["", "Commit", "prepare", "none", "null", " commit"] {
+    // The original option reader rejects an explicit empty value before the
+    // closed boundary reader; neither rejection may open project or input IO.
+    let expected_issue = if boundary.is_empty() {
+      "invalid or repeated option --stop-before"
+    } else {
+      "UnsupportedStopBeforeBoundary"
+    }
     let matches = command().parse(
       argv=[
         "--mode", "local", "--config", "never-open-config.json", "run", "never-open-program.aql",
@@ -52,7 +59,7 @@ test "Native requested stop rejects unsupported boundaries before project or inp
     } catch {
       ClientStop(message) => message
     }
-    assert_eq(issue, "UnsupportedStopBeforeBoundary")
+    assert_eq(issue, expected_issue)
     for operation in ["start", "aql"] {
       let parsed = requested_stop_arguments(operation, Some(boundary))
       let child = parsed.subcommand.unwrap().1
@@ -70,8 +77,8 @@ test "Native requested stop rejects unsupported boundaries before project or inp
       } catch {
         ClientStop(message) => message
       }
-      assert_eq(local_issue, "UnsupportedStopBeforeBoundary")
-      assert_eq(remote_issue, "UnsupportedStopBeforeBoundary")
+      assert_eq(local_issue, expected_issue)
+      assert_eq(remote_issue, expected_issue)
     }
   }
 }
