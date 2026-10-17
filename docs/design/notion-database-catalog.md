@@ -176,3 +176,92 @@ all simultaneously retained work, and keep actual cleanup responsibility.
 There is no I/O, current capability, release ACK or normal numerical supplier in
 this typed projection. Complete property pagination and the installed original
 configuration/Run path are still consuming implementation obligations.
+
+## Original property-item completion
+
+The existing Catalog creates a private property-item request from the same
+original query row, original property and checked column. A copied or reparsed
+schema cannot replace that pair. The first request and every continuation retain
+the immutable prior response chain. The physical caller obtains bounded page id,
+property id and opaque cursor DATA from that original request; it cannot replace
+them with a name-selected property or a representative row. This DATA does not
+issue a Site grant, installation/currentness, Run binding or transport ACK.
+
+Each issued request and response has a private one-time self seal. All consumers
+check the physical original before trusting copied control fields, including
+completion, continuation, request DATA and original-response projection. A copied
+record cannot remove a nonterminal cursor and upgrade a partial response into a
+completed cell. The seal is ordinary original correspondence, not authority.
+
+Title, rich text, people and relation values use the vendor property-item list
+protocol. Every response and item must match the original property id and kind.
+The shared property id is not a unique item key. Repeated values and their order
+are retained. A nonterminal list, even an empty one, cannot produce a completed
+cell. Continuation cursors are opaque and cycles refuse. The metadata's
+`next_url` is retained as untrusted response DATA and never followed as an origin
+or resource selection. The original page/property request supplies the fixed
+path; existing percent escapes in returned ids are not encoded a second time.
+Physical dot-segment ambiguity refuses instead of dispatching another path.
+
+Only a terminal chain can flatten title/rich-text `plain_text` segments or form
+ordered people/relation id arrays. Common then checks the entire resulting Value
+against the original checked Contract, including enum, extents and nullability;
+individual text chunks need not themselves be enum members. Empty complete text
+and arrays remain distinct from missing, null or incomplete values. Rollup
+calculation and complete file/Content projection need their own actual supplier;
+this four-kind reader does not pretend an unsupported result is a value.
+
+Every response uses a bounded independent byte snapshot and preserving decode.
+Limits bound each response and cumulative pages, items, raw bytes, actual decoded
+nodes/string bytes, cursor history and remaining work. Checked subtraction
+precedes every cumulative addition. Selection, response copying, original decode
+usage, item projection, cursor comparisons and complete-value construction are
+charged. Output/node/text exhaustion refuses without emitting partial typed
+values. Writer failures cancel the existing writer. These are finite structural
+bounds, not normal physical capacity or a second Ledger.
+
+The request/response records retain the original row/property/schema and prior
+chain, raw/decode graph, selected cursor/string aliases and per-item UTF-8 counts.
+Each request/page also retains one private seal cell and its original self
+reference; this cyclic control backing remains part of the same retained chain.
+Completion overlaps that history with a bounded reverse-page inventory,
+StringBuilder or Source-node array, converted decode graph, Common validation
+frames/CheckedValue and writer/output. The JS reader also holds the immutable
+provider functions, original request/contract/column, credential/context/current
+callbacks, stop signal, request target/query, await/Promise state and every raw
+response observation. Aliases do not remove distinct backings or record costs.
+
+The physical reader snapshots its functions, receiver and limits before await.
+It rechecks current Account/authorization before every operation and through the
+existing Credential boundary before send. Each page uses its own original
+journal use and the same selected token binding; a changed operation, parent
+binding or resolved token refuses. A lost reply remains the original journal
+Unknown and the reader cannot resend it or resolve new material for that use.
+No response can grant another operation. Prefix charges go to observation
+consumption; a completed value carries the terminal response's original charge
+to its parent, which still owns complete-row assembly/admission. Synthetic
+canonical output bytes are not transferred input. Callback failure retains the
+original response and cleanup responsibility; it does not issue a value/ACK.
+
+Cancellation/stop and failed current checks retain this same reader's original
+raw observations and pending custody. Read/stop Promise completion, Site close,
+GC, dropping an opaque page or an exported value is not physical retirement.
+The reader reports `cleanupConfirmed:false`; its consuming actual Source phase
+must supply original capacity and confirmed retirement before returning holdings.
+The tests' observation tickets are explicit doubles, not RowRun funding. Actual
+installation/configuration revision supply, full Source rows, query/Run restore
+and normal numerical acceptance remain separate required implementation work.
+
+The private Node bridge forwards the same originals and existing checked writer;
+no compiler representation fields, new shim, issuer or public wire are exposed.
+Common tests cover complete/incomplete/empty chains, original/foreign columns,
+whole-value enum admission, repeated shared property ids, cycles, native mismatch
+and exact cumulative bounds. Actual Common Credential/SQLite/Account/local-TLS
+cases exercise original paged token/current checks, bounded value delivery and
+Unknown/nonresend. Their success is not pristine installed or live Notion proof.
+
+The reviewed wrapper and completion protocol is the existing
+[Notion property-item reference](https://developers.notion.com/reference/property-item-object)
+and [retrieve property endpoint](https://developers.notion.com/reference/retrieve-a-page-property),
+under the already selected vendor API version. No ActQL version or identity domain
+changes for this implementation.
