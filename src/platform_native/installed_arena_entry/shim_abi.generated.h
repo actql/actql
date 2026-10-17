@@ -55,6 +55,7 @@ int32_t actql_domain_issue_family(actql_domain_reply * reply);
 int actql_domain_leave_into(actql_control_host * host, actql_domain * domain, actql_domain_reply ** slot);
 int32_t actql_domain_operation(actql_domain_reply * reply);
 int actql_domain_originals_into(actql_domain_reply * reply, actql_control_host ** host, actql_domain ** domain);
+int actql_domain_prepare_initial_into(actql_control_host * host, actql_backing_loan * scope, int32_t fd, int32_t work, int32_t attempts, int32_t holdings, int64_t transfer, actql_domain_reply ** slot);
 int actql_domain_prepare_into(actql_control_host * host, actql_backing_loan * scope, int32_t fd, int64_t bytes, int32_t work, int32_t attempts, int32_t holdings, int64_t transfer, int64_t retained, int64_t execution, actql_domain_reply ** slot);
 int actql_domain_project_into(actql_control_host * host, actql_domain * domain, actql_domain_reply ** slot);
 int actql_domain_read_cleanup_into(actql_control_host * host, actql_domain * domain, actql_domain_reply ** reply);
