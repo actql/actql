@@ -31,14 +31,14 @@ const control = runtimeCore(moon).publicationControl;
 const cid = value => `sha256:${value.repeat(64)}`;
 const policyWire = '{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}';
 
-function original(runId = 'saved-infer') {
+function original(runId = 'saved-infer', authored = program) {
   const installation = configuration(base);
   const body = JSON.parse(installation.environmentWire);
   const environment = moon.clientProgramCheckEnvironment(installation.environmentWire,
     body.evidence_bundle_cid, ...profiles);
   assert.ok(environment);
   const prepared = installNodeClientProgramPreparation({moon, environment})({
-    kind: 'program', input: program, parameters: null});
+    kind: 'program', input: authored, parameters: null});
   const {execution} = readInstalledModelExecution(moon, prepared, installation);
   const graph = checked(moon.clientProgramInstalledInferPlanGraph(prepared, 2, execution));
   const compiled = control.prepareCheckedClientCompiledRun(prepared, 'infer', {
@@ -53,9 +53,9 @@ function original(runId = 'saved-infer') {
   const evidence = Object.freeze({prepared: compiled.preparedEvidence.wire,
     authorization: compiled.authorization.wire,
     modelOriginalRunWire: originalModelRunWire(compiled, definition)});
-  const ticket = control.captureOriginalClientInferRun(compiled, prepared, definition, environment, undefined);
+  const ticket = control.captureOriginalClientInferRun(compiled, prepared, definition, request, environment, undefined);
   const programCid = moon.clientRequestProgramCid(request);
-  const materials = control.originalInferRunAdmissionEvidence(ticket, definition, programCid, evidence);
+  const materials = control.originalInferRunAdmissionEvidence(ticket, definition, request, evidence);
   return {environment, prepared, graph, compiled, definition, request, evidence, ticket, programCid, materials};
 }
 
@@ -76,7 +76,7 @@ function journalFixture(t, value = original(), limits) {
 
 function restore(value, materials = value.materials, evidence = value.evidence) {
   return control.admitStoredClientInferRunOriginal(materials, value.definition,
-    value.programCid, evidence, profiles, bounds);
+    value.request, evidence, profiles, bounds);
 }
 
 test('original Infer codec restores one nominal preparation graph and same complete Run without current defaults', () => {
@@ -101,7 +101,7 @@ test('first Infer journal admission refuses copied or other-control tickets and 
   assert.throws(() => f.accept({...f.value.ticket}), {code: 'InvalidClientInferRunOriginal'});
   const foreign = runtimeCore({...moon}).publicationControl;
   assert.throws(() => foreign.originalInferRunAdmissionEvidence(f.value.ticket,
-    f.value.definition, f.value.programCid, f.value.evidence), /Foreign/u);
+    f.value.definition, f.value.request, f.value.evidence), /Foreign/u);
   assert.throws(() => f.journal.acceptDefinition(f.value.request, {...f.options,
     runAdmissionEvidence: {...f.value.evidence, inferRunOriginal: f.value.materials}}, moon, control),
   {code: 'InvalidClientInferRunOriginal'});
@@ -156,23 +156,26 @@ test('saved Infer reader refuses altered original Task materials Run program and
     } else changed.resultPolicyOriginal.cid = cid('f');
     assert.throws(() => restore(value, changed));
   }
+  const changedProgram = structuredClone(program);
+  changedProgram.stages[0].steps[0].values.rows[0].text = 'another checked input';
+  const foreign = original('foreign-program', changedProgram);
   assert.throws(() => control.admitStoredClientInferRunOriginal(value.materials, value.definition,
-    cid('f'), value.evidence, profiles, bounds), /Foreign/u);
+    foreign.request, value.evidence, profiles, bounds), /Foreign/u);
   assert.throws(() => restore(value, value.materials, {...value.evidence, authorization: '{}'}), /Foreign/u);
   assert.throws(() => control.admitStoredClientInferRunOriginal(value.materials, original('different-run').definition,
-    value.programCid, value.evidence, profiles, bounds));
+    value.request, value.evidence, profiles, bounds));
 });
 
 test('Infer projection refuses a different preparation Environment or supplied Parameter Values', () => {
   const value = original();
   assert.throws(() => control.captureOriginalClientInferRun(value.compiled, original().prepared,
-    value.definition, value.environment, undefined), /Foreign/u);
+    value.definition, value.request, value.environment, undefined), /Foreign/u);
   const other = moon.clientProgramCheckEnvironment(canonical(base), base.evidence_bundle_cid, ...profiles);
   assert.ok(other);
   assert.throws(() => control.captureOriginalClientInferRun(value.compiled, value.prepared,
-    value.definition, other, undefined));
+    value.definition, value.request, other, undefined));
   assert.throws(() => control.captureOriginalClientInferRun(value.compiled, value.prepared,
-    value.definition, value.environment, '{"unexpected":1}'));
+    value.definition, value.request, value.environment, '{"unexpected":1}'));
 });
 
 test('legacy Infer material absence is not backfilled and changed originals do not replace a saved Run', t => {
@@ -222,10 +225,12 @@ test('another process reads the same Journal original pair after an acceptance r
     const journal=openClientRequestJournal(process.argv[1]);
     try {
       const ref=JSON.parse(process.argv[2]);
-      const saved=journal.lookupRunDefinition(ref,moon,control);
+      const saved=journal.lookupOwnedDefinition({namespaceId:ref.namespaceId,
+        authorityScopeCid:ref.authorityScopeCid,requestId:'original-request'},moon,control);
+      assert.equal(saved.ref.runDefinitionCid,ref.runDefinitionCid);
       assert.equal(saved.physicalStartReserved,false);
       const restored=control.admitStoredClientInferRunOriginal(saved.runAdmissionEvidence.inferRunOriginal,
-        saved.runDefinition,saved.programDefinitionCid,saved.runAdmissionEvidence,
+        saved.runDefinition,saved.requestIdentity,saved.runAdmissionEvidence,
         ${JSON.stringify(profiles)},${JSON.stringify(bounds)});
       assert.equal(originalModelRunWire(restored.compiled,restored.runDefinition),
         saved.runAdmissionEvidence.modelOriginalRunWire);

@@ -105,6 +105,9 @@ The private Node binding projects the Program from the actual compiled owner
 and admits the retained check Environment and supplied Parameter Values through
 that same codec. Its first-admission ticket is local to the existing runtime
 control; copied DATA, another control or another preparation cannot supply it.
+It captures the same opaque original request after Common checks both Program
+and Parameter Values. Another request, even with those same two CIDs, cannot
+consume this first-admission ticket.
 The request Journal stores the material bytes and original Result data policy
 in its existing admission-evidence row, atomically with the same Run and custody
 commit. Duplicate acceptance requires identical originals; a legacy missing
@@ -113,7 +116,8 @@ these bytes, rather than assigning a separate uncharged allowance.
 
 Reading those saved originals reconstructs the preparation, graph, compiled
 admission and original Run as one pair and separately re-admits the saved Result
-policy. The reader never selects current Task defaults or issues a replacement
+policy, checking Program and Parameter Values against the request re-admitted
+from the same original journal row. The reader never selects current Task defaults or issues a replacement
 authorization. That returned pair is not itself Host restoration: the physical
 caller must still bind its original submitted intent, fixed input/Store/Journal
 custody and independently current installation, authority and resource gates.

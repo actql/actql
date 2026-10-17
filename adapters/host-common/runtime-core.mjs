@@ -2357,10 +2357,11 @@ function publicationControl(moon) {
     },
     // First admission retains only the actual compiler owner and its original
     // Result policy. A copied wire cannot supply the journal's original ticket.
-    captureOriginalClientInferRun(compiled, checkedProgram, definition, environment, parameters) {
+    captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer' ||
           !moon.clientProgramCompiledRunMatches(value, checkedProgram) ||
+          !moon.clientProgramMatchesRequestIdentity(checkedProgram, request) ||
           !moon.clientProgramCheckCompiledRunDefinition(value, token(definition))) {
         throw new TypeError('Foreign Client original Infer Run');
       }
@@ -2372,16 +2373,16 @@ function publicationControl(moon) {
       originalInferRunTokens.set(selected, Object.freeze({
         original: Object.freeze({materialsWire, resultPolicyOriginal}),
         runDefinitionCid: definition.identity,
-        programCid: moon.clientProgramDefinitionCid(checkedProgram),
+        request,
         prepared: compiled.preparedEvidence.wire, authorization: compiled.authorization.wire,
       }));
       return selected;
     },
-    originalInferRunAdmissionEvidence(selected, definition, programCid, evidence) {
+    originalInferRunAdmissionEvidence(selected, definition, request, evidence) {
       const retained = originalInferRunTokens.get(selected);
       token(definition);
       if (retained === undefined || retained.runDefinitionCid !== definition.identity ||
-          retained.programCid !== programCid || retained.prepared !== evidence?.prepared ||
+          retained.request !== request || retained.prepared !== evidence?.prepared ||
           retained.authorization !== evidence?.authorization) {
         throw new TypeError('Foreign Client original Infer admission');
       }
@@ -2390,7 +2391,7 @@ function publicationControl(moon) {
     // The same journal's already selected Run supplies the expected original.
     // Current installation, authority and physical input custody are not read or
     // issued here. The returned preparation and graph must stay together.
-    admitStoredClientInferRunOriginal(original, definition, programCid, evidence, profiles, limits) {
+    admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits) {
       token(definition);
       issuanceLimits(limits, 'Original Infer Run');
       const keys = original === null || typeof original !== 'object' || Array.isArray(original)
@@ -2408,7 +2409,7 @@ function publicationControl(moon) {
         'RunHostInferMaterialsRejected');
       const prepared = moon.clientProgramInferRunMaterialsPrepared(materials);
       const graph = moon.clientProgramInferRunMaterialsGraph(materials);
-      if (graph === undefined || moon.clientProgramDefinitionCid(prepared) !== programCid ||
+      if (graph === undefined || !moon.clientProgramMatchesRequestIdentity(prepared, request) ||
           !moon.clientProgramCheckCompiledRunDefinition(value, token(definition)) ||
           inspectEvidence(moon.clientProgramCompiledRunPrepared(value)).wire !== evidence?.prepared ||
           inspectEvidence(moon.clientProgramCompiledRunAuthorization(value)).wire !== evidence?.authorization) {

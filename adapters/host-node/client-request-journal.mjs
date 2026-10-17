@@ -2039,7 +2039,7 @@ export function openClientRequestJournal(directory, {
         let original;
         try {
           original = publicationControl.originalInferRunAdmissionEvidence(originalInferRun,
-            definition, requestControl.clientRequestProgramCid(identity), runAdmissionEvidence);
+            definition, identity, runAdmissionEvidence);
         } catch (cause) { fail('InvalidClientInferRunOriginal', cause); }
         runAdmissionEvidence = {...runAdmissionEvidence, inferRunOriginal: original};
       }
