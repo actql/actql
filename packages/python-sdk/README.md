@@ -256,3 +256,25 @@ schema cannot supply a missing protocol completion marker or Host receipt.
 | resources | Existing page/control/signature limits remain; the convenience makes one exact lookup, without independent polling, pagination or retained cache. |
 | extension | Optional application signer does not require a Host/token/path for Local open; missing original Local funding still refuses. Remote remains engine-free. |
 | verification | Public sync/async, exact-ID, interruption, close-retry, signature preimage and strict typing cases remain distinct from installed Local acceptance. |
+
+### Check report attributes
+
+`check()` returns an immutable `CheckObservation` dataclass in both facades.
+For a completed outcome, inspect `outcome.report.verdict` and iterate
+`outcome.report.reasons`; each reason exposes `code`, `facts`, `location` and
+`fixes`. A failed check may carry `partial_report`; an unavailable check has no
+report. These are the original Host observations, not a Python check result.
+
+```python
+outcome = client.check("SELECT 1", kind="text", format="sql", scope="template_only")
+if outcome.report is not None:
+    for reason in outcome.report.reasons:
+        print(reason.code, reason.location)
+```
+
+Mapping access and `to_dict()` preserve exact wire absence. Optional dataclass
+attributes use `None` when absent; `dataclasses.asdict()` returns detached data,
+not a replacement wire response. Copies do not inherit the original check's
+input custody: pass the original observation to `get_check_input()` and
+`resolve_check_location()`. Reading these attributes performs no additional
+request and confers no execution or signing permission.
