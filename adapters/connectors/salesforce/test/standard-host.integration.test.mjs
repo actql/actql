@@ -2570,7 +2570,8 @@ test('Salesforce compound geolocation reaches its exact Named Result and same Ru
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
   assert.deepEqual((await execution.result('records').describe()).columns, [
     {name: 'Id', contract: {type: 'string', nullable: false}},
-    {name: 'Location__c', contract: {type: 'object', nullable: true, fields: {
+    {name: 'Location__c', contract: {type: 'object', nullable: true,
+      additional_properties: false, fields: {
       latitude: {type: 'decimal', precision: 18, scale: 15, nullable: true},
       longitude: {type: 'decimal', precision: 18, scale: 15, nullable: true}}}},
   ]);
