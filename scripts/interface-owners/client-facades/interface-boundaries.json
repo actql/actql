@@ -12736,7 +12736,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "responsibilityFacet": "primary",
-      "role": "pure",
+      "role": "public-wire-codec",
       "owner": "existing SDK Checkpoint action correspondence over registered Common artifact contracts",
       "rationale": "Generated structural DATA admission, not a signing authority or second Checkpoint state machine",
       "contracts": [
