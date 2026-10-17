@@ -547,6 +547,20 @@ pub fn public_model_task_contract_schema(PublicModelTaskContract) -> (String, St
 
 pub fn public_model_task_contract_usage(PublicModelTaskContract) -> (Int, Int, Int)
 
+pub fn public_model_task_declaration_contracts(PublicModelTaskDeclaration) -> (PublicModelTaskContract, PublicModelTaskContract)
+
+pub fn public_model_task_declaration_identity(PublicModelTaskDeclaration) -> (String, String)
+
+pub fn public_model_task_declaration_instructions(PublicModelTaskDeclaration) -> String
+
+pub fn public_model_task_declaration_limits(PublicModelTaskDeclaration) -> (Int64?, Int64?)
+
+pub fn public_model_task_declaration_model(PublicModelTaskDeclaration) -> (String, String)?
+
+pub fn public_model_task_declaration_original(PublicModelTaskDeclaration) -> @decode_core.Cursor
+
+pub fn public_model_task_declaration_usage(PublicModelTaskDeclaration) -> (Int, Int, Int)
+
 pub fn published_command_binding_identifier_type(PublishedCommandBinding) -> @value_contract.Contract?
 
 pub fn published_command_binding_mode(PublishedCommandBinding) -> PublishedCommandBindingMode
@@ -610,6 +624,8 @@ pub fn read_model_provider_defaults_configuration(Bytes, Limits, Int) -> Result[
 pub fn read_model_response_profile(Bytes, String, Limits, Int) -> Result[ModelResponseProfile, ModelTaskIssue]
 
 pub fn read_public_model_task_contract(@decode_core.Cursor, ModelTaskLimits) -> Result[PublicModelTaskContract, ModelTaskIssue]
+
+pub fn read_public_model_task_declaration(@decode_core.Cursor, ModelTaskLimits) -> Result[PublicModelTaskDeclaration, ModelTaskIssue]
 
 pub fn read_relation_schema_fields(@decode_core.Cursor, Int, Int, Int, Int) -> Result[(@relation_schema.Schema, Int), CarrierSchemaIssue]
 
@@ -1414,6 +1430,8 @@ type ProtocolValueContract
 type ProtocolValueContracts
 
 type PublicModelTaskContract
+
+type PublicModelTaskDeclaration
 
 pub struct PublishedCommandBinding {
   target : CommandTarget

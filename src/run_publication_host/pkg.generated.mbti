@@ -873,6 +873,10 @@ pub fn client_original_keyed_lookup_available(ClientModelReadScope, ClientCompil
 
 pub fn client_original_keyed_prefix_lookup_input(ClientOriginalKeyedPrefixLookup) -> ClientKeyedLookupInput?
 
+pub fn client_project_model_task_selection_for(ClientProjectModelTaskSelection, ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration) -> (String, String?, String)?
+
+pub fn client_project_model_task_selection_usage(ClientProjectModelTaskSelection) -> Int
+
 pub fn client_publication_plan_fact_bindings(ClientPublicationPlanFacts) -> Array[String]
 
 pub fn client_publication_plan_fact_entries(ClientPublicationPlanFacts) -> Array[String]
@@ -1837,6 +1841,8 @@ pub fn[A] reserve_client_keyed_acquisition_attempt(@query_planning.QueryEvidence
 
 pub fn resolve_client_model_provider_defaults(ClientModelProviderDefaults, String?, Int64?, Int) -> Result[@check_environment.ResolvedModelProviderDefaults, @check_environment.ModelProviderDefaultsResolutionIssue]
 
+pub fn resolve_client_project_model_task_defaults(ClientProjectModelTaskSelection, ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration, ClientModelProviderDefaults, Int) -> Result[@check_environment.ResolvedModelProviderDefaults, ClientProjectModelTaskSelectionIssue]
+
 pub fn restore_client_effect_run_normalization(ClientEffectRunMaterials) -> Result[@run_publication.RunEvidenceValue, ClientEffectNormalizationIssue]
 
 pub fn restore_client_effect_run_target_selections(ClientEffectRunMaterials) -> Result[String?, ClientEffectUpdateTargetIssue]
@@ -1870,6 +1876,8 @@ pub fn reuse_client_keyed_lookup_response(ClientKeyedLookupInput, ClientKeyedReq
 pub fn seal_client_requested_effect_stop(ClientRequestedEffectStop, @checkpoint_runtime.CheckpointRequest, String, @checkpoint_runtime.WireLimits) -> Result[@checkpoint_runtime.SealedCheckpoint, ClientRequestedEffectStopIssue]
 
 pub fn seal_client_requested_effect_stop_body(ClientRequestedEffectStop, String, String, @checkpoint_runtime.WireLimits) -> Result[String, ClientRequestedEffectStopIssue]
+
+pub fn select_client_project_model_task(ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration, Int) -> Result[ClientProjectModelTaskSelection, ClientProjectModelTaskSelectionIssue]
 
 pub fn select_client_single_keyed_acquisition(PreparedClientProgram) -> Result[ClientKeyedAcquisition?, ClientKeyedAcquisitionIssue]
 
@@ -3146,6 +3154,17 @@ pub fn ClientProjectModelRegistry::provider_count(Self) -> Int
 pub fn ClientProjectModelRegistry::selected_default_provider(Self) -> String?
 pub fn ClientProjectModelRegistry::task_at(Self, Int) -> (String, String)?
 pub fn ClientProjectModelRegistry::task_count(Self) -> Int
+
+type ClientProjectModelTaskSelection
+
+pub(all) enum ClientProjectModelTaskSelectionIssue {
+  InvalidLimits
+  WorkLimit
+  TaskUnavailable
+  ProviderUnavailable
+  ForeignOriginal
+  InvalidDefaults(@check_environment.ModelProviderDefaultsResolutionIssue)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ClientPublicationBindingAdmissionIssue {
   MissingPublication
