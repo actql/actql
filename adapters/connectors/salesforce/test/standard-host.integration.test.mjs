@@ -2485,7 +2485,9 @@ test('Salesforce multi-select arrays reach the same Named Result after Host reop
   ]});
   await setup.publish();
   const observations = [];
-  const authorization = {observe(name, detail) { observations.push({name, detail}); }};
+  const authorization = checkpointAuthorization({
+    observe(name, detail) { observations.push({name, detail}); },
+  });
   const {client, close} = await setup.open({authorization});
   const document = JSON.parse(numberProgram.replaceAll('Amount__c', 'Choices__c'));
   document.id = 'salesforce-multi-select';
