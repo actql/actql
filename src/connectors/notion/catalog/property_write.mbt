@@ -313,9 +313,15 @@ pub fn prepare_notion_property_write(
 pub fn notion_property_write_matches(
   write : NotionPropertyWrite,
   source : NotionDataSourceCatalog,
+  property_index : Int,
   value : @admitted.CheckedValue,
 ) -> Bool {
-  physical_equal(write.source, source) && physical_equal(write.value, value)
+  physical_equal(write.source, source) &&
+  physical_equal(write.value, value) &&
+  match notion_data_source_property_at(source, property_index) {
+    Some(property) => physical_equal(write.property, property)
+    None => false
+  }
 }
 
 ///|

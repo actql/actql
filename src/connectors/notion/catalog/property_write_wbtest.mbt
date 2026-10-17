@@ -125,12 +125,18 @@ test "Notion property write identity binds original source and checked input wit
     write_test_wire(source, value),
     "{\"properties\":{\"p%3Ax\":{\"checkbox\":false}}}",
   )
-  assert_true(notion_property_write_matches(write, source, value))
+  assert_true(notion_property_write_matches(write, source, 0, value))
+  assert_true(!notion_property_write_matches(write, source, 1, value))
   assert_true(
-    !notion_property_write_matches(write, write_test_source("checkbox"), value),
+    !notion_property_write_matches(
+      write,
+      write_test_source("checkbox"),
+      0,
+      value,
+    ),
   )
   let copy = @admitted.checked_boolean_value(false, value.contract).unwrap()
-  assert_true(!notion_property_write_matches(write, source, copy))
+  assert_true(!notion_property_write_matches(write, source, 0, copy))
   assert_eq(
     notion_page_properties_write_wire(
       write_test_source("checkbox"),
