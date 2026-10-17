@@ -104,6 +104,27 @@ parsed equal database, matching ids or equal response hashes do not replace
 the original association. This is metadata correspondence, not an installed
 issuer, currentness, egress capability or permission to query/write.
 
+Each database and data-source Catalog retains an independent bounded snapshot
+of its original UTF-8 response before decoding or hashing. The declaration
+already retains its independently snapshotted authored source. Their bounded
+original-text getters preserve CRLF, key order, unknown fields, numeric lexemes,
+Unicode and escape spellings exactly. A newly encoded Cursor or matching digest
+cannot replace this source material. The getters do not expose mutable byte
+backing, reselect a source, perform I/O or issue publication/current authority.
+Output exhaustion returns no partial text and leaves the original Catalog
+unchanged. A mutable caller Buffer cannot rewrite the captured observations.
+
+The physical response, private snapshot, UTF-8 decode/parser workspace, retained
+Cursor and property/source inventory overlap with hash workspace and each
+returned text backing. The two Catalog records each add a snapshot reference;
+an additional getter alias extends the original lifetime even if the runtime
+shares immutable text. Copying, hashing and UTF-8 conversion are bounded work,
+not free metadata storage, transfer credit or a cleanup acknowledgement. The
+actual installation/publication supplier must retain and fund this graph until
+confirmed physical retirement. These original-text projections are a necessary
+input to saved original publication; they do not themselves serialize a new
+publication contract, finish its persistence or authorize rediscovery on restore.
+
 Both readers use the existing preserving JSON parser and decode admission.
 Vendor property names are data: decomposed/precomposed Unicode, whitespace and
 empty names are not normalized. Each property's declared name must exactly
