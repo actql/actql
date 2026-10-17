@@ -18,7 +18,8 @@ pub fn InstalledArenaHost::prepare_process_child(
   guard process.holder is Some(holder) else {
     return Err(@bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.Unavailable)))
   }
-  holder.prepare_duplex_child(executable, arguments, descriptor, environment)
+  holder
+  .prepare_duplex_child(executable, arguments, descriptor, environment)
   .map_err(issue => @bootstrap.Process(issue))
 }
 

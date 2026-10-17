@@ -198,3 +198,16 @@ same typed stop permits original region retirement. Failed/unknown cleanup
 retains the same carrier, and physical stop does not settle external effects,
 Store commit, final quota or an uncertain operation outcome. Immutable replies
 retain the original Host/domain/process and typed issue even after refusal.
+
+`prepare_process_child` passes that captured descriptor to the same Holder's
+existing `prepare_duplex_child`. The Holder retains its own CLOEXEC duplicate
+and immutable executable/argv/closed environment snapshot; this caller does
+not open a replacement backing or prepare another process Owner. A known
+local preparation refusal leaves the original current carrier available for
+its own cleanup. `spawn_prepared_process_child` invokes the same one-attempt
+Holder and binds only its actual child to the original channel. A failed
+spawn, uncertain close or failed binding retains that original responsibility;
+none is a never-sent proof or permission to launch again. FD4 transport does
+not imply VM/domain admission. The normal supplier and separate process/VM
+funding are still unavailable, and regular C/private Python registration must
+be established from matching emitted signatures before embedding this entry.
