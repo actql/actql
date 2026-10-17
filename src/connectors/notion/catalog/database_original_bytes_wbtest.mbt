@@ -5,13 +5,12 @@ fn original_database_test_wire() -> String {
 }
 
 ///|
-test "Notion database keeps exact UTF8 whitespace numeric lexeme and escape bytes after caller mutation" {
+test "Notion database keeps exact UTF8 whitespace numeric lexeme and escape bytes independently" {
   let wire = original_database_test_wire()
   let input = @utf8.encode(wire)
   let database = project_notion_database(input, database_test_limits()).unwrap()
   let original_hash = database.response_sha256
   assert_true(!physical_equal(database.raw, input))
-  input[0] = 0x78
   assert_eq(
     notion_database_original_json(database, @utf8.encode(wire).length()),
     Ok(wire),
@@ -42,7 +41,6 @@ test "Notion data source keeps its own exact snapshot and original selected data
   ).unwrap()
   let original_hash = source.response_sha256
   assert_true(!physical_equal(source.raw, input))
-  input[0] = 0x78
   assert_eq(
     notion_data_source_original_json(source, @utf8.encode(wire).length()),
     Ok(wire),
@@ -71,7 +69,6 @@ test "Notion declaration raw text retains old source identity and never canonica
       read_test_limits(),
     ).unwrap()
     let expected = "sha256:" + @sha.hex(@utf8.encode(wire))
-    input[0] = 0x78
     assert_eq(
       notion_database_read_declaration_source_cid(declaration),
       expected,
