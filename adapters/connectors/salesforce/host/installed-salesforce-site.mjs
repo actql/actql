@@ -5,6 +5,7 @@
 // gate returned as dispatch.
 import {createHash, createPrivateKey, createPublicKey} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
+import {readSourceProfileJson} from '../../../host-node/source-profile-json.mjs';
 import {isAbsolute} from 'node:path';
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {canonicalJson as canonicalValueJson} from '../../../../packages/sdk/host-port.mjs';
@@ -61,7 +62,12 @@ export const DEFAULT_SALESFORCE_CATALOG_LIMITS = Object.freeze({
 });
 
 const fail = (code, cause) => {
-  throw Object.assign(new Error(code, {cause}), {code});
+  const failure = Object.assign(new Error(code, {cause}), {code});
+  if (cause?.cleanupHandle !== undefined) {
+    Object.assign(failure, {cleanupHandle: cause.cleanupHandle,
+      cleanupPending: cause.cleanupPending});
+  }
+  throw failure;
 };
 const text = value => typeof value === 'string' && value.length > 0;
 const cid = value => `sha256:${createHash('sha256')
@@ -173,7 +179,9 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   const principalId = authorization.context.principal;
   const context = authorization.context;
   let profile;
-  try { profile = JSON.parse(await readFile(path, 'utf8')); }
+  // Match the existing Host identity/configuration ceiling; Salesforce's
+  // publication uses its separate original 16,000,000-byte text boundary.
+  try { profile = await readSourceProfileJson(path, {maxBytes: 8 * 1024 * 1024}); }
   catch (error) { fail('InvalidInstalledSalesforceSiteProfile', error); }
   if (!validProfile(profile)) fail('InvalidInstalledSalesforceSiteProfile');
   let privateKey;
