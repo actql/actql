@@ -357,3 +357,40 @@ test('an unknown API outcome reply blocks a different page use on the same retai
   assert.equal(f.resourceRequests(), 1); assert.equal(f.tokenRequests(), 1);
   assert.equal(f.journal.recover().length, 2);
 });
+
+test('failed outcome recording keeps original current failure and its same pending cleanup receiver', async t => {
+  const f = await fixture(t); await f.exchange();
+  const cleanup = Object.freeze({status() {return {pending: true};}});
+  const failure = Object.freeze(Object.assign(new Error('OriginalCurrentReaderPending'), {cleanupHandle: cleanup}));
+  const probe = new DatabaseSync(':memory:');
+  const statements = Object.getPrototypeOf(probe.prepare('SELECT 1')); probe.close();
+  const originalRun = statements.run, originalExec = DatabaseSync.prototype.exec;
+  let armed = false, writes = 0, originalFailure;
+  const loss = new Error('OriginalFailedOutcomeCommitReplyLost');
+  statements.run = function(...values) {
+    const result = originalRun.apply(this, values);
+    if (/UPDATE credential_uses SET outcome/u.test(this.sourceSQL)) {armed = true;writes++;}
+    return result;
+  };
+  DatabaseSync.prototype.exec = function(sql) {
+    const result = originalExec.call(this, sql);
+    if (sql === 'COMMIT' && armed) {armed = false;throw loss;}
+    return result;
+  };
+  try {
+    await assert.rejects(f.resource({currentBeforeSend: async () => {throw failure;}}), error => {
+      assert.equal(error.code, 'RemoteCredentialAuthenticationOutcomeUnknown');
+      assert.equal(error.cause, failure);
+      assert.equal(error.cause.cleanupHandle, cleanup);
+      assert.equal(error.outcomeFailure.code, 'RemoteCredentialJournalCommitOutcomeUnknown');
+      assert.equal(error.outcomeFailure.cause, loss);
+      originalFailure = error; return true;
+    });
+  } finally { statements.run = originalRun; DatabaseSync.prototype.exec = originalExec; }
+  assert.equal(writes, 1);
+  await assert.rejects(f.resource({useId: 'later-page'}), error => error === originalFailure);
+  assert.equal(closeHttpsCredentialBinding(f.binding), 'closed');
+  assert.equal(cleanup.status().pending, true); // Binding close is not this original Reader's ACK.
+  assert.equal(f.resourceRequests(), 0); assert.equal(f.tokenRequests(), 1);
+  assert.equal(f.journal.recover().length, 2);
+});

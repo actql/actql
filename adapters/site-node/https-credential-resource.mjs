@@ -276,6 +276,14 @@ function authenticationCurrent(state, original, scope, control, journal, now, si
   return time;
 }
 
+function authenticationOutcomeFailure(originalFailure, outcomeFailure, useCid) {
+  // Keep the original physical failure in the established cause position; its
+  // original cleanup handle/receiver must not disappear behind a data record.
+  return Object.assign(new Error('RemoteCredentialAuthenticationOutcomeUnknown',
+    {cause: originalFailure}), {code: 'RemoteCredentialAuthenticationOutcomeUnknown',
+    outcomeFailure, useCid});
+}
+
 // This fixed form placement belongs only to the original registered Google
 // dependency. It is not a general unauthenticated transport or a token getter.
 export async function exchangeHttpsCredentialAuthentication({binding, material,
@@ -371,9 +379,7 @@ export async function exchangeHttpsCredentialAuthentication({binding, material,
       try {
         journal.finish(exchange.claim.record.useCid, started ? 'unknown' : 'failed');
       } catch (outcomeFailure) {
-        fail('RemoteCredentialAuthenticationOutcomeUnknown',
-          Object.freeze({originalFailure: error, outcomeFailure,
-            useCid: exchange.claim.record.useCid}));
+        throw authenticationOutcomeFailure(error, outcomeFailure, exchange.claim.record.useCid);
       }
     }
     throw error;
@@ -760,9 +766,7 @@ async function callCredentialResource({
     if (authenticated) {
       try { journal.finish(claimed.record.useCid, outcome); }
       catch (outcomeFailure) {
-        token.pendingOutcome = Object.assign(new Error('RemoteCredentialAuthenticationOutcomeUnknown', {
-          cause: Object.freeze({originalFailure: error, outcomeFailure, useCid: claimed.record.useCid}),
-        }), {code: 'RemoteCredentialAuthenticationOutcomeUnknown'});
+        token.pendingOutcome = authenticationOutcomeFailure(error, outcomeFailure, claimed.record.useCid);
         throw token.pendingOutcome;
       }
     } else journal.finish(claimed.record.useCid, outcome);
