@@ -255,13 +255,14 @@ test "Notion page metadata projection keeps original parent tags version and bou
     @sha.hex(raw) +
     "\",\"archived\":false,\"parent\":{\"type\":\"data_source_id\",\"data_source_id\":\"source\",\"database_id\":\"database\"}}"
   let bytes = @utf8.encode(expected).length()
-  assert_eq(notion_page_metadata_wire(page, bytes, 15, 3), Ok(expected))
+  // The existing writer counts open containers, not scalar leaf depth.
+  assert_eq(notion_page_metadata_wire(page, bytes, 15, 2), Ok(expected))
   assert_eq(
     notion_page_metadata_wire(page, bytes - 1, 15, 3),
     Err(BudgetExceeded),
   )
   assert_eq(notion_page_metadata_wire(page, bytes, 14, 3), Err(BudgetExceeded))
-  assert_eq(notion_page_metadata_wire(page, bytes, 15, 2), Err(BudgetExceeded))
+  assert_eq(notion_page_metadata_wire(page, bytes, 15, 1), Err(BudgetExceeded))
   assert_eq(notion_page_metadata_wire(page, 0, 15, 3), Err(InvalidLimits))
   for
     parent in [
