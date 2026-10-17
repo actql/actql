@@ -8,6 +8,8 @@ import {
 // Values
 pub fn notion_bind_data_source_read_contracts(@catalog.NotionDatabaseReadDeclaration, @catalog.NotionDataSourceCatalog, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionDataSourceReadContracts, @catalog.NotionReadContractIssue]
 
+pub fn notion_completed_property_json(@catalog.NotionDataSourceReadContracts, @catalog.NotionPropertyItemPage, Int, Int, Int, Int, Int, Int, Int) -> Result[String, @catalog.NotionPropertyItemIssue]
+
 pub fn notion_data_source_matches_database(@catalog.NotionDataSourceCatalog, @catalog.NotionDatabaseCatalog) -> Bool
 
 pub fn notion_data_source_metadata_json(@catalog.NotionDataSourceCatalog, Int, Int, Int) -> Result[String, @catalog.NotionDatabaseIssue]
@@ -18,15 +20,27 @@ pub fn notion_data_source_read_schema_json(@catalog.NotionDataSourceReadContract
 
 pub fn notion_database_metadata_json(@catalog.NotionDatabaseCatalog, Int, Int, Int) -> Result[String, @catalog.NotionDatabaseIssue]
 
+pub fn notion_next_property_request(@catalog.NotionPropertyItemPage) -> Result[@catalog.NotionPropertyItemRequest, @catalog.NotionPropertyItemIssue]
+
 pub fn notion_project_data_source(@catalog.NotionDatabaseCatalog, Int, Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionDataSourceCatalog, @catalog.NotionDatabaseIssue]
 
 pub fn notion_project_database(Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionDatabaseCatalog, @catalog.NotionDatabaseIssue]
+
+pub fn notion_project_property_item_page(@catalog.NotionPropertyItemRequest, Bytes) -> Result[@catalog.NotionPropertyItemPage, @catalog.NotionPropertyItemIssue]
 
 pub fn notion_project_query_page(@catalog.NotionDataSourceCatalog, Bytes, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.OriginalNotionQueryPage, @catalog.NotionQueryIssue]
 
 pub fn notion_project_user_list(Bytes, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionUserListPage, @catalog.NotionUserListIssue]
 
+pub fn notion_property_item_original_json(@catalog.NotionPropertyItemPage, Int) -> Result[String, @catalog.NotionPropertyItemIssue]
+
+pub fn notion_property_item_page_complete(@catalog.NotionPropertyItemPage) -> Bool
+
 pub fn notion_property_read_cell_json(@catalog.NotionDataSourceReadContracts, @catalog.OriginalNotionQueryPage, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[String, @catalog.NotionReadCellIssue]
+
+pub fn notion_property_request_json(@catalog.NotionPropertyItemRequest, Int, Int, Int) -> Result[String, @catalog.NotionPropertyItemIssue]
+
+pub fn notion_property_request_matches_binding(@catalog.NotionPropertyItemRequest, @catalog.NotionDataSourceReadContracts, Int) -> Bool
 
 pub fn notion_query_page_matches_source(@catalog.OriginalNotionQueryPage, @catalog.NotionDataSourceCatalog) -> Bool
 
@@ -39,6 +53,8 @@ pub fn notion_query_property_value_json(@catalog.OriginalNotionQueryPage, Int, I
 pub fn notion_read_database_declaration(Bytes, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionDatabaseReadDeclaration, @catalog.NotionReadContractIssue]
 
 pub fn notion_read_source_index(@catalog.NotionDatabaseReadDeclaration, @catalog.NotionDatabaseCatalog) -> Result[Int, @catalog.NotionReadContractIssue]
+
+pub fn notion_start_column_property_request(@catalog.NotionDataSourceReadContracts, @catalog.OriginalNotionQueryPage, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionPropertyItemRequest, @catalog.NotionPropertyItemIssue]
 
 pub fn notion_user_list_column_names() -> Array[String]
 
