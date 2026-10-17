@@ -53,6 +53,8 @@ pub fn admit_client_effect_run_materials(String, String, @pipeline_check_context
 
 pub fn admit_client_effect_serialization_captured_input(ClientCompiledRun, PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String) -> Result[ClientSerializationCapturedInput, @run_publication.RunEvidenceValueIssue]
 
+pub fn admit_client_host_signer_configuration(String, ClientHostSignerReadLimits) -> Result[ClientHostSignerConfiguration, ClientHostSignerConfigurationIssue]
+
 pub fn admit_client_infer_captured_input(PreparedClientProgram, Int, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.ModelSourceObservation) -> Result[ClientInferCapturedInput, ClientInferCallScopeIssue]
 
 pub fn admit_client_infer_composed_sources(ClientInferOccurrence, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], String, String, String, keyed? : ClientKeyedLookupObservation?) -> Result[ClientInferComposedSources, ClientInferCallScopeIssue]
@@ -2560,6 +2562,34 @@ pub(all) enum ClientExecutionMaterialIssue {
   Encoding
   InferTemplate(ClientInferBoundTemplateIssue)
 }
+
+type ClientHostSignerConfiguration
+pub fn ClientHostSignerConfiguration::has_explicit_signers(Self) -> Bool
+pub fn ClientHostSignerConfiguration::original_wire(Self) -> String
+pub fn ClientHostSignerConfiguration::select_signer(Self, String) -> ClientHostSignerSelection?
+pub fn ClientHostSignerConfiguration::signer_at(Self, Int) -> ClientHostSignerSelection?
+pub fn ClientHostSignerConfiguration::signer_count(Self) -> Int
+
+pub(all) enum ClientHostSignerConfigurationIssue {
+  InvalidHostSignerConfiguration
+  HostSignerConfigurationLimit
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ClientHostSignerReadLimits {
+  max_wire_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_signers : Int
+}
+
+type ClientHostSignerSelection
+pub fn ClientHostSignerSelection::allows_kind(Self, @checkpoint_runtime.CheckpointKind) -> Bool
+pub fn ClientHostSignerSelection::allows_kind_name(Self, String) -> Bool
+pub fn ClientHostSignerSelection::key_id(Self) -> String
+pub fn ClientHostSignerSelection::name(Self) -> String
+pub fn ClientHostSignerSelection::principal(Self) -> String
+pub fn ClientHostSignerSelection::private_key_file(Self) -> String
+pub fn ClientHostSignerSelection::public_key_file(Self) -> String
 
 pub(all) enum ClientIdentityMaterialIssue {
   MissingStage
