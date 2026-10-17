@@ -166,7 +166,7 @@ async function installation(t, {readable = ['Test_Record__c'],
       connectorId: 'crm-other', resources: ['Other_Record__c']}));
   }
   const hostRoot = join(root, 'state');
-  const publishAliases = async (value, path, published) => {
+  const publishAliases = async (value, path, published, namespace) => {
     // Visible aliases are explicit trusted installation metadata projected
     // from this same original publication, never guessed from a Program.
     // Salesforce's summary omits carrier_schema_cid; its same canonical view
@@ -175,7 +175,7 @@ async function installation(t, {readable = ['Test_Record__c'],
     value.queryAliases = published.declared.views.map(view => {
       const original = sourceViews.find(body => body.contract_cid === view.view_cid);
       assert.ok(original, 'Alias must use the same original Salesforce view');
-      return {name: `${value.connectorId}.${view.resource}`, sourceRef: view.source_ref,
+      return {name: `${namespace}.${view.resource}`, sourceRef: view.source_ref,
         sourceViewContractCid: view.view_cid, schemaContractCid: original.output.schema.cid};
     });
     await writeFile(path, JSON.stringify(value));
@@ -185,14 +185,16 @@ async function installation(t, {readable = ['Test_Record__c'],
       root: hostRoot, principalId: owner, moon: commonMoon,
       providerMoon: salesforceMoon,
       runtimeBundleCid, resolveSecret: secret});
-    await publishAliases(profile, profilePath, first);
+    // These explicit fixture names are relation paths, not connector IDs:
+    // crm-main/crm-other contain a hyphen and are not bare path identifiers.
+    await publishAliases(profile, profilePath, first, 'crm_main');
     if (secondInstallation) {
       const second = JSON.parse(await readFile(secondProfilePath, 'utf8'));
       const publishedSecond = await publishInstalledSalesforceSource(splitSourceAliasProfile(second).providerProfile, {
         root: hostRoot, principalId: owner, moon: commonMoon,
         providerMoon: salesforceMoon,
         runtimeBundleCid, resolveSecret: secret});
-      await publishAliases(second, secondProfilePath, publishedSecond);
+      await publishAliases(second, secondProfilePath, publishedSecond, 'crm_other');
     }
     return first;
   };
@@ -238,6 +240,7 @@ test('published Salesforce original views explicitly supply visible query aliase
   assert.equal(profile.queryAliases.length, 1);
   const [alias] = profile.queryAliases;
   const [catalogView] = JSON.parse(publication.declared.catalog).source_views;
+  assert.equal(alias.name, 'crm_main.Test_Record__c');
   assert.equal(alias.sourceRef, 'connector://crm-main/Test_Record__c#records');
   assert.equal(alias.sourceViewContractCid, catalogView.contract_cid);
   assert.match(alias.schemaContractCid, /^sha256:[0-9a-f]{64}$/u);
