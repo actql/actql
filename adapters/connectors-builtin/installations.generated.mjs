@@ -51,6 +51,21 @@ export const installedConnectors = Object.freeze([
     }),
   }),
   Object.freeze({
+    name: "gmail", registration: "gmail",
+    revision: "gmail/0.1",
+    implementationFiles: Object.freeze([
+      Object.freeze({path: "adapters/connectors/gmail/host/installed-gmail-source.mjs", href: new URL("../connectors/gmail/host/installed-gmail-source.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/gmail/site/gmail-label-list-read.mjs", href: new URL("../connectors/gmail/site/gmail-label-list-read.mjs", import.meta.url).href}),
+    ]),
+    providerBundle: "connectors/gmail/host_node",
+    responseHeaders: Object.freeze([]),
+    source: Object.freeze({
+      profileVersion: "actql-installed-gmail-source/0.1",
+      load: () => import("../connectors/gmail/host/installed-gmail-source.mjs")
+        .then(module => Object.freeze({check: module.checkInstalledGmailSourceProfile, identityParts: module.installedGmailSourceIdentityParts, load: module.loadInstalledGmailSource})),
+    }),
+  }),
+  Object.freeze({
     name: "hubspot", registration: "hubspot",
     revision: "hubspot/0.1",
     implementationFiles: Object.freeze([

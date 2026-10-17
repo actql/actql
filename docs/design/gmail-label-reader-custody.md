@@ -51,3 +51,41 @@ no fixed spare budget, second Ledger or mark-clean callback is introduced.
 These private Catalog/transport boundaries do not by themselves register a
 normally installed Gmail Source, supply service-account authentication, prove
 live mailbox access or complete the other Gmail read/write/content operations.
+
+## Installed label preparation
+
+The connector-owned Host manifest selects the label Source factory through the
+standard installation table. Its closed Source profile fixes connector identity,
+the original mailbox, Site-profile path, Account configuration and independent
+reader/declaration/secret ceilings. The Site fixes the original HTTPS origin,
+signing identity, namespace, generation, journal and optional TLS authority.
+Their ordinary identity parts retain a digest of the exact mailbox bytes and
+selected TLS authority; configuration normalization cannot collapse distinct
+mailboxes. The original Common schema/key declaration and checked Source alias
+publication remain the only query inputs.
+
+The trusted installer supplies the existing same-runtime opaque reader capacity;
+neither a public profile amount nor transfer/page ceilings issue this declaration.
+Absence is `GmailReaderCapacityUnavailable`, and missing original Credential
+material is unavailable before opening a Site. A normally discovered factory is
+not evidence that these independent supplies exist. In particular a test's
+explicit capacity declaration is not an adopted normal quantity.
+
+The factory uses the existing generic provider-reader path, which reserves on
+the original Run Ledger and installs its response-borrow cleanup observation
+before the synchronous I/O-free reader factory. One private wrapper obtains the
+already selected original read grant before creating its child reader, binding
+the original resource, mailbox, fields and request occurrence. It forwards
+current checks and cancellation around those awaits without retry or fallback
+to an ordinary reader. Whole-page charging and row admission use that same
+original RowRun. Copied preparations and foreign capacities cannot create a
+replacement acquisition.
+
+The wrapper retains its child, original binding, signal, close failure, Promise
+and callbacks along with the original reader inventory. Closing the physical
+transport does not settle raw/callback/capture aliases. Failed close cannot
+replace the original read failure, and observation remains unconfirmed until
+the existing custody Owner supplies an actual original transfer/retirement
+receipt. The enclosing capture therefore keeps its reservation and recovery
+responsibility. No factory-local ledger, cleanup acknowledgement or token-based
+mailbox identity is introduced.

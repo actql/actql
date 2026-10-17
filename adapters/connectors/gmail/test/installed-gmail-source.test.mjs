@@ -4,6 +4,9 @@ import {writeFile} from 'node:fs/promises';
 import {checkInstalledGmailSourceProfile,installedGmailSourceIdentityParts} from '../host/installed-gmail-source.mjs';
 import {installedGmailFixture} from './installed-gmail.fixture.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {loadInstalledSource} from '../../../host-node/installed-source.mjs';
+import {join} from 'node:path';
+import {openSqliteCredentialJournal} from '../../../site-node/sqlite-credential-journal.mjs';
 
 test('installed Gmail refuses absent capacity and credential material without legacy fallback or I/O',async t=>{
   const f=await installedGmailFixture(t);
@@ -34,16 +37,58 @@ test('installed Gmail generation retains exact mailbox bytes selected Site gener
 });
 
 test('installed Gmail actual text Source retains one original reader capture and unconfirmed custody',async t=>{
-  const f=await installedGmailFixture(t),source=await f.load();
-  const preparation=await f.prepare(source);
-  const opened=await source.openCapture(preparation);
-  await f.retain(opened,preparation.ledger);
-  const exported=checked(f.common.clientProgramExportSourceCapture(opened.capture.source(),opened.requirement,'installed-gmail-label-test'));
-  assert.deepEqual(f.common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse),[
-    {id:'INBOX',name:'Inbox',type:'system'},{id:'Label_1',name:'顧客 / é 📩',type:'user'}]);
-  assert.equal(f.state.requests.length,1);assert.equal(f.state.resolutions,1);
+  for(const format of ['sql','aql']){
+    const f=await installedGmailFixture(t),source=await f.load();
+    const preparation=await f.prepare(source,{format});
+    const opened=await source.openCapture(preparation);
+    await f.retain(opened,preparation.ledger);
+    const exported=checked(f.common.clientProgramExportSourceCapture(opened.capture.source(),opened.requirement,'installed-gmail-label-test'));
+    assert.deepEqual(f.common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse),[
+      {id:'INBOX',name:'Inbox',type:'system'},{id:'Label_1',name:'顧客 / é 📩',type:'user'}]);
+    assert.equal(f.state.requests.length,1);assert.equal(f.state.resolutions,1);
+    const held=f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger);
+    await assert.rejects(async()=>opened.close(),{code:'MoonBitHostFailure'});
+    assert.deepEqual(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger),held);
+    assert.equal(f.state.requests.length,1);
+  }
+});
+
+test('ordinary installed Gmail entrance discovers the real factory and refuses missing normal supply',async t=>{
+  const f=await installedGmailFixture(t),path=join(f.root,'source.json');
+  await writeFile(path,JSON.stringify(f.profile));
+  await assert.rejects(loadInstalledSource(path,{...f.options,
+    runtimeUrl:new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url)}),
+  {code:'GmailReaderCapacityUnavailable'});
+  assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
+});
+
+test('installed Gmail copied preparation and missing original Ledger cannot issue a physical request',async t=>{
+  const f=await installedGmailFixture(t),source=await f.load(),preparation=await f.prepare(source);
+  assert.throws(()=>source.ledgerCapacity({...preparation.preparedSource}),{code:'InstalledSourcePreparationMismatch'});
+  await assert.rejects(source.openCapture({...preparation,ledger:undefined}),{code:'InstalledProviderSourceLedgerRequired'});
+  assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
+});
+
+test('installed Gmail actual Account deny refuses preparation before Credential or HTTP',async t=>{
+  const f=await installedGmailFixture(t,{account:'deny'}),source=await f.load();
+  await assert.rejects(f.prepare(source),{code:'ACTQL_E_ACCOUNT_DENIED'});
+  assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
+});
+
+test('installed Gmail lost original reply keeps same recovery and journal Unknown without another send',async t=>{
+  const f=await installedGmailFixture(t),source=await f.load(),preparation=await f.prepare(source);
+  f.state.beforeResponse=request=>request.socket.destroy();let original;
+  await assert.rejects(source.openCapture(preparation),error=>{
+    original=error;return error.outcome==='unknown'&&error.recovery?.cleanupPending()===true;
+  });
+  await f.retain(original.recovery,preparation.ledger);
   const held=f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger);
-  await assert.rejects(async()=>opened.close());
+  await original.recovery.close();assert.equal(await original.recovery.cleanup(),false);
+  assert.equal(original.recovery.cleanupPending(),true);
   assert.deepEqual(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger),held);
-  assert.equal(f.state.requests.length,1);
+  await source.close();
+  const journal=openSqliteCredentialJournal(f.site.journalRoot);
+  try{const recovered=journal.recover();assert.equal(recovered.length,1);assert.equal(recovered[0].outcome,'unknown');}
+  finally{journal.close();}
+  assert.equal(f.state.requests.length,1);assert.equal(f.state.resolutions,1);
 });
