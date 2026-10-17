@@ -237,6 +237,21 @@ test "DELETE Mapping refuses mutated original schema and view envelopes without 
 test "DELETE Mapping is admitted by the existing shape and permission Owner only for delete id" {
   let original = delete_mapping_declaration()
   let mapping = original_delete_mapping(original)
+  // Environment section order uses the full member CID, independently of
+  // each declaration envelope's self-CID order.
+  let contracts = original.contracts.map(wire => {
+    let body = @json.parse(wire)
+    (canonical_cid(body, delete_mapping_limits()), body)
+  })
+  contracts.sort_by((a, b) => {
+    if key_before(a.0, b.0) {
+      -1
+    } else if key_before(b.0, a.0) {
+      1
+    } else {
+      0
+    }
+  })
   let base = object([
     ("version", "actql-check-environment/0.1".to_json()),
     (
@@ -253,29 +268,28 @@ test "DELETE Mapping is admitted by the existing shape and permission Owner only
       "source_views",
       Json::array(original.view_bodies.map(wire => @json.parse(wire))),
     ),
-    (
-      "contract_registry",
-      Json::array(original.contracts.map(wire => @json.parse(wire))),
-    ),
+    ("contract_registry", Json::array(contracts.map(entry => entry.1))),
     ("mapping_contracts", Json::array([@json.parse(mapping.body)])),
     ("command_contracts", Json::array([])),
     ("model_task_contracts", Json::array([])),
     ("host_policy_profile", object([])),
   ])
   guard base is Object(fields) else { fail("OriginalEnvironmentObject") }
-  fields["evidence_bundle_cid"] = canonical_cid(base, delete_mapping_limits()).to_json()
+  let evidence_cid = canonical_cid(base, delete_mapping_limits())
+  let entries = []
+  for name, value in fields {
+    entries.push((name, value))
+  }
+  entries.push(("evidence_bundle_cid", evidence_cid.to_json()))
+  let sealed = object(entries)
   let limits : @environment.Limits = {
     max_bytes: 100000,
     max_nodes: 10000,
     max_depth: 32,
     max_members: 100,
   }
-  let wire = canonical_text(base, delete_mapping_limits())
-  let environment = @environment.read(
-    @utf8.encode(wire),
-    spec_text(base, "evidence_bundle_cid").unwrap(),
-    limits,
-  ).unwrap()
+  let wire = canonical_text(sealed, delete_mapping_limits())
+  let environment = @environment.read(@utf8.encode(wire), evidence_cid, limits).unwrap()
   let shapes = @environment.check_mapping_contract_shapes(
     environment, limits, 10000,
   ).unwrap()
