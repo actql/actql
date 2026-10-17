@@ -362,3 +362,43 @@ Double, current display settings, guessed row IDs or raw file keys. Required
 create fields and original target/revision correspondence must be checked at
 the subsequent existing request and Effect boundaries. No installed or live
 provider round-trip is inferred from DATA encoding and independent read tests.
+
+### Original create and update request correspondence
+
+The Catalog embeds its writer-owned `RecordWriteValues` documents into a
+bounded create request under the same physical Form. The original checked
+values and Form remain retained; equal Form bytes cannot substitute for that
+original. The [provider create contract](https://kintone.dev/en/docs/kintone/rest-api/records/add-records/)
+associates returned IDs with request order. Complete, equally sized ID and
+revision arrays preserve that correspondence without converting their digit
+strings through Number. Omitted fields remain omitted; provider defaults,
+required fields and the eventual full Effect Preview need their existing
+checks and cannot be inferred from this encoding.
+
+An update request keeps each original API-ID/revision target paired with its
+own same-Form checked values. It explicitly selects `upsert:false` and includes
+every original revision. This [provider update contract](https://kintone.dev/en/docs/kintone/rest-api/records/update-records/)
+would otherwise allow missing revision checks or insertion; neither is a
+substitute for a separately approved conditional create. Exact and numeric
+duplicate target aliases refuse the batch without changing ID spelling,
+splitting requests or scheduling a retry. Both requests reject more than 100
+records and bound the complete envelope plus every embedded document.
+
+A complete HTTP 200 response observation retains the same request and exact
+response digest. Update observations must cover each exact original API ID
+once, independently of response order. Numeric identities, missing or duplicate
+entries, a foreign ID, partial/error bodies, unexpected insertion markers and
+exhausted bounds return no partial acknowledgement. The physical caller must
+first bind the response to its original claim; this synchronous DATA projection
+does not prove remote origin, applied values, current authority, committed
+Effect or cleanup ACK. A lost reply has no successful constructor.
+
+The original Form/pages, checked values and targets overlap copied request
+reference arrays, nested encoded documents, outer writer/output, response
+bytes, Source/Decode trees, bounded identity comparisons, returned identity
+arrays and digest workspace. Positive limits bound individual work, not
+simultaneous funding. The existing capture child must hold these originals
+until actual cleanup acknowledgement. Numeric history, Time, issued Content,
+subtable originals, physical write dispatch, approval/reconciliation and the
+original Effect response funding supplier remain separate required connections.
+No installed write support or numerical profile is issued by these codecs.
