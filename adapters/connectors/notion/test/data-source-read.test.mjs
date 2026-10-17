@@ -283,9 +283,9 @@ test('actual Notion current denial or stop after the awaited property selection 
       }});
     let failure;
     await assert.rejects(reader.read(),error=>{
-      failure=error;const expected=stop?error.cause===reason:error.cause.code==='NotionPropertyDenied';
-      if(!expected)t.diagnostic(JSON.stringify({stop,causeCode:error.cause?.code,causeMessage:error.cause?.message}));
-      return expected;
+      // The original Account Owner rejects replacement configuration before
+      // returning another decision; the fixture must not demand a later code.
+      failure=error;return stop?error.cause===reason:error.cause.code==='AuthorizationCurrentAccountChanged';
     });
     assert.equal(f.state.requests.length,1);assert.equal(failure.children.length,0);
     assert.equal(failure.responseCharges[0],f.state.charges[0]);assert.deepEqual(f.rows,[]);
