@@ -311,9 +311,25 @@ function handOverCredentialSiteRelease(site, primary, errors, ownerFailureCode) 
   const earlier = primary?.cleanupHandle;
   const earlierOwned = earlier !== undefined || primary?.cleanupPending === true;
   const earlierErrors = primary?.cleanupErrors ?? [];
+  let originalStatus, originalRetry;
+  let statusCaptured = false, retryCaptured = false;
+  function captureEarlierMethods() {
+    // Capture each successfully observed method once, before invoking either
+    // one. A failed getter keeps the same receiver pending for a later check.
+    if (!retryCaptured) {
+      originalRetry = earlier?.retry;
+      retryCaptured = true;
+    }
+    if (!statusCaptured) {
+      originalStatus = earlier?.status;
+      statusCaptured = true;
+    }
+  }
   const earlierStatus = () => {
     try {
-      return typeof earlier?.status === 'function' ? earlier.status() : undefined;
+      captureEarlierMethods();
+      return typeof originalStatus === 'function'
+        ? originalStatus.call(earlier) : undefined;
     } catch (error) {
       // An unavailable observation cannot replace the primary failure or
       // confirm release. Keep the retry owner and the observation failure.
@@ -337,9 +353,13 @@ function handOverCredentialSiteRelease(site, primary, errors, ownerFailureCode) 
       errors: Object.freeze([...(before?.errors ?? earlierErrors), ...errors])});
   };
   const handle = Object.freeze({status, async retry() {
-    if (earlierStatus()?.pending !== false &&
-        typeof earlier?.retry === 'function') {
-      try { await earlier.retry(); } catch (error) { errors.push(error); }
+    if (earlierStatus()?.pending !== false) {
+      try {
+        captureEarlierMethods();
+        if (typeof originalRetry === 'function') {
+          await originalRetry.call(earlier);
+        }
+      } catch (error) { if (!errors.includes(error)) errors.push(error); }
     }
     if (site.cleanupPending() === true) {
       try { site.close(); } catch (error) { errors.push(error); }
