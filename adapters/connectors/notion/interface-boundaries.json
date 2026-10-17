@@ -1,5 +1,5 @@
 {
-  "source": "fa2c7b6ed5ae73f2e5fbce7e66d9c6be39a006e4",
+  "source": "f22c1b98bbca68a1ad989fc2dd9c7ec7a03bb117",
   "qualification": "Lead-reviewed existing Owner references and syntax coverage only; not normal funding, raw retirement, installation, actual Notion service or release acceptance",
   "declarations": [
     {
@@ -320,7 +320,7 @@
     },
     {
       "module": "adapters/connectors/notion/site/property-item-read.mjs",
-      "sha256": "ea2c00ea7fbf3c3e89e8b55df695a3ee722785b515aef475bd23b5c36392172f",
+      "sha256": "dadf57705f88b40beadbed3c4581f4f52aa7f5a24bb0d2226838faf3152f9667",
       "exports": [
         "NOTION_PROPERTY_READ_API_VERSION",
         "NOTION_PROPERTY_READ_OPERATION",
@@ -518,6 +518,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "Prefix charges go to observation"
+              },
+              {
+                "path": "adapters/connectors/notion/site/property-item-read.mjs",
+                "anchor": "{charge,originalRequest:request,completedPage:page}"
               }
             ],
             "identity": [
@@ -586,11 +590,353 @@
               {
                 "path": "src/connectors/notion/catalog/property_item_original_wbtest.mbt",
                 "anchor": "test \"Notion copied pagination control cannot upgrade an incomplete original\""
+              },
+              {
+                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "anchor": "actual Notion query and property operations retain typed rows and original response charges across both cursors"
               }
             ]
           }
         }
       ]
+    },
+    {
+      "module": "adapters/connectors/notion/site/data-source-read.mjs",
+      "sha256": "184ad50c92997d74a383d9a72d8c7c4736c9417ff71ac04959d424a7e7a9bf61",
+      "exports": [
+        "NOTION_DATA_SOURCE_READ_OPERATION",
+        "NotionDataSourceReadFailure",
+        "createNotionDataSourceReader"
+      ],
+      "operations": [
+        {
+          "name": "createNotionDataSourceReader",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDataSourceReader/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNotionDataSourceReader/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createNotionDataSourceReader/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "executeRead",
+          "parameters": [
+            "prepared",
+            "state"
+          ],
+          "async": true
+        },
+        {
+          "name": "executeRead/authorizationFor/authorizationFor",
+          "parameters": [
+            "input"
+          ],
+          "async": true
+        },
+        {
+          "name": "executeRead/chargeResponse/chargeResponse",
+          "parameters": [
+            "body"
+          ],
+          "async": true
+        },
+        {
+          "name": "executeRead/child/child",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "executeRead/child/child#2",
+          "parameters": [
+            "_wire",
+            "charge",
+            "completedPage"
+          ],
+          "async": false
+        },
+        {
+          "name": "executeRead/response/response",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "executeRead/response/response/response",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "executeRead/verify/verify",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "NotionDataSourceReadFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause",
+            "observations",
+            "children",
+            "responseCharges"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReader",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "x"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead",
+          "parameters": [
+            "moon",
+            "declaration",
+            "source",
+            "readContracts",
+            "initialAuthorization",
+            "propertyAuthorization",
+            "credential",
+            "authorizationFor",
+            "current",
+            "chargeResponse",
+            "consumeObservation",
+            "consumePage",
+            "limits",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/prepareRead",
+          "parameters": [
+            "x"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/prepareRead#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/prepareRead#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "./property-item-read.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing Notion Catalog and physical reader; Common Value/Contract, Account, Credential/Site, Source RowRun and Resource keep original authority/accounting/capture/cleanup",
+      "contracts": [
+        {
+          "id": "notion-original-complete-property-rows",
+          "operations": [
+            "<module>",
+            "createNotionDataSourceReader",
+            "createNotionDataSourceReader/handle/init:observe/init:observe",
+            "createNotionDataSourceReader/handle/init:read/init:read",
+            "createNotionDataSourceReader/handle/init:requestStop/init:requestStop",
+            "executeRead",
+            "executeRead/authorizationFor/authorizationFor",
+            "executeRead/chargeResponse/chargeResponse",
+            "executeRead/child/child",
+            "executeRead/child/child#2",
+            "executeRead/response/response",
+            "executeRead/response/response/response",
+            "executeRead/verify/verify",
+            "fail/fail",
+            "NotionDataSourceReadFailure/constructor:constructor/constructor:constructor",
+            "originalReader",
+            "positive/positive",
+            "prepareRead",
+            "prepareRead/prepareRead",
+            "prepareRead/prepareRead#2",
+            "prepareRead/prepareRead#3",
+            "prepareRead/provider/provider"
+          ],
+          "exports": [
+            "NOTION_DATA_SOURCE_READ_OPERATION",
+            "NotionDataSourceReadFailure",
+            "createNotionDataSourceReader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "## Original complete property rows"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Provider-declared query incompleteness"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/notion/site/data-source-read.mjs",
+                "anchor": "export function createNotionDataSourceReader(options)"
+              },
+              {
+                "path": "src/connectors/notion/catalog/read_row.mbt",
+                "anchor": "pub fn start_notion_read_row("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Another observation with the same page id, an equal schema/value or a"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "A query grant is never"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The assembly retains the original binding/schema/query-row graph, one private"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Account/authorization remain independently checked before and through each"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/notion/site/data-source-read.mjs",
+                "anchor": "export class NotionDataSourceReadFailure"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "A lost\ndependent reply retains its original journal Unknown"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Provider-declared query incompleteness"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Cancellation aborts the same original readers."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Aggregate nodes, text,"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Each query page also retains raw/decode/row metadata, per-page original assembly"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Every returned response charge is also retained by the parent and on its result"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The outer array and every row contribute to whole-page nodes, depth, text, work"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Provider-declared query incompleteness"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "configuration/revision/current-schema suppliers, ordinary Source/Run integration,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/notion/catalog/read_row_wbtest.mbt",
+                "anchor": "test \"Notion row refuses a completion from a different original observation with the same page id\""
+              },
+              {
+                "path": "src/connectors/notion/catalog/read_row_wbtest.mbt",
+                "anchor": "test \"Notion row aggregate canonical text budget counts Decimal coefficient rather than input punctuation\""
+              },
+              {
+                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "anchor": "actual Notion dependent reply loss remains the original credential Unknown and retained child, without resend"
+              },
+              {
+                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "anchor": "actual Notion aggregate page node cap applies to all complete rows together"
+              },
+              {
+                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "anchor": "actual Notion incomplete first page refuses before dependent I/O or row delivery and retains original charges"
+              },
+              {
+                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "anchor": "actual Notion incomplete final page cannot complete after an earlier valid original page"
+              },
+              {
+                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "anchor": "actual Notion explicit complete statuses preserve exact Decimal and original page custody"
+              }
+            ]
+          }
+        }
+      ],
+      "responsibilityFacet": "primary"
     }
   ]
 }

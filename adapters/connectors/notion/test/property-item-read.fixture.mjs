@@ -42,7 +42,7 @@ export function propertyOriginals({enumeration,propertyLimits={}}={}){
   return{binding,request};
 }
 
-export async function propertyReadFixture(t,{account='allow',enumeration,propertyLimits}={}){
+export async function propertyReadFixture(t,{account='allow',enumeration,propertyLimits,additionalOperations=[]}={}){
   const parent=join(repo,'_build','notion-property-fixtures');await mkdir(parent,{recursive:true});
   const root=await mkdtemp(join(parent,'read-'));
   execFileSync('openssl',['req','-x509','-newkey','rsa:2048','-nodes','-keyout','server.key','-out','server.crt','-days','1','-subj','/CN=localhost','-addext','subjectAltName=DNS:localhost,IP:127.0.0.1'],{cwd:root,stdio:'ignore'});
@@ -51,8 +51,10 @@ export async function propertyReadFixture(t,{account='allow',enumeration,propert
     charges:[],observations:[],values:[],secret:'notion-fixture-token',beforeResponse:undefined,resolved:undefined,status:200};
   const server=createServer({key,cert},async(request,response)=>{
     state.requests.push({path:request.url,method:request.method,authorization:request.headers.authorization,version:request.headers['notion-version']});
-    try{await state.beforeResponse?.(request,response);if(response.destroyed||response.writableEnded)return;
-      const page=state.pages[state.requests.length-1];assert.notEqual(page,undefined);
+    try{let body='';for await(const chunk of request){body+=chunk.toString();assert(Buffer.byteLength(body)<=16384);}
+      state.requests.at(-1).body=body;
+      await state.beforeResponse?.(request,response);if(response.destroyed||response.writableEnded)return;
+      const page=state.respond===undefined?state.pages[state.requests.length-1]:await state.respond(request,body);assert.notEqual(page,undefined);
       response.writeHead(state.status,{'content-type':'application/json'});response.end(typeof page==='string'||Buffer.isBuffer(page)?page:JSON.stringify(page));
     }catch(cause){response.destroy(cause);}
   });
@@ -74,6 +76,15 @@ export async function propertyReadFixture(t,{account='allow',enumeration,propert
     runInvocationCid:cid('b'),taskAttempt:1,dispatchRequestCid:cid('c'),expiresUnixMilliseconds:BigInt(Date.now()+60000),maxUses:16});
   const grant=control.prepare(scope),sign=value=>signRemoteCredentialGrant(value,control,{keyId:'key',privateKey:authority.privateKey});
   journal.acceptGrant(sign(grant),control);
+  // Each operation has its own actual signed original grant. The test never
+  // retargets a property grant/use to authorize a database-query operation.
+  const authorizations=new Map([[NOTION_PROPERTY_READ_OPERATION,{grant,scope}]]);
+  for(const operation of additionalOperations){
+    assert.equal(typeof operation,'string');assert(!authorizations.has(operation));
+    const selected=Object.freeze({...scope,operation}),original=control.prepare(selected);
+    journal.acceptGrant(sign(original),control);authorizations.set(operation,{grant:original,scope:selected});
+  }
+  const authorize=(operation,useId)=>{const original=authorizations.get(operation);assert(original);return{...original,useId};};
   const accountPath=join(root,'account.json');
   const writeAccount=outcome=>writeFile(accountPath,canonicalJson({version:'actql-execution-account-config/0.1',account_id:'fixture',entries:[{entry_id:'notion-property-read',outcome,
     principal:{all:true},connection:{any_of:['notion:fixture']},resource:{any_of:['property-fixture']},operation:{any_of:['read']},exclusions:[]}]}));
@@ -92,6 +103,6 @@ export async function propertyReadFixture(t,{account='allow',enumeration,propert
     chargeResponse:body=>{const charge=Object.freeze({originalBody:body});state.charges.push(charge);return charge;},
     consumeObservation:charge=>{consume(charge);state.observations.push(charge);},
     consumeValue:(wire,{charge})=>{consume(charge);state.values.push(wire);}};
-  return{root,state,scope,grant,control,sign,journal,options,current,writeAccount,originals,
+  return{root,state,scope,grant,control,sign,journal,options,current,writeAccount,originals,authorize,
     create:overrides=>createNotionPropertyReader({...options,...overrides})};
 }
