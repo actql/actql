@@ -52,6 +52,7 @@ fn local_intent_wire(
   operation : String,
   child : @argparse.Matches,
 ) -> String raise ClientStop {
+  let stop_before = native_requested_stop_before(child)
   let input = if operation == "start" {
     json_file(root, required(child, "program-file"), 65536L)
   } else {
@@ -78,19 +79,15 @@ fn local_intent_wire(
     Some(file) => json_file(root, file, 65536L)
     None => Json::null()
   }
-  encode_request_json(
-    Json::object(
-      Map([
-        (
-          "kind",
-          Json::string(if operation == "start" { "program" } else { "aql" }),
-        ),
-        ("input", input),
-        ("parameters", parameters),
-      ]),
-    ),
-    65536,
-  )
+  let fields : Map[String, Json] = Map([
+    ("kind", Json::string(if operation == "start" { "program" } else { "aql" })),
+    ("input", input),
+    ("parameters", parameters),
+  ])
+  if stop_before is Some(boundary) {
+    fields["stopBefore"] = Json::string(boundary)
+  }
+  encode_request_json(Json::object(fields), 65536)
 }
 
 ///|

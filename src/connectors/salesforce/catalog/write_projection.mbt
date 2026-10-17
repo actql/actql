@@ -32,9 +32,10 @@ pub struct WriteProjection {
 }
 
 ///|
-/// This is the scalar subset with an exact JSON representation; a Number
+/// This is the field subset with an exact provider projection; a Number
 /// (`double`), Currency and Percent within the declared Decimal domain.
-/// Salesforce can still reject a value under constraints not proved here.
+/// Multi-select fields use the bounded semicolon/Array codec. Salesforce can
+/// still reject a value under constraints not proved here.
 fn write_field_type_supported(native_type : String) -> Bool {
   match native_type {
     "id"
@@ -46,6 +47,7 @@ fn write_field_type_supported(native_type : String) -> Bool {
     | "url"
     | "picklist"
     | "combobox"
+    | "multipicklist"
     | "boolean"
     | "int"
     | "double"
@@ -177,6 +179,7 @@ fn same_write_field(before : FieldMetadata, after : FieldMetadata) -> Bool {
     before.case_sensitive != after.case_sensitive ||
     before.precision != after.precision ||
     before.scale != after.scale ||
+    before.compound_field_name != after.compound_field_name ||
     before.reference_to.length() != after.reference_to.length() {
     return false
   }

@@ -21,20 +21,27 @@ Every contract, including array items and object properties, requires `nullable`
 Parameter-specific omissions, defaults and constraints belong to the separate
 Parameter grammar and binding boundary.
 
+Text may additionally retain an ordered `enum` vector in both general grammars
+and the Parameter adapter. It intersects the existing extents; it is not another
+scalar kind. Absence differs from an empty vector. Empty strings, repeated entries
+and exact vector order are retained. Enumerants are well-formed Unicode data,
+not NFC/LF identifiers: no normalization or inferred default is applied.
+
 `read_parameter_syntax` is a separate [Parameter type adapter](parameter-binding.md).
 It applies recursive Parameter nullability shorthand and preserves constraints,
 default and metadata cursors for declaration admission; it does not validate the
-default or metadata itself. The general `read_author`/`read_checked` grammars are
-unchanged.
+default or metadata itself. It does not import Parameter defaults or `format`
+into the general `read_author`/`read_checked` grammars.
 
 Both entries allow empty object fields. Field names follow the Language rule,
 including line breaks, and reject dots, blank names, `__cid` and the `__actql_`
 prefix. A field named `meta` is ordinary schema data, not an annotation. The
 value-contract envelope itself does not acquire an annotation member.
 
-The cursor boundary requires normalized NFC/LF text. Source parsers establish
-this before admission. Contract readers check rather than repair noncanonical
-field names and reference-kind/media strings from other cursors. They are not
+The identifier boundary requires normalized NFC/LF text. Source parsers establish
+this for object keys before admission. Contract readers check rather than repair
+noncanonical field names and reference-kind/media strings from other cursors.
+Enumeration data has its separate exact-Unicode rule above. These readers are not
 canonical JSON text parsers: whitespace, token spelling, duplicate source keys,
 signatures and issuer evidence remain the enclosing admission boundary's work.
 Reading checked bounds does not prove the evidence from which those bounds arose.
@@ -51,9 +58,13 @@ bounds without adding a cross-bound satisfiability requirement.
 ## Limits and diagnostics
 
 `max_nodes` counts contract occurrences, including the root, rather than JSON
-members. `max_depth` counts child-contract edges: a root contract has depth zero.
+members. A present Text enumeration additionally charges its array and every
+entry, including duplicates and extent-excluded entries. `max_depth` counts
+child-contract edges: a root contract has depth zero. The enum array adds an edge
+and each enumerant adds another; an empty root enum therefore needs depth one.
 `max_text_bytes` counts type-tag values, checked `f32`, object field names and
-reference-kind/media strings in UTF-8. Fixed property names are not charged again.
+reference-kind/media strings and every exact enumerant in UTF-8. Fixed property
+names are not charged again.
 These limits supplement the source/owned-tree budgets; they do not replace them.
 Zero limits are legal, exact boundaries pass, negative limits fail before reading.
 
@@ -82,6 +93,13 @@ assembly rejects duplicate or noncanonical names, sorts by UTF-16 code units,
 and owns its field array. It accepts an empty field set. It neither normalizes
 names nor adds cross-bound satisfiability restrictions.
 
+`string_enum_contract` validates the complete enum metadata against explicit
+`Limits`, then detaches the caller's vector. Existing `string_contract` keeps its
+old signature and absent-enum behavior. `TextEnumeration` has no public mutable
+backing or constructor; indexed `text_enumerant_count`/`text_enumerant_at` views
+distinguish absence from empty without copying the vector. Returned Strings do
+not establish original installation, authorization or reference identity.
+
 These are type-description functions, not proofs about runtime values or the
 evidence for inferred bounds. `with_nullability` changes only root nullability;
 it does not change child contracts or establish that a value is non-null.
@@ -96,13 +114,23 @@ field access returns `None` outside the field range.
 ### Comparing contracts
 
 - `type_equal` compares complete checked contracts, including optional bounds and
-  nullability. Object source order is irrelevant.
+  nullability. Object source order is irrelevant; enum order and repetitions are
+  part of the checked preimage and therefore significant.
 - `assignable(actual, expected)` implements directional compatibility without
-  coercion. Actual upper bounds must be no larger, lower bounds no smaller, and
-  absent bounds do not prove a restriction. Non-null can flow to nullable.
+  coercion. Outside the finite Text-enum proof, actual upper bounds must be no
+  larger, lower bounds no smaller, and absent bounds do not prove a restriction.
+  Non-null can flow to nullable.
+  An actual finite enum is inspected against its own extents before testing each
+  allowed value against the expected extents and enum. Excluded entries remain
+  retained data, not actual values. An absent enum cannot by itself prove a finite
+  expected domain; this is not a general satisfiability solver.
 - `join_nullability` preserves the same recursive base structure and fixed
   decimal/vector/ResourceKind parameters, ORs nullability and retains the least
   restrictive common bounds. Different Artifact media restrictions join to absent.
+  Two present Text enums retain every left occurrence and append only right
+  members not already present. If either enum is absent the join's enum is absent.
+  Extents and membership are joined coordinatewise: this is a conservative common
+  supertype, not necessarily the exact denotation union or global least upper bound.
   Incompatible types return `None`; a budget failure returns no partial join.
 - `key_comparable` compares non-null key domains. Decimal precision/scale may
   differ; ResourceKind must match; Artifact media restrictions may differ. Object,
@@ -114,6 +142,14 @@ comparison and negative limits are invalid. Traversal is iterative. Key comparis
 only inspects the root domain and needs no recursive-pair budget. Relations apply
 the specified structural rules, not general satisfiability or expression inference.
 
+Present-enum relations additionally charge enum traversal and comparison work
+against that same finite relation allowance. Each enum transition, or each block
+of at most 64 UTF-16 comparisons, consumes a unit; scalar scans keep a trailing
+surrogate pair together. Exact equality
+defers long enumerant comparisons through its existing continuation and can be
+cancelled without exposing a partial result. Joins charge before growing their
+output vector; all immutable input and transient output holdings still coexist.
+
 ## Canonical output and verification
 
 `emit_checked` emits the whole checked contract through a caller-owned bounded
@@ -122,6 +158,13 @@ Text, measurement and hash sinks share the same canonical emission. Omitted boun
 are not synthesized, object field names are UTF-16 sorted, and no field is removed
 from the preimage. Output limits use the Writer's JSON accounting, not contract-node
 accounting; objects, fixed fields and scalar members consume that budget normally.
+
+Enum emission uses the existing bounded array/String writer cursors one member
+at a time. JSON Schema projection retains the same vector, including in nested
+nullable types; unsupported additional extents still refuse rather than being
+erased. The original enum backing, Strings, lookup/comparison continuations and
+join/output workspace remain part of the consuming Host/Run's retained/workspace
+inventory. Structural limits are not a physical reservation or numerical profile.
 
 [Fixed vectors](../../portability/corpus/value-contracts.json) include empty object
 types and line-break field names. `generate:value-contracts` emits MoonBit tests

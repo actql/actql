@@ -18,6 +18,7 @@ pub struct ReadProjection {
   binding : CatalogExecutionBinding
   resource : String
   fields : Array[FieldMetadata]
+  field_components : Array[Array[(String, FieldMetadata)]]
   contracts : Array[@contract.Contract]
   soql : String
   max_soql_bytes : Int
@@ -37,11 +38,17 @@ pub(all) enum ExactIntComparison {
 } derive(Eq, Debug)
 
 ///|
-/// Only wire forms that have an exact, lossless ActQL scalar admission are
+/// Only wire forms with an exact, lossless ActQL value admission are
 /// enabled. A `datetime` is admitted after its one documented UTC spelling
 /// (`+0000`) is written with `Z`, and Number, Currency and Percent as `decimal(P,S)`
 /// from its reply's original number text. `time` is not admitted here.
-fn read_field_contract(field : FieldMetadata) -> @contract.Contract? {
+fn read_field_contract(
+  field : FieldMetadata,
+  components? : Array[(String, FieldMetadata)] = [],
+) -> @contract.Contract? {
+  if field.native_type == "location" {
+    return geolocation_contract(field, components)
+  }
   let kind = match field.native_type {
     "id"
     | "reference"
@@ -60,6 +67,11 @@ fn read_field_contract(field : FieldMetadata) -> @contract.Contract? {
           @contract.decimal_contract(precision, scale, nullable=field.nullable)
         None => None
       }
+    "multipicklist" =>
+      return @contract.array_contract(
+        @contract.primitive(@contract.StringType, nullable=false),
+        nullable=field.nullable,
+      )
     "date" => @contract.DateType
     "datetime" => @contract.TimestampType
     _ => return None
@@ -98,11 +110,21 @@ pub fn prepare_read_projection(
     Err(issue) => return Err(Requirement(issue))
   }
   let contracts = []
+  let field_components = []
   for field in fields {
     if !field.nullability_confirmed {
       return Err(UnconfirmedNullability(field.name))
     }
-    match read_field_contract(field) {
+    let components = if field.native_type == "location" {
+      guard geolocation_components(field, resource.fields) is Some(parts) else {
+        return Err(UnsupportedReadType(field.name))
+      }
+      parts
+    } else {
+      []
+    }
+    field_components.push(components)
+    match read_field_contract(field, components~) {
       Some(value) => contracts.push(value)
       None => return Err(UnsupportedReadType(field.name))
     }
@@ -138,6 +160,7 @@ pub fn prepare_read_projection(
     binding: SiteCatalog(current),
     resource: resource.name,
     fields,
+    field_components,
     contracts,
     soql: sql.to_string(),
     max_soql_bytes,
@@ -253,6 +276,23 @@ pub fn read_projection_resource(plan : ReadProjection) -> String {
 }
 
 ///|
+fn same_read_field_meaning(
+  before : FieldMetadata,
+  after : FieldMetadata,
+) -> Bool {
+  before.name == after.name &&
+  before.native_type == after.native_type &&
+  after.nullability_confirmed &&
+  before.nullable == after.nullable &&
+  before.filterable == after.filterable &&
+  before.sortable == after.sortable &&
+  before.precision == after.precision &&
+  before.scale == after.scale &&
+  before.compound_field_name == after.compound_field_name &&
+  before.reference_to == after.reference_to
+}
+
+///|
 /// Recheck the fields used by this historical plan against a newly observed
 /// Resource Catalog. The new sync occurrence and dispatch are independent;
 /// the connection, authority, and Site must still be exact. This does not
@@ -282,19 +322,20 @@ pub fn recheck_read_projection(
   for index in 0..<fields.length() {
     let before = plan.fields[index]
     let after = fields[index]
-    if before.native_type != after.native_type ||
-      !after.nullability_confirmed ||
-      before.nullable != after.nullable ||
-      before.filterable != after.filterable ||
-      before.sortable != after.sortable ||
-      before.precision != after.precision ||
-      before.scale != after.scale ||
-      before.reference_to.length() != after.reference_to.length() {
+    if !same_read_field_meaning(before, after) {
       return Err(SchemaChanged(before.name))
     }
-    for reference in 0..<before.reference_to.length() {
-      if before.reference_to[reference] != after.reference_to[reference] {
+    if before.native_type == "location" {
+      guard geolocation_components(after, resource.fields) is Some(parts) &&
+        parts.length() == plan.field_components[index].length() else {
         return Err(SchemaChanged(before.name))
+      }
+      for component in 0..<parts.length() {
+        let old = plan.field_components[index][component]
+        let next = parts[component]
+        if old.0 != next.0 || !same_read_field_meaning(old.1, next.1) {
+          return Err(SchemaChanged(before.name))
+        }
       }
     }
   }
@@ -353,7 +394,14 @@ pub fn bind_read_projection_contracts(
     return None
   }
   for index in 0..<contracts.length() {
-    if !(@contract.type_equal(plan.contracts[index], contracts[index], 2) catch {
+    // A geolocation is the original Object plus its two Decimal children.
+    // Scalar and Array plans retain their existing two-pair comparison bound.
+    let pairs = if plan.fields[index].native_type == "location" {
+      1 + plan.field_components[index].length()
+    } else {
+      2
+    }
+    if !(@contract.type_equal(plan.contracts[index], contracts[index], pairs) catch {
         _ => false
       }) {
       return None

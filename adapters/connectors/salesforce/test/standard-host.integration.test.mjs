@@ -109,7 +109,9 @@ async function installation(t, {readable = ['Test_Record__c'],
   writableObjects = [],
   queryFailureStatus, queryFailureOnRequest, storedRecords, recordsByResource,
   queryPageSize, queryResponse, temporalFields = false,
-  numberFields = false, numberNativeType = 'double', retainedRelationOutput = false,
+  numberFields = false, numberNativeType = 'double', multiPicklistFields = false,
+  geolocationFields = false,
+  retainedRelationOutput = false,
   secondInstallation = false} = {}) {
   const org = await openSalesforceEffectSiteFixture(t, {commonMoon,
     salesforceMoon, runInvocationCid: cid('1'), dispatchRequestCid: cid('2'),
@@ -117,7 +119,7 @@ async function installation(t, {readable = ['Test_Record__c'],
     recordsByResource, queryPageSize, queryResponse, extraObjects,
     writableObjects,
     temporalFields,
-    numberFields, numberNativeType,
+    numberFields, numberNativeType, multiPicklistFields, geolocationFields,
     optionalText: storedRecords !== undefined});
   const root = await mkdtemp(join(scratch, 'host-'));
   // Hosts close before their directory is removed.
@@ -2470,6 +2472,150 @@ test('shared Salesforce Source preserves original read and credential preimages 
     } finally { journal.close(); }
   } finally {
     capture?.close();
+    adapter.close();
+  }
+});
+
+
+test('Salesforce multi-select arrays reach the same Named Result after Host reopen without another query', async t => {
+  const setup = await installation(t, {multiPicklistFields: true, storedRecords: [
+    // Arrival order is deliberately different from the authored Id order.
+    {Id: 'a00000000000004', Name: 'record-4', External_Key__c: 'key-4', Choices__c: ';a;;'},
+    {Id: 'a00000000000002', Name: 'record-2', External_Key__c: 'key-2', Choices__c: ''},
+    {Id: 'a00000000000001', Name: 'record-1', External_Key__c: 'key-1', Choices__c: 'red;東京;red'},
+    {Id: 'a00000000000003', Name: 'record-3', External_Key__c: 'key-3', Choices__c: null},
+  ]});
+  await setup.publish();
+  const {client, close} = await setup.open();
+  const document = JSON.parse(numberProgram.replaceAll('Amount__c', 'Choices__c'));
+  document.id = 'salesforce-multi-select';
+  document.stages[0].inputs.remote.view = 'records';
+  const before = setup.org.seen.length;
+  // The declaration does not claim an Id key. Array values cannot supply the
+  // projected-fields fallback order; prove uniqueness on the actual rows first.
+  const unordered = await client.check(document, {kind: 'program', scope: 'bound_input'});
+  assert.equal(unordered.report.verdict, 'invalid');
+  assert(unordered.report.reasons.some(reason => reason.code === 'program_invalid' &&
+    reason.location?.pointer === '/stages/0/results/r'));
+  assert.equal(setup.org.seen.length, before);
+  document.stages[0].steps.push(
+    {from: 'captured', assert_rows: {unique_by: ['Id']}, as: 'unique_records'},
+    {from: 'unique_records', sort: [{Id: 'asc'}], as: 'ordered_records'});
+  document.stages[0].results.r.from = 'ordered_records';
+  const checked = await client.check(document, {kind: 'program', scope: 'bound_input'});
+  assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+  assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+  assert.equal(setup.org.seen.length, before);
+  const execution = await client.startSource(JSON.stringify(document), {format: 'json',
+    submissionRef: client.newSubmission({nonce: 'multi-select-original'})});
+  const state = await execution.wait({signal: AbortSignal.timeout(20_000)});
+  assert.equal(state.status, 'succeeded', JSON.stringify(state));
+  assert.deepEqual((await execution.result('records').describe()).columns, [
+    {name: 'Id', contract: {type: 'string', nullable: false}},
+    {name: 'Choices__c', contract: {type: 'array', nullable: true,
+      items: {type: 'string', nullable: false}}},
+  ]);
+  const expected = [
+    {Id: 'a00000000000001', Choices__c: ['red', '東京', 'red']},
+    {Id: 'a00000000000002', Choices__c: []},
+    {Id: 'a00000000000003', Choices__c: null},
+    {Id: 'a00000000000004', Choices__c: ['', 'a', '', '']},
+  ];
+  assert.deepEqual(await execution.result('records').all(), expected);
+  const original = execution.ref, queryCount = setup.queries().length;
+  assert.ok(queryCount > 0);
+  await close();
+  const reopened = await setup.open();
+  const restored = await reopened.client.attach(original);
+  assert.deepEqual(await restored.result('records').all(), expected);
+  assert.equal(setup.queries().length, queryCount);
+});
+
+
+function geolocationProgram() {
+  const document = JSON.parse(numberProgram.replaceAll('Amount__c', 'Location__c'));
+  document.id = 'salesforce-geolocation';
+  document.stages[0].inputs.remote.view = 'records';
+  document.stages[0].steps.push(
+    {from: 'captured', assert_rows: {unique_by: ['Id']}, as: 'unique_records'},
+    {from: 'unique_records', sort: [{Id: 'asc'}], as: 'ordered_records'});
+  document.stages[0].results.r.from = 'ordered_records';
+  return document;
+}
+
+test('Salesforce compound geolocation reaches its exact Named Result and same Run Host reopen', async t => {
+  const setup = await installation(t, {geolocationFields: true, storedRecords: [
+    {Id: 'a00000000000003', Name: 'record-3', External_Key__c: 'key-3',
+      Location__c: {latitude: null, longitude: null},
+      Location__Latitude__s: null, Location__Longitude__s: null},
+    {Id: 'a00000000000001', Name: 'record-1', External_Key__c: 'key-1',
+      Location__c: {latitude: numberText('37.123456789012345'),
+        longitude: numberText('-122.123456789012345')},
+      Location__Latitude__s: numberText('37.123456789012345'),
+      Location__Longitude__s: numberText('-122.123456789012345')},
+    {Id: 'a00000000000002', Name: 'record-2', External_Key__c: 'key-2',
+      Location__c: null, Location__Latitude__s: null, Location__Longitude__s: null},
+  ]});
+  await setup.publish();
+  const {client, close} = await setup.open();
+  const document = geolocationProgram();
+  const before = setup.org.seen.length;
+  const checked = await client.check(document, {kind: 'program', scope: 'bound_input'});
+  assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+  assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+  assert.equal(setup.org.seen.length, before);
+  const execution = await client.startSource(JSON.stringify(document), {format: 'json',
+    submissionRef: client.newSubmission({nonce: 'geolocation-original'})});
+  const state = await execution.wait({signal: AbortSignal.timeout(20_000)});
+  assert.equal(state.status, 'succeeded', JSON.stringify(state));
+  assert.deepEqual((await execution.result('records').describe()).columns, [
+    {name: 'Id', contract: {type: 'string', nullable: false}},
+    {name: 'Location__c', contract: {type: 'object', nullable: true,
+      additional_properties: false, fields: {
+      latitude: {type: 'decimal', precision: 18, scale: 15, nullable: true},
+      longitude: {type: 'decimal', precision: 18, scale: 15, nullable: true}}}},
+  ]);
+  const expected = [
+    {Id: 'a00000000000001', Location__c: {latitude: '37.123456789012345',
+      longitude: '-122.123456789012345'}},
+    {Id: 'a00000000000002', Location__c: null},
+    {Id: 'a00000000000003', Location__c: {latitude: null, longitude: null}},
+  ];
+  assert.deepEqual(await execution.result('records').all(), expected);
+  const original = execution.ref, queryCount = setup.queries().length;
+  assert.ok(queryCount > 0);
+  await close();
+  const reopened = await setup.open();
+  const restored = await reopened.client.attach(original);
+  assert.deepEqual(await restored.result('records').all(), expected);
+  assert.equal(setup.queries().length, queryCount);
+});
+
+
+test('a compound geolocation beyond original component scale fails typed without a Result', async t => {
+  const setup = await installation(t, {geolocationFields: true, storedRecords: [
+    {Id: 'a00000000000001', Name: 'record-1', External_Key__c: 'key-1',
+      Location__c: {latitude: numberText('37.1000000000000001'),
+        longitude: numberText('-122.25')},
+      Location__Latitude__s: numberText('37.1000000000000001'),
+      Location__Longitude__s: numberText('-122.25')},
+  ]});
+  await setup.publish();
+  const {client, close} = await setup.open();
+  const program = JSON.stringify(geolocationProgram());
+  const execution = await client.startSource(program, {format: 'json',
+    submissionRef: client.newSubmission({nonce: 'geolocation-value-refusal'})});
+  assert.equal((await execution.wait({signal: AbortSignal.timeout(20_000)})).status, 'failed');
+  await assert.rejects(execution.result('records').all());
+  await close();
+  const {adapter, common} = await installedAdapter(setup, program);
+  try {
+    const failure = await adapter.open(common).then(() => undefined, error => error);
+    assert.equal(failure?.code, 'SalesforceValueViolation', String(failure?.code));
+    assert.equal(failure.outcome, 'stopped');
+    assert.deepEqual(failure.cause.violation, {expected_type: 'object',
+      field: 'Location__c', kind: 'scale', resource: 'Test_Record__c'});
+  } finally {
     adapter.close();
   }
 });

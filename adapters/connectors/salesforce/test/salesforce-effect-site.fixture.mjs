@@ -97,6 +97,10 @@ export async function openSalesforceEffectSiteFixture(t, {
   numberFields = false,
   // Original Describe native kind; the default Number fixture is unchanged.
   numberNativeType = 'double',
+  // Original multi-select text; no post-install metadata mutation.
+  multiPicklistFields = false,
+  // Original compound association and digit metadata; components stay writable.
+  geolocationFields = false,
   // The Host's logical connection id the Site declares under.
   connectorId = 'crm-main',
   // An HTTP status selected query requests answer with instead of rows.
@@ -313,6 +317,18 @@ export async function openSalesforceEffectSiteFixture(t, {
               scale: 2, nillable: true, defaultedOnCreate: false,
               createable: true, updateable: true},
           ] : []),
+          ...(multiPicklistFields ? [{name: 'Choices__c', type: 'multipicklist',
+            nillable: true, defaultedOnCreate: false, createable: true,
+            updateable: true}] : []),
+          ...(geolocationFields ? [
+            {name: 'Location__c', type: 'location', nillable: true,
+              createable: false, updateable: false},
+            ...['Latitude', 'Longitude'].map(component => ({
+              name: `Location__${component}__s`, type: 'double',
+              precision: 18, scale: 15, compoundFieldName: 'Location__c',
+              nillable: true, defaultedOnCreate: false, createable: true,
+              updateable: true})),
+          ] : []),
           ...(temporalFields ? [
             {name: 'Due_Date__c', type: 'date', nillable: true,
               defaultedOnCreate: false, createable: true, updateable: true},
@@ -363,7 +379,10 @@ export async function openSalesforceEffectSiteFixture(t, {
         Name: observedNames.get(record) ?? observedName,
         External_Key__c: target,
         ...(temporalFields ? temporalValues[1] : {}),
-        ...(numberFields ? numberValues[1] : {})}));
+        ...(numberFields ? numberValues[1] : {}),
+        ...(multiPicklistFields ? {Choices__c: 'old;元'} : {}),
+        ...(geolocationFields ? {Location__Latitude__s: numberText('37.5'),
+          Location__Longitude__s: numberText('-122.25')} : {})}));
       return;
     }
     if (request.method === 'POST' && record !== undefined &&

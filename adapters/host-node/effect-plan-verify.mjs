@@ -9,7 +9,7 @@ import {checked} from '../host-common/runtime-result.mjs';
  */
 export async function verifyPinnedEffectPlan({
   moon, execution, previewInputs, previewIndex, limits, planLimits,
-  onChunk, signal, advanceQuantum = 256,
+  onChunk, signal, inputKey, advanceQuantum = 256,
 }) {
   if (typeof onChunk !== 'function' ||
       !Number.isSafeInteger(advanceQuantum) || advanceQuantum <= 0) {
@@ -35,9 +35,13 @@ export async function verifyPinnedEffectPlan({
   const task = moon.clientProgramEffectInputTask(input);
   const physical = execution.effectPhysicalSource(task);
   if (physical === undefined) throw new TypeError('MissingEffectPhysicalSource');
-  const importing = checked(moon.clientProgramEffectPlanImportBegin(
-    previewInputs, previewIndex, physical.completed, physical.material,
-    limits, ownedPlanLimits.maxFields, ownedPlanLimits.maxWork));
+  const importing = checked(inputKey === undefined
+    ? moon.clientProgramEffectPlanImportBegin(previewInputs, previewIndex,
+      physical.completed, physical.material, limits,
+      ownedPlanLimits.maxFields, ownedPlanLimits.maxWork)
+    : moon.clientProgramEffectPlanImportBeginWithKey(previewInputs, previewIndex,
+      physical.completed, physical.material, limits,
+      ownedPlanLimits.maxFields, ownedPlanLimits.maxWork, inputKey));
   let preparation, cursor, receipt;
   try {
     preparation = await physical.withRows(

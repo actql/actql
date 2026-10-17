@@ -274,3 +274,115 @@ test "value admission corpus: nullable-ref-items" {
   let result = @value_admission.admit(c, owned(parsed("[null,null]")), limits())
   assert_eq(outcome(result), "accepted")
 }
+
+///|
+test "value admission corpus: text-enum-low" {
+  let c = contract("{\"type\":\"string\",\"nullable\":false,\"enum\":[\"low\",\"medium\",\"high\"]}")
+  let result = @value_admission.admit(c, owned(parsed("\"low\"")), limits())
+  assert_eq(outcome(result), "accepted")
+}
+
+///|
+test "value admission corpus: text-enum-medium" {
+  let c = contract("{\"type\":\"string\",\"nullable\":false,\"enum\":[\"low\",\"medium\",\"high\"]}")
+  let result = @value_admission.admit(c, owned(parsed("\"medium\"")), limits())
+  assert_eq(outcome(result), "accepted")
+}
+
+///|
+test "value admission corpus: text-enum-high" {
+  let c = contract("{\"type\":\"string\",\"nullable\":false,\"enum\":[\"low\",\"medium\",\"high\"]}")
+  let result = @value_admission.admit(c, owned(parsed("\"high\"")), limits())
+  assert_eq(outcome(result), "accepted")
+}
+
+///|
+test "value admission corpus: text-enum-foreign" {
+  let c = contract("{\"type\":\"string\",\"nullable\":false,\"enum\":[\"low\",\"medium\",\"high\"]}")
+  let result = @value_admission.admit(c, owned(parsed("\"urgent\"")), limits())
+  assert_eq(outcome(result), "StringConstraint")
+}
+
+///|
+test "value admission corpus: text-enum-case" {
+  let c = contract("{\"type\":\"string\",\"nullable\":false,\"enum\":[\"low\",\"medium\",\"high\"]}")
+  let result = @value_admission.admit(c, owned(parsed("\"HIGH\"")), limits())
+  assert_eq(outcome(result), "StringConstraint")
+}
+
+///|
+test "value admission corpus: text-enum-spaces" {
+  let c = contract("{\"type\":\"string\",\"nullable\":false,\"enum\":[\"low\",\"medium\",\"high\"]}")
+  let result = @value_admission.admit(c, owned(parsed("\" high \"")), limits())
+  assert_eq(outcome(result), "StringConstraint")
+}
+
+///|
+test "value admission corpus: text-enum-null-refused" {
+  let c = contract("{\"type\":\"string\",\"nullable\":false,\"enum\":[\"low\",\"medium\",\"high\"]}")
+  let result = @value_admission.admit(c, owned(parsed("null")), limits())
+  assert_eq(outcome(result), "UnexpectedNull")
+}
+
+///|
+test "value admission corpus: text-enum-number-refused" {
+  let c = contract("{\"type\":\"string\",\"nullable\":false,\"enum\":[\"low\",\"medium\",\"high\"]}")
+  let result = @value_admission.admit(c, owned(parsed("1")), limits())
+  assert_eq(outcome(result), "WrongType")
+}
+
+///|
+test "value admission corpus: text-enum-nullable" {
+  let c = contract("{\"type\":\"string\",\"nullable\":true,\"enum\":[\"low\",\"medium\",\"high\"]}")
+  let result = @value_admission.admit(c, owned(parsed("null")), limits())
+  assert_eq(outcome(result), "accepted")
+}
+
+///|
+test "value admission corpus: text-enum-empty" {
+  let c = contract("{\"type\":\"string\",\"nullable\":false,\"enum\":[]}")
+  let result = @value_admission.admit(c, owned(parsed("\"\"")), limits())
+  assert_eq(outcome(result), "StringConstraint")
+}
+
+///|
+test "value admission corpus: text-enum-empty-nullable" {
+  let c = contract("{\"type\":\"string\",\"nullable\":true,\"enum\":[]}")
+  let result = @value_admission.admit(c, owned(parsed("null")), limits())
+  assert_eq(outcome(result), "accepted")
+}
+
+///|
+test "value admission corpus: text-enum-duplicate" {
+  let c = contract("{\"type\":\"string\",\"nullable\":false,\"enum\":[\"high\",\"high\"]}")
+  let result = @value_admission.admit(c, owned(parsed("\"high\"")), limits())
+  assert_eq(outcome(result), "accepted")
+}
+
+///|
+test "value admission corpus: text-enum-unicode-no-nfc" {
+  let c = contract("{\"type\":\"string\",\"nullable\":false,\"enum\":[\"\u{e9}\"]}")
+  let result = @value_admission.admit(c, owned(parsed("\"e\u{301}\"")), limits())
+  assert_eq(outcome(result), "StringConstraint")
+}
+
+///|
+test "value admission corpus: text-enum-extent-intersection" {
+  let c = @contract.read_checked(owned(parsed("{\"type\":\"string\",\"nullable\":false,\"enum\":[\"x\",\"large\"],\"max_codepoints\":1}")), {max_nodes:100000,max_depth:20000,max_text_bytes:8000000}).unwrap()
+  let result = @value_admission.admit(c, owned(parsed("\"large\"")), limits())
+  assert_eq(outcome(result), "StringConstraint")
+}
+
+///|
+test "value admission corpus: text-enum-unicode-astral" {
+  let c = @contract.read_checked(owned(parsed("{\"type\":\"string\",\"nullable\":false,\"enum\":[\"\u{1f600}\"],\"max_codepoints\":1,\"max_utf8_bytes\":4}")), {max_nodes:100000,max_depth:20000,max_text_bytes:8000000}).unwrap()
+  let result = @value_admission.admit(c, owned(parsed("\"\u{1f600}\"")), limits())
+  assert_eq(outcome(result), "accepted")
+}
+
+///|
+test "value admission corpus: text-enum-unicode-astral-byte-bound" {
+  let c = @contract.read_checked(owned(parsed("{\"type\":\"string\",\"nullable\":false,\"enum\":[\"\u{1f600}\"],\"max_utf8_bytes\":3}")), {max_nodes:100000,max_depth:20000,max_text_bytes:8000000}).unwrap()
+  let result = @value_admission.admit(c, owned(parsed("\"\u{1f600}\"")), limits())
+  assert_eq(outcome(result), "StringConstraint")
+}

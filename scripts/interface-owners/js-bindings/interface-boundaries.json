@@ -30109,7 +30109,7 @@
     {
       "module": "adapters/host-node/effect-input-export.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e4b995cad2b3719d4ca641cfd4f61aef12cbe6285709ab0c301361238f1b7046",
+      "sha256": "b7c5731d6449824ba699c3fdc545a20d07a14969ace38e56122fe30376dc6235",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -30212,13 +30212,20 @@
         {
           "name": "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet",
           "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet#2",
+          "parameters": [
             "left",
             "right"
           ],
           "async": false
         },
         {
-          "name": "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet#2",
+          "name": "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet#3",
           "parameters": [
             "entry"
           ],
@@ -30375,6 +30382,8 @@
             "proposalMemberIndexes",
             "proposalLimits",
             "onOriginalArtifact",
+            "commandWorkspace",
+            "onCommandKey",
             "manifestSet",
             "local",
             "duplicateManifestMember"
@@ -30477,6 +30486,11 @@
           "async": true
         },
         {
+          "name": "preparePinnedEffectSourcePayloadOwned/summary/init:prepareProposal/init:prepareProposal",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "preparePinnedEffectSourcePayloadOwned/summary/summary",
           "parameters": [
             "index",
@@ -30499,6 +30513,7 @@
             "maxMembers",
             "maxGroupingWork",
             "memberSourceBindings",
+            "commandWorkspaces",
             "options"
           ],
           "async": true
@@ -31323,6 +31338,7 @@
             "prepareDependentEffectSourceSet/orderedUnits/orderedUnits",
             "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet",
             "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet#2",
+            "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet#3",
             "prepareDependentEffectSourceSet/result/result",
             "prepareDependentEffectSourceSet/result/result#2",
             "prepareDependentEffectSourceSet/spend/spend",
@@ -31338,6 +31354,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "inputsOutputs": [
@@ -31348,6 +31368,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "identity": [
@@ -31358,6 +31382,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "ownership": [
@@ -31368,6 +31396,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "synchronization": [
@@ -31378,6 +31410,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "failure": [
@@ -31388,6 +31424,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "cancellation": [
@@ -31398,6 +31438,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "resources": [
@@ -31408,6 +31452,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "extension": [
@@ -31418,6 +31466,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "verification": [
@@ -31432,6 +31484,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "ordinary Source set finishes the original funded whole key before proposing any row"
               }
             ]
           }
@@ -31795,7 +31855,6 @@
             "preparePinnedEffectSourcePayloadOwned/init:retry/init:retry",
             "preparePinnedEffectSourcePayloadOwned/init:retry/init:retry/init:retry",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
-            "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#10",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#2",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#3",
@@ -31805,8 +31864,10 @@
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#7",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#8",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#9",
+            "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
             "preparePinnedEffectSourcePayloadOwned/retainText/retainText",
             "preparePinnedEffectSourcePayloadOwned/summary/init:onChunk/init:onChunk",
+            "preparePinnedEffectSourcePayloadOwned/summary/init:prepareProposal/init:prepareProposal",
             "preparePinnedEffectSourcePayloadOwned/summary/summary",
             "preparePinnedEffectSourcePayloadOwned/summary/summary#2"
           ],
@@ -31824,6 +31885,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "inputsOutputs": [
@@ -31838,6 +31903,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "identity": [
@@ -31852,6 +31921,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "ownership": [
@@ -31866,6 +31939,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "synchronization": [
@@ -31880,6 +31957,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "failure": [
@@ -31894,6 +31975,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "cancellation": [
@@ -31908,6 +31993,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "resources": [
@@ -31922,6 +32011,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "extension": [
@@ -31936,6 +32029,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "verification": [
@@ -31954,6 +32051,14 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "ordinary Source set finishes the original funded whole key before proposing any row"
               }
             ]
           }
@@ -31983,6 +32088,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "inputsOutputs": [
@@ -31993,6 +32102,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "identity": [
@@ -32003,6 +32116,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "ownership": [
@@ -32013,6 +32130,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "synchronization": [
@@ -32023,6 +32144,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "failure": [
@@ -32033,6 +32158,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "cancellation": [
@@ -32043,6 +32172,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "resources": [
@@ -32053,6 +32186,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "extension": [
@@ -32063,6 +32200,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "verification": [
@@ -32077,6 +32218,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "ordinary Source set finishes the original funded whole key before proposing any row"
               }
             ]
           }
@@ -32543,6 +32692,7 @@
         "../host-common/completed-run-publication.mjs",
         "../host-common/effect-preparation-result.mjs",
         "../host-common/runtime-result.mjs",
+        "./effect-command-key.mjs",
         "node:crypto",
         "node:timers/promises"
       ],
@@ -32552,7 +32702,7 @@
     {
       "module": "adapters/host-node/effect-plan-verify.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "33b6b728bc25406b5f1dbef6c697987bca5ba3c1f1f24181fd13e06e3409cc29",
+      "sha256": "dc22354a266b1450c9b55d52e017dbc16a9ee7640ee1179201ee97b379f30e6c",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -32570,6 +32720,7 @@
             "planLimits",
             "onChunk",
             "signal",
+            "inputKey",
             "advanceQuantum"
           ],
           "async": true
@@ -32726,6 +32877,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "inputsOutputs": [
@@ -32736,6 +32891,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "identity": [
@@ -32746,6 +32905,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "ownership": [
@@ -32756,6 +32919,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "synchronization": [
@@ -32766,6 +32933,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "failure": [
@@ -32776,6 +32947,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "cancellation": [
@@ -32786,6 +32961,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "resources": [
@@ -32796,6 +32975,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "extension": [
@@ -32806,6 +32989,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "verification": [
@@ -32820,6 +33007,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "ordinary Source set finishes the original funded whole key before proposing any row"
               }
             ]
           }
@@ -49578,7 +49773,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e3343b912004c6510990c318b4380ab52184077101525ad560bbed1f4cabbe30",
+      "sha256": "74bd92c128588e48eeb954d6f79716e24b4d6c3353bb5385484086b65c0edbe3",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -50224,6 +50419,11 @@
           "async": true
         },
         {
+          "name": "createRowEffectStage/captureStage/releaseInputs/releaseInputs/releaseInputs",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/captureStage/route/route",
           "parameters": [
             "member"
@@ -50234,6 +50434,14 @@
           "name": "createRowEffectStage/captureStage/rows/rows",
           "parameters": [
             "proposal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/sourceSet/init:onCommandKey/init:onCommandKey",
+          "parameters": [
+            "memberIndex",
+            "key"
           ],
           "async": false
         },
@@ -52088,13 +52296,13 @@
           "operations": [
             "createRowEffectStage",
             "createRowEffectStage/adapter/adapter",
-            "createRowEffectStage/adapter/adapter/adapter",
-            "createRowEffectStage/adapter/adapter/adapter/adapter",
-            "createRowEffectStage/adapter/adapter/adapter#2",
             "createRowEffectStage/adapter/adapter#2",
             "createRowEffectStage/adapter/adapter#3",
             "createRowEffectStage/adapter/adapter#4",
             "createRowEffectStage/adapter/adapter#5",
+            "createRowEffectStage/adapter/adapter/adapter",
+            "createRowEffectStage/adapter/adapter/adapter#2",
+            "createRowEffectStage/adapter/adapter/adapter/adapter",
             "createRowEffectStage/admitCapability/admitCapability",
             "createRowEffectStage/admitRow/admitRow",
             "createRowEffectStage/assertPrepared/assertPrepared",
@@ -52114,14 +52322,14 @@
             "createRowEffectStage/captureStage",
             "createRowEffectStage/captureStage/capabilities/capabilities",
             "createRowEffectStage/captureStage/captureStage",
-            "createRowEffectStage/captureStage/captureStage/captureStage",
-            "createRowEffectStage/captureStage/captureStage/captureStage#2",
             "createRowEffectStage/captureStage/captureStage#2",
             "createRowEffectStage/captureStage/captureStage#3",
             "createRowEffectStage/captureStage/captureStage#4",
             "createRowEffectStage/captureStage/captureStage#5",
             "createRowEffectStage/captureStage/captureStage#6",
             "createRowEffectStage/captureStage/captureStage#7",
+            "createRowEffectStage/captureStage/captureStage/captureStage",
+            "createRowEffectStage/captureStage/captureStage/captureStage#2",
             "createRowEffectStage/captureStage/childrenPending/childrenPending",
             "createRowEffectStage/captureStage/childrenPending/childrenPending/childrenPending",
             "createRowEffectStage/captureStage/claims/claims",
@@ -52138,8 +52346,10 @@
             "createRowEffectStage/captureStage/preparedRequest/preparedRequest",
             "createRowEffectStage/captureStage/proposals/proposals",
             "createRowEffectStage/captureStage/releaseInputs/releaseInputs",
+            "createRowEffectStage/captureStage/releaseInputs/releaseInputs/releaseInputs",
             "createRowEffectStage/captureStage/route/route",
             "createRowEffectStage/captureStage/rows/rows",
+            "createRowEffectStage/captureStage/sourceSet/init:onCommandKey/init:onCommandKey",
             "createRowEffectStage/captureStage/sourceSet/init:onProposalRow/init:onProposalRow",
             "createRowEffectStage/captureStage/sourceSet/sourceSet",
             "createRowEffectStage/captureStage/verified/verified",
@@ -52191,13 +52401,13 @@
             "createRowEffectStage/prepareRecovered/ledgerOwner/init:close/init:close",
             "createRowEffectStage/prepareRecovered/ledgerOwner/ledgerOwner",
             "createRowEffectStage/prepareRecovered/prepareRecovered",
-            "createRowEffectStage/prepareRecovered/prepareRecovered/prepareRecovered",
             "createRowEffectStage/prepareRecovered/prepareRecovered#2",
             "createRowEffectStage/prepareRecovered/prepareRecovered#3",
             "createRowEffectStage/prepareRecovered/prepareRecovered#4",
             "createRowEffectStage/prepareRecovered/prepareRecovered#5",
             "createRowEffectStage/prepareRecovered/prepareRecovered#6",
             "createRowEffectStage/prepareRecovered/prepareRecovered#7",
+            "createRowEffectStage/prepareRecovered/prepareRecovered/prepareRecovered",
             "createRowEffectStage/prepareRecovered/previewRows/previewRows",
             "createRowEffectStage/prepareRecovered/reconcileStoredResponses/reconcileStoredResponses",
             "createRowEffectStage/prepareRecovered/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery",
@@ -52253,6 +52463,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Owned guarded request preparation"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "inputsOutputs": [
@@ -52275,6 +52489,10 @@
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "rowIndex, authorizationForRow, assertCurrent})` (command or guarded write)"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "identity": [
@@ -52297,6 +52515,10 @@
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "fail('ForeignInstalledRowEffectRequest')"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "ownership": [
@@ -52323,6 +52545,10 @@
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
                 "anchor": "children.push({prepared: Object.freeze"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "synchronization": [
@@ -52349,6 +52575,10 @@
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "authorizationForRow: () => reads[index].authorizationForRow(rowIndex)"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "failure": [
@@ -52371,6 +52601,10 @@
               {
                 "path": "adapters/host-node/installed-row-json.test.mjs",
                 "anchor": "guarded request child preparation failure retains its original cleanup and sends nothing"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "cancellation": [
@@ -52393,6 +52627,10 @@
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
                 "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "resources": [
@@ -52419,6 +52657,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Children, pending prepare/read/close state, request/before aliases and callback"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "extension": [
@@ -52441,6 +52683,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Pure synchronous preparation and the existing Command child path are unchanged"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "verification": [
@@ -52479,6 +52725,14 @@
               {
                 "path": "adapters/host-node/installed-row-json.test.mjs",
                 "anchor": "the child cannot substitute another row index into its read use"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "ordinary Source set finishes the original funded whole key before proposing any row"
               }
             ]
           }
@@ -54209,6 +54463,7 @@
         "../host-common/effect-preparation-result.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
+        "./effect-command-key.mjs",
         "./effect-input-export.mjs",
         "./effect-ledger.mjs",
         "./effect-physical-dispatch.mjs",
