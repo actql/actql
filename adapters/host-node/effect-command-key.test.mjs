@@ -13,7 +13,7 @@ test('Host key caller advances only the same opaque original with a captured met
         assert.equal(key, original);
         assert.equal(quantum, 7);
         calls++;
-        return {TAG: 0, _0: {_0: calls === 2, _1: 1}};
+        return {$tag: 1, _0: {_0: calls === 2, _1: 1}};
       };
     },
   };
@@ -26,7 +26,7 @@ test('Host key caller advances only the same opaque original with a captured met
 test('Host key caller rejects nonprogress and observes cancellation before the next original advance', async () => {
   const original = Object.freeze({});
   await assert.rejects(advanceEffectCommandKey({
-    clientProgramEffectCommandKeyAdvance: () => ({TAG: 0, _0: {_0: false, _1: 0}}),
+    clientProgramEffectCommandKeyAdvance: () => ({$tag: 1, _0: {_0: false, _1: 0}}),
   }, original, undefined, 1), /EffectCommandKeyDidNotAdvance/u);
   const controller = new AbortController();
   let calls = 0;
