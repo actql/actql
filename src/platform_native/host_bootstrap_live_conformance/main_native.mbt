@@ -289,6 +289,7 @@ fn main {
     "original allocation retires only after separate view and loan cleanup",
   )
   exercise_channel_partial(count, host, original, page, scope)
+  exercise_pre_spawn_channel(count, host, original, page, scope)
   host.return_borrow(original, scope).unwrap()
   host.try_close(original).unwrap()
   require(
@@ -297,6 +298,6 @@ fn main {
     "actual parent close finally returns its one backing reservation",
   )
   println(
-    "{\"success\":true,\"discovered\":36,\"executed\":36,\"passed\":36,\"failed\":0,\"VM\":0,\"public_e2e\":0}",
+    "{\"success\":true,\"discovered\":47,\"executed\":47,\"passed\":47,\"failed\":0,\"VM\":0,\"public_e2e\":0}",
   )
 }

@@ -12,6 +12,22 @@ extern "C" fn capture_live_channel_ffi(
 ) -> PhysicalLiveChannel = "actql_bootstrap_capture_live_channel"
 
 ///|
+#borrow(domain)
+extern "C" fn prepare_live_channel_ffi(
+  domain : PhysicalExtentDomain,
+  read_fd : Int,
+  write_fd : Int,
+  nonce : Int64,
+) -> PhysicalLiveChannel = "actql_bootstrap_prepare_live_channel"
+
+///|
+#borrow(channel)
+extern "C" fn bind_live_child_ffi(
+  channel : PhysicalLiveChannel,
+  child : Int,
+) -> Int = "actql_bootstrap_bind_live_child"
+
+///|
 #borrow(channel)
 extern "C" fn live_channel_status_ffi(channel : PhysicalLiveChannel) -> Int = "actql_bootstrap_live_channel_status"
 
@@ -51,6 +67,7 @@ struct NativeBackedLiveChannel[T, C] {
   nonce : Int64
   mut physical : PhysicalLiveChannel?
   mut live : NativeBackedLiveChild[T, C, NativeBackedLiveChannel[T, C]]?
+  mut child_binding_attempted : Bool
   mut binding_attempted : Bool
   mut bound : Bool
   mut retired : Bool
@@ -80,6 +97,59 @@ pub fn[T, C] NativeHostBootstrap::prepare_backed_live_channel(
   NativeBackedLiveChannelAcquisition[T, C],
   NativeBackedExecutionIssue,
 ] {
+  self.capture_backed_live_channel(
+    original,
+    domain,
+    child,
+    Some(child_pid),
+    read_fd,
+    write_fd,
+    nonce,
+  )
+}
+
+///|
+/// Retain the same original domain/ticket and actual borrowed pipes BEFORE
+/// spawn. Complete process/FD/control funding remains a separate requirement.
+/// Preparation issues no child/VM/launch/Source/Model authority. Missing pipes
+/// refuse with the same pending carrier; no descriptor is opened or duplicated.
+pub fn[T, C] NativeHostBootstrap::prepare_backed_live_channel_before_spawn(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+  read_fd : Int,
+  write_fd : Int,
+  nonce : Int64,
+) -> Result[
+  NativeBackedLiveChannelAcquisition[T, C],
+  NativeBackedExecutionIssue,
+] {
+  self.capture_backed_live_channel(
+    original,
+    domain,
+    child,
+    None,
+    read_fd,
+    write_fd,
+    nonce,
+  )
+}
+
+///|
+fn[T, C] NativeHostBootstrap::capture_backed_live_channel(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+  child_pid : Int?,
+  read_fd : Int,
+  write_fd : Int,
+  nonce : Int64,
+) -> Result[
+  NativeBackedLiveChannelAcquisition[T, C],
+  NativeBackedExecutionIssue,
+] {
   match self.require_domain_current(original, domain, child) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -99,6 +169,7 @@ pub fn[T, C] NativeHostBootstrap::prepare_backed_live_channel(
     nonce,
     physical: None,
     live: None,
+    child_binding_attempted: child_pid is Some(_),
     binding_attempted: false,
     bound: false,
     retired: false,
@@ -106,13 +177,11 @@ pub fn[T, C] NativeHostBootstrap::prepare_backed_live_channel(
   // Existing domain custody precedes any fallible physical or access capture.
   domain.live_channel_attempted = true
   domain.live_channel = Some(record)
-  let physical = capture_live_channel_ffi(
-    domain.physical,
-    child_pid,
-    read_fd,
-    write_fd,
-    nonce,
-  )
+  let physical = match child_pid {
+    Some(pid) =>
+      capture_live_channel_ffi(domain.physical, pid, read_fd, write_fd, nonce)
+    None => prepare_live_channel_ffi(domain.physical, read_fd, write_fd, nonce)
+  }
   record.physical = Some(physical)
   let status = live_channel_status_ffi(physical)
   if status != 0 {
@@ -144,6 +213,38 @@ fn[T, C] NativeHostBootstrap::original_live_channel(
     return Err(Bootstrap(ForeignOriginal))
   }
   self.original_domain_carrier(original, record.domain, record.child)
+}
+
+///|
+/// The same process Owner binds its actual spawned child once. PID DATA does
+/// not prove inherited memory, VM admission, stop or descriptor retirement.
+/// Retain the original channel on response loss; never retry with another PID.
+pub fn[T, C] NativeHostBootstrap::bind_backed_live_channel_child(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChannel[T, C],
+  child_pid : Int,
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  match self.original_live_channel(original, record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match self.require_domain_current(original, record.domain, record.child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if record.child_binding_attempted {
+    return Err(Bootstrap(AlreadyConsumed))
+  }
+  record.child_binding_attempted = true
+  guard record.physical is Some(physical) else {
+    return Err(Bootstrap(Unavailable))
+  }
+  let status = bind_live_child_ffi(physical, child_pid)
+  if status != 0 {
+    return Err(Bootstrap(Physical(status)))
+  }
+  self.require_domain_current(original, record.domain, record.child)
 }
 
 ///|

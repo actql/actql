@@ -145,3 +145,28 @@ limits from SDK fields. A future trusted worker bootstrap must still validate
 its durable original launch facts, complete independent pre-spawn funding and
 current authorization before mapping or runtime work. This projection alone
 cannot supply those missing facts or enable ordinary factory startup.
+
+## Pre-spawn original channel capture
+
+`prepare_backed_live_channel_before_spawn` retains the original transferred
+Host/domain/ticket and the caller's actual already-created borrowed pipe pair
+before process creation. It issues the existing Common live access once under
+that same original channel record. It opens no descriptors, reserves no second
+backing, and does not fund independent process, Python, loader, FD or control
+domains. Complete bootstrap funding and durable provisioning remain separate.
+
+The actual process caller later uses `bind_backed_live_channel_child` once on
+that same record. A failed or lost binding response cannot select another child.
+The original physical provider checks pipe identity/current and refuses copied,
+foreign-process, replaced or retired records. A PID binding alone is not proof
+of inherited memory, VM admission, stop, descriptor close or loan return. The
+existing child-borrow/span check still precedes VM admission. The post-spawn
+entry keeps its existing signature and composes the same physical phases.
+
+Partial preparation is registered in the original domain before fallible capture
+or Common access issuance. Cleanup retains that same carrier and requires the
+existing physical caller's separate ACKs. Metadata retirement closes no pipe or
+process and returns no reservation. This private seam does not create a
+production `OriginalWorkerFunding` supplier, an imported child Ledger or a
+normal numerical profile; those remaining connections cannot use scalar DATA
+or an unbound holding as authority.

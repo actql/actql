@@ -31,9 +31,43 @@ int main(void) {
     require(actql_bootstrap_view_status(view) == 0 && actql_bootstrap_domain_status(domain) == 0 &&
         actql_bootstrap_transfer_domain(domain) == 0, "one transferred original child payload");
     int ready[2], resume[2]; if (pipe(ready) || pipe(resume)) return 2;
+    actql_bootstrap_live_channel *prepared = actql_bootstrap_prepare_live_channel(
+        domain, ready[0], resume[1], 7);
+    require(actql_bootstrap_live_channel_status(prepared) == 0 && prepared->child == 0 &&
+        actql_bootstrap_live_vm_current(prepared) == ACTQL_OWNED_BUSY,
+        "actual borrowed pipes retained before spawn without child or VM admission");
+    actql_bootstrap_live_channel prepared_copy = *prepared;
+    require(actql_bootstrap_bind_live_child(&prepared_copy, 1) == ACTQL_OWNED_INVALID &&
+        !prepared->child_binding_attempted,
+        "foreign copied preparation cannot consume original child binding");
+    actql_bootstrap_live_channel *self = actql_bootstrap_prepare_live_channel(
+        domain, ready[0], resume[1], 7);
+    require(actql_bootstrap_bind_live_child(self, (int32_t)getpid()) == ACTQL_OWNED_INVALID &&
+        actql_bootstrap_bind_live_child(self, 1) == ACTQL_OWNED_INVALID &&
+        actql_bootstrap_live_channel_status(self) == ACTQL_OWNED_INVALID,
+        "parent PID refusal stays sticky without a replacement child");
+    actql_bootstrap_live_channel *premature = actql_bootstrap_prepare_live_channel(
+        domain, ready[0], resume[1], 7);
+    require(actql_bootstrap_bind_live_span(premature, 7, (int64_t)page, (int64_t)page)
+        == ACTQL_OWNED_INVALID && !premature->bound,
+        "unbound child cannot supply a span or VM observation");
+    int replaced = dup(ready[0]), replaced_pipe[2];
+    if (replaced < 0 || pipe(replaced_pipe)) return 8;
+    actql_bootstrap_live_channel *stale = actql_bootstrap_prepare_live_channel(
+        domain, replaced, resume[1], 7);
+    require(dup2(replaced_pipe[0], replaced) == replaced &&
+        actql_bootstrap_bind_live_child(stale, 1) == ACTQL_OWNED_INVALID &&
+        dup2(ready[0], replaced) == replaced &&
+        actql_bootstrap_bind_live_child(stale, 1) == ACTQL_OWNED_INVALID,
+        "pre-spawn pipe replacement cannot recover by restoring the FD");
+    if (close(replaced) || close(replaced_pipe[0]) || close(replaced_pipe[1])) return 8;
     pid_t child = fork(); if (child < 0) return 2;
     if (child == 0) {
-        actor = "child"; cases = 0; close(ready[0]); close(resume[1]); receive_byte(resume[0], 'B');
+        actor = "child"; cases = 0;
+        require(actql_bootstrap_live_channel_status(prepared) == ACTQL_OWNED_INVALID &&
+            actql_bootstrap_bind_live_child(prepared, (int32_t)getpid()) == ACTQL_OWNED_INVALID,
+            "forked child cannot adopt its inherited parent channel record");
+        close(ready[0]); close(resume[1]); receive_byte(resume[0], 'B');
         actql_owned_extent_reference ref = loan->loan.extent;
         if (munmap(view->view.mapping, view->view.length) || munmap(backing->lease, bytes)) return 6;
         int64_t material[15] = {1, (int64_t)ref.device, (int64_t)ref.inode,
@@ -57,9 +91,16 @@ int main(void) {
             fcntl(fd, F_GETFD) >= 0, "mapping retirement does not close the original FD");
         send_byte(ready[1], 'D'); receive_byte(resume[0], 'Q');
         close(fd); close(ready[1]); close(resume[0]);
-        return cases == 3 ? 0 : 3;
+        return cases == 4 ? 0 : 3;
     }
     close(ready[1]); close(resume[0]);
+    require(actql_bootstrap_bind_live_child(prepared, (int32_t)child) == 0 &&
+        actql_bootstrap_live_channel_status(prepared) == 0 &&
+        actql_bootstrap_live_vm_current(prepared) == ACTQL_OWNED_BUSY,
+        "same prepared record binds actual child once without claiming VM use");
+    require(actql_bootstrap_bind_live_child(prepared, (int32_t)child) == ACTQL_OWNED_INVALID &&
+        actql_bootstrap_live_channel_status(prepared) == 0,
+        "lost child-binding reply cannot bind again or destroy original custody");
     actql_bootstrap_live_channel *channel = actql_bootstrap_capture_live_channel(
         domain, (int32_t)child, ready[0], resume[1], 7);
     require(actql_bootstrap_live_channel_status(channel) == 0 &&
@@ -75,6 +116,10 @@ int main(void) {
         "reversed descriptors refuse without closing caller resources");
     send_byte(resume[1], 'B'); uint64_t data[3] = {0};
     if (read(ready[0], data, sizeof(data)) != sizeof(data)) return 7;
+    require(actql_bootstrap_bind_live_span(prepared, (int64_t)data[0],
+        (int64_t)data[1], (int64_t)data[2]) == 0 &&
+        actql_bootstrap_live_vm_current(prepared) == 0,
+        "same pre-spawn record observes original child's allocated span later");
     require(data[0] == 7 && data[1] > 0 && data[2] == page &&
         actql_bootstrap_bind_live_span(channel, (int64_t)data[0], (int64_t)data[1], (int64_t)data[2]) == 0 &&
         actql_bootstrap_live_vm_current(channel) == 0,
@@ -107,6 +152,8 @@ int main(void) {
     require(waitpid(child, &status, 0) == child && WIFEXITED(status) && WEXITSTATUS(status) == 0 &&
         actql_bootstrap_retire_live_channel_metadata(channel) == 0 &&
         actql_bootstrap_retire_live_channel_metadata(channel) == 0 &&
+        actql_bootstrap_retire_live_channel_metadata(prepared) == 0 &&
+        actql_bootstrap_bind_live_child(prepared, (int32_t)child) == ACTQL_OWNED_INVALID &&
         fcntl(ready[0], F_GETFD) >= 0 && fcntl(resume[1], F_GETFD) >= 0 && domain->lease != NULL,
         "metadata retirement does not close descriptors domain or parent capacity");
     require(actql_bootstrap_close_domain(view, domain) == 0 &&
@@ -116,7 +163,7 @@ int main(void) {
         close(fd) == 0 && close(ready[0]) == 0 && close(resume[1]) == 0 &&
         close(original_read) == 0 && close(replacement[0]) == 0 && close(replacement[1]) == 0,
         "original domain view loan backing and all fixture descriptors close separately");
-    printf("{\"success\":true,\"cases\":16,\"parent_cases\":%d,\"child_cases\":3,"
+    printf("{\"success\":true,\"cases\":25,\"parent_cases\":%d,\"child_cases\":4,"
         "\"fixture_pages\":64,\"page_bytes\":%zu,\"VM\":0,\"public_e2e\":0}\n", cases, page);
-    return cases == 13 ? 0 : 3;
+    return cases == 21 ? 0 : 3;
 }
