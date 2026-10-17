@@ -492,6 +492,124 @@ fn kintone_form_limits() -> @kintone_catalog.FormFieldLimits {
 }
 
 ///|
+test "kintone fixed request parameters retain the original projection and wide seek ID" {
+  let prepared = kintone_read_preparation()
+  assert_eq(
+    @kintone_host.record_form_request_body(prepared, 4096).unwrap(),
+    "{\"app\":\"12\"}",
+  )
+  assert_eq(
+    @kintone_host.record_page_request_body(prepared, None, 2, 4096).unwrap(),
+    "{\"app\":\"12\",\"fields\":[\"$id\",\"$revision\",\"Subject\",\"Tags\"],\"query\":\"order by $id asc limit 2\"}",
+  )
+  assert_eq(
+    @kintone_host.record_page_request_body(
+      prepared,
+      Some("9007199254740993"),
+      500,
+      4096,
+    ).unwrap(),
+    "{\"app\":\"12\",\"fields\":[\"$id\",\"$revision\",\"Subject\",\"Tags\"],\"query\":\"$id > 9007199254740993 order by $id asc limit 500\"}",
+  )
+  for cursor in ["", "1 or true", "-1", "1.0", "\"1\"", "東京"] {
+    assert_true(
+      @kintone_host.record_page_request_body(prepared, Some(cursor), 2, 4096)
+      is Err(@kintone_host.InvalidRequest),
+    )
+  }
+  for count in [0, -1, 501] {
+    assert_true(
+      @kintone_host.record_page_request_body(prepared, None, count, 4096)
+      is Err(@kintone_host.InvalidRequest),
+    )
+  }
+  assert_true(
+    @kintone_host.record_page_request_body(prepared, None, 2, 1)
+    is Err(@kintone_host.RequestEncoding(_)),
+  )
+  assert_true(
+    @kintone_host.record_form_request_body(prepared, 1)
+    is Err(@kintone_host.RequestEncoding(_)),
+  )
+}
+
+///|
+fn kintone_seek_page(ids : Array[String]) -> Bytes {
+  let records = ids.map(id => {
+    "{\"$id\":{\"type\":\"__ID__\",\"value\":\"" +
+    id +
+    "\"},\"$revision\":{\"type\":\"__REVISION__\",\"value\":\"9\"},\"Subject\":{\"type\":\"SINGLE_LINE_TEXT\",\"value\":\"original\"},\"Tags\":{\"type\":\"MULTI_SELECT\",\"value\":[]}}"
+  })
+  @utf8.encode(
+    "{\"records\":[" + records.join(",") + "],\"totalCount\":\"999999\"}",
+  )
+}
+
+///|
+test "kintone seek uses original string IDs and only a short page completes traversal" {
+  let (prepared, run, ledger) = kintone_host_run("kintone-seek")
+  let read = kintone_borrow(prepared, run, Ref(true), Ref(0))
+  @kintone_host.accept_record_read_page(
+    read,
+    kintone_seek_page(["9007199254740992", "9007199254740993"]),
+  ).unwrap()
+  assert_eq(
+    @kintone_host.record_page_next_cursor(read, None, 2).unwrap(),
+    Some("9007199254740993"),
+  )
+  @kintone_host.accept_record_read_page(
+    read,
+    kintone_seek_page(["9007199254740994"]),
+  ).unwrap()
+  assert_eq(
+    @kintone_host.record_page_next_cursor(read, Some("9007199254740993"), 2).unwrap(),
+    None,
+  )
+  @row_host.abort_row_run(run)
+  kintone_assert_closed(run, ledger)
+}
+
+///|
+test "kintone repeated reordered invalid and oversized seek pages retain failed original cleanup" {
+  for
+    (label, ids, prior) in [
+      ("duplicate", ["1", "1"], None),
+      ("reordered", ["2", "1"], None),
+      ("prior", ["2"], Some("2")),
+      ("numeric-equal", ["0002"], Some("2")),
+      ("invalid", ["not-an-id"], None),
+      ("oversized", ["1", "2", "3"], None),
+    ] {
+    let (prepared, run, ledger) = kintone_host_run("kintone-seek-" + label)
+    let stopped = Ref(false)
+    let read = kintone_borrow(prepared, run, stopped, Ref(0))
+    let bytes = kintone_seek_page(ids)
+    let accepted = @kintone_host.accept_record_read_page(read, bytes)
+    if label == "duplicate" || label == "invalid" {
+      // The existing original page Owner rejects these before seek handling.
+      assert_true(accepted is Err(@kintone_host.Page(_)))
+    } else {
+      accepted.unwrap()
+      assert_true(
+        @kintone_host.record_page_next_cursor(read, prior, 2)
+        is Err(@kintone_host.InvalidPageOrder),
+      )
+    }
+    assert_eq(
+      @resources.ledger_usage(ledger).transferred_bytes,
+      bytes.length().to_int64(),
+    )
+    assert_true(@row_host.finish_row_run(run) is Err(_))
+    assert_true(@row_host.close_accounted_row_run(run) is Err(_))
+    if label != "duplicate" && label != "invalid" {
+      assert_true(@kintone_host.record_read_original(read) is Some(_))
+    }
+    stopped.val = true
+    kintone_assert_closed(run, ledger)
+  }
+}
+
+///|
 test "kintone physical Form observation charges the same RowRun without inventing a row" {
   let (prepared, run, ledger) = kintone_host_run("kintone-form-observation")
   let stopped = Ref(false)

@@ -184,3 +184,48 @@ pub fn client_program_kintone_retire_read(
 ) -> Result[Unit, @kintone_host.RecordReadIssue] {
   @kintone_host.retire_record_read(read)
 }
+
+///|
+#export_name("clientProgramKintoneFormRequestBody")
+pub fn client_program_kintone_form_request_body(
+  prepared : @kintone_host.PreparedRecordRead,
+  max_bytes : Int,
+) -> Result[String, @kintone_host.RecordReadIssue] {
+  @kintone_host.record_form_request_body(prepared, max_bytes)
+}
+
+///|
+#export_name("clientProgramKintonePageRequestBody")
+pub fn client_program_kintone_page_request_body(
+  prepared : @kintone_host.PreparedRecordRead,
+  cursor : Array[String],
+  per_page : Int,
+  max_bytes : Int,
+) -> Result[String, @kintone_host.RecordReadIssue] {
+  if cursor.length() > 1 {
+    return Err(@kintone_host.InvalidRequest)
+  }
+  let original = if cursor.is_empty() { None } else { Some(cursor[0]) }
+  @kintone_host.record_page_request_body(
+    prepared, original, per_page, max_bytes,
+  )
+}
+
+///|
+#export_name("clientProgramKintonePageNextCursor")
+pub fn client_program_kintone_page_next_cursor(
+  read : @kintone_host.RecordRead,
+  prior : Array[String],
+  per_page : Int,
+) -> Result[Array[String], @kintone_host.RecordReadIssue] {
+  if prior.length() > 1 {
+    return Err(@kintone_host.InvalidRequest)
+  }
+  let original = if prior.is_empty() { None } else { Some(prior[0]) }
+  @kintone_host.record_page_next_cursor(read, original, per_page).map(next => {
+    match next {
+      Some(id) => [id]
+      None => []
+    }
+  })
+}

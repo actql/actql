@@ -4,6 +4,9 @@ pub enum RecordReadIssue {
   ForeignDeclaration
   Closed
   TransportUnsettled
+  InvalidRequest
+  InvalidPageOrder
+  RequestEncoding(@encode.EncodeFailure)
   Form(@catalog.FormFieldIssue)
   Catalog(@catalog.RecordValueIssue)
   Page(@catalog.RecordPageIssue)
@@ -258,7 +261,8 @@ pub fn recheck_record_read_form(
     }
   }
   // Empty Forms also retain the exact observed App/revision correspondence.
-  if original.app_id != observed.app_id || original.revision != observed.revision {
+  if original.app_id != observed.app_id ||
+    original.revision != observed.revision {
     return refuse_record_read(read, ForeignDeclaration)
   }
   match @rows.consume_row_run_observation_charge(read.run, charge) {
