@@ -42,6 +42,7 @@ import {installedModelEnvironment, readInstalledModelExecution,
 import {loadInstalledProjectConfiguration, installedProjectOriginalsForRuntime}
   from './installed-project-configuration.mjs';
 import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
+import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
 import {installNodeInferRun} from './installed-infer-run.mjs';
 import {installNodeModelContinuation} from './installed-model-continuation.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
@@ -243,7 +244,8 @@ async function openInstalledHost(originalInstallation) {
   let {root, mode = 'local', beforeDispatch, workspaceId,
   authorization, connectorTable, sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace, resolveSourceSecret,
   effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
-  modelInstallation, registerModelProviders, project, calendarArtifact, resultDataPolicy, inferEvidence, hostCapacityPolicy,
+  modelInstallation, registerModelProviders, project, projectProfile, projectRuntime,
+  calendarArtifact, resultDataPolicy, inferEvidence, hostCapacityPolicy,
   hostLookupExecutionPolicy, verifyRequestValuePolicy,
   retainedRelationOutput = false, valuesMaxRows, observation: observationConnection} = originalInstallation;
   // This is the actual returned Host generation, not a CID/configuration
@@ -317,6 +319,9 @@ async function openInstalledHost(originalInstallation) {
     // This drops DATA/backreferences only after the same Host shutdown duties
     // retire. It is not physical read/Provider/Store or numerical release ACK.
     projectTasks = undefined;
+    projectProfile?.retire(projectRuntime);
+    projectProfile = undefined;
+    projectRuntime = undefined;
     project = undefined;
   }
   try {
@@ -361,6 +366,10 @@ async function openInstalledHost(originalInstallation) {
   const moon = await import(runtimeUrl.href);
   const projectOriginal = project === undefined ? undefined :
     installedProjectOriginalsForRuntime(project, moon);
+  if (projectProfile !== undefined && (projectRuntime !== moon ||
+      projectProfile.originalsForRuntime(moon).configuration !== projectOriginal?.configuration)) {
+    throw clientOperationError('ForeignInstalledProjectProfile');
+  }
   function assertProjectRuntime() {
     if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
     if (installedProjectOriginalsForRuntime(project, moon) !== projectOriginal) {
@@ -3330,7 +3339,16 @@ export async function publishInstalledEffect({effectProfilePath, directory,
 }
 
 export async function connectEmbeddedLocal(options) {
-  let installation = options?.installation;
+  // Host-owned values never enter the SDK's transport-options packet. Snapshot
+  // both once before awaits; selecting a profile is not silently ignoring it.
+  const {installation: suppliedInstallation, profile: requestedProfile,
+    ...clientOptions} = options;
+  let installation = suppliedInstallation;
+  if (requestedProfile !== undefined && (typeof requestedProfile !== 'string' ||
+      !requestedProfile || !requestedProfile.isWellFormed() ||
+      requestedProfile.length > 65536)) {
+    throw new TypeError('InvalidInstalledProjectProfile');
+  }
   if (installation !== undefined && (installation === null ||
       typeof installation !== 'object' || Array.isArray(installation))) {
     throw new TypeError('InvalidInstalledHostOptions');
@@ -3356,12 +3374,24 @@ export async function connectEmbeddedLocal(options) {
   const projectDirectory = process.cwd();
   const moon = await import(runtimeUrl.href);
   const project = await loadInstalledProjectConfiguration(moon, {directory: projectDirectory});
+  const projectProfile = selectInstalledProjectProfile(moon, project, requestedProfile, 65536);
+  let adopted = false;
+  try {
+  const selectedProfile = projectProfile.originalsForRuntime(moon);
+  if (selectedProfile.selected !== undefined) {
+    // The original choice is admitted, but this Host has no installed mock
+    // records/answers or another named physical-profile supplier yet. Refuse
+    // before Source/Effect identity, credentials, Provider registration or Store
+    // opening rather than falling back to configured live connections.
+    throw clientOperationError('InstalledProjectProfileUnavailable');
+  }
   const root = installation?.directory === undefined ? project?.stateDirectory ?? localStateRoot() :
     resolve(installation.directory);
   const identity = await embeddedInstallationIdentity(root, installation, project, moon);
-  const {installation: _installation, ...clientOptions} = options;
-  return profiles.connect(root, identity,
-    () => openInstalledHost({root, project, authorization: installation?.authorization,
+  return await profiles.connect(root, identity,
+    () => {adopted = true; return openInstalledHost({root, project, projectProfile,
+        projectRuntime: moon,
+        authorization: installation?.authorization,
         connectorTable: installation?.connectorTable,
         sourceProfilePath: installation?.sourceProfilePath,
         sourceProfilePaths: installation?.sourceProfilePaths,
@@ -3381,5 +3411,10 @@ export async function connectEmbeddedLocal(options) {
         hostLookupExecutionPolicy: installation?.hostLookupExecutionPolicy,
         retainedRelationOutput: installation?.retainedRelationOutput,
         observation: installation?.observation,
-        valuesMaxRows: installation?.valuesMaxRows}), clientOptions);
+        valuesMaxRows: installation?.valuesMaxRows});}, clientOptions);
+  } finally {
+    // A reused Host already retains its own original selection. A partial new
+    // Host, however, keeps this same view until its existing shutdown finishes.
+    if (!adopted) projectProfile.retire(moon);
+  }
 }
