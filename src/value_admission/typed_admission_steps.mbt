@@ -17,6 +17,7 @@ priv enum TypedAdmissionFrame {
   TypedVectorNext(@decode.Cursor, VectorBuilder, Int)
   TypedJson(JsonAdmission, @decode.Cursor)
   TypedReference(ReferenceAdmission, @decode.Cursor)
+  TypedTextEnumeration(@decode.Cursor, String, @contract.TextLimits, Int, Int)
   TypedArrayAppend(ArrayBuilder)
   TypedObjectAppend(ObjectBuilder, String)
 }
@@ -143,6 +144,15 @@ fn TypedAdmission::step(admission : TypedAdmission) -> Unit raise Abort {
   let root = admission.root.unwrap()
   guard admission.frames.pop() is Some(frame) else { fail(root, WrongType) }
   match frame {
+    TypedTextEnumeration(source, text, bounds, entry, offset) =>
+      match text_membership_step(text, bounds, entry, offset) {
+        TextMember => admission.value = Some(Text(text))
+        TextNotMember => fail(source, StringConstraint)
+        TextMembershipContinue(next, unit) =>
+          admission.frames.push(
+            TypedTextEnumeration(source, text, bounds, next, unit),
+          )
+      }
     ReadTyped(cursor, contract, parent_depth, reserved) => {
       if !reserved {
         reserve(cursor, 1, budget)
@@ -250,6 +260,23 @@ fn TypedAdmission::step(admission : TypedAdmission) -> Unit raise Abort {
           }
           admission.value = None
           admission.frames.push(TypedReference(reference, cursor))
+        }
+        @contract.Text(bounds) => {
+          let value = read_scalar(
+            cursor,
+            contract.shape,
+            budget,
+            defer_text_enum=true,
+          )
+          if @contract.text_enumerant_count(bounds) is Some(_) &&
+            value is Text(text) {
+            admission.value = None
+            admission.frames.push(
+              TypedTextEnumeration(cursor, text, bounds, 0, 0),
+            )
+          } else {
+            admission.value = Some(value)
+          }
         }
         shape => admission.value = Some(read_scalar(cursor, shape, budget))
       }
@@ -473,7 +500,7 @@ pub fn cancel_typed_admission(admission : TypedAdmission) -> Unit {
       TypedVectorNext(_, builder, _) => cancel_vector_value(builder) |> ignore
       TypedJson(json, _) => cancel_json_admission(json)
       TypedReference(reference, _) => cancel_reference_admission(reference)
-      ReadTyped(_, _, _, _) => ()
+      ReadTyped(_, _, _, _) | TypedTextEnumeration(_, _, _, _, _) => ()
     }
   }
   admission.frames.clear()

@@ -22,6 +22,13 @@ Null is accepted only by a nullable contract; descendants of untyped `json` may
 contain null. A `json` value supplies no static field evidence and tagged business
 objects do not become typed decimals or references.
 
+A Text enum intersects the original checked extents. Admission, computed Text
+binding and runtime recheck compare exact Unicode data against the original
+ordered declaration; nullability remains independent. No trimming, normalization,
+coercion or replacement by the first enumerant occurs. Empty enums admit no
+non-null value. The checked value retains the same constrained Contract, so
+Values/row transport and Result schema emission cannot silently weaken it.
+
 `Value` distinguishes decimal, date, timestamp and vector values from ordinary
 JSON leaves. Its constructors are private. Nested arrays and object entries are
 opaque, and `elements` returns detached arrays. The root retains its complete
@@ -110,6 +117,15 @@ After closed-field validation, object children are checked in UTF-16 key order;
 arrays use element order. Member presence and key-byte checks precede child value
 checks, and a frontier reservation can report a budget failure before inspecting
 individual children. These are local diagnostic priorities, not CLI error codes.
+
+Resumed Text enum matching borrows one original candidate and compares at most
+64 UTF-16 units per transition through the same typed-admission/recheck cursor.
+Cancellation clears these frames with the original source/value responsibility;
+no second lookup table, worker, parser or validation Owner is introduced. Enum
+metadata was charged by Contract admission and is not charged again as payload
+text. The caller accounts each resumed transition as work and retains the complete
+contract, candidate/value aliases and continuation workspace until their existing
+lifetime ends. This is not normal numerical funding or a physical release ACK.
 
 Errors retain source paths and spans; key failures point at key spans. No partial
 checked value escapes on failure. Each call owns fresh budget state. Returned

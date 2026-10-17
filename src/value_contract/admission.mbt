@@ -182,9 +182,9 @@ fn decode(
         let extras = match kind {
           "string" =>
             if checked {
-              ["min_length", "max_codepoints", "max_utf8_bytes"]
+              ["min_length", "max_codepoints", "max_utf8_bytes", "enum"]
             } else {
-              []
+              ["enum"]
             }
           "number" | "boolean" | "timestamp" | "date" | "json" => []
           "decimal" => ["precision", "scale"]
@@ -217,6 +217,7 @@ fn decode(
               min_length: bound(view, "min_length"),
               max_codepoints: bound(view, "max_codepoints"),
               max_utf8_bytes: bound(view, "max_utf8_bytes"),
+              enumeration: read_text_enumeration(view, budget, depth),
             })
           "number" => Number
           "boolean" => Boolean
