@@ -838,6 +838,8 @@ test('invalid diagnostics retain an acquired source and its failed cleanup',
           ['initialization', 'runtime']);
         assert.equal(error.cause.primaryFailure, error.primaryFailure);
         assert.equal(error.cause.cleanupPending, true);
+        assert.equal(error.cause.code, 'InstalledHostInitializationFailed');
+        assert.equal(error.cause.cleanupErrors[0].error, cleanup);
         assert.ok(error.cause.cleanupHandle.status().owners.includes(
           'source-profile'));
         return true;
