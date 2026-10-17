@@ -3,7 +3,7 @@
 // captured Program or an installed-package qualification.
 import assert from 'node:assert/strict';
 import {createHash, generateKeyPairSync, sign} from 'node:crypto';
-import {mkdtemp, rm} from 'node:fs/promises';
+import {mkdtemp, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -12,6 +12,7 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
 import {createPrivateEvidenceKey, loadPrivateEvidenceKey, openContinuationEvidence} from './local-continuation-evidence.mjs';
+import {readContinuationLedgerBounded} from './bounded-continuation-metadata.mjs';
 import {reviewBytesMatchCid, signedAnswer} from '../../packages/sdk/checkpoints.mjs';
 import {vectors, canonicalText, hash, C, originalRun} from '../../scripts/fixtures/effect-review-projection-vectors.mjs';
 
@@ -108,6 +109,13 @@ test('same review holding keeps byte and artifact identities separate through re
   const vector=vectors[0],item={name:'review_projection',wire:vector.reviewWire,artifactCid:vector.cid};
   const [storageCid]=await evidence.hold('same-original',originalRun,[item]);
   assert.notEqual(storageCid,vector.cid);
+  const ledgerPath=join(root,'attempts/same-original.json');
+  const metadata=await readFile(ledgerPath);
+  const admitted=await readContinuationLedgerBounded(ledgerPath,'same-original',
+    {maxWireBytes:metadata.length,maxLedgerEntries:1},undefined,control);
+  assert.equal(admitted.holdings[0].artifact_cid,vector.cid);
+  await assert.rejects(readContinuationLedgerBounded(ledgerPath,'same-original',
+    {maxWireBytes:metadata.length,maxLedgerEntries:0},undefined,control),{code:'ContinuationLedgerEntriesLimit'});
   await assert.rejects(evidence.hold('same-original',originalRun,[{...item,artifactCid:C('9')}]),{code:'PrivateEvidenceConflict'});
   await assert.rejects(evidence.hold('same-original',originalRun,[{...item,name:'captured_input'}]),{code:'InvalidContinuationEvidence'});
   await evidence.close();evidence=open();const opened=await evidence.open('same-original');
@@ -118,6 +126,18 @@ test('same review holding keeps byte and artifact identities separate through re
   await assert.rejects(opened.artifactBytes('review_projection',C('9')),{code:'ContinuationEvidenceNotHeld'});
   ended=true;await evidence.settle();
   await assert.rejects(opened.artifactBytes('review_projection',vector.cid),{code:'ContinuationEvidenceRetired'});
+});
+
+test('copied and foreign Preview DATA cannot reach the Common projection issuer',()=>{
+  let calls=0;
+  const foreign=runtimeCore({...moon,clientProgramProjectEffectReview(){calls++;assert.fail('MustNotIssue');}}).publicationControl;
+  const policy={authorityScopeCid:C('7'),approvalClaims:['effect_scope_approved'],redactionPolicyCid:C('8')};
+  for(const candidate of [{},Object.freeze({kind:'effect-computation-preview'}),
+    structuredClone(vectors[0].preview)]){
+    assert.throws(()=>control.projectEffectComputationReview(candidate,policy,limits),/Foreign Effect computation Preview/);
+    assert.throws(()=>foreign.projectEffectComputationReview(candidate,policy,limits),/Foreign Effect computation Preview/);
+  }
+  assert.equal(calls,0);
 });
 
 test('missing or foreign original projection refuses before a sealed Effect wait is persisted',async t=>{

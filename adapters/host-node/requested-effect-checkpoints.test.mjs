@@ -13,6 +13,7 @@ import {authorizationDispatchFacts} from '../host-common/authorization-gate.mjs'
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {signedAnswer} from '../../packages/sdk/checkpoints.mjs';
+import {checkpointEffectReviewDouble} from './fixtures/checkpoint-effect-review.fixture.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const tuple = {connection: 'reference', resource: 'records', operation: 'effect'};
@@ -74,6 +75,7 @@ async function fixture(t, {outcome = 'allow', decide} = {}) {
   };
   const options = () => ({runId: 'requested-run', runDefinitionCid: cid('1'),
     unitId: 'effect', declaredResults: ['answer'], reviewWire: '{"preview":"original"}',
+    projectReview: checkpointEffectReviewDouble(control,cid('2')),
     continuationWire, requestedStop: original,
     assertRequestedStopCurrent() {
       if (!current) throw Object.assign(new Error('OriginalRetired'), {code: 'OriginalRetired'});

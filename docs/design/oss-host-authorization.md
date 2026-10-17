@@ -25,6 +25,19 @@ that self CID. Approval binds the review actually shown and cannot discharge
 another Preview, scope, claim set or redaction policy. Neither projection nor
 physical persistence issues an Account grant, apply permit or cleanup ACK.
 
+The existing private continuation ledger keeps those two identities on the
+same review holding: its historical `semantic_cid` still addresses complete
+plaintext bytes, while optional `artifact_cid` names the Common self-addressed
+review. The latter is allowed only for the review role. It is not a second
+index, a new custody issuer or permission to read an arbitrary Store object.
+The original Run/request, installation key, holding derivation, retained state,
+full-byte digest and Common review/Checkpoint correspondence remain required.
+The original continuation bytes and their requested-stop binding do not change.
+Historical unassociated holdings keep their old byte-addressed behavior; no
+pending Checkpoint is upgraded or reissued. The added metadata String, serialized
+entry, bounded parser node and saved/read response overlap remain in the same
+Host/Run inventory; structural parser allowance is not numerical funding.
+
 The projection overlaps the original private wire, bounded parser/readmission
 workspace, original identity inventories, member/row traversal, output writer,
 canonical body, sealed wire and returned DATA aliases. Original per-Run/Host
