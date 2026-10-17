@@ -211,7 +211,10 @@ export function createInstalledHostShutdown({stop, drain, retire, checkpoint,
     await attempt('diagnostic', () => diagnostic?.());
     await attempt('observation', () => observation?.());
     if (finalize !== undefined) {
-      try { await attempt('finalize', finalize); }
+      try {
+        await attempt('finalize', finalize);
+        finalize = undefined;
+      }
       catch (cause) {
         throw Object.assign(new Error('InstalledHostCleanupPending', {cause}), {
           code: 'InstalledHostCleanupPending', primaryFailure: cause,
