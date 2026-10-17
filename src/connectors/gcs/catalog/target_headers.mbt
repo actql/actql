@@ -22,7 +22,8 @@ fn object_target_header_versions(
     match key {
       "content-encoding" if encoding is None => encoding = Some(value)
       "x-goog-generation" if generation is None => generation = Some(value)
-      "x-goog-metageneration" if metageneration is None => metageneration = Some(value)
+      "x-goog-metageneration" if metageneration is None =>
+        metageneration = Some(value)
       _ => return Err(InvalidInput)
     }
   }

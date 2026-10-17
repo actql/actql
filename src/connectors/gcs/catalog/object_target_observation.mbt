@@ -16,7 +16,8 @@ pub fn object_mutation_metadata_path(
   binding : ObjectMutationBinding,
   name : String,
 ) -> Result[String, ObjectTargetReadIssue] {
-  if name.is_empty() || !name.has_prefix(binding.prefix) ||
+  if name.is_empty() ||
+    !name.has_prefix(binding.prefix) ||
     name.iter().any(c => c == '\r' || c == '\n') {
     return Err(InvalidName)
   }
@@ -38,7 +39,9 @@ pub fn object_mutation_metadata_path(
 }
 
 ///|
-pub fn object_mutation_metadata_max_bytes(binding : ObjectMutationBinding) -> Int {
+pub fn object_mutation_metadata_max_bytes(
+  binding : ObjectMutationBinding,
+) -> Int {
   binding.limits.metadata.max_bytes
 }
 
@@ -56,9 +59,8 @@ pub fn admit_object_mutation_target_observation(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let (generation, metageneration) = match object_target_header_versions(
-    binding.limits.metadata, headers,
-  ) {
+  let (generation, metageneration) = match
+    object_target_header_versions(binding.limits.metadata, headers) {
     Ok(value) => value
     Err(CapacityExceeded) => return Err(CapacityExceeded)
     Err(_) => return Err(InvalidResponse)
@@ -66,14 +68,25 @@ pub fn admit_object_mutation_target_observation(
   if status != 200 {
     return Err(InvalidResponse)
   }
-  let original = match admit_object_metadata(
-    body, binding.bucket, binding.prefix, Some(name), binding.limits.metadata,
-  ) {
+  let original = match
+    admit_object_metadata(
+      body,
+      binding.bucket,
+      binding.prefix,
+      Some(name),
+      binding.limits.metadata,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Metadata(issue))
   }
-  if (generation is Some(value) && value != original.fields.generation.to_string()) ||
-    (metageneration is Some(value) && value != original.fields.metageneration.to_string()) {
+  if (
+      generation is Some(value) &&
+      value != original.fields.generation.to_string()
+    ) ||
+    (
+      metageneration is Some(value) &&
+      value != original.fields.metageneration.to_string()
+    ) {
     return Err(InvalidResponse)
   }
   Ok(original)
