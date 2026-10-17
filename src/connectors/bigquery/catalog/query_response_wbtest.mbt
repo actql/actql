@@ -229,7 +229,7 @@ test "query aggregate value node text row total and token limits fail without pa
 test "query duplicate raw keys malformed Unicode and invalid JSON literal refuse" {
   let fields = [field("j", "JSON")]
   let projection = qprojection(fields)
-  for value in ["{\"a\":1,\"a\":2}", "{", "NaN"] {
+  for value in ["{", "NaN"] {
     assert_true(project_query_page(projection, qjob(), qbody(fields, [qrow([value.to_json()])]), qlimits()) is Err(_))
   }
   let duplicate = @utf8.encode("{\"jobComplete\":true,\"jobComplete\":false}")
@@ -252,4 +252,16 @@ test "query explicit default numeric result parameters equal the original effect
   let original = [field("n", "NUMERIC")]
   let response = [field("n", "NUMERIC", precision=Some("38".to_json()), scale=Some("9".to_json()))]
   assert_true(project_query_page(qprojection(original), qjob(), qbody(response, [qrow(["1.25".to_json()])]), qlimits()) is Ok(_))
+}
+
+///|
+test "query JSON data uses the existing first-key law while bounding discarded duplicate values" {
+  let fields = [field("j", "JSON")]
+  let projection = qprojection(fields)
+  let page = project_query_page(projection, qjob(), qbody(fields, [qrow(["{\"a\":1,\"a\":2}".to_json()])]), qlimits()).unwrap()
+  guard query_page_cell(page, 0, 0).unwrap().value is @admitted.JsonData(@admitted.Object(entries)) else { fail("expected JSON object") }
+  assert_eq(@admitted.element_count(entries), 1)
+  assert_eq(@admitted.element_at(entries, 0).unwrap().0, "a")
+  assert_true(@admitted.element_at(entries, 0).unwrap().1 is @admitted.Number(1.0))
+  assert_true(project_query_page(projection, qjob(), qbody(fields, [qrow(["{\"a\":1,\"a\":[1,2]}".to_json()])]), { ..qlimits(), max_value_nodes: 4 }) is Err(_))
 }
