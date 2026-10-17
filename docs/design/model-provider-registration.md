@@ -1,5 +1,37 @@
 # Exclusive Model Provider registration
 
+## Project declarations and installed originals
+
+The public `actql-model-tasks/0.1` registry is project DATA. The existing
+Common project reader retains its exact original text and bounded, ordered
+task-file and provider declarations, including the optional selected default.
+It checks every entry, not only a task used by one Program. A provider type is
+not an implementation allowlist, and an environment-variable name is not a
+credential or permission to read one. An unresolved default is refused rather
+than replaced with an ambient provider.
+
+This read-only snapshot does not admit the referenced task definitions,
+construct a CheckEnvironment, register a physical Provider, authorize a Run or
+fund any holding. Consumers must resolve files against the original registry,
+retain the actual selected installation and current configuration, and use
+the existing task/environment and physical registration Owners. A later
+registry with the same task name cannot replace a retained original. Nonempty
+project declarations cannot fall back to the source-free/no-model profile.
+
+The private Node assembly captures the two already admitted declaration handles
+with the exact runtime that read them and retains the original supplied text.
+Its runtime check does not establish file selection or physical identity. A
+selected registry must be supplied, and an unselected registry cannot be grafted
+onto a plain project. The capture has no constructor for caller-created Core
+handles, does not parse JSON itself and does not issue new permission.
+Its record, callback and original runtime/handle/String references remain part
+of the existing Host metadata lifetime; capturing or garbage-collecting them
+does not acknowledge physical cleanup or prove a funded envelope. Filesystem
+acquisition, generation/current checks, saved-material admission and the
+complete startup reservation are independently required before public use.
+
+## Exclusive invocation mode
+
 The existing ModelProvider Owner distinguishes a synchronous fixture callback
 from an asynchronous installed physical Provider. The variants are exclusive:
 async registration retains no dummy synchronous callback and has no synchronous

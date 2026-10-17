@@ -21,6 +21,7 @@ import {connect, getSubmissionOutcome} from '../../../../packages/sdk/index.mjs'
 import {openInstalledRemoteHttpHost, publishInstalledEffect} from
   '../../../host-node/embedded-local.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
+import {splitSourceAliasProfile} from '../../../host-node/source-alias-publication.mjs';
 import {INSTALLED_SALESFORCE_SITE_VERSION} from
   '../host/installed-salesforce-site.mjs';
 import {INSTALLED_SALESFORCE_SOURCE_VERSION, loadInstalledSalesforceSource,
@@ -46,7 +47,9 @@ const tlsKey = await readFile(join(tlsRoot, 'host.key'));
 const tlsCertificate = await readFile(join(tlsRoot, 'host.crt'));
 setDefaultCACertificates([...getCACertificates('default'),
   tlsCertificate.toString('utf8')]);
-after(() => rm(tlsRoot, {recursive: true, force: true}));
+after(() => process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1'
+  ? console.error(`Salesforce standard Host TLS custody retained: ${tlsRoot}`)
+  : rm(tlsRoot, {recursive: true, force: true}));
 
 const owner = userInfo().username;
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -106,7 +109,9 @@ async function installation(t, {readable = ['Test_Record__c'],
   writableObjects = [],
   queryFailureStatus, queryFailureOnRequest, storedRecords, recordsByResource,
   queryPageSize, queryResponse, temporalFields = false,
-  numberFields = false, retainedRelationOutput = false,
+  numberFields = false, numberNativeType = 'double', multiPicklistFields = false,
+  geolocationFields = false,
+  retainedRelationOutput = false,
   secondInstallation = false} = {}) {
   const org = await openSalesforceEffectSiteFixture(t, {commonMoon,
     salesforceMoon, runInvocationCid: cid('1'), dispatchRequestCid: cid('2'),
@@ -114,14 +119,18 @@ async function installation(t, {readable = ['Test_Record__c'],
     recordsByResource, queryPageSize, queryResponse, extraObjects,
     writableObjects,
     temporalFields,
-    numberFields,
+    numberFields, numberNativeType, multiPicklistFields, geolocationFields,
     optionalText: storedRecords !== undefined});
   const root = await mkdtemp(join(scratch, 'host-'));
   // Hosts close before their directory is removed.
   const closers = [];
   t.after(async () => {
     for (const close of closers.reverse()) await close();
-    await rm(root, {recursive: true, force: true});
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      console.error(`Salesforce standard Host custody retained: ${root}`);
+    } else {
+      await rm(root, {recursive: true, force: true});
+    }
   });
   const authority = generateKeyPairSync('ed25519');
   await writeFile(join(root, 'credential.key'), authority.privateKey.export({
@@ -159,17 +168,35 @@ async function installation(t, {readable = ['Test_Record__c'],
       connectorId: 'crm-other', resources: ['Other_Record__c']}));
   }
   const hostRoot = join(root, 'state');
+  const publishAliases = async (value, path, published, namespace) => {
+    // Visible aliases are explicit trusted installation metadata projected
+    // from this same original publication, never guessed from a Program.
+    // Salesforce's summary omits carrier_schema_cid; its same canonical view
+    // body supplies the original output-schema reference instead.
+    const sourceViews = published.declared.source_views.map(text => JSON.parse(text));
+    value.queryAliases = published.declared.views.map(view => {
+      const original = sourceViews.find(body => body.contract_cid === view.view_cid);
+      assert.ok(original, 'Alias must use the same original Salesforce view');
+      return {name: `${namespace}.${view.resource}`, sourceRef: view.source_ref,
+        sourceViewContractCid: view.view_cid, schemaContractCid: original.output.schema.cid};
+    });
+    await writeFile(path, JSON.stringify(value));
+  };
   const publish = async () => {
-    const first = await publishInstalledSalesforceSource(profile, {
+    const first = await publishInstalledSalesforceSource(splitSourceAliasProfile(profile).providerProfile, {
       root: hostRoot, principalId: owner, moon: commonMoon,
       providerMoon: salesforceMoon,
       runtimeBundleCid, resolveSecret: secret});
+    // These explicit fixture names are relation paths, not connector IDs:
+    // crm-main/crm-other contain a hyphen and are not bare path identifiers.
+    await publishAliases(profile, profilePath, first, 'crm_main');
     if (secondInstallation) {
       const second = JSON.parse(await readFile(secondProfilePath, 'utf8'));
-      await publishInstalledSalesforceSource(second, {
+      const publishedSecond = await publishInstalledSalesforceSource(splitSourceAliasProfile(second).providerProfile, {
         root: hostRoot, principalId: owner, moon: commonMoon,
         providerMoon: salesforceMoon,
         runtimeBundleCid, resolveSecret: secret});
+      await publishAliases(second, secondProfilePath, publishedSecond, 'crm_other');
     }
     return first;
   };
@@ -207,6 +234,47 @@ async function installation(t, {readable = ['Test_Record__c'],
   return {org, root, profile, profilePath, sitePath, siteDocument, publish,
     open, queries, connection: `salesforce:${org.orgId}`};
 }
+
+test('published Salesforce original views explicitly supply visible query aliases for Check', async t => {
+  const setup = await installation(t, {numberFields: true});
+  const publication = await setup.publish();
+  const profile = JSON.parse(await readFile(setup.profilePath, 'utf8'));
+  assert.equal(profile.queryAliases.length, 1);
+  const [alias] = profile.queryAliases;
+  const [catalogView] = JSON.parse(publication.declared.catalog).source_views;
+  assert.equal(alias.name, 'crm_main.Test_Record__c');
+  assert.equal(alias.sourceRef, 'connector://crm-main/Test_Record__c#records');
+  assert.equal(alias.sourceViewContractCid, catalogView.contract_cid);
+  assert.match(alias.schemaContractCid, /^sha256:[0-9a-f]{64}$/u);
+  assert.equal(alias.schemaContractCid, catalogView.output.schema.cid);
+  const {client} = await setup.open();
+  const before = setup.org.seen.length;
+  const document = JSON.parse(numberProgram);
+  document.stages[0].inputs.remote.view = 'records';
+  const checked = await client.check(document, {kind: 'program', scope: 'bound_input'});
+  assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+  assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+  assert.equal(setup.org.seen.length, before);
+  assert.equal(setup.queries().length, 0);
+});
+
+test('a Salesforce publication without explicit visible aliases remains protected at Check', async t => {
+  const setup = await installation(t, {numberFields: true});
+  await setup.publish();
+  await writeFile(setup.profilePath, JSON.stringify({...setup.profile, queryAliases: []}));
+  const {client} = await setup.open();
+  const before = setup.org.seen.length;
+  const document = JSON.parse(numberProgram);
+  document.stages[0].inputs.remote.view = 'records';
+  const checked = await client.check(document, {kind: 'program', scope: 'bound_input'});
+  assert.equal(checked.report.verdict, 'undetermined');
+  assert.deepEqual(checked.report.coverage.unresolved,
+    [{boundary: 'source_resolution', reason: 'unresolved_protected'}]);
+  assert.deepEqual(checked.report.runnable,
+    {verdict: 'no', reasons: [{code: 'unresolved_protected'}]});
+  assert.equal(setup.org.seen.length, before);
+  assert.equal(setup.queries().length, 0);
+});
 
 test('public Client reads a published Salesforce source to a Named Result',
   async t => {
@@ -826,7 +894,15 @@ test('invalid diagnostics retain an acquired source and its failed cleanup',
           'InvalidDiagnosticObserver');
         assert.equal(error.cleanupPending, true);
         assert.equal(error.cleanupErrors[0].error, cleanup);
-        assert.ok(error.cleanupHandle.status().owners.includes(
+        // Runtime retirement wraps the same original initializer; the Source
+        // remains with that child until its original journal close succeeds.
+        assert.deepEqual(error.cleanupHandle.status().owners,
+          ['initialization', 'runtime']);
+        assert.equal(error.cause.primaryFailure, error.primaryFailure);
+        assert.equal(error.cause.cleanupPending, true);
+        assert.equal(error.cause.code, 'InstalledHostInitializationFailed');
+        assert.equal(error.cause.cleanupErrors[0].error, cleanup);
+        assert.ok(error.cause.cleanupHandle.status().owners.includes(
           'source-profile'));
         return true;
       });
@@ -1933,16 +2009,106 @@ const numberProgram = JSON.stringify({version: 'actql/0.1',
   ],
   results: {records: {from: {stage: 'compute', result: 'r'}}}});
 
+test('Salesforce Number16 reaches its exact Named Result and same Run Host reopen', async t => {
+  const setup = await installation(t, {numberFields: true, storedRecords: [
+    {Id: 'a00000000000001', Name: 'record-1', External_Key__c: 'key-1',
+      Wide_Amount__c: numberText('12345678901234.56')},
+    {Id: 'a00000000000002', Name: 'record-2', External_Key__c: 'key-2', Wide_Amount__c: null},
+    {Id: 'a00000000000003', Name: 'record-3', External_Key__c: 'key-3',
+      Wide_Amount__c: numberText('-99999999999999.99')},
+  ]});
+  await setup.publish();
+  const {client, close} = await setup.open();
+  const document = JSON.parse(numberProgram.replaceAll('Amount__c', 'Wide_Amount__c'));
+  document.stages[0].inputs.remote.view = 'records';
+  const before = setup.org.seen.length;
+  const checked = await client.check(document, {kind: 'program', scope: 'bound_input'});
+  assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+  assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+  assert.equal(setup.org.seen.length, before);
+  assert.equal(setup.queries().length, 0);
+  const execution = await client.startSource(JSON.stringify(document), {format: 'json',
+    submissionRef: client.newSubmission({nonce: 'number16-original-public'})});
+  const state = await execution.wait({signal: AbortSignal.timeout(20_000)});
+  assert.equal(state.status, 'succeeded', JSON.stringify(state));
+  const result = execution.result('records');
+  assert.deepEqual((await result.describe()).columns, [
+    {name: 'Id', contract: {type: 'string', nullable: false}},
+    {name: 'Wide_Amount__c', contract: {type: 'decimal', nullable: true, precision: 16, scale: 2}},
+  ]);
+  const expected = [
+    {Id: 'a00000000000001', Wide_Amount__c: '12345678901234.56'},
+    {Id: 'a00000000000002', Wide_Amount__c: null},
+    {Id: 'a00000000000003', Wide_Amount__c: '-99999999999999.99'},
+  ];
+  assert.deepEqual(await result.all(), expected);
+  const originalRef = execution.ref, queries = setup.queries().length;
+  assert.ok(queries > 0);
+  await close();
+  const reopened = await setup.open();
+  const restored = await reopened.client.attach(originalRef);
+  assert.deepEqual(await restored.result('records').all(), expected);
+  assert.equal(setup.queries().length, queries);
+});
+
+for (const numberNativeType of ['currency', 'percent']) {
+test(`Salesforce ${numberNativeType}16 preserves exact digits through Named Result and same Run reopen`, async t => {
+  const setup = await installation(t, {numberFields: true, numberNativeType, storedRecords: [
+    {Id: 'a00000000000001', Name: 'record-1', External_Key__c: 'key-1',
+      Wide_Amount__c: numberText('12345678901234.56')},
+    {Id: 'a00000000000002', Name: 'record-2', External_Key__c: 'key-2', Wide_Amount__c: null},
+    {Id: 'a00000000000003', Name: 'record-3', External_Key__c: 'key-3',
+      Wide_Amount__c: numberText('-99999999999999.99')},
+  ]});
+  await setup.publish();
+  const {client, close} = await setup.open();
+  const document = JSON.parse(numberProgram.replaceAll('Amount__c', 'Wide_Amount__c'));
+  document.stages[0].inputs.remote.view = 'records';
+  const before = setup.org.seen.length;
+  const checked = await client.check(document, {kind: 'program', scope: 'bound_input'});
+  assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+  assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+  assert.equal(setup.org.seen.length, before);
+  assert.equal(setup.queries().length, 0);
+  const execution = await client.startSource(JSON.stringify(document), {format: 'json',
+    submissionRef: client.newSubmission({nonce: `${numberNativeType}16-original-public`})});
+  const state = await execution.wait({signal: AbortSignal.timeout(20_000)});
+  assert.equal(state.status, 'succeeded', JSON.stringify(state));
+  const result = execution.result('records');
+  assert.deepEqual((await result.describe()).columns, [
+    {name: 'Id', contract: {type: 'string', nullable: false}},
+    {name: 'Wide_Amount__c', contract: {type: 'decimal', nullable: true, precision: 16, scale: 2}},
+  ]);
+  const expected = [
+    {Id: 'a00000000000001', Wide_Amount__c: '12345678901234.56'},
+    {Id: 'a00000000000002', Wide_Amount__c: null},
+    {Id: 'a00000000000003', Wide_Amount__c: '-99999999999999.99'},
+  ];
+  assert.deepEqual(await result.all(), expected);
+  const originalRef = execution.ref, queries = setup.queries().length;
+  assert.ok(queries > 0);
+  await close();
+  const reopened = await setup.open();
+  const restored = await reopened.client.attach(originalRef);
+  assert.deepEqual(await restored.result('records').all(), expected);
+  assert.equal(setup.queries().length, queries);
+});
+
+}
+
 test('Salesforce Numbers reach the Named Result as their exact declared decimals',
   async t => {
     const setup = await installation(t, {numberFields: true});
     await setup.publish();
     const {client, close} = await setup.open();
-    // A Number above precision 15 is not declared, so a Program reading it
-    // fails Check before any provider I/O.
+    // A declared Number(16,2) is the same exact Decimal Contract domain.
+    // Checking the explicit original view does not make a provider request.
     const before = setup.org.seen.length;
-    await assert.rejects(client.startSource(numberProgram.replaceAll('Amount__c',
-      'Wide_Amount__c'), {format: 'json', submissionRef: client.newSubmission({nonce: 'wide-number'})}));
+    const wide = JSON.parse(numberProgram.replaceAll('Amount__c', 'Wide_Amount__c'));
+    wide.stages[0].inputs.remote.view = 'records';
+    const checkedWide = await client.check(wide, {kind: 'program', scope: 'bound_input'});
+    assert.equal(checkedWide.report.verdict, 'verified', JSON.stringify(checkedWide.report));
+    assert.deepEqual(checkedWide.report.runnable, {verdict: 'yes', reasons: []});
     assert.equal(setup.org.seen.length, before);
     const execution = await client.startSource(numberProgram, {format: 'json',
       submissionRef: client.newSubmission({nonce: 'number-read'})});
@@ -2001,9 +2167,14 @@ test('installed Salesforce Read has only the neutral capture owner', async t => 
   await setup.publish();
   let pages = 0;
   const acquisitions = [], captures = [];
+  let legacyPreparations = 0;
   const runtime = {...commonMoon,
     clientProgramPrepareSalesforceDeclaredRowAcquisition(...args) {
-      const result = commonMoon.clientProgramPrepareSalesforceDeclaredRowAcquisition(...args);
+      legacyPreparations++;
+      return commonMoon.clientProgramPrepareSalesforceDeclaredRowAcquisition(...args);
+    },
+    clientProgramRowSourcePrepareAcquisition(...args) {
+      const result = commonMoon.clientProgramRowSourcePrepareAcquisition(...args);
       acquisitions.push(result._0);
       return result;
     },
@@ -2026,6 +2197,8 @@ test('installed Salesforce Read has only the neutral capture owner', async t => 
   const first = await adapter.open(common);
   const second = await adapter.open(common);
   try {
+    assert.equal(legacyPreparations, 0);
+    assert.equal(acquisitions.length, 2);
     assert.equal(pages, 2);
     assert.equal(typeof await first.issueSourceEvidence({authorityScopeCid: cid('a'),
       effectiveDataPolicyCid: first.checkedSource.sourceDataPolicyCid}), 'string');
@@ -2231,4 +2404,218 @@ test('acquisition-only Named Result refuses before physical start', async t => {
       physical_start_reserved: 0, pre_dispatch_failure_confirmed: 1}]);
   } finally {requests.close();}
   await close();
+});
+
+
+test('shared Salesforce Source preserves original read and credential preimages and grant order', async t => {
+  const setup = await installation(t);
+  await setup.publish();
+  const before = setup.org.seen.length;
+  const subjects = [];
+  let nonce, starts = 0, begins = 0, preparedSource;
+  const originalCid = body => `sha256:${createHash('sha256')
+    .update(JSON.stringify(body)).digest('hex')}`;
+  const runtime = {...commonMoon,
+    clientProgramRowSourceStart(acquisition, originalNonce, current) {
+      starts++; nonce = originalNonce;
+      // The original one Describe-plan observation still precedes the RowRun.
+      assert.equal(setup.org.seen.length, before + 1);
+      return commonMoon.clientProgramRowSourceStart(acquisition, originalNonce, current);
+    },
+    clientProgramRowSourceBegin(...args) {
+      begins++;
+      const runInvocationCid = originalCid({version: 'actql-salesforce-acquisition/0.1',
+        requirementCid: preparedSource.checkedSource.requirementCid, nonce});
+      const dispatchRequestCid = originalCid({
+        version: 'actql-salesforce-acquisition-dispatch/0.1', runInvocationCid});
+      const journal = new DatabaseSync(join(setup.siteDocument.journalRoot,
+        'credential-journal.sqlite3'), {readOnly: true});
+      try {
+        const grants = journal.prepare('SELECT grant_json FROM credential_grants').all()
+          .map(row => JSON.parse(row.grant_json))
+          .filter(grant => grant.operation === 'salesforce:query:read');
+        assert.equal(grants.length, 1, 'original query grant is committed before begin');
+        assert.equal(grants[0].run_invocation_cid, runInvocationCid);
+        assert.equal(grants[0].dispatch_request_cid, dispatchRequestCid);
+        assert.equal(grants[0].task_attempt, 1);
+        assert.equal(grants[0].max_uses, 10);
+      } finally { journal.close(); }
+      return commonMoon.clientProgramRowSourceBegin(...args);
+    }};
+  const {adapter, common} = await installedAdapter(setup, program, runtime);
+  const access = {...adapter.sourceAccess, authorization: {
+    async authorize(...args) {
+      subjects.push(args[2].subjectCid);
+      return adapter.sourceAccess.authorization.authorize(...args);
+    }}};
+  let capture;
+  try {
+    assert.equal(adapter.realizationKey, 'salesforce-acquired');
+    assert.deepEqual(Object.keys(adapter.sourceAccess).sort(), ['authorization', 'connection']);
+    assert.equal(adapter.openKeyed, undefined, 'no new profile exposed by compatibility entry');
+    preparedSource = await adapter.prepare({...common, sourceAccess: access});
+    const expectedSubject = originalCid({version: 'actql-salesforce-acquisition-read/0.1',
+      requirementCid: preparedSource.checkedSource.requirementCid,
+      physicalBinding: preparedSource.physicalBinding});
+    capture = await adapter.open({...common, sourceAccess: access, preparedSource});
+    assert.equal(starts, 1); assert.equal(begins, 1);
+    assert(subjects.length >= 3, 'prepare, initial current and final capture current remain');
+    assert(subjects.every(subject => subject === expectedSubject));
+    assert.equal(setup.queries().length, 1);
+    assert.notEqual(capture.capture.source(), undefined);
+    const journal = new DatabaseSync(join(setup.siteDocument.journalRoot,
+      'credential-journal.sqlite3'), {readOnly: true});
+    try {
+      const uses = journal.prepare('SELECT use_id FROM credential_uses').all()
+        .map(row => row.use_id).filter(use => use.startsWith(nonce + '-query-'));
+      assert.deepEqual(uses, [nonce + '-query-0']);
+    } finally { journal.close(); }
+  } finally {
+    capture?.close();
+    adapter.close();
+  }
+});
+
+
+test('Salesforce multi-select arrays reach the same Named Result after Host reopen without another query', async t => {
+  const setup = await installation(t, {multiPicklistFields: true, storedRecords: [
+    // Arrival order is deliberately different from the authored Id order.
+    {Id: 'a00000000000004', Name: 'record-4', External_Key__c: 'key-4', Choices__c: ';a;;'},
+    {Id: 'a00000000000002', Name: 'record-2', External_Key__c: 'key-2', Choices__c: ''},
+    {Id: 'a00000000000001', Name: 'record-1', External_Key__c: 'key-1', Choices__c: 'red;東京;red'},
+    {Id: 'a00000000000003', Name: 'record-3', External_Key__c: 'key-3', Choices__c: null},
+  ]});
+  await setup.publish();
+  const {client, close} = await setup.open();
+  const document = JSON.parse(numberProgram.replaceAll('Amount__c', 'Choices__c'));
+  document.id = 'salesforce-multi-select';
+  document.stages[0].inputs.remote.view = 'records';
+  const before = setup.org.seen.length;
+  // The declaration does not claim an Id key. Array values cannot supply the
+  // projected-fields fallback order; prove uniqueness on the actual rows first.
+  const unordered = await client.check(document, {kind: 'program', scope: 'bound_input'});
+  assert.equal(unordered.report.verdict, 'invalid');
+  assert(unordered.report.reasons.some(reason => reason.code === 'program_invalid' &&
+    reason.location?.pointer === '/stages/0/results/r'));
+  assert.equal(setup.org.seen.length, before);
+  document.stages[0].steps.push(
+    {from: 'captured', assert_rows: {unique_by: ['Id']}, as: 'unique_records'},
+    {from: 'unique_records', sort: [{Id: 'asc'}], as: 'ordered_records'});
+  document.stages[0].results.r.from = 'ordered_records';
+  const checked = await client.check(document, {kind: 'program', scope: 'bound_input'});
+  assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+  assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+  assert.equal(setup.org.seen.length, before);
+  const execution = await client.startSource(JSON.stringify(document), {format: 'json',
+    submissionRef: client.newSubmission({nonce: 'multi-select-original'})});
+  const state = await execution.wait({signal: AbortSignal.timeout(20_000)});
+  assert.equal(state.status, 'succeeded', JSON.stringify(state));
+  assert.deepEqual((await execution.result('records').describe()).columns, [
+    {name: 'Id', contract: {type: 'string', nullable: false}},
+    {name: 'Choices__c', contract: {type: 'array', nullable: true,
+      items: {type: 'string', nullable: false}}},
+  ]);
+  const expected = [
+    {Id: 'a00000000000001', Choices__c: ['red', '東京', 'red']},
+    {Id: 'a00000000000002', Choices__c: []},
+    {Id: 'a00000000000003', Choices__c: null},
+    {Id: 'a00000000000004', Choices__c: ['', 'a', '', '']},
+  ];
+  assert.deepEqual(await execution.result('records').all(), expected);
+  const original = execution.ref, queryCount = setup.queries().length;
+  assert.ok(queryCount > 0);
+  await close();
+  const reopened = await setup.open();
+  const restored = await reopened.client.attach(original);
+  assert.deepEqual(await restored.result('records').all(), expected);
+  assert.equal(setup.queries().length, queryCount);
+});
+
+
+function geolocationProgram() {
+  const document = JSON.parse(numberProgram.replaceAll('Amount__c', 'Location__c'));
+  document.id = 'salesforce-geolocation';
+  document.stages[0].inputs.remote.view = 'records';
+  document.stages[0].steps.push(
+    {from: 'captured', assert_rows: {unique_by: ['Id']}, as: 'unique_records'},
+    {from: 'unique_records', sort: [{Id: 'asc'}], as: 'ordered_records'});
+  document.stages[0].results.r.from = 'ordered_records';
+  return document;
+}
+
+test('Salesforce compound geolocation reaches its exact Named Result and same Run Host reopen', async t => {
+  const setup = await installation(t, {geolocationFields: true, storedRecords: [
+    {Id: 'a00000000000003', Name: 'record-3', External_Key__c: 'key-3',
+      Location__c: {latitude: null, longitude: null},
+      Location__Latitude__s: null, Location__Longitude__s: null},
+    {Id: 'a00000000000001', Name: 'record-1', External_Key__c: 'key-1',
+      Location__c: {latitude: numberText('37.123456789012345'),
+        longitude: numberText('-122.123456789012345')},
+      Location__Latitude__s: numberText('37.123456789012345'),
+      Location__Longitude__s: numberText('-122.123456789012345')},
+    {Id: 'a00000000000002', Name: 'record-2', External_Key__c: 'key-2',
+      Location__c: null, Location__Latitude__s: null, Location__Longitude__s: null},
+  ]});
+  await setup.publish();
+  const {client, close} = await setup.open();
+  const document = geolocationProgram();
+  const before = setup.org.seen.length;
+  const checked = await client.check(document, {kind: 'program', scope: 'bound_input'});
+  assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+  assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+  assert.equal(setup.org.seen.length, before);
+  const execution = await client.startSource(JSON.stringify(document), {format: 'json',
+    submissionRef: client.newSubmission({nonce: 'geolocation-original'})});
+  const state = await execution.wait({signal: AbortSignal.timeout(20_000)});
+  assert.equal(state.status, 'succeeded', JSON.stringify(state));
+  assert.deepEqual((await execution.result('records').describe()).columns, [
+    {name: 'Id', contract: {type: 'string', nullable: false}},
+    {name: 'Location__c', contract: {type: 'object', nullable: true,
+      additional_properties: false, fields: {
+      latitude: {type: 'decimal', precision: 18, scale: 15, nullable: true},
+      longitude: {type: 'decimal', precision: 18, scale: 15, nullable: true}}}},
+  ]);
+  const expected = [
+    {Id: 'a00000000000001', Location__c: {latitude: '37.123456789012345',
+      longitude: '-122.123456789012345'}},
+    {Id: 'a00000000000002', Location__c: null},
+    {Id: 'a00000000000003', Location__c: {latitude: null, longitude: null}},
+  ];
+  assert.deepEqual(await execution.result('records').all(), expected);
+  const original = execution.ref, queryCount = setup.queries().length;
+  assert.ok(queryCount > 0);
+  await close();
+  const reopened = await setup.open();
+  const restored = await reopened.client.attach(original);
+  assert.deepEqual(await restored.result('records').all(), expected);
+  assert.equal(setup.queries().length, queryCount);
+});
+
+
+test('a compound geolocation beyond original component scale fails typed without a Result', async t => {
+  const setup = await installation(t, {geolocationFields: true, storedRecords: [
+    {Id: 'a00000000000001', Name: 'record-1', External_Key__c: 'key-1',
+      Location__c: {latitude: numberText('37.1000000000000001'),
+        longitude: numberText('-122.25')},
+      Location__Latitude__s: numberText('37.1000000000000001'),
+      Location__Longitude__s: numberText('-122.25')},
+  ]});
+  await setup.publish();
+  const {client, close} = await setup.open();
+  const program = JSON.stringify(geolocationProgram());
+  const execution = await client.startSource(program, {format: 'json',
+    submissionRef: client.newSubmission({nonce: 'geolocation-value-refusal'})});
+  assert.equal((await execution.wait({signal: AbortSignal.timeout(20_000)})).status, 'failed');
+  await assert.rejects(execution.result('records').all());
+  await close();
+  const {adapter, common} = await installedAdapter(setup, program);
+  try {
+    const failure = await adapter.open(common).then(() => undefined, error => error);
+    assert.equal(failure?.code, 'SalesforceValueViolation', String(failure?.code));
+    assert.equal(failure.outcome, 'stopped');
+    assert.deepEqual(failure.cause.violation, {expected_type: 'object',
+      field: 'Location__c', kind: 'scale', resource: 'Test_Record__c'});
+  } finally {
+    adapter.close();
+  }
 });

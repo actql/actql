@@ -16,7 +16,7 @@ const bindingCases = binding => ['text', 'program'].flatMap(kind => [
 ]);
 const mutations = [
   {name: 'nested missing obligations disappear beside supplied violations',
-    path: 'src/connectors_builtin_node/client_check.mbt',
+    path: 'src/client_local_preparation/client_check.mbt',
     file: 'adapters/host-node/client-check.test.mjs',
     from: '    check_missing_value_findings(findings, declared, supplied, scope)',
     to: '    // Deliberate fault: omit the independent missing-value frontier.',
@@ -53,7 +53,7 @@ const mutations = [
     to: "return Object.freeze({...location, pointer: '', input: original});",
     targets: cases('scoped Program locations distinguish missing nodes, null and original Unicode keys',
       [{id: 'scoped-program-parent', operator: 'strictEqual'}])},
-  {name: 'report omissions retain template verification', path: 'src/connectors_builtin_node/client_check.mbt',
+  {name: 'report omissions retain template verification', path: 'src/client_local_preparation/client_check.mbt',
     from: 'let reported_verdict = if template_report_limited {\n    "undetermined"\n  } else {\n    verdict\n  }',
     to: 'let reported_verdict = verdict',
     targets: cases('scoped reporting truncation cannot publish template verification',

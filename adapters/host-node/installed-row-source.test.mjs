@@ -8,7 +8,8 @@ import {inspect} from 'node:util';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../host-common/runtime-result.mjs';
-import {createInstalledRowSource, openRowSourceCredentialSite,
+import {openSqliteCredentialJournal} from '../site-node/sqlite-credential-journal.mjs';
+import {createInstalledRowSource, openRowSourceCredentialSite, installRowSourceAuthorization,
   rowSourceCheckEnvironment} from
   './installed-row-source.mjs';
 import {installedSourceReadAccesses, installedSourceReadBindings} from
@@ -371,3 +372,73 @@ test('invalid declared response headers refuse before opening the credential jou
     }
     assert.equal(opens, 0);
   });
+
+
+test('shared generic credential custody preserves its original task and checked journal-close behavior', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-row-credential-custody-'));
+  const key = generateKeyPairSync('ed25519');
+  await writeFile(join(root, 'credential.key'), key.privateKey.export({
+    type: 'pkcs8', format: 'pem'}));
+  const profile = {credentialPrivateKeyPath: join(root, 'credential.key'),
+    credentialAuthorityId: 'authority-a', credentialKeyId: 'key-a',
+    journalRoot: join(root, 'journal'), resourceOrigin: 'https://api.example.test',
+    namespaceId: 'namespace-a', environment: 'test', siteKey: 'site-a', siteGeneration: 1};
+  const authorization = await installRowSourceAuthorization({
+    accountConfiguration: JSON.stringify({version: 'actql-execution-account-config/0.1',
+      account_id: 'original-row-account', entries: [{entry_id: 'read', outcome: 'allow',
+        principal: {all: true}, connection: {all: true}, resource: {all: true},
+        operation: {any_of: ['read']}, exclusions: []}]}),
+    principalId: 'principal-a', root, connectorRegistration: 'example'});
+  let closes = 0, accepted = 0, resolutions = 0;
+  const failure = new Error('OriginalCredentialJournalCloseFailure');
+  const site = await openRowSourceCredentialSite({profile, principalId: 'principal-a',
+    authorization, connection: 'example:connection', connectorRegistration: 'example',
+    connectorRevision: 'example/0.1', runtimeBundleCid: `sha256:${'a'.repeat(64)}`,
+    commonMoon: moon, now: () => 1_700_000_000_000, grantLifetimeMs: 456,
+    resolveSecret: async () => { resolutions++; return 'test-only-secret'; },
+    admitsApprovalTarget: () => false,
+    openCredentialJournal(path, options) {
+      const journal = openSqliteCredentialJournal(path, options);
+      return {...journal, acceptGrant(...args) {
+        accepted++;
+        return journal.acceptGrant(...args);
+      }, close() {
+        if (++closes === 1) throw failure;
+        journal.close();
+      }};
+    }});
+  t.after(async () => {
+    site.close();
+    authorization.close();
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      console.error(`Row credential custody retained: ${root}`);
+    } else await rm(root, {recursive: true, force: true});
+  });
+  const decision = await authorization.authorize('acquisition', {
+    connection: site.connection, resource: 'records', operation: 'read'},
+  {subjectCid: `sha256:${'b'.repeat(64)}`});
+  const request = {operation: 'records:list', decision, resource: 'records',
+    runInvocationCid: `sha256:${'c'.repeat(64)}`,
+    dispatchRequestCid: `sha256:${'d'.repeat(64)}`, maxUses: 2, taskAttempt: 7};
+  const first = site.issueReadGrant(request);
+  assert.equal(first.scope.taskAttempt, 1, 'the generic Site retains its original task1');
+  assert.equal(first.scope.expiresUnixMilliseconds, 1_700_000_000_456n);
+  assert.equal(first.scope.siteGeneration, 1);
+  // This trusted private profile remains the original object, not a new
+  // frozen snapshot. No user wire or new generation authority is introduced.
+  profile.siteGeneration = 2;
+  const second = site.issueReadGrant(request);
+  assert.equal(second.scope.siteGeneration, 2);
+  assert.equal(accepted, 2);
+  assert.equal(resolutions, 0, 'grant registration does not resolve a secret');
+  assert.throws(() => site.close(), error => error === failure);
+  assert.equal(site.referenceCurrent(), false);
+  assert.throws(() => site.issueReadGrant(request), {code: 'RowSourceSiteClosed'});
+  assert.equal(accepted, 2);
+  site.close();
+  assert.equal(closes, 2);
+  // Preserve the generic entry's existing idempotent physical-journal call;
+  // Salesforce's separately tested closeOnce compatibility entry skips it.
+  site.close();
+  assert.equal(closes, 3);
+});

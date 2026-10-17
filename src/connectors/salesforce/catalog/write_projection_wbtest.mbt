@@ -182,7 +182,7 @@ test "write candidates reject unconfirmed nullability and unmodeled types" {
   )
   let unmodeled = @utf8.encode(
     (
-      #|{"name":"ActQL_Test_Record__c","queryable":true,"createable":true,"updateable":true,"fields":[{"name":"Value__c","type":"multipicklist","nillable":true,"createable":true,"updateable":true}]}
+      #|{"name":"ActQL_Test_Record__c","queryable":true,"createable":true,"updateable":true,"fields":[{"name":"Value__c","type":"anyType","nillable":true,"createable":true,"updateable":true}]}
     ),
   )
   let observation = write_test_observation_with(unmodeled, binding)

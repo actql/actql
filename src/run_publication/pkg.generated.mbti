@@ -700,6 +700,10 @@ pub fn project_publication_request_context(PublicationContract) -> Result[Public
 
 pub fn project_publication_snapshot(PublicationContract?, PublicationIndexObservation) -> Result[PublicationSnapshot, PublicationSnapshotIssue]
 
+pub fn public_index_manifest_result_names_json(PublicationContract, PublicationContract, Int, Int, Int) -> Result[String, DeliveryIssuanceIssue]
+
+pub fn public_index_run_observation_cids(PublicationContract) -> Result[(String, String), DeliveryIssuanceIssue]
+
 pub fn public_index_same_committed_content(PublicationContract, PublicationContract) -> Bool
 
 pub fn publication_attempt_runtime_action_code(PublicationAttemptRuntimeAction) -> Int
@@ -785,6 +789,10 @@ pub fn restore_model_source_observation(ModelSourceObservation, RunEvidenceValue
 pub fn result_access_progress_action(ResultAccessProgress) -> ResultAccessProgressAction
 
 pub fn result_access_progress_action_code(ResultAccessProgress) -> Int
+
+pub fn result_artifact_provenance_at(PublicationContract, Int) -> Result[String, DeliveryIssuanceIssue]
+
+pub fn result_artifact_provenance_count(PublicationContract) -> Result[Int, DeliveryIssuanceIssue]
 
 pub fn result_definition_cid(ResultDefinition) -> String
 

@@ -103,7 +103,7 @@ fn admit_datetime_cell(
 }
 
 ///|
-/// A Salesforce Number (`double`) cell: the value the reply's JSON number
+/// A Salesforce Number, Currency or Percent cell: the value the reply's JSON number
 /// text denotes is admitted as the declared `decimal(P,S)`, computed from
 /// the text's digits, not through binary64. `finite_number` only checks that
 /// the cell is a JSON number; its binary64 result is not used. Text that is
@@ -125,7 +125,7 @@ fn admit_decimal_cell(
       ),
     )
   }
-  guard double_decimal(field) is Some((precision, scale)) &&
+  guard described_decimal(field) is Some((precision, scale)) &&
     source_lexeme(source, cursor) is Some(lexeme) else {
     return Err(InvalidResponse)
   }
@@ -148,6 +148,144 @@ fn admit_decimal_cell(
       max_string_bytes: budget.text_bytes,
       max_total_string_bytes: budget.text_bytes,
     }) {
+    Ok(value) => value
+    Err(_) => return Err(BudgetExceeded)
+  }
+  admit_query_cell(converted, contract, field.name, budget)
+}
+
+///|
+/// The provider delimiter is projected into the same bounded Array Contract.
+/// Count and bound the expansion before allocating converted nodes or copies.
+fn admit_multipicklist_cell(
+  cursor : @decode.Cursor,
+  contract : @contract.Contract,
+  field_name : String,
+  budget : QueryValueBudget,
+) -> Result[@admitted.CheckedValue, QueryPageIssue] {
+  guard @decode.text(cursor) is Ok(text) else {
+    return Err(
+      ValueAdmission(
+        field_name,
+        @admitted.ValueIssue(
+          @admitted.WrongType,
+          path=[],
+          span=@decode.cursor_span(cursor),
+        ),
+      ),
+    )
+  }
+  if budget.nodes < 1 || (!text.is_empty() && budget.nodes < 2) {
+    return Err(BudgetExceeded)
+  }
+  let mut count = if text.is_empty() { 0 } else { 1 }
+  for unit in text {
+    if unit == ';' {
+      if count >= budget.nodes - 1 {
+        return Err(BudgetExceeded)
+      }
+      count += 1
+    }
+  }
+  // Delimiters are not payload text after the original physical projection.
+  guard @scalar.admit_utf8_length64(
+      text,
+      budget.text_bytes.to_int64() + (count - 1).max(0).to_int64(),
+    )
+    is Ok(_) else {
+    return Err(BudgetExceeded)
+  }
+  let span = @decode.cursor_span(cursor)
+  let nodes : Array[@source.Node] = []
+  if !text.is_empty() {
+    for part in text.split(";") {
+      nodes.push({ value: @source.String(part.to_owned()), span, })
+    }
+  }
+  let converted = match
+    @decode.admit({ value: @source.Array(nodes), span, }, {
+      max_nodes: budget.nodes,
+      max_depth: budget.max_depth,
+      max_string_bytes: budget.text_bytes,
+      max_total_string_bytes: budget.text_bytes,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(BudgetExceeded)
+  }
+  admit_query_cell(converted, contract, field_name, budget)
+}
+
+///|
+fn admit_geolocation_cell(
+  cursor : @decode.Cursor,
+  source : Bytes,
+  field : FieldMetadata,
+  components : Array[(String, FieldMetadata)],
+  contract : @contract.Contract,
+  budget : QueryValueBudget,
+) -> Result[@admitted.CheckedValue, QueryPageIssue] {
+  guard @decode.open_object(cursor) is Ok(object) &&
+    @decode.object_field_names(cursor) is Ok(names) else {
+    return admit_query_cell(cursor, contract, field.name, budget)
+  }
+  if components.length() != 2 || names.length() != components.length() {
+    return Err(InvalidResponse)
+  }
+  for name in names {
+    if !components.any(part => part.0 == name) {
+      return Err(UnexpectedField(field.name + "." + name))
+    }
+  }
+  if budget.nodes < 1 + components.length() {
+    return Err(BudgetExceeded)
+  }
+  let converted : Array[@source.Field] = []
+  for (name, component) in components {
+    guard @decode.lookup(object, name) is Some(value) else {
+      return Err(MissingRequiredField(field.name + "." + name))
+    }
+    let span = @decode.cursor_span(value)
+    let projected = if @decode.is_null(value) {
+      @source.Null
+    } else {
+      guard @decode.finite_number(value) is Ok(_) &&
+        described_decimal(component) is Some((precision, scale)) &&
+        source_lexeme(source, value) is Some(lexeme) else {
+        return Err(
+          ValueAdmission(
+            field.name,
+            @admitted.ValueIssue(
+              @admitted.WrongType,
+              path=[@source.Key(name)],
+              span~,
+            ),
+          ),
+        )
+      }
+      let text = match json_number_decimal(lexeme, precision, scale) {
+        Ok(text) => text
+        Err(DecimalRange) => return Err(ValueOutOfRange(field.name))
+        Err(DecimalScale) => return Err(ValueBeyondScale(field.name))
+        Err(DecimalFormat) => return Err(InvalidResponse)
+      }
+      @source.String(text)
+    }
+    converted.push({
+      key: name,
+      key_span: span,
+      value: { value: projected, span, },
+    })
+  }
+  let converted = match
+    @decode.admit(
+      { value: @source.Object(converted), span: @decode.cursor_span(cursor), },
+      {
+        max_nodes: budget.nodes,
+        max_depth: budget.max_depth,
+        max_string_bytes: budget.text_bytes,
+        max_total_string_bytes: budget.text_bytes,
+      },
+    ) {
     Ok(value) => value
     Err(_) => return Err(BudgetExceeded)
   }
@@ -315,7 +453,20 @@ pub fn project_query_page(
           let admitted = if field.native_type == "datetime" &&
             !@decode.is_null(value) {
             admit_datetime_cell(value, contract, field.name, budget)
-          } else if field.native_type == "double" && !@decode.is_null(value) {
+          } else if field.native_type == "multipicklist" &&
+            !@decode.is_null(value) {
+            admit_multipicklist_cell(value, contract, field.name, budget)
+          } else if field.native_type == "location" && !@decode.is_null(value) {
+            admit_geolocation_cell(
+              value,
+              bytes,
+              field,
+              plan.field_components[column],
+              contract,
+              budget,
+            )
+          } else if described_decimal_type(field.native_type) &&
+            !@decode.is_null(value) {
             admit_decimal_cell(value, bytes, field, contract, budget)
           } else {
             admit_query_cell(value, contract, field.name, budget)
@@ -439,9 +590,16 @@ pub fn query_page_value_violation(
       }
     _ => return None
   }
-  guard plan.fields.search_by(value => value.name == field) is Some(index) &&
-    read_value_type(plan.fields[index].native_type) is Some(expected_type) else {
+  guard plan.fields.search_by(value => value.name == field) is Some(index) else {
     return None
+  }
+  let expected_type = if plan.fields[index].native_type == "location" {
+    "object"
+  } else {
+    guard read_value_type(plan.fields[index].native_type) is Some(value) else {
+      return None
+    }
+    value
   }
   Some({ resource: plan.resource, field, expected_type, kind, })
 }

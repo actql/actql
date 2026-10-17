@@ -299,6 +299,9 @@ export function openSqliteCredentialJournal(root, {
           return Object.freeze({
             replayed: true,
             record: record(existing),
+            // This exact signature-admitted grant is already held by use.
+            // Expose only that original, not another equal-data admission.
+            grant,
             use,
           });
         }
@@ -309,6 +312,7 @@ export function openSqliteCredentialJournal(root, {
         return Object.freeze({
           replayed: false,
           record: record(selectUse.get(useCid)),
+          grant,
           use,
         });
       });

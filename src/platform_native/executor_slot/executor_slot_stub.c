@@ -335,14 +335,15 @@ int32_t actql_executor_slot_test_replace_scoped_slot(
 // description is installed at target_descriptor in the child only, without
 // close-on-exec, so the child and its descendants hold the same lock. Every
 // other private descriptor stays close-on-exec. Returns the child pid or -1.
-int32_t actql_executor_slot_spawn(
+static int32_t actql_executor_slot_spawn_streams(
   moonbit_bytes_t executable,
   int32_t executable_length,
   moonbit_bytes_t arguments,
   int32_t arguments_length,
   int32_t descriptor,
   int32_t target_descriptor,
-  int32_t input_descriptor
+  int32_t input_descriptor,
+  int32_t output_descriptor
 ) {
   if (descriptor < ACTQL_EXECUTOR_SLOT_FIRST_PRIVATE_FD ||
       target_descriptor < 3 ||
@@ -403,6 +404,10 @@ int32_t actql_executor_slot_spawn(
     configured =
       posix_spawn_file_actions_adddup2(&actions, input_descriptor, 0) == 0;
   }
+  if (configured && output_descriptor >= 0) {
+    configured =
+      posix_spawn_file_actions_adddup2(&actions, output_descriptor, 1) == 0;
+  }
   pid_t pid = -1;
   int spawned = configured
     ? posix_spawn(&pid, path, &actions, NULL, argv, environ)
@@ -411,6 +416,31 @@ int32_t actql_executor_slot_spawn(
   free(block);
   free(path);
   return spawned == 0 && pid > 0 ? (int32_t)pid : -1;
+}
+
+// Original one-way ABI and default path remain unchanged.
+int32_t actql_executor_slot_spawn(
+  moonbit_bytes_t executable, int32_t executable_length,
+  moonbit_bytes_t arguments, int32_t arguments_length,
+  int32_t descriptor, int32_t target_descriptor, int32_t input_descriptor
+) {
+  return actql_executor_slot_spawn_streams(executable, executable_length,
+    arguments, arguments_length, descriptor, target_descriptor,
+    input_descriptor, -1);
+}
+
+int32_t actql_executor_slot_spawn_duplex(
+  moonbit_bytes_t executable, int32_t executable_length,
+  moonbit_bytes_t arguments, int32_t arguments_length,
+  int32_t descriptor, int32_t target_descriptor, int32_t input_descriptor,
+  int32_t output_descriptor
+) {
+  if (input_descriptor < ACTQL_EXECUTOR_SLOT_FIRST_PRIVATE_FD ||
+      output_descriptor < ACTQL_EXECUTOR_SLOT_FIRST_PRIVATE_FD ||
+      input_descriptor == output_descriptor) return -1;
+  return actql_executor_slot_spawn_streams(executable, executable_length,
+    arguments, arguments_length, descriptor, target_descriptor,
+    input_descriptor, output_descriptor);
 }
 
 // -2 still running (non-blocking), exit status 0..255, 256 + signal when
@@ -751,3 +781,5 @@ int32_t actql_executor_slot_kill_self(void) {
   kill(getpid(), SIGKILL);
   return -1;
 }
+
+#include "duplex_stub.inc"

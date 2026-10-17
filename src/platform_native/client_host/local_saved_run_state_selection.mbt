@@ -56,34 +56,23 @@ pub fn NativeLocalHostConnection::lookup_submitted_run_state_by_id(
   run_id : String,
   now : Double,
 ) -> Result[NativeClientSavedRunStateSelection, NativeClientSavedRunStateIssue] {
-  let scope = match self.authority_scope_cid(principal, connection, crypto) {
-    Ok(value) => value
-    Err(_) => return Err(Journal(AuthorizationDenied))
-  }
-  let current = () => {
-    saved_run_selection_current(self, crypto, principal, connection, scope)
-  }
-  if !current() {
-    return Err(Journal(AuthorizationDenied))
-  }
   let selected = match
-    self.journal.transaction(() => {
-      if !current() {
-        return Err(AuthorizationDenied)
-      }
-      let selected = self.journal.select_saved_state_run_id_locked(
-        scope, run_id,
-      )
-      if !current() {
-        return Err(AuthorizationDenied)
-      }
-      selected
-    }) {
-    Ok(Some(value)) => value
-    Ok(None) => return Err(Unavailable)
-    Err(issue) => return Err(Journal(issue))
+    self.select_original_run_id(crypto, principal, connection, run_id) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
-  let (reference, request, definition) = selected
+  let reference = selected.reference
+  let request = selected.request
+  let definition = selected.definition
+  let current = () => {
+    saved_run_selection_current(
+      self,
+      crypto,
+      principal,
+      connection,
+      selected.scope,
+    )
+  }
   let state = match
     self.lookup_submitted_run_state(
       crypto, principal, connection, reference, request, now,

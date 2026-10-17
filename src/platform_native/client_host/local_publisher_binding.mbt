@@ -181,7 +181,18 @@ fn NativeLocalPublisherBinding::current_in_mode(
   join_owned_transaction : Bool,
 ) -> Bool {
   let host = self.authority.host
-  if !self.authority.current_for(host.journal, self.request) ||
+  // This material is local to this single predicate and is not retained by
+  // the publisher. Each of the three original authority checks still invokes
+  // the Common scope and Account operations with their actual current fences.
+  guard self.authority.current_material_for(host.journal, self.request)
+    is Some(material) else {
+    return false
+  }
+  if !self.authority.current_with_material_for(
+      host.journal,
+      self.request,
+      material,
+    ) ||
     host.session.source_body != self.account_body ||
     host.session.configuration.configuration_cid() != self.policy_cid ||
     !(host.selected_configuration(self.file.name) is Ok(body) &&
@@ -197,7 +208,11 @@ fn NativeLocalPublisherBinding::current_in_mode(
   // Both paths validate the same retained record. The public path still uses
   // its original bounded transaction; the private path joins only the actual
   // transaction above, after its mandatory all-row custody validation.
-  if !self.authority.current_for(host.journal, self.request) {
+  if !self.authority.current_with_material_for(
+      host.journal,
+      self.request,
+      material,
+    ) {
     return false
   }
   let retained = if join_owned_transaction {
@@ -218,7 +233,7 @@ fn NativeLocalPublisherBinding::current_in_mode(
     @publication.publication_contract_identity(self.definition) else {
     return false
   }
-  self.authority.current_for(host.journal, self.request)
+  self.authority.current_with_material_for(host.journal, self.request, material)
 }
 
 ///|

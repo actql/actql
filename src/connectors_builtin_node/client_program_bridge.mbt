@@ -258,6 +258,28 @@ pub fn client_program_preparation_issue_code(
 }
 
 ///|
+/// Read only the original preparation's named lookup-byte rejection. This
+/// private diagnostic is DATA, not a new check, capacity or acquisition grant.
+/// The coordinates retain the Source Owner's stage and logical join step.
+#export_name("clientProgramPreparationDecodedResponseLimitJson")
+pub fn client_program_preparation_decoded_response_limit_json(
+  outcome : ClientProgramBridgeOutcome,
+) -> String? {
+  guard outcome is Rejected(Preparation(Check(diagnostic))) else { return None }
+  guard @program_check.diagnostic_cause(diagnostic)
+    is Source(Requests(Capacity(Stage(stage, DecodedResponseLimit(step))))) else {
+    return None
+  }
+  Some(
+    "{\"stageIndex\":" +
+    stage.to_string() +
+    ",\"stepIndex\":" +
+    step.to_string() +
+    "}",
+  )
+}
+
+///|
 /// Retain the original no-Parameter convenience bridge entry for existing installed
 /// hosts. New submit paths must use the typed preparation entry above.
 #export_name("clientProgramPrepareEffectFree")
@@ -2857,36 +2879,13 @@ fn client_program_input(
   format : String,
   parameters : String?,
 ) -> Result[(@stage_syntax.Format, @decode.Cursor?), ClientProgramBridgeIssue] {
-  let selected = match format {
-    "json" => @stage_syntax.Json
-    "yaml" => @stage_syntax.Yaml
-    _ => return Err(InvalidFormat)
-  }
-  let supplied = match parameters {
-    None => None
-    Some(body) => {
-      let parsed = match
-        @source.parse_json_bytes(
-          @utf8.encode(body),
-          { max_input_bytes: 65536, max_nodes: 8192, max_depth: 64, },
-          source_path="Client Parameters",
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(SuppliedSyntax(issue))
-      }
-      match
-        @decode.admit(parsed, {
-          max_nodes: 8192,
-          max_depth: 64,
-          max_string_bytes: 65536,
-          max_total_string_bytes: 65536,
-        }) {
-        Ok(value) => Some(value)
-        Err(issue) => return Err(SuppliedAdmission(issue))
-      }
+  @local_preparation.admit_local_program_input(format, parameters).map_err(issue => {
+    match issue {
+      InvalidFormat => InvalidFormat
+      SuppliedSyntax(issue) => SuppliedSyntax(issue)
+      SuppliedAdmission(issue) => SuppliedAdmission(issue)
     }
-  }
-  Ok((selected, supplied))
+  })
 }
 
 ///|
@@ -2967,6 +2966,11 @@ pub fn client_program_prepare_published_effect_computation_with_parameters(
     Ok(value) => value
     Err(_) => return EffectRejected(Input(SourcePreparation(Publication)))
   }
+  let command_targets = match
+    @source_publication.published_command_targets(environment, publication) {
+    Ok(value) => value
+    Err(_) => return EffectRejected(Input(SourcePreparation(Publication)))
+  }
   let (selected, supplied) = match client_program_input(format, parameters) {
     Ok(value) => value
     Err(issue) => return EffectRejected(Input(issue))
@@ -2981,6 +2985,7 @@ pub fn client_program_prepare_published_effect_computation_with_parameters(
       client_program_effect_limits(),
       update_targets~,
       store_targets~,
+      command_targets~,
     ) {
     Ok(value) => EffectPrepared(value)
     Err(issue) => EffectRejected(Preparation(issue))
@@ -6348,6 +6353,110 @@ pub fn client_program_effect_input_export_next_canonical_row(
 ///|
 /// Select one checked member Plan before authoring a private Preview. The
 /// caller must feed its canonical rows from the same bounded Result export.
+/// Whole-input correspondence enters only through an original export owner.
+#export_name("clientProgramEffectLocalCommandKeyStart")
+pub fn client_program_effect_local_command_key_start(
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  local_index : Int,
+  exported : @strategy.CapturedEffectLocalResultExport,
+  limits : @publication_host.PublicationOutputExportLimits,
+  max_work : Int,
+) -> Result[
+  @strategy.CapturedEffectCommandKeyValidation?,
+  @strategy.CapturedEffectCommandKeyIssue,
+] {
+  match
+    @strategy.captured_effect_command_requires_input_key(
+      inputs, member_index, max_work,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(false) => return Ok(None)
+    Ok(true) => ()
+  }
+  @strategy.start_captured_effect_command_key_validation(
+    @bounded.control(),
+    inputs,
+    member_index,
+    local_index,
+    exported,
+    max_work,
+    max_work,
+    limits.values.max_nodes,
+    limits.max_result_workspace_entries,
+  ).map(value => Some(value))
+}
+
+///|
+/// Resolve only the exact captured occurrence that matches this original
+/// managed completion and re-admission bridge. No rows or field names can
+/// issue a key validation through this port.
+#export_name("clientProgramEffectManagedCommandKeyStart")
+pub fn client_program_effect_managed_command_key_start(
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  importing : ClientEffectManagedInputImport,
+  max_work : Int,
+) -> Result[
+  @strategy.CapturedEffectCommandKeyValidation?,
+  @strategy.CapturedEffectCommandKeyIssue,
+] {
+  match
+    @strategy.captured_effect_command_requires_input_key(
+      inputs, member_index, max_work,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(false) => return Ok(None)
+    Ok(true) => ()
+  }
+  let count = @strategy.captured_effect_local_result_count(inputs)
+  if max_work < 0 || count > max_work {
+    return Err(ForeignOrigin)
+  }
+  for index in 0..<count {
+    if @strategy.captured_effect_local_result_matches_member(
+        inputs, index, member_index,
+      ) {
+      let exported = match
+        client_program_effect_local_managed_export_owner(
+          inputs, index, importing,
+        ) {
+        Ok(exported) => exported
+        Err(_) => return Err(ForeignOrigin)
+      }
+      return client_program_effect_local_command_key_start(
+        inputs,
+        member_index,
+        index,
+        exported,
+        importing.limits,
+        max_work,
+      )
+    }
+  }
+  Err(ForeignOrigin)
+}
+
+///|
+#export_name("clientProgramEffectCommandKeyAdvance")
+pub fn client_program_effect_command_key_advance(
+  value : @strategy.CapturedEffectCommandKeyValidation,
+  quantum : Int,
+) -> Result[(Bool, Int), @strategy.CapturedEffectCommandKeyIssue] {
+  @strategy.step_captured_effect_command_key_validation(value, quantum)
+}
+
+///|
+/// Retire only private key workspace. Original reader/material custody and
+/// successful retained correspondence remain with the captured Owner.
+#export_name("clientProgramEffectCommandKeyCleanup")
+pub fn client_program_effect_command_key_cleanup(
+  value : @strategy.CapturedEffectCommandKeyValidation,
+) -> Result[Bool, @strategy.CapturedEffectCommandKeyIssue] {
+  @strategy.cleanup_captured_effect_command_key_validation(value)
+}
+
+///|
 #export_name("clientProgramEffectProposalBegin")
 pub fn client_program_effect_proposal_begin(
   inputs : @strategy.CapturedEffectInputs,
@@ -6360,6 +6469,27 @@ pub fn client_program_effect_proposal_begin(
 ] {
   @strategy.prepare_captured_effect_proposal_plan(
     inputs, member_index, max_fields, max_work,
+  )
+}
+
+///|
+#export_name("clientProgramEffectProposalBeginWithKey")
+pub fn client_program_effect_proposal_begin_with_key(
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  max_fields : Int,
+  max_work : Int,
+  input_key : @strategy.CapturedEffectCommandKeyValidation,
+) -> Result[
+  @strategy.CapturedEffectProposalPlan,
+  @strategy.CapturedEffectProposalIssue,
+] {
+  @strategy.prepare_captured_effect_proposal_plan(
+    inputs,
+    member_index,
+    max_fields,
+    max_work,
+    input_key=Some(input_key),
   )
 }
 
@@ -6612,6 +6742,7 @@ pub fn client_program_effect_plan_import_begin(
     max_fields,
     max_work,
     None,
+    None,
   )
 }
 
@@ -6636,6 +6767,60 @@ pub fn client_program_effect_plan_import_begin_with_target(
     max_fields,
     max_work,
     Some(target),
+    None,
+  )
+}
+
+///|
+/// The caller must already own completed original correspondence. This port
+/// does not start unfunded key work or issue a workspace allocation.
+#export_name("clientProgramEffectPlanImportBeginWithKey")
+pub fn client_program_effect_plan_import_begin_with_key(
+  preview : @strategy.CapturedEffectPreviewInputs,
+  preview_index : Int,
+  output : @execution.ManagedCompletedOutput[Int],
+  material : @execution.ManagedRetainedOutput[Int],
+  limits : @publication_host.PublicationOutputExportLimits,
+  max_fields : Int,
+  max_work : Int,
+  input_key : @strategy.CapturedEffectCommandKeyValidation,
+) -> Result[ClientEffectPlanImport, ClientEffectPlanStreamIssue] {
+  client_effect_plan_import_begin(
+    preview,
+    preview_index,
+    output,
+    material,
+    limits,
+    max_fields,
+    max_work,
+    None,
+    Some(input_key),
+  )
+}
+
+///|
+#export_name("clientProgramEffectPlanImportBeginWithTargetAndKey")
+pub fn client_program_effect_plan_import_begin_with_target_and_key(
+  preview : @strategy.CapturedEffectPreviewInputs,
+  preview_index : Int,
+  output : @execution.ManagedCompletedOutput[Int],
+  material : @execution.ManagedRetainedOutput[Int],
+  limits : @publication_host.PublicationOutputExportLimits,
+  max_fields : Int,
+  max_work : Int,
+  target : @strategy.CapturedEffectCommandTarget,
+  input_key : @strategy.CapturedEffectCommandKeyValidation,
+) -> Result[ClientEffectPlanImport, ClientEffectPlanStreamIssue] {
+  client_effect_plan_import_begin(
+    preview,
+    preview_index,
+    output,
+    material,
+    limits,
+    max_fields,
+    max_work,
+    Some(target),
+    Some(input_key),
   )
 }
 
@@ -6649,6 +6834,7 @@ fn client_effect_plan_import_begin(
   max_fields : Int,
   max_work : Int,
   published_target : @strategy.CapturedEffectCommandTarget?,
+  input_key : @strategy.CapturedEffectCommandKeyValidation?,
 ) -> Result[ClientEffectPlanImport, ClientEffectPlanStreamIssue] {
   guard @strategy.captured_effect_preview_input_at(preview, preview_index)
     is Some(input) else {
@@ -6661,6 +6847,7 @@ fn client_effect_plan_import_begin(
       max_fields,
       max_work,
       published_target~,
+      input_key~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Plan(issue))

@@ -40,3 +40,26 @@ no user callbacks. Foreign-thread operations refuse; aliases must not be used
 concurrently or transferred to another runtime. Best-effort finalizers are not
 cleanup acknowledgements. The old spawn/wait APIs and their result semantics
 remain unchanged.
+# Scoped duplex transport
+
+The same scoped Holder may capture a duplex transport before launch. Its four
+original pipe endpoints are retained in one parent-owned opaque carrier,
+including partial allocation and unconfirmed-close responsibility. A single
+opaque borrow projects only the original parent stdin writer and stdout reader
+to the trusted channel caller. Descriptor numbers are physical facts, not a
+capacity grant, permission, process identity or Stop constructor.
+
+The channel Owner must fence new use and observe zero in-flight operations
+before returning that same borrow. Return invalidates its descriptor projection;
+it does not acknowledge child exit, channel metadata, exclusive region or
+WorkspaceLoan cleanup. The Holder refuses close/Stop while the borrow is active.
+After return it closes the original endpoints, observes actual child wait and
+reacquires the pinned original slot inode before issuing the existing scoped
+Stop. Closing the parent writer may permit an EOF-waiting child to exit, but EOF
+does not establish any business-operation outcome. The Stop pin remains held
+through the outer physical cleanup acknowledgement.
+
+The Holder, transport, borrow, anchor and library roots must remain in the same
+parent holding outside the child region. This module supplies no numerical
+profile or funding and cannot replace the original installed resource Owner.
+The existing one-way Channel API and scoped Stop contract remain unchanged.

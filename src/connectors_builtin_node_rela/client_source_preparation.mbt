@@ -7,6 +7,7 @@ pub(all) enum ClientSourcePreparationIssue {
   Publication
   Limit
   UnsupportedCarrier
+  CommandTargetOriginalsUnavailable
   Declarations
   Alias(@source_frontend.AliasIssue)
   Frontend(@source_frontend.Issue)
@@ -20,7 +21,8 @@ fn client_source_preparation_issue_code(
   match issue {
     Publication | Alias(_) => "source_rejected"
     Limit => "source_limit"
-    UnsupportedCarrier => "source_unsupported"
+    UnsupportedCarrier | CommandTargetOriginalsUnavailable =>
+      "source_unsupported"
     Declarations => "source_declarations"
     ArrayProfile(BudgetExceeded) => "source_limit"
     ArrayProfile(UnsupportedNestedArray(_, _, _))
@@ -33,6 +35,8 @@ fn client_source_preparation_issue_code(
         Encoding => "source_encoding"
         QueryLowering(issue) =>
           match issue {
+            CommandTargetBinding(WorkLimit) => "source_limit"
+            CommandTargetBinding(_) => "source_unresolved"
             UnknownRelation | UnresolvedRelation(_) => "source_unresolved"
             UnsupportedProjection
             | UnsupportedGrouping
@@ -90,46 +94,6 @@ fn client_source_preparation_issue_code(
 ///|
 priv suberror ClientSourceStop {
   ClientSourceStop(ClientSourcePreparationIssue)
-}
-
-///|
-fn source_publication_cursor(
-  wire : String,
-) -> @decode.Cursor raise ClientSourceStop {
-  let node = @source.parse_json_bytes(@utf8.encode(wire), {
-    max_input_bytes: 1048576,
-    max_nodes: 16384,
-    max_depth: 32,
-  }).unwrap_or_else(() => raise ClientSourceStop(Publication))
-  @decode.admit(node, {
-    max_nodes: 16384,
-    max_depth: 32,
-    max_string_bytes: 65536,
-    max_total_string_bytes: 1048576,
-  }).unwrap_or_else(() => raise ClientSourceStop(Publication))
-}
-
-///|
-fn source_publication_field(
-  value : @decode.Cursor,
-  name : String,
-) -> @decode.Cursor raise ClientSourceStop {
-  let object = @decode.open_object(value).unwrap_or_else(() => {
-    raise ClientSourceStop(Publication)
-  })
-  @decode.required(object, name).unwrap_or_else(() => {
-    raise ClientSourceStop(Publication)
-  })
-}
-
-///|
-fn source_publication_text(
-  value : @decode.Cursor,
-  name : String,
-) -> String raise ClientSourceStop {
-  @decode.text(source_publication_field(value, name)).unwrap_or_else(() => {
-    raise ClientSourceStop(Publication)
-  })
 }
 
 ///|
@@ -260,6 +224,11 @@ fn client_program_lower_source(
     Ok(value) => value
     Err(_) => return Err(SourcePreparation(Publication))
   }
+  let command_targets = match
+    @source_publication.published_command_targets(environment, publication) {
+    Ok(value) => value
+    Err(_) => return Err(SourcePreparation(Publication))
+  }
   // Both authored forms carry the same admitted publication into the ordinary
   // checked Effect owner. Selection is retained material, never a permission.
   match
@@ -270,6 +239,7 @@ fn client_program_lower_source(
       table_writes~,
       update_targets~,
       store_targets~,
+      command_targets~,
     ) {
     Ok(value) => Ok(value)
     Err(issue) => Err(SourcePreparation(Frontend(issue)))
@@ -322,6 +292,14 @@ pub fn client_program_prepare_source_computation_with_parameters(
       if !allow_effects {
         return SourcePure(Rejected(Preparation(EffectNotSupported(stage.id))))
       }
+      // The static publication is not installed target custody. Until the
+      // existing Effect owner consumes that exact original selection, refuse
+      // rather than discard it or reconstruct authority from canonical text.
+      if lowered.command_selection is Some(_) {
+        return SourcePure(
+          Rejected(SourcePreparation(CommandTargetOriginalsUnavailable)),
+        )
+      }
       let value = match
         @publication_host.prepare_parsed_client_effect_computation(
           parsed,
@@ -331,6 +309,7 @@ pub fn client_program_prepare_source_computation_with_parameters(
           client_program_effect_limits(),
           update_targets=lowered.update_targets,
           store_targets=lowered.store_targets,
+          command_targets=lowered.command_targets,
         ) {
         Ok(value) => value
         Err(issue) => return SourceEffect(EffectRejected(Preparation(issue)))

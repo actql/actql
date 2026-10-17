@@ -11,7 +11,8 @@ import {openLocalPublicationStore} from './publication-store.mjs';
 
 const cid = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 
-async function fixture(t, {outcomes = ['false', 'false'], primary} = {}) {
+async function fixture(t, {outcomes = ['false', 'false'], primary,
+  rejectRead = primary !== undefined, diagnosticCleanup} = {}) {
   const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
     prefix: 'physical-reader-ack-', label: 'original Content reader close acknowledgement'});
   const directory = join(scratch.path, 'store');
@@ -55,7 +56,7 @@ async function fixture(t, {outcomes = ['false', 'false'], primary} = {}) {
     }
     // Fail the same acquired FD before a ReadStream exists. This isolates
     // diagnostic attachment from Node's independent stream-destroy close.
-    if (this === original && primary !== undefined) return Promise.reject(primary);
+    if (this === original && rejectRead) return Promise.reject(primary);
     return Reflect.apply(stat, this, args);
   };
   t.after(async () => {
@@ -64,7 +65,11 @@ async function fixture(t, {outcomes = ['false', 'false'], primary} = {}) {
     // their original scratch/raw rather than erasing the counterexample.
     if (original?.fd >= 0) {
       outcomes.length = 0;
-      if (caught?.cleanupHandle?.status().pending) await caught.cleanupHandle.retry();
+      // A red diagnostic may have observed the exact facade in a setter that
+      // discards it. This test-only backstop closes that same original duty;
+      // the product must still export it through the returned failure.
+      const cleanup = caught?.cleanupHandle ?? diagnosticCleanup?.();
+      if (cleanup?.status().pending) await cleanup.retry();
       if (original.fd >= 0) await Reflect.apply(nativeClose, original, []);
     }
     if (!store.status().closed) await store.close();
@@ -144,6 +149,69 @@ for (const field of ['cleanupPending', 'cleanupHandle', 'cleanupError']) {
     assert.equal(failure.cleanupHandle.status().pending, true);
     assert(f.fd() >= 0);
     await assert.rejects(f.store.close(), {code: 'PublicationStoreCleanupPending'});
+    await finish(f, failure.cleanupHandle);
+  });
+}
+
+for (const field of ['cleanupHandle', 'cleanupPending', 'cleanupError']) {
+  test(`inherited ${field} setter cannot discard the original Content FD responsibility`, async t => {
+    let assigned;
+    class Primary extends Error {}
+    Object.defineProperty(Primary.prototype, field, {
+      get() { return field === 'cleanupPending' ? false : undefined; },
+      set(value) { assigned = value; }, configurable: true,
+    });
+    const primary = new Primary('original Content reader failure');
+    const f = await fixture(t, {outcomes: ['reject'], primary,
+      diagnosticCleanup: () => field === 'cleanupHandle' ? assigned : undefined});
+    let failure;
+    await assert.rejects(f.read(), error => { failure = error;return error === primary; });
+    assert.equal(failure.cleanupPending, true);
+    assert.equal(failure.cleanupError, f.closeFailure);
+    assert.equal(typeof failure.cleanupHandle?.retry, 'function');
+    assert.equal(Object.hasOwn(failure, field), true);
+    assert.equal(assigned, undefined, 'own diagnostics must not invoke a discarding inherited setter');
+    assert.equal(failure.cleanupHandle.status().pending, true);
+    assert(f.fd() >= 0);
+    assert.equal(f.store.status().storedBytes, 31);
+    await assert.rejects(f.store.close(), {code: 'PublicationStoreCleanupPending'});
+    await finish(f, failure.cleanupHandle);
+  });
+}
+
+test('an existing inherited cleanup facet stays on the original failure while the new FD uses its wrapper', async t => {
+  const f = await fixture(t, {outcomes: ['reject']});
+  const priorFd = await open(f.path, 'r');
+  let priorPending = true;
+  const prior = Object.freeze({status: () => ({pending: priorPending}),
+    async retry() {if (priorPending) {await priorFd.close();priorPending = false;}}});
+  t.after(() => prior.retry());
+  class Primary extends Error {}
+  Object.defineProperty(Primary.prototype, 'cleanupHandle', {value: prior});
+  const primary = new Primary('earlier independent original FD');
+  // The callback fails after the actual Store reader and stream have opened.
+  let failure;
+  await assert.rejects(f.store.consumePhysicalHolding(f.holding.holding_cid, 0,
+    () => {throw primary;}), error => {failure = error;return error.cause === primary;});
+  assert.strictEqual(primary.cleanupHandle, prior);
+  assert.notStrictEqual(failure.cleanupHandle, prior);
+  assert.equal(Object.hasOwn(primary, 'cleanupHandle'), false);
+  assert.equal(prior.status().pending, true);
+  await priorFd.stat();
+  await finish(f, failure.cleanupHandle);
+  assert.equal(prior.status().pending, true, 'new duty must not retire the earlier independent FD');
+  await prior.retry();
+});
+
+for (const primary of [null, undefined]) {
+  test(`thrown ${String(primary)} retains the same Content FD and original close failure`, async t => {
+    const f = await fixture(t, {outcomes: ['reject'], primary, rejectRead: true});
+    let failure;
+    await assert.rejects(f.read(), error => {failure = error;return error.cause === primary;});
+    assert.equal(failure.cleanupError, f.closeFailure);
+    assert.equal(failure.cleanupPending, true);
+    assert.equal(failure.cleanupHandle.status().pending, true);
+    assert(f.fd() >= 0);
     await finish(f, failure.cleanupHandle);
   });
 }

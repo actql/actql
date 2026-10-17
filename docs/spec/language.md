@@ -863,7 +863,7 @@ also has `type` and required `nullable`; `?` marks an optional member.
 <!-- requirement-block: value-contracts.type-other-author-members-checked-expansion-or -->
 | Type | Other author members | Checked expansion or evidence |
 | --- | --- | --- |
-| `string` | none | optional `min_length`, `max_codepoints`, `max_utf8_bytes` from admitted evidence |
+| `string` | `enum?: string[]` | enum vector retained; optional `min_length`, `max_codepoints`, `max_utf8_bytes` from admitted evidence |
 | `number`, `boolean`, `timestamp`, `date`, `json` | none | unchanged |
 | `decimal` | `precision`, `scale` | unchanged; [Exact decimal values](#decimal-values) ranges |
 | `array` | `items: AuthorValueContract`, `max_items?` | recursive checked `items`; bound unchanged |
@@ -882,22 +882,86 @@ are non-negative safe integers and do not become author syntax.
 string; `max_utf8_bytes` counts that value's UTF-8 bytes before JSON escaping.
 Neither counts grapheme clusters or UTF-16 code units.
 
+<a id="text-enumeration"></a>
+
+#### Text enumeration constraints
+
+<!-- requirement-block: value-contracts.text-enum-grammar value-contracts.text-enum-invalid-declaration value-contracts.text-enum-membership value-contracts.text-enum-absence -->
+An optional `enum` is a constraint on the existing `string` type, not a new
+base type. Both the authored and checked Text contract MUST admit exactly an
+array of well-formed Unicode strings at this member and MUST reject null,
+non-string entries and an enum member on other base types. A non-null admitted
+value MUST satisfy the existing retained Text extents and equal at least one
+enumerant by its exact Unicode scalar sequence. No normalization, trimming,
+case folding, numeric conversion or default is applied. Null admission remains
+controlled solely by `nullable`; null is not an enumerant. Absence of `enum`
+MUST retain the prior unrestricted Text meaning and canonical bytes.
+
+<!-- requirement-block: value-contracts.text-enum-empty-domain value-contracts.text-enum-repetitions value-contracts.text-enum-repeated-membership value-contracts.text-enum-original-vector value-contracts.text-enum-no-equivalent-original value-contracts.text-enum-type-equality -->
+An empty enum vector MUST denote no non-null Text values. Repeated enumerants
+MUST be permitted and MUST NOT change membership. The checked contract and its
+canonical preimage MUST retain the supplied vector order and every repetition;
+implementations MUST NOT sort or deduplicate an original declaration to obtain
+an equivalent membership set or reuse another original's identity.
+`TypeEqual` MUST compare the complete checked contract including this exact
+vector, rather than collapse membership-equivalent vectors.
+
+<!-- requirement-block: value-contracts.text-enum-bounded-occurrences value-contracts.text-enum-retained-workspace value-contracts.text-enum-no-structural-funding value-contracts.text-enum-no-authority -->
+Every enum occurrence MUST be validated and charged under the existing contract,
+comparison, value and resource bounds, including repeated strings and strings
+excluded by the retained extent intersection. The retained vector, exact text,
+comparison frames, union output and escaped aliases MUST remain in the existing
+Owner's holding inventory. A structural entry bound MUST NOT stand in for
+numerical capacity, and enum admission MUST NOT issue reference, permission,
+classification, uniqueness or key evidence.
+
+<!-- requirement-block: value-contracts.text-enum-assignment-domain value-contracts.text-enum-expected-domain value-contracts.text-enum-no-sample-proof -->
+For finite-enum assignment, the existing type Owner MUST consider the actual
+admitted domain: the original enum intersected with its retained Text extents,
+plus null only when admitted by the original nullability rule. Each permitted
+actual value MUST satisfy the expected Text constraint. Samples, a Text label,
+or equality of enum arrays alone MUST NOT discharge this proof. Legacy
+enum-absent bound behavior and recursive structure rules remain unchanged.
+
+<!-- requirement-block: value-contracts.text-enum-common-bounds value-contracts.text-enum-join-absence value-contracts.text-enum-coordinatewise-join value-contracts.text-enum-derived-not-original -->
+The Text common join MUST use nullable OR and the existing common extent bounds.
+Its enum MUST be absent if either input enum is absent. Otherwise it MUST retain
+the left vector exactly, then append each right enumerant not already present,
+in right order. This coordinatewise rule yields a conservative common supertype;
+it does not necessarily yield the exact union or globally least upper bound of
+the two admitted domains. For left enum `["a","xxxx"]` with `max_codepoints: 1`
+and right enum `["b"]` with `max_codepoints: 4`, the joined enum is
+`["a","xxxx","b"]` with `max_codepoints: 4`, which also admits `"xxxx"`.
+The derived joined contract MUST NOT substitute for either original contract or
+establish any original membership or authority.
+
+<!-- requirement-block: value-contracts.text-enum-preserved-admission value-contracts.text-enum-transform-keeps-original value-contracts.text-enum-provider-schema value-contracts.text-enum-provider-unavailable -->
+Identity-preserving projection, filter, capture, public Result and reload MUST
+retain the checked Text constraint. A Text-transforming operation MAY drop enum
+only in a sound derived output type; it MUST NOT weaken an original input,
+Model, Command or task admission requirement. Provider schema projection MUST
+retain the enum constraint. A Provider unable to represent it MUST report that
+boundary unavailable rather than silently strip the constraint.
+
 Type equality and compatibility use the following common relations:
 
 - `TypeEqual(A,B)` compares complete canonical checked contracts recursively,
-  including nullability, bounds, decimal precision/scale, vector dimensions,
+  including nullability, bounds, exact Text enum vectors (order and repetitions),
+  decimal precision/scale, vector dimensions,
   reference kind/media type, and object field sets. Object key order is irrelevant.
 - `Assignable(A,B)` means every value permitted by A satisfies B. Non-null may
   flow to nullable, but not conversely. Base types match without coercion;
   decimal precision/scale, vector dimensions, and ResourceKind must match.
   Objects have exactly the same field set with recursively assignable values;
-  arrays have assignable items. An actual upper bound cannot exceed an expected
-  bound, and an actual lower bound cannot be smaller. Missing bounds prove no
-  restriction. An unspecified expected Artifact media type admits any media
+  arrays have assignable items. Outside the finite Text-enum domain proof above,
+  an actual upper bound cannot exceed an expected bound, and an actual lower
+  bound cannot be smaller. Missing bounds prove no restriction. An unspecified
+  expected Artifact media type admits any media
   type; a specified type requires that exact type to be proven.
 - `JoinNullability(A,B)` requires the same recursive base structure and the
   exact decimal/vector/ResourceKind parameters. It takes nullable OR at each
-  position and the least restrictive common value bounds. Different Artifact
+  position and the least restrictive common value bounds, with the coordinatewise
+  Text-enum rule above. Different Artifact
   media types join to an unspecified media type. Other base-type differences
   have no join. `json` is not an implicit supertype of typed objects or references.
 
@@ -11027,12 +11091,12 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:e98fc21c3b3e22d9023f95014c459e444a469c77eadaa04d5b448c1c2e34e766
+../../spec/contracts/actql-aoa.json# sha256:c15067fc3e614e65d3e861fbc15e9c94d33abc370fd20600429e2c3930ef17e4
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
-../../spec/contracts/actql-protocol-schemas.json#/schemas/author_value_contract sha256:7deb73a773cf91e861d73dfc7b7b5331d77ee19605934e0198eb608eac69144d
-../../spec/contracts/actql-protocol-schemas.json#/schemas/canonical_value_contract sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947
+../../spec/contracts/actql-protocol-schemas.json#/schemas/author_value_contract sha256:ddc5515cc80aacf27e0e80c75667717efa89db934f668fc626cc239b630ee45a
+../../spec/contracts/actql-protocol-schemas.json#/schemas/canonical_value_contract sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
@@ -11047,7 +11111,7 @@ through the pinned expression contract.
 
 <!-- stage-contract-pins:start -->
 ```text
-../../spec/contracts/actql-stage-contracts.json#/source sha256:a55a1f56a5f19d0d118a6ff6d161f34c6d239d54f473ff84a95592a7c03e31eb
+../../spec/contracts/actql-stage-contracts.json#/source sha256:dd7495bc524193d9ad28d0cdf0e9d5f731070e455a69b81a62ef0d66b6771873
 ../../spec/contracts/actql-stage-contracts.json#/schemas/derive_binding sha256:d74bb697d91a2daf2c51e0d6c492f4bb35fdea5e542d606318683b1c9c5f06f9
 ../../spec/contracts/actql-stage-contracts.json#/schemas/local_dependencies sha256:22a2636742d270464988e350adc168af898987e83f620cba893efb091d9f49e8
 ../../spec/contracts/actql-stage-contracts.json#/schemas/local_contracts sha256:a1dcd5bf20a7d6dceedd4a298b684f439101d391063ae13bb61359bd10d30621

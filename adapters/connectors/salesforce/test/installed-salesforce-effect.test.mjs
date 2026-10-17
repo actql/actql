@@ -704,6 +704,38 @@ test('an approved decimal is previewed as decimal text and sent as the same numb
       .sort(), ['-0.10', '9999999999999.99']);
   });
 
+for (const numberNativeType of ['currency', 'percent']) {
+test(`an approved ${numberNativeType} preserves original preview digits and physical PATCH bytes`,
+  async t => {
+    const installation = await installedEffect(t, {writes: [numberUpdate],
+      org: {numberFields: true, numberNativeType, patchFields: ['Amount__c']}});
+    const host = await effectHost(t, installation,
+      join(installation.root, 'host'));
+    const rows = [{id: ids[0], amount: '9999999999999.99'},
+      {id: ids[1], amount: '-0.10'}];
+    const {started} = await host.run(numberRows(host.installed.mappings,
+      rows), `${numberNativeType}-update`);
+    assert.equal(started.value.status, 'published');
+    // Independently expected: the provider bodies spell the approved digits
+    // as JSON numbers, trailing zero kept.
+    assert.deepEqual(writesOf(installation.org).map(item => [
+      item.path.split('/').slice(-2).join('/'), item.body]), [
+      [`Test_Record__c/${ids[0]}`, '{"Amount__c":9999999999999.99}'],
+      [`Test_Record__c/${ids[1]}`, '{"Amount__c":-0.10}'],
+    ]);
+    // The Preview states the approved decimal text, and the observed
+    // `1.2345678E7` as the same decimal at scale 2.
+    const preview = JSON.parse(host.control.effectComputationPreviewWire(
+      host.outcomes[0].stage.preview));
+    const changes = preview.effects[0].changes;
+    assert.deepEqual(changes.map(change => change.before), ids.map(() => ({
+      state: 'present', value: {Amount__c: '12345678.00'}})));
+    assert.deepEqual(changes.map(change => change.after.value.Amount__c)
+      .sort(), ['-0.10', '9999999999999.99']);
+  });
+
+}
+
 // A Host that stops right after the first row's applied outcome is durable:
 // the second row's dispatch is refused before it claims or sends anything.
 const stopAfterFirstRow = stage => ({...stage, apply: {...stage.apply,
@@ -852,3 +884,82 @@ for (const scenario of ['value', 'target', 'outcome', 'outcome-keys',
       assert.match(stdout, /^# pass 1$/mu, stdout);
     });
 }
+
+
+const multiSelectRows = (mappings, rows) => effectProgram({save: {update: {
+  target: mappings[0].target, mapping: mappings[0].mappingRef,
+  from: {result: 'rows'}, id: 'id', set: {Choices__c: {field: 'choices'}}}}}, rows,
+{id: {type: 'string', nullable: false}, choices: {type: 'array', nullable: true,
+  items: {type: 'string', nullable: false}}});
+const multiSelectEffect = t => installedEffect(t, {writes: [{
+  resource: 'Test_Record__c', kind: 'update', fields: ['Choices__c']}],
+org: {multiPicklistFields: true, patchFields: ['Choices__c']}});
+
+test('approved multi-select arrays keep original target Preview and exact physical PATCH text', async t => {
+  const installation = await multiSelectEffect(t);
+  const host = await effectHost(t, installation, join(installation.root, 'host'));
+  const rows = [
+    {id: ids[0], choices: ['red', '東京', 'red']},
+    {id: ids[1], choices: ['', 'a', '', '']},
+    {id: 'a00000000000003', choices: []},
+    {id: 'a00000000000004', choices: null},
+  ];
+  const {started} = await host.run(multiSelectRows(host.installed.mappings, rows), 'multi-select-update');
+  assert.equal(started.value.status, 'published');
+  assert.deepEqual(writesOf(installation.org).map(item => [
+    item.path.split('/').at(-1), item.body]), [
+    [ids[0], '{"Choices__c":"red;東京;red"}'],
+    [ids[1], '{"Choices__c":";a;;"}'],
+    ['a00000000000003', '{"Choices__c":""}'],
+    ['a00000000000004', '{"Choices__c":null}'],
+  ]);
+  const preview = JSON.parse(host.control.effectComputationPreviewWire(host.outcomes[0].stage.preview));
+  assert.deepEqual(preview.effects[0].changes.map(change => change.before),
+    rows.map(() => ({state: 'present', value: {Choices__c: ['old', '元']}})));
+  assert.deepEqual(preview.effects[0].changes.map(change => change.after.value.Choices__c),
+    rows.map(row => row.choices));
+});
+
+test('unrepresentable multi-select singleton empty or separator item refuses before physical write', async t => {
+  for (const choices of [[''], ['a;b']]) {
+    const installation = await multiSelectEffect(t);
+    const host = await effectHost(t, installation, join(installation.root, 'host'));
+    const error = await host.run(multiSelectRows(host.installed.mappings,
+      [{id: ids[0], choices}]), 'multi-select-unrepresentable').then(() => undefined, error => error);
+    assert.equal(error?.code, 'SalesforceWriteValueRefused', String(error?.code));
+    assert.deepEqual(error.refusal, {expected_type: 'array', field: 'Choices__c',
+      kind: 'format', resource: 'Test_Record__c'});
+    assert.equal(writesOf(installation.org).length, 0);
+  }
+});
+
+
+test('approved geolocation component decimals preserve original Preview and physical PATCH bytes', async t => {
+  const installation = await installedEffect(t, {writes: [{
+    resource: 'Test_Record__c', kind: 'update',
+    fields: ['Location__Latitude__s', 'Location__Longitude__s']}],
+  org: {geolocationFields: true,
+    patchFields: ['Location__Latitude__s', 'Location__Longitude__s']}});
+  const host = await effectHost(t, installation, join(installation.root, 'host'));
+  const [mapping] = host.installed.mappings;
+  const rows = [{id: ids[0], latitude: '37.750000000000000',
+    longitude: '-122.500000000000000'}];
+  const program = effectProgram({save: {update: {
+    target: mapping.target, mapping: mapping.mappingRef, from: {result: 'rows'},
+    id: 'id', set: {Location__Latitude__s: {field: 'latitude'},
+      Location__Longitude__s: {field: 'longitude'}}}}}, rows,
+  {id: {type: 'string', nullable: false},
+    latitude: {type: 'decimal', precision: 18, scale: 15, nullable: false},
+    longitude: {type: 'decimal', precision: 18, scale: 15, nullable: false}});
+  const {started} = await host.run(program, 'geolocation-components-update');
+  assert.equal(started.value.status, 'published');
+  assert.deepEqual(writesOf(installation.org).map(item => [
+    item.path.split('/').at(-1), item.body]), [[ids[0],
+    '{"Location__Latitude__s":37.750000000000000,"Location__Longitude__s":-122.500000000000000}']]);
+  const preview = JSON.parse(host.control.effectComputationPreviewWire(host.outcomes[0].stage.preview));
+  assert.deepEqual(preview.effects[0].changes.map(change => change.before), [
+    {state: 'present', value: {Location__Latitude__s: '37.500000000000000',
+      Location__Longitude__s: '-122.250000000000000'}}]);
+  assert.deepEqual(preview.effects[0].changes.map(change => change.after.value), [
+    {Location__Latitude__s: rows[0].latitude, Location__Longitude__s: rows[0].longitude}]);
+});

@@ -2,6 +2,7 @@
 package "actql/actql/physical_strategy"
 
 import {
+  "actql/actql/bounded_execution",
   "actql/actql/canonical_json",
   "actql/actql/check_environment",
   "actql/actql/connector_sdk",
@@ -35,6 +36,8 @@ pub fn admit_operational_estimate_sidecar_json(String, PolicyRequest, PolicyCand
 
 pub fn admit_placement_policy_response_json(String, PolicyRequest, String) -> Result[PolicyResponse, SearchIssue]
 
+pub fn advance_captured_effect_command_key_validation(CapturedEffectCommandKeyValidation, Int) -> Result[@bounded_execution.Observation[Int, @execution_relation.CompletedResultKeyIssue], CapturedEffectCommandKeyIssue]
+
 pub fn advance_task_numeric_reduction(CapturedDAG, TaskNumericExecution) -> Result[@numeric_reduction.Outcome?, @numeric_reduction.ReductionIssue]?
 
 pub fn authorize_captured_task_activation(CapturedDAG, Int, TaskActivationGrant) -> Result[Unit, RunIssue]
@@ -66,6 +69,8 @@ pub fn bind_operational_profile_template(String, PolicyRequest) -> Result[String
 pub fn borrow_captured_any_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, Int) -> Result[CapturedAnyResultBorrow, RunIssue]
 
 pub fn borrow_captured_carrier_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, @execution_relation.CarrierManagedCompletedOutput, Int) -> Result[CapturedResidentResultBorrow, RunIssue]
+
+pub fn borrow_captured_effect_input_workspace(CapturedEffectInputs, @physical_resources.SharedCapacity, @physical_resources.SharedAllocation) -> Result[@physical_resources.SharedBorrow, @physical_resources.LedgerIssue]
 
 pub fn[T] borrow_captured_managed_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, @execution_relation.ManagedCompletedOutput[T], Int) -> Result[CapturedResidentResultBorrow, RunIssue]
 
@@ -119,6 +124,10 @@ pub fn captured_dag_ledger(CapturedDAG) -> @physical_resources.Ledger
 
 pub fn captured_dag_strategy(CapturedDAG) -> StrategyRevision?
 
+pub fn captured_effect_command_key_validation_matches(CapturedEffectCommandKeyValidation, CapturedEffectInputs, Int, @stage_results.EffectCommandInputBinding) -> Bool
+
+pub fn captured_effect_command_requires_input_key(CapturedEffectInputs, Int, Int) -> Result[Bool, CapturedEffectCommandKeyIssue]
+
 pub fn captured_effect_input_at(CapturedEffectInputs, Int) -> CapturedEffectInput?
 
 pub fn captured_effect_input_borrow(CapturedEffectInput) -> CapturedAnyResultBorrow
@@ -148,6 +157,8 @@ pub fn captured_effect_inputs_match_run(CapturedEffectInputs, CapturedEffectRunD
 pub fn captured_effect_inputs_run_definition_cid(CapturedEffectInputs) -> String?
 
 pub fn captured_effect_inputs_share_view(CapturedEffectInputs, Int, Int) -> Bool
+
+pub fn captured_effect_inputs_shared_capacity_current(CapturedEffectInputs, @physical_resources.SharedCapacity) -> Bool
 
 pub fn captured_effect_local_result_at(CapturedEffectInputs, Int) -> CapturedEffectLocalResult?
 
@@ -415,6 +426,8 @@ pub fn checked_task_identity(CheckedTaskReference) -> CheckedTaskIdentity
 
 pub fn checked_task_output_matches(CheckedTaskReference, @execution_relation.CompletedOutput) -> Bool
 
+pub fn cleanup_captured_effect_command_key_validation(CapturedEffectCommandKeyValidation) -> Result[Bool, CapturedEffectCommandKeyIssue]
+
 pub fn close_captured_effect_source_port(CapturedEffectInputs, Int) -> Bool
 
 pub fn close_captured_task_output(CapturedDAG, Int) -> Unit
@@ -611,9 +624,9 @@ pub fn prepare_bounded_strategy_choices(CapturedDAG, Array[TaskOffer], @connecto
 
 pub fn[T] prepare_captured_cleanup(CapturedDAG, TaskExecution, (Array[ResidentTable]) -> Result[T, RunIssue]) -> Result[T, RunIssue]
 
-pub fn prepare_captured_effect_plan_verifier(CapturedEffectPreviewInputs, Int, Int, Int, published_target? : CapturedEffectCommandTarget?) -> Result[CapturedEffectPlanVerifier, CapturedEffectPlanVerifyIssue]
+pub fn prepare_captured_effect_plan_verifier(CapturedEffectPreviewInputs, Int, Int, Int, published_target? : CapturedEffectCommandTarget?, input_key? : CapturedEffectCommandKeyValidation?) -> Result[CapturedEffectPlanVerifier, CapturedEffectPlanVerifyIssue]
 
-pub fn prepare_captured_effect_proposal_plan(CapturedEffectInputs, Int, Int, Int, published_target? : CapturedEffectCommandTarget?) -> Result[CapturedEffectProposalPlan, CapturedEffectProposalIssue]
+pub fn prepare_captured_effect_proposal_plan(CapturedEffectInputs, Int, Int, Int, published_target? : CapturedEffectCommandTarget?, input_key? : CapturedEffectCommandKeyValidation?) -> Result[CapturedEffectProposalPlan, CapturedEffectProposalIssue]
 
 pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool, captured_prefix? : Int) -> Result[CheckedDAG, GraphIssue]
 
@@ -769,6 +782,8 @@ pub fn resident_table_storage(ResidentTable) -> @execution_relation.ProducerStor
 
 pub fn resident_task_offer(CapturedDAG, TaskOffer, ResidentProfile, Int64) -> Result[TaskOffer, SearchIssue]
 
+pub fn retain_captured_effect_command_key_validation(CapturedEffectCommandKeyValidation) -> Result[Unit, CapturedEffectCommandKeyIssue]
+
 pub fn retain_captured_task_allocation(CapturedDAG, Int, @physical_resources.Holding, release_confirmed? : () -> Bool) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn retain_task_execution_allocation(CapturedDAG, TaskExecution, Int64) -> Result[TaskRetainedAllocation, @physical_resources.LedgerIssue]
@@ -807,6 +822,8 @@ pub fn shared_work_duration(SharedWorkEstimate) -> @physical_cost.DurationEstima
 
 pub fn start_captured_any_result_borrow_export(CapturedAnyResultBorrow, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, converted_output? : @execution_relation.CompletedOutput) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
 
+pub fn start_captured_effect_command_key_validation(@bounded_execution.Control, CapturedEffectInputs, Int, Int, CapturedEffectLocalResultExport, Int, Int, Int, Int) -> Result[CapturedEffectCommandKeyValidation, CapturedEffectCommandKeyIssue]
+
 pub fn start_captured_effect_input_export(CapturedEffectInput, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
 
 pub fn start_captured_effect_local_result_export(CapturedEffectInputs, Int, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, converted_output? : @execution_relation.CompletedOutput) -> Result[CapturedEffectLocalResultExport, CapturedEffectLocalResultExportIssue]
@@ -822,6 +839,8 @@ pub fn start_captured_result_borrow_export(CapturedResultBorrow, @execution_rela
 pub fn start_captured_table_input_borrow_export(CapturedTableInputBorrow, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedTableInputRelationExportPreparation, @execution_relation.CompletedExportIssue]
 
 pub fn start_task_numeric_reduction_for_slot(CapturedDAG, TaskExecution, Int, String, Int, Array[Double], Int, Int) -> Result[TaskNumericExecution, @numeric_reduction.ReductionIssue]?
+
+pub fn step_captured_effect_command_key_validation(CapturedEffectCommandKeyValidation, Int) -> Result[(Bool, Int), CapturedEffectCommandKeyIssue]
 
 pub fn stop_captured_dag(CapturedDAG) -> Unit
 
@@ -931,6 +950,17 @@ pub(all) enum CapturedEffectCapabilityIssue {
   NotReady
   Current(@effect_application.EffectApplyCapabilityIssue)
 } derive(@debug.Debug)
+
+pub(all) enum CapturedEffectCommandKeyIssue {
+  ForeignOrigin
+  MissingKey
+  Plan(@stage_results.EffectPlanBindingIssue)
+  Validation(@execution_relation.CompletedResultKeyIssue)
+  Control(@bounded_execution.Issue)
+  Stopped(@bounded_execution.StopReason)
+}
+
+type CapturedEffectCommandKeyValidation
 
 pub struct CapturedEffectCommandTarget {
   inputs : CapturedEffectInputs

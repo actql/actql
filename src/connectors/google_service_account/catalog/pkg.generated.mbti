@@ -1,0 +1,48 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/google_service_account/catalog"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn read_service_account_token_response(Int, Bytes, TokenResponseLimits) -> Result[TokenResponse, TokenResponseIssue]
+
+pub fn token_response_access_token(TokenResponse) -> String
+
+pub fn token_response_lifetime_seconds(TokenResponse) -> Int
+
+pub fn token_response_scopes(TokenResponse) -> Array[String]?
+
+// Errors
+
+// Types and methods
+pub struct TokenResponse {
+  // private fields
+}
+
+pub(all) enum TokenResponseIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidStatus
+  InvalidResponse
+  ProviderRejected
+  InvalidToken
+  InvalidTokenType
+  InvalidLifetime
+  InvalidScopes
+} derive(Eq, @debug.Debug)
+
+pub(all) struct TokenResponseLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_token_bytes : Int
+  max_lifetime_seconds : Int
+  max_scopes : Int
+  max_scope_bytes : Int
+}
+
+// Type aliases
+
+// Traits

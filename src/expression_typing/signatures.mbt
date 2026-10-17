@@ -335,9 +335,23 @@ fn infer(
         source,
       )
     }
-    "reverse" =>
-      // Reordering scalars preserves every admitted scalar/UTF-8 length bound.
-      typed(t, require_type(t, nodes, node.children[0], "string"), source)
+    "reverse" => {
+      let input = require_type(t, nodes, node.children[0], "string")
+      guard input.shape is @contract.Text(limits) else {
+        fail(source, TypeMismatch("string"))
+      }
+      // Reordering preserves length bounds, but not an original enumeration.
+      typed(
+        t,
+        @contract.string_contract(
+          nullable=input.nullable,
+          min_length=limits.min_length,
+          max_codepoints=limits.max_codepoints,
+          max_utf8_bytes=limits.max_utf8_bytes,
+        ).unwrap(),
+        source,
+      )
+    }
     "translate" => {
       let input = require_type(t, nodes, node.children[0], "string")
       let source_set = require_type(t, nodes, node.children[1], "string")

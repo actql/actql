@@ -316,6 +316,8 @@ pub fn settle_shared_capacity(SharedCapacity) -> Result[Unit, LedgerIssue]
 
 pub fn shared_allocation_usage(SharedAllocation) -> SharedAllocationUsage
 
+pub fn shared_capacity_matches_ledger(SharedCapacity, Ledger) -> Bool
+
 pub fn shared_capacity_usage(SharedCapacity) -> SharedCapacityUsage
 
 pub fn start_imported_child_ledger(ImportedChildLedger) -> Result[Unit, ImportedChildLedgerIssue]

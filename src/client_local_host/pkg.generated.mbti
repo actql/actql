@@ -163,6 +163,10 @@ pub fn installed_listing_row_capture_capacity(@client_row_source_host.RowAcquisi
 
 pub fn installed_pending_duckdb_capture_capacity(ClientDuckDBCaptureCapacity) -> ClientInstalledCaptureCapacity
 
+pub fn installed_provider_row_capture_capacity(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?) -> ClientInstalledCaptureCapacity?
+
+pub fn installed_provider_row_capture_capacity_matches(ClientInstalledCaptureCapacity, @client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity) -> Bool
+
 pub fn installed_row_capture_capacity(@client_row_source_host.RowAcquisition) -> ClientInstalledCaptureCapacity?
 
 pub fn local_values_execution_failure_cleanup_pending(LocalValuesExecutionFailure) -> Bool

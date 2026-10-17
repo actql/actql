@@ -6,7 +6,7 @@
     {
       "module": "packages/client-wire/client-host.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "999cca87c61ec1379302048a5f80c61973d0ebb2dbdbdfa2cfde373c01dcf2d2",
+      "sha256": "94a79d3e88751af086400b20e49c40a217a13d72b7bf137d21d830b535d42de4",
       "exports": [
         "ClientHostOperation",
         "WireAdmissionShape",
@@ -138,6 +138,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "<!-- requirement-block: run-observation.state-revision -->"
+              },
+              {
+                "path": "docs/spec/language.md",
+                "anchor": "#### Text enumeration constraints"
               }
             ],
             "identity": [
@@ -148,6 +152,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "<!-- requirement-block: run-observation.state-revision -->"
+              },
+              {
+                "path": "docs/spec/language.md",
+                "anchor": "#### Text enumeration constraints"
               }
             ],
             "ownership": [
@@ -190,6 +198,10 @@
               {
                 "path": "packages/client-wire/package.json",
                 "anchor": "\"files\""
+              },
+              {
+                "path": "docs/spec/language.md",
+                "anchor": "#### Text enumeration constraints"
               }
             ],
             "verification": [
@@ -208,6 +220,10 @@
               {
                 "path": "spec/requirements/run.json",
                 "anchor": "\"requirement_id\": \"actql.protocol.run/run-observation.state-revision\""
+              },
+              {
+                "path": "scripts/protocol-value-contracts.test.mjs",
+                "anchor": "actual generated structural type validator keeps enum shape"
               }
             ]
           }

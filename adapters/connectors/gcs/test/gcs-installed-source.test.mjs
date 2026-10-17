@@ -22,6 +22,12 @@ const runtimeUrl = new URL('../../../../_build/js/release/build/' +
   'connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
 const baseEnvironmentWire = await readFile(new URL('../../../../spec/local-check-environment.json',
   import.meta.url), 'utf8');
+// Host policy covers the declared three rows, two keyed pages and 8192-byte
+// pages, not just the expected object or an empty selection.
+const hostLookupExecutionPolicy = Object.freeze({version: 'actql-lookup-execution-policy/0.1',
+  max_network_attempts_per_request: 3, max_request_bytes_per_attempt: 4096,
+  max_total_request_bytes: 73728, max_total_response_bytes: 49152,
+  max_total_decoded_response_bytes: 49152, max_total_duration_ms: 30000});
 
 function installationFailure(t, error) {
   // Preserve the original failure and cleanup carrier. Emit only closed code
@@ -90,6 +96,52 @@ async function fixture(t) {
       baseEnvironmentWire, resolveSecret}};
 }
 
+function acceptancePrograms(value) {
+  return gcsAcceptancePrograms({version: 'actql-gcs-files-content-acceptance/0.1',
+    project: value.profile.project, bucket: value.profile.bucket, prefix: value.profile.prefix,
+    credential: {kind: 'gcloud-impersonation', account: 'fixture@example.invalid',
+      serviceAccount: 'actql-content-test@fixture-project.iam.gserviceaccount.com',
+      executable: '/fixture/gcloud'}, permissions: ['list', 'read_metadata', 'read_content'],
+    limits: {maxRequests: 200, maxResponseBytes: 10485760, maxDurationMs: 900000, maxObjectBytes: 1048576},
+    costLimitUsd: 1, expectedObjects: [{name: value.profile.prefix + 'fixture.pdf',
+      mediaType: 'application/pdf', contentCid: `sha256:${'1'.repeat(64)}`, sizeBytes: 3}]},
+  value.profile.connectorId);
+}
+
+async function connectFixture(t, entrance, value) {
+  const installation = {directory: join(value.scratch.path, 'host'), sourceProfilePath: value.profilePath,
+    resolveSourceSecret: value.resolveSecret, authorization: value.authorization, hostLookupExecutionPolicy};
+  let client, host, server, previousCertificates;
+  value.closers.push(async () => {
+    await client?.close();
+    if (server?.listening) {
+      server.closeAllConnections();
+      await new Promise(resolve => server.close(resolve));
+    }
+    await host?.close();
+    if (previousCertificates !== undefined) setDefaultCACertificates(previousCertificates);
+  });
+  if (entrance === 'Local') {
+    client = await connectEmbeddedLocal({mode: 'local', owner: 'local', durability: 'durable', installation})
+      .catch(error => installationFailure(t, error));
+  } else {
+    const {key, cert, ca} = await fixtureCertificates(value.scratch.path);
+    previousCertificates = getCACertificates('default');
+    setDefaultCACertificates([...previousCertificates, ca.toString('utf8')]);
+    host = await openInstalledRemoteHttpHost({...installation,
+      authenticate: header => header === 'Bearer gcs-fixture' ? userInfo().username : undefined})
+      .catch(error => installationFailure(t, error));
+    server = createServer({key, cert}, host.handler);
+    await new Promise((resolve, reject) => {
+      server.once('error', reject);
+      server.listen(0, '127.0.0.1', resolve);
+    });
+    client = await connectRemote({mode: 'remote', endpoint: `https://127.0.0.1:${server.address().port}/`,
+      token: 'gcs-fixture', durability: 'durable'});
+  }
+  return client;
+}
+
 test('standard GCS Connector loads its three declared read Resources without provider or credential I/O', async t => {
   const value = await fixture(t);
   const source = await loadInstalledSource(value.profilePath, value.options);
@@ -129,25 +181,11 @@ test('standard GCS Site rejects arbitrary origins and unknown profile fields bef
 for (const entrance of ['Local', 'HTTPS']) {
 test(`public ${entrance} GCS acceptance keyed Programs check against the installed declaration without credential I/O`, async t => {
   const value = await fixture(t);
-  const manifest = {version: 'actql-gcs-files-content-acceptance/0.1',
-    project: value.profile.project, bucket: value.profile.bucket, prefix: value.profile.prefix,
-    credential: {kind: 'gcloud-impersonation', account: 'fixture@example.invalid',
-      serviceAccount: 'actql-content-test@fixture-project.iam.gserviceaccount.com',
-      executable: '/fixture/gcloud'}, permissions: ['list', 'read_metadata', 'read_content'],
-    limits: {maxRequests: 200, maxResponseBytes: 10485760, maxDurationMs: 900000, maxObjectBytes: 1048576},
-    costLimitUsd: 1, expectedObjects: [{name: value.profile.prefix + 'fixture.pdf',
-      mediaType: 'application/pdf', contentCid: `sha256:${'1'.repeat(64)}`, sizeBytes: 3}]};
   // Synthetic expected bytes are never consumed here. This case establishes
   // real public Check/declaration connectivity, not a successful GCS read.
   // Lookup policy is an explicit Host decision, not a Source-adapter default
   // or a caller Program claim. Use the same bounded selection for preparation
   // and both public entrances.
-  const hostLookupExecutionPolicy = {version: 'actql-lookup-execution-policy/0.1',
-    max_network_attempts_per_request: 3, max_request_bytes_per_attempt: 4096,
-    max_total_request_bytes: 73728, max_total_response_bytes: 49152,
-    // Three admitted listing rows, two pages per keyed request, 8192 bytes
-    // per page. Bound the declared extent, not the one expected object.
-    max_total_decoded_response_bytes: 49152, max_total_duration_ms: 30000};
   const baseEnvironmentWire = selectInstalledHostEnvironment(moon,
     value.options.baseEnvironmentWire.trimEnd(), undefined, hostLookupExecutionPolicy);
   const installed = await loadInstalledSource(value.profilePath, {...value.options, baseEnvironmentWire});
@@ -155,41 +193,20 @@ test(`public ${entrance} GCS acceptance keyed Programs check against the install
   const environment = moon.clientProgramCheckEnvironment(installed.environmentWire,
     JSON.parse(installed.environmentWire).evidence_bundle_cid,
     false, false, true, false, false, false, false);
-  const installation = {directory: join(value.scratch.path, 'host'), sourceProfilePath: value.profilePath,
-    resolveSourceSecret: value.resolveSecret, authorization: value.authorization, hostLookupExecutionPolicy};
-  let client, host, server, previousCertificates;
-  value.closers.push(async () => {
-    await client?.close();
-    if (server?.listening) {
-      server.closeAllConnections();
-      await new Promise(resolve => server.close(resolve));
-    }
-    await host?.close();
-    if (previousCertificates !== undefined) setDefaultCACertificates(previousCertificates);
-  });
-  if (entrance === 'Local') {
-    client = await connectEmbeddedLocal({mode: 'local', owner: 'local', durability: 'durable', installation})
-      .catch(error => installationFailure(t, error));
-  } else {
-    const {key, cert, ca} = await fixtureCertificates(value.scratch.path);
-    previousCertificates = getCACertificates('default');
-    setDefaultCACertificates([...previousCertificates, ca.toString('utf8')]);
-    host = await openInstalledRemoteHttpHost({...installation,
-      authenticate: header => header === 'Bearer gcs-fixture' ? userInfo().username : undefined})
-      .catch(error => installationFailure(t, error));
-    server = createServer({key, cert}, host.handler);
-    await new Promise((resolve, reject) => {
-      server.once('error', reject);
-      server.listen(0, '127.0.0.1', resolve);
-    });
-    client = await connectRemote({mode: 'remote', endpoint: `https://127.0.0.1:${server.address().port}/`,
-      token: 'gcs-fixture', durability: 'durable'});
-  }
-  for (const program of Object.values(gcsAcceptancePrograms(manifest, value.profile.connectorId))) {
+  const client = await connectFixture(t, entrance, value);
+  for (const program of Object.values(acceptancePrograms(value))) {
     const prepared = moon.clientProgramPrepareEffectFreeWithParameters(JSON.stringify(program),
       'json', environment, undefined);
     assert.ok(moon.clientProgramPreparationReady(prepared),
       inspect(moon.clientProgramPreparationIssue(prepared), {depth: 8, maxStringLength: 3000}));
+    // The private typed Owner projection is DATA, not an enum-layout read or
+    // a release/minifier-dependent constructor name. Other outcomes are None.
+    assert.equal(typeof moon.clientProgramPreparationDecodedResponseLimitJson, 'function');
+    assert.equal(moon.clientProgramPreparationDecodedResponseLimitJson(prepared), undefined);
+    const invalidFormat = moon.clientProgramPrepareEffectFreeWithParameters(JSON.stringify(program),
+      'not-a-program-format', environment, undefined);
+    assert.equal(moon.clientProgramPreparationReady(invalidFormat), undefined);
+    assert.equal(moon.clientProgramPreparationDecodedResponseLimitJson(invalidFormat), undefined);
     // A single missing decoded byte must still refuse the admitted extent.
     // Neither exact path literals nor an empty result can narrow its declared
     // capacity; the independent 3 * 2 * 8192 obligation remains unchanged.
@@ -202,12 +219,30 @@ test(`public ${entrance} GCS acceptance keyed Programs check against the install
     const insufficient = moon.clientProgramPrepareEffectFreeWithParameters(JSON.stringify(program),
       'json', insufficientEnvironment, undefined);
     assert.equal(moon.clientProgramPreparationReady(insufficient), undefined);
-    assert.match(inspect(moon.clientProgramPreparationIssue(insufficient), {depth: 12}),
-      /DecodedResponseLimit/u);
+    const limit = moon.clientProgramPreparationDecodedResponseLimitJson(insufficient);
+    assert.equal(typeof limit, 'string');
+    assert.equal(limit, '{"stageIndex":0,"stepIndex":2}',
+      'the same checked Program must retain its exact original stage and join-step cause');
     const checked = await client.check(program, {kind: 'program', scope: 'bound_input'});
     assert.equal(checked.report?.verdict, 'verified', inspect(checked, {depth: 8, maxStringLength: 3000}));
-    // The original failing input remains a real protected-boundary regression;
-    // adding explicit views must not weaken disclosure for omitted selectors.
+  }
+  assert.equal(value.secretCalls(), 0, 'public Check cannot mint a token or contact GCS');
+});
+test(`public ${entrance} GCS explicit selectors check without namespace disclosure authority`, async t => {
+  const value = await fixture(t);
+  const client = await connectFixture(t, entrance, value);
+  for (const program of Object.values(acceptancePrograms(value))) {
+    const checked = await client.check(program, {kind: 'program', scope: 'bound_input'});
+    assert.equal(checked.report?.verdict, 'verified', inspect(checked, {depth: 8, maxStringLength: 3000}));
+  }
+  assert.equal(value.secretCalls(), 0, 'selector disclosure cannot mint a token or contact GCS');
+});
+test(`public ${entrance} GCS selector metadata remains protected without namespace authority`, async t => {
+  const value = await fixture(t);
+  const client = await connectFixture(t, entrance, value);
+  for (const program of Object.values(acceptancePrograms(value))) {
+    // Keep the original protected-boundary control on an independent Host
+    // without metadata disclosure authority, rather than widening read grants.
     const omitted = structuredClone(program);
     delete omitted.stages[0].inputs.files.view;
     delete omitted.stages[0].inputs.contents.view;
