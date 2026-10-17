@@ -176,7 +176,7 @@ test "kintone before preserves checked array order duplicates and exact selected
   ).unwrap()
   assert_eq(
     record_delete_preview_before_wire(view),
-    "{\"$id\":\"9007199254740993\",\"Subject\":\"second\",\"Tags\":[\"b\",\"a\",\"b\"]}",
+    "{\"$id\":\"9007199254740993\",\"Tags\":[\"b\",\"a\",\"b\"],\"Subject\":\"second\"}",
   )
   let previous = prepare_record_delete_preview(
     mapping,
@@ -186,7 +186,7 @@ test "kintone before preserves checked array order duplicates and exact selected
   ).unwrap()
   assert_eq(
     record_delete_preview_before_wire(previous),
-    "{\"$id\":\"1\",\"Subject\":\"first\",\"Tags\":[]}",
+    "{\"$id\":\"1\",\"Tags\":[],\"Subject\":\"first\"}",
   )
   assert_true(
     record_delete_preview_version_cid(previous) !=

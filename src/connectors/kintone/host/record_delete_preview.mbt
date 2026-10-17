@@ -70,7 +70,8 @@ pub fn prepare_record_delete_preview(
     issue => return Err(RequestEncoding(issue))
   }
   let before = try {
-    // The existing writer orders original keys, while CheckedValue preserves
+    // Preserve the admitted column order. The ordinary object writer checks
+    // keys; it does not invent canonical field order. CheckedValue preserves
     // Decimal/date/array meaning without JSON/Double reconstruction.
     @encode.begin_object(writer)
     for column, name in columns {
