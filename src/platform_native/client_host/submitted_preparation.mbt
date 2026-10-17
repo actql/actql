@@ -12,6 +12,7 @@ pub(all) enum NativeClientSubmittedPreparationIssue {
   SubmittedInputLimit
   Declarations(@parameters.Issue)
   Preparation(NativeClientPreparationIssue)
+  ReadOnlyEffect
 }
 
 ///|
@@ -76,7 +77,9 @@ pub fn prepare_native_client_submitted_program(
         return Err(InvalidSubmittedInput)
       }
   }
-  guard @decode.closed_object(cursor, ["kind", "input", "parameters"])
+  guard @decode.closed_object(cursor, [
+      "kind", "input", "parameters", "stopBefore", "readOnly",
+    ])
     is Ok(root) &&
     epoch_text(root, "kind") is Some(kind) &&
     @decode.lookup(root, "input") is Some(input) &&
@@ -136,20 +139,26 @@ pub fn prepare_native_client_submitted_program(
   } else {
     return Err(InvalidSubmittedInput)
   }
-  prepare_native_client_program(
-    document,
-    format,
-    environment,
-    supplied,
-    query_context,
-    evidence,
-    limits,
-    source_path~,
-    table_writes~,
-  )
-  .map(preparation => {
-    intent_cid: @host.client_submitted_intent_cid(intent),
-    preparation,
-  })
-  .map_err(issue => Preparation(issue))
+  let preparation = match
+    prepare_native_client_program(
+      document,
+      format,
+      environment,
+      supplied,
+      query_context,
+      evidence,
+      limits,
+      source_path~,
+      table_writes~,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Preparation(issue))
+  }
+  // The original intent and this exact prepared Effect inventory share the
+  // Common compatibility decision. Preparation failures retain their priority.
+  if preparation is EffectComputation(prepared) &&
+    !@host.client_submitted_intent_effect_compatible(intent, prepared) {
+    return Err(ReadOnlyEffect)
+  }
+  Ok({ intent_cid: @host.client_submitted_intent_cid(intent), preparation, })
 }
