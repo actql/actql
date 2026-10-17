@@ -23,7 +23,7 @@ fn original_lookup_diagnostic_environment(
       wire, cid, false, false, true, false, false, false, false,
     )
     is Some(environment) else {
-    fail("The original source-qualified environment must be admitted")
+    abort("The original source-qualified environment must be admitted")
   }
   environment
 }
