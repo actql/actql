@@ -31,8 +31,9 @@ export async function installedKintoneFixture(t, {formRead = 'allow', recordsRea
   const prefix = guestSpaceId === undefined ? '/k/v1/' : `/k/guest/${guestSpaceId}/v1/`;
   const state = {secret: 'kintone-test-api-token', resolutions: 0,
     forms: 0, pages: 0, responseBodies: [], resolve: undefined,
-    form: undefined, page: undefined};
+    form: undefined, page: undefined, fixtureFailures: []};
   const serve = async (exchange, kind) => {
+    try {
     assert.equal(exchange.method, 'POST');
     assert.equal(exchange.headers['x-http-method-override'], 'GET');
     assert.equal(exchange.authorized, true);
@@ -54,6 +55,15 @@ export async function installedKintoneFixture(t, {formRead = 'allow', recordsRea
     }
     state.responseBodies.push(Buffer.from(JSON.stringify(body)));
     return {body};
+    } catch (cause) {
+      // Private original harness evidence only. The HTTP fixture still loses
+      // this response and the product still observes its original transport
+      // failure; the assertion and request are not rewritten or retried.
+      state.fixtureFailures.push({kind, method: exchange.method, path: exchange.path,
+        requestBody: exchange.body, code: cause.code, message: cause.message,
+        actual: cause.actual, expected: cause.expected});
+      throw cause;
+    }
   };
   const tls = await openHttpsExchangeFixture(t, {faults,
     routes: [{method: 'POST', pathname: prefix + 'app/form/fields.json',
@@ -94,6 +104,9 @@ export async function installedKintoneFixture(t, {formRead = 'allow', recordsRea
     const failures = [];
     for (const captured of captures) try {await captured.close();} catch (cause) {failures.push(cause);}
     for (const source of sources) try {await source.close();} catch (cause) {failures.push(cause);}
+    await writeFile(join(root, 'original-fixture-observations.json'), JSON.stringify({
+      source: 'Fresh own namespace; original requests and assertions unchanged',
+      exchanges: tls.seen(), fixtureFailures: state.fixtureFailures}, null, 2) + '\n', {mode: 0o600});
     t.diagnostic(`Retained owned kintone fixture: ${root}`);
     if (failures.length) throw new AggregateError(failures, 'KintoneFixtureCleanupUnconfirmed');
   });
