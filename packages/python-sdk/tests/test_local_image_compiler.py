@@ -91,6 +91,14 @@ class ImageCompilerTests(unittest.TestCase):
                 with self.assertRaises(LocalInstallationError):
                     compiler._compiler_configuration_header(replace(recipe, engine_body=json.dumps(body).encode()))
 
+    def test_c_projection_refuses_unrepresentable_artifact_bound_without_changing_python_recipe(self):
+        recipe = _recipe_from_original(ORIGINAL, source_sha='a' * 40,
+                                      package_version='0.0.0.dev0', module_sha256='b' * 64)
+        wide = replace(recipe, image_bytes_limit=2**63)
+        wide.validate()
+        with self.assertRaisesRegex(ValueError, 'not representable'):
+            compiler._compiler_configuration_header(wide)
+
     def test_c_configuration_preparation_does_not_admit_changed_module(self):
         self.case.module_file.write_bytes(b'changed original module receipt')
         with self.assertRaises((ValueError, LocalInstallationError)):

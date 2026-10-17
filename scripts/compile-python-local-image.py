@@ -64,6 +64,9 @@ def _compiler_configuration_header(recipe: _SelectedImageRecipe) -> bytes:
         '#include <wasmtime.h>',
     ]
     lines.append(f'#define ACTQL_COMPILER_SOURCE_SHA "{recipe.source_sha}"')
+    if recipe.image_bytes_limit > 2**63 - 1:
+        raise ValueError('Original image bound is not representable by the selected C compiler')
+    lines.append(f'#define ACTQL_COMPILER_IMAGE_MAX_BYTES {recipe.image_bytes_limit}ULL')
     for name, value in (('MODULE', recipe.module_sha256),
                         ('RUNTIME', recipe.runtime_library_sha256),
                         ('PROVIDER', recipe.provider_library_sha256),
