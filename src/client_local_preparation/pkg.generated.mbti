@@ -27,6 +27,8 @@ pub fn client_program_check_context_identity(@program_check.CheckEnvironment) ->
 
 pub fn client_program_check_program(String, @program_check.CheckEnvironment, String, String?, String, String, String?, String, String, ClientCheckSourceSelectorNamespace?) -> String
 
+pub fn client_program_check_program_with_format(String, String, @program_check.CheckEnvironment, String, String?, String, String, String?, String, String, ClientCheckSourceSelectorNamespace?) -> String
+
 pub fn client_program_check_reporting_schema_cids() -> (String, String)
 
 pub fn client_program_check_source(String, String, @program_check.CheckEnvironment, String, String?, String?, String, String, String?, String?, String, String, ClientCheckSourceNamespace?) -> String

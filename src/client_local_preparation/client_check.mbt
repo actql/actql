@@ -2373,12 +2373,13 @@ fn check_parse_original_pointer(
 ///|
 /// Binder paths use admitted keys, which may have been normalized by the
 /// input reader. Recover each owned key from its retained source span with
-/// the existing preserving JSON reader; this explains a proven finding and
+/// the existing same-format scalar reader; this explains a proven finding and
 /// does not change binding, admission or the caller's original document.
 fn check_original_pointer(
   body : String,
   root : @decode.Cursor,
   path : Array[@decode.PathSegment],
+  format? : @syntax.Format = Json,
 ) -> String? {
   guard path.length() <= 65 else { return None }
   let bytes = @utf8.encode(body)
@@ -2400,12 +2401,28 @@ fn check_original_pointer(
           return None
         }
         remaining -= span.end_byte - span.start_byte
-        guard @source.parse_json_bytes_preserving(
-            bytes[span.start_byte:span.end_byte].to_owned(),
-            { max_input_bytes: 65536, max_nodes: 1, max_depth: 0, },
-          )
-          is Ok({ value: String(name), .. }) else {
-          return None
+        let key_bytes = bytes[span.start_byte:span.end_byte].to_owned()
+        let decoded = if format == Yaml {
+          // Read one original YAML scalar through the existing parser. Never
+          // treat its plain/quoted key spelling as JSON or as normalized text.
+          @source.parse_yaml_bytes(key_bytes, {
+            max_input_bytes: 65536,
+            max_nodes: 1,
+            max_depth: 0,
+          })
+        } else {
+          @source.parse_json_bytes_preserving(key_bytes, {
+            max_input_bytes: 65536,
+            max_nodes: 1,
+            max_depth: 0,
+          })
+        }
+        guard decoded is Ok({ value: String(name), .. }) else { return None }
+        if format == Yaml && name != key {
+          guard @canonical_value.normalize_nfc_lf(name) is Ok(normalized) &&
+            normalized == key else {
+            return None
+          }
         }
         original.push(@source.Key(name))
         cursor = child
