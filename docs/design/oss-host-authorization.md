@@ -34,6 +34,13 @@ with no placeholder, assertion or implicitly throwing accessor. The reference
 is not a review, item list or approval evidence; applications retrieve the
 original semantic review separately when needed.
 
+The one-Summary lookup bounds its response, not its physical funding. Captured
+signer metadata/callbacks, lookup wire and decoded Summary, signed artifact and
+preimage Strings, captured signed-item/transport copies, pending Promises and
+exact response-loss items overlap within the original Client/Host inventory.
+Freezing or dropping a reference is neither physical retirement nor numerical
+funding. A physical key/use supplier must cover its own additional lifetime.
+
 ## Original public Host signer selections
 
 The existing Common Host configuration boundary projects the `signers` portion
