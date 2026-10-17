@@ -147,7 +147,7 @@ The Library, temporary key buffers, private/public encodings, Writer and escaped
 view overlap still require the existing actual caller resource supply; format
 lengths and a diagnostic ceiling are not numerical funding.
 
-### Writer close custody
+### Initial signing payload DATA
 
 The original initial-signing installation payload has a typed DATA codec in
 the existing Common Local original-record Owner. Its thirteen String fields
@@ -166,6 +166,8 @@ A missing legacy original still cannot be filled from today's configuration.
 The field record, thirteen String references, codec arrays and decode/encode
 workspace belong to the existing installation/Host inventory; they supply no
 funding, grant, claim, key use or cleanup acknowledgement.
+
+### Writer close custody
 
 The existing filesystem Writer records its original close outcome separately
 from later diagnostics. A consumed but unconfirmed close remains pending through
