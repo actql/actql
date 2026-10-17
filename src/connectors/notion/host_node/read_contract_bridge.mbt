@@ -39,6 +39,14 @@ pub fn notion_read_database_declaration(
 }
 
 ///|
+#export_name("notionReadDatabaseId")
+pub fn notion_read_database_id(
+  declaration : @catalog.NotionDatabaseReadDeclaration,
+) -> String {
+  declaration.database_id
+}
+
+///|
 #export_name("notionReadSourceIndex")
 pub fn notion_read_source_index(
   declaration : @catalog.NotionDatabaseReadDeclaration,

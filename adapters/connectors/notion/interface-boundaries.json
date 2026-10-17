@@ -1,5 +1,5 @@
 {
-  "source": "f22c1b98bbca68a1ad989fc2dd9c7ec7a03bb117",
+  "source": "dd7e3849616ebda8e26873980d262448f31d81a8",
   "qualification": "Lead-reviewed existing Owner references and syntax coverage only; not normal funding, raw retirement, installation, actual Notion service or release acceptance",
   "declarations": [
     {
@@ -937,6 +937,292 @@
         }
       ],
       "responsibilityFacet": "primary"
+    },
+    {
+      "module": "adapters/connectors/notion/site/database-discovery.mjs",
+      "sha256": "ed0481c27aa11be0c07835fd67b54edbfdba8b4732da6d9e0b5a1c05ac081b3a",
+      "exports": [
+        "NOTION_DATABASE_RETRIEVE_OPERATION",
+        "NOTION_DATA_SOURCE_RETRIEVE_OPERATION",
+        "NotionDatabaseDiscoveryFailure",
+        "createNotionDatabaseDiscovery"
+      ],
+      "operations": [
+        {
+          "name": "coordinate/coordinate",
+          "parameters": [
+            "id",
+            "kind",
+            "bound"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseDiscovery",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseDiscovery/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseDiscovery/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createNotionDatabaseDiscovery/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "discover",
+          "parameters": [
+            "original",
+            "state"
+          ],
+          "async": true
+        },
+        {
+          "name": "discover/request/request",
+          "parameters": [
+            "operation",
+            "index",
+            "path"
+          ],
+          "async": true
+        },
+        {
+          "name": "discover/request/request/response/response",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "discover/request/request/response/response/response",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "discover/verify/verify",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "NotionDatabaseDiscoveryFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause",
+            "observations",
+            "responseCharges"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReader",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare",
+          "parameters": [
+            "moon",
+            "declaration",
+            "initialAuthorization",
+            "sourceAuthorization",
+            "credential",
+            "authorizationFor",
+            "current",
+            "chargeResponse",
+            "consumeObservation",
+            "limits",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare/prepare",
+          "parameters": [
+            "x"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare/prepare#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare/prepare#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "./property-item-read.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Notion Catalog and Site physical discovery; Common Contract, Account/Credential, installation/configuration, Source RowRun and Resource keep original type, authority, funding and cleanup",
+      "contracts": [
+        {
+          "id": "notion-original-database-discovery",
+          "operations": [
+            "<module>",
+            "coordinate/coordinate",
+            "createNotionDatabaseDiscovery",
+            "createNotionDatabaseDiscovery/handle/init:observe/init:observe",
+            "createNotionDatabaseDiscovery/handle/init:read/init:read",
+            "createNotionDatabaseDiscovery/handle/init:requestStop/init:requestStop",
+            "discover",
+            "discover/request/request",
+            "discover/request/request/response/response",
+            "discover/request/request/response/response/response",
+            "discover/verify/verify",
+            "fail/fail",
+            "NotionDatabaseDiscoveryFailure/constructor:constructor/constructor:constructor",
+            "originalReader",
+            "positive/positive",
+            "prepare",
+            "prepare/prepare",
+            "prepare/prepare#2",
+            "prepare/prepare#3",
+            "prepare/provider/provider"
+          ],
+          "exports": [
+            "NOTION_DATABASE_RETRIEVE_OPERATION",
+            "NOTION_DATA_SOURCE_RETRIEVE_OPERATION",
+            "NotionDatabaseDiscoveryFailure",
+            "createNotionDatabaseDiscovery"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "## Original database discovery requests"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/notion/site/database-discovery.mjs",
+                "anchor": "export function createNotionDatabaseDiscovery(options)"
+              },
+              {
+                "path": "src/connectors/notion/host_node/read_contract_bridge.mbt",
+                "anchor": "pub fn notion_read_database_id("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/notion/catalog/read_contracts.mbt",
+                "anchor": "pub fn notion_database_read_source_index("
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The selected original\nschema and declaration then form the same `NotionDataSourceReadContracts`"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Every response is retained before charging/admission/current callbacks."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "current Account authorization is checked before, through and after"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/notion/site/database-discovery.mjs",
+                "anchor": "export class NotionDatabaseDiscoveryFailure"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "reply remains the original Credential journal's Unknown and is never resent."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Stop aborts the same pending operation."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The declaration/checked Contract graph, both response bodies and decode/Catalog"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Aliases still extend the original lifetime and do not cost zero by sharing."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Trusted installation/configuration-revision membership, saved Run"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "anchor": "actual Notion discovery passes the same original declaration and schema into typed query and property reads"
+              },
+              {
+                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "anchor": "actual Notion discovery current refusal and reply loss retain original custody without resend"
+              },
+              {
+                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "anchor": "actual Notion discovery aggregate exhaustion retains the offending original body and charge"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
