@@ -25,7 +25,7 @@ const runtimeUrl = pathToFileURL(process.env.ACTQL_METADATA_COMMON_RUNTIME);
 const moon = await import(runtimeUrl.href);
 const cid = digit => 'sha256:' + digit.repeat(64);
 const emptyBody = 'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
-const version = 'actql-metadata-https-private-fixture/0.1';
+const version = 'actql-installed-metadata-https-private-fixture/0.1';
 
 async function fixture(t) {
   const base = join(process.cwd(), '_build', 'metadata-https-fixtures');
