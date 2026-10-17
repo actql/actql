@@ -14,6 +14,8 @@ pub fn slack_user_list_facts_wire() -> String
 
 pub fn slack_user_list_ids(SlackUserListPage) -> Array[String]
 
+pub fn slack_user_list_row_count(SlackUserListPage) -> Int
+
 pub fn slack_user_list_rows_wire(SlackUserListPage, Array[String], Int, Int, Int) -> Result[String, SlackUserListIssue]
 
 pub fn slack_user_list_schema_wire(Int, Int, Int) -> Result[String, SlackUserListIssue]

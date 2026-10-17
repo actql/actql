@@ -40,10 +40,14 @@ pub fn slack_user_list_rows_wire(
 pub fn slack_user_list_metadata_json(
   page : @catalog.SlackUserListPage,
 ) -> String {
+  let next : Json = match page.next_cursor {
+    Some(cursor) => cursor.to_json()
+    None => Null
+  }
   (
     {
       "rowCount": @catalog.slack_user_list_row_count(page).to_json(),
-      "nextCursor": page.next_cursor.to_json(),
+      "nextCursor": next,
     } : Json).stringify()
 }
 
