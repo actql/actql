@@ -3,7 +3,7 @@
   "module_sha256": "c9549247fadb0d82d31d033945f5f0c182e686c7a1eb54ac5c8bdda016783e3e",
   "engine_sha256": "1ac3cc9adc73342a068168f735ba0aa30ca4fa2b7fe149c7c040bf6d3a598f01",
   "runtime_library_sha256": "eab50a4b7c8b687915ef582219be5209a3ea2e8e31704786ed1feeec7415aa6a",
-  "provider_library_sha256": "e28159cd9e20753ae962e2c31dcf98098d599e0d4257847ab91474a2187ce8b9",
+  "provider_library_sha256": "485a8b2fa4aa9e8c4b288614af8c7b1a36be1aa2e41a64bf4e2394643ddf2c23",
   "capacity_bytes": 1073741824,
   "generation": 1
 }
