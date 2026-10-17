@@ -104,6 +104,27 @@ parsed equal database, matching ids or equal response hashes do not replace
 the original association. This is metadata correspondence, not an installed
 issuer, currentness, egress capability or permission to query/write.
 
+Each database and data-source Catalog retains an independent bounded snapshot
+of its original UTF-8 response before decoding or hashing. The declaration
+already retains its independently snapshotted authored source. Their bounded
+original-text getters preserve CRLF, key order, unknown fields, numeric lexemes,
+Unicode and escape spellings exactly. A newly encoded Cursor or matching digest
+cannot replace this source material. The getters do not expose mutable byte
+backing, reselect a source, perform I/O or issue publication/current authority.
+Output exhaustion returns no partial text and leaves the original Catalog
+unchanged. A mutable caller Buffer cannot rewrite the captured observations.
+
+The physical response, private snapshot, UTF-8 decode/parser workspace, retained
+Cursor and property/source inventory overlap with hash workspace and each
+returned text backing. The two Catalog records each add a snapshot reference;
+an additional getter alias extends the original lifetime even if the runtime
+shares immutable text. Copying, hashing and UTF-8 conversion are bounded work,
+not free metadata storage, transfer credit or a cleanup acknowledgement. The
+actual installation/publication supplier must retain and fund this graph until
+confirmed physical retirement. These original-text projections are a necessary
+input to saved original publication; they do not themselves serialize a new
+publication contract, finish its persistence or authorize rediscovery on restore.
+
 Both readers use the existing preserving JSON parser and decode admission.
 Vendor property names are data: decomposed/precomposed Unicode, whitespace and
 empty names are not normalized. Each property's declared name must exactly
@@ -802,3 +823,62 @@ actual installed before/apply reread, current original version guard, writes,
 reconciliation, saved-original recovery, complete workspace inventory and
 normal resource supplier remain separate obligations. No public schema,
 canonical preimage, wire/version or permission domain changes here.
+
+
+## Saved original database read material
+
+The existing Catalog can capture one bounded read snapshot from its same
+original declaration, observed database, selected data-source occurrence and
+checked schema binding. It retains those references and a private self seal;
+a copied record cannot issue or match its getters. Its complete canonical body
+stores exact original JSON text as String values, the checked schema/CID and
+the actual property-only/full-system distinction. The snapshot SOURCE hash is
+an identity of that representation, not a semantic replacement for the
+embedded declaration source or a credential/installation identity.
+
+Cold admission reads only that saved material. It constructs new local Catalog
+originals from the saved bytes, applies the existing singleton/explicit
+selection and complete checked Contract algorithms, reproduces the exact schema
+and rejects a mismatch or alternate canonical body. Those reconstructed
+originals do not nominally equal another live observation, even for equal saved
+bytes. Same-Run or installation custody has to be authenticated by its existing
+Store/Journal/installation owner; a caller-supplied body/CID is not that proof.
+There is no provider I/O, current-profile lookup, grant, cleanup acknowledgement
+or mutable byte/array getter in the codec.
+
+The snapshot adds a record, self-seal Ref, selection/source/read-binding graph
+references, checked schema text/CID and canonical body/CID. Its original three
+raw snapshots/decode graphs and Contract inventories remain live. The bounded
+pair/encoder inventory, UTF-8/hash backing, outer-body parse/copy and decoded
+source Strings overlap with re-encoded saved-source copies, the newly admitted
+Catalog graphs and returned opaque aliases. Each existing structural and
+selection/Contract work limit remains active; a finite sequence of independently
+bounded stages is not a reservation, zero-cost sharing or a normal numerical
+supplier. Cancellation is limited to bounded encoder failure; physical current,
+stop/Unknown/nonresend, raw retirement, installation publication persistence and
+final Run adoption remain separate consuming duties.
+
+### Ordinary Relation declaration intake
+
+The same sealed full-system snapshot can project its checked field-contract map
+into the existing `RowRelationViewSpec` input for one explicitly selected
+resource name. A property-only schema is refused using its original binding,
+even when authored columns happen to have system names. The existing Common
+row-source declaration owner remains responsible for schema/Catalog admission.
+Its existing Relation representation is a field map, not the complete Object
+contract retained by the snapshot. The existing Contract emitter preserves every
+checked child, including enum order/repetitions, extents, exact Decimal shape
+and nullability; the derived map has its own CID. It does not replace or reuse
+the snapshot's complete Object schema bytes/CID.
+The projection adds no facts, key evidence, request/acquisition profile,
+Reference, classification, installation membership or authority. Cold intake
+uses saved originals and performs no metadata discovery.
+
+Its bounded encoder frames, field-map String/hash/UTF-8 backing, resource text
+and returned specification String overlap with the saved snapshot, schema and
+checked Contract graph. Both sequential encoders retain independent output/node
+bounds; those bounds do not claim a single aggregate memory envelope.
+Generic declaration intake then retains its own decode/canonical/preimage
+workspace and new declaration alongside those originals. Structural bounds do
+not supply their funding or make returned aliases free. Installation, Run
+custody, current checks and physical reader retirement remain independent.
