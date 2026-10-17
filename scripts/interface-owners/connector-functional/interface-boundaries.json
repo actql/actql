@@ -4157,7 +4157,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "49a8f637490a01339dda4191c792122cd883d42fee5f1c53bb9fd9e55a0ccb7c",
+      "sha256": "527b7a8a998648cf6250dbb18752f4e21660ec7817f7d46b268bc37ba465b005",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -6448,7 +6448,31 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../connectors-builtin/installations.generated.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/completed-run-publication.mjs",
+        "../host-common/effect-preparation-result.mjs",
+        "../host-common/runtime-core.mjs",
+        "../host-common/runtime-result.mjs",
+        "./effect-input-export.mjs",
+        "./effect-ledger.mjs",
+        "./effect-physical-dispatch.mjs",
+        "./effect-plan-verify.mjs",
+        "./effect-response-recovery.mjs",
+        "./installed-connectors.mjs",
+        "./installed-row-capture-cleanup.mjs",
+        "./local-account-config.mjs",
+        "./local-values-plan.mjs",
+        "./table-write-binding.mjs",
+        "./update-target-original-shape.mjs",
+        "node:crypto",
+        "node:fs/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-row-run.mjs",
