@@ -65,9 +65,13 @@ class CompilerParentTests(unittest.TestCase):
         self.assertEqual(reordered.recipe, hashlib.sha256(self.path.read_bytes()).digest())
 
     def test_missing_foreign_or_dirty_original_refuses_before_library_load(self):
-        self.path.unlink()
+        self.path.write_text(self.path.read_text() + '\n')
         with patch.object(compiler, 'CDLL', side_effect=AssertionError('Native load')):
             with self.assertRaisesRegex(ValueError, 'committed original'):
+                compiler._acquire_compiler_parent(self.original, self.selected, self.descriptor)
+        self.path.unlink()
+        with patch.object(compiler, 'CDLL', side_effect=AssertionError('Native load')):
+            with self.assertRaisesRegex(ValueError, 'compiler parent is unavailable'):
                 compiler._acquire_compiler_parent(self.original, self.selected, self.descriptor)
         self.body['holding_sha256'] = '0' * 64
         self.write_original()
