@@ -1,5 +1,5 @@
-import type {EmbeddedLocalOptions,NodeConnectionOptions} from './index.mjs';
-import type {connect as connectLocal} from '../local-node/index.mjs';
+import type {EmbeddedLocalOptions,NodeConnectionOptions} from '@actql/node';
+import type {connect as connectLocal} from '@actql/local-node';
 
 const selected={mode:'local',profile:'mock'} satisfies EmbeddedLocalOptions;
 const omitted={mode:'local'} satisfies EmbeddedLocalOptions;
