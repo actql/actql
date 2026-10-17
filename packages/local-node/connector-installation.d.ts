@@ -295,33 +295,59 @@ export declare function createInstalledRowSource(options: Readonly<{
   }>;
 }>): Promise<InstalledRowSource>;
 
-export type RowEffectKind = 'create' | 'update' | 'upsert';
+export type RowEffectKind = 'create' | 'update' | 'upsert' | 'delete' | 'command';
+export type RowEffectMappingKind = Exclude<RowEffectKind, 'command'>;
+/** Preserve the existing value-bearing driver default. Select 'delete'
+ * explicitly for its absent-value request; no placeholder value is admitted. */
+export type RowEffectValueKind = Exclude<RowEffectMappingKind, 'delete'>;
+export type RowEffectValue<Kind extends RowEffectKind> =
+  Kind extends 'delete' ? undefined : ConnectorJsonObject;
 export interface RowEffectMapping {
   readonly resource: string;
   readonly mappingRef: string;
   readonly mappingCid: string;
   readonly body: string;
 }
-export interface RowEffectMember {
+export interface RowEffectMappingMember<Kind extends RowEffectMappingKind = RowEffectMappingKind> {
   /** A recovered member does not carry a stage index. */
   readonly stageIndex?: number;
   readonly effectId: string;
   readonly memberIndex: number;
-  readonly kind: RowEffectKind;
+  readonly kind: Kind;
   readonly resource: string;
   readonly mapping: RowEffectMapping & Readonly<{
     target: string; primaryIdentity: string;
     rules: readonly ConnectorJsonValue[]; approval: 'required' | 'none';
   }>;
 }
-export interface RowEffectEntry<Request> {
+export interface RowEffectCommand {
+  readonly resource: string;
+  readonly commandRef: string;
+  readonly commandCid: string;
+  readonly body: string;
+}
+export interface RowEffectCommandMember {
+  readonly stageIndex?: number;
+  readonly effectId: string;
+  readonly memberIndex: number;
+  readonly kind: 'command';
+  readonly resource: string;
+  readonly command: RowEffectCommand & Readonly<{
+    target: string; permissions: readonly string[]; approval: 'required' | 'none';
+  }>;
+}
+export type RowEffectMember<Kind extends RowEffectKind = RowEffectMappingKind> =
+  Kind extends 'command' ? RowEffectCommandMember :
+    RowEffectMappingMember<Extract<Kind, RowEffectMappingKind>>;
+export interface RowEffectEntry<Request, Kind extends RowEffectKind = RowEffectKind> {
   readonly request: Request;
   readonly requestCid: string;
-  readonly value: ConnectorJsonObject;
+  readonly value: RowEffectValue<Kind>;
   readonly target?: ConnectorJsonValue;
 }
-export interface RowEffectInvocation<Request, Current> {
-  readonly member: RowEffectMember;
+export interface RowEffectInvocation<Request, Current,
+  Kind extends RowEffectKind = RowEffectValueKind> {
+  readonly member: RowEffectMember<Kind>;
   readonly request: Request;
   readonly current: Current | undefined;
   readonly authorization: InvocationAuthorization;
@@ -329,6 +355,9 @@ export interface RowEffectInvocation<Request, Current> {
   readonly callResource: CredentialCall;
   readonly signal?: AbortSignal;
 }
+export type RowEffectRequestFacts<Kind extends RowEffectKind> =
+  Kind extends 'delete' ? Readonly<{value?: undefined; target: ConnectorJsonValue}> :
+    Readonly<{value: ConnectorJsonObject; target?: ConnectorJsonValue}>;
 export type RowEffectProjection = Readonly<{
   kind: string;
   outcome?: ConnectorJsonObject & Readonly<{state: 'applied' | 'failed'}>;
@@ -348,17 +377,18 @@ export interface RowEffectRequestChild<Request extends object> {
   retry(): Awaitable<boolean | void>;
   status(): Readonly<{pending: boolean}>;
 }
-export interface RowEffectDriver<Request extends object, Current = unknown> {
-  readonly kinds: readonly RowEffectKind[];
-  prepareRequest(options: Readonly<{member: RowEffectMember;
-    value: ConnectorJsonObject; selector?: ConnectorJsonValue;
+export interface RowEffectDriver<Request extends object, Current = unknown,
+  Kind extends RowEffectKind = RowEffectValueKind> {
+  readonly kinds: readonly Kind[];
+  prepareRequest(options: Readonly<{member: RowEffectMember<Kind>;
+    value: RowEffectValue<Kind>; selector?: ConnectorJsonValue;
     current: Current | undefined}>): Readonly<{request: Request; requestCid: string}>;
   /** Synchronous, I/O-free factory retained by the existing capture owner.
-   * Guarded UPDATE/upsert receives the exact row and a zero-argument read
+   * Guarded UPDATE/upsert/DELETE receives the exact row and a zero-argument read
    * supplier. The existing Command context has no row index/current fence
    * and may omit its indexed read supplier. No grant is created by the type. */
-  prepareRequestChild?(options: Readonly<{member: RowEffectMember;
-    value: ConnectorJsonObject; selector?: ConnectorJsonValue;
+  prepareRequestChild?(options: Readonly<{member: RowEffectMember<Kind>;
+    value: RowEffectValue<Kind>; selector?: ConnectorJsonValue;
     current: Current | undefined; signal?: AbortSignal;
   } & ({rowIndex: number;
     authorizationForRow: () => Promise<InvocationAuthorization>;
@@ -368,42 +398,41 @@ export interface RowEffectDriver<Request extends object, Current = unknown> {
     authorizationForRow?: (index: number) => Promise<InvocationAuthorization>;
     assertCurrent?: undefined;
   })>): RowEffectRequestChild<Request>;
-  requestFacts(request: Request): Readonly<{
-    value: ConnectorJsonObject; target?: ConnectorJsonValue}>;
-  writeOperation(member: RowEffectMember): string;
-  send(options: RowEffectInvocation<Request, Current>): Awaitable<Readonly<{
+  requestFacts(request: Request): RowEffectRequestFacts<Kind>;
+  writeOperation(member: RowEffectMember<Kind>): string;
+  send(options: RowEffectInvocation<Request, Current, Kind>): Awaitable<Readonly<{
     observation: CredentialObservation; headers?: HttpPairs}>>;
-  project(options: Readonly<{member: RowEffectMember; memberIndex: number;
+  project(options: Readonly<{member: RowEffectMember<Kind>; memberIndex: number;
     rowIndex: number; preview: ConnectorRuntimeHandle; request: Request;
     current: Current | undefined; observation: CredentialObservation;
     headers: HttpPairs | undefined}>): RowEffectProjection;
-  footprint(options: Readonly<{member: RowEffectMember;
-    entries: readonly RowEffectEntry<Request>[]}>) : RowEffectFootprint;
-  describe?(options: Readonly<{member: RowEffectMember; runInvocationCid: string;
+  footprint(options: Readonly<{member: RowEffectMember<Kind>;
+    entries: readonly RowEffectEntry<Request, Kind>[]}>) : RowEffectFootprint;
+  describe?(options: Readonly<{member: RowEffectMember<Kind>; runInvocationCid: string;
     dispatchRequestCid: string; label: string;
     approval?: InstallationDecision; signal?: AbortSignal}>): Awaitable<Current>;
-  recheckRequests?(options: Readonly<{member: RowEffectMember;
-    entries: readonly RowEffectEntry<Request>[];
+  recheckRequests?(options: Readonly<{member: RowEffectMember<Kind>;
+    entries: readonly RowEffectEntry<Request, Kind>[];
     current: Current | undefined}>): void;
-  issueCapability?(options: Readonly<{member: RowEffectMember;
-    entries: readonly RowEffectEntry<Request>[]; current: Current | undefined;
+  issueCapability?(options: Readonly<{member: RowEffectMember<Kind>;
+    entries: readonly RowEffectEntry<Request, Kind>[]; current: Current | undefined;
     runInvocationCid: string; dispatchRequestCid: string}>): Readonly<{
       identity: string; route: 'single_serial'; binding: Readonly<{
         connector_registration: string; connector_revision: string;
         runtime_bundle_cid: string}>}>;
   readonly check?: Readonly<{resource: string; operation: string}>;
-  checkRequest?(options: Omit<RowEffectInvocation<Request, Current>, 'current'>):
+  checkRequest?(options: Omit<RowEffectInvocation<Request, Current, Kind>, 'current'>):
     Awaitable<unknown>;
   readonly targetRead?: Readonly<{operation: string}>;
-  observeTargets?(options: Readonly<{member: RowEffectMember;
-    entries: readonly RowEffectEntry<Request>[]; current: Current | undefined;
+  observeTargets?(options: Readonly<{member: RowEffectMember<Kind>;
+    entries: readonly RowEffectEntry<Request, Kind>[]; current: Current | undefined;
     authorizationForRow: (index: number) => Promise<InvocationAuthorization>;
     signal?: AbortSignal}>): Awaitable<readonly Readonly<{
       identity: ConnectorJsonValue; versionCid: string;
       before: ConnectorJsonObject}>[]>;
-  admitTargetReadApproval?(options: Readonly<{member: RowEffectMember;
+  admitTargetReadApproval?(options: Readonly<{member: RowEffectMember<Kind>;
     decision: InstallationDecision}>): InstallationDecision;
-  recoveryEntry?(options: Readonly<{member: RowEffectMember;
+  recoveryEntry?(options: Readonly<{member: RowEffectMember<Kind>;
     current: Current | undefined}>): Readonly<{
       kind: string; observationCid: string; wire: string}>;
   recoverRequests?(options: Readonly<{durable: unknown; recorded: unknown;
@@ -437,9 +466,10 @@ export interface InstalledRowEffect {
   close(): void;
 }
 export declare function createInstalledRowEffect<Request extends object,
-  Current = unknown>(options: Readonly<{
+  Current = unknown, Kind extends RowEffectKind = RowEffectValueKind>(options: Readonly<{
     moon: ConnectorRuntimeOwner;
     mappings: readonly RowEffectMapping[];
+    commands?: readonly RowEffectCommand[];
     environmentWire: string;
     connectorId: string;
     connectorRegistration: string;
@@ -449,7 +479,7 @@ export declare function createInstalledRowEffect<Request extends object,
     authorization: InstallationAuthorization;
     runtimeBundleCid: string;
     bindingCid: string;
-    driver: RowEffectDriver<Request, Current>;
+    driver: RowEffectDriver<Request, Current, Kind>;
     ledgerRoot: string;
     /** The exact generated installation-table entry, never a reconstructed copy. */
     installation?: object;
