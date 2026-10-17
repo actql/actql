@@ -42,6 +42,8 @@ async function fixture(t, {valueSubstitution = false, targetSubstitution = false
   // inferred from these independently authored schema/Mapping declarations.
   const manifest = {version: 'actql-connectors/0.1', connectors: [
     {connector: 'fixture', connector_id: 'archive', connector_version: 'fixture-1'}]};
+  const catalog = {schema: 'actql.connector_catalog/0.1', connector_id: 'archive',
+    connector_version: 'fixture-1', commands: [], contracts: [], source_views: []};
   const schema = {type: 'object', nullable: false, additional_properties: false,
     fields: {id: {type: 'string', nullable: false}, value: {type: 'string', nullable: false}}};
   const preimage = {schema: 'actql.mapping_contract/0.1', version: 'fixture-1',
@@ -55,7 +57,8 @@ async function fixture(t, {valueSubstitution = false, targetSubstitution = false
       selector_class: 'id', write_fields: []}]};
   const mapping = {...preimage, mapping_contract_cid: cid(preimage)};
   const {evidence_bundle_cid: _, ...base} = JSON.parse(await readFile(new URL('spec/local-check-environment.json', repo)));
-  const environment = {...base, connector_manifest: manifest, mapping_contracts: [mapping]};
+  const environment = {...base, connector_manifest: manifest,
+    connector_catalogs: [{...catalog, catalog_cid: cid(catalog)}], mapping_contracts: [mapping]};
   const environmentWire = canonicalJson({...environment, evidence_bundle_cid: cid(environment)});
   const accountConfiguration = canonicalJson({version: 'actql-execution-account-config/0.1',
     account_id: 'original-delete-fixture', entries: [{entry_id: 'reads', outcome: 'allow',
