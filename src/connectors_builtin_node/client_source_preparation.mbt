@@ -258,6 +258,11 @@ fn client_program_lower_source(
     Ok(value) => value
     Err(_) => return Err(SourcePreparation(Publication))
   }
+  let command_targets = match
+    @source_publication.published_command_targets(environment, publication) {
+    Ok(value) => value
+    Err(_) => return Err(SourcePreparation(Publication))
+  }
   // Both authored forms carry the same admitted publication into the ordinary
   // checked Effect owner. Selection is retained material, never a permission.
   match
@@ -268,6 +273,7 @@ fn client_program_lower_source(
       table_writes~,
       update_targets~,
       store_targets~,
+      command_targets~,
     ) {
     Ok(value) => Ok(value)
     Err(issue) => Err(SourcePreparation(Frontend(issue)))
