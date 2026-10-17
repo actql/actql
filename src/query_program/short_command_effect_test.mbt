@@ -58,15 +58,12 @@ test "short COMMAND retains the exact fixed original target and separate authore
     "installation",
   )
   let header = store_capture_header(program)
-  assert_eq(
-    @program.effect_header_contract_ref(header),
-    Some("command:mail.send.v1"),
-  )
+  assert_eq(@program.effect_header_contract_ref(header), "command:mail.send.v1")
   assert_eq(
     @program.effect_header_published_command_target(header),
     Some(("connector://example/mailbox", None)),
   )
-  assert_eq(@program.effect_header_input_key(header), Some("x"))
+  assert_eq(@program.effect_header_command_input_key(header), Some("x"))
   assert_eq(@program.export_count(program), 0)
   assert_true(!semantic(program).contains("\"mapping\""))
   let captures = store_capture_steps(program).filter(step => {
@@ -89,18 +86,18 @@ test "short COMMAND identifier and legacy Ref targets preserve distinct declared
     )
     let header = store_capture_header(program)
     assert_eq(@program.effect_header_id(header), "send")
-    assert_eq(@program.effect_header_input_key(header), Some("x"))
+    assert_eq(@program.effect_header_command_input_key(header), Some("x"))
     if published {
       assert_eq(
         @program.effect_header_published_command_target(header),
         Some(("connector://example/mailbox", Some("y"))),
       )
-      assert_true(@program.effect_header_target_field(header) is None)
+      assert_true(short_command_target_field(header) is None)
     } else {
       assert_true(
         @program.effect_header_published_command_target(header) is None,
       )
-      assert_eq(@program.effect_header_target_field(header), Some("y"))
+      assert_eq(short_command_target_field(header), Some("y"))
     }
   }
 }
@@ -117,7 +114,7 @@ test "short COMMAND target values are captured once without synthesizing a Refer
     let header = store_capture_header(program)
     let (_, field) = @program.effect_header_published_command_target(header).unwrap()
     assert_true(field is Some(_))
-    assert_true(@program.effect_header_target_field(header) is None)
+    assert_true(short_command_target_field(header) is None)
     assert_true(!semantic(program).contains("resource_ref"))
     assert_eq(
       store_capture_steps(program)
@@ -209,6 +206,17 @@ test "short COMMAND ordinary and Script entrances agree and keep public Results 
     command_targets=Some(publication),
   ).unwrap()
   assert_eq(semantic(first), semantic(second))
-  assert_eq(@program.export_count(first), 2)
+  assert_eq(@program.export_count(first), 1)
   assert_eq(@program.effect_header_id(store_capture_header(first)), "sent")
+}
+
+///|
+fn short_command_target_field(header : @program.EffectHeader) -> String? {
+  let target = store_capture_field(
+    @program.effect_header_body(header),
+    "target",
+  )
+  @wire.lookup(@wire.open_object(target).unwrap(), "field").map(value => {
+    @wire.text(value).unwrap()
+  })
 }
