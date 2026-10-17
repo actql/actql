@@ -177,6 +177,10 @@ The Host first obtains each member's original target-read decision, then passes
 the row index and a zero-argument read-grant supplier closed over that exact
 member, Run/dispatch and row. No write authorization is substituted for the
 read, and denied reads create no child or provider work.
+The existing selected-preparation current assertion is passed through unchanged
+for the child's physical pre-send and post-await checks. An absent assertion
+does not manufacture currentness; the driver's actual original Site/Scope and
+installation obligations remain required.
 
 The same capture retains the original child before method lookup, currentness
 checks or asynchronous preparation. The child acquires the target through its

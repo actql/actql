@@ -5,7 +5,7 @@
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "a2a071b6e8919aaac30a36eee0d8cdd9540030387bdd7f829bc3c254f74e6bee",
+      "sha256": "acc053b7cb2c088571a328d0767046d7eca468349e7e0ba71a602422a243f82c",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",
@@ -342,7 +342,7 @@
         {
           "name": "RowEffectDriver/prepareRequestChild",
           "parameters": [
-            "options: Readonly<{member: RowEffectMember;\n    value: ConnectorJsonObject; selector?: ConnectorJsonValue;\n    current: Current | undefined; rowIndex: number;\n    authorizationForRow: () => Promise<InvocationAuthorization>;\n    signal?: AbortSignal}>"
+            "options: Readonly<{member: RowEffectMember;\n    value: ConnectorJsonObject; selector?: ConnectorJsonValue;\n    current: Current | undefined; rowIndex: number;\n    authorizationForRow: () => Promise<InvocationAuthorization>;\n    /** Existing selected-preparation fence; absence is not a new current proof. */\n    assertCurrent?: () => void;\n    signal?: AbortSignal}>"
           ],
           "result": "RowEffectRequestChild<Request>"
         },
@@ -350,6 +350,11 @@
           "name": "RowEffectDriver/prepareRequestChild/<call>",
           "parameters": [],
           "result": "Promise<InvocationAuthorization>"
+        },
+        {
+          "name": "RowEffectDriver/prepareRequestChild/<call>#2",
+          "parameters": [],
+          "result": "void"
         },
         {
           "name": "RowEffectDriver/project",
@@ -548,6 +553,7 @@
             "RowEffectDriver/prepareRequest",
             "RowEffectDriver/prepareRequestChild",
             "RowEffectDriver/prepareRequestChild/<call>",
+            "RowEffectDriver/prepareRequestChild/<call>#2",
             "RowEffectDriver/project",
             "RowEffectDriver/recheckRequests",
             "RowEffectDriver/recoverRequests",
@@ -650,6 +656,10 @@
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "rowIndex, authorizationForRow})` (command or guarded write)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "rowIndex, authorizationForRow, assertCurrent})` (command or guarded write)"
               }
             ],
             "identity": [
@@ -762,6 +772,10 @@
               {
                 "path": "adapters/host-node/installed-row-json.test.mjs",
                 "anchor": "the child cannot substitute another row index into its read use"
+              },
+              {
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "Read authorization is closed over the original row."
               },
               {
                 "path": "packages/local-node/connector-installation.typecheck.mts",

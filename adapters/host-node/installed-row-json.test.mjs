@@ -206,8 +206,10 @@ async function installationFor(t, {changeRequestValue, payloadContract, beforePa
               async prepare() {
                 original.prepares++;
                 assert.equal(context.rowIndex, 0);
+                context.assertCurrent?.();
                 // A substituted argument cannot choose another row's grant.
                 const authorization = await context.authorizationForRow(999);
+                context.assertCurrent?.();
                 assert.match(authorization.useId, /-0-\d+$/u,
                   'the child cannot substitute another row index into its read use');
                 const observed = structuredClone(before);

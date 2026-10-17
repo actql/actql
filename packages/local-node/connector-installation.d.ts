@@ -333,6 +333,8 @@ export interface RowEffectDriver<Request extends object, Current = unknown> {
     value: ConnectorJsonObject; selector?: ConnectorJsonValue;
     current: Current | undefined; rowIndex: number;
     authorizationForRow: () => Promise<InvocationAuthorization>;
+    /** Existing selected-preparation fence; absence is not a new current proof. */
+    assertCurrent?: () => void;
     signal?: AbortSignal}>): RowEffectRequestChild<Request>;
   requestFacts(request: Request): Readonly<{
     value: ConnectorJsonObject; target?: ConnectorJsonValue}>;
