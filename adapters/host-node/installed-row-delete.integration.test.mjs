@@ -125,7 +125,8 @@ async function fixture(t, {valueSubstitution = false, targetSubstitution = false
 test('actual Common captures the original DELETE full-diff without an UPDATE or Command body', async t => {
   const f = await fixture(t);
   const result = await f.host.run(program(f.mapping), 'original-delete-capture');
-  assert.equal(result.started.status, 'captured');
+  assert.equal(result.started.kind, 'started');
+  assert.equal(result.started.value.status, 'captured');
   const stage = f.host.outcomes[0].stage;
   const wire = f.host.control.effectComputationPreviewWire(stage.preview);
   const preview = JSON.parse(wire), member = preview.effects[0], row = member.changes[0];
