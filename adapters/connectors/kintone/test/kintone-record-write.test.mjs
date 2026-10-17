@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
 import {credentialInvocationBindingKeys} from '../../../host-common/credential-scope-fields.generated.mjs';
 import {closeHttpsCredentialBinding} from '../../../site-node/https-credential-resource.mjs';
 import {projectKintoneWriteObservation, KintoneWriteFailure} from '../site/kintone-record-write.mjs';
@@ -23,7 +24,7 @@ for (const kind of ['create', 'update']) {
     assert.equal(projected.observation, raw.observation);
     const identities = (kind === 'create' ? f.common.clientProgramKintoneCreateResponseRecords
       : f.common.clientProgramKintoneUpdateResponseRecords)(projected.response);
-    assert.deepEqual(identities, kind === 'create'
+    assert.deepEqual(identities.map(pair => [runtimeField(pair, 0), runtimeField(pair, 1)]), kind === 'create'
       ? [['9007199254740994', '1'], ['9007199254740995', '1']]
       : [['9007199254740992', '10'], ['9007199254740993', '10']]);
     f.row.assertNoCapture();

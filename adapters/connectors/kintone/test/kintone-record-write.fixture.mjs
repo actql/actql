@@ -6,6 +6,7 @@ import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {runtimePair} from '../../../host-common/compiler-binding.generated.mjs';
 import {canonicalJson, createLocalAuthorizationGate} from '../../../host-node/local-account-config.mjs';
 import {openRowSourceCredentialSite} from '../../../host-node/installed-row-source.mjs';
 import {openHttpsCredentialBinding, closeHttpsCredentialBinding} from '../../../site-node/https-credential-resource.mjs';
@@ -165,12 +166,12 @@ export async function writeFixture(t, {kind = 'update', guestSpaceId, effect = '
   assert.deepEqual(common.clientProgramKintoneCheckedColumns(admitted), ['$id', 'Subject', 'Tags']);
   const cells = common.clientProgramKintoneCheckedRows(admitted)[0];
   const values = checked(common.clientProgramKintoneWriteValues(catalog,
-    [['Subject', cells[1]], ['Tags', cells[2]]],
+    [runtimePair('Subject', cells[1]), runtimePair('Tags', cells[2])],
     common.clientProgramKintoneWriteLimits(16, 512, 2000, 20, 8192, 4096)));
   const mutation = common.clientProgramKintoneMutationLimits(100, 10000, 10000, 4096, 2000, 20);
   const targets = ids.map((_, index) => checked(common.clientProgramKintoneOriginalRecordTarget(page, index, 128)));
   const request = checked(kind === 'create' ? common.clientProgramKintoneCreateRequest(catalog, [values, values], mutation)
-    : common.clientProgramKintoneUpdateRequest(targets.map(target => [target, values]), mutation));
+    : common.clientProgramKintoneUpdateRequest(targets.map(target => runtimePair(target, values)), mutation));
 
   row = await accountedKintoneResponses(catalog, () => !state.active && closeHttpsCredentialBinding(binding) === 'closed',
     {fields, programId: 'kintone-write-response-custody'});
