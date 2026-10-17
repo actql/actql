@@ -177,8 +177,6 @@ test "Result close boundary closes only its original and waits for confirmed cle
   let other = result_command_store("result-store-independent")
   assert_true(store.capacity_usage() is Ok(_))
   local_result_store_close(store, "original-attempt")
-  let reply = "original response"
-  assert_eq(reply, "original response")
   assert_true(store.capacity_usage() is Err(@local_store.Closed))
   assert_true(other.capacity_usage() is Ok(_))
   assert_true(other.close() is Ok(true))
