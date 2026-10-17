@@ -73,3 +73,63 @@ The reviewed vendor model follows [retrieve database](https://developers.notion.
 and the [data-source object](https://developers.notion.com/reference/data-source).
 Those endpoints distinguish database inventory from property schema; this
 Catalog adds no implicit alias-selection policy to public configuration.
+
+## Original query responses and property bytes
+
+`project_notion_query_page` receives the same selected data-source Catalog and
+one original bounded response. Every page must identify that source as its
+parent; a supplied containing database must also match. Every property name,
+id and native discriminant must correspond to the original schema. Missing,
+extra, renamed or substituted properties refuse the whole page projection.
+Response order is retained, duplicate page ids within the response refuse,
+and cursor/`has_more` pairing is exact. The per-response vendor limit of 100
+is distinct from a Program's acquisition row limit across many responses.
+A later acquisition must check cross-page ids, cursor progress, limits and
+current authority without treating a projected page as completion.
+
+One bounded independent byte snapshot is retained before parsing and hashing.
+Property-value JSON is sliced from the original source span in that snapshot,
+not emitted from the parser's numeric representation. This preserves all
+original decimal digits/exponents and native nested value syntax even when a
+binary floating-point representation could round them. An external Node
+Buffer change cannot rewrite either the admitted decode graph or those exact
+bytes. Encoded property ids and Unicode property names remain unchanged.
+The snapshot, decoded graph, source/schema aliases, rows, property records,
+within-page id map and caller's original response overlap, along with hash
+workspace and each bounded output String. A shared snapshot is not a zero-cost
+holding, a loan, a physical response release or normal funding.
+
+These projections retain vendor DATA. Present null is distinguished from a
+missing field; no nullable value, flattened string or Content reference is
+invented. Inline title/rich-text/people/relation arrays and their native
+truncation flags are not proof of complete property items. Computed formula/
+rollup discriminants do not determine a promised logical shape. The installed
+reader must finish property pagination and check every value against its
+original per-property checked read contract, bound to the same property id,
+schema observation, data-source occurrence and configuration revision. Display
+number formats provide no precision, scale or rounding authority. Temporal
+shape/range fields likewise require that original binding; current replacement
+profiles must not rewrite a saved Run's originals. The supported installation
+supplier remains required, rather than being replaced by sample inference.
+
+A nested data-source entry returned for a wiki is currently an explicit
+unsupported-entry result with no partial page set. This is an unimplemented
+traversal boundary, not a language prohibition or permission to skip entries.
+Malformed/error responses, foreign parents, schema changes and exhausted
+input/output bounds similarly produce no projected page. Private indexed
+getters return only original opaque records/cursors; array backing and byte
+snapshot do not escape. There is no I/O, grant, retry, cleanup acknowledgement
+or canonical ActQL identity introduced here. The existing Site/RowRun owns
+acquisition, authorization, response loss and actual physical retirement.
+
+The private Node bridge forwards those same originals. Actual Catalog and Node
+counters cover exact-number-token preservation, external Buffer mutation,
+null/missing distinctions, foreign/equal-reparsed source correspondence,
+complete property matching, duplicate pages, terminal/pending cursor pairing
+and bounded input/output. Their per-response success does not establish
+physical paging, typed rows, installed selection/currentness, funding or
+read/write acceptance. The vendor inputs are the existing selected API's
+[query data source](https://developers.notion.com/reference/query-a-data-source),
+[page property values](https://developers.notion.com/reference/page-property-values)
+and [retrieve page property](https://developers.notion.com/reference/retrieve-a-page-property)
+contracts; their pagination obligations are retained separately.
