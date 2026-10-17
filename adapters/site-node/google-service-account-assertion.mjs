@@ -100,3 +100,11 @@ export function googleServiceAccountAssertionRequest(original) {
     issuedAtUnixSeconds: state.issuedAtUnixSeconds,
     expiresAtUnixSeconds: state.expiresAtUnixSeconds});
 }
+
+// Only a same-original native key comparison. This does not check current
+// installation, scope, issuer ownership or permission and does not issue them.
+export function googleServiceAccountAssertionMatchesKey(original, privateKey) {
+  const state = assertions.get(original);
+  return state !== undefined && !types.isProxy(privateKey) &&
+    types.isKeyObject(privateKey) && state.privateKey === privateKey;
+}

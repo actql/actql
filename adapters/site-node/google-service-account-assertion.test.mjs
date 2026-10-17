@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
-import {generateKeyPairSync, createPublicKey, verify, constants} from 'node:crypto';
+import {generateKeyPairSync, createPrivateKey, createPublicKey, verify, constants} from 'node:crypto';
 import test from 'node:test';
-import {prepareGoogleServiceAccountAssertion, googleServiceAccountAssertionRequest} from './google-service-account-assertion.mjs';
+import {prepareGoogleServiceAccountAssertion, googleServiceAccountAssertionRequest,
+  googleServiceAccountAssertionMatchesKey} from './google-service-account-assertion.mjs';
 
 const {privateKey, publicKey}=generateKeyPairSync('rsa',{modulusLength:2048});
 const limits=Object.freeze({maxScopes:4,maxScopeBytes:512,maxIdentityBytes:256,
@@ -141,4 +142,15 @@ test('Google assertion rejects Proxy key options limits and scopes before invoki
   assert.throws(()=>prepareGoogleServiceAccountAssertion({...base(),limits:new Proxy(limits,traps)}),{code:'InvalidGoogleAssertionLimits'});
   assert.throws(()=>prepareGoogleServiceAccountAssertion({...base(),scopes:new Proxy(base().scopes,traps)}),{code:'InvalidGoogleAssertionScopes'});
   assert.equal(calls,0);
+});
+
+test('Google assertion key correspondence requires the same original rather than copied equal key bytes',()=>{
+  const original=prepareGoogleServiceAccountAssertion(base());
+  const copied=createPrivateKey(privateKey.export({format:'pem',type:'pkcs8'}));
+  assert.equal(googleServiceAccountAssertionMatchesKey(original,privateKey),true);
+  assert.equal(googleServiceAccountAssertionMatchesKey(original,copied),false);
+  assert.equal(googleServiceAccountAssertionMatchesKey(original,publicKey),false);
+  assert.equal(googleServiceAccountAssertionMatchesKey({...original},privateKey),false);
+  let calls=0;const proxy=new Proxy(privateKey,{get(){calls++;throw new Error('untrusted key getter');}});
+  assert.equal(googleServiceAccountAssertionMatchesKey(original,proxy),false);assert.equal(calls,0);
 });
