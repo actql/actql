@@ -15,3 +15,19 @@ pub fn client_local_product_assets() -> ClientLocalProductAssets {
     result_policy: "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}",
   }
 }
+
+///|
+// Packaged DATA only; the actual Host retains authenticated first-adoption custody.
+fn client_local_default_signing_policy_wire() -> String {
+  "{\"max_issue_interval_ms\":300000,\"max_uses\":1,\"version\":\"actql-local-signing-bootstrap-policy/0.1\"}"
+}
+
+///|
+fn client_local_default_signing_issue_interval() -> Int64 {
+  300000L
+}
+
+///|
+fn client_local_default_signing_max_uses() -> Int {
+  1
+}
