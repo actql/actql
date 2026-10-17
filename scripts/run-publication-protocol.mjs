@@ -4,6 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {dirname, join} from 'node:path';
 import {resolveControlSchema} from './interactive-run-control-schema.mjs';
 import {amountMicroPattern} from './interactive-run-control-contract.mjs';
+import {generateEffectReviewVectors} from './effect-review-projection-vectors.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const source = join(root, 'spec/contracts/actql-protocol-schemas.json');
@@ -636,6 +637,13 @@ generated = execFileSync(formatter, ['-'], {
 if (process.argv.includes('--write')) writeFileSync(output, generated);
 else if (readFileSync(output, 'utf8') !== generated) {
   throw new Error(`Run publication protocol descriptors are stale: ${output}`);
+}
+// Existing protocol freshness also checks the independent review preimages.
+// This never rewrites an expected CID from a product runtime observation.
+const reviewVectors = join(root,
+  'src/run_publication/effect_review_projection.generated_wbtest.mbt');
+if (readFileSync(reviewVectors, 'utf8') !== generateEffectReviewVectors()) {
+  throw new Error(`Independent Effect review vectors are stale: ${reviewVectors}`);
 }
 // EffectOutcome plus the append-only response profile are outside selected.
 console.log(`${Object.keys(selected).length + 2} Run and Effect schemas and ` +
