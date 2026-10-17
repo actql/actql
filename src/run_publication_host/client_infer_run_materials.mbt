@@ -1,4 +1,33 @@
 ///|
+/// Project the source and normalized Environment from the original compiled
+/// owner. The supplied Parameter Values still pass the same identity check;
+/// this API cannot replace the compilation with current installation defaults.
+pub fn issue_prepared_client_infer_run_materials(
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  environment : @checked.CheckEnvironment,
+  parameters_wire : String?,
+  limits : ClientValuesRunMaterialsLimits,
+) -> Result[String, ClientTaskRunMaterialsIssue] {
+  let prepared = compiled.owner
+  let environment_body = @checked.checking_environment_wire(environment)
+  let (program, environment_wire) = try {
+    let writer = @encode.writer(65536, 8192, 64)
+    @syntax.emit_program_source(prepared.source, writer)
+    let program = @encode.finish(writer)
+    let writer = @encode.writer(65536, 4096, 64)
+    @environment.emit(environment_body, writer)
+    (program, @encode.finish(writer))
+  } catch {
+    _ => return Err(Input(MaterialsMalformed))
+  }
+  issue_client_infer_run_materials(
+    compiled, definition, environment, environment_wire, program, parameters_wire,
+    limits,
+  )
+}
+
+///|
 /// Retain the existing single installed INFER compilation in the original Run
 /// materials codec. The original Environment contains the normalized Task and
 /// handling/generation settings; no current project or provider default is read.

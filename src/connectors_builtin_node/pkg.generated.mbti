@@ -234,6 +234,8 @@ pub fn client_program_admit_infer_captured_input(@run_publication_host.PreparedC
 
 pub fn client_program_admit_infer_egress(@run_publication_host.PreparedClientProgram, Int, @check_environment.ModelExecutionContract, () -> (String, String, Bool, Bool)?) -> Result[@run_publication_host.ClientInferEgressAdmission, @run_publication_host.ClientInferEgressIssue]
 
+pub fn client_program_admit_infer_run_materials(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Result[@run_publication_host.ClientTaskRunMaterials, ClientInferRunMaterialsBridgeIssue]
+
 pub fn client_program_admit_local_effect_source_evidence(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalManifest, @run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, Int, Int, Int) -> Result[@run_publication.CapturedLocalEffectSourceEvidence, @run_publication.CapturedLocalEffectSourceIssue]
 
 pub fn client_program_admit_local_table_storage_mapping(String, Int, Int, Int) -> Result[@table.IcebergStorageMapping, @table.IcebergStorageMappingIssue]
@@ -1218,6 +1220,14 @@ pub fn client_program_infer_result_name(@run_publication_host.ClientResultTransf
 
 pub fn client_program_infer_result_task(@run_publication_host.ClientResultTransformation) -> Int
 
+pub fn client_program_infer_run_materials_compiled(@run_publication_host.ClientTaskRunMaterials) -> Result[@run_publication_host.ClientCompiledRun, @run_publication_host.ClientCompiledRunIssue]
+
+pub fn client_program_infer_run_materials_definition(@run_publication_host.ClientTaskRunMaterials) -> @run_publication.PublicationContract
+
+pub fn client_program_infer_run_materials_graph(@run_publication_host.ClientTaskRunMaterials) -> @run_publication_host.ClientInferPlanGraph?
+
+pub fn client_program_infer_run_materials_prepared(@run_publication_host.ClientTaskRunMaterials) -> @run_publication_host.PreparedClientProgram
+
 pub fn client_program_infer_saved_raw_chat_response(@model_execution.ModelSavedRawReceipt, String, @canonical_json.CanonicalValue?) -> Result[@model_execution.ModelPhysicalChatResponse, @model_execution.ModelRawCaptureSaveIssue]
 
 pub fn client_program_infer_saved_raw_receipt_matches(@model_execution.ModelSavedRawReceipt, @model_execution.ModelPhysicalCall, @run_publication.RunEvidenceValue) -> Bool
@@ -1335,6 +1345,8 @@ pub fn client_program_issue_infer_attachment_admission(@client_infer_host.Execut
 pub fn client_program_issue_infer_dispatch_admission(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, AuthorizationAccount, String, String, AuthorizationDecision?, () -> AuthorizationAccount, () -> String) -> Result[@run_publication_host.ClientInferDispatchAdmission, @run_publication_host.ClientInferDispatchIssue]
 
 pub fn client_program_issue_infer_raw_capture_policy(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferDispatchAdmission, @run_publication.BoundModelInvocationScope, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, @check_environment.DecisionProbabilityProfile?, String, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, String, String, String, String, String) -> Result[@run_publication.BoundModelRawCapturePolicy, @run_publication_host.ClientModelRawCaptureIssue]
+
+pub fn client_program_issue_infer_run_materials(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @program_check.CheckEnvironment, String?) -> Result[String, @run_publication_host.ClientTaskRunMaterialsIssue]
 
 pub fn client_program_issue_infer_slot_capture(@client_infer_host.Execution, Int) -> Result[@run_publication.RunEvidenceValue, @model_execution.ModelExecutionIssue]
 
@@ -4418,6 +4430,11 @@ pub(all) enum ClientEffectProgramBridgeIssue {
 pub(all) enum ClientEffectProgramBridgeOutcome {
   EffectPrepared(@run_publication_host.PreparedClientEffectComputation)
   EffectRejected(ClientEffectProgramBridgeIssue)
+}
+
+pub(all) enum ClientInferRunMaterialsBridgeIssue {
+  Manifests(@run_publication_host.ClientCompilationManifestIssue)
+  Materials(@run_publication_host.ClientTaskRunMaterialsIssue)
 }
 
 type ClientLocalEffectHost

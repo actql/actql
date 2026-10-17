@@ -301,7 +301,7 @@ function admissionEvidenceShape(value, updateOriginalControl) {
   if (Object.keys(value).some(key => !['authorization', 'prepared',
     'sourceInventory', 'resultPolicyOriginal', 'modelOriginalRunWire',
     'valuesHostPolicyOriginal', 'logicalPlanOriginal', 'updateTargetRunOriginal',
-    'submittedIntentCid', 'effectOriginalRunWire'].includes(key)) ||
+    'submittedIntentCid', 'effectOriginalRunWire', 'inferRunOriginal'].includes(key)) ||
       !Object.hasOwn(value, 'prepared') || !Object.hasOwn(value, 'authorization') ||
       typeof value.prepared !== 'string' || typeof value.authorization !== 'string') return false;
   if (value.submittedIntentCid !== undefined && !cid(value.submittedIntentCid)) return false;
@@ -310,6 +310,18 @@ function admissionEvidenceShape(value, updateOriginalControl) {
   // in this private record is neither that admission nor a resume permission.
   if (value.effectOriginalRunWire !== undefined &&
       (typeof value.effectOriginalRunWire !== 'string' || value.effectOriginalRunWire.length === 0)) return false;
+  if (value.inferRunOriginal !== undefined) {
+    const original = value.inferRunOriginal;
+    if (original === null || typeof original !== 'object' || Array.isArray(original)) return false;
+    const keys = Object.keys(original);
+    if (keys.length !== 2 || !keys.includes('materialsWire') || !keys.includes('resultPolicyOriginal') ||
+        typeof original.materialsWire !== 'string' || original.materialsWire.length === 0) return false;
+    const policy = original.resultPolicyOriginal;
+    if (policy === null || typeof policy !== 'object' || Array.isArray(policy)) return false;
+    const policyKeys = Object.keys(policy);
+    if (policyKeys.length !== 3 || !['kind', 'cid', 'wire'].every(key => policyKeys.includes(key)) ||
+        policy.kind !== 'data_policy' || !cid(policy.cid) || typeof policy.wire !== 'string') return false;
+  }
   if (value.sourceInventory !== undefined) validateSourceInventory(value.sourceInventory);
   if (value.updateTargetRunOriginal !== undefined &&
       updateOriginalControl?.run(value.updateTargetRunOriginal, value) !== true) return false;
@@ -397,6 +409,10 @@ function retainedEvidence(row, updateOriginalControl) {
 
 function freezeAdmissionEvidence(value) {
   if (value.logicalPlanOriginal !== undefined) Object.freeze(value.logicalPlanOriginal);
+  if (value.inferRunOriginal !== undefined) {
+    Object.freeze(value.inferRunOriginal.resultPolicyOriginal);
+    Object.freeze(value.inferRunOriginal);
+  }
   if (value.updateTargetRunOriginal !== undefined) {
     value.updateTargetRunOriginal.installations.forEach(Object.freeze);
     Object.freeze(value.updateTargetRunOriginal.installations);
@@ -1635,6 +1651,14 @@ export function openClientRequestJournal(directory, {
             fail('ClientRequestPlanEvidenceMismatch');
           }
         }
+        const proposedInfer = runAdmissionEvidence?.inferRunOriginal;
+        if (proposedInfer !== undefined) {
+          const original = retainedEvidence(existing, updateOriginalControl)?.inferRunOriginal;
+          if (original === undefined) fail('ClientRequestInferEvidenceMissing');
+          if (canonicalValueJson(original) !== canonicalValueJson(proposedInfer)) {
+            fail('ClientRequestInferEvidenceMismatch');
+          }
+        }
         return Object.freeze({inserted: false, ...admission(existing),
           runAdmissionEvidence: retainedEvidence(existing, updateOriginalControl),
           ...(runDefinitionWire === undefined ? {} :
@@ -1992,7 +2016,7 @@ export function openClientRequestJournal(directory, {
     // transaction as the request. The caller must have obtained it from the
     // shared Run issuer; re-admission here checks identity, not authority.
     // Reattachment never reissues this identity.
-    acceptDefinition(identity, {namespaceId, runDefinition, resultNames, runAdmissionEvidence, originalPlan,
+    acceptDefinition(identity, {namespaceId, runDefinition, resultNames, runAdmissionEvidence, originalPlan, originalInferRun,
       revision = 0, lookupExpiresAt, submission}, requestControl, publicationControl) {
       const definition = checkedRunDefinition(runDefinition,
         publicationControl, maxRunDefinitionWireBytes);
@@ -2002,6 +2026,22 @@ export function openClientRequestJournal(directory, {
       if (runAdmissionEvidence !== null && typeof runAdmissionEvidence === 'object' &&
           Object.hasOwn(runAdmissionEvidence, 'logicalPlanOriginal')) {
         fail('InvalidClientRunPlanOriginal');
+      }
+      if (runAdmissionEvidence !== null && typeof runAdmissionEvidence === 'object' &&
+          Object.hasOwn(runAdmissionEvidence, 'inferRunOriginal')) {
+        fail('InvalidClientInferRunOriginal');
+      }
+      if (originalInferRun !== undefined) {
+        if (typeof publicationControl.originalInferRunAdmissionEvidence !== 'function' ||
+            !admissionEvidenceShape(runAdmissionEvidence, updateOriginalControl)) {
+          fail('InvalidClientInferRunOriginal');
+        }
+        let original;
+        try {
+          original = publicationControl.originalInferRunAdmissionEvidence(originalInferRun,
+            definition, identity, runAdmissionEvidence);
+        } catch (cause) { fail('InvalidClientInferRunOriginal', cause); }
+        runAdmissionEvidence = {...runAdmissionEvidence, inferRunOriginal: original};
       }
       if (originalPlan !== undefined) {
         if (typeof publicationControl.originalRunPlanAdmissionEvidence !== 'function' ||
@@ -2281,6 +2321,7 @@ export function openClientRequestJournal(directory, {
       return journal.acceptDefinition(identity, {namespaceId, runDefinition,
         runAdmissionEvidence: issued.runAdmissionEvidence,
         originalPlan: issued.originalPlan,
+        originalInferRun: issued.originalInferRun,
         lookupExpiresAt, resultNames: issued.resultNames ?? resultNames, submission}, requestControl, publicationControl);
     },
     // One physical transaction applies the common MoonBit start decision.
