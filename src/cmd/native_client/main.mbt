@@ -898,7 +898,7 @@ fn command() -> @argparse.Command {
       ]),
       @argparse.Command(
         "status",
-        flags=[@argparse.FlagArg("json")],
+        flags=[@argparse.FlagArg("json"), @argparse.FlagArg("watch")],
         positionals=[
           @argparse.PositionArg("run", conflicts_with=[
             "run-id", "ref-file", "submission-ref-file",
@@ -908,6 +908,8 @@ fn command() -> @argparse.Command {
           @argparse.OptionArg("ref-file"),
           @argparse.OptionArg("submission-ref-file"),
           @argparse.OptionArg("run-id", conflicts_with=["run"]),
+          @argparse.OptionArg("until"),
+          @argparse.OptionArg("timeout"),
         ],
       ),
       @argparse.Command("wait", options=[
@@ -988,6 +990,14 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
   }
   if optional(matches, "input-root") is Some(_) {
     stop("Local document root is unavailable in Remote mode")
+  }
+  if matches.subcommand is Some(("status", child)) &&
+    (
+      child.flags.get("watch").unwrap_or(false) ||
+      optional(child, "until") is Some(_) ||
+      optional(child, "timeout") is Some(_)
+    ) {
+    stop("Local status watch options are unavailable in Remote mode")
   }
   if matches.subcommand is Some(("status", child)) &&
     (
