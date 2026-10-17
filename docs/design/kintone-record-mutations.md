@@ -518,3 +518,19 @@ connection, not completion of kintone's original Form/writable/request binding,
 sealed approval/apply/recovery, response funding, numeric history or installed
 write acceptance. A Decimal in an independently declared test schema is not
 proof of a kintone historical Number envelope.
+
+The kintone UPDATE projection consumes this same Row Source API and retains the
+original RecordDeclaration beside its Mapping. Every requested writable field
+must first have the same original Catalog's write-carrier evidence; computed,
+copied, unsupported and identity fields cannot borrow readable support. Its
+request comparison requires the same physical Form, the complete declared
+before-field selection, original target API-ID/revision material and exact
+written fields, permitting only the Mapping's explicit omission choices. Equal
+Form bytes, Record Number, a partial page or an unrelated checked value document
+cannot reconstruct this custody. The checks remain DATA correspondence, not a
+current read/write decision, sealed Preview or applied Effect.
+
+CREATE's connector-specific required/default-field observation and its same
+request custody are a following necessary connection; the common CREATE
+projection does not invent that original vendor evidence. No new bridge or
+runtime capability is advertised by the pure Mapping API alone.

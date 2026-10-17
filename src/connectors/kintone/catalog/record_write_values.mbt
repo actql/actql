@@ -76,6 +76,20 @@ fn write_value_contract(field : FormFieldMetadata) -> @contract.Contract? {
 }
 
 ///|
+/// Read-only write-carrier projection from this original Form. This does not
+/// issue provider permission, a Mapping, current authority or a dispatch use.
+pub fn record_write_field_contract(
+  catalog : FormFieldCatalog,
+  code : String,
+) -> @contract.Contract? {
+  guard form_field_named(catalog, [code]) is Some(field) &&
+    write_field_available(catalog, field) else {
+    return None
+  }
+  write_value_contract(field)
+}
+
+///|
 fn write_native_value(
   writer : @encode.Writer,
   field : FormFieldMetadata,
@@ -154,8 +168,7 @@ pub fn prepare_record_write_values(
     seen[code] = true
     text_bytes -= bytes
     guard form_field_named(catalog, [code]) is Some(field) &&
-      write_field_available(catalog, field) &&
-      write_value_contract(field) is Some(contract) else {
+      record_write_field_contract(catalog, code) is Some(contract) else {
       return Err(FieldUnavailable(code))
     }
     guard @admitted.recheck_runtime_value_usage(value.value, contract, {
