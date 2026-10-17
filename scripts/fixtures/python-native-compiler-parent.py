@@ -5,6 +5,7 @@ not the selected compiler module/Engine, installed funding or a normal profile.
 The product source reader and the real Native Ledger/domain owners both run.
 """
 import ctypes as C
+import atexit
 import hashlib
 import importlib.util
 import json
@@ -40,6 +41,9 @@ compiler = importlib.util.module_from_spec(spec); spec.loader.exec_module(compil
 control = _OriginalControlFunctions(library)
 page = os.sysconf('SC_PAGE_SIZE')
 fixture = Path(tempfile.mkdtemp(prefix='actql-compiler-parent-original-', dir='/private/tmp'))
+(Path(plan['output'])/'fixture-start.json').write_text(json.dumps(dict(
+    pid=os.getpid(), fixture=str(fixture), product_source=plan['source'],
+    parent_pages=64, child_pages=48, normal_profile=None))+'\n')
 # No old Store/Run/DB or keys. Keep source/FD fixture and its identity as evidence.
 (fixture/'packages/python-local-runtime').mkdir(parents=True)
 (fixture/'.gitignore').write_text('*.backing\n')
@@ -58,6 +62,14 @@ recipe = SimpleNamespace(engine_body=engine_body,runtime_library_sha256='0'*64,
 compiler.ROOT = fixture
 parents=[];descriptors=[];cases=[]
 
+def retain_observation():
+    # Diagnostic fields only. Process exit is never a retirement acknowledgment.
+    (Path(plan['output'])/'fixture-original-observation.json').write_text(json.dumps(dict(
+        completed_cases=len(cases), parent_confirmed_closed=[p._closed for p in parents],
+        descriptor_confirmed_closed=[d.closed for d in descriptors],
+        process_exit_is_retirement_ACK=False, normal_profile=None))+'\n')
+atexit.register(retain_observation)
+
 def original(body):
     (fixture/'packages/python-local-runtime/selected-compiler-parent.json').write_text(json.dumps(body,sort_keys=True)+'\n')
     subprocess.run(['git','add','.'],cwd=fixture,check=True)
@@ -75,7 +87,7 @@ def descriptor(name):
 # 1: Real source-bound selection -> real Native Ledger/acquire/backing/domain.
 value,selected=original(base);fd=descriptor('first.backing')
 parent=compiler._acquire_compiler_parent(value,selected,fd);parents.append(parent)
-material=parent.domain._project_original_material(_OriginalDomainMaterialFunctions(library))
+material=parent.domain._project_original_material(_OriginalDomainMaterialFunctions(parent.library))
 assert material.source == value['source'] and material.recipe == parent.original.recipe
 assert material.scalars[0] == 7 and parent.domain._descriptor is fd
 assert parent.domain._owner is parent.host and parent.domain._scope is parent.backing
