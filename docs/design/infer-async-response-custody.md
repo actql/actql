@@ -50,6 +50,22 @@ acknowledged. `false` is not authorization to drop unknown custody: the trusted
 adapter must retain or durably transfer that responsibility before reporting
 release. Cleanup success is not remote success or reconciliation.
 
+## Retired raw persistence aliases
+
+The installed raw persistence caller keeps its original Call, transport view,
+Store, registration and callbacks while original Store reader/writer cleanup is
+pending. Once that same cleanup completes, the escaped retired caller clears
+those factory aliases. Its exact-Call cleanup retry check retains only a weak
+reference: a foreign Call, including an absent argument after collection, does
+not match it. A caller that never issued a Save has no Call graph to preserve.
+
+The bounded retired control and weak-reference backing still require the
+original installation's resource inventory. Collection is not a byte credit,
+physical ACK or proof of a complete numerical envelope. Parent-held saved
+receipts, immutable response views, committed raw custody and unresolved
+responsibility remain with their original owners; clearing a temporary caller
+does not mutate or retire those independent holdings.
+
 ## Scope
 
 The synchronous API and historical observation lift remain unchanged. This

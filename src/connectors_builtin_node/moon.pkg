@@ -46,6 +46,7 @@ import {
   "actql/actql/decode_core" @decode,
   "actql/actql/sourceview_resolution" @acquisition,
   "actql/actql/query_planning" @planning,
+  "actql/actql/client_local_preparation" @local_preparation,
   "actql/actql/client_source_publication" @source_publication,
   "actql/actql/connectors/duckdb/host" @duckdb_host,
   "actql/actql/connectors/salesforce/catalog" @salesforce_catalog,
@@ -69,10 +70,10 @@ import {
   "moonbitlang/core/debug",
   "actql/actql/stage_results" @effect_results,
   "actql/actql/source_frontend",
-  "actql/actql/frontend_source_map" @source_origin,
   "actql/actql/query_program",
   "actql/actql/query_syntax",
-  "actql/actql/parameter_binding",
-  "actql/actql/stage_parameters",
-  "actql/actql/sourceview_input",
 }
+
+import {
+  "actql/actql/frontend_source_map" @source_origin,
+} for "wbtest"

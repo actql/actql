@@ -7,6 +7,7 @@ import {
   "actql/actql/check_environment",
   "actql/actql/client_infer_host",
   "actql/actql/client_local_host",
+  "actql/actql/client_local_preparation",
   "actql/actql/client_row_source_host",
   "actql/actql/connector_sdk",
   "actql/actql/connectors/duckdb/acquisition",
@@ -361,7 +362,7 @@ pub fn client_program_check_logical_map_binding(@run_publication.RunEvidenceValu
 
 pub fn client_program_check_plan_fact_manifest_identity(String, String) -> Result[String, @run_publication_host.PlanFactManifestIdentityIssue]
 
-pub fn client_program_check_program(String, @program_check.CheckEnvironment, String, String?, String, String, String?, String, String, ClientCheckSourceSelectorNamespace?) -> String
+pub fn client_program_check_program(String, @program_check.CheckEnvironment, String, String?, String, String, String?, String, String, @client_local_preparation.ClientCheckSourceSelectorNamespace?) -> String
 
 pub fn client_program_check_recovered_effect_apply_semantics(@run_publication.EffectPreviewIdentity, @effect_application.RecoveredEffectTargetGuards, Array[String], Array[String], Array[String], Array[String], Array[String], Array[String], Array[@effect_application.EffectApplyCapabilityObservation], @effect_application.EffectRiskAcceptanceBody?, Bool, String, String, String, String, String, String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectApplyPreflightIssue]
 
@@ -369,15 +370,15 @@ pub fn client_program_check_recovered_table_schema_wire(@run_publication_host.Re
 
 pub fn client_program_check_run_binding(@run_publication_host.PreparedClientProgram, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Bool
 
-pub fn client_program_check_source(String, String, @program_check.CheckEnvironment, String, String?, String?, String, String, String?, String?, String, String, ClientCheckSourceNamespace?) -> String
+pub fn client_program_check_source(String, String, @program_check.CheckEnvironment, String, String?, String?, String, String, String?, String?, String, String, @client_local_preparation.ClientCheckSourceNamespace?) -> String
 
 pub fn client_program_check_source_free_local_effect_preview_identities(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, String, String, String, Array[@run_publication_host.ClientEffectLocalIdentity], Int, Int, Int) -> Result[Unit, @run_publication_host.ClientEffectLocalIdentityIssue]
 
-pub fn client_program_check_source_namespace(@program_check.CheckEnvironment, String, String, String, String, String) -> ClientCheckSourceNamespace?
+pub fn client_program_check_source_namespace(@program_check.CheckEnvironment, String, String, String, String, String) -> @client_local_preparation.ClientCheckSourceNamespace?
 
-pub fn client_program_check_source_selector_namespace(ClientCheckSourceSelectorRange, String, String, String, String) -> ClientCheckSourceSelectorNamespace?
+pub fn client_program_check_source_selector_namespace(@client_local_preparation.ClientCheckSourceSelectorRange, String, String, String, String) -> @client_local_preparation.ClientCheckSourceSelectorNamespace?
 
-pub fn client_program_check_source_selector_range(@program_check.CheckEnvironment, Array[@program_check.CheckEnvironment]) -> ClientCheckSourceSelectorRange?
+pub fn client_program_check_source_selector_range(@program_check.CheckEnvironment, Array[@program_check.CheckEnvironment]) -> @client_local_preparation.ClientCheckSourceSelectorRange?
 
 pub fn client_program_check_unavailable(String) -> String
 
@@ -3980,18 +3981,6 @@ pub(all) enum ClientCapturedSourceLogicalIssue {
   Admission(@run_publication.SourceInputLogicalIssue)
 }
 
-pub struct ClientCheckSourceNamespace {
-  // private fields
-}
-
-pub struct ClientCheckSourceSelectorNamespace {
-  // private fields
-}
-
-pub struct ClientCheckSourceSelectorRange {
-  // private fields
-}
-
 pub(all) enum ClientEffectLocalArtifactBridgeIssue {
   ForeignExport
   Issuance(@run_publication_host.ClientEffectLocalResultArtifactIssue)
@@ -4128,5 +4117,10 @@ type StrategyHostOutputExport
 type StrategyHostResultTransformation
 
 // Type aliases
+pub using @client_local_preparation {type ClientCheckSourceNamespace}
+
+pub using @client_local_preparation {type ClientCheckSourceSelectorNamespace}
+
+pub using @client_local_preparation {type ClientCheckSourceSelectorRange}
 
 // Traits

@@ -224,6 +224,13 @@ function fixtures() {
       value: item.preimage, cid: item.expected_cid,
       text: item.expected_canonical_bytes});
   }
+  const deleteSelections = read('portability/corpus/effect-target-selection-delete.json');
+  assert.equal(deleteSelections.version, effectSelections.version);
+  for (const item of [...deleteSelections.cases, ...deleteSelections.environments]) {
+    result.push({id: 'original DELETE selection ' + item.id,
+      value: item.preimage, cid: item.expected_cid,
+      text: item.expected_canonical_bytes});
+  }
   const selectionProjections = read(
     'portability/corpus/effect-target-selection-projection.json');
   assert.equal(selectionProjections.version,

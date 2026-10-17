@@ -53,7 +53,7 @@ pub fn resolve_concrete_command_target_binding(CommandTargetPublication, String,
 
 pub fn resolve_concrete_store_target_binding(StoreTargetPublication, String, String, Int) -> Result[ResolvedStoreTarget, StoreTargetIssue]
 
-pub fn resolve_concrete_update_target_binding(UpdateTargetPublication, String, String, Int) -> Result[ResolvedUpdateTarget, UpdateTargetIssue]
+pub fn resolve_concrete_update_target_binding(UpdateTargetPublication, String, String, Int, effect_kind? : String) -> Result[ResolvedUpdateTarget, UpdateTargetIssue]
 
 pub fn resolve_store_target_binding(StoreTargetPublication, Array[@query_syntax.NamePart], Int) -> Result[ResolvedStoreTarget, StoreTargetIssue]
 

@@ -188,19 +188,20 @@ fn NativeClientWorkFirstStart::require_current(
     is @host.SameRequest) {
     return Err(Journal(ForeignRun))
   }
-  match require_native_client_work_current(journal, request, current) {
-    Ok(_) => ()
+  let record = match
+    require_native_client_work_current_record(journal, request, current) {
+    Ok(record) => record
     Err(issue) => return Err(issue)
   }
-  match journal.lookup(request, true) {
-    Ok(Retained(record)) if record.physical_start_claimed &&
-      !record.cancellation_requested &&
-      record.checkpoint is None &&
-      record.revision >= self.observed_revision &&
-      @publication.publication_contract_identity(record.definition) ==
-      self.definition_cid => Ok(())
-    Ok(_) => Err(NeedsOriginalReconciliation)
-    Err(issue) => Err(Journal(issue))
+  if record.physical_start_claimed &&
+    !record.cancellation_requested &&
+    record.checkpoint is None &&
+    record.revision >= self.observed_revision &&
+    @publication.publication_contract_identity(record.definition) ==
+    self.definition_cid {
+    Ok(())
+  } else {
+    Err(NeedsOriginalReconciliation)
   }
 }
 
@@ -370,12 +371,28 @@ fn require_native_client_work_current(
   request : @host.ClientRequestIdentity,
   current_authorization : () -> Bool,
 ) -> Result[Unit, NativeClientSourceWorkIssue] {
+  require_native_client_work_current_record(
+    journal, request, current_authorization,
+  ).map(_ => ())
+}
+
+///|
+// One synchronous predicate uses the record returned by its own authenticated
+// lookup. That lookup keeps its full custody/transaction protocol, including
+// the existing owned-publication-fence join. No callback or physical operation separates
+// this record from the caller's final original-start checks; nothing is cached
+// across predicates or exposed as an execution permission.
+fn require_native_client_work_current_record(
+  journal : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  current_authorization : () -> Bool,
+) -> Result[NativeClientRunRecord, NativeClientSourceWorkIssue] {
   if !current_authorization() {
     return Err(AuthorizationDenied)
   }
   match journal.lookup(request, true) {
     Ok(Retained(record)) if record.physical_start_claimed &&
-      !record.cancellation_requested => Ok(())
+      !record.cancellation_requested => Ok(record)
     Ok(_) => Err(NeedsOriginalReconciliation)
     Err(issue) => Err(Journal(issue))
   }

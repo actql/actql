@@ -639,7 +639,8 @@ The active producers and consumers share this one contract:
 
 | Boundary | Contract use |
 | --- | --- |
-| `connectors_builtin_node/client_check.mbt` | Projects common parser/checker facts after Source disclosure and emits every outcome |
+| `client_local_preparation/client_check.mbt` | Projects common parser/checker facts after Source disclosure and emits every outcome for portable Hosts |
+| `connectors_builtin_node/client_check*.mbt` | Preserves the Node facade and forwards the same original opaque material to the portable Host projection |
 | `adapters/host-node/client-check.mjs` | Binds input revisions and context; validates the MoonBit response for installed Local/HTTPS Hosts |
 | `scripts/check-outcome-contract.mjs` and protocol registry | Define the closed reason/outcome shapes and exact schema/registry pins |
 | `scripts/generate-client-host-wire.mjs`, `packages/client-wire` | Generate types/structural guards; enforce location/document and verdict/evidence consistency |
@@ -650,6 +651,15 @@ The active producers and consumers share this one contract:
 
 The Client–Host `check` request shape and `actql-client-host/0.1` identity remain
 unchanged; the registered check outcome/reason schemas are the response authority.
+Portable Hosts call the same `client_local_preparation` projection after obtaining
+their original admitted checking environment and audience-visible publication.
+The Node bridge only forwards those original values; its namespace types are
+aliases of the portable Owner's opaque types. Moving the projection does not
+turn successful preparation into a verified or runnable report. Complete namespace
+custody, current disclosure, context and source revisions remain Host obligations,
+and no Run, Source acquisition, Model invocation, Preview or dispatch is performed
+by this projection. The separately bounded publication DATA reader is not proof
+of installation membership or current authorization.
 Coordinated publication does not imply that consumers in other environments have
 updated. A closed-schema mismatch fails validation in that consumer, including
 responses with no diagnostic reasons, rather than returning an empty success.
