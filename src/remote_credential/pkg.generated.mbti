@@ -13,6 +13,14 @@ pub fn admit_credential_use_json(RemoteCredentialGrant, String, String) -> Resul
 
 pub fn admit_grant_json(String, String) -> Result[RemoteCredentialGrant, RemoteCredentialIssue]
 
+pub fn admit_installation_preparation_credential_grant_json(InstallationPreparationSubject, String, String) -> Result[InstallationPreparationCredentialGrant, RemoteCredentialIssue]
+
+pub fn admit_installation_preparation_credential_signature_envelope(InstallationPreparationSubject, String, String, String, String, String) -> Result[InstallationPreparationCredentialSignatureEnvelope, RemoteCredentialIssue]
+
+pub fn admit_installation_preparation_credential_use_json(InstallationPreparationCredentialGrant, String, String) -> Result[InstallationPreparationCredentialUse, RemoteCredentialIssue]
+
+pub fn admit_installation_preparation_subject_json(String, String) -> Result[InstallationPreparationSubject, RemoteCredentialIssue]
+
 pub fn admit_local_credential_grant_json(String, String) -> Result[LocalCredentialGrant, RemoteCredentialIssue]
 
 pub fn admit_local_credential_use_json(LocalCredentialGrant, String, String) -> Result[LocalCredentialUse, RemoteCredentialIssue]
@@ -30,6 +38,8 @@ pub fn admit_local_signing_credential_use_json(LocalSigningCredentialGrant, Stri
 pub fn admit_local_signing_public_key_json(String, String) -> Result[LocalSigningPublicKey, LocalSigningPublicKeyIssue]
 
 pub fn authorize_credential_use(RemoteCredentialUse, Int64, Bool, String, String, String, String, Int, String, String, String, String, String, String, Int, String) -> Result[Unit, RemoteCredentialIssue]
+
+pub fn authorize_installation_preparation_credential_use(InstallationPreparationCredentialUse, Int64, Bool, InstallationPreparationCredentialScope) -> Result[Unit, RemoteCredentialIssue]
 
 pub fn authorize_local_credential_use(LocalCredentialUse, Int64, Bool, LocalCredentialScope) -> Result[Unit, RemoteCredentialIssue]
 
@@ -56,6 +66,8 @@ pub fn credential_use_cid(RemoteCredentialUse) -> String
 pub fn credential_use_json(RemoteCredentialUse) -> Result[String, RemoteCredentialIssue]
 
 pub fn credential_use_projection(RemoteCredentialUse) -> Array[String]
+
+pub fn installation_preparation_credential_signature_preimage(InstallationPreparationCredentialGrant) -> Result[Bytes, RemoteCredentialIssue]
 
 pub fn local_credential_grant_cid(LocalCredentialGrant) -> String
 
@@ -115,6 +127,14 @@ pub fn prepare_credential_use(RemoteCredentialGrant, String, Int64, Int, Bool, S
 
 pub fn prepare_grant(String, String, String, String, String, Int, String, String, String, String, String, String, Int, String, Int64, Int) -> Result[RemoteCredentialGrant, RemoteCredentialIssue]
 
+pub fn prepare_installation_preparation_credential_grant(String, InstallationPreparationCredentialScope, Int64, Int) -> Result[InstallationPreparationCredentialGrant, RemoteCredentialIssue]
+
+pub fn prepare_installation_preparation_credential_signature_envelope(InstallationPreparationCredentialGrant, String, String) -> Result[InstallationPreparationCredentialSignatureEnvelope, RemoteCredentialIssue]
+
+pub fn prepare_installation_preparation_credential_use(InstallationPreparationCredentialGrant, String, Int64, Int, Bool, InstallationPreparationCredentialScope) -> Result[InstallationPreparationCredentialUse, RemoteCredentialIssue]
+
+pub fn prepare_installation_preparation_subject(InstallationPreparationSubjectFields) -> Result[InstallationPreparationSubject, RemoteCredentialIssue]
+
 pub fn prepare_local_credential_grant(String, LocalCredentialScope, Int64, Int) -> Result[LocalCredentialGrant, RemoteCredentialIssue]
 
 pub fn prepare_local_credential_use(LocalCredentialGrant, String, Int64, Int, Bool, LocalCredentialScope) -> Result[LocalCredentialUse, RemoteCredentialIssue]
@@ -139,6 +159,49 @@ pub fn validate_local_signing_credential_use_binding(LocalSigningCredentialUse, 
 type CredentialAuthenticationOperation[Material]
 
 type CredentialAuthenticationRequest[Material]
+
+type InstallationPreparationCredentialGrant
+pub fn InstallationPreparationCredentialGrant::cid(Self) -> String
+pub fn InstallationPreparationCredentialGrant::original_wire(Self) -> Result[String, RemoteCredentialIssue]
+pub fn InstallationPreparationCredentialGrant::scope(Self) -> InstallationPreparationCredentialScope
+
+pub(all) struct InstallationPreparationCredentialScope {
+  subject : InstallationPreparationSubject
+  metadata_occurrence_id : String
+  operation : String
+  request_body_cid : String
+  request_method : String
+  request_path : String
+  resource_origin : String
+} derive(Eq, @debug.Debug)
+
+type InstallationPreparationCredentialSignatureEnvelope
+pub fn InstallationPreparationCredentialSignatureEnvelope::grant(Self) -> InstallationPreparationCredentialGrant
+pub fn InstallationPreparationCredentialSignatureEnvelope::projection(Self) -> (String, String, String, String, String, String)
+
+type InstallationPreparationCredentialUse
+pub fn InstallationPreparationCredentialUse::cid(Self) -> String
+pub fn InstallationPreparationCredentialUse::original_wire(Self) -> Result[String, RemoteCredentialIssue]
+pub fn InstallationPreparationCredentialUse::projection(Self) -> (String, String, String, Int)
+
+type InstallationPreparationSubject derive(Eq, @debug.Debug)
+pub fn InstallationPreparationSubject::cid(Self) -> String
+pub fn InstallationPreparationSubject::fields(Self) -> InstallationPreparationSubjectFields
+pub fn InstallationPreparationSubject::original_wire(Self) -> String
+
+pub(all) struct InstallationPreparationSubjectFields {
+  account_configuration_cid : String
+  account_id : String
+  connection : String
+  connector_registration : String
+  connector_revision : String
+  declaration_source_cid : String
+  installation_request_id : String
+  principal : String
+  runtime_bundle_cid : String
+  site_generation : Int
+  site_key : String
+} derive(Eq, @debug.Debug)
 
 type LocalCredentialGrant
 

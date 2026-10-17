@@ -3457,6 +3457,94 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/installation-metadata-preparation.original-subject",
+      "statement_sha256": "a17d5d8ac047a992f36e5df1ac16949712158002497bdc66c0735813a2ee6dea",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "installation-metadata-preparation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/installation-metadata-preparation.closed-data",
+      "statement_sha256": "1a6a30bf965f0bb277b6a96b13a149eeabb53657a4eac8041caead0367e319ff",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "installation-metadata-preparation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/installation-metadata-preparation.original-declaration",
+      "statement_sha256": "82a668fc5224f1058c00aff3409f3cb50f901fb2638c2668643049a4668af6e3",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "installation-metadata-preparation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/installation-metadata-preparation.per-operation",
+      "statement_sha256": "4e2c4ee3f7552b737f0cf847506765ce4aab25eb5909507a3a064454651d3e17",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "installation-metadata-preparation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/installation-metadata-preparation.no-run-substitution",
+      "statement_sha256": "a3cd62128545a141c98919ecf8a71dcd6070bd5af8614db7a822e92a5fa4bfba",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "installation-metadata-preparation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/installation-metadata-preparation.funded-lifetime",
+      "statement_sha256": "560e21d0cb03a0ef796c13cf89e0b20e827f5914a64d167a8a32a0710a0ce40e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "installation-metadata-preparation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/installation-metadata-preparation.saved-originals",
+      "statement_sha256": "6bf89b8fdd73d557b41f3860e56777154fb95938a6adfcd882cb85a04c9bb90e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "installation-metadata-preparation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/installation-metadata-preparation.nonresend",
+      "statement_sha256": "af75a0dc610fd9596f0e948d347bbb3c8b119f9d8a41d31e7b2f457919a9131b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "installation-metadata-preparation",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
       "statement_sha256": "a062e474116a2c1e53ec862386043f5e19e3cced197ae2183c102af884b05831",
       "status": "pending",
