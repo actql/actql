@@ -494,11 +494,19 @@
     {
       "module": "src/connectors/gcs/catalog/object_request.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "1022b8bf196f344f6f1ccf13c3fdc014697685d9dd56f4cada78b7b5e265ac01",
+      "sha256": "d38ccf04304f1e3beb4e6084ab7f1bf4bd7917a219e50578528b46ccc362bd9c",
       "role": "connector-semantics",
       "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
       "exports": [],
       "operations": [
+        {
+          "name": "admit_object_metadata_patch_input",
+          "declaration": "admit_object_metadata_patch_input ( binding : ObjectMutationBinding , changes : Bytes , marker : String , effect_wire : Bool , ) - > Result [ ( String ? , Array [ ( String , String ) ] ? , String ) , ObjectRequestIssue ]"
+        },
+        {
+          "name": "check_object_metadata_patch_input",
+          "declaration": "check_object_metadata_patch_input ( binding : ObjectMutationBinding , changes : Bytes , marker : String , effect_wire : Bool , ) - > Result [ Unit , ObjectRequestIssue ]"
+        },
         {
           "name": "mutation_cid",
           "declaration": "mutation_cid ( value : String ) - > Bool"
@@ -560,6 +568,14 @@
           "declaration": "prepare_object_metadata_patch ( binding : ObjectMutationBinding , original : ObjectMetadata , changes : Bytes , marker : String , ) - > Result [ ObjectMutationRequest , ObjectRequestIssue ]"
         },
         {
+          "name": "prepare_object_metadata_patch_input",
+          "declaration": "prepare_object_metadata_patch_input ( binding : ObjectMutationBinding , original : ObjectMetadata , changes : Bytes , marker : String , effect_wire : Bool , ) - > Result [ ObjectMutationRequest , ObjectRequestIssue ]"
+        },
+        {
+          "name": "prepare_object_metadata_patch_value_wire",
+          "declaration": "prepare_object_metadata_patch_value_wire ( binding : ObjectMutationBinding , original : ObjectMetadata , changes : Bytes , marker : String , ) - > Result [ ObjectMutationRequest , ObjectRequestIssue ]"
+        },
+        {
           "name": "prepare_object_mutation_binding",
           "declaration": "prepare_object_mutation_binding ( kind : ObjectMutationKind , bucket : String , prefix : String , catalog_cid : String , installation_cid : String , contract_cid : String , permissions : Array [ String ] , limits : ObjectRequestLimits , ) - > Result [ ObjectMutationBinding , ObjectRequestIssue ]"
         },
@@ -572,6 +588,8 @@
         {
           "operations": [
             "<module>",
+            "admit_object_metadata_patch_input",
+            "check_object_metadata_patch_input",
             "mutation_cid",
             "mutation_json",
             "mutation_part",
@@ -587,6 +605,8 @@
             "object_mutation_protocol_behavior",
             "prepare_object_delete",
             "prepare_object_metadata_patch",
+            "prepare_object_metadata_patch_input",
+            "prepare_object_metadata_patch_value_wire",
             "prepare_object_mutation_binding",
             "recheck_object_mutation"
           ],
@@ -610,6 +630,10 @@
               {
                 "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
                 "anchor": "pub fn prepare_object_metadata_patch"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Effect metadata Value wire"
               }
             ],
             "identity": [
@@ -671,6 +695,10 @@
               {
                 "path": "src/connectors/gcs/catalog/object_request.mbt",
                 "anchor": "@scalar.admit_utf8_length(path"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The bounded preserving parse/cursor"
               }
             ],
             "extension": [
@@ -691,6 +719,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_request_wbtest.mbt",
                 "anchor": "GCS same physical bytes under different permissions"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_effect_value_wbtest.mbt",
+                "anchor": "GCS receives the actual Value Owner JSON envelope"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-effect-value-mutation.test.mjs",
+                "anchor": "GCS authored collision and malformed Effect wire refuse before approval or GET"
               }
             ]
           }
@@ -700,7 +736,7 @@
     {
       "module": "src/connectors/gcs/catalog/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "4fa49f88440d32aa32da522144d23fe9096b65b2996c62978bf8e5466b5dc835",
+      "sha256": "c73173884bc46f659b552387c00aae989413850affcb5758426c8e1678a1bf0d",
       "role": "connector-semantics",
       "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
       "exports": [
@@ -711,6 +747,7 @@
         "pub fn admit_object_upload_observation(ObjectUploadBinding, String, Int, Bytes) -> Result[ObjectUploadObservation, ObjectUploadIssue]",
         "pub fn admit_object_upload_target_observation(ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[ObjectUploadObservation, ObjectUploadIssue]",
         "pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]",
+        "pub fn check_object_metadata_patch_input(ObjectMutationBinding, Bytes, String, Bool) -> Result[Unit, ObjectRequestIssue]",
         "pub fn classify_object_upload_response(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes) -> Result[ObjectUploadOutcome, ObjectUploadIssue]",
         "pub fn content_metadata_json(Bytes, String, String, String, Int64, ObjectMetadataLimits) -> Result[String, ContentMetadataIssue]",
         "pub fn object_collection_identity_cid(ObjectCollectionBinding) -> String",
@@ -754,6 +791,7 @@
         "pub fn prepare_object_collection_binding(String, String, String, String, String, String, String, ObjectCollectionLimits) -> Result[ObjectCollectionBinding, ObjectCollectionIssue]",
         "pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
         "pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
+        "pub fn prepare_object_metadata_patch_value_wire(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
         "pub fn prepare_object_multipart_upload(ObjectUploadBinding, ObjectUploadObservation, Bytes, String, String, String, Bool?, String) -> Result[ObjectUploadRequest, ObjectUploadIssue]",
         "pub fn prepare_object_mutation_binding(ObjectMutationKind, String, String, String, String, String, Array[String], ObjectRequestLimits) -> Result[ObjectMutationBinding, ObjectRequestIssue]",
         "pub fn prepare_object_upload_binding(ObjectCollectionBinding, String, Array[String], ObjectUploadLimits) -> Result[ObjectUploadBinding, ObjectUploadIssue]",
@@ -796,6 +834,10 @@
         {
           "name": "check_object_collection_binding",
           "declaration": "pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]"
+        },
+        {
+          "name": "check_object_metadata_patch_input",
+          "declaration": "pub fn check_object_metadata_patch_input(ObjectMutationBinding, Bytes, String, Bool) -> Result[Unit, ObjectRequestIssue]"
         },
         {
           "name": "classify_object_upload_response",
@@ -970,6 +1012,10 @@
           "declaration": "pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]"
         },
         {
+          "name": "prepare_object_metadata_patch_value_wire",
+          "declaration": "pub fn prepare_object_metadata_patch_value_wire(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]"
+        },
+        {
           "name": "prepare_object_multipart_upload",
           "declaration": "pub fn prepare_object_multipart_upload(ObjectUploadBinding, ObjectUploadObservation, Bytes, String, String, String, Bool?, String) -> Result[ObjectUploadRequest, ObjectUploadIssue]"
         },
@@ -1001,6 +1047,7 @@
             "admit_object_upload_observation",
             "admit_object_upload_target_observation",
             "check_object_collection_binding",
+            "check_object_metadata_patch_input",
             "classify_object_upload_response",
             "content_metadata_json",
             "object_collection_identity_cid",
@@ -1044,6 +1091,7 @@
             "prepare_object_collection_binding",
             "prepare_object_delete",
             "prepare_object_metadata_patch",
+            "prepare_object_metadata_patch_value_wire",
             "prepare_object_multipart_upload",
             "prepare_object_mutation_binding",
             "prepare_object_upload_binding",
@@ -1058,6 +1106,7 @@
             "pub fn admit_object_upload_observation(ObjectUploadBinding, String, Int, Bytes) -> Result[ObjectUploadObservation, ObjectUploadIssue]",
             "pub fn admit_object_upload_target_observation(ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[ObjectUploadObservation, ObjectUploadIssue]",
             "pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]",
+            "pub fn check_object_metadata_patch_input(ObjectMutationBinding, Bytes, String, Bool) -> Result[Unit, ObjectRequestIssue]",
             "pub fn classify_object_upload_response(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes) -> Result[ObjectUploadOutcome, ObjectUploadIssue]",
             "pub fn content_metadata_json(Bytes, String, String, String, Int64, ObjectMetadataLimits) -> Result[String, ContentMetadataIssue]",
             "pub fn object_collection_identity_cid(ObjectCollectionBinding) -> String",
@@ -1101,6 +1150,7 @@
             "pub fn prepare_object_collection_binding(String, String, String, String, String, String, String, ObjectCollectionLimits) -> Result[ObjectCollectionBinding, ObjectCollectionIssue]",
             "pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
             "pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
+            "pub fn prepare_object_metadata_patch_value_wire(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
             "pub fn prepare_object_multipart_upload(ObjectUploadBinding, ObjectUploadObservation, Bytes, String, String, String, Bool?, String) -> Result[ObjectUploadRequest, ObjectUploadIssue]",
             "pub fn prepare_object_mutation_binding(ObjectMutationKind, String, String, String, String, String, Array[String], ObjectRequestLimits) -> Result[ObjectMutationBinding, ObjectRequestIssue]",
             "pub fn prepare_object_upload_binding(ObjectCollectionBinding, String, Array[String], ObjectUploadLimits) -> Result[ObjectUploadBinding, ObjectUploadIssue]",
@@ -1242,6 +1292,10 @@
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
                 "anchor": "type: 'decimal', precision: 19"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Effect metadata Value wire"
               }
             ],
             "identity": [
@@ -1583,6 +1637,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "per-row canonical writer/String"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The bounded preserving parse/cursor"
               }
             ],
             "extension": [
@@ -1723,6 +1781,14 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
                 "anchor": "original cancellation and physical failure"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_effect_value_wbtest.mbt",
+                "anchor": "GCS receives the actual Value Owner JSON envelope"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-effect-value-mutation.test.mjs",
+                "anchor": "GCS authored collision and malformed Effect wire refuse before approval or GET"
               }
             ]
           }
@@ -1888,6 +1954,7 @@
         {
           "operations": [
             "<module>",
+            "gcs_object_check_patch_input",
             "gcs_object_failure_code",
             "gcs_object_listing_prefix",
             "gcs_object_metadata",
@@ -1901,6 +1968,7 @@
             "gcs_object_mutation_binding",
             "gcs_object_mutation_kind",
             "gcs_object_prepare_delete",
+            "gcs_object_prepare_effect_patch",
             "gcs_object_prepare_patch",
             "gcs_object_recheck",
             "gcs_object_request_body",
@@ -1944,6 +2012,10 @@
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
                 "anchor": "type: 'decimal', precision: 19"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Effect metadata Value wire"
               }
             ],
             "identity": [
@@ -2052,6 +2124,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "per-row canonical writer/String"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The bounded preserving parse/cursor"
               }
             ],
             "extension": [
@@ -2092,12 +2168,24 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
                 "anchor": "original cancellation and physical failure"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_effect_value_wbtest.mbt",
+                "anchor": "GCS receives the actual Value Owner JSON envelope"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-effect-value-mutation.test.mjs",
+                "anchor": "GCS authored collision and malformed Effect wire refuse before approval or GET"
               }
             ]
           }
         }
       ],
       "operations": [
+        {
+          "name": "gcs_object_check_patch_input",
+          "declaration": "gcs_object_check_patch_input ( binding : @ catalog . ObjectMutationBinding , changes : Bytes , marker : String , effect_wire : Bool , ) - > Result [ Unit , GcsFailure ]"
+        },
         {
           "name": "gcs_object_failure_code",
           "declaration": "gcs_object_failure_code ( issue : GcsFailure ) - > String"
@@ -2151,6 +2239,10 @@
           "declaration": "gcs_object_prepare_delete ( binding : @ catalog . ObjectMutationBinding , original : @ catalog . ObjectMetadata , ) - > Result [ @ catalog . ObjectMutationRequest , GcsFailure ]"
         },
         {
+          "name": "gcs_object_prepare_effect_patch",
+          "declaration": "gcs_object_prepare_effect_patch ( binding : @ catalog . ObjectMutationBinding , original : @ catalog . ObjectMetadata , changes : Bytes , marker : String , ) - > Result [ @ catalog . ObjectMutationRequest , GcsFailure ]"
+        },
+        {
           "name": "gcs_object_prepare_patch",
           "declaration": "gcs_object_prepare_patch ( binding : @ catalog . ObjectMutationBinding , original : @ catalog . ObjectMetadata , changes : Bytes , marker : String , ) - > Result [ @ catalog . ObjectMutationRequest , GcsFailure ]"
         },
@@ -2176,7 +2268,7 @@
         }
       ],
       "exports": [],
-      "sha256": "a9b8f9efe1bf350d11ee44ac185778111cb909732e4305dd31f8a7585d656af9"
+      "sha256": "e8f3b5fa01a84884d122d0bbed6158d61b2b5827e44fa994b4350c91d602a0b9"
     },
     {
       "module": "src/connectors/gcs/host_node/pkg.generated.mbti",
@@ -2197,6 +2289,7 @@
             "gcs_collection_resource_json",
             "gcs_content_metadata_failure_code",
             "gcs_content_metadata_json",
+            "gcs_object_check_patch_input",
             "gcs_object_failure_code",
             "gcs_object_listing_prefix",
             "gcs_object_metadata",
@@ -2210,6 +2303,7 @@
             "gcs_object_mutation_binding",
             "gcs_object_mutation_kind",
             "gcs_object_prepare_delete",
+            "gcs_object_prepare_effect_patch",
             "gcs_object_prepare_patch",
             "gcs_object_recheck",
             "gcs_object_request_body",
@@ -2244,6 +2338,7 @@
             "pub fn gcs_collection_resource_json(@catalog.ObjectCollectionBinding) -> String",
             "pub fn gcs_content_metadata_failure_code(@catalog.ContentMetadataIssue) -> String",
             "pub fn gcs_content_metadata_json(Bytes, String, String, String, Int64, Int) -> Result[String, @catalog.ContentMetadataIssue]",
+            "pub fn gcs_object_check_patch_input(@catalog.ObjectMutationBinding, Bytes, String, Bool) -> Result[Unit, GcsFailure]",
             "pub fn gcs_object_failure_code(GcsFailure) -> String",
             "pub fn gcs_object_listing_prefix(String, Bytes, Int, Int, Int) -> Result[String, GcsFailure]",
             "pub fn gcs_object_metadata(Bytes, String, String, String?, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadata, GcsFailure]",
@@ -2257,6 +2352,7 @@
             "pub fn gcs_object_mutation_binding(String, String, String, String, String, String, Array[String], Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMutationBinding, GcsFailure]",
             "pub fn gcs_object_mutation_kind(@catalog.ObjectMutationBinding) -> String",
             "pub fn gcs_object_prepare_delete(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
+            "pub fn gcs_object_prepare_effect_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
             "pub fn gcs_object_prepare_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
             "pub fn gcs_object_recheck(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, @catalog.ObjectMetadata) -> Result[Unit, GcsFailure]",
             "pub fn gcs_object_request_body(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]",
@@ -2412,6 +2508,10 @@
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
                 "anchor": "type: 'decimal', precision: 19"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Effect metadata Value wire"
               }
             ],
             "identity": [
@@ -2780,6 +2880,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "per-row canonical writer/String"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The bounded preserving parse/cursor"
               }
             ],
             "extension": [
@@ -2924,6 +3028,14 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
                 "anchor": "original cancellation and physical failure"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_effect_value_wbtest.mbt",
+                "anchor": "GCS receives the actual Value Owner JSON envelope"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-effect-value-mutation.test.mjs",
+                "anchor": "GCS authored collision and malformed Effect wire refuse before approval or GET"
               }
             ]
           }
@@ -2940,6 +3052,7 @@
         "pub fn gcs_collection_resource_json(@catalog.ObjectCollectionBinding) -> String",
         "pub fn gcs_content_metadata_failure_code(@catalog.ContentMetadataIssue) -> String",
         "pub fn gcs_content_metadata_json(Bytes, String, String, String, Int64, Int) -> Result[String, @catalog.ContentMetadataIssue]",
+        "pub fn gcs_object_check_patch_input(@catalog.ObjectMutationBinding, Bytes, String, Bool) -> Result[Unit, GcsFailure]",
         "pub fn gcs_object_failure_code(GcsFailure) -> String",
         "pub fn gcs_object_listing_prefix(String, Bytes, Int, Int, Int) -> Result[String, GcsFailure]",
         "pub fn gcs_object_metadata(Bytes, String, String, String?, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadata, GcsFailure]",
@@ -2953,6 +3066,7 @@
         "pub fn gcs_object_mutation_binding(String, String, String, String, String, String, Array[String], Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMutationBinding, GcsFailure]",
         "pub fn gcs_object_mutation_kind(@catalog.ObjectMutationBinding) -> String",
         "pub fn gcs_object_prepare_delete(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
+        "pub fn gcs_object_prepare_effect_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
         "pub fn gcs_object_prepare_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
         "pub fn gcs_object_recheck(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, @catalog.ObjectMetadata) -> Result[Unit, GcsFailure]",
         "pub fn gcs_object_request_body(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]",
@@ -3019,6 +3133,10 @@
           "declaration": "pub fn gcs_content_metadata_json(Bytes, String, String, String, Int64, Int) -> Result[String, @catalog.ContentMetadataIssue]"
         },
         {
+          "name": "gcs_object_check_patch_input",
+          "declaration": "pub fn gcs_object_check_patch_input(@catalog.ObjectMutationBinding, Bytes, String, Bool) -> Result[Unit, GcsFailure]"
+        },
+        {
           "name": "gcs_object_failure_code",
           "declaration": "pub fn gcs_object_failure_code(GcsFailure) -> String"
         },
@@ -3069,6 +3187,10 @@
         {
           "name": "gcs_object_prepare_delete",
           "declaration": "pub fn gcs_object_prepare_delete(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata) -> Result[@catalog.ObjectMutationRequest, GcsFailure]"
+        },
+        {
+          "name": "gcs_object_prepare_effect_patch",
+          "declaration": "pub fn gcs_object_prepare_effect_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]"
         },
         {
           "name": "gcs_object_prepare_patch",
@@ -3159,7 +3281,7 @@
           "declaration": "pub fn gcs_upload_target_observation(@catalog.ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectUploadObservation, @catalog.ObjectUploadIssue]"
         }
       ],
-      "sha256": "3cf6dd938f2c63638274e75102a694d00c3288eae38473e63f80736dbe170996"
+      "sha256": "50e4a90aa13c2c879dbdd5786668f678f0a360c62c9e35a651e7680f3f39b7d2"
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
@@ -3201,6 +3323,7 @@
             "prepareGcsObjectBinding/prepareGcsObjectBinding",
             "prepareGcsObjectBinding/prepareGcsObjectBinding#2",
             "prepareGcsObjectBinding/prepareGcsObjectBinding#3",
+            "prepareOwnedGcsEffectMetadataPatch",
             "prepareOwnedGcsMetadataPatch",
             "prepareOwnedGcsObjectDelete",
             "projectGcsObjectMetadata",
@@ -3217,6 +3340,7 @@
             "gcsOwnedResult",
             "ownedGcsObjectRequestCid",
             "prepareGcsObjectBinding",
+            "prepareOwnedGcsEffectMetadataPatch",
             "prepareOwnedGcsMetadataPatch",
             "prepareOwnedGcsObjectDelete",
             "projectGcsObjectMetadata",
@@ -3244,6 +3368,10 @@
               {
                 "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
                 "anchor": "pub fn gcs_object_request_projection"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Effect metadata Value wire"
               }
             ],
             "identity": [
@@ -3316,6 +3444,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "The new child/control/lifetime records"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The bounded preserving parse/cursor"
               }
             ],
             "extension": [
@@ -3348,6 +3480,14 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-mutation-child-capture.test.mjs",
                 "anchor": "actual Common capture cleanup retains GCS original FD child"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_effect_value_wbtest.mbt",
+                "anchor": "GCS receives the actual Value Owner JSON envelope"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-effect-value-mutation.test.mjs",
+                "anchor": "GCS authored collision and malformed Effect wire refuse before approval or GET"
               }
             ]
           }
@@ -3360,6 +3500,7 @@
         "gcsOwnedResult",
         "ownedGcsObjectRequestCid",
         "prepareGcsObjectBinding",
+        "prepareOwnedGcsEffectMetadataPatch",
         "prepareOwnedGcsMetadataPatch",
         "prepareOwnedGcsObjectDelete",
         "projectGcsObjectMetadata",
@@ -3422,7 +3563,8 @@
             "callResource",
             "authorizationForRow",
             "assertCurrent",
-            "signal"
+            "signal",
+            "valueEncoding"
           ],
           "async": false
         },
@@ -3604,6 +3746,18 @@
           "async": false
         },
         {
+          "name": "prepareOwnedGcsEffectMetadataPatch",
+          "parameters": [
+            "moon",
+            "binding",
+            "original",
+            "value",
+            "marker",
+            "maxProjectionBytes"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOwnedGcsMetadataPatch",
           "parameters": [
             "moon",
@@ -3697,7 +3851,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "96f5625f3be8aaf06c73d544163710ca5d79f1e1372da28048af96707cec74fe"
+      "sha256": "1b39d3ffab7fac0002d63712c05b64f9de5158339fd25409916b0a944645d201"
     },
     {
       "module": "src/connectors/gcs/catalog/collection_identity.mbt",
