@@ -8,6 +8,9 @@ fn normalize_native_program_arguments(
     ["check", "explain", "run"].contains(operation) else {
     return
   }
+  if operation == "run" {
+    ignore(native_requested_stop_before(child))
+  }
   match (optional(child, "program"), optional(child, "program-file")) {
     (Some(_), Some(_)) => stop("ConflictingProgramInputs")
     (Some(path), None) => {
@@ -34,5 +37,18 @@ fn normalize_native_program_arguments(
       ignore(child.values.remove("params"))
     }
     _ => ()
+  }
+}
+
+///|
+// The existing closed intent option is a continuation restriction, never an
+// Account decision, approval, Checkpoint or permission to start physical work.
+fn native_requested_stop_before(
+  child : @argparse.Matches,
+) -> String? raise ClientStop {
+  match optional(child, "stop-before") {
+    None => None
+    Some("commit") => Some("commit")
+    Some(_) => stop("UnsupportedStopBeforeBoundary")
   }
 }
