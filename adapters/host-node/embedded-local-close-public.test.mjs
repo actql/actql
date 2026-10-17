@@ -39,7 +39,13 @@ test('embedded final close releases the physical owner and reopens the same save
   const submissionRef = a.newSubmission({nonce: 'original'});
   const run = await a.startSource(text, {format: 'json', submissionRef});
   assert.equal((await run.wait()).status, 'succeeded');
-  await firstComputation;
+  let computationDeadline;
+  try {
+    await Promise.race([firstComputation, new Promise((_, reject) => {
+      computationDeadline = setTimeout(() =>
+        reject(new Error('ComputedPhaseNotReached')), 5000);
+    })]);
+  } finally {clearTimeout(computationDeadline);}
   assert.equal(computations, 1);
   const ownerPath = join(scratch.path, 'publication/owner/owner.json');
   const firstOwner = await readFile(ownerPath, 'utf8');
