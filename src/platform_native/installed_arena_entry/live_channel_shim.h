@@ -108,8 +108,9 @@ int actql_channel_ledger_copy_limits(actql_channel_ledger_reply *, actql_control
     actql_domain *, actql_live_channel *, actql_original_child_frame *, int64_t[6]);
 int actql_channel_ledger_drop_reply(actql_channel_ledger_reply **,
     actql_control_host *, actql_domain *, actql_live_channel *, actql_original_child_frame *);
-/* Extra data aliases only after the original channel's typed Retire/Ok.
- * The caller still owns actual scoped stop/FD/Store/loan ACKs separately. */
+/* Extra data aliases only after the original channel's typed Retire/Ok AND
+ * this same frame's typed bootstrap-retirement/Ok (or no-frame Prepare error).
+ * The caller retains both replies and owns physical stop/FD/Store/loan ACKs. */
 int actql_channel_ledger_finish_retired_data(actql_control_host **, actql_domain **,
     actql_live_channel **, actql_original_child_frame **, actql_channel_ledger_reply **,
     actql_live_channel_reply *);

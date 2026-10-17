@@ -367,11 +367,17 @@ int actql_channel_ledger_finish_retired_data(actql_control_host **host,
         !preparation_slots_distinct(slots, 5)) return ACTQL_CONTROL_INVALID_SLOT;
     if (!*host && !*domain && !*channel && !*frame && !*reply) return ACTQL_CONTROL_OK;
     if (registered != 1 || preparation_registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
-    if (!*host || !*domain || !*channel || !retired ||
+    if (!*host || !*domain || !*channel || !*reply || !retired ||
         callbacks.operation(retired) != 8 || callbacks.issue(retired) != 0 ||
         !same_reply(retired, *host, *domain, *channel) ||
-        (*reply && !same_ledger_reply(*reply, *host, *domain, *channel, *frame)))
+        !same_ledger_reply(*reply, *host, *domain, *channel, *frame))
         return ACTQL_CONTROL_INVALID_SLOT;
+    if (*frame) {
+        if (preparation.operation(*reply) != 8 || preparation.issue(*reply) != 0)
+            return ACTQL_CONTROL_INVALID_SLOT;
+    } else if (preparation.operation(*reply) != 1 || preparation.issue(*reply) <= 0) {
+        return ACTQL_CONTROL_INVALID_SLOT;
+    }
     actql_control_host *h = *host;
     actql_domain *d = *domain;
     actql_live_channel *c = *channel;
