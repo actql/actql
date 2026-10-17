@@ -166,7 +166,7 @@ fn command_key_preview(
 }
 
 ///|
-test "Command Preview payload proof cannot bypass incomplete or foreign whole-input key validation" {
+test "Command Preview payload proof requires the same completed whole-input key validation" {
   let (prepared, captured, inputs, operations, available, completed, template) = published_store_capture_with_completion(
     input_key=true,
   )
