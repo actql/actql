@@ -73,16 +73,9 @@ cases.append('actual pre-spawn same-original pipes, operation10 and owned channe
 live(3, expected_issue=True); drop_live()
 cases.append('actual original pre-spawn channel cannot admit a VM')
 
-# 3: Parent PID is refused and cannot be replaced on a second child bind.
-for pid in (os.getpid(), 1):
-    assert functions.child(host, domain, channel, pid, C.byref(reply)) == 0
-    assert legacy.operation(reply) == 11 and legacy.issue(reply) != 0
-    drop_live()
-cases.append('actual parent PID and second child binding refuse; no child is created')
-
 # 4: Same channel/ticket creates exactly its existing Common frame, then starts.
 assert functions.prepare(host, domain, channel, C.byref(frame_reply)) == 0
-assert functions.operation(frame_reply) == 1 and functions.issue(frame_reply) == 0
+assert functions.operation(frame_reply) == 1 and functions.issue(frame_reply) == 0, (functions.operation(frame_reply), functions.issue(frame_reply))
 assert functions.originals(frame_reply, C.byref(fh), C.byref(fdomain),
                            C.byref(fchannel), C.byref(frame)) == 0
 assert (fh.value, fdomain.value, fchannel.value) == (host.value, domain.value, channel.value)
@@ -123,6 +116,16 @@ assert functions.finish(C.byref(fh), C.byref(fdomain), C.byref(fchannel), C.byre
 assert (fh.value, fdomain.value, fchannel.value, frame.value, frame_reply.value) == old_values
 drop_frame()
 cases.append('actual logical stop/current refusal cannot retire original frame aliases')
+
+# A rejected child bind deliberately invalidates the original physical channel.
+# Test it after all fresh-work counters, retaining that refusal for cleanup;
+# it must not be used as the input to a new resource-frame preparation.
+# 3: Parent PID is refused and cannot be replaced on a second child bind.
+for pid in (os.getpid(), 1):
+    assert functions.child(host, domain, channel, pid, C.byref(reply)) == 0
+    assert legacy.operation(reply) == 11 and legacy.issue(reply) != 0
+    drop_live()
+cases.append('actual parent PID and second child binding refuse; no child is created')
 
 # 8: The original fixture never spawned or sent anything. Confirm its exact
 # pipes closed, then retire metadata using both exact successful typed replies.
