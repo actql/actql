@@ -56,6 +56,34 @@ const publishedStore = JSON.parse(readFileSync(
   'portability/corpus/effect-target-selection-published-store.json', 'utf8',
 ));
 
+test('independent DELETE and mixed selection identities retain eight fields and original environment', () => {
+  const corpus = JSON.parse(readFileSync(
+    'portability/corpus/effect-target-selection-delete.json', 'utf8'));
+  assert.equal(corpus.version, selections.version);
+  const keys = Object.keys(selections.cases[0].preimage[0]);
+  for (const item of corpus.cases) {
+    verifyIdentity(item.preimage, item.expected_cid, item.expected_canonical_bytes);
+    for (const entry of item.preimage) assert.deepEqual(Object.keys(entry), keys);
+  }
+  assert.deepEqual(corpus.cases.map(item => item.preimage.map(entry => entry.effect_id)),
+    [['save'], ['save'], ['remove', 'save', 'update']]);
+  for (const item of corpus.environments) {
+    verifyIdentity(item.preimage, item.expected_cid, item.expected_canonical_bytes);
+    const {mapping_contract_cid, ...mapping} = item.preimage.mapping_contracts[0];
+    verifyIdentity(mapping, mapping_contract_cid, canonicalText(mapping));
+    assert(item.preimage.mapping_contracts[0].permission_rules.some(rule =>
+      rule.effect_kind === 'delete' && rule.write_fields.length === 0));
+  }
+  assert(!corpus.environments[1].preimage.mapping_contracts[0].permission_rules
+    .some(rule => rule.effect_kind === 'update'));
+  const source = readFileSync(
+    'src/run_publication_host/client_delete_target_selection_wbtest.mbt', 'utf8');
+  const wire = JSON.parse(source.match(/^    #\|(.+)$/mu)[1]);
+  const {evidence_bundle_cid, ...preimage} = wire;
+  assert.equal(evidence_bundle_cid, corpus.environments[0].expected_cid);
+  assert.deepEqual(preimage, corpus.environments[0].preimage);
+});
+
 test('independent published-STORE and mixed identities preserve the same eight-field schema', () => {
   const corpus = JSON.parse(readFileSync(
     'portability/corpus/effect-target-selection-published-store.json', 'utf8'));

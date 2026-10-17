@@ -198,7 +198,7 @@ pub fn resolved_update_target_owner_cid(value : ResolvedUpdateTarget) -> String 
 }
 
 ///|
-/// Bind an already checked concrete UPDATE without reverse-resolving names.
+/// Bind an already checked concrete UPDATE or DELETE without resolving names.
 /// Equal aliases may publish the same owner; conflicting owners never choose
 /// a winner. The caller's ordinary Effect checker remains authoritative.
 pub fn resolve_concrete_update_target_binding(
@@ -206,7 +206,11 @@ pub fn resolve_concrete_update_target_binding(
   target : String,
   mapping_reference : String,
   max_work : Int,
+  effect_kind? : String = "update",
 ) -> Result[ResolvedUpdateTarget, UpdateTargetIssue] {
+  if effect_kind != "update" && effect_kind != "delete" {
+    return Err(InvalidPublication)
+  }
   if max_work < 0 {
     return Err(WorkLimit)
   }
@@ -234,7 +238,21 @@ pub fn resolve_concrete_update_target_binding(
     return Err(UnresolvedTarget)
   }
   let mut selected_mapping : @environment.MappingContractShape? = None
-  for mapping in publication.candidates {
+  // Short UPDATE resolution keeps its original UPDATE-only candidate set.
+  // A checked concrete DELETE already has its selector and permission rules
+  // admitted by the Effect checker. Here only its exact original Mapping and
+  // installation identity are bound; UPDATE support cannot stand in for it.
+  let mapping_count = if effect_kind == "update" {
+    publication.candidates.length()
+  } else {
+    @environment.mapping_shape_count(publication.mappings)
+  }
+  for index in 0..<mapping_count {
+    let mapping = if effect_kind == "update" {
+      publication.candidates[index]
+    } else {
+      @environment.mapping_shape_at(publication.mappings, index).unwrap()
+    }
     if remaining < 1 {
       return Err(WorkLimit)
     }

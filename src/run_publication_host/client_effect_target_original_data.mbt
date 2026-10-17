@@ -418,8 +418,8 @@ fn client_effect_target_selection_purpose(
         raise InvalidUpdateTargetOriginal
       }
       let kind = @syntax.effect_header_kind(header)
-      purpose = if kind == "update" {
-        Some("update")
+      purpose = if kind == "update" || kind == "delete" {
+        Some(kind)
       } else if kind == "command" &&
         @syntax.effect_header_published_store_target(header) is Some(_) {
         Some("store")
@@ -471,7 +471,7 @@ pub fn client_effect_target_selection_current(
       let mut matches = 0
       for observation in current {
         let object = @decode.closed_object(observation, [
-          "installation", "update", "store", "mappings",
+          "installation", "update", "delete", "store", "mappings",
         ]).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
         let installation = @decode.required(object, "installation").unwrap_or_else(() => {
             raise InvalidUpdateTargetOriginal
@@ -515,7 +515,7 @@ pub fn client_effect_target_selection_current(
         let mut found = false
         for mapping in mappings {
           let mapping = @decode.closed_object(mapping, [
-            "target", "mappingRef", "mappingCid", "update", "store",
+            "target", "mappingRef", "mappingCid", "update", "delete", "store",
           ]).unwrap_or_else(() => raise InvalidUpdateTargetOriginal)
           if client_effect_target_original_text(mapping, "target") == target &&
             client_effect_target_original_text(mapping, "mappingRef") ==
@@ -546,6 +546,8 @@ pub fn client_effect_target_selection_current(
 }
 
 ///|
+/// Check the selection facet only. Full original Program/compilation/Run
+/// admission is still required: equal eight-field bytes cannot prove purpose.
 pub fn client_effect_target_selection_matches_run(
   original : ClientEffectUpdateTargetSelections,
   prepared : PreparedClientEffectComputation,
