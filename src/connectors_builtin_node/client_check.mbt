@@ -318,6 +318,13 @@ fn check_source_findings(
     Ok(value) => value
     Err(_) => return Failed("check_context_invalid")
   }
+  let command_targets = match
+    @source_publication.published_command_targets(
+      environment, visible_publication,
+    ) {
+    Ok(value) => value
+    Err(_) => return Failed("check_context_invalid")
+  }
   let (lowered, diagnostic_source) = match
     @source_frontend.lower_with_source(
       document,
@@ -325,6 +332,7 @@ fn check_source_findings(
       Some(context),
       table_writes~,
       store_targets~,
+      command_targets~,
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -347,6 +355,12 @@ fn check_source_findings(
         // A visible STORE publication is not a complete namespace absence or
         // uniqueness proof, just like the original UPDATE publication.
         QueryLowering(StoreTargetBinding(_)) =>
+          findings.push(Unresolved("source_resolution"))
+        QueryLowering(CommandTargetBinding(WorkLimit)) =>
+          findings.push(Limit("analysis_budget_exhausted"))
+        // The visible Command publication retains original selections, not a
+        // complete namespace proof or authority to disclose hidden targets.
+        QueryLowering(CommandTargetBinding(_)) =>
           findings.push(Unresolved("source_resolution"))
         QueryLowering(UpdateTargetBinding(WorkLimit)) =>
           findings.push(Limit("analysis_budget_exhausted"))
