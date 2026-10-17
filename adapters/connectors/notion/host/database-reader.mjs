@@ -37,7 +37,7 @@ export function createNotionDatabaseReaderFactory({moon,snapshot,site,capacity,r
   const maxProperties=bounded.maxTotalRows*bounded.maxColumns;
   if(!Number.isSafeInteger(maxProperties)||maxProperties>2147483647)fail('InvalidNotionDatabaseReader');
   const names=['notionDatabaseReadSnapshotDeclaration','notionDatabaseReadSnapshotSource',
-    'notionDatabaseReadSnapshotContracts','notionDatabaseReadSnapshotMatches',
+    'notionDatabaseReadSnapshotContracts',
     'notionPropertyRequestMatchesBinding','notionPropertyRequestJson',
     'notionDataSourceReadMatches','notionDataSourceMetadataJson','notionDataSourceReadSchemaJson',
     'notionProjectQueryPage','notionQueryPageMetadataJson','notionStartReadRow','notionReadRowPendingJson',
@@ -48,7 +48,7 @@ export function createNotionDatabaseReaderFactory({moon,snapshot,site,capacity,r
   const declaration=checked(call('notionDatabaseReadSnapshotDeclaration',snapshot));
   const source=checked(call('notionDatabaseReadSnapshotSource',snapshot));
   const readContracts=checked(call('notionDatabaseReadSnapshotContracts',snapshot));
-  if(call('notionDatabaseReadSnapshotMatches',snapshot,declaration,source,readContracts)!==true)fail('ForeignNotionDatabaseSnapshot');
+  if(call('notionDataSourceReadMatches',readContracts,declaration,source)!==true)fail('ForeignNotionDatabaseSnapshot');
   const sitePorts=methods(site,['issueReadGrant']),credential=data(site,'credential');
   if(data(credential,'control')?.kind==='installation-metadata')fail('ForeignNotionDatabaseCredential');
   const preparations=new WeakSet();

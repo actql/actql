@@ -75,6 +75,7 @@ export async function databaseRowReaderFixture(t){
     principalId:'operator',authorization,connection,connectorRegistration:'notion',connectorRevision:'notion/0.1',
     runtimeBundleCid,commonMoon:common,ca:f.options.credential.ca,resolveSecret:f.options.credential.resolveSecret,
     admitsApprovalTarget:()=>false});
+  t.after(()=>site.close());
   const capacity=common.clientProgramRowSourceProviderCapacity(1048576n,1048576n);assert.ok(capacity);
   const factory=createNotionDatabaseReaderFactory({moon:provider,snapshot,site,capacity,resource,
     limits:databaseReaderLimits,maxSecretBytes:128});
