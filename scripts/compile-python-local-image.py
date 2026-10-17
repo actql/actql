@@ -104,6 +104,9 @@ def _acquire_compiler_holding(original: dict[str, Any],
     """
     recipe = original['recipe']
     if (type(selected) is not _CompilerHoldingOriginal
+            or any(type(value) is not str for value in selected[:5])
+            or type(selected.capacity_bytes) is not int
+            or type(selected.generation) is not int or type(selected.recipe) is not bytes
             or selected.source_sha != original['source']
             or selected.module_sha256 != original['module_sha256']
             or selected.engine_sha256 != hashlib.sha256(recipe.engine_body).hexdigest()
