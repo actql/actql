@@ -80,7 +80,7 @@ test('actual Notion physical metadata scope checks the exact selected path and o
 test('actual Notion original publication and Account remain current through the awaited dependent selection',async t=>{
   for(const kind of ['profile','account','abort']){
     const f=await metadataDiscoveryFixture(t);
-    await f.run(async x=>{
+    await assert.rejects(f.run(async x=>{
       const stop=new AbortController();
       const reader=x.reader({signal:stop.signal,sourceAuthorizationFor:async input=>{
         const original=await x.options.sourceAuthorizationFor(input);
@@ -94,7 +94,13 @@ test('actual Notion original publication and Account remain current through the 
       assert.equal(f.state.requests.length,1);assert.equal(f.state.secrets,1);
       assert.equal(failure.observations.length,1);assert.deepEqual(failure.responseCharges,f.state.charges);
       assert.equal(reader.observe().cleanupConfirmed,false);
-    }).catch(cause=>{if(kind!=='profile')throw cause;assert.equal(cause.code,'InstalledSourcePublicationChanged');});
+      if(kind==='profile')assert.equal(failure.cause.code,'InstalledSourcePublicationChanged');
+      if(kind==='account')assert.equal(failure.cause.code,'AuthorizationCurrentAccountChanged');
+      if(kind==='abort')assert.equal(failure.cause.name,'AbortError');
+      // Propagate the actual reader failure through the Host. Swallowing it
+      // would cause a second publication-current check after retirement.
+      throw failure;
+    }),{code:'NotionDatabaseDiscoveryFailed'});
   }
 });
 
