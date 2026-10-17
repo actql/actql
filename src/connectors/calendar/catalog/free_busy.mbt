@@ -158,14 +158,15 @@ fn calendar_rfc3339(text : String) -> String? {
     }
     guard free_busy_digits(text, zone_start + 1, zone_start + 3) is Some(hour) &&
       free_busy_digits(text, zone_start + 4, zone_start + 6) is Some(minute) &&
-      hour <= 23 && minute <= 59 else {
+      hour <= 23 &&
+      minute <= 59 else {
       return None
     }
     // RFC3339 -00:00 is an unknown local offset, not a known UTC instant.
     if text[zone_start] == '-' && hour == 0 && minute == 0 {
       return None
     }
-    (hour * 60 + minute) * if text[zone_start] == '-' { -1 } else { 1 }
+    (hour * 60 + minute) * (if text[zone_start] == '-' { -1 } else { 1 })
   }
   let fraction = if zone_start == 19 {
     "000"
@@ -188,12 +189,17 @@ fn calendar_rfc3339(text : String) -> String? {
     }
     digits
   }
-  let local = text[:10].to_owned() + "T" + text[11:19].to_owned() +
-    "." + fraction + "Z"
+  let local_spelling = text[:10].to_owned() +
+    "T" +
+    text[11:19].to_owned() +
+    "." +
+    fraction +
+    "Z"
   if text[10] != 'T' && text[10] != 't' {
     return None
   }
-  guard @admitted.timestamp_epoch_milliseconds(local) is Some(milliseconds) else {
+  guard @admitted.timestamp_epoch_milliseconds(local_spelling)
+    is Some(milliseconds) else {
     return None
   }
   @admitted.epoch_milliseconds_timestamp(
