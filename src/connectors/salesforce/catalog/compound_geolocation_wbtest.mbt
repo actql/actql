@@ -22,9 +22,11 @@ fn geolocation_test_plan() -> ReadProjection {
 test "geolocation declared contract is admitted by the actual checked Contract reader" {
   let plan = geolocation_test_plan()
   let wire = read_field_contract_json(
-    plan.fields[0],
-    components=plan.field_components[0],
-  ).unwrap().stringify()
+      plan.fields[0],
+      components=plan.field_components[0],
+    )
+    .unwrap()
+    .stringify()
   let parsed = @source.parse_json_bytes_preserving(@utf8.encode(wire), {
     max_input_bytes: 4096,
     max_nodes: 100,
@@ -49,21 +51,12 @@ test "geolocation declared contract is admitted by the actual checked Contract r
 ///|
 test "geolocation binds the original caller Object and both Decimal component contracts" {
   let plan = geolocation_test_plan()
-  let caller = geolocation_contract(
-    plan.fields[0],
-    plan.field_components[0],
-  ).unwrap()
+  let caller = geolocation_contract(plan.fields[0], plan.field_components[0]).unwrap()
   assert_true(bind_read_projection_contracts(plan, [caller]) is Some(_))
-  let changed = geolocation_contract(
-    plan.fields[0],
-    [
-      (
-        "latitude",
-        { ..plan.field_components[0][0].1, scale: Some(14), },
-      ),
-      plan.field_components[0][1],
-    ],
-  ).unwrap()
+  let changed = geolocation_contract(plan.fields[0], [
+    ("latitude", { ..plan.field_components[0][0].1, scale: Some(14), }),
+    plan.field_components[0][1],
+  ]).unwrap()
   assert_true(bind_read_projection_contracts(plan, [changed]) is None)
 }
 

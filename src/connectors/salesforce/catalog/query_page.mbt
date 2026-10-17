@@ -264,10 +264,8 @@ fn admit_geolocation_cell(
       }
       let text = match json_number_decimal(lexeme, precision, scale) {
         Ok(text) => text
-        Err(DecimalRange) =>
-          return Err(ValueOutOfRange(field.name))
-        Err(DecimalScale) =>
-          return Err(ValueBeyondScale(field.name))
+        Err(DecimalRange) => return Err(ValueOutOfRange(field.name))
+        Err(DecimalScale) => return Err(ValueBeyondScale(field.name))
         Err(DecimalFormat) => return Err(InvalidResponse)
       }
       @source.String(text)
