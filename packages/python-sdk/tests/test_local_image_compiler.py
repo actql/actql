@@ -60,6 +60,8 @@ class ImageCompilerTests(unittest.TestCase):
         self.assertIs(result['native_engine_started'], False)
         self.assertIs(result['physical_acceptance'], False)
         self.assertIn(self.case.head.encode(), header)
+        with self.assertRaisesRegex(ValueError, 'original physical-boundary Core receipt'):
+            compiler.assembly.verify_original_core(self.case.source, result, self.case.head)
         with self.assertRaisesRegex(ValueError, 'fresh canonical'):
             compiler.prepare_compiler_configuration(self.case.module_file, self.case.head,
                                                    self.destination.resolve())
