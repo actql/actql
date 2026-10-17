@@ -837,7 +837,7 @@
     },
     {
       "module": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
-      "sha256": "153e24032d82527b84d596154265c88aab94c412b31bdc7afd88efd611b1ea69",
+      "sha256": "7c873343d318a30eb6c226eb7bb79bfc042293911d8ac50c68be1ce13360a63f",
       "exports": [
         "INSTALLED_GMAIL_SITE_VERSION",
         "INSTALLED_GMAIL_SOURCE_VERSION",
@@ -1045,7 +1045,6 @@
         "../../../site-node/https-credential-resource.mjs",
         "../site/gmail-label-list-read.mjs",
         "node:crypto",
-        "node:fs/promises",
         "node:path"
       ],
       "compilerFields": [],
@@ -1182,6 +1181,10 @@
               {
                 "path": "docs/design/gmail-label-reader-custody.md",
                 "anchor": "The wrapper retains its child, original binding"
+              },
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "const pem=await readBoundedConfigurationText"
               }
             ],
             "extension": [
@@ -1210,6 +1213,10 @@
               {
                 "path": "adapters/connectors/gmail/test/installed-gmail-source.test.mjs",
                 "anchor": "test('installed Gmail lost original reply"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/installed-gmail-source.test.mjs",
+                "anchor": "test('installed Gmail optional TLS authority"
               }
             ]
           }
