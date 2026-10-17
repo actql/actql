@@ -62,4 +62,59 @@ int actql_live_channel_finish_retired_data(actql_control_host **, actql_domain *
     actql_live_channel **, actql_live_channel_reply **);
 int actql_live_channel_finish_refused_prepare(actql_control_host **,
     actql_domain **, actql_live_channel_reply **);
+
+/* Actual regular Sourceacfefc04 C SHA256
+ * 3fa2f5636ae6608228f768f49e4ff79fb4c9de05818cf76cfa5878284b09863c.
+ * Callback inputs are borrowed; replies and original getters are owned refs.
+ * The nullable frame getter uses NULL for None and increfs Some. Opaque only. */
+typedef struct _M0TP35actql5actql19physical__resources19ImportedChildLedger actql_original_child_frame;
+typedef struct _M0TP45actql5actql16platform__native25installed__arena__control32InstalledArenaChannelLedgerReply actql_channel_ledger_reply;
+typedef actql_live_channel_reply *(*actql_live_before_fn)(actql_control_host *, actql_domain *, int32_t, int32_t, int64_t);
+typedef actql_live_channel_reply *(*actql_live_child_fn)(actql_control_host *, actql_domain *, actql_live_channel *, int32_t);
+typedef actql_channel_ledger_reply *(*actql_ledger_prepare_fn)(actql_control_host *, actql_domain *, actql_live_channel *);
+typedef actql_channel_ledger_reply *(*actql_ledger_operate_fn)(actql_control_host *, actql_domain *, actql_live_channel *, actql_original_child_frame *, int32_t, int64_t, int64_t);
+typedef actql_control_host *(*actql_ledger_host_fn)(actql_channel_ledger_reply *);
+typedef actql_domain *(*actql_ledger_domain_fn)(actql_channel_ledger_reply *);
+typedef actql_live_channel *(*actql_ledger_channel_fn)(actql_channel_ledger_reply *);
+typedef actql_original_child_frame *(*actql_ledger_frame_fn)(actql_channel_ledger_reply *);
+typedef int32_t (*actql_ledger_tag_fn)(actql_channel_ledger_reply *);
+typedef int64_t (*actql_ledger_limit_fn)(actql_channel_ledger_reply *, int32_t);
+typedef moonbit_string_t (*actql_ledger_description_fn)(actql_channel_ledger_reply *);
+void actql_native_control_register_live_preparation_roots(
+    actql_live_before_fn, actql_live_child_fn, actql_ledger_prepare_fn,
+    actql_ledger_operate_fn, actql_ledger_host_fn, actql_ledger_domain_fn,
+    actql_ledger_channel_fn, actql_ledger_frame_fn, actql_ledger_tag_fn,
+    actql_ledger_tag_fn, actql_ledger_limit_fn, actql_ledger_description_fn);
+
+/* Existing original physical caller only. These transport the same pending
+ * channel/frame; no PID/limit DATA creates a Ledger, funding or launch grant. */
+int actql_live_channel_prepare_before_spawn_into(actql_control_host *, actql_domain *,
+    int32_t, int32_t, int64_t, actql_live_channel_reply **);
+int actql_live_channel_bind_child_into(actql_control_host *, actql_domain *,
+    actql_live_channel *, int32_t, actql_live_channel_reply **);
+int actql_channel_ledger_prepare_into(actql_control_host *, actql_domain *,
+    actql_live_channel *, actql_channel_ledger_reply **);
+/* Operation10 restricts the same original transport/Common frame before an
+ * actual endpoint borrow return. It closes no FD and issues no process-stop,
+ * mapping, metadata, backing or business acknowledgment. */
+int actql_channel_ledger_operate_into(actql_control_host *, actql_domain *,
+    actql_live_channel *, actql_original_child_frame *, int32_t, int64_t, int64_t,
+    actql_channel_ledger_reply **);
+int actql_channel_ledger_originals_into(actql_channel_ledger_reply *,
+    actql_control_host **, actql_domain **, actql_live_channel **,
+    actql_original_child_frame **);
+int32_t actql_channel_ledger_operation(actql_channel_ledger_reply *);
+/* 10 preserves the existing imported-child Unknown, distinct from known
+ * resource refusal/unavailability9 and Domain/Bootstrap categories1..8. */
+int32_t actql_channel_ledger_issue_family(actql_channel_ledger_reply *);
+int actql_channel_ledger_copy_limits(actql_channel_ledger_reply *, actql_control_host *,
+    actql_domain *, actql_live_channel *, actql_original_child_frame *, int64_t[6]);
+int actql_channel_ledger_drop_reply(actql_channel_ledger_reply **,
+    actql_control_host *, actql_domain *, actql_live_channel *, actql_original_child_frame *);
+/* Extra data aliases only after the original channel's typed Retire/Ok AND
+ * this same frame's typed bootstrap-retirement/Ok (or no-frame Prepare error).
+ * The caller retains both replies and owns physical stop/FD/Store/loan ACKs. */
+int actql_channel_ledger_finish_retired_data(actql_control_host **, actql_domain **,
+    actql_live_channel **, actql_original_child_frame **, actql_channel_ledger_reply **,
+    actql_live_channel_reply *);
 #endif

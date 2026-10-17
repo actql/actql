@@ -17,9 +17,18 @@ def epoch(value):
 def submission_ref(value):
     if not valid(value, 'submission_ref') or not epoch(value['epoch']):
         return False
-    nonce = value['nonce']
-    return (unicodedata.normalize('NFC', nonce) == nonce and len(nonce.encode('utf-8')) <= 256
-            and re.search(r'[\u0080-\u009f]', nonce) is None)
+    return _canonical_submission_text(value['nonce'])
+
+
+def _canonical_submission_text(value):
+    # Same existing registered class as the explicit-epoch nonce and scoped
+    # name. Validation rejects invalid Unicode; never normalize or repair it.
+    return (unicodedata.normalize('NFC', value) == value and len(value.encode('utf-8')) <= 256
+            and re.search(r'[\u0080-\u009f]', value) is None)
+
+
+def submission_name(value):
+    return valid(value, 'submission_name') and _canonical_submission_text(value)
 
 
 def restart(value, fresh):
@@ -62,6 +71,27 @@ def submission_attempt(value, selected, body):
             or value.get('submissionRef') == body['submissionRef'] and value.get('intentCid') == body['intentCid'])
 
 
+def named_submission_attempt(value, selected, body):
+    if (not valid(selected, 'connection') or not submission_name(body['requestName'])
+            or not submission_ref(body['submissionRef'])
+            or not valid(body['attemptRef'], 'operation_attempt_ref') or body['attemptRef']['operation'] != 'submit'
+            or not valid(value, 'named_submission_attempt')
+            or any(value[key] != body[key] for key in ('requestName', 'intentCid', 'attemptRef'))):
+        return False
+    if value['kind'] != 'observed':
+        return True
+    outcome = value['outcome']
+    original = outcome['submissionRef']
+    if (not submission_ref(original)
+            or original['epoch']['authorityScopeCid'] != body['submissionRef']['epoch']['authorityScopeCid']):
+        return False
+    if outcome['kind'] == 'unresolvable':
+        return submission_outcome(outcome, selected, original, lookup=True)
+    # There is no restart request in this named envelope. Validate any retained
+    # history against the returned original, without inventing a requested one.
+    return submission_outcome(outcome, selected, original, body['intentCid'], outcome.get('unresolvedHistory'))
+
+
 def cancellation(value, expected):
     return (valid(value, 'cancellation') and valid(expected, 'cancellation_ref')
             and value['cancelRef'] == expected and all(value['ref'][key] == expected[key] for key in value['ref'])
@@ -99,6 +129,9 @@ def valid_body(operation, body):
         return True
     if operation == 'lookup-submission':
         return submission_ref(body['submissionRef'])
+    if operation == 'submit-named-intent':
+        return (submission_name(body['requestName'])
+                and valid_body('submit-intent', {key: value for key, value in body.items() if key != 'requestName'}))
     if operation in ('submit-intent', 'restart-intent'):
         if not (submission_ref(body['submissionRef']) and valid(body['intentCid'], {'type': 'string', 'pattern': '^sha256:[0-9a-f]{64}$'})
                 and valid(body['attemptRef'], 'operation_attempt_ref') and body['attemptRef']['operation'] == 'submit'):

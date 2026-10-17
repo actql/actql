@@ -10,23 +10,23 @@
   ],
   "patch": {
     "path": "scoped-read-review.patch",
-    "bytes": 19993,
-    "sha256": "ce244ac4091787597839d8a656323932134ac9f06eae6ba24d4a7a04144ec6f3"
+    "bytes": 19956,
+    "sha256": "7d531e56fd0fb823a74aae45224da7e33d08970f6c437bf050a745109cae121a"
   },
   "inputs": [
     {
       "root": "provider",
       "path": "owned_capacity.c",
       "output": "owned_capacity.c",
-      "bytes": 18473,
-      "sha256": "b13d474747a768a8b777e76c87ddc7c50be2e2eded425b7388f38fa5fc30bbf2"
+      "bytes": 19825,
+      "sha256": "dd2fc8b56790b2d78e42daddec22d84186262cfa3722e67f4b2f4e0e30184007"
     },
     {
       "root": "provider",
       "path": "owned_region.inc",
       "output": "owned_region.inc",
-      "bytes": 19156,
-      "sha256": "56619bc5a2a5c3436eba4f09abd54fdeb8b02eef7b9081bfeecf07b42907ab9d"
+      "bytes": 21225,
+      "sha256": "a2597dc680c2842659d7bded630e2b29bcdce9b0ec70f2577339d10d8212e291"
     },
     {
       "root": "provider",
@@ -39,8 +39,8 @@
       "root": "provider",
       "path": "owned_region.h",
       "output": "owned_region.h",
-      "bytes": 5452,
-      "sha256": "ca54c843cb38d9b1fc91335159647792c8a3621436e315bc762f613324cb8b22"
+      "bytes": 6275,
+      "sha256": "cdafe64f5a629e42bced6aea88443642bb8b75969a8258250ba7a66d39b500bc"
     },
     {
       "root": "provider",
@@ -139,24 +139,38 @@
       "output": "libbacktrace.a",
       "bytes": 281872,
       "sha256": "a0ed98ead4be023f2840063c0e1c016fe581895c936759e68fd6e0e23dfaf9b7"
+    },
+    {
+      "root": "provider",
+      "path": "owned_thread.h",
+      "output": "owned_thread.h",
+      "bytes": 1894,
+      "sha256": "9cc6dfb81529954e07267e0ae0c14f89cc8a2648252b6ac498bf0f0ed6b37bdd"
+    },
+    {
+      "root": "provider",
+      "path": "owned_thread.inc",
+      "output": "owned_thread.inc",
+      "bytes": 8529,
+      "sha256": "2e676c3e5eae7a0b9bd5291ce5d2f92be44cf798bf9c1ed86d7c0ab14a440423"
     }
   ],
   "outputs": {
     "owned_capacity.c": {
-      "bytes": 19022,
-      "sha256": "2c56563b4c3f14df6b58976343e786e86dad45f535666cef7fb7ae2de9ce5753"
+      "bytes": 20374,
+      "sha256": "844a15bad4e240179e9001103d44d893d1cfef674e3dae8c25c881fc3bdfe7d2"
     },
     "owned_region.inc": {
-      "bytes": 19198,
-      "sha256": "6be6a5eadba8e579f9af03ed5d6bd194b13f4264da3103b99bc28c168f3a93e0"
+      "bytes": 21267,
+      "sha256": "30ba4885fb1eb50b0a7b53e1550b1af4a6fe6c8e747a08c659b43dc85a1a38ad"
     },
     "owned_capacity.h": {
       "bytes": 3526,
       "sha256": "c2f1c4c88a152e0c983b0a672563a27f756e1f11d9159691746c86ffefb3824e"
     },
     "owned_region.h": {
-      "bytes": 5452,
-      "sha256": "ca54c843cb38d9b1fc91335159647792c8a3621436e315bc762f613324cb8b22"
+      "bytes": 6275,
+      "sha256": "cdafe64f5a629e42bced6aea88443642bb8b75969a8258250ba7a66d39b500bc"
     },
     "owned_domain_borrow.h": {
       "bytes": 2573,
@@ -221,6 +235,14 @@
     "scoped_read.inc": {
       "bytes": 15273,
       "sha256": "827b667982a8bc274f0da4c8b92cae92edf259896622160da002faafe9adcca3"
+    },
+    "owned_thread.h": {
+      "bytes": 1894,
+      "sha256": "9cc6dfb81529954e07267e0ae0c14f89cc8a2648252b6ac498bf0f0ed6b37bdd"
+    },
+    "owned_thread.inc": {
+      "bytes": 8529,
+      "sha256": "2e676c3e5eae7a0b9bd5291ce5d2f92be44cf798bf9c1ed86d7c0ab14a440423"
     }
   },
   "normal_profile": null,

@@ -196,7 +196,7 @@ int actql_live_channel_finish_refused_prepare(actql_control_host **host,
         return ACTQL_CONTROL_INVALID_SLOT;
     if (!*host && !*domain && !*reply) return ACTQL_CONTROL_OK;
     if (registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
-    if (!*host || !*domain || !*reply || callbacks.operation(*reply) != 1 ||
+    if (!*host || !*domain || !*reply || (callbacks.operation(*reply) != 1 && callbacks.operation(*reply) != 10) ||
         callbacks.issue(*reply) <= 0 || !same_reply(*reply, *host, *domain, NULL))
         return ACTQL_CONTROL_INVALID_SLOT;
     actql_live_channel_reply *r = *reply;
@@ -204,5 +204,188 @@ int actql_live_channel_finish_refused_prepare(actql_control_host **host,
     actql_control_host *h = *host;
     *reply = NULL; *domain = NULL; *host = NULL;
     moonbit_decref(r); moonbit_decref(d); moonbit_decref(h);
+    return ACTQL_CONTROL_OK;
+}
+
+/* Code roots, not another authority registry or allocator/provider. */
+static struct {
+    actql_live_before_fn before;
+    actql_live_child_fn child;
+    actql_ledger_prepare_fn prepare;
+    actql_ledger_operate_fn operate;
+    actql_ledger_host_fn host;
+    actql_ledger_domain_fn domain;
+    actql_ledger_channel_fn channel;
+    actql_ledger_frame_fn frame;
+    actql_ledger_tag_fn operation, issue;
+    actql_ledger_limit_fn limit;
+    actql_ledger_description_fn description;
+} preparation;
+static int preparation_registered;
+
+void actql_native_control_register_live_preparation_roots(
+    actql_live_before_fn before, actql_live_child_fn child,
+    actql_ledger_prepare_fn prepare, actql_ledger_operate_fn operate,
+    actql_ledger_host_fn host, actql_ledger_domain_fn domain,
+    actql_ledger_channel_fn channel, actql_ledger_frame_fn frame,
+    actql_ledger_tag_fn operation, actql_ledger_tag_fn issue,
+    actql_ledger_limit_fn limit, actql_ledger_description_fn description) {
+    if (preparation_registered) return;
+    if (!before || !child || !prepare || !operate || !host || !domain ||
+        !channel || !frame || !operation || !issue || !limit || !description) {
+        preparation_registered = -1;
+        return;
+    }
+    preparation.before = before; preparation.child = child;
+    preparation.prepare = prepare; preparation.operate = operate;
+    preparation.host = host; preparation.domain = domain;
+    preparation.channel = channel; preparation.frame = frame;
+    preparation.operation = operation; preparation.issue = issue;
+    preparation.limit = limit; preparation.description = description;
+    preparation_registered = 1;
+}
+
+int actql_live_channel_prepare_before_spawn_into(actql_control_host *host,
+    actql_domain *domain, int32_t read_fd, int32_t write_fd, int64_t nonce,
+    actql_live_channel_reply **slot) {
+    if (!host || !domain || !slot || *slot) return ACTQL_CONTROL_INVALID_SLOT;
+    if (preparation_registered != 1 || registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
+    *slot = preparation.before(host, domain, read_fd, write_fd, nonce);
+    return *slot ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
+}
+
+int actql_live_channel_bind_child_into(actql_control_host *host, actql_domain *domain,
+    actql_live_channel *channel, int32_t child, actql_live_channel_reply **slot) {
+    if (!host || !domain || !channel || !slot || *slot) return ACTQL_CONTROL_INVALID_SLOT;
+    if (preparation_registered != 1 || registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
+    *slot = preparation.child(host, domain, channel, child);
+    return *slot ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
+}
+
+int actql_channel_ledger_prepare_into(actql_control_host *host, actql_domain *domain,
+    actql_live_channel *channel, actql_channel_ledger_reply **slot) {
+    if (!host || !domain || !channel || !slot || *slot) return ACTQL_CONTROL_INVALID_SLOT;
+    if (preparation_registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
+    *slot = preparation.prepare(host, domain, channel);
+    return *slot ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
+}
+
+int actql_channel_ledger_operate_into(actql_control_host *host, actql_domain *domain,
+    actql_live_channel *channel, actql_original_child_frame *frame,
+    int32_t operation, int64_t retained, int64_t execution,
+    actql_channel_ledger_reply **slot) {
+    if (!host || !domain || !channel || !frame || !slot || *slot ||
+        operation < 2 || operation > 10 ||
+        (operation != 3 && (retained != 0 || execution != 0)))
+        return ACTQL_CONTROL_INVALID_SLOT;
+    if (preparation_registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
+    *slot = preparation.operate(host, domain, channel, frame, operation, retained, execution);
+    return *slot ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
+}
+
+static int preparation_slots_distinct(const void *const *slots, size_t count) {
+    for (size_t i = 0; i < count; i++)
+        for (size_t j = i + 1; j < count; j++)
+            if (slots[i] == slots[j]) return 0;
+    return 1;
+}
+
+int actql_channel_ledger_originals_into(actql_channel_ledger_reply *reply,
+    actql_control_host **host, actql_domain **domain, actql_live_channel **channel,
+    actql_original_child_frame **frame) {
+    const void *slots[] = {host, domain, channel, frame};
+    if (!reply || !host || !domain || !channel || !frame || *host || *domain ||
+        *channel || *frame || !preparation_slots_distinct(slots, 4))
+        return ACTQL_CONTROL_INVALID_SLOT;
+    if (preparation_registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
+    *host = preparation.host(reply);
+    if (!*host) return ACTQL_CONTROL_UNAVAILABLE;
+    *domain = preparation.domain(reply);
+    if (!*domain) return ACTQL_CONTROL_UNAVAILABLE;
+    *channel = preparation.channel(reply);
+    if (!*channel) return ACTQL_CONTROL_UNAVAILABLE;
+    *frame = preparation.frame(reply);
+    return ACTQL_CONTROL_OK;
+}
+
+int32_t actql_channel_ledger_operation(actql_channel_ledger_reply *reply) {
+    return preparation_registered == 1 && reply ? preparation.operation(reply) : ACTQL_CONTROL_UNAVAILABLE;
+}
+int32_t actql_channel_ledger_issue_family(actql_channel_ledger_reply *reply) {
+    return preparation_registered == 1 && reply ? preparation.issue(reply) : ACTQL_CONTROL_UNAVAILABLE;
+}
+
+static int same_ledger_reply(actql_channel_ledger_reply *reply, actql_control_host *host,
+    actql_domain *domain, actql_live_channel *channel, actql_original_child_frame *frame) {
+    actql_control_host *h = preparation.host(reply);
+    actql_domain *d = preparation.domain(reply);
+    actql_live_channel *c = preparation.channel(reply);
+    actql_original_child_frame *f = preparation.frame(reply);
+    int same = h && d && c && h == host && d == domain && c == channel && f == frame;
+    if (f) moonbit_decref(f);
+    if (c) moonbit_decref(c);
+    if (d) moonbit_decref(d);
+    if (h) moonbit_decref(h);
+    return same;
+}
+
+int actql_channel_ledger_copy_limits(actql_channel_ledger_reply *reply,
+    actql_control_host *host, actql_domain *domain, actql_live_channel *channel,
+    actql_original_child_frame *frame, int64_t out[6]) {
+    if (preparation_registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
+    if (!reply || !host || !domain || !channel || !frame || !out ||
+        preparation.operation(reply) != 5 || preparation.issue(reply) != 0 ||
+        !same_ledger_reply(reply, host, domain, channel, frame)) return ACTQL_CONTROL_INVALID_SLOT;
+    int64_t values[6];
+    for (int32_t i = 0; i < 6; i++) {
+        values[i] = preparation.limit(reply, i);
+        if (values[i] < 0) return ACTQL_CONTROL_INVALID_SLOT;
+    }
+    for (int32_t i = 0; i < 6; i++) out[i] = values[i];
+    return ACTQL_CONTROL_OK;
+}
+
+int actql_channel_ledger_drop_reply(actql_channel_ledger_reply **slot,
+    actql_control_host *host, actql_domain *domain, actql_live_channel *channel,
+    actql_original_child_frame *frame) {
+    if (!slot) return ACTQL_CONTROL_INVALID_SLOT;
+    if (!*slot) return ACTQL_CONTROL_OK;
+    if (preparation_registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
+    if (!host || !domain || !channel ||
+        !same_ledger_reply(*slot, host, domain, channel, frame)) return ACTQL_CONTROL_INVALID_SLOT;
+    actql_channel_ledger_reply *owned = *slot;
+    *slot = NULL;
+    moonbit_decref(owned);
+    return ACTQL_CONTROL_OK;
+}
+
+int actql_channel_ledger_finish_retired_data(actql_control_host **host,
+    actql_domain **domain, actql_live_channel **channel, actql_original_child_frame **frame,
+    actql_channel_ledger_reply **reply, actql_live_channel_reply *retired) {
+    const void *slots[] = {host, domain, channel, frame, reply};
+    if (!host || !domain || !channel || !frame || !reply ||
+        !preparation_slots_distinct(slots, 5)) return ACTQL_CONTROL_INVALID_SLOT;
+    if (!*host && !*domain && !*channel && !*frame && !*reply) return ACTQL_CONTROL_OK;
+    if (registered != 1 || preparation_registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
+    if (!*host || !*domain || !*channel || !*reply || !retired ||
+        callbacks.operation(retired) != 8 || callbacks.issue(retired) != 0 ||
+        !same_reply(retired, *host, *domain, *channel) ||
+        !same_ledger_reply(*reply, *host, *domain, *channel, *frame))
+        return ACTQL_CONTROL_INVALID_SLOT;
+    if (*frame) {
+        if (preparation.operation(*reply) != 8 || preparation.issue(*reply) != 0)
+            return ACTQL_CONTROL_INVALID_SLOT;
+    } else if (preparation.operation(*reply) != 1 || preparation.issue(*reply) <= 0) {
+        return ACTQL_CONTROL_INVALID_SLOT;
+    }
+    actql_control_host *h = *host;
+    actql_domain *d = *domain;
+    actql_live_channel *c = *channel;
+    actql_original_child_frame *f = *frame;
+    actql_channel_ledger_reply *r = *reply;
+    *host = NULL; *domain = NULL; *channel = NULL; *frame = NULL; *reply = NULL;
+    if (r) moonbit_decref(r);
+    if (f) moonbit_decref(f);
+    moonbit_decref(c); moonbit_decref(d); moonbit_decref(h);
     return ACTQL_CONTROL_OK;
 }
