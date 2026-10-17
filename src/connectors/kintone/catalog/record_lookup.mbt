@@ -203,7 +203,7 @@ fn record_lookup_count_is(text : String, count : Int) -> Bool {
   if text.is_empty() {
     return false
   }
-  for index in 0..<text.length() - 1 {
+  for index in 0..<(text.length() - 1) {
     if text[index] != '0' {
       return false
     }
