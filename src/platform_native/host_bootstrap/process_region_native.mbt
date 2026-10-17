@@ -47,7 +47,10 @@ pub(all) enum NativeBackedProcessRegionIssue {
 ///|
 pub(all) enum NativeBackedProcessRegionAcquisition[T, C] {
   ProcessRegionReady(NativeBackedProcessRegion[T, C])
-  ProcessRegionPending(NativeBackedProcessRegion[T, C], NativeBackedProcessRegionIssue)
+  ProcessRegionPending(
+    NativeBackedProcessRegion[T, C],
+    NativeBackedProcessRegionIssue
+  )
 }
 
 ///|
@@ -62,7 +65,10 @@ pub fn[T, C] NativeHostBootstrap::bind_prepared_process_region(
   child : C,
   holder : @executor.NativeScopedExecutorHolder,
   descriptor : Int,
-) -> Result[NativeBackedProcessRegionAcquisition[T, C], NativeBackedProcessRegionIssue] {
+) -> Result[
+  NativeBackedProcessRegionAcquisition[T, C],
+  NativeBackedProcessRegionIssue,
+] {
   match self.require_domain_current(original, domain, child) {
     Err(issue) => return Err(Domain(issue))
     Ok(_) => ()
@@ -71,7 +77,9 @@ pub fn[T, C] NativeHostBootstrap::bind_prepared_process_region(
     Err(issue) => return Err(Process(issue))
     Ok(_) => ()
   }
-  if !domain.transferred || domain.read_use is Some(_) || domain.live_channel is Some(_) {
+  if !domain.transferred ||
+    domain.read_use is Some(_) ||
+    domain.live_channel is Some(_) {
     return Err(Domain(Bootstrap(ReadersPending)))
   }
   let record : NativeBackedProcessRegion[T, C] = {
@@ -85,7 +93,11 @@ pub fn[T, C] NativeHostBootstrap::bind_prepared_process_region(
     retired: false,
   }
   domain.process_region = Some(record)
-  let physical = capture_process_region_ffi(domain.view.physical, domain.physical, descriptor)
+  let physical = capture_process_region_ffi(
+    domain.view.physical,
+    domain.physical,
+    descriptor,
+  )
   record.physical = Some(physical)
   let status = process_region_status_ffi(physical)
   if status == 0 {
@@ -110,7 +122,8 @@ fn[T, C] NativeHostBootstrap::original_process_region(
   if record.retired {
     return Ok(())
   }
-  if !(record.domain.process_region is Some(selected) && physical_equal(selected, record)) {
+  if !(record.domain.process_region is Some(selected) &&
+    physical_equal(selected, record)) {
     return Err(Domain(Bootstrap(ForeignOriginal)))
   }
   Ok(())
@@ -129,7 +142,11 @@ pub fn[T, C] NativeHostBootstrap::abandon_prepared_process_region(
     Ok(_) => ()
   }
   if record.retired {
-    return if record.stop is None { Ok(()) } else { Err(Domain(Bootstrap(AlreadyConsumed))) }
+    return if record.stop is None {
+      Ok(())
+    } else {
+      Err(Domain(Bootstrap(AlreadyConsumed)))
+    }
   }
   match record.holder.require_prepared() {
     Err(issue) => return Err(Process(issue))
@@ -168,7 +185,11 @@ pub fn[T, C] NativeHostBootstrap::retire_stopped_process_region(
     return Err(Domain(Bootstrap(ForeignOriginal)))
   }
   if record.retired {
-    return if record.stop is Some(_) { Ok(()) } else { Err(Domain(Bootstrap(AlreadyConsumed))) }
+    return if record.stop is Some(_) {
+      Ok(())
+    } else {
+      Err(Domain(Bootstrap(AlreadyConsumed)))
+    }
   }
   match stop.require_current(record.holder) {
     Err(issue) => return Err(Process(issue))
