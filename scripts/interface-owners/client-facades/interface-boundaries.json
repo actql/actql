@@ -7081,7 +7081,7 @@
     {
       "module": "packages/sdk/internal/checkpoint-operations.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2d7081ead938abc87d1e5f122e75828e158cbbd1ab763e24acde9d35d4961db5",
+      "sha256": "4d29820be9b89aa5f45e7524b499ed51e24bf209d42d1c33d664173fc5a7a5cf",
       "exports": [
         "createCheckpointOperations"
       ],
@@ -7111,6 +7111,24 @@
           "name": "createCheckpointOperations/answerById/answerById/init:sign/init:sign",
           "parameters": [
             "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointOperations/answerMatches/answerMatches",
+          "parameters": [
+            "answer",
+            "summary",
+            "decision",
+            "signer"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointOperations/answerMatches/answerMatches/answerMatches",
+          "parameters": [
+            "claim",
+            "index"
           ],
           "async": false
         },
@@ -7197,10 +7215,26 @@
             "options"
           ],
           "async": false
+        },
+        {
+          "name": "createCheckpointOperations/without/without",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointOperations/without/without/without",
+          "parameters": [
+            "key"
+          ],
+          "async": false
         }
       ],
       "imports": [
         "../checkpoints.mjs",
+        "./checkpoint-answer-contract.generated.mjs",
         "./data.mjs",
         "./errors.mjs",
         "./transport-response.mjs",
@@ -7507,6 +7541,117 @@
               {
                 "path": "adapters/host-node/sdk-checkpoint-actions.integration.test.mjs",
                 "anchor": "test(`public ${decision}(id) binds the original Checkpoint"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createCheckpointOperations/answerMatches/answerMatches",
+            "createCheckpointOperations/answerMatches/answerMatches/answerMatches",
+            "createCheckpointOperations/without/without",
+            "createCheckpointOperations/without/without/without"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "An original-answer callback remains responsible for key custody and current"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "const answerMatches = async (answer, summary, decision, signer) =>"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "const answerSchemas = {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "resolution.decision !== decision"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "resolution.run_definition_cid !== summary.subject.runDefinitionCid"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "contentCid(without(resolution, 'resolution_cid'))"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Self-addressed identities are checked without changing the signed"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "new ClientError('InvalidCheckpointAnswer', {signed: Object.freeze([answer])})"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "current(signal);"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "if (!await answerMatches(answer, summary, decision, selectedSigner))"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "throw new ClientError('InvalidCheckpointAnswer'"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "resolution; it neither signs again nor treats the bytes as a retry permission."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "exact response-loss items overlap within the original Client/Host inventory."
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "protocol.artifact_schemas.checkpoint_resolution"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Wire bytes, canonical preimages, signed"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "refuses an original-port answer for the opposite decision"
+              },
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "valid signatures for another original Summary refuse"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.test.mjs",
+                "anchor": "SDK answer grammar projects existing Resolution and Evidence"
               }
             ]
           }
@@ -12455,6 +12600,269 @@
               {
                 "path": "packages/sdk/typed-results.test.mjs",
                 "anchor": "test("
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/sdk/internal/checkpoint-answer-contract.generated.mjs",
+      "sha256": "170e71af07cdbcb99ac43625ce42bf0c958f588ae4c22a02fc80c340b64a70a2",
+      "exports": [
+        "validAnswerEvidence",
+        "validAnswerResolution"
+      ],
+      "operations": [
+        {
+          "name": "finiteWireNumber",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameConstant",
+          "parameters": [
+            "value",
+            "expected"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameConstant/sameConstant",
+          "parameters": [
+            "item",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameConstant/sameConstant#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid",
+          "parameters": [
+            "value",
+            "schema"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#2",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#3",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#4",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#5",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#6",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#7",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#8",
+          "parameters": [
+            "key",
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#9",
+          "parameters": [
+            "key",
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "validAnswerEvidence/validAnswerEvidence",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "validAnswerResolution/validAnswerResolution",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "pure",
+      "owner": "existing SDK Checkpoint action correspondence over registered Common artifact contracts",
+      "rationale": "Generated structural DATA admission, not a signing authority or second Checkpoint state machine",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "finiteWireNumber",
+            "sameConstant",
+            "sameConstant/sameConstant",
+            "sameConstant/sameConstant#2",
+            "valid",
+            "valid/valid",
+            "valid/valid#2",
+            "valid/valid#3",
+            "valid/valid#4",
+            "valid/valid#5",
+            "valid/valid#6",
+            "valid/valid#7",
+            "valid/valid#8",
+            "valid/valid#9",
+            "validAnswerEvidence/validAnswerEvidence",
+            "validAnswerResolution/validAnswerResolution"
+          ],
+          "exports": [
+            "validAnswerEvidence",
+            "validAnswerResolution"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "An original-answer callback remains responsible for key custody and current"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "const answerMatches = async (answer, summary, decision, signer) =>"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "const answerSchemas = {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "resolution.decision !== decision"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "resolution.run_definition_cid !== summary.subject.runDefinitionCid"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "contentCid(without(resolution, 'resolution_cid'))"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Self-addressed identities are checked without changing the signed"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "new ClientError('InvalidCheckpointAnswer', {signed: Object.freeze([answer])})"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "current(signal);"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "if (!await answerMatches(answer, summary, decision, selectedSigner))"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "throw new ClientError('InvalidCheckpointAnswer'"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "resolution; it neither signs again nor treats the bytes as a retry permission."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "exact response-loss items overlap within the original Client/Host inventory."
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "protocol.artifact_schemas.checkpoint_resolution"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Wire bytes, canonical preimages, signed"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "refuses an original-port answer for the opposite decision"
+              },
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "valid signatures for another original Summary refuse"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.test.mjs",
+                "anchor": "SDK answer grammar projects existing Resolution and Evidence"
               }
             ]
           }
