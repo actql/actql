@@ -143,20 +143,6 @@ export async function installRowSourceAuthorization({accountConfiguration,
     resume: async (...args) => own(await gate.resume(...args))});
 }
 
-// The credential Site of one installed row source: the credential authority
-// key, the credential journal and the secret resolver. Grants are signed
-// only for a read decision the installed gate returned as dispatch for this
-// connection and Resource, or for a Checkpoint approval of exactly this
-// installation's physical target.
-// `responseHeaders` is the installation's declared response header names
-// (its `host-bundle.json`); the Site's `callResource` refuses, before any
-// credential use, an operation that would observe any other header.
-// Optional `admitsEffectTargetRead(binding, resource, operation)` belongs to
-// the same trusted installation. It validates the driver's exact original
-// physical binding and read operation; it cannot replace Checkpoint facts or
-// current/entry authority. The returned Site accepts that original decision
-// with `admitCheckpointEffectTargetRead(decision, binding, operation)`.
-// Each such approval adds a seven-field record, the bounded canonical binding
 // One physical credential-journal/signing implementation for installed Row
 // Sites. The existing Site validates its selected profile/key and authorizes
 // each operation before calling sign; this private Host port is not a grant.
@@ -222,6 +208,20 @@ export function openRowSourceCredentialCustody({profile, principalId,
   });
 }
 
+// The credential Site of one installed row source: the credential authority
+// key, the credential journal and the secret resolver. Grants are signed
+// only for a read decision the installed gate returned as dispatch for this
+// connection and Resource, or for a Checkpoint approval of exactly this
+// installation's physical target.
+// `responseHeaders` is the installation's declared response header names
+// (its `host-bundle.json`); the Site's `callResource` refuses, before any
+// credential use, an operation that would observe any other header.
+// Optional `admitsEffectTargetRead(binding, resource, operation)` belongs to
+// the same trusted installation. It validates the driver's exact original
+// physical binding and read operation; it cannot replace Checkpoint facts or
+// current/entry authority. The returned Site accepts that original decision
+// with `admitCheckpointEffectTargetRead(decision, binding, operation)`.
+// Each such approval adds a seven-field record, the bounded canonical binding
 // String and original binding/fence aliases in this Site's existing WeakMap.
 // Canonical comparison and signing overlap the original bounded inventory;
 // these controls do not supply a numerical reservation or physical close ACK.
