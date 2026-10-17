@@ -26,7 +26,9 @@ from python_release_cohort import read_cohort  # noqa: E402
 from actql_sdk._local_core import _validate_core_module  # noqa: E402
 from actql_sdk._local_wasm_abi import LOCAL_CORE_ABI  # noqa: E402
 from actql_sdk._local_distribution import WASMTIME_VERSION, _read_file  # noqa: E402
-from actql_sdk._local_engine import _configure_selected_engine, _verify_selected_provider_link  # noqa: E402
+from actql_sdk._local_engine import (  # noqa: E402
+    _configure_selected_engine, _selected_engine_settings, _verify_selected_provider_link,
+)
 from actql_sdk._local_image_recipe import _SelectedImageRecipe, _recipe_from_original  # noqa: E402
 from actql_sdk._local_native_holding import _NativeHoldingLease  # noqa: E402
 from actql_sdk._local_native_memory_abi import bind as bind_memory  # noqa: E402
@@ -45,6 +47,70 @@ if spec is None or spec.loader is None:
     raise ValueError('Original image component assembly is unavailable')
 assembly = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(assembly)
+
+
+def _compiler_configuration_header(recipe: _SelectedImageRecipe) -> bytes:
+    """Project the existing validated Engine Owner into one C preparation.
+
+    The caller must already own both native objects in its original scope.
+    Returned errors and both objects remain the caller's custody. No Engine,
+    module, instance, funding or physical acceptance is issued here.
+    """
+    settings = _selected_engine_settings(recipe)
+    lines = [
+        '/* Generated from the original validated Python Engine Owner. */',
+        '#ifndef ACTQL_COMPILER_CONFIGURATION_GENERATED_H',
+        '#define ACTQL_COMPILER_CONFIGURATION_GENERATED_H',
+        '#include <wasmtime.h>',
+    ]
+    lines.append(f'#define ACTQL_COMPILER_SOURCE_SHA "{recipe.source_sha}"')
+    for name, value in (('MODULE', recipe.module_sha256),
+                        ('RUNTIME', recipe.runtime_library_sha256),
+                        ('PROVIDER', recipe.provider_library_sha256),
+                        ('ENGINE', hashlib.sha256(recipe.engine_body).hexdigest())):
+        lines.append(f'#define ACTQL_COMPILER_{name}_SHA256 "{value}"')
+    lines += ['static inline wasmtime_error_t *actql_compiler_configure(',
+              '    wasm_config_t *config, wasmtime_pooling_allocation_config_t *pool) {']
+    for domain, name, value in settings:
+        if name == 'strategy':
+            # The original validator admits only Cranelift. Use the selected
+            # official header enum, not an independently assumed numeric ABI.
+            literal = 'WASMTIME_STRATEGY_CRANELIFT'
+        elif type(value) is bool:
+            literal = 'true' if value else 'false'
+        elif type(value) is int:
+            literal = str(value) + 'ULL'
+        else:
+            literal = json.dumps(value, ensure_ascii=True)
+        prefix = 'wasmtime_config_' if domain == 'config' else 'wasmtime_pooling_allocation_config_'
+        call = f'{prefix}{name}_set({domain}, {literal})'
+        if name == 'target':
+            lines += [f'    wasmtime_error_t *error = {call};', '    if (error != NULL) return error;']
+        else:
+            lines.append(f'    {call};')
+    lines += ['    wasmtime_pooling_allocation_strategy_set(config, pool);',
+              '    return NULL;', '}', '#endif', '']
+    return '\n'.join(lines).encode('ascii')
+
+
+def prepare_compiler_configuration(core_receipt: Path, expected_source: str,
+                                   destination: Path) -> dict[str, object]:
+    """Same original-module verifier, with no native loading or execution."""
+    original = verify(core_receipt, expected_source)
+    header = _compiler_configuration_header(original['recipe'])
+    if (not destination.is_absolute() or destination.exists() or destination.is_symlink()
+            or destination.resolve() != destination):
+        raise ValueError('Select a fresh canonical compiler configuration directory')
+    destination.mkdir()
+    (destination / 'compiler_configuration.generated.h').write_bytes(header)
+    result = {'scope': 'original_compiler_configuration_only',
+        'source_sha': expected_source, 'module_sha256': original['module_sha256'],
+        'core_receipt_sha256': original['core_receipt_sha256'],
+        'header_sha256': hashlib.sha256(header).hexdigest(),
+        'engine_sha256': hashlib.sha256(original['recipe'].engine_body).hexdigest(),
+        'native_engine_started': False, 'compiled': False, 'physical_acceptance': False}
+    (destination / 'configuration-receipt.json').write_text(json.dumps(result, indent=2) + '\n')
+    return result
 
 
 class _CompilerHoldingOriginal(NamedTuple):
@@ -702,6 +768,7 @@ if __name__ == '__main__':
     parser.add_argument('--preparation', type=Path)
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument('--verify-only', action='store_true')
+    mode.add_argument('--prepare-c-config', action='store_true')
     mode.add_argument('--compile', action='store_true')
     args = parser.parse_args()
     if args.verify_only:
@@ -712,6 +779,8 @@ if __name__ == '__main__':
             'engine_sha256': hashlib.sha256(checked['recipe'].engine_body).hexdigest(),
             'image_bytes_limit': checked['recipe'].image_bytes_limit,
             'native_engine_started': False, 'compiled': False, 'public_local_acceptance': False}))
+    elif args.prepare_c_config:
+        print(json.dumps(prepare_compiler_configuration(args.core_receipt, args.source, args.destination)))
     else:
         print(json.dumps(compile_from_original(args.core_receipt, args.source, args.destination,
             bindings_source=args.bindings_source, native_libraries=args.native_libraries,
