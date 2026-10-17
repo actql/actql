@@ -9,12 +9,7 @@ test "resident Source fixture has canonical ordered Environment evidence" {
     @environment.read(
       @utf8.encode(multi_source_environment),
       "sha256:8dddb2a590629efb451ee5c579798da0ec64a674980601b49a97ff6a79140505",
-      {
-        max_bytes: 65536,
-        max_nodes: 4096,
-        max_depth: 64,
-        max_members: 256,
-      },
+      { max_bytes: 65536, max_nodes: 4096, max_depth: 64, max_members: 256, },
     ) {
     Ok(_) => ()
     Err(issue) => {
