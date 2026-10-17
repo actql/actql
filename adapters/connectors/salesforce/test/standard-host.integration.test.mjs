@@ -110,7 +110,7 @@ async function installation(t, {readable = ['Test_Record__c'],
   queryFailureStatus, queryFailureOnRequest, storedRecords, recordsByResource,
   queryPageSize, queryResponse, temporalFields = false,
   numberFields = false, numberNativeType = 'double', multiPicklistFields = false,
-  geolocationFields = false,
+  geolocationFields = false, addressFields = false, addressCodes = false, addressCustom = false,
   retainedRelationOutput = false,
   secondInstallation = false} = {}) {
   const org = await openSalesforceEffectSiteFixture(t, {commonMoon,
@@ -120,6 +120,7 @@ async function installation(t, {readable = ['Test_Record__c'],
     writableObjects,
     temporalFields,
     numberFields, numberNativeType, multiPicklistFields, geolocationFields,
+    addressFields, addressCodes, addressCustom,
     optionalText: storedRecords !== undefined});
   const root = await mkdtemp(join(scratch, 'host-'));
   // Hosts close before their directory is removed.
@@ -2619,3 +2620,59 @@ test('a compound geolocation beyond original component scale fails typed without
     adapter.close();
   }
 });
+
+
+for (const variant of ['standard', 'standard-codes', 'custom']) {
+  test(`Salesforce ${variant} Address reaches its original typed Result and same Run Host reopen`, async t => {
+    const custom = variant === 'custom', codes = variant !== 'standard';
+    const parent = custom ? 'Address__c' : 'BillingAddress';
+    const address = {city: '東京',
+      ...(!custom ? {country: 'Japan integration'} : {}),
+      ...(codes ? {countryCode: 'JP'} : {}),
+      geocodeAccuracy: 'Address', latitude: numberText('35.123456789012345'),
+      longitude: numberText('139.123456789012345'), postalCode: '001-0001',
+      ...(!custom ? {state: 'Tokyo integration'} : {}),
+      ...(codes ? {stateCode: '13'} : {}), street: 'line 1\ne\u0301 東京'};
+    const setup = await installation(t, {addressFields: true, addressCodes: codes,
+      addressCustom: custom, storedRecords: [
+        {Id: 'a00000000000002', Name: 'record-2', External_Key__c: 'key-2', [parent]: null},
+        {Id: 'a00000000000001', Name: 'record-1', External_Key__c: 'key-1', [parent]: address},
+      ]});
+    await setup.publish();
+    const {client, close} = await setup.open();
+    const document = JSON.parse(numberProgram.replaceAll('Amount__c', parent));
+    document.id = `salesforce-address-${variant}`;
+    document.stages[0].inputs.remote.view = 'records';
+    document.stages[0].steps.push(
+      {from: 'captured', assert_rows: {unique_by: ['Id']}, as: 'unique_records'},
+      {from: 'unique_records', sort: [{Id: 'asc'}], as: 'ordered_records'});
+    document.stages[0].results.r.from = 'ordered_records';
+    const before = setup.org.seen.length;
+    const checked = await client.check(document, {kind: 'program', scope: 'bound_input'});
+    assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+    assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+    assert.equal(setup.org.seen.length, before);
+    const execution = await client.startSource(JSON.stringify(document), {format: 'json',
+      submissionRef: client.newSubmission({nonce: `address-${variant}-original`})});
+    const state = await execution.wait({signal: AbortSignal.timeout(20_000)});
+    assert.equal(state.status, 'succeeded', JSON.stringify(state));
+    const fields = Object.fromEntries(Object.keys(address).map(name => [name,
+      ['latitude', 'longitude'].includes(name)
+        ? {type: 'decimal', precision: 18, scale: 15, nullable: true}
+        : {type: 'string', nullable: true}]));
+    assert.deepEqual((await execution.result('records').describe()).columns, [
+      {name: 'Id', contract: {type: 'string', nullable: false}},
+      {name: parent, contract: {type: 'object', nullable: true, additional_properties: false, fields}},
+    ]);
+    const expected = [{Id: 'a00000000000001', [parent]: {...address,
+      latitude: '35.123456789012345', longitude: '139.123456789012345'}},
+    {Id: 'a00000000000002', [parent]: null}];
+    assert.deepEqual(await execution.result('records').all(), expected);
+    const original = execution.ref, queryCount = setup.queries().length;
+    assert.ok(queryCount > 0);
+    await close();
+    const reopened = await setup.open();
+    assert.deepEqual(await (await reopened.client.attach(original)).result('records').all(), expected);
+    assert.equal(setup.queries().length, queryCount);
+  });
+}
