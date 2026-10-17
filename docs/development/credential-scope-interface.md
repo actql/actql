@@ -120,3 +120,64 @@ operation, permission, retry, numerical profile, or live Provider support.
 original bounded capture/cleanup. `installed-row-observation.test.mjs` consumes
 the compiled Node bridge with an in-process driver; it does not test HTTP,
 credential authorization, a normal tarball, or live HubSpot.
+
+## Google service-account assertion preparation
+
+The Google setup consumes the existing Credential and installed Site owners.
+`google-service-account-assertion.mjs` prepares private RS256 assertion/form
+material from an already-owned native RSA private KeyObject, its declared
+service-account identity, optional key ID and delegated subject, and an explicit
+scope list. It loads no key file, parses no credential JSON, selects no scopes,
+creates no account or grant, and makes no authentication or resource request.
+Its protocol is the [Google service-account assertion exchange](https://developers.google.com/identity/protocols/oauth2/service-account).
+
+The assertion fixes `alg=RS256`, the token endpoint audience and the form grant
+type. Issue time and lifetime are explicit original seconds; the one-hour
+protocol maximum and safe arithmetic are checked without reading or rounding a
+clock. Absent delegation/key ID stays absent. Inherited optional fields cannot
+add delegation, required fields must be own properties, and scope order and
+cardinality are preserved. Unknown options, sparse/inherited scopes and Proxy
+material are refusals. The signature uses Node's native RSA PKCS#1 v1.5/SHA256;
+no caller-provided signing callback or algorithm name is a trust proof.
+
+An empty private handle retains the native original key reference, bounded
+original identity/scope strings and prepared secret form body. Copied or
+serialized handles cannot retrieve request material. The key matcher checks
+only physical correspondence with that same original KeyObject; equal exported
+key bytes, issuer text or a fingerprint do not replace it. Neither matcher nor
+successful signature establishes current permission, the key's external owner,
+Google acceptance or installation currency. The existing credential supplier
+must retain and check those original relationships independently.
+
+The installer supplies explicit ceilings for scope count/total bytes, identity
+bytes, claim bytes, signed assertion bytes, complete request bytes and native key
+bits. Header/claim JSON, UTF8/base64/message/signature/form representations can
+overlap during preparation. The private handle retains the key graph, metadata
+and complete form body; a request projection adds wrappers that can escape to
+its caller. These are not a transfer allowance, normal retained/workspace
+profile or cleanup ACK. The original acquisition/Effect Ledger must cover those
+allocations together with auth response/token backing, API material and reader
+custody through confirmed physical retirement. The helper has no dispose or
+mark-clean shortcut.
+
+### Authentication use and resource use are distinct
+
+A trusted installed declaration may register only its exact required Google
+authentication dependency: `https://oauth2.googleapis.com`, POST `/token`, the
+original service-account/key generation, optional delegated subject, declared
+scopes and explicit bounds. Program text or a returned token cannot choose it.
+The same existing Site issuer must separately scope an original auth grant/use
+of the existing Credential types to that declared dependency and its authorized
+parent acquisition/Effect request, original assertion bytes, Run/task/attempt,
+expiry and current authority. The original API grant/use cannot be retargeted:
+Common rejects a supplied origin/operation different from the original grant.
+
+The physical Credential boundary must place the assertion in bounded private
+form-body material, never a Bearer key/assertion or an arbitrary unauthenticated
+send option. Do not hide its HTTP exchange in `resolveSecret`. Auth and API
+operations retain separate nominal use, current/expiry checks and byte/request
+accounting. Auth response loss remains that original journal/use's Unknown;
+there is no resend, fresh assertion or reconstruction from current config for
+that same use. Token issuance grants no API rights. A physical or installed
+acceptance receipt must prove these connections independently of the pure
+signature/reference controls.
