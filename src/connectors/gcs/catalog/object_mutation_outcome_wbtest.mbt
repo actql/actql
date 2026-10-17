@@ -219,3 +219,44 @@ test "GCS mutation outcome bounds raw response and control projection before cla
     Ok(Unknown),
   )
 }
+
+///|
+test "GCS mutation outcome preserves observed content checksums storage class and encoding" {
+  let binding = mutation_binding()
+  let original =
+    #|{"bucket":"bucket","name":"in/é%2F.csv","generation":"9007199254740993","metageneration":"2","size":"7","contentEncoding":"gzip","storageClass":"STANDARD","md5Hash":"AAAAAAAAAAAAAAAAAAAAAA==","crc32c":"AAAAAA==","metadata":{"drop":"old","keep":"kept"}}
+  let request = prepare_object_metadata_patch(
+    binding,
+    metadata_read(original).unwrap(),
+    mutation_changes(),
+    mutation_marker(),
+  ).unwrap()
+  let response =
+    #|{"bucket":"bucket","name":"in/é%2F.csv","generation":"9007199254740993","metageneration":"3","size":"7","contentEncoding":"gzip","storageClass":"STANDARD","md5Hash":"AAAAAAAAAAAAAAAAAAAAAA==","crc32c":"AAAAAA==","contentType":"text/csv","metadata":{"keep":"kept","new":"=é\r\n","actql-request":"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"}}
+  assert_eq(
+    classify_object_mutation_response(
+      binding,
+      request,
+      200,
+      @utf8.encode(response),
+    ),
+    Ok(Applied),
+  )
+  for
+    (old, replacement) in [
+      ("gzip", "identity"),
+      ("STANDARD", "COLDLINE"),
+      ("AAAAAA==", "crxyRA=="),
+      ("AAAAAAAAAAAAAAAAAAAAAA==", "AQAAAAAAAAAAAAAAAAAAAA=="),
+    ] {
+    assert_eq(
+      classify_object_mutation_response(
+        binding,
+        request,
+        200,
+        @utf8.encode(response.replace(old~, new=replacement)),
+      ),
+      Ok(Unknown),
+    )
+  }
+}
