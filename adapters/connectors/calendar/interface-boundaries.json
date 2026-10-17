@@ -515,18 +515,57 @@
     },
     {
       "module": "src/connectors/calendar/catalog/pkg.generated.mbti",
-      "sha256": "9a4b569114964e4328b65d00c66da2c0418ed32772a20337be84332c8d7b0376",
+      "sha256": "49fb91c80e2c37a0d07bfeec3eb2e99e5d12dd2d046e26a836904af3dc27fdbe",
       "exports": [
+        "pub fn calendar_free_busy_column_names() -> Array[String]",
+        "pub fn calendar_free_busy_facts_wire() -> String",
+        "pub fn calendar_free_busy_matches_query(CalendarFreeBusyPage, CalendarFreeBusyQuery) -> Bool",
+        "pub fn calendar_free_busy_request_wire(CalendarFreeBusyQuery) -> String",
+        "pub fn calendar_free_busy_row_count(CalendarFreeBusyPage) -> Int",
+        "pub fn calendar_free_busy_rows_wire(CalendarFreeBusyPage, Array[String], Int, Int, Int) -> Result[String, CalendarFreeBusyIssue]",
+        "pub fn calendar_free_busy_schema_wire(Int, Int, Int) -> Result[String, CalendarFreeBusyIssue]",
         "pub fn calendar_list_column_names() -> Array[String]",
         "pub fn calendar_list_facts_wire() -> String",
         "pub fn calendar_list_ids(CalendarListPage) -> Array[String]",
         "pub fn calendar_list_row_count(CalendarListPage) -> Int",
         "pub fn calendar_list_rows_wire(CalendarListPage, Array[String], Int, Int, Int) -> Result[String, CalendarListIssue]",
         "pub fn calendar_list_schema_wire(Int, Int, Int) -> Result[String, CalendarListIssue]",
+        "pub fn prepare_calendar_free_busy_query(Array[String], String, String, CalendarFreeBusyLimits) -> Result[CalendarFreeBusyQuery, CalendarFreeBusyIssue]",
+        "pub fn project_calendar_free_busy(Bytes, CalendarFreeBusyQuery, CalendarFreeBusyLimits) -> Result[CalendarFreeBusyPage, CalendarFreeBusyIssue]",
         "pub fn project_calendar_list(Bytes, CalendarListLimits) -> Result[CalendarListPage, CalendarListIssue]",
+        "pub struct CalendarFreeBusyPage {",
+        "pub struct CalendarFreeBusyQuery {",
         "pub struct CalendarListPage {"
       ],
       "operations": [
+        {
+          "name": "calendar_free_busy_column_names",
+          "declaration": "pub fn calendar_free_busy_column_names() -> Array[String]"
+        },
+        {
+          "name": "calendar_free_busy_facts_wire",
+          "declaration": "pub fn calendar_free_busy_facts_wire() -> String"
+        },
+        {
+          "name": "calendar_free_busy_matches_query",
+          "declaration": "pub fn calendar_free_busy_matches_query(CalendarFreeBusyPage, CalendarFreeBusyQuery) -> Bool"
+        },
+        {
+          "name": "calendar_free_busy_request_wire",
+          "declaration": "pub fn calendar_free_busy_request_wire(CalendarFreeBusyQuery) -> String"
+        },
+        {
+          "name": "calendar_free_busy_row_count",
+          "declaration": "pub fn calendar_free_busy_row_count(CalendarFreeBusyPage) -> Int"
+        },
+        {
+          "name": "calendar_free_busy_rows_wire",
+          "declaration": "pub fn calendar_free_busy_rows_wire(CalendarFreeBusyPage, Array[String], Int, Int, Int) -> Result[String, CalendarFreeBusyIssue]"
+        },
+        {
+          "name": "calendar_free_busy_schema_wire",
+          "declaration": "pub fn calendar_free_busy_schema_wire(Int, Int, Int) -> Result[String, CalendarFreeBusyIssue]"
+        },
         {
           "name": "calendar_list_column_names",
           "declaration": "pub fn calendar_list_column_names() -> Array[String]"
@@ -550,6 +589,14 @@
         {
           "name": "calendar_list_schema_wire",
           "declaration": "pub fn calendar_list_schema_wire(Int, Int, Int) -> Result[String, CalendarListIssue]"
+        },
+        {
+          "name": "prepare_calendar_free_busy_query",
+          "declaration": "pub fn prepare_calendar_free_busy_query(Array[String], String, String, CalendarFreeBusyLimits) -> Result[CalendarFreeBusyQuery, CalendarFreeBusyIssue]"
+        },
+        {
+          "name": "project_calendar_free_busy",
+          "declaration": "pub fn project_calendar_free_busy(Bytes, CalendarFreeBusyQuery, CalendarFreeBusyLimits) -> Result[CalendarFreeBusyPage, CalendarFreeBusyIssue]"
         },
         {
           "name": "project_calendar_list",
@@ -634,6 +681,115 @@
               {
                 "path": "src/connectors/calendar/catalog/calendar_list_wbtest.mbt",
                 "anchor": "test "
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "calendar_free_busy_column_names",
+            "calendar_free_busy_facts_wire",
+            "calendar_free_busy_matches_query",
+            "calendar_free_busy_request_wire",
+            "calendar_free_busy_row_count",
+            "calendar_free_busy_rows_wire",
+            "calendar_free_busy_schema_wire",
+            "prepare_calendar_free_busy_query",
+            "project_calendar_free_busy"
+          ],
+          "exports": [
+            "pub fn calendar_free_busy_column_names() -> Array[String]",
+            "pub fn calendar_free_busy_facts_wire() -> String",
+            "pub fn calendar_free_busy_matches_query(CalendarFreeBusyPage, CalendarFreeBusyQuery) -> Bool",
+            "pub fn calendar_free_busy_request_wire(CalendarFreeBusyQuery) -> String",
+            "pub fn calendar_free_busy_row_count(CalendarFreeBusyPage) -> Int",
+            "pub fn calendar_free_busy_rows_wire(CalendarFreeBusyPage, Array[String], Int, Int, Int) -> Result[String, CalendarFreeBusyIssue]",
+            "pub fn calendar_free_busy_schema_wire(Int, Int, Int) -> Result[String, CalendarFreeBusyIssue]",
+            "pub fn prepare_calendar_free_busy_query(Array[String], String, String, CalendarFreeBusyLimits) -> Result[CalendarFreeBusyQuery, CalendarFreeBusyIssue]",
+            "pub fn project_calendar_free_busy(Bytes, CalendarFreeBusyQuery, CalendarFreeBusyLimits) -> Result[CalendarFreeBusyPage, CalendarFreeBusyIssue]",
+            "pub struct CalendarFreeBusyPage {",
+            "pub struct CalendarFreeBusyQuery {"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "## Free/busy request and complete response"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "pub fn prepare_calendar_free_busy_query("
+              },
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "pub fn project_calendar_free_busy("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "physical_equal(page.query, query)"
+              },
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "response_sha256: @sha.hex(bytes)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "priv query : CalendarFreeBusyQuery"
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The query retains its ID array"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous bounded query/response projection over original supplied values; no physical I/O or journal claim."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "return Err(CalendarRejected(id))"
+              },
+              {
+                "path": "src/connectors/calendar/catalog/free_busy_wbtest.mbt",
+                "anchor": "test \"Calendar free busy refuses per-calendar errors"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "This Catalog and its compiled Node bridge are synchronous"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "fn free_busy_limits_valid("
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "Every retained cell occurrence consumes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The existing physical/Run/Account/Credential owners must"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/calendar/catalog/free_busy_wbtest.mbt",
+                "anchor": "test \"Calendar free busy keeps original calendar order"
+              },
+              {
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-projection.test.mjs",
+                "anchor": "test('actual Calendar projection binds original query"
               }
             ]
           }
@@ -746,16 +902,53 @@
     },
     {
       "module": "src/connectors/calendar/host_node/pkg.generated.mbti",
-      "sha256": "883730d2a845c36921787f83b46fb9c2f43625fe3f7a4cb4e0a16911dc49dc3c",
+      "sha256": "100b73ab1eb4b601a013eee6e6856e18182d8024fb4dcd9acee1ef0f90d46fdf",
       "exports": [
+        "pub fn calendar_free_busy_column_names() -> Array[String]",
+        "pub fn calendar_free_busy_matches_query(@catalog.CalendarFreeBusyPage, @catalog.CalendarFreeBusyQuery) -> Bool",
+        "pub fn calendar_free_busy_metadata_json(@catalog.CalendarFreeBusyPage) -> String",
+        "pub fn calendar_free_busy_relation_facts_wire() -> String",
+        "pub fn calendar_free_busy_request_wire(@catalog.CalendarFreeBusyQuery) -> String",
+        "pub fn calendar_free_busy_rows_wire(@catalog.CalendarFreeBusyPage, Array[String], Int, Int, Int) -> Result[String, @catalog.CalendarFreeBusyIssue]",
+        "pub fn calendar_free_busy_schema_wire(Int, Int, Int) -> Result[String, @catalog.CalendarFreeBusyIssue]",
         "pub fn calendar_list_column_names() -> Array[String]",
         "pub fn calendar_list_metadata_json(@catalog.CalendarListPage) -> String",
         "pub fn calendar_list_relation_facts_wire() -> String",
         "pub fn calendar_list_rows_wire(@catalog.CalendarListPage, Array[String], Int, Int, Int) -> Result[String, @catalog.CalendarListIssue]",
         "pub fn calendar_list_schema_wire(Int, Int, Int) -> Result[String, @catalog.CalendarListIssue]",
-        "pub fn calendar_project_calendar_list(Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarListPage, @catalog.CalendarListIssue]"
+        "pub fn calendar_prepare_free_busy_query(Array[String], String, String, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarFreeBusyQuery, @catalog.CalendarFreeBusyIssue]",
+        "pub fn calendar_project_calendar_list(Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarListPage, @catalog.CalendarListIssue]",
+        "pub fn calendar_project_free_busy(Bytes, @catalog.CalendarFreeBusyQuery, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarFreeBusyPage, @catalog.CalendarFreeBusyIssue]"
       ],
       "operations": [
+        {
+          "name": "calendar_free_busy_column_names",
+          "declaration": "pub fn calendar_free_busy_column_names() -> Array[String]"
+        },
+        {
+          "name": "calendar_free_busy_matches_query",
+          "declaration": "pub fn calendar_free_busy_matches_query(@catalog.CalendarFreeBusyPage, @catalog.CalendarFreeBusyQuery) -> Bool"
+        },
+        {
+          "name": "calendar_free_busy_metadata_json",
+          "declaration": "pub fn calendar_free_busy_metadata_json(@catalog.CalendarFreeBusyPage) -> String"
+        },
+        {
+          "name": "calendar_free_busy_relation_facts_wire",
+          "declaration": "pub fn calendar_free_busy_relation_facts_wire() -> String"
+        },
+        {
+          "name": "calendar_free_busy_request_wire",
+          "declaration": "pub fn calendar_free_busy_request_wire(@catalog.CalendarFreeBusyQuery) -> String"
+        },
+        {
+          "name": "calendar_free_busy_rows_wire",
+          "declaration": "pub fn calendar_free_busy_rows_wire(@catalog.CalendarFreeBusyPage, Array[String], Int, Int, Int) -> Result[String, @catalog.CalendarFreeBusyIssue]"
+        },
+        {
+          "name": "calendar_free_busy_schema_wire",
+          "declaration": "pub fn calendar_free_busy_schema_wire(Int, Int, Int) -> Result[String, @catalog.CalendarFreeBusyIssue]"
+        },
         {
           "name": "calendar_list_column_names",
           "declaration": "pub fn calendar_list_column_names() -> Array[String]"
@@ -777,8 +970,16 @@
           "declaration": "pub fn calendar_list_schema_wire(Int, Int, Int) -> Result[String, @catalog.CalendarListIssue]"
         },
         {
+          "name": "calendar_prepare_free_busy_query",
+          "declaration": "pub fn calendar_prepare_free_busy_query(Array[String], String, String, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarFreeBusyQuery, @catalog.CalendarFreeBusyIssue]"
+        },
+        {
           "name": "calendar_project_calendar_list",
           "declaration": "pub fn calendar_project_calendar_list(Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarListPage, @catalog.CalendarListIssue]"
+        },
+        {
+          "name": "calendar_project_free_busy",
+          "declaration": "pub fn calendar_project_free_busy(Bytes, @catalog.CalendarFreeBusyQuery, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarFreeBusyPage, @catalog.CalendarFreeBusyIssue]"
         }
       ],
       "responsibilityFacet": "primary",
@@ -856,6 +1057,425 @@
               {
                 "path": "src/connectors/calendar/catalog/calendar_list_wbtest.mbt",
                 "anchor": "test "
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "calendar_free_busy_column_names",
+            "calendar_free_busy_matches_query",
+            "calendar_free_busy_metadata_json",
+            "calendar_free_busy_relation_facts_wire",
+            "calendar_free_busy_request_wire",
+            "calendar_free_busy_rows_wire",
+            "calendar_free_busy_schema_wire",
+            "calendar_prepare_free_busy_query",
+            "calendar_project_free_busy"
+          ],
+          "exports": [
+            "pub fn calendar_free_busy_column_names() -> Array[String]",
+            "pub fn calendar_free_busy_matches_query(@catalog.CalendarFreeBusyPage, @catalog.CalendarFreeBusyQuery) -> Bool",
+            "pub fn calendar_free_busy_metadata_json(@catalog.CalendarFreeBusyPage) -> String",
+            "pub fn calendar_free_busy_relation_facts_wire() -> String",
+            "pub fn calendar_free_busy_request_wire(@catalog.CalendarFreeBusyQuery) -> String",
+            "pub fn calendar_free_busy_rows_wire(@catalog.CalendarFreeBusyPage, Array[String], Int, Int, Int) -> Result[String, @catalog.CalendarFreeBusyIssue]",
+            "pub fn calendar_free_busy_schema_wire(Int, Int, Int) -> Result[String, @catalog.CalendarFreeBusyIssue]",
+            "pub fn calendar_prepare_free_busy_query(Array[String], String, String, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarFreeBusyQuery, @catalog.CalendarFreeBusyIssue]",
+            "pub fn calendar_project_free_busy(Bytes, @catalog.CalendarFreeBusyQuery, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.CalendarFreeBusyPage, @catalog.CalendarFreeBusyIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "## Free/busy request and complete response"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "pub fn prepare_calendar_free_busy_query("
+              },
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "pub fn project_calendar_free_busy("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "physical_equal(page.query, query)"
+              },
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "response_sha256: @sha.hex(bytes)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "priv query : CalendarFreeBusyQuery"
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The query retains its ID array"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous bounded query/response projection over original supplied values; no physical I/O or journal claim."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "return Err(CalendarRejected(id))"
+              },
+              {
+                "path": "src/connectors/calendar/catalog/free_busy_wbtest.mbt",
+                "anchor": "test \"Calendar free busy refuses per-calendar errors"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "This Catalog and its compiled Node bridge are synchronous"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "fn free_busy_limits_valid("
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "Every retained cell occurrence consumes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The existing physical/Run/Account/Credential owners must"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/calendar/catalog/free_busy_wbtest.mbt",
+                "anchor": "test \"Calendar free busy keeps original calendar order"
+              },
+              {
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-projection.test.mjs",
+                "anchor": "test('actual Calendar projection binds original query"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/calendar/catalog/free_busy.mbt",
+      "sha256": "3d5ffc2359d0f165718afd6f3f155fb034be834cc27e179aed236605a6a0d870",
+      "exports": [],
+      "operations": [
+        {
+          "name": "calendar_free_busy_column_names",
+          "declaration": "calendar_free_busy_column_names ( ) - > Array [ String ]"
+        },
+        {
+          "name": "calendar_free_busy_facts_wire",
+          "declaration": "calendar_free_busy_facts_wire ( ) - > String"
+        },
+        {
+          "name": "calendar_free_busy_matches_query",
+          "declaration": "calendar_free_busy_matches_query ( page : CalendarFreeBusyPage , query : CalendarFreeBusyQuery , ) - > Bool"
+        },
+        {
+          "name": "calendar_free_busy_request_wire",
+          "declaration": "calendar_free_busy_request_wire ( query : CalendarFreeBusyQuery ) - > String"
+        },
+        {
+          "name": "calendar_free_busy_row_count",
+          "declaration": "calendar_free_busy_row_count ( page : CalendarFreeBusyPage ) - > Int"
+        },
+        {
+          "name": "calendar_free_busy_rows_wire",
+          "declaration": "calendar_free_busy_rows_wire ( page : CalendarFreeBusyPage , names : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , CalendarFreeBusyIssue ]"
+        },
+        {
+          "name": "calendar_free_busy_schema_wire",
+          "declaration": "calendar_free_busy_schema_wire ( max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , CalendarFreeBusyIssue ]"
+        },
+        {
+          "name": "calendar_rfc3339",
+          "declaration": "calendar_rfc3339 ( text : String ) - > String ?"
+        },
+        {
+          "name": "free_busy_digits",
+          "declaration": "free_busy_digits ( text : String , start : Int , end : Int ) - > Int ?"
+        },
+        {
+          "name": "free_busy_limits_valid",
+          "declaration": "free_busy_limits_valid ( limits : CalendarFreeBusyLimits ) - > Bool"
+        },
+        {
+          "name": "free_busy_no_errors",
+          "declaration": "free_busy_no_errors ( object : @ decode . ObjectView ) - > Bool"
+        },
+        {
+          "name": "prepare_calendar_free_busy_query",
+          "declaration": "prepare_calendar_free_busy_query ( calendar_ids : Array [ String ] , start : String , end : String , limits : CalendarFreeBusyLimits , ) - > Result [ CalendarFreeBusyQuery , CalendarFreeBusyIssue ]"
+        },
+        {
+          "name": "project_calendar_free_busy",
+          "declaration": "project_calendar_free_busy ( bytes : Bytes , query : CalendarFreeBusyQuery , limits : CalendarFreeBusyLimits , ) - > Result [ CalendarFreeBusyPage , CalendarFreeBusyIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Calendar catalog and physical sequencer; Common RowRun/Account/Credential retain execution, reservation and cleanup authority",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "calendar_free_busy_column_names",
+            "calendar_free_busy_facts_wire",
+            "calendar_free_busy_matches_query",
+            "calendar_free_busy_request_wire",
+            "calendar_free_busy_row_count",
+            "calendar_free_busy_rows_wire",
+            "calendar_free_busy_schema_wire",
+            "calendar_rfc3339",
+            "free_busy_digits",
+            "free_busy_limits_valid",
+            "free_busy_no_errors",
+            "prepare_calendar_free_busy_query",
+            "project_calendar_free_busy"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "## Free/busy request and complete response"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "pub fn prepare_calendar_free_busy_query("
+              },
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "pub fn project_calendar_free_busy("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "physical_equal(page.query, query)"
+              },
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "response_sha256: @sha.hex(bytes)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "priv query : CalendarFreeBusyQuery"
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The query retains its ID array"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous bounded query/response projection over original supplied values; no physical I/O or journal claim."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "return Err(CalendarRejected(id))"
+              },
+              {
+                "path": "src/connectors/calendar/catalog/free_busy_wbtest.mbt",
+                "anchor": "test \"Calendar free busy refuses per-calendar errors"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "This Catalog and its compiled Node bridge are synchronous"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "fn free_busy_limits_valid("
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "Every retained cell occurrence consumes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The existing physical/Run/Account/Credential owners must"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/calendar/catalog/free_busy_wbtest.mbt",
+                "anchor": "test \"Calendar free busy keeps original calendar order"
+              },
+              {
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-projection.test.mjs",
+                "anchor": "test('actual Calendar projection binds original query"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/calendar/host_node/free_busy_bridge.mbt",
+      "sha256": "7318370cb8e04832a64032a4fad36e1ae5e330fdf324fd228352fd4dbd79ab66",
+      "exports": [],
+      "operations": [
+        {
+          "name": "calendar_free_busy_column_names",
+          "declaration": "calendar_free_busy_column_names ( ) - > Array [ String ]"
+        },
+        {
+          "name": "calendar_free_busy_matches_query",
+          "declaration": "calendar_free_busy_matches_query ( page : @ catalog . CalendarFreeBusyPage , query : @ catalog . CalendarFreeBusyQuery , ) - > Bool"
+        },
+        {
+          "name": "calendar_free_busy_metadata_json",
+          "declaration": "calendar_free_busy_metadata_json ( page : @ catalog . CalendarFreeBusyPage , ) - > String"
+        },
+        {
+          "name": "calendar_free_busy_relation_facts_wire",
+          "declaration": "calendar_free_busy_relation_facts_wire ( ) - > String"
+        },
+        {
+          "name": "calendar_free_busy_request_wire",
+          "declaration": "calendar_free_busy_request_wire ( query : @ catalog . CalendarFreeBusyQuery , ) - > String"
+        },
+        {
+          "name": "calendar_free_busy_rows_wire",
+          "declaration": "calendar_free_busy_rows_wire ( page : @ catalog . CalendarFreeBusyPage , names : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ catalog . CalendarFreeBusyIssue ]"
+        },
+        {
+          "name": "calendar_free_busy_schema_wire",
+          "declaration": "calendar_free_busy_schema_wire ( max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ catalog . CalendarFreeBusyIssue ]"
+        },
+        {
+          "name": "calendar_prepare_free_busy_query",
+          "declaration": "calendar_prepare_free_busy_query ( calendars : Array [ String ] , start : String , end : String , max_bytes : Int , max_nodes : Int , max_depth : Int , max_calendars : Int , max_rows : Int , max_request_bytes : Int , max_value_nodes : Int , max_value_text_bytes : Int , ) - > Result [ @ catalog . CalendarFreeBusyQuery , @ catalog . CalendarFreeBusyIssue ]"
+        },
+        {
+          "name": "calendar_project_free_busy",
+          "declaration": "calendar_project_free_busy ( bytes : Bytes , query : @ catalog . CalendarFreeBusyQuery , max_bytes : Int , max_nodes : Int , max_depth : Int , max_calendars : Int , max_rows : Int , max_request_bytes : Int , max_value_nodes : Int , max_value_text_bytes : Int , ) - > Result [ @ catalog . CalendarFreeBusyPage , @ catalog . CalendarFreeBusyIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Calendar catalog and physical sequencer; Common RowRun/Account/Credential retain execution, reservation and cleanup authority",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "calendar_free_busy_column_names",
+            "calendar_free_busy_matches_query",
+            "calendar_free_busy_metadata_json",
+            "calendar_free_busy_relation_facts_wire",
+            "calendar_free_busy_request_wire",
+            "calendar_free_busy_rows_wire",
+            "calendar_free_busy_schema_wire",
+            "calendar_prepare_free_busy_query",
+            "calendar_project_free_busy"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "## Free/busy request and complete response"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/calendar/host_node/free_busy_bridge.mbt",
+                "anchor": "#export_name(\"calendarPrepareFreeBusyQuery\")"
+              },
+              {
+                "path": "src/connectors/calendar/host_node/free_busy_bridge.mbt",
+                "anchor": "#export_name(\"calendarProjectFreeBusy\")"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "physical_equal(page.query, query)"
+              },
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "response_sha256: @sha.hex(bytes)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "priv query : CalendarFreeBusyQuery"
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The query retains its ID array"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous bounded query/response projection over original supplied values; no physical I/O or journal claim."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "return Err(CalendarRejected(id))"
+              },
+              {
+                "path": "src/connectors/calendar/catalog/free_busy_wbtest.mbt",
+                "anchor": "test \"Calendar free busy refuses per-calendar errors"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "This Catalog and its compiled Node bridge are synchronous"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/calendar/catalog/free_busy.mbt",
+                "anchor": "fn free_busy_limits_valid("
+              },
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "Every retained cell occurrence consumes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "The existing physical/Run/Account/Credential owners must"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/calendar/catalog/free_busy_wbtest.mbt",
+                "anchor": "test \"Calendar free busy keeps original calendar order"
+              },
+              {
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-projection.test.mjs",
+                "anchor": "test('actual Calendar projection binds original query"
               }
             ]
           }
