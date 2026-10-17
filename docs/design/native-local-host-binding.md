@@ -160,6 +160,15 @@ public-key body/CID and original PEM, exact policy body/CID, issuer identity and
 ReviewerProof purpose. The issuer identity comes from the Common policy Owner's
 original-intent projection; the payload does not issue an operational grant.
 
+The ordinary launcher requests this initial material path only after admitting
+the installed Native image and exclusively preparing the project for explicit
+`init`. Its private adoption request does not prove freshness: the same Native
+session must independently consume its original exclusive creation. Ordinary
+adoption without that request retains the legacy journal path. A request against
+existing or ambiguous state refuses instead of falling back, replacing a key or
+backfilling policy. Neither successful initialization nor a restored original
+selects a default signer or supplies Reviewer, issue, claim or signing permission.
+
 This is a closed alternative in the existing installation `host` control row.
 The historical raw adoption body remains a separate exact alternative. The
 adoption body/CID and initialization body/CID themselves do not change. The

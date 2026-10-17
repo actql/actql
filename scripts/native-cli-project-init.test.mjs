@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
-import {projectInitArguments} from '../packages/native-cli/lib/project-scaffold.mjs';
+import {projectInitArguments, projectInitialAdoptionArguments} from '../packages/native-cli/lib/project-scaffold.mjs';
 
 const launcher = fileURLToPath(new URL('../packages/native-cli/bin/actql.mjs', import.meta.url));
 const scratch = async t => {
@@ -36,12 +36,23 @@ test('init admits exactly the documented template and optional directory in eith
 });
 
 test('init rejects unknown options, multiple targets and duplicate or incomplete template selection', () => {
-  for (const tail of [['--runtime', 'replacement'], ['--approval', 'allow'], ['--force'], ['a', 'b'],
+  for (const tail of [['--runtime', 'replacement'], ['--approval', 'allow'], ['--initialize-signing'], ['--force'], ['a', 'b'],
     ['--template'], ['--template='], ['--template', '--'],
     ['--template=churn-risk-mock', '--template=churn-risk-mock'], ['--help', 'project']]) {
     assert.throws(() => projectInitArguments(['init', ...tail]), {code: 'ACTQL_E_INIT_ARGUMENTS'});
   }
   assert.throws(() => projectInitArguments(['init', '--template', 'other']), {code: 'ACTQL_E_TEMPLATE'});
+});
+
+test('prepared init requests the original Native initial-signing path without changing paths or supplying authority', () => {
+  const project = Object.freeze({configuration: '/owned/project/actql.config.json',
+    stateDirectory: '/owned/project/.actql'});
+  const args = projectInitialAdoptionArguments(project);
+  assert.deepEqual(args, ['--mode', 'local', '--config', '/owned/project/actql.config.json',
+    '--state-dir', '/owned/project/.actql', 'adopt', '--initialize-signing']);
+  assert(Object.isFrozen(args));
+  assert.deepEqual(project, {configuration: '/owned/project/actql.config.json',
+    stateDirectory: '/owned/project/.actql'});
 });
 
 test('the existing separator admits a dash-prefixed directory without treating it as a supplier option', () => {
