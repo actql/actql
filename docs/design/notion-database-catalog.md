@@ -35,6 +35,11 @@ because the vendor can replace it with its default option. That operation needs
 the actual default original, rather than claiming a null value was preserved.
 People/relation arrays carry original
 checked identifier text, never manufactured ResourceRefs or permissions.
+Both also require the vendor's 100-entry write-request bound as well as the
+actual supplied item bound. A larger supplied bound cannot bypass the vendor
+limit; a smaller supplied bound remains effective. This does not change read
+or property pagination, the logical Array domain, permission or numerical
+resource supply.
 Computed and audit properties refuse encoding. Temporal range and Content/file
 writes require their own original typed physical projection; their absence is
 an implementation boundary, not a new public language restriction.

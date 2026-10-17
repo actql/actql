@@ -252,7 +252,7 @@ pub fn prepare_notion_property_write(
       @admitted.Array(values) if kind == "people" || kind == "relation" => {
         let count = @admitted.element_count(values)
         if count > limits.max_items ||
-          (kind == "relation" && count > 100) ||
+          (["people", "relation"].contains(kind) && count > 100) ||
           count > remaining {
           Err(BudgetExceeded)
         } else {
