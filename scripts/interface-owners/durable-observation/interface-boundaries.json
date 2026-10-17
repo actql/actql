@@ -4383,6 +4383,15 @@
           "async": false
         },
         {
+          "name": "authenticationOutcomeFailure",
+          "parameters": [
+            "originalFailure",
+            "outcomeFailure",
+            "useCid"
+          ],
+          "async": false
+        },
+        {
           "name": "authenticationTokenReader",
           "parameters": [
             "registration",
@@ -4758,6 +4767,7 @@
             "authenticationCurrent",
             "authenticationDependency",
             "authenticationDependency/authenticationDependency",
+            "authenticationOutcomeFailure",
             "authenticationTokenReader",
             "authenticationTokenReader/authenticationTokenReader",
             "authenticationTokenReader/authenticationTokenReader#2",
@@ -5005,12 +5015,16 @@
               {
                 "path": "adapters/site-node/credential-authentication-exchange.test.mjs",
                 "anchor": "lost outcome COMMIT reply publishes no token and never repeats the confirmed SQLite write"
+              },
+              {
+                "path": "adapters/site-node/credential-authentication-exchange.test.mjs",
+                "anchor": "failed outcome recording keeps original current failure and its same pending cleanup receiver"
               }
             ]
           }
         }
       ],
-      "sha256": "97f689a747f6aa45dea8fede541f3250fc86e584ee948bd0d0ec015041ffe698",
+      "sha256": "dd904b75bd39f8287d75921de6ce10c3aa6e5da22e5773a8cb61462b30c85189",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",
