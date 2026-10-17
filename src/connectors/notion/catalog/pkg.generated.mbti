@@ -1,0 +1,55 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/notion/catalog"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn notion_user_list_column_names() -> Array[String]
+
+pub fn notion_user_list_ids(NotionUserListPage) -> Array[String]
+
+pub fn notion_user_list_metadata_wire(NotionUserListPage, Int, Int, Int) -> Result[String, NotionUserListIssue]
+
+pub fn notion_user_list_row_count(NotionUserListPage) -> Int
+
+pub fn notion_user_list_rows_wire(NotionUserListPage, Array[String], Int, Int, Int) -> Result[String, NotionUserListIssue]
+
+pub fn notion_user_list_schema_wire(Int, Int, Int) -> Result[String, NotionUserListIssue]
+
+pub fn project_notion_user_list(Bytes, NotionUserListLimits) -> Result[NotionUserListPage, NotionUserListIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum NotionUserListIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+  InvalidCursor
+  DuplicateUser
+  InvalidCell(String)
+  InvalidSelection(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct NotionUserListLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_rows : Int
+  max_cursor_bytes : Int
+  max_identity_bytes : Int
+  max_value_nodes : Int
+  max_value_text_bytes : Int
+}
+
+pub struct NotionUserListPage {
+  response_sha256 : String
+  next_cursor : String?
+  // private fields
+}
+
+// Type aliases
+
+// Traits
