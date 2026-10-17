@@ -57,15 +57,29 @@ fn read_row_store(
   column : Int,
   value : (@admitted.CheckedValue, Int, Int),
 ) -> Result[Unit, NotionReadRowIssue] {
-  let (checked, nodes, text) = value
+  let (checked, input_nodes, input_text) = value
+  if !physical_equal(checked.contract, row.binding.columns[column].contract) {
+    return Err(ForeignOriginal)
+  }
+  if !read_row_spend(row, input_nodes) || !read_row_spend(row, input_text) {
+    return Err(BudgetExceeded)
+  }
+  // Incoming wire usage and logical runtime usage are distinct. For example,
+  // a Decimal source token includes a decimal point, but the retained logical
+  // Value has an exact coefficient. Common measures that original Value; JS
+  // never rounds/reparses it and input work is still charged above.
+  guard @admitted.recheck_runtime_value_usage(checked.value, checked.contract, {
+      ..row.limits.values,
+      max_depth: row.limits.values.max_depth - 1,
+    })
+    is Some((_, nodes, text)) else {
+    return Err(InvalidValue)
+  }
   if nodes > row.limits.values.max_nodes - row.nodes ||
     text > row.limits.values.max_text_bytes - row.text ||
     !read_row_spend(row, nodes) ||
     !read_row_spend(row, text) {
     return Err(BudgetExceeded)
-  }
-  if !physical_equal(checked.contract, row.binding.columns[column].contract) {
-    return Err(ForeignOriginal)
   }
   row.nodes += nodes
   row.text += text
