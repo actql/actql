@@ -1226,6 +1226,46 @@ pub fn client_program_values_static_plan_view(@run_publication_host.PreparedClie
 
 pub fn client_program_with_values_row_limit(@run_publication_host.PreparedClientProgram, Int) -> @run_publication_host.PreparedClientProgram?
 
+pub fn client_project_configuration_admit(String) -> Result[@run_publication_host.ClientProjectConfiguration, @run_publication_host.ClientProjectConfigurationIssue]
+
+pub fn client_project_configuration_connectors_file(@run_publication_host.ClientProjectConfiguration) -> String?
+
+pub fn client_project_configuration_lock_file(@run_publication_host.ClientProjectConfiguration) -> String?
+
+pub fn client_project_configuration_mock_answer_count(@run_publication_host.ClientProjectConfiguration) -> Int
+
+pub fn client_project_configuration_mock_answer_file(@run_publication_host.ClientProjectConfiguration, Int) -> String?
+
+pub fn client_project_configuration_mock_answer_task(@run_publication_host.ClientProjectConfiguration, Int) -> String?
+
+pub fn client_project_configuration_mock_data_file(@run_publication_host.ClientProjectConfiguration) -> String?
+
+pub fn client_project_configuration_model_tasks_file(@run_publication_host.ClientProjectConfiguration) -> String?
+
+pub fn client_project_configuration_selected_profile(@run_publication_host.ClientProjectConfiguration) -> String?
+
+pub fn client_project_configuration_state_directory(@run_publication_host.ClientProjectConfiguration) -> String
+
+pub fn client_project_model_registry_admit(String) -> Result[@run_publication_host.ClientProjectModelRegistry, @run_publication_host.ClientProjectBindingsIssue]
+
+pub fn client_project_model_registry_default_provider(@run_publication_host.ClientProjectModelRegistry) -> String?
+
+pub fn client_project_model_registry_original_wire(@run_publication_host.ClientProjectModelRegistry) -> String
+
+pub fn client_project_model_registry_provider_count(@run_publication_host.ClientProjectModelRegistry) -> Int
+
+pub fn client_project_model_registry_provider_key_environment(@run_publication_host.ClientProjectModelRegistry, Int) -> String?
+
+pub fn client_project_model_registry_provider_name(@run_publication_host.ClientProjectModelRegistry, Int) -> String?
+
+pub fn client_project_model_registry_provider_type(@run_publication_host.ClientProjectModelRegistry, Int) -> String?
+
+pub fn client_project_model_registry_task_count(@run_publication_host.ClientProjectModelRegistry) -> Int
+
+pub fn client_project_model_registry_task_file(@run_publication_host.ClientProjectModelRegistry, Int) -> String?
+
+pub fn client_project_model_registry_task_name(@run_publication_host.ClientProjectModelRegistry, Int) -> String?
+
 pub fn client_run_control_observation(Int, Bool, Bool, Bool, Bool) -> String raise ClientProgramRunStateIssue
 
 pub fn duckdb_dispatch(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> @actql/actql/connectors/duckdb/driver.StrategyComputeHostConfiguration raise NodeHostFailure
