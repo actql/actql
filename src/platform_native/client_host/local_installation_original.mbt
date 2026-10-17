@@ -20,6 +20,17 @@ fn initialize_local_installation_originals(
   database : @sqlite.Database,
   adoption : Bytes,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
+  match check_empty_local_installation_originals(database) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  insert_local_installation_control(database, adoption)
+}
+
+///|
+fn check_empty_local_installation_originals(
+  database : @sqlite.Database,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
   for
     table in [
       "client_local_installation_custody", "client_local_installation_originals",
@@ -36,7 +47,15 @@ fn initialize_local_installation_originals(
     Ok(_) => return Err(CustodyLost)
     Err(issue) => return Err(Physical(issue))
   }
-  match database.insert("client_local_installation_custody", "host", adoption) {
+  Ok(())
+}
+
+///|
+fn insert_local_installation_control(
+  database : @sqlite.Database,
+  body : Bytes,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  match database.insert("client_local_installation_custody", "host", body) {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
@@ -134,12 +153,30 @@ fn local_installation_packet(
   host : NativeLocalHostConnection,
   payload : Bytes,
 ) -> Result[Bytes, NativeLocalAdoptionIssue] {
+  local_installation_packet_in_transaction(
+    host.database,
+    host.epoch.crypto,
+    payload,
+  )
+}
+
+///|
+fn local_installation_packet_in_transaction(
+  database : @sqlite.Database,
+  crypto : @crypto.Library,
+  payload : Bytes,
+) -> Result[Bytes, NativeLocalAdoptionIssue] {
+  // The initializer and established Host use the same original epoch key and
+  // exact packet encoding. The bound is checked before allocating its packet.
+  if payload.length() > 2048 {
+    return Err(ConfigurationLimit)
+  }
   try {
-    let (key, _, _) = read_epoch_custody(host.database)
+    let (key, _, _) = read_epoch_custody(database)
       .map_err(issue => NativeLocalAdoptionIssue::Epoch(issue))
       .map_err(issue => LocalInstallationAdoptionStop(issue))
       .unwrap_or_error()
-    let tag = host.epoch.crypto
+    let tag = crypto
       .hmac_sha256(key, payload)
       .map_err(issue => NativeLocalAdoptionIssue::Crypto(issue))
       .map_err(issue => LocalInstallationAdoptionStop(issue))
@@ -245,7 +282,7 @@ fn NativeLocalHostConnection::installation_custody(
       is Ok(host) &&
       host.key == "host" &&
       host.revision == 0L &&
-      host.body == self.adoption_body &&
+      valid_local_installation_control(self, host.body) &&
       self.database.scan_after("client_local_installation_custody", "host")
       is Ok(witness) &&
       witness.key == "issued" &&
