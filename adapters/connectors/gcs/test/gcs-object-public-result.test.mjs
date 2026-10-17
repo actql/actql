@@ -140,6 +140,13 @@ test('public GCS Named Result preserves exact Decimal and JSON contracts across 
     steps: [{from: 'objects', select: fields, as: 'rows'},
       {from: 'rows', sort: [{name: 'asc'}], as: 'ordered'}],
     results: {r: {from: 'ordered', fields}}}], results: {r: {from: {stage: 'scan', result: 'r'}}}};
+  const checkedEnvironment = moon.clientProgramCheckEnvironment(environment.wire,
+    environment.evidenceCid, false, false, true, false, false, false, false);
+  assert.ok(checkedEnvironment);
+  const preparation = moon.clientProgramPrepareEffectFreeWithParameters(JSON.stringify(program),
+    'json', checkedEnvironment, undefined);
+  assert.ok(moon.clientProgramPreparationReady(preparation),
+    inspect(moon.clientProgramPreparationIssue(preparation), {depth: 12}));
   const run = await client.startSource(JSON.stringify(program), {format: 'json',
     submissionRef: client.newSubmission({nonce: 'gcs-public-original'})}).catch(error => {
     // All observed values belong to this nonsecret fresh fixture. Retain the
