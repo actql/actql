@@ -263,14 +263,20 @@ test('Sheets clear Command retains original requests through Local and HTTPS app
     const waiting = await settled(execution);
     assert.equal(waiting.status, 'waiting_checkpoint', JSON.stringify(waiting));
     assert.equal(setup.state.cleared.length, 0, 'metadata acquisition is not a clear grant');
-    await approve(first, execution);
-    await execution.reconcile();
+    const capturedCalls = setup.api.seen().length;
+    if (first.client) await first.client.close(); else await first.close();
+    const resumed = await setup.open(true, local);
+    const resumedClient = resumed.client ?? await resumed.as('owner-token');
+    const restored = await resumedClient.attach(execution.ref);
+    assert.equal(setup.api.seen().length, capturedCalls, 'restore does not reacquire the target');
+    await approve(resumed, restored);
+    await restored.reconcile();
     const done = await until(async () => {
-      const current = await execution.status();
+      const current = await restored.status();
       return terminal.has(current.status) || current.status === 'needs_reconciliation' ? current : undefined;
     });
     assert.equal(done.status, 'succeeded', JSON.stringify(done));
-    assert.deepEqual(await execution.result('answer').all(), [{receipt: 'clear-request'}]);
+    assert.deepEqual(await restored.result('answer').all(), [{receipt: 'clear-request'}]);
     assert.equal(setup.state.cleared.length, 1);
     assert.deepEqual(setup.state.cleared[0].requests[0], {updateCells: {
       range: {sheetId: 7, startRowIndex: 2, endRowIndex: 4, startColumnIndex: 0, endColumnIndex: 3},
@@ -278,7 +284,7 @@ test('Sheets clear Command retains original requests through Local and HTTPS app
     assert.equal(setup.state.updated.length, 0);
     assert.equal(setup.state.appended.length, 0);
     const before = setup.api.seen().length;
-    if (first.client) await first.client.close(); else await first.close();
+    if (resumed.client) await resumed.client.close(); else await resumed.close();
     await setup.replayInNewProcess(execution.ref, 'succeeded', [{receipt: 'clear-request'}]);
     assert.equal(setup.api.seen().length, before, 'cold attach neither reacquires nor resends');
     setup.state.acceptanceComplete = true;
