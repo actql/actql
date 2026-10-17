@@ -93,7 +93,14 @@ test('actual Content capture keeps the same original parent through an async pre
   const host = await openContentCommandHost({scratch, generated,
     keys: generateKeyPairSync('ed25519'), entrance: 'Local',
     onPrepareContent() { assert.fail('The async child must not start a second synchronous preparation'); },
-    prepareContentChild({originalContent, value, preparedRequest}) {
+    prepareContentChild(context) {
+      assert.equal(context.member.kind, 'command');
+      assert.equal(Object.hasOwn(context, 'rowIndex'), false);
+      assert.equal(Object.hasOwn(context, 'assertCurrent'), false);
+      assert.equal(context.authorizationForRow, undefined,
+        'Command preparation must not manufacture a target-read grant');
+      assert.equal(preparations, 0, 'the synchronous factory performs no preparation I/O');
+      const {originalContent, value, preparedRequest} = context;
       const release = async () => {
         closes++;
         closeObserved.resolve();
