@@ -128,7 +128,30 @@ export function createEmbeddedHostRegistry(sameInstallation) {
       seal();
       throw error;
     }
+    try {
+    const originalPort = host.port, answer = originalPort.answerCheckpoint;
+    if (answer !== undefined && typeof answer !== 'function') {
+      throw new TypeError('InvalidLocalCheckpointAnswerPort');
+    }
     const port = Object.freeze({
+      ...(answer === undefined ? {} : {
+        answerCheckpoint: (summary, decision, signal) => {
+            if (sealed || opened.closing) return Promise.reject(closing());
+            const pending = Promise.resolve().then(() => {
+              if (sealed || opened.closing) throw closing();
+              return Reflect.apply(answer, originalPort, [summary, decision, signal]);
+            });
+            // The same lease/Host handling sets own signing as well as reads.
+            // Close must not forget a pending original key/use operation.
+            handling.add(pending);
+            opened.handling.add(pending);
+            pending.finally(() => {
+              handling.delete(pending);
+              opened.handling.delete(pending);
+            }).catch(() => {});
+            return pending;
+        },
+      }),
       perform(operation, request, signal) {
         if (sealed || opened.closing) return Promise.reject(closing());
         const pending = Promise.resolve().then(() => host.port.perform(operation, request, signal));
@@ -141,8 +164,8 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         return pending;
       }, close, seal,
     });
-    try { return await connectInProcess(options, port); }
-    catch (cause) {
+    return await connectInProcess(options, port);
+    } catch (cause) {
       try { await close(); }
       catch {
         // No Client was returned to own retry. Expose only this connection's

@@ -24,6 +24,19 @@ test('projected property-count constraints distinguish empty Effect-only invento
   assert.equal(validate({declared: true}, lower), true);
 });
 
+test('selected full artifact projection preserves alternatives and composite constants', async () => {
+  const {project, structuralValidatorSource} = await import('./generate-client-publication-wire.mjs');
+  const schema = project({anyOf: [{const: ['first', 'second']}, {const: {original: true}}]}, {extended: true});
+  const validate = new Function(`${structuralValidatorSource({extended: true, compositeConstants: true})}return valid;`)();
+  assert.equal(validate(['first', 'second'], schema), true);
+  assert.equal(validate({original: true}, schema), true);
+  for (const value of [['second', 'first'], ['first'], {original: false}, {original: true, extra: 1}]) {
+    assert.equal(validate(value, schema), false);
+  }
+  assert.throws(() => project({anyOf: [{const: 1}]}), /UnsupportedPublicationSchema:anyOf/);
+  assert.throws(() => project({format: 'invented'}, {extended: true}), /UnsupportedPublicationFormat/);
+});
+
 test('publication wire bindings match their registered schema owners',
   async () => {
     const output = buildClientPublicationWire(registries);
