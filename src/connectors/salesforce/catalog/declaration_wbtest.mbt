@@ -129,12 +129,12 @@ test "declaration types each field by an existing exact contract or excludes it"
     {
       resource: "Record__c",
       field: "Rate__c",
-      reason: UnsupportedType("percent"),
+      reason: UnsupportedPrecision(None, None),
     },
     {
       resource: "Record__c",
       field: "Price__c",
-      reason: UnsupportedType("currency"),
+      reason: UnsupportedPrecision(None, None),
     },
     {
       resource: "Record__c",
