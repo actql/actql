@@ -18,9 +18,12 @@ pub fn prepare_record_delete_preview(
   values : @catalog.RecordValueLimits,
   limits : @catalog.RecordMutationLimits,
 ) -> Result[RecordDeletePreview, RecordReadIssue] {
-  if limits.max_records <= 0 || limits.max_records > 100 ||
-    limits.max_identity_bytes <= 0 || limits.max_comparison_work <= 0 ||
-    limits.max_output_bytes <= 0 || limits.max_output_nodes <= 0 ||
+  if limits.max_records <= 0 ||
+    limits.max_records > 100 ||
+    limits.max_identity_bytes <= 0 ||
+    limits.max_comparison_work <= 0 ||
+    limits.max_output_bytes <= 0 ||
+    limits.max_output_nodes <= 0 ||
     limits.max_output_depth <= 0 {
     return Err(InvalidLimits)
   }
@@ -54,7 +57,11 @@ pub fn prepare_record_delete_preview(
   }
   guard selected is Some(index) else { return Err(InvalidRequest) }
   let checked = match
-    @catalog.project_checked_record_page(page, mapping.original.settings, values) {
+    @catalog.project_checked_record_page(
+      page,
+      mapping.original.settings,
+      values,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Catalog(issue))
   }
@@ -109,7 +116,7 @@ pub fn prepare_record_delete_preview(
       return Err(RequestEncoding(issue))
     }
   }
-  Ok({ mapping, target, checked, before_wire: before, version_cid: version })
+  Ok({ mapping, target, checked, before_wire: before, version_cid: version, })
 }
 
 ///|
@@ -134,7 +141,10 @@ pub fn record_delete_preview_matches(
   mapping : RecordDeleteMapping,
   target : @catalog.OriginalRecordTarget,
 ) -> Bool {
-  physical_equal(view.mapping, mapping) && physical_equal(view.target, target) &&
-  physical_equal(@catalog.checked_record_original(view.checked),
-    @catalog.original_record_target_page(target))
+  physical_equal(view.mapping, mapping) &&
+  physical_equal(view.target, target) &&
+  physical_equal(
+    @catalog.checked_record_original(view.checked),
+    @catalog.original_record_target_page(target),
+  )
 }
