@@ -56,6 +56,27 @@ test('metadata typed bridge derives constructor and projection together from the
   } finally { rmSync(scratch, {recursive: true, force: true}); }
 });
 
+test('metadata binding requires exactly one original opaque subject declaration', () => {
+  const line = '  subject : InstallationPreparationSubject\n';
+  assert.equal(grant.split(line).length, 2);
+  for (const changed of [grant.replace(line, ''),
+    grant.replace(line, line + line),
+    grant.replace(line, '  subject : String\n'),
+    grant.replace(line, '  foreign : InstallationPreparationSubject\n')]) {
+    assert.throws(() => installationPreparationFields(subject, changed),
+      /InstallationPreparationOwner(?:FieldUnsupported|FieldMismatch)/u);
+    assert.throws(() => renderInstallationPreparationBinding(subject, changed),
+      /InstallationPreparationOwner(?:FieldUnsupported|FieldMismatch)/u);
+    assert.throws(() => renderInstallationPreparationBridge(subject, changed),
+      /InstallationPreparationOwner(?:FieldUnsupported|FieldMismatch)/u);
+    // Test the actual freshness entry, not just its primitive projection.
+    assert.throws(() => checkInstallationPreparationBinding(root, subject, changed),
+      /InstallationPreparationOwner(?:FieldUnsupported|FieldMismatch)/u);
+  }
+  assert.deepEqual(installationPreparationFields(subject, grant).request,
+    installationPreparationRequestKeys);
+});
+
 test('new metadata Owner field or missing generated comparison independently fails freshness', () => {
   const scratch = mkdtempSync(join(tmpdir(), 'installation-preparation-binding-'));
   try {
