@@ -17,6 +17,7 @@ struct CapturedEffectCommandKeyValidation {
   mut retained : Bool
   mut retaining : Bool
   mut step_work : Int64
+  mut workspace : @resources.SharedBorrow?
 }
 
 ///|
@@ -93,6 +94,7 @@ fn captured_effect_command_key_original_retained(
   value : CapturedEffectCommandKeyValidation,
 ) -> Bool {
   if !value.inputs.live ||
+    !captured_effect_command_key_workspace_current(value) ||
     !value.inputs.pins.live ||
     !value.inputs.table_pins.live ||
     value.inputs.local_results
@@ -181,7 +183,44 @@ pub fn start_captured_effect_command_key_validation(
     retained: false,
     retaining: false,
     step_work: 0L,
+    workspace: None,
   })
+}
+
+///|
+fn captured_effect_command_key_workspace_current(
+  value : CapturedEffectCommandKeyValidation,
+) -> Bool {
+  match value.workspace {
+    None => true
+    Some(workspace) =>
+      @resources.shared_borrow_matches_ledger(
+        workspace, value.inputs.run.captured.ledger,
+      )
+  }
+}
+
+///|
+/// The private original Host supplier selects and retains its allocation
+/// before key construction. Bind the exact outstanding borrower before the
+/// first step. This Ledger check is consistency, not a phase/adequacy proof.
+pub fn bind_captured_effect_command_key_workspace(
+  value : CapturedEffectCommandKeyValidation,
+  workspace : @resources.SharedBorrow,
+) -> Bool {
+  if value.workspace is Some(_) ||
+    value.terminal ||
+    value.revoked ||
+    value.retained ||
+    value.step_work != 0L ||
+    !captured_effect_command_key_origin(value) ||
+    !@resources.shared_borrow_matches_ledger(
+      workspace, value.inputs.run.captured.ledger,
+    ) {
+    return false
+  }
+  value.workspace = Some(workspace)
+  true
 }
 
 ///|
