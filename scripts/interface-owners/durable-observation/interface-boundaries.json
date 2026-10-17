@@ -4338,7 +4338,9 @@
       "exports": [
         "callHttpsCredentialResource",
         "closeHttpsCredentialBinding",
-        "openHttpsCredentialBinding"
+        "exchangeHttpsCredentialAuthentication",
+        "openHttpsCredentialBinding",
+        "prepareHttpsCredentialAuthenticationMaterial"
       ],
       "operations": [
         {
@@ -4356,6 +4358,84 @@
           "name": "acquireBinding/acquireBinding",
           "parameters": [
             "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "authenticationCurrent",
+          "parameters": [
+            "state",
+            "original",
+            "scope",
+            "control",
+            "journal",
+            "now",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "authenticationDependency",
+          "parameters": [
+            "state",
+            "parentScope",
+            "grant",
+            "scope",
+            "control",
+            "journal",
+            "trustedNow"
+          ],
+          "async": false
+        },
+        {
+          "name": "authenticationDependency/authenticationDependency",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "authenticationOutcomeFailure",
+          "parameters": [
+            "originalFailure",
+            "outcomeFailure",
+            "useCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "authenticationTokenReader",
+          "parameters": [
+            "registration",
+            "maxSecretBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "authenticationTokenReader/authenticationTokenReader",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "authenticationTokenReader/authenticationTokenReader#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "authenticationTokenReader/init:read/init:read",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "authenticationTokenReader/init:read/init:read/init:read",
+          "parameters": [
+            "scope"
           ],
           "async": false
         },
@@ -4390,6 +4470,22 @@
           "async": true
         },
         {
+          "name": "checkAuthenticationSelection",
+          "parameters": [
+            "state",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkAuthenticationSelection/checkAuthenticationSelection",
+          "parameters": [
+            "scope",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "closeHttpsCredentialBinding",
           "parameters": [
             "binding"
@@ -4411,6 +4507,56 @@
           "async": false
         },
         {
+          "name": "exchangeHttpsCredentialAuthentication",
+          "parameters": [
+            "binding",
+            "material",
+            "scope",
+            "control",
+            "journal",
+            "resolveSecret",
+            "authGrant",
+            "authScope",
+            "useId",
+            "currentBeforeSend",
+            "now",
+            "signal",
+            "ca",
+            "cert",
+            "key"
+          ],
+          "async": true
+        },
+        {
+          "name": "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "exchangeHttpsCredentialAuthentication/expires/expires",
+          "parameters": [
+            "minimum",
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "fail/fail",
           "parameters": [
             "code",
@@ -4425,7 +4571,8 @@
             "control",
             "journal",
             "resolveSecret",
-            "maxSecretBytes"
+            "maxSecretBytes",
+            "authentication"
           ],
           "async": false
         },
@@ -4453,6 +4600,62 @@
           "async": false
         },
         {
+          "name": "ownAuthenticationRegistration",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownAuthenticationRegistration/ownAuthenticationRegistration",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownAuthenticationRegistration/ownAuthenticationRegistration#2",
+          "parameters": [
+            "scope"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareHttpsCredentialAuthenticationMaterial",
+          "parameters": [
+            "binding",
+            "scope",
+            "control",
+            "journal",
+            "resolveSecret",
+            "parentClaim",
+            "currentBeforeSign",
+            "authenticationGrant",
+            "authenticationScope",
+            "now",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareHttpsCredentialAuthenticationMaterial/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareHttpsCredentialAuthenticationMaterial/deadline/deadline",
+          "parameters": [
+            "minimum",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareHttpsCredentialAuthenticationMaterial/time/time",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "receive",
           "parameters": [
             "hostname",
@@ -4463,6 +4666,7 @@
             "bodyMediaType",
             "requestBytes",
             "secret",
+            "authenticationForm",
             "headers",
             "ca",
             "cert",
@@ -4572,16 +4776,39 @@
             "<module>",
             "acquireBinding",
             "acquireBinding/acquireBinding",
+            "authenticationCurrent",
+            "authenticationDependency",
+            "authenticationDependency/authenticationDependency",
+            "authenticationOutcomeFailure",
+            "authenticationTokenReader",
+            "authenticationTokenReader/authenticationTokenReader",
+            "authenticationTokenReader/authenticationTokenReader#2",
+            "authenticationTokenReader/init:read/init:read",
+            "authenticationTokenReader/init:read/init:read/init:read",
             "callCredentialResource",
             "callHttpsCredentialResource",
+            "checkAuthenticationSelection",
+            "checkAuthenticationSelection/checkAuthenticationSelection",
             "closeHttpsCredentialBinding",
             "count/count",
             "exactRequestTarget",
+            "exchangeHttpsCredentialAuthentication",
+            "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication",
+            "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication#2",
+            "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication#3",
+            "exchangeHttpsCredentialAuthentication/expires/expires",
             "fail/fail",
             "openHttpsCredentialBinding",
             "openHttpsCredentialBinding/openHttpsCredentialBinding",
             "openHttpsCredentialBinding/original/original",
             "operationFor",
+            "ownAuthenticationRegistration",
+            "ownAuthenticationRegistration/ownAuthenticationRegistration",
+            "ownAuthenticationRegistration/ownAuthenticationRegistration#2",
+            "prepareHttpsCredentialAuthenticationMaterial",
+            "prepareHttpsCredentialAuthenticationMaterial/current/current",
+            "prepareHttpsCredentialAuthenticationMaterial/deadline/deadline",
+            "prepareHttpsCredentialAuthenticationMaterial/time/time",
             "receive",
             "receive/receive",
             "receive/receive/finish/finish",
@@ -4601,7 +4828,9 @@
           "exports": [
             "callHttpsCredentialResource",
             "closeHttpsCredentialBinding",
-            "openHttpsCredentialBinding"
+            "exchangeHttpsCredentialAuthentication",
+            "openHttpsCredentialBinding",
+            "prepareHttpsCredentialAuthenticationMaterial"
           ],
           "attributes": {
             "responsibility": [
@@ -4612,6 +4841,14 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "# Scoped HTTP body ownership"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
               }
             ],
             "inputsOutputs": [
@@ -4622,6 +4859,14 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "## Two explicit shapes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
               }
             ],
             "identity": [
@@ -4632,6 +4877,14 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "## Original use and currentness"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
               }
             ],
             "ownership": [
@@ -4642,6 +4895,14 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "## Simultaneous inventory"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
               }
             ],
             "synchronization": [
@@ -4652,6 +4913,14 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "secret-resolution await."
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
               }
             ],
             "failure": [
@@ -4662,6 +4931,14 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "Lost responses retain the same nominal Unknown use."
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
               }
             ],
             "cancellation": [
@@ -4672,6 +4949,14 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "Bound\ncleanup retains its existing pending state"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
               }
             ],
             "resources": [
@@ -4682,6 +4967,14 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "two distinct dedicated N-byte backings"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
               }
             ],
             "extension": [
@@ -4692,6 +4985,14 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "not public JSON wire"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
               }
             ],
             "verification": [
@@ -4710,16 +5011,40 @@
               {
                 "path": "adapters/host-common/http-exchange.test.mjs",
                 "anchor": "byte length/backing properties cannot disguise"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "adapters/site-node/credential-authentication-material.test.mjs",
+                "anchor": "a reentrant material-current revocation still reaches final Journal authorization before signing"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "adapters/site-node/credential-authentication-exchange.test.mjs",
+                "anchor": "lost outcome COMMIT reply publishes no token and never repeats the confirmed SQLite write"
+              },
+              {
+                "path": "adapters/site-node/credential-authentication-exchange.test.mjs",
+                "anchor": "failed outcome recording keeps original current failure and its same pending cleanup receiver"
               }
             ]
           }
         }
       ],
-      "sha256": "47897fc4c1bcafa72ef0d2bee6afe446df1ff51be3e6546046609224dee82bc1",
+      "sha256": "dd904b75bd39f8287d75921de6ce10c3aa6e5da22e5773a8cb61462b30c85189",
       "imports": [
+        "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",
         "../host-common/http-exchange.mjs",
-        "node:https"
+        "../host-common/runtime-result.mjs",
+        "./google-service-account-assertion.mjs",
+        "node:https",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
