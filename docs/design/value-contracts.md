@@ -41,7 +41,9 @@ The public Task `input` and `output` records are field maps. The existing
 Only type positions expand a scalar name to `{type: name, nullable: false}` or
 add omitted `nullable: false` to a typed record. Object `fields` and array `items`
 recurse through that same adapter; enum members and schema field names remain
-data. The complete result passes through `value_contract.read_author_usage`.
+data. The intermediate parser preserves exact object keys, so a raw Cursor's
+noncanonical name is still rejected rather than silently normalized. The complete
+result passes through `value_contract.read_author_usage`.
 Unknown fields, checked-only extents and Parameter-only rules are retained for
 rejection, rather than ignored. General authored and checked contracts still
 require explicit nullability. An unsupported logical type cannot become Number,
@@ -65,7 +67,8 @@ active-ancestry frames and indexed children rather than a detached field map.
 Failure returns no partial checked schema. Original Cursor/tree, temporary wire,
 parser/admission trees, checked Contract/enum backing, emitted wire, hash work and
 returned aliases can overlap and belong in the existing consuming Owner's
-retained/workspace inventory; these structural limits supply no physical funding.
+retained/workspace inventory, including the intermediate UTF-8 byte backing;
+these structural limits supply no physical funding.
 The schema reader does not own external I/O, cancellation ACK or resource release.
 
 Both entries allow empty object fields. Field names follow the Language rule,

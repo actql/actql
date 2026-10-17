@@ -226,3 +226,22 @@ test "public Task complete fields depth and canonical body are bounded including
     ),
   )
 }
+
+///|
+test "public Task raw field originals are rejected rather than normalized by intermediate parsing" {
+  let syntax = @source.parse_json_bytes_preserving(
+    @utf8.encode("{\"e\\u0301\":\"string\"}"),
+    { max_input_bytes: 1000, max_nodes: 100, max_depth: 10, },
+  ).unwrap()
+  let cursor = @decode.admit(syntax, {
+    max_nodes: 100,
+    max_depth: 10,
+    max_string_bytes: 1000,
+    max_total_string_bytes: 1000,
+  }).unwrap()
+  assert_eq(@decode.field_at(cursor, 0).unwrap().0, "e\u{0301}")
+  assert_true(
+    read_public_model_task_contract(cursor, public_task_contract_limits())
+    is Err({ kind: InvalidValueContract(_), .. }),
+  )
+}

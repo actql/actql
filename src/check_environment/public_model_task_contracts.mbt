@@ -194,14 +194,16 @@ pub fn read_public_model_task_contract(
   let b = { limits, work: 0, contract_nodes: 0, contract_text: 0, }
   try {
     let normalized = public_task_type_wire(root, b)
-    // Reserve both complete bounded parser/admission traversals before either
-    // builds its tree. These are computational bounds, not physical funding.
-    for _ in 0..<2 {
+    // Reserve UTF-8 materialization and both complete bounded parser/admission
+    // traversals before any builds its tree. These are not physical funding.
+    for _ in 0..<3 {
       model_task_charge(b, limits.bodies.max_bytes, root)
       model_task_charge(b, limits.bodies.max_nodes, root)
     }
+    // Raw Cursor names must reach the Contract owner unchanged. Adding
+    // nullability shorthand must not silently repair a noncanonical name.
     let syntax = match
-      @source.parse_json(normalized, {
+      @source.parse_json_bytes_preserving(@utf8.encode(normalized), {
         max_input_bytes: limits.bodies.max_bytes,
         max_nodes: limits.bodies.max_nodes,
         max_depth: limits.bodies.max_depth,
