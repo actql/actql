@@ -29,7 +29,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_memory_abi.py",
-      "sha256": "44422216d03eae41e02fe892097b91ad7d17168f9d3fad831ef529509dedf4b0",
+      "sha256": "7dc0344cea5f7ffc5a3beaaeda887bfd49c616ec2e844e6d3e2a77b175c7eabf",
       "generator": {
         "path": "scripts/generate-local-native-memory-binding.py",
         "anchor": "def outputs("
@@ -32783,7 +32783,7 @@
           ]
         }
       ],
-      "sha256": "44422216d03eae41e02fe892097b91ad7d17168f9d3fad831ef529509dedf4b0",
+      "sha256": "7dc0344cea5f7ffc5a3beaaeda887bfd49c616ec2e844e6d3e2a77b175c7eabf",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -32921,6 +32921,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_memory_abi.py",
                 "anchor": "def bind(library: Any, symbol: str) -> Any:"
+              },
+              {
+                "path": "scripts/test_local_native_memory_binding.py",
+                "anchor": "def test_thread_callback_is_cdecl_void_with_one_opaque_argument(self):"
+              },
+              {
+                "path": "packages/python-local-runtime/native/pre-root/fixtures/thread.c",
+                "anchor": "static void thread_destructors(void) {"
               }
             ]
           }
