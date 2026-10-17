@@ -1,6 +1,10 @@
 import {request as httpsRequest} from 'node:https';
 import {types} from 'node:util';
-import {prepareGoogleServiceAccountAssertion} from './google-service-account-assertion.mjs';
+import {prepareGoogleServiceAccountAssertion, googleServiceAccountAssertionRequest}
+  from './google-service-account-assertion.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeIsBoxedSome, runtimeIsBoxedNone, runtimeField}
+  from '../host-common/compiler-binding.generated.mjs';
 import {credentialInvocationBindingKeys} from
   '../host-common/credential-scope-fields.generated.mjs';
 import {checkHttpRequestMethodBody, observeResponseHeaders, ownHttpByteRequest, ownRequestHeaders,
@@ -25,7 +29,8 @@ function ownAuthenticationRegistration(value) {
     fail('InvalidRemoteCredentialAuthenticationRegistration');
   }
   const {resolveMaterial, assertCurrentMaterial, clientEmail, keyGeneration,
-    scopes: inputScopes, delegate, lifetimeSeconds, signingLimits} = value;
+    scopes: inputScopes, delegate, lifetimeSeconds, signingLimits,
+    tokenRuntime, responseLimits} = value;
   const limits = signingLimits !== null && typeof signingLimits === 'object' &&
     !types.isProxy(signingLimits) ? Object.freeze({...signingLimits}) : undefined;
   const requiredLimits = ['maxScopes', 'maxScopeBytes', 'maxIdentityBytes',
@@ -46,7 +51,8 @@ function ownAuthenticationRegistration(value) {
   }
   return Object.freeze({resolveMaterial, assertCurrentMaterial,
     clientEmail, keyGeneration, scopes: Object.freeze(scopes), delegate,
-    lifetimeSeconds, signingLimits: limits});
+    lifetimeSeconds, signingLimits: limits, tokenRuntime,
+    responseLimits: responseLimits === undefined ? undefined : Object.freeze({...responseLimits})});
 }
 
 export function openHttpsCredentialBinding({scope, control, journal,
@@ -68,7 +74,9 @@ export function openHttpsCredentialBinding({scope, control, journal,
     maxSecretBytes, secret: undefined, active: false, retiring: false,
     closed: false, changed: false, request: undefined,
     authentication: ownAuthenticationRegistration(authentication),
-    authenticationAttempted: false, authenticationMaterial: undefined});
+    authenticationAttempted: false, authenticationMaterial: undefined,
+    authenticationExchangeAttempted: false, authenticationExchange: undefined,
+    authenticationToken: undefined});
   return binding;
 }
 
@@ -76,6 +84,8 @@ function retireBinding(state) {
   if (state.retiring && !state.active && state.request === undefined) {
     state.secret = undefined;
     state.authenticationMaterial = undefined;
+    state.authenticationExchange = undefined;
+    state.authenticationToken = undefined;
     state.closed = true;
   }
 }
@@ -148,7 +158,7 @@ export async function prepareHttpsCredentialAuthenticationMaterial({binding,
     const material = Object.freeze(Object.create(null));
     const original = {material, selected, privateKey: selected.privateKey,
       expiresUnixMilliseconds: selected.expiresUnixMilliseconds,
-      parentClaim, assertion: undefined};
+      parentClaim, parentScope: Object.freeze({...scope}), assertion: undefined};
     // Retain the same original material through a failed later fence until the
     // binding retires. Resolver failures propagate with their original custody.
     state.authenticationMaterial = original;
@@ -179,6 +189,159 @@ export async function prepareHttpsCredentialAuthenticationMaterial({binding,
       issuedAtUnixSeconds: issuedAt, lifetimeSeconds: Number(lifetime),
       limits: registration.signingLimits});
     return material;
+  } finally {
+    state.active = false;
+    retireBinding(state);
+  }
+}
+
+function authenticationTokenReader(registration, maxSecretBytes) {
+  const runtime = registration.tokenRuntime, limits = registration.responseLimits;
+  if (!types.isModuleNamespaceObject(runtime) || limits === undefined ||
+      !['maxBytes', 'maxNodes', 'maxDepth', 'maxTokenBytes', 'maxLifetimeSeconds',
+        'maxScopes', 'maxScopeBytes'].every(name => Number.isSafeInteger(limits[name]) &&
+          limits[name] > 0 && limits[name] <= 2147483647)) {
+    fail('RemoteCredentialAuthenticationUnavailable');
+  }
+  const read = runtime.googleServiceAccountReadTokenResponse;
+  const token = runtime.googleServiceAccountTokenResponseAccessToken;
+  const lifetime = runtime.googleServiceAccountTokenResponseLifetimeSeconds;
+  const scopes = runtime.googleServiceAccountTokenResponseScopes;
+  if ([read, token, lifetime, scopes].some(value => typeof value !== 'function')) {
+    fail('RemoteCredentialAuthenticationUnavailable');
+  }
+  return Object.freeze({maxBytes: limits.maxBytes, read(response) {
+    const original = checked(read(response.statusCode, response.body, limits.maxBytes,
+      limits.maxNodes, limits.maxDepth, Math.min(maxSecretBytes, limits.maxTokenBytes),
+      limits.maxLifetimeSeconds, limits.maxScopes, limits.maxScopeBytes));
+    const observed = scopes(original);
+    if (!runtimeIsBoxedSome(observed) && !runtimeIsBoxedNone(observed)) {
+      fail('RemoteCredentialAuthenticationResponseUnavailable');
+    }
+    // These observations never issue permissions. A present response scope may
+    // narrow the declaration, but cannot enlarge the original selected set.
+    if (runtimeIsBoxedSome(observed) &&
+        runtimeField(observed, 0).some(scope => !registration.scopes.includes(scope))) {
+      fail('RemoteCredentialAuthenticationScopeMismatch');
+    }
+    return Object.freeze({original, value: token(original), lifetimeSeconds: lifetime(original)});
+  }});
+}
+
+function authenticationCurrent(state, original, scope, control, journal, now, signal) {
+  if (state.retiring) fail('RemoteCredentialBindingRetiring');
+  signal?.throwIfAborted();
+  checkAuthenticationSelection(state, original);
+  const time = now();
+  if (!Number.isSafeInteger(time) || time < 0) fail('InvalidRemoteCredentialAuthenticationTime');
+  const parent = journal.authorize(original.parentClaim.use, BigInt(time),
+    original.parentScope, control);
+  if (parent.outcome !== 'claimed' && parent.outcome !== 'succeeded') {
+    fail('InvalidRemoteCredentialAuthenticationParent');
+  }
+  if (state.authenticationExchange !== undefined) {
+    const exchange = state.authenticationExchange;
+    journal.authorize(exchange.claim.use, BigInt(time), exchange.scope, control);
+    control.checkAuthenticationOperation(exchange.operation, exchange.request,
+      original.parentClaim.use, exchange.claim.use, original.material,
+      'POST', '/token', 'application/x-www-form-urlencoded', exchange.body, BigInt(time));
+  }
+  return time;
+}
+
+// This fixed form placement belongs only to the original registered Google
+// dependency. It is not a general unauthenticated transport or a token getter.
+export async function exchangeHttpsCredentialAuthentication({binding, material,
+  scope, control, journal, resolveSecret, authGrant, authScope, useId,
+  currentBeforeSend, now = Date.now, signal, ca, cert, key}) {
+  const state = acquireBinding(binding, {scope, control, journal, resolveSecret});
+  if (state === undefined) fail('InvalidRemoteCredentialBinding');
+  let started = false, finishing = false;
+  try {
+    const original = state.authenticationMaterial, registration = state.authentication;
+    if (registration === undefined || original === undefined ||
+        original.material !== material || original.assertion === undefined ||
+        typeof currentBeforeSend !== 'function' || typeof now !== 'function' ||
+        !text(useId) || typeof journal.checkGrant !== 'function' ||
+        ['prepareAuthenticationRequest', 'bindAuthenticationUse', 'checkAuthenticationOperation']
+          .some(name => typeof control[name] !== 'function')) {
+      fail('RemoteCredentialAuthenticationUnavailable');
+    }
+    if (state.authenticationExchangeAttempted) fail('RemoteCredentialAuthenticationAlreadyClaimed');
+    const reader = authenticationTokenReader(registration, state.maxSecretBytes);
+    const selectedScope = Object.freeze({...authScope});
+    if (selectedScope.resourceOrigin !== 'https://oauth2.googleapis.com' ||
+        !text(selectedScope.operation) || selectedScope.operation === original.parentScope.operation ||
+        credentialInvocationBindingKeys.some(name => name !== 'resourceOrigin' &&
+          selectedScope[name] !== state.original[name])) {
+      fail('ForeignRemoteCredentialAuthenticationScope');
+    }
+    await currentBeforeSend();
+    const trustedNow = authenticationCurrent(state, original, scope, control, journal, now, signal);
+    const request = googleServiceAccountAssertionRequest(original.assertion);
+    // Own the exact already bounded form before claiming; never encode it into
+    // a Bearer header or accept replacement bytes from the Connector caller.
+    const body = Buffer.from(request.body, 'utf8');
+    if (body.byteLength !== request.requestBytes ||
+        body.byteLength > registration.signingLimits.maxRequestBytes) {
+      fail('RemoteCredentialAuthenticationBodyLimitExceeded');
+    }
+    journal.checkGrant(control.identity(authGrant), BigInt(trustedNow), selectedScope, control);
+    // Neither a fallible COMMIT nor a lost response may trigger another claim
+    // or a replacement assertion on this original binding.
+    state.authenticationExchangeAttempted = true;
+    const claim = journal.claim(control.identity(authGrant), useId,
+      BigInt(trustedNow), selectedScope, control);
+    if (claim.replayed) fail('RemoteCredentialUseAlreadyClaimed');
+    // Capture the original claimed responsibility before a fallible pure pair
+    // check. A failed pair still belongs to this original Journal/use.
+    const exchange = {claim, scope: selectedScope, body};
+    state.authenticationExchange = exchange;
+    const grantExpiry = BigInt(JSON.parse(control.json(claim.grant)).expires_unix_ms);
+    const deadline = grantExpiry < BigInt(request.expiresAtUnixSeconds) * 1000n
+      ? grantExpiry : BigInt(request.expiresAtUnixSeconds) * 1000n;
+    const paired = control.prepareAuthenticationRequest(original.parentClaim.use,
+      claim.grant, material, 'POST', '/token', 'application/x-www-form-urlencoded',
+      body, registration.signingLimits.maxRequestBytes, deadline);
+    const operation = control.bindAuthenticationUse(paired, original.parentClaim.use,
+      claim.use, material, 'POST', '/token', 'application/x-www-form-urlencoded',
+      body, BigInt(trustedNow));
+    Object.assign(exchange, {request: paired, operation, deadline});
+    await currentBeforeSend();
+    authenticationCurrent(state, original, scope, control, journal, now, signal);
+    started = true;
+    const response = await receive({hostname: 'oauth2.googleapis.com', path: '/token',
+      method: 'POST', body, bodyMediaType: 'application/x-www-form-urlencoded',
+      requestBytes: body.byteLength, authenticationForm: true, headers: [],
+      ca, cert, key, signal, maxResponseBytes: reader.maxBytes, binding: state});
+    // Observe the original current authority after the actual response/socket
+    // await and before exposing any use of the private token.
+    await currentBeforeSend();
+    const receivedAt = authenticationCurrent(state, original, scope, control, journal, now, signal);
+    const decoded = reader.read(response);
+    const advertised = BigInt(receivedAt) + BigInt(decoded.lifetimeSeconds) * 1000n;
+    const expires = [advertised, deadline, original.expiresUnixMilliseconds]
+      .reduce((minimum, value) => value < minimum ? value : minimum);
+    const finalNow = authenticationCurrent(state, original, scope, control, journal, now, signal);
+    if (expires <= BigInt(finalNow)) fail('RemoteCredentialAuthenticationMaterialExpired');
+    finishing = true;
+    journal.finish(claim.record.useCid, 'succeeded');
+    state.authenticationToken = {value: decoded.value, response: decoded.original,
+      physicalResponse: response, expires, parentAvailable: true};
+    return Object.freeze({useCid: claim.record.useCid});
+  } catch (error) {
+    const exchange = state.authenticationExchange;
+    if (exchange !== undefined && !finishing) {
+      finishing = true;
+      try {
+        journal.finish(exchange.claim.record.useCid, started ? 'unknown' : 'failed');
+      } catch (outcomeFailure) {
+        fail('RemoteCredentialAuthenticationOutcomeUnknown',
+          Object.freeze({originalFailure: error, outcomeFailure,
+            useCid: exchange.claim.record.useCid}));
+      }
+    }
+    throw error;
   } finally {
     state.active = false;
     retireBinding(state);
@@ -303,6 +466,7 @@ function operationFor(operations, scope, maxRequestBytes) {
 }
 
 function receive({hostname, port, path, method, body, bodyMediaType, requestBytes, secret,
+  authenticationForm = false,
   headers, ca, cert, key, signal, maxResponseBytes, binding}) {
   return new Promise((resolve, reject) => {
     let settled = false;
@@ -343,7 +507,7 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
       headers: Object.freeze({
         accept: 'application/json',
         ...Object.fromEntries(headers),
-        authorization: `Bearer ${secret}`,
+        ...(authenticationForm ? {} : {authorization: `Bearer ${secret}`}),
         ...(body === undefined ? {} : {
           'content-type': bodyMediaType,
           'content-length': requestBytes,
@@ -426,17 +590,30 @@ async function callCredentialResource({
   }
   const operation = operationFor(operations, scope, maxRequestBytes);
   signal?.throwIfAborted();
-  const claimed = journal.claim(
-    control.identity(grant),
-    useId,
-    BigInt(now()),
-    scope,
-    control,
-  );
+  const authenticated = binding?.authentication !== undefined;
+  const original = authenticated ? binding.authenticationMaterial : undefined;
+  const token = authenticated ? binding.authenticationToken : undefined;
+  if (authenticated) {
+    if (token === undefined || typeof currentBeforeSend !== 'function') {
+      fail('RemoteCredentialAuthenticationUnavailable');
+    }
+    const trustedNow = authenticationCurrent(binding, original, scope, control, journal, now, signal);
+    if (token.expires <= BigInt(trustedNow)) fail('RemoteCredentialAuthenticationMaterialExpired');
+  }
+  // The first API call consumes the already claimed original parent use. It
+  // must not claim a second use or turn a replay into permission to send.
+  let claimed;
+  if (authenticated && token.parentAvailable) {
+    claimed = original.parentClaim;
+    if (useId !== claimed.record.useId || control.identity(grant) !== claimed.record.grantCid) {
+      fail('ForeignRemoteCredentialAuthenticationParent');
+    }
+    token.parentAvailable = false;
+  } else claimed = journal.claim(control.identity(grant), useId, BigInt(now()), scope, control);
   if (claimed.replayed) fail('RemoteCredentialUseAlreadyClaimed');
-  let requestStarted = false;
+  let requestStarted = false, finishing = false;
   try {
-    const currentSecret = await resolveSecret(Object.freeze({
+    const currentSecret = authenticated ? token.value : await resolveSecret(Object.freeze({
       grantCid: claimed.record.grantCid,
       principal: scope.principal,
       namespaceId: scope.namespaceId,
@@ -473,6 +650,10 @@ async function callCredentialResource({
       fail('RemoteCredentialBindingChanged');
     }
     signal?.throwIfAborted();
+    if (authenticated) {
+      const trustedNow = authenticationCurrent(binding, original, scope, control, journal, now, signal);
+      if (token.expires <= BigInt(trustedNow)) fail('RemoteCredentialAuthenticationMaterialExpired');
+    }
     journal.authorize(
       claimed.use,
       BigInt(now()),
@@ -495,8 +676,15 @@ async function callCredentialResource({
       maxResponseBytes,
       binding,
     });
+    if (authenticated) {
+      await currentBeforeSend();
+      const trustedNow = authenticationCurrent(binding, original, scope, control, journal, now, signal);
+      if (token.expires <= BigInt(trustedNow)) fail('RemoteCredentialAuthenticationMaterialExpired');
+      journal.authorize(claimed.use, BigInt(trustedNow), scope, control);
+    }
     if (response.statusCode === 401 &&
-        typeof resolveSecret.invalidate === 'function') {
+        authenticated) binding.changed = true;
+    else if (response.statusCode === 401 && typeof resolveSecret.invalidate === 'function') {
       resolveSecret.invalidate(secret);
     }
     if (response.statusCode >= 300 && response.statusCode < 400) {
@@ -511,6 +699,7 @@ async function callCredentialResource({
     // below like any other failure after the request started.
     const headers = observeResponseHeaders(response.headers,
       operation.responseHeaders);
+    finishing = true;
     journal.finish(claimed.record.useCid, accepted ? 'succeeded' : 'failed');
     return Object.freeze({
       useCid: claimed.record.useCid,
@@ -520,6 +709,9 @@ async function callCredentialResource({
       body: response.body,
     });
   } catch (error) {
+    // Do not repeat a fallible outcome COMMIT on the new auth path. The
+    // existing Journal and its original unknown claim retain responsibility.
+    if (authenticated && finishing) throw error;
     journal.finish(
       claimed.record.useCid,
       requestStarted &&
@@ -538,7 +730,7 @@ export async function callHttpsCredentialResource(options) {
   try {
     // An explicitly registered auth dependency cannot fall back to a static
     // Bearer resolver while its separate original exchange is not connected.
-    if (binding?.authentication !== undefined) {
+    if (binding?.authentication !== undefined && binding.authenticationToken === undefined) {
       fail('RemoteCredentialAuthenticationUnavailable');
     }
     return await callCredentialResource(options, binding);
