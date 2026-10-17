@@ -99,6 +99,65 @@ export async function originalFieldCommandKeyFixture({duplicate = false, inputKe
       100000, 10000, 64, 10, 10000, 100000, 10003, 66, 10, 100000, 10000, 64, 4096);
     assert(limits);
     return {prepared, owned, execution, inputs, limits, rows, revoke() { current = false; },
+      publicationContext(control) {
+        // Publication consumes the same original acquisition and capture. The
+        // fixture's policy remains explicit and is not an installed grant.
+        const bounds = {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64};
+        const authorityScopeCid = `sha256:${'a'.repeat(64)}`;
+        const identity = checked(moon.clientProgramIdentifyCapturedEffectSourceRelation(source));
+        const logicalInput = checked(moon.clientProgramEffectIssueCapturedSourceLogical(
+          prepared, source, identity, requirement));
+        const dataPolicyCid = declared.views[0].data_policy_cid;
+        const sourceEvidenceWire = checked(moon.clientProgramRowSourceIssueSourceEvidence(
+          acquisition, captured, identity, logicalInput, authorityScopeCid,
+          dataPolicyCid, '2026-09-24T00:00:00.000Z'));
+        const sourceEvidence = control.admitRunEvidence('source_evidence', sourceEvidenceWire, bounds);
+        const retentionDependencies = Object.freeze([
+          ['retention_contract', 'key-fixture-retention'],
+          ['metadata_retention_policy', 'key-fixture-metadata'],
+          ['clock_contract', 'key-fixture-clock'],
+        ].map(([kind, name]) => {
+          const wire = canonical({name, version: 'actql-installed-local-policy/0.1'});
+          return Object.freeze({kind, wire, cid: cid(JSON.parse(wire))});
+        }));
+        const retention = control.seal('result_retention_policy', canonical({
+          version: 'actql-result-retention-policy/0.1',
+          retention_contract_cid: retentionDependencies[0].cid,
+          effective_data_policy_cid: dataPolicyCid,
+          available_until: '2027-01-01T00:00:00.000Z',
+          delete_by: '2027-01-02T00:00:00.000Z',
+          extension_ceiling_at: '2027-01-03T00:00:00.000Z',
+          metadata_retention_policy_cid: retentionDependencies[1].cid,
+          metadata_delete_by: '2027-01-04T00:00:00.000Z',
+          clock_contract_cid: retentionDependencies[2].cid,
+        }), bounds);
+        const [template, preparedEvidence, authorization] = evidence.slice(0, 3)
+          .map((value, index) => control.admitRunEvidence(
+            ['bound_invocation_template', 'prepared_invocation', 'run_authorization'][index],
+            moon.strategyRunEvidenceJson(value), bounds));
+        const compiledPlan = control.admit('compiled_plan',
+          moon.strategyPublicationContractJson(evidence[3]), bounds);
+        const observation = control.sealRunEvidence('observation_set', canonical({
+          version: 'actql-observation-set/0.1', invocation_template_cid: template.identity,
+          source_evidence_cids: [sourceEvidence.identity], captured_input_artifact_cids: [],
+          consistency: 'best_effort', capture_started_at: '2026-09-24T00:00:00.000Z',
+          capture_completed_at: '2026-09-24T00:00:00.000Z',
+          replayability: {materialized: false, availability_evidence_cids: []},
+          data_policy_cid: dataPolicyCid,
+        }), bounds);
+        const invocation = control.issueRunInvocation(template, observation, bounds);
+        const acquiredEvidence = control.issueCheckedAcquiredEffectEvidence(prepared,
+          source, identity, requirement, logicalInput, sourceEvidence,
+          authorityScopeCid, dataPolicyCid, retention, bounds);
+        return {invocation, retention, sourceBindingCid: moon.clientProgramCapturedSourceLogicalCid(identity),
+          localEvidenceContext: Object.freeze({
+            admission: control.admitCheckedClientEffectRunPublication(prepared,
+              template, preparedEvidence, authorization, compiledPlan),
+            runDefinition: control.admit('run_definition',
+              moon.strategyPublicationContractJson(definition), bounds),
+            runInvocation: invocation, observation, acquiredEvidence, retentionDependencies,
+          })};
+      },
       async close() {
         moon.clientProgramReleaseEffectInputs(inputs);
         await execution.close();

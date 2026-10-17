@@ -5,11 +5,12 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {originalFieldCommandKeyFixture} from './fixtures/command-original-field-key.fixture.mjs';
 import {preparePinnedEffectSourceSet} from './effect-input-export.mjs';
 import {retireEffectCommandKeyWorkspace} from './effect-command-key.mjs';
+import {runtimeCore} from '../host-common/runtime-core.mjs';
 
 // Actual Common captured inputs, managed Result, key continuation and proposals.
 // Publication/Store metadata below are explicit sequencing doubles: these cases
 // do not prove authenticated Preview, physical storage, dispatch or installation.
-function publicationDoubles() {
+function publicationDoubles(originalControl) {
   const events = {chunks: [], releases: 0};
   const control = {
     publicationPreparedReleaseAction(index, _count, inspected, pending, attempted) {
@@ -34,7 +35,7 @@ function publicationDoubles() {
         async cancel() { pending = false; }, status: () => ({reservationHeld: pending})};
     },
   };
-  return {events, control, store};
+  return {events, control: originalControl ?? control, store};
 }
 
 async function close(scope) {
@@ -57,16 +58,18 @@ function options(fixture, doubled, scope, onKey, onRow) {
 
 test('ordinary Source set finishes the original funded whole key before proposing any row', async () => {
   const fixture = await originalFieldCommandKeyFixture();
-  const doubled = publicationDoubles();
+  const control = runtimeCore(moon).publicationControl;
+  const doubled = publicationDoubles(control);
   let scope, key, sources;
   const rows = [];
   try {
     scope = checked(moon.clientProgramPlanEffectCommandKeyWorkspace(fixture.owned,
       fixture.inputs, 0, fixture.limits, 10000));
     assert(scope);
-    sources = await preparePinnedEffectSourceSet(options(fixture, doubled, scope,
+    sources = await preparePinnedEffectSourceSet({...options(fixture, doubled, scope,
       (member, original) => { assert.equal(member, 0); assert.equal(doubled.events.chunks.length, 0); key = original; },
-      (member, index, row) => { assert(key); rows.push([member, index, JSON.parse(row.changesWire)]); }));
+      (member, index, row) => { assert(key); rows.push([member, index, JSON.parse(row.changesWire)]); }),
+      ...fixture.publicationContext(control)});
     assert.equal(rows.length, 1);
     assert.deepEqual(rows[0].slice(0, 2), [0, 0]);
     assert.deepEqual(JSON.parse(doubled.events.chunks.join('')), fixture.rows);
