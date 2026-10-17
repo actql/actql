@@ -21,3 +21,22 @@ test "short COMMAND refuses unresolved lowering at both actual compiler entrance
     )
   }
 }
+
+///|
+test "short COMMAND lowers the original published installation and retained authored key" {
+  let query = @query.parse_query(
+    "FROM pair |> EFFECT COMMAND mail.send ID x INPUT (body = CONCAT('value:', CAST(y AS STRING)));",
+    syntax_limits(),
+  ).unwrap()
+  let publication = command_publication_bind("installation")
+  let program = compile(
+    query,
+    pair_context(),
+    construction_limits(),
+    command_targets=Some(publication),
+  )
+  assert_true(
+    program is Ok(_),
+    msg="a checked original Command publication must reach lowering",
+  )
+}

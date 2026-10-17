@@ -7191,6 +7191,7 @@ pub fn compile_with_source(
   table_writes? : Array[TableWriteBinding] = [],
   update_targets? : UpdateTargetPublication? = None,
   store_targets? : StoreTargetPublication? = None,
+  command_targets? : CommandTargetPublication? = None,
 ) -> Result[(@program.Program, @builder.Source), Issue] {
   // A parsed operation must never disappear into a pure Relation. The
   // published Command target/key owner is required before this can lower.
@@ -7217,6 +7218,7 @@ pub fn compile_with_source(
       table_writes~,
       update_targets~,
       store_targets~,
+      command_targets~,
     )
   }
   let needs_input_binding = join_requires_input_binding(query, context) catch {
@@ -7230,6 +7232,7 @@ pub fn compile_with_source(
       table_writes~,
       update_targets~,
       store_targets~,
+      command_targets~,
     )
   }
   let mut has_nearest = false
@@ -7262,6 +7265,7 @@ pub fn compile_with_source(
       table_writes~,
       update_targets~,
       store_targets~,
+      command_targets~,
     )
   }
   if @query.join_part_count(query) > 0 && context.captured_stage is Some(_) {
@@ -9983,6 +9987,7 @@ pub fn compile(
   table_writes? : Array[TableWriteBinding] = [],
   update_targets? : UpdateTargetPublication? = None,
   store_targets? : StoreTargetPublication? = None,
+  command_targets? : CommandTargetPublication? = None,
 ) -> Result[@program.Program, Issue] {
   compile_with_source(
     query,
@@ -9991,6 +9996,7 @@ pub fn compile(
     table_writes~,
     update_targets~,
     store_targets~,
+    command_targets~,
   )
   .map(pair => pair.0)
   .map_err(issue_without_source)

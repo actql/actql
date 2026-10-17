@@ -395,6 +395,7 @@ fn compile_query_script_with_source(
   table_writes? : Array[TableWriteBinding] = [],
   update_targets? : UpdateTargetPublication? = None,
   store_targets? : StoreTargetPublication? = None,
+  command_targets? : CommandTargetPublication? = None,
 ) -> Result[(@program.Program, @builder.Source), Issue] {
   if context.program_id.is_empty() ||
     context.stage_id.is_empty() ||
@@ -952,6 +953,7 @@ pub fn compile_query_script(
   table_writes? : Array[TableWriteBinding] = [],
   update_targets? : UpdateTargetPublication? = None,
   store_targets? : StoreTargetPublication? = None,
+  command_targets? : CommandTargetPublication? = None,
 ) -> Result[@program.Program, Issue] {
   compile_query_script_with_source(
     script,
@@ -960,6 +962,7 @@ pub fn compile_query_script(
     table_writes~,
     update_targets~,
     store_targets~,
+    command_targets~,
   )
   .map(pair => pair.0)
   .map_err(issue_without_source)
