@@ -45,6 +45,8 @@ pub fn gcs_content_metadata_failure_code(@catalog.ContentMetadataIssue) -> Strin
 
 pub fn gcs_content_metadata_json(Bytes, String, String, String, Int64, Int) -> Result[String, @catalog.ContentMetadataIssue]
 
+pub fn gcs_object_check_patch_input(@catalog.ObjectMutationBinding, Bytes, String, Bool) -> Result[Unit, GcsFailure]
+
 pub fn gcs_object_failure_code(GcsFailure) -> String
 
 pub fn gcs_object_listing_prefix(String, Bytes, Int, Int, Int) -> Result[String, GcsFailure]
@@ -52,6 +54,8 @@ pub fn gcs_object_listing_prefix(String, Bytes, Int, Int, Int) -> Result[String,
 pub fn gcs_object_metadata(Bytes, String, String, String?, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadata, GcsFailure]
 
 pub fn gcs_object_metadata_json(@catalog.ObjectMetadata, Int, Int, Int, Int) -> Result[String, GcsFailure]
+
+pub fn gcs_object_metadata_max_bytes(@catalog.ObjectMutationBinding) -> Int
 
 pub fn gcs_object_metadata_page(Bytes, String, String, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadataPage, GcsFailure]
 
@@ -61,9 +65,17 @@ pub fn gcs_object_metadata_page_next_token(@catalog.ObjectMetadataPage) -> Strin
 
 pub fn gcs_object_metadata_page_row_json(@catalog.ObjectMetadataPage, Int, Int, Int, Int) -> Result[String, GcsFailure]
 
+pub fn gcs_object_metadata_path(@catalog.ObjectMutationBinding, String) -> Result[String, GcsFailure]
+
 pub fn gcs_object_mutation_binding(String, String, String, String, String, String, Array[String], Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMutationBinding, GcsFailure]
 
+pub fn gcs_object_mutation_kind(@catalog.ObjectMutationBinding) -> String
+
+pub fn gcs_object_patch_effect_target(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]
+
 pub fn gcs_object_prepare_delete(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata) -> Result[@catalog.ObjectMutationRequest, GcsFailure]
+
+pub fn gcs_object_prepare_effect_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]
 
 pub fn gcs_object_prepare_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]
 
@@ -74,6 +86,12 @@ pub fn gcs_object_request_body(@catalog.ObjectMutationBinding, @catalog.ObjectMu
 pub fn gcs_object_request_changes(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]
 
 pub fn gcs_object_request_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]
+
+pub fn gcs_object_response_matches(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, @catalog.ObjectMetadata) -> Bool
+
+pub fn gcs_object_response_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int, Bytes, Int) -> Result[String, GcsFailure]
+
+pub fn gcs_object_target_observation(@catalog.ObjectMutationBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectMetadata, GcsFailure]
 
 pub fn gcs_upload_binding(@catalog.ObjectCollectionBinding, String, Array[String], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectUploadBinding, @catalog.ObjectUploadIssue]
 
@@ -113,6 +131,7 @@ pub fn gcs_upload_target_observation(@catalog.ObjectUploadBinding, String, Int, 
 pub enum GcsFailure {
   Metadata(@catalog.ObjectMetadataIssue)
   Request(@catalog.ObjectRequestIssue)
+  TargetRead(@catalog.ObjectTargetReadIssue)
 }
 
 // Type aliases

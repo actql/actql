@@ -26,6 +26,17 @@ priv suberror PublicationStop {
 }
 
 ///|
+/// Bounded original publication DATA for downstream Host projection. Successful
+/// parsing is not environment/currentness validation, namespace custody or a grant.
+pub fn read_publication_data(
+  wire : String,
+) -> Result[@decode.Cursor, PublicationIssue] {
+  Ok(source_publication_cursor(wire)) catch {
+    PublicationStop(issue) => Err(issue)
+  }
+}
+
+///|
 fn source_publication_cursor(
   wire : String,
 ) -> @decode.Cursor raise PublicationStop {

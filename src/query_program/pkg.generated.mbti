@@ -39,11 +39,13 @@ pub fn command_target_publication_usage(CommandTargetPublication) -> (Int, Int)
 
 pub fn command_target_publication_work(CommandTargetPublication) -> Int
 
-pub fn compile(@query_syntax.Query, Context, Limits, table_writes? : Array[TableWriteBinding], update_targets? : UpdateTargetPublication?, store_targets? : StoreTargetPublication?) -> Result[@stage_syntax.Program, Issue]
+pub fn compile(@query_syntax.Query, Context, Limits, table_writes? : Array[TableWriteBinding], update_targets? : UpdateTargetPublication?, store_targets? : StoreTargetPublication?, command_targets? : CommandTargetPublication?) -> Result[@stage_syntax.Program, Issue]
 
-pub fn compile_query_script(@query_syntax.QueryScript, Context, Limits, table_writes? : Array[TableWriteBinding], update_targets? : UpdateTargetPublication?, store_targets? : StoreTargetPublication?) -> Result[@stage_syntax.Program, Issue]
+pub fn compile_query_script(@query_syntax.QueryScript, Context, Limits, table_writes? : Array[TableWriteBinding], update_targets? : UpdateTargetPublication?, store_targets? : StoreTargetPublication?, command_targets? : CommandTargetPublication?) -> Result[@stage_syntax.Program, Issue]
 
-pub fn compile_with_source(@query_syntax.Query, Context, Limits, table_writes? : Array[TableWriteBinding], update_targets? : UpdateTargetPublication?, store_targets? : StoreTargetPublication?) -> Result[(@stage_syntax.Program, @program_source_builder.Source), Issue]
+pub fn compile_short_command_with_source(@query_syntax.Query, Context, Limits, CommandTargetPublication, table_writes? : Array[TableWriteBinding], update_targets? : UpdateTargetPublication?, store_targets? : StoreTargetPublication?) -> Result[(@stage_syntax.Program, @program_source_builder.Source, ShortCommandSelection), Issue]
+
+pub fn compile_with_source(@query_syntax.Query, Context, Limits, table_writes? : Array[TableWriteBinding], update_targets? : UpdateTargetPublication?, store_targets? : StoreTargetPublication?, command_targets? : CommandTargetPublication?) -> Result[(@stage_syntax.Program, @program_source_builder.Source), Issue]
 
 pub fn issue_without_source(Issue) -> Issue
 
@@ -53,7 +55,7 @@ pub fn resolve_concrete_command_target_binding(CommandTargetPublication, String,
 
 pub fn resolve_concrete_store_target_binding(StoreTargetPublication, String, String, Int) -> Result[ResolvedStoreTarget, StoreTargetIssue]
 
-pub fn resolve_concrete_update_target_binding(UpdateTargetPublication, String, String, Int) -> Result[ResolvedUpdateTarget, UpdateTargetIssue]
+pub fn resolve_concrete_update_target_binding(UpdateTargetPublication, String, String, Int, effect_kind? : String) -> Result[ResolvedUpdateTarget, UpdateTargetIssue]
 
 pub fn resolve_store_target_binding(StoreTargetPublication, Array[@query_syntax.NamePart], Int) -> Result[ResolvedStoreTarget, StoreTargetIssue]
 
@@ -84,6 +86,12 @@ pub fn resolved_update_target_identity(ResolvedUpdateTarget) -> (String, String,
 pub fn resolved_update_target_owner_cid(ResolvedUpdateTarget) -> String
 
 pub fn same_relation_path(Array[@query_syntax.NamePart], Array[@query_syntax.NamePart]) -> Bool
+
+pub fn short_command_selection_effect(ShortCommandSelection) -> String
+
+pub fn short_command_selection_stage(ShortCommandSelection) -> Int
+
+pub fn short_command_selection_target(ShortCommandSelection) -> ResolvedCommandTarget
 
 pub fn store_target_publication_catalogs(StoreTargetPublication) -> @check_environment.CatalogContents
 
@@ -238,6 +246,7 @@ pub(all) enum Issue {
   TableWriteBinding(TableWriteBindingIssue)
   UpdateTargetBinding(UpdateTargetIssue)
   StoreTargetBinding(StoreTargetIssue)
+  CommandTargetBinding(CommandTargetPublicationIssue)
   Construction(@program_source_builder.Issue)
   Expression(@query_expression.Diagnostic)
   ExpressionTyping(@expression_typing.Issue)
@@ -268,6 +277,8 @@ pub struct ResolvedUpdateTarget {
   target_alias : UpdateTargetAlias
   mapping : @check_environment.MappingContractShape
 }
+
+type ShortCommandSelection
 
 pub(all) enum StoreTargetIssue {
   InvalidPublication

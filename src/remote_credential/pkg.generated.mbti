@@ -35,6 +35,10 @@ pub fn authorize_local_credential_use(LocalCredentialUse, Int64, Bool, LocalCred
 
 pub fn authorize_local_preparation_credential_use(LocalPreparationCredentialUse, Int64, Bool, LocalPreparationCredentialScope) -> Result[Unit, RemoteCredentialIssue]
 
+pub fn[Material] bind_credential_authentication_use(CredentialAuthenticationRequest[Material], RemoteCredentialUse, RemoteCredentialUse, Material, String, String, String, Bytes, Int64) -> Result[CredentialAuthenticationOperation[Material], RemoteCredentialIssue]
+
+pub fn[Material] check_credential_authentication_operation(CredentialAuthenticationOperation[Material], CredentialAuthenticationRequest[Material], RemoteCredentialUse, RemoteCredentialUse, Material, String, String, String, Bytes, Int64) -> Result[Unit, RemoteCredentialIssue]
+
 pub fn credential_grant_cid(RemoteCredentialGrant) -> String
 
 pub fn credential_grant_json(RemoteCredentialGrant) -> Result[String, RemoteCredentialIssue]
@@ -103,6 +107,8 @@ pub fn local_signing_credential_use_json(LocalSigningCredentialUse) -> Result[St
 
 pub fn local_signing_credential_use_projection(LocalSigningCredentialUse) -> (String, String, Int)
 
+pub fn[Material] prepare_credential_authentication_request(RemoteCredentialUse, RemoteCredentialGrant, Material, String, String, String, Bytes, Int, Int64) -> Result[CredentialAuthenticationRequest[Material], RemoteCredentialIssue]
+
 pub fn prepare_credential_signature_envelope(RemoteCredentialGrant, String, String) -> Result[RemoteCredentialSignatureEnvelope, RemoteCredentialIssue]
 
 pub fn prepare_credential_use(RemoteCredentialGrant, String, Int64, Int, Bool, String, String, String, String, Int, String, String, String, String, String, String, Int, String) -> Result[RemoteCredentialUse, RemoteCredentialIssue]
@@ -130,6 +136,10 @@ pub fn validate_local_signing_credential_use_binding(LocalSigningCredentialUse, 
 // Errors
 
 // Types and methods
+type CredentialAuthenticationOperation[Material]
+
+type CredentialAuthenticationRequest[Material]
+
 type LocalCredentialGrant
 
 pub(all) struct LocalCredentialScope {

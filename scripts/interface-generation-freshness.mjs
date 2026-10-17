@@ -27,7 +27,8 @@ export function interfaceGenerationFreshness(root) {
   generateActionBindings(url, false);
   checkCredentialScopeBinding(root);
   const generators = ['generate-client-host-wire.mjs', 'generate-client-publication-wire.mjs',
-    'generate-interactive-run-control-wire.mjs', 'generate-python-client-wire.mjs'];
+    'generate-interactive-run-control-wire.mjs', 'generate-python-client-wire.mjs',
+    'lowering-registry-vectors.mjs', 'native-cli-default-assets.mjs'];
   for (const name of generators) execFileSync(process.execPath, [join(root, 'scripts', name), '--check'], {
     cwd: root, timeout: 15000, maxBuffer: 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
   const localGenerators = ['generate-local-wasm-abi.py', 'generate-local-native-runtime-binding.py',

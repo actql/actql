@@ -32,9 +32,10 @@ pub struct WriteProjection {
 }
 
 ///|
-/// This is the scalar subset with an exact JSON representation; a Number
-/// (`double`) only up to precision 15. Salesforce can still reject a value
-/// under constraints not proved by this projection.
+/// This is the field subset with an exact provider projection; a Number
+/// (`double`), Currency and Percent within the declared Decimal domain.
+/// Multi-select fields use the bounded semicolon/Array codec. Salesforce can
+/// still reject a value under constraints not proved here.
 fn write_field_type_supported(native_type : String) -> Bool {
   match native_type {
     "id"
@@ -46,9 +47,12 @@ fn write_field_type_supported(native_type : String) -> Bool {
     | "url"
     | "picklist"
     | "combobox"
+    | "multipicklist"
     | "boolean"
     | "int"
     | "double"
+    | "currency"
+    | "percent"
     | "date"
     | "datetime" => true
     _ => false
@@ -125,9 +129,12 @@ fn prepare_owned_write_projection(
     if !field.nullability_confirmed {
       return Err(UnconfirmedNullability(field.name))
     }
-    // A Number is written only as its declared decimal (`double_decimal`).
+    // Number, Currency and Percent use only their described decimal.
     if !write_field_type_supported(field.native_type) ||
-      (field.native_type == "double" && double_decimal(field) is None) {
+      (
+        described_decimal_type(field.native_type) &&
+        described_decimal(field) is None
+      ) {
       return Err(UnsupportedWriteType(field.name))
     }
   }
@@ -172,6 +179,7 @@ fn same_write_field(before : FieldMetadata, after : FieldMetadata) -> Bool {
     before.case_sensitive != after.case_sensitive ||
     before.precision != after.precision ||
     before.scale != after.scale ||
+    before.compound_field_name != after.compound_field_name ||
     before.reference_to.length() != after.reference_to.length() {
     return false
   }

@@ -13,6 +13,7 @@ import {getSubmissionInput, getSubmissionOutcome} from '@actql/sdk';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 import {assertObservedTransition, createComputedBarrier, observedRevision,
   observeSettledResult, publishedFacts} from './run-revision-assertions.mjs';
+import {closeFixtureClient, withFixtureClientCleanup} from './client-cleanup.mjs';
 
 function authorization(outcome = 'allow') {
   const keys = generateKeyPairSync('ed25519');
@@ -41,10 +42,10 @@ function authorization(outcome = 'allow') {
 }
 
 const defaults = await open();
-try {
+await withFixtureClientCleanup(defaults, async () => {
   assert.equal(defaults.info.stateDir, resolve('.actql'));
   assert.deepEqual(await defaults.sql('SELECT 0 AS id').all(), [{id: 0}]);
-} finally {await defaults.close();}
+});
 
 async function checkRunnable(db, counter, label) {
   const before = counter.count();
@@ -204,11 +205,12 @@ const localAuthorization = authorization();
 const localOptions = {stateDir: resolve('short-local'), installation: {
   authorization: localAuthorization.value}};
 let local = await open(localOptions);
-assert.equal(local.info.stateDir, localOptions.stateDir);
-const saved = await exercise(local, localAuthorization, 'local');
-await local.close();
+const saved = await withFixtureClientCleanup(local, async () => {
+  assert.equal(local.info.stateDir, localOptions.stateDir);
+  return exercise(local, localAuthorization, 'local');
+});
 local = await open(localOptions);
-try {
+await withFixtureClientCleanup(local, async () => {
   const recovery = local.recoverRequest(JSON.parse(JSON.stringify(saved.target)));
   const observed = await recovery.lookup();
   assert.equal(observed.kind, 'ready');
@@ -227,7 +229,7 @@ try {
   await assert.rejects(attached.wait({since: restored.revision, signal: AbortSignal.timeout(250)}),
     {code: 'WaitTimeout'});
   assert.equal(localAuthorization.count(), 3, 'reopen/attach/wait must not repeat Compute');
-} finally {await local.close();}
+});
 
 const remoteAuthorization = authorization();
 const host = await openInstalledRemoteHttpHost({directory: resolve('short-remote'),
@@ -286,13 +288,13 @@ try {
     assert.equal(remoteAuthorization.count(), 6, 'SDK-only README, reads and lookup must not repeat Compute');
   }
 } finally {
-  await remote?.close(); server.closeAllConnections();
+  if (remote !== undefined) await closeFixtureClient(remote); server.closeAllConnections();
   await new Promise(resolve => server.close(resolve)); await host.close();
 }
 
 const heldAuthorization = authorization('delegate');
 const held = await open({stateDir: resolve('short-held'), installation: {authorization: heldAuthorization.value}});
-try {
+await withFixtureClientCleanup(held, async () => {
   const query = held.sql('SELECT 6 AS id', undefined, {submissionRef: held.newSubmission({nonce: 'held-query'})});
   let original;
   await assert.rejects(query, error => {
@@ -312,5 +314,5 @@ try {
   await assert.rejects(recovery.attach(observation), {code: 'InvalidRequestRecoveryObservation'});
   assert.deepEqual((await held.checkpoints()).items, []);
   assert.equal(heldAuthorization.count(), 0);
-} finally {await held.close();}
+});
 console.log('Packed short-query Local/HTTPS: default open, raw/typed rows, schema failures, same Run, read limits, lost reply and unsupported pre-Run wait passed');

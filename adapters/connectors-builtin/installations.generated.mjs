@@ -11,6 +11,7 @@ export const installedConnectors = Object.freeze([
       Object.freeze({path: "adapters/connectors/gcs/host/gcs-source-declaration.mjs", href: new URL("../connectors/gcs/host/gcs-source-declaration.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/gcs/host/gcs-upload-declaration.mjs", href: new URL("../connectors/gcs/host/gcs-upload-declaration.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/gcs/host/installed-gcs-source.mjs", href: new URL("../connectors/gcs/host/installed-gcs-source.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/gcs/site/gcs-credential-site.mjs", href: new URL("../connectors/gcs/site/gcs-credential-site.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/gcs/site/gcs-file-listing.mjs", href: new URL("../connectors/gcs/site/gcs-file-listing.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/gcs/site/gcs-keyed-content.mjs", href: new URL("../connectors/gcs/site/gcs-keyed-content.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/gcs/site/gcs-object-listing.mjs", href: new URL("../connectors/gcs/site/gcs-object-listing.mjs", import.meta.url).href}),
@@ -48,6 +49,21 @@ export const installedConnectors = Object.freeze([
       profileVersion: "actql-installed-github-effect/0.1",
       load: () => import("../connectors/github/host/installed-github-effect.mjs")
         .then(module => Object.freeze({check: module.checkInstalledGitHubEffectProfile, identityParts: module.installedGitHubEffectIdentityParts, publish: module.publishInstalledGitHubEffect, load: module.loadInstalledGitHubEffect})),
+    }),
+  }),
+  Object.freeze({
+    name: "gmail", registration: "gmail",
+    revision: "gmail/0.1",
+    implementationFiles: Object.freeze([
+      Object.freeze({path: "adapters/connectors/gmail/host/installed-gmail-source.mjs", href: new URL("../connectors/gmail/host/installed-gmail-source.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/gmail/site/gmail-label-list-read.mjs", href: new URL("../connectors/gmail/site/gmail-label-list-read.mjs", import.meta.url).href}),
+    ]),
+    providerBundle: "connectors/gmail/host_node",
+    responseHeaders: Object.freeze([]),
+    source: Object.freeze({
+      profileVersion: "actql-installed-gmail-source/0.1",
+      load: () => import("../connectors/gmail/host/installed-gmail-source.mjs")
+        .then(module => Object.freeze({check: module.checkInstalledGmailSourceProfile, identityParts: module.installedGmailSourceIdentityParts, load: module.loadInstalledGmailSource})),
     }),
   }),
   Object.freeze({

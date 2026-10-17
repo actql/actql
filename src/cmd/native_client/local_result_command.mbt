@@ -1,0 +1,209 @@
+///|
+// Presentation selection only. Names must come from the actual committed
+// Manifest, never a Policy allowlist or a current project declaration.
+fn local_result_name(
+  original_names : String,
+  requested : String?,
+) -> String raise ClientStop {
+  guard @decode.elements(local_input_cursor(original_names)) is Ok(items) else {
+    stop("LocalResultInventoryUnavailable")
+  }
+  let names : Map[String, Bool] = Map([])
+  let mut sole = ""
+  for item in items {
+    guard @decode.text(item) is Ok(name) &&
+      !name.is_empty() &&
+      name.length() <= 128 &&
+      !names.contains(name) else {
+      stop("LocalResultInventoryUnavailable")
+    }
+    names[name] = true
+    sole = name
+  }
+  match requested {
+    Some(name) => {
+      if !names.contains(name) {
+        stop("LocalResultNotDeclared")
+      }
+      name
+    }
+    None => {
+      if names.length() != 1 {
+        stop("LocalResultNameRequired")
+      }
+      sole
+    }
+  }
+}
+
+///|
+fn local_result_format(child : @argparse.Matches) -> String raise ClientStop {
+  let format = optional(child, "format").unwrap_or("jsonl")
+  if !(format == "jsonl" || format == "json" || format == "csv") {
+    stop("InvalidLocalReadSelection")
+  }
+  format
+}
+
+///|
+// File delivery needs its actual Writer/egress adapter and receipt custody.
+// A stdout grant is never redirected or relabelled as file delivery.
+fn local_result_stdout_only(child : @argparse.Matches) -> Unit raise ClientStop {
+  for name in ["output", "deliver", "receipt"] {
+    if child.values.contains(name) {
+      stop("LocalResultFileDeliveryUnavailable")
+    }
+  }
+  if child.flags.get("json").unwrap_or(false) {
+    stop("LocalResultJsonEnvelopeUnavailable")
+  }
+}
+
+///|
+// Read the same original Run and same Store; none of these metadata suppliers
+// issues current permission, a new Run or an available-payload observation.
+fn local_public_result(
+  host : @local_host.NativeLocalHostConnection,
+  settings : LocalHostSettings,
+  crypto : @local_crypto.Library,
+  sqlite : @local_sqlite.Library,
+  child : @argparse.Matches,
+) -> String raise ClientStop {
+  local_result_stdout_only(child)
+  let format = local_result_format(child)
+  let file = settings.read_file.unwrap_or_else(() => {
+    stop("LocalReadPolicyOriginalNotSelected")
+  })
+  let scope = local_host_result(
+    host.authority_scope_cid(settings.principal, settings.connection, crypto),
+  )
+  let original = match
+    host.lookup_submitted_run_original_by_id(
+      crypto,
+      settings.principal,
+      settings.connection,
+      required(child, "run"),
+    ) {
+    Ok(value) => value
+    Err(issue) => stop(local_saved_state_issue(issue))
+  }
+  // This existing opaque reader restores and validates the original succeeded
+  // observation. Missing state is not inferred from an index or repaired.
+  match
+    host.lookup_submitted_run_state(
+      crypto,
+      settings.principal,
+      settings.connection,
+      original.reference(),
+      original.request(),
+      @env.now().to_double(),
+    ) {
+    Ok(_) => ()
+    Err(issue) => stop(local_saved_state_issue(issue))
+  }
+  let reference = local_original_run_reference(original.definition(), scope)
+  guard reference is Object(fields) else { stop("LocalOriginalRunUnavailable") }
+  let selected : LocalOriginalRunSelection = {
+    request: original.request(),
+    submission: original.reference(),
+    reference,
+    namespace_id: json_text(fields, "namespaceId").unwrap_or_else(() => {
+      stop("LocalOriginalRunUnavailable")
+    }),
+    run_definition_cid: json_text(fields, "runDefinitionCid").unwrap_or_else(() => {
+      stop("LocalOriginalRunUnavailable")
+    }),
+  }
+  let binding = local_read_binding_for_original(
+    host~,
+    settings~,
+    crypto~,
+    file~,
+    selected~,
+  )
+  let parameters = match binding.disclosure_parameters() {
+    Ok(value) => value
+    Err(issue) => stop(local_read_issue(issue))
+  }
+  let purpose = parameters.purpose
+  let max_output = parameters.max_output_bytes
+  // One fresh correlation value for this invocation; never retry an attempt.
+  let attempt_id = local_generation_cid(crypto)
+  let store = local_original_result_store(
+    host,
+    settings,
+    sqlite,
+    selected.namespace_id,
+  )
+  let reply = {
+    errdefer local_result_store_close(store, attempt_id)
+    let names = match
+      host.lookup_original_result_names_json(
+        crypto,
+        settings.principal,
+        settings.connection,
+        original,
+        store,
+        selected.namespace_id,
+      ) {
+      Ok(Some(value)) => value
+      Ok(None) => stop("LocalResultPublicationUnavailable")
+      Err(issue) => stop(local_saved_state_issue(@local_host.Journal(issue)))
+    }
+    let result_name = local_result_name(names, optional(child, "result"))
+    let current = () => {
+      local_delivery_lookup_allowed(host, settings, crypto, scope, result_name)
+    }
+    if !current() {
+      stop("LocalReadAuthorizationDenied")
+    }
+    let request : @local_result.NativeResultAccessRequest = {
+      namespace_id: selected.namespace_id,
+      authority_scope_cid: scope,
+      run_definition_cid: selected.run_definition_cid,
+      principal_id: settings.principal,
+      purpose,
+      result_name,
+      format,
+      attempt_id,
+    }
+    match
+      binding.authorize_read_request(
+        selected.request,
+        request,
+        local_utc_now(),
+        max_output_bytes=Some(max_output),
+      ) {
+      Ok(_) => ()
+      Err(issue) => stop(local_read_issue(issue))
+    }
+    local_admitted_result_stream(
+      host~,
+      settings~,
+      selected~,
+      binding~,
+      request~,
+      scope~,
+      purpose~,
+      result_name~,
+      format~,
+      attempt_id~,
+      max_output~,
+      current~,
+      store~,
+    )
+  }
+  local_result_store_close(store, attempt_id)
+  reply
+}
+
+///|
+// Only the output boundary: a Local sink has already written payload bytes.
+// This does not observe Run completion, publication or a delivery receipt.
+fn local_payload_already_streamed(matches : @argparse.Matches) -> Bool {
+  match matches.subcommand {
+    Some(("read", _)) | Some(("result", _)) =>
+      matches.values.get("mode") == Some(["local"])
+    _ => false
+  }
+}

@@ -62,7 +62,7 @@ fn local_product_operation(operation : String) -> Bool {
     "adopt", "connect", "upgrade-policy", "lookup-policy-upgrade", "check", "explain",
     "new-submission", "lookup-submission", "lookup-request", "checkpoint-state",
     "lookup-preparation-grant", "lookup-preparation-raw", "lookup-cancellation",
-    "cancel", "delivery-attempt", "read", "start", "aql", "run", "status",
+    "cancel", "delivery-attempt", "read", "result", "start", "aql", "run", "status",
   ].contains(operation)
 }
 
@@ -316,7 +316,7 @@ fn execute_native_local_packaged_with_parent(
     }
     matches.values["config-root"] = [configuration_root]
     matches.values["config-file"] = ["config.json"]
-    if operation == "check" || operation == "explain" {
+    if operation == "explain" {
       let observation = execute_native_local(matches)
       // Static metadata discloses only the same selected originals. Recheck
       // their existing custody and current package before returning the copy.

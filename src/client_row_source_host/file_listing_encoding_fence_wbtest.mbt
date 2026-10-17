@@ -8,6 +8,7 @@ test "listing encoding cannot reuse pending or settled Source execution" {
     ledger,
     reservation,
     execution_scratch: 5L,
+    provider_capacity: None,
     holding: None,
     dag: None,
     cleanup_confirmed: None,

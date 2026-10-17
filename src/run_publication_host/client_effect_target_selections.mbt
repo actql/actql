@@ -134,7 +134,8 @@ fn prepare_client_effect_update_target_entries(
     let header = @stage_results.effect_result_binding_header(
       @stage_results.effect_mapping_shape_effect(shape),
     )
-    if @syntax.effect_header_kind(header) != "update" {
+    let kind = @syntax.effect_header_kind(header)
+    if kind != "update" && kind != "delete" {
       continue
     }
     let mapping = @stage_results.effect_mapping_shape_contract(shape)
@@ -142,7 +143,11 @@ fn prepare_client_effect_update_target_entries(
     let mapping_ref = @environment.mapping_shape_reference(mapping)
     let resolved = match
       @update_targets.resolve_concrete_update_target_binding(
-        publication, target_ref, mapping_ref, lookup_work,
+        publication,
+        target_ref,
+        mapping_ref,
+        lookup_work,
+        effect_kind=kind,
       ) {
       Ok(value) => value
       // Existing explicit targets outside this positive publication retain
@@ -470,7 +475,8 @@ fn admit_client_effect_target_selections(
         @stage_results.effect_mapping_shape_effect(shape),
       )
       let mapping = @stage_results.effect_mapping_shape_contract(shape)
-      if @syntax.effect_header_kind(header) == "update" &&
+      let kind = @syntax.effect_header_kind(header)
+      if (kind == "update" || kind == "delete") &&
         @syntax.effect_header_stage(header) == stage_index &&
         @syntax.effect_header_id(header) == effect_id &&
         @environment.mapping_shape_target(mapping) == target_ref &&

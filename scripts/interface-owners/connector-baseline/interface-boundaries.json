@@ -4426,7 +4426,7 @@
     {
       "module": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "21d1164da74903e0dc7e63bb811cd9fdf1e799833f5fc7359fdea92c261c776e",
+      "sha256": "aad351e41024d6445f90e4d4104a4fc9edb36561a3c0f05561160dfbb546bdf8",
       "role": "connector-semantics",
       "owner": "Installed GCS Resource/Source wiring; Common acquisition/ReferenceIssuer/authorization remain authoritative",
       "exports": [
@@ -4933,6 +4933,8 @@
         "../../../../packages/sdk/host-port.mjs",
         "../../../host-node/installed-host-cleanup.mjs",
         "../../../host-node/installed-row-source.mjs",
+        "../../../host-node/source-profile-json.mjs",
+        "../site/gcs-credential-site.mjs",
         "../site/gcs-file-listing.mjs",
         "../site/gcs-keyed-content.mjs",
         "../site/gcs-object-listing.mjs",
@@ -4940,7 +4942,6 @@
         "./gcs-source-declaration.mjs",
         "./gcs-upload-declaration.mjs",
         "node:crypto",
-        "node:fs/promises",
         "node:path"
       ],
       "compilerFields": [],
@@ -8424,7 +8425,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0d057ab3a061b913dc3aa1895777530ffb5ed753ba54c59a2d1271ca76bed886",
+      "sha256": "d93de7869b5250b37f8beb0705dcb32d15091a9c6b06dbfc3474d26d131ca1dd",
       "role": "connector-semantics",
       "owner": "Exact installed Salesforce org/Site binding with existing account gate, credential journal and release custody",
       "exports": [
@@ -8450,30 +8451,6 @@
             "code",
             "cause"
           ],
-          "async": false
-        },
-        {
-          "name": "handOverSiteRelease",
-          "parameters": [
-            "site",
-            "primary",
-            "errors"
-          ],
-          "async": false
-        },
-        {
-          "name": "handOverSiteRelease/earlierStatus/earlierStatus",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "handOverSiteRelease/handle/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "handOverSiteRelease/status/status",
-          "parameters": [],
           "async": false
         },
         {
@@ -8664,11 +8641,6 @@
           "async": true
         },
         {
-          "name": "loadInstalledSalesforceSite/ensureOpen/ensureOpen",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "loadInstalledSalesforceSite/generate/generate",
           "parameters": [
             "observation",
@@ -8676,11 +8648,6 @@
             "resources",
             "limits"
           ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSalesforceSite/init:close/init:close",
-          "parameters": [],
           "async": false
         },
         {
@@ -8707,11 +8674,6 @@
           "parameters": [
             "declaration"
           ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSalesforceSite/loadInstalledSalesforceSite#3",
-          "parameters": [],
           "async": false
         },
         {
@@ -8810,17 +8772,6 @@
           "async": false
         },
         {
-          "name": "loadInstalledSalesforceSite/sign",
-          "parameters": [
-            "operation",
-            "runInvocationCid",
-            "taskAttempt",
-            "dispatchRequestCid",
-            "maxUses"
-          ],
-          "async": false
-        },
-        {
           "name": "loadInstalledSalesforceSite/siteBinding/siteBinding",
           "parameters": [],
           "async": false
@@ -8889,10 +8840,6 @@
             "<module>",
             "cid/cid",
             "fail/fail",
-            "handOverSiteRelease",
-            "handOverSiteRelease/earlierStatus/earlierStatus",
-            "handOverSiteRelease/handle/init:retry/init:retry",
-            "handOverSiteRelease/status/status",
             "installedSalesforceSiteBinding",
             "installSalesforceAuthorization",
             "loadInstalledSalesforceSite",
@@ -8913,13 +8860,10 @@
             "loadInstalledSalesforceSite/describeForAcquisition",
             "loadInstalledSalesforceSite/describeNamed",
             "loadInstalledSalesforceSite/describeNamed/describeNamed",
-            "loadInstalledSalesforceSite/ensureOpen/ensureOpen",
             "loadInstalledSalesforceSite/generate/generate",
-            "loadInstalledSalesforceSite/init:close/init:close",
             "loadInstalledSalesforceSite/issueGrant",
             "loadInstalledSalesforceSite/loadInstalledSalesforceSite",
             "loadInstalledSalesforceSite/loadInstalledSalesforceSite#2",
-            "loadInstalledSalesforceSite/loadInstalledSalesforceSite#3",
             "loadInstalledSalesforceSite/peek",
             "loadInstalledSalesforceSite/peek/describe/describe",
             "loadInstalledSalesforceSite/peek/result/result",
@@ -8932,7 +8876,6 @@
             "loadInstalledSalesforceSite/refreshCatalog",
             "loadInstalledSalesforceSite/restoreDeclaration",
             "loadInstalledSalesforceSite/restoreDeclaration/mismatch/mismatch",
-            "loadInstalledSalesforceSite/sign",
             "loadInstalledSalesforceSite/siteBinding/siteBinding",
             "releaseSalesforceSite",
             "retainSalesforceSiteCleanup",
@@ -8981,16 +8924,24 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
-                "anchor": "handOverSiteRelease"
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "handOverCredentialSiteRelease"
               },
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
               }
             ],
             "synchronization": [
@@ -9001,6 +8952,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
               }
             ],
             "failure": [
@@ -9011,6 +8966,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
               }
             ],
             "cancellation": [
@@ -9023,6 +8982,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "DEFAULT_SALESFORCE_CATALOG_LIMITS"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "## Installed Row Site physical custody"
               }
             ],
             "extension": [
@@ -9055,11 +9018,36 @@
               {
                 "path": "adapters/host-node/row-source-authorization-installation.test.mjs",
                 "anchor": "Salesforce compatibility installer preserves original context"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/installed-salesforce-site.test.mjs",
+                "anchor": "shared credential custody preserves every original Salesforce scope member"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/authorization-gate.mjs",
+        "../../../host-common/checkpoint-approval.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-row-source.mjs",
+        "../../../host-node/local-account-config.mjs",
+        "../../../host-node/source-profile-json.mjs",
+        "../../../site-node/sqlite-credential-journal.mjs",
+        "../site/salesforce-catalog-sync.mjs",
+        "../site/salesforce-cli-secret.mjs",
+        "../site/salesforce-effect-capability.mjs",
+        "../site/salesforce-named-describe.mjs",
+        "../site/salesforce-query-read.mjs",
+        "node:crypto",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-effect-write.mjs",
