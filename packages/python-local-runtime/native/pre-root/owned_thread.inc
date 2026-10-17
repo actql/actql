@@ -9,6 +9,8 @@ struct actql_owned_thread_control {
     actql_owned_capacity *owner;
     pid_t origin_pid;
     pthread_t thread;
+    struct owned_scope_state scope;
+    atomic_int attached;
     actql_owned_thread_entry entry;
     void *argument;
     atomic_int launch;
@@ -44,15 +46,32 @@ static bool thread_storage_locked(actql_owned_capacity *lease, void *storage) {
         sizeof(struct actql_owned_thread_control) <= length - (offset - begin);
 }
 
+/* Darwin clears a key immediately before its destructor, including a NULL
+ * destructor. Restore this same alias on every destructor pass so other Rust/C
+ * TLS destructors continue to see the SAME original scope. No alias is freed or
+ * pin released here; join is the only successful child-retirement observation.
+ * This provider/key must outlive all such callbacks in process/runtime custody. */
+static void restore_owned_scope(void *scope) {
+    if (pthread_setspecific(owned_scope_key, scope) != 0) __builtin_trap();
+}
+static void initialize_owned_scope_key(void) {
+    owned_scope_key_status = pthread_key_create(&owned_scope_key, restore_owned_scope);
+    if (owned_scope_key_status == 0)
+        atomic_store_explicit(&owned_scope_key_ready, true, memory_order_release);
+}
+
 static void *owned_thread_entry(void *argument) {
     struct actql_owned_thread_control *record = argument;
     /* Publish native thread identity before permitting callback/self-join.
      * The already retained original pin covers this pre-bootstrap interval. */
     while (atomic_load_explicit(&record->launch, memory_order_acquire) == 0) sched_yield();
-    current_capacity = record->owner;
-    current_depth = 1;
-    current_process = getpid();
-    current_floor = 1;
+    if (pthread_setspecific(owned_scope_key, &record->scope) != 0) {
+        /* No callback/Rust bootstrap ran. The created child's original pin and
+         * controller still require confirmed join; no parent-side unpin here. */
+        atomic_store_explicit(&record->attached, 2, memory_order_release);
+        return NULL;
+    }
+    atomic_store_explicit(&record->attached, 1, memory_order_release);
     record->entry(record->argument);
     /* Deliberately keep the SAME TLS through pthread_exit/TSD destructors.
      * Only the original joiner retires this pin AFTER pthread_join succeeds. */
@@ -88,23 +107,30 @@ int actql_native_owned_thread_start(actql_owned_capacity *lease, void *storage,
     record->origin_pid = getpid();
     record->entry = entry;
     record->argument = argument;
+    record->scope = (struct owned_scope_state){lease, 1, 1, getpid()};
     atomic_init(&record->launch, 0);
+    atomic_init(&record->attached, 0);
     record->pinned = true;
     lease->active_scopes++;
     unlock_capacity(lease);
-    int status = pthread_create(&record->thread, NULL, owned_thread_entry, record);
+    int status = pthread_once(&owned_scope_key_once, initialize_owned_scope_key);
+    if (status == 0) status = owned_scope_key_status;
+    if (status == 0) status = pthread_create(&record->thread, NULL, owned_thread_entry, record);
     if (status != 0) {
         /* POSIX failure creates no thread. Keep a non-reusable refusal record;
          * return only this confirmed-not-started pin, never an uncertain child. */
         lock_capacity(lease);
         record->pinned = false;
+        record->joined = true;
         lease->active_scopes--;
         atomic_store_explicit(&record->launch, 2, memory_order_release);
         unlock_capacity(lease);
         return ACTQL_OWNED_PHYSICAL_FAILURE;
     }
     atomic_store_explicit(&record->launch, 1, memory_order_release);
-    return ACTQL_OWNED_OK;
+    int attached;
+    while ((attached = atomic_load_explicit(&record->attached, memory_order_acquire)) == 0) sched_yield();
+    return attached == 1 ? ACTQL_OWNED_OK : ACTQL_OWNED_PHYSICAL_FAILURE;
 }
 
 int actql_native_owned_thread_join(actql_owned_capacity *lease, void *storage) {
@@ -118,9 +144,14 @@ int actql_native_owned_thread_join(actql_owned_capacity *lease, void *storage) {
     }
     struct actql_owned_thread_control *record = storage;
     if (record->original != record || record->owner != lease || record->origin_pid != getpid() ||
-        atomic_load_explicit(&record->launch, memory_order_acquire) != 1) {
+        atomic_load_explicit(&record->launch, memory_order_acquire) == 0) {
         unlock_capacity(lease);
         return ACTQL_OWNED_INVALID;
+    }
+    if (atomic_load_explicit(&record->launch, memory_order_acquire) == 2) {
+        /* Confirmed no child was created; no pthread identity may be consumed. */
+        unlock_capacity(lease);
+        return ACTQL_OWNED_OK;
     }
     /* Reject self-join before observing another joiner's in-flight attempt. */
     if (pthread_equal(pthread_self(), record->thread)) {

@@ -14,8 +14,8 @@ size_t actql_native_owned_thread_control_alignment(void);
  * destructors. Startup refusal is one-shot, not permission to reuse the record. */
 int actql_native_owned_thread_start(actql_owned_capacity *lease, void *storage,
     size_t storage_bytes, actql_owned_thread_entry entry, void *argument);
-/* Only a successful pthread_join confirms stop and retires the original scope
- * pin. Callback return, cancellation request or PID observations do not. Storage
+/* A known no-start or successful pthread_join confirms stop and retires the
+ * original scope pin. A child-binding failure still requires this same join. Callback return, cancellation request or PID observations do not. Storage
  * remains caller-owned, including after join. A lost/failed join is sticky and
  * never repeated; copying, forking or retiring the record gives no authority. */
 int actql_native_owned_thread_join(actql_owned_capacity *lease, void *storage);

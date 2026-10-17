@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <pthread.h>
 
 /* An extent is a physical allocator record, not a Run or capacity decision. */
 struct extent {
@@ -42,10 +43,32 @@ struct actql_owned_capacity {
     struct extent extents[];
 };
 
-static _Thread_local actql_owned_capacity *current_capacity;
-static _Thread_local size_t current_depth;
-static _Thread_local size_t current_floor;
-static _Thread_local pid_t current_process;
+struct owned_scope_state {
+    actql_owned_capacity *capacity;
+    size_t depth;
+    size_t floor;
+    pid_t process;
+};
+static _Thread_local struct owned_scope_state ordinary_scope;
+/* One same-provider key, not another holding or a process thread registry.
+ * Its value aliases the original live child controller through confirmed join.
+ * Existing process/runtime custody must retain this provider while it is used. */
+static pthread_key_t owned_scope_key;
+static pthread_once_t owned_scope_key_once = PTHREAD_ONCE_INIT;
+static atomic_bool owned_scope_key_ready;
+static int owned_scope_key_status;
+static struct owned_scope_state *owned_scope(void) {
+    if (atomic_load_explicit(&owned_scope_key_ready, memory_order_acquire)) {
+        struct owned_scope_state *scope = pthread_getspecific(owned_scope_key);
+        if (scope != NULL) return scope;
+    }
+    /* An unbound thread remains unbound; never substitute another holding. */
+    return &ordinary_scope;
+}
+#define current_capacity (owned_scope()->capacity)
+#define current_depth (owned_scope()->depth)
+#define current_floor (owned_scope()->floor)
+#define current_process (owned_scope()->process)
 
 /* This physical exclusion is not child authorization. A trusted bootstrap
  * validates the original Core loan before publishing the process borrow. */

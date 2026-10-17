@@ -11,7 +11,7 @@
 
 /* This fixture calls real pthread operations except ONE explicit, confirmed
  * create refusal. The original product source has no injected function table. */
-static int create_calls, join_calls, refuse_next_create;
+static int create_calls, join_calls, refuse_next_create, refuse_next_attach;
 static int observed_create(pthread_t *t, const pthread_attr_t *a, void *(*f)(void *), void *p) {
     create_calls++;
     if (refuse_next_create) { refuse_next_create = 0; return EAGAIN; }
@@ -21,11 +21,17 @@ static int observed_join(pthread_t t, void **v) {
     join_calls++;
     return pthread_join(t, v);
 }
+static int observed_setspecific(pthread_key_t key, const void *value) {
+    if (refuse_next_attach) { refuse_next_attach = 0; return ENOMEM; }
+    return pthread_setspecific(key, value);
+}
+#define pthread_setspecific observed_setspecific
 #define pthread_create observed_create
 #define pthread_join observed_join
 #include "../owned_capacity.c"
 #undef pthread_create
 #undef pthread_join
+#undef pthread_setspecific
 #include "../memory_abi.generated.h"
 
 struct fixture {
@@ -117,8 +123,32 @@ static void known_start_refusal(void) {
     assert(actql_native_owned_thread_start(f.owner, f.control,
         actql_native_owned_thread_control_bytes(), child, &f) == ACTQL_OWNED_INVALID);
     assert(create_calls == before + 1 && atomic_load(&f.entered) == 0);
-    assert(actql_native_owned_thread_join(f.owner, f.control) == ACTQL_OWNED_INVALID);
+    int joins = join_calls;
+    assert(actql_native_owned_thread_join(f.owner, f.control) == 0 && join_calls == joins);
     cleanup(&f);
+}
+static void attach_failure(void) {
+    struct fixture f; setup(&f); int before = join_calls;
+    refuse_next_attach = 1;
+    assert(actql_native_owned_thread_start(f.owner, f.control,
+        actql_native_owned_thread_control_bytes(), child, &f) == ACTQL_OWNED_PHYSICAL_FAILURE);
+    assert(atomic_load(&f.entered) == 0);
+    assert(actql_native_owned_leave(f.owner) == 0);
+    assert(actql_native_owned_try_close(&f.owner) == ACTQL_OWNED_BUSY);
+    assert(actql_native_owned_thread_join(f.owner, f.control) == 0 && join_calls == before + 1);
+    assert(actql_native_owned_thread_join(f.owner, f.control) == 0 && join_calls == before + 1);
+    cleanup(&f);
+}
+static void concurrent_originals(void) {
+    struct fixture a, b; setup(&a); atomic_store(&a.finish, 0); start(&a, child);
+    assert(actql_native_owned_leave(a.owner) == 0);
+    setup(&b); atomic_store(&b.finish, 0); start(&b, child);
+    while (!atomic_load(&a.entered) || !atomic_load(&b.entered)) sched_yield();
+    assert(actql_native_owned_current() == b.owner);
+    atomic_store(&a.finish, 1); atomic_store(&b.finish, 1);
+    assert(actql_native_owned_thread_join(a.owner, a.control) == 0);
+    assert(actql_native_owned_thread_join(b.owner, b.control) == 0);
+    cleanup(&b); cleanup(&a);
 }
 static void foreign_storage(void) {
     struct fixture f; setup(&f); actql_owned_capacity *other = NULL; void *foreign = NULL;
@@ -192,6 +222,8 @@ int main(void) {
         {"same scope through thread-specific destructors", thread_destructors},
         {"parent close pin and join-once versus storage retirement", close_and_join},
         {"known startup failure retains non-reusable original", known_start_refusal},
+        {"failed child attachment keeps original join custody", attach_failure},
+        {"concurrent originals never substitute a holding", concurrent_originals},
         {"foreign holding and backing storage refuse", foreign_storage},
         {"copied original controller refuses", copied_storage},
         {"retired controller rejects before inaccessible read", retired_storage},

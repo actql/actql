@@ -420,8 +420,16 @@ VM/control allocations. A known create refusal retains a nonreusable record and
 releases only the confirmed-not-started scope pin. A lost create response must
 retain that original record and pin; it does not permit another launch.
 
+The provider uses one private pthread key aliasing the same controller scope,
+not a new holding or thread registry. Its destructor reinstalls the same alias
+on every Darwin destructor pass; a plain C thread-local variable can be retired
+before later pthread destructors. Key creation is one-shot, and attachment
+failure forbids the callback while retaining created-child join custody. The
+provider/key remain in process/runtime custody; Engine close does not delete
+this key. Failed restoration traps without a fallback or an inferred ACK.
+
 The baseline child scope cannot be consumed by callback `leave` and remains
-bound through pthread thread-specific destructors. Only successful original
+bound through pthread thread-specific destructors. Only confirmed no-start or successful original
 `pthread_join` releases its pin. A failed/lost join keeps the original pin and
 one-shot join attempt, with no blind retry or inferred stop. Confirmed join does
 not retire the controller allocation, acknowledge other resources, or finish a
