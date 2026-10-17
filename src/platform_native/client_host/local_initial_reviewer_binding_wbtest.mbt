@@ -7,7 +7,7 @@ fn initial_reviewer_fixture(
   name : String,
   host_wire? : String = "{\"version\":\"actql-host/0.1\"}",
   account? : String = initial_reviewer_account,
-) -> (NativeLocalHostConnection, String) raise {
+) -> (NativeLocalHostConnection, String) {
   let top = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let parent = @filesystem.open_private_root(top).unwrap()
   parent.create_directory(name).unwrap() |> ignore
