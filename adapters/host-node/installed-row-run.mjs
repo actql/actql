@@ -11,6 +11,14 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   capacity, keyed = false}) {
   if (keyed && ledger === undefined) fail('InstalledKeyedSourceLedgerRequired');
   const reportCapacity = capacity?.listingReport;
+  const providerCapacity = capacity?.provider;
+  if (providerCapacity !== undefined) {
+    if (keyed || reportCapacity !== undefined) fail('InstalledProviderSourceProgramMismatch');
+    if (ledger === undefined) fail('InstalledProviderSourceLedgerRequired');
+    if (['clientProgramRowSourceStartProviderAccounted',
+      'clientProgramRowSourceBorrowResponses', 'clientProgramRowSourceBindResponseCleanup']
+      .some(name => typeof moon[name] !== 'function')) fail('InstalledProviderSourceUnavailable');
+  }
   if (reportCapacity !== undefined) {
     if (keyed) fail('InstalledListingSourceProgramMismatch');
     if (ledger === undefined) fail('InstalledListingSourceLedgerRequired');
@@ -29,6 +37,10 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     ? moon.clientProgramRowSourceStartListingAccounted(acquisition,
       reportCapacity, nonce, attempt => settled.has(attempt), ledger,
       capacity.transferBytes, capacity.executionBytes)
+    : providerCapacity !== undefined
+    ? moon.clientProgramRowSourceStartProviderAccounted(acquisition,
+      providerCapacity, nonce, attempt => settled.has(attempt), ledger,
+      capacity.transferBytes, capacity.executionBytes)
     : ledger === undefined
     ? moon.clientProgramRowSourceStart(acquisition, nonce,
       attempt => settled.has(attempt))
@@ -36,15 +48,73 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
       attempt => settled.has(attempt), ledger, capacity.transferBytes,
       capacity.executionBytes));
   let closed = false;
+  let readerPrepared = false, readerStarted = false, readerReadPending = false;
+  let readerStopRequested = false;
+  let reader, readerRead, readerStop, readerObserve;
+  let readerStopPending = false, readerStopFailure;
+  const readerRetired = () => {
+    if (readerObserve === undefined || readerReadPending || readerStopPending) return false;
+    // This is the same trusted reader's observation, not a packet Bool, the
+    // read Promise's settlement, or the credential Site's close result.
+    return Reflect.apply(readerObserve, reader, [])?.cleanupConfirmed === true;
+  };
+  const stopReader = () => {
+    if (readerStopRequested || readerStop === undefined) return;
+    readerStopRequested = true;
+    try {
+      const stopping = Reflect.apply(readerStop, reader, []);
+      if (stopping !== undefined) {
+        // A pending stop/cancel request is not retirement. Handle its original
+        // rejection without blocking cleanup forever or issuing another stop.
+        readerStopPending = true;
+        Promise.resolve(stopping).then(() => { readerStopPending = false; },
+          error => { readerStopFailure = error; readerStopPending = false; });
+      }
+    } catch (error) { readerStopFailure = error; }
+  };
   const close = () => {
     if (closed) return;
+    if (providerCapacity !== undefined) stopReader();
     if (ledger === undefined) moon.clientProgramRowSourceClose(run);
     else checked(moon.clientProgramRowSourceCloseAccounted(run));
     if (!checked(moon.clientProgramRowSourceCaptureCleanup(run))) {
       fail('InstalledSourceCleanupPending');
     }
     closed = true;
+    reader = readerRead = readerStop = readerObserve = undefined;
+    if (readerStopFailure !== undefined) throw readerStopFailure;
   };
+
+  // The trusted installation supplies a pure reader preparer, never a public
+  // Run packet. Install the same-acquisition Core borrow before entering it;
+  // even a throwing factory/getter leaves that original reservation pending.
+  async function readProvider({prepare, receiver, options}) {
+    if (providerCapacity === undefined || typeof prepare !== 'function') {
+      fail('InstalledProviderSourceUnavailable');
+    }
+    if (closed || readerPrepared) fail('InstalledSourceReaderAlreadyPrepared');
+    readerPrepared = true;
+    const borrow = checked(moon.clientProgramRowSourceBorrowResponses(run, acquisition));
+    checked(moon.clientProgramRowSourceBindResponseCleanup(borrow, readerRetired));
+    reader = Reflect.apply(prepare, receiver, [options]);
+    if (typeof reader?.then === 'function') {
+      // Preparation must be synchronous and I/O-free. An accidental async
+      // factory is never adopted later, but its rejection must still be handled.
+      Promise.resolve(reader).catch(error => { readerStopFailure = error; });
+      fail('InvalidInstalledSourceReader');
+    }
+    readerRead = reader?.read;
+    readerStop = reader?.requestStop;
+    readerObserve = reader?.observe;
+    if ([readerRead, readerStop, readerObserve].some(method => typeof method !== 'function')) {
+      fail('InvalidInstalledSourceReader');
+    }
+    // Methods and receiver are captured once before the first physical read.
+    readerStarted = true;
+    readerReadPending = true;
+    try { return await Reflect.apply(readerRead, reader, []); }
+    finally { readerReadPending = false; }
+  }
 
   // Called only after the adapter has awaited its complete Site transport.
   async function capture({currentRead, signal}) {
@@ -54,6 +124,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     signal?.throwIfAborted();
     if (closed) fail('InstalledSourceClosed');
     if (keyed && !transportStopped) fail('InstalledSourceTransportUnconfirmed');
+    if (providerCapacity !== undefined && !readerStarted) fail('InstalledSourceReaderUnavailable');
     checked(moon.clientProgramRowSourceFinish(run));
     settled.add(moon.clientProgramRowSourceAttempt(run));
     if (keyed) return checked(moon.clientProgramKeyedRowRetain(run));
@@ -169,6 +240,10 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
 
   async function cleanup() {
     if (closed) return true;
+    if (providerCapacity !== undefined) {
+      stopReader();
+      if (!readerRetired()) return false;
+    }
     if (keyed && !transportStopped) {
       if (transportRecovery === undefined) return false;
       const finished = await transportRecovery.cleanup();
@@ -197,7 +272,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
       });
     }
   }
-  return Object.freeze({run, close, capture, complete, cleanup, closeAfterFailure,
+  return Object.freeze({run, close, capture, complete, cleanup, closeAfterFailure, readProvider,
     consumeKeyedPage,
     // Only the installed adapter's transport boundary calls this observation.
     // It authorizes cleanup, never response evidence or successful retention.
