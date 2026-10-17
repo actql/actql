@@ -8425,7 +8425,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3c3ca2ceeeab30c0e3440c030aef9f80436b88fbec6a78031c91a52b2fb18b0f",
+      "sha256": "d93de7869b5250b37f8beb0705dcb32d15091a9c6b06dbfc3474d26d131ca1dd",
       "role": "connector-semantics",
       "owner": "Exact installed Salesforce org/Site binding with existing account gate, credential journal and release custody",
       "exports": [
@@ -8451,30 +8451,6 @@
             "code",
             "cause"
           ],
-          "async": false
-        },
-        {
-          "name": "handOverSiteRelease",
-          "parameters": [
-            "site",
-            "primary",
-            "errors"
-          ],
-          "async": false
-        },
-        {
-          "name": "handOverSiteRelease/earlierStatus/earlierStatus",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "handOverSiteRelease/handle/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "handOverSiteRelease/status/status",
-          "parameters": [],
           "async": false
         },
         {
@@ -8864,10 +8840,6 @@
             "<module>",
             "cid/cid",
             "fail/fail",
-            "handOverSiteRelease",
-            "handOverSiteRelease/earlierStatus/earlierStatus",
-            "handOverSiteRelease/handle/init:retry/init:retry",
-            "handOverSiteRelease/status/status",
             "installedSalesforceSiteBinding",
             "installSalesforceAuthorization",
             "loadInstalledSalesforceSite",
@@ -8960,8 +8932,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
-                "anchor": "handOverSiteRelease"
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "handOverCredentialSiteRelease"
               },
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
@@ -9060,6 +9032,7 @@
         "../../../host-common/authorization-gate.mjs",
         "../../../host-common/checkpoint-approval.mjs",
         "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-host-cleanup.mjs",
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/local-account-config.mjs",
         "../../../host-node/source-profile-json.mjs",
