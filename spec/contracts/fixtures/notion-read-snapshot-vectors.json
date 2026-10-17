@@ -1,0 +1,33 @@
+{
+  "version": "actql-notion-database-read-snapshot-vectors/0.1",
+  "vectors": [
+    {
+      "name": "property",
+      "body": {
+        "database_response": "\r\n{\"object\":\"database\",\"id\":\"db\",\"data_sources\":[{\"name\":\"é😀\",\"id\":\"s\"}],\"unknown\":9007199254740993.25}\n",
+        "declaration_source": " \r\n\"db\"\n",
+        "schema_cid": "sha256:51761e43cc6461058c7a4e4ed9a957bb1a076a3cd34564c2d882190e2814b932",
+        "schema_wire": "{\"fields\":{},\"nullable\":false,\"type\":\"object\"}",
+        "selected_data_source_response": " {\"object\":\"data_source\",\"id\":\"s\",\"parent\":{\"type\":\"database_id\",\"database_id\":\"db\"},\"properties\":{}} ",
+        "system_columns": false,
+        "version": "actql-notion-database-read-snapshot/0.1"
+      },
+      "wire": "{\"database_response\":\"\\r\\n{\\\"object\\\":\\\"database\\\",\\\"id\\\":\\\"db\\\",\\\"data_sources\\\":[{\\\"name\\\":\\\"é😀\\\",\\\"id\\\":\\\"s\\\"}],\\\"unknown\\\":9007199254740993.25}\\n\",\"declaration_source\":\" \\r\\n\\\"db\\\"\\n\",\"schema_cid\":\"sha256:51761e43cc6461058c7a4e4ed9a957bb1a076a3cd34564c2d882190e2814b932\",\"schema_wire\":\"{\\\"fields\\\":{},\\\"nullable\\\":false,\\\"type\\\":\\\"object\\\"}\",\"selected_data_source_response\":\" {\\\"object\\\":\\\"data_source\\\",\\\"id\\\":\\\"s\\\",\\\"parent\\\":{\\\"type\\\":\\\"database_id\\\",\\\"database_id\\\":\\\"db\\\"},\\\"properties\\\":{}} \",\"system_columns\":false,\"version\":\"actql-notion-database-read-snapshot/0.1\"}",
+      "source_cid": "sha256:4ee2aef8f7cd4a0fdf0636c9196688b676d0fa70b488131aded24a69b5472f1f"
+    },
+    {
+      "name": "system",
+      "body": {
+        "database_response": "\r\n{\"object\":\"database\",\"id\":\"db\",\"data_sources\":[{\"name\":\"é😀\",\"id\":\"s\"}],\"unknown\":9007199254740993.25}\n",
+        "declaration_source": " \r\n\"db\"\n",
+        "schema_cid": "sha256:3ffa826063458960878e34d07471b2866cc209df3e813cdff97f8de9c28279ef",
+        "schema_wire": "{\"fields\":{\"created_by\":{\"min_length\":1,\"nullable\":false,\"type\":\"string\"},\"created_time\":{\"nullable\":false,\"type\":\"timestamp\"},\"id\":{\"min_length\":1,\"nullable\":false,\"type\":\"string\"},\"last_edited_by\":{\"min_length\":1,\"nullable\":false,\"type\":\"string\"},\"last_edited_time\":{\"nullable\":false,\"type\":\"timestamp\"},\"resource\":{\"min_length\":1,\"nullable\":false,\"type\":\"string\"},\"url\":{\"min_length\":1,\"nullable\":false,\"type\":\"string\"},\"version\":{\"min_length\":1,\"nullable\":false,\"type\":\"string\"}},\"nullable\":false,\"type\":\"object\"}",
+        "selected_data_source_response": " {\"object\":\"data_source\",\"id\":\"s\",\"parent\":{\"type\":\"database_id\",\"database_id\":\"db\"},\"properties\":{}} ",
+        "system_columns": true,
+        "version": "actql-notion-database-read-snapshot/0.1"
+      },
+      "wire": "{\"database_response\":\"\\r\\n{\\\"object\\\":\\\"database\\\",\\\"id\\\":\\\"db\\\",\\\"data_sources\\\":[{\\\"name\\\":\\\"é😀\\\",\\\"id\\\":\\\"s\\\"}],\\\"unknown\\\":9007199254740993.25}\\n\",\"declaration_source\":\" \\r\\n\\\"db\\\"\\n\",\"schema_cid\":\"sha256:3ffa826063458960878e34d07471b2866cc209df3e813cdff97f8de9c28279ef\",\"schema_wire\":\"{\\\"fields\\\":{\\\"created_by\\\":{\\\"min_length\\\":1,\\\"nullable\\\":false,\\\"type\\\":\\\"string\\\"},\\\"created_time\\\":{\\\"nullable\\\":false,\\\"type\\\":\\\"timestamp\\\"},\\\"id\\\":{\\\"min_length\\\":1,\\\"nullable\\\":false,\\\"type\\\":\\\"string\\\"},\\\"last_edited_by\\\":{\\\"min_length\\\":1,\\\"nullable\\\":false,\\\"type\\\":\\\"string\\\"},\\\"last_edited_time\\\":{\\\"nullable\\\":false,\\\"type\\\":\\\"timestamp\\\"},\\\"resource\\\":{\\\"min_length\\\":1,\\\"nullable\\\":false,\\\"type\\\":\\\"string\\\"},\\\"url\\\":{\\\"min_length\\\":1,\\\"nullable\\\":false,\\\"type\\\":\\\"string\\\"},\\\"version\\\":{\\\"min_length\\\":1,\\\"nullable\\\":false,\\\"type\\\":\\\"string\\\"}},\\\"nullable\\\":false,\\\"type\\\":\\\"object\\\"}\",\"selected_data_source_response\":\" {\\\"object\\\":\\\"data_source\\\",\\\"id\\\":\\\"s\\\",\\\"parent\\\":{\\\"type\\\":\\\"database_id\\\",\\\"database_id\\\":\\\"db\\\"},\\\"properties\\\":{}} \",\"system_columns\":true,\"version\":\"actql-notion-database-read-snapshot/0.1\"}",
+      "source_cid": "sha256:0a37eaacdcada4d73a15c04d848cc9820df0c40db122b31e6465a9902ad2d729"
+    }
+  ]
+}
