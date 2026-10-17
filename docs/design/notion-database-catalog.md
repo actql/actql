@@ -462,6 +462,62 @@ foreign/missing schema contracts, original charges, current denial, Unknown,
 nonresend, bounded output and nominal handles. They do not establish a pristine
 installed or live Notion profile.
 
+### Original schema occurrence and delayed authorization
+
+The Catalog captures the declaration's exact bounded UTF-8 bytes before parsing
+and hashing them. `notion_database_read_declaration_source_cid` identifies this
+SOURCE, including whitespace, CRLF, key order and Unicode. It is not a semantic
+Contract identity, installation identity, credential issuer or permission.
+Equal source CIDs do not replace the retained declaration original.
+
+`select_notion_read_source` checks bounded comparison work and retains the same
+declaration, observed database and selected occurrence in an opaque
+`NotionReadSourceSelection`. Its match operation requires those physical
+originals; schema projection and Contract binding retain that database and index.
+The original singleton/explicit-id selection rule remains authoritative. There
+is no first-entry, display-name or compatible-schema selection.
+
+An optional `sourceAuthorizationFor` supplier is captured before I/O and is
+mutually exclusive with the existing early `sourceAuthorization`. After the
+actual database observation and Common selection, it receives the same opaque
+selection, declaration and database plus the exact selected GET origin/path and
+empty-body fact. Its returned original operation authorization is checked before
+schema I/O. Missing, foreign or wrong-operation authorization refuses without
+falling back to the database grant or the generic authorization callback.
+Provider methods and the supplier are snapshotted before awaiting. Current
+authorization and stop are rechecked before and after the awaited supplier.
+
+The earlier Run-scoped discovery route retains its existing grant/use checks.
+The delayed supplier is a sequencing seam, not an installation-preparation
+grant. A pre-schema installation action additionally needs the original trusted
+Host publication request, Account/Site/credential originals, the closed
+preparation subject and separately scoped database/schema uses in their existing
+owners. Callback DATA, selection shape and SOURCE CID cannot issue these
+originals. Query/property operations keep their actual Run scopes. Offline
+EXPLAIN does not discover metadata, and restore must retain the original
+declaration/schema instead of rediscovering them from current configuration.
+
+A supplier rejection or post-await current/stop refusal retains the first
+response and its actual charge on the same one-shot reader. Unknown/nonresend,
+failure aliases and `cleanupConfirmed: false` remain unchanged. There is no
+physical retirement acknowledgement from selection, callback completion or GC.
+
+The input Buffer and its private byte snapshot may overlap with decoded cursors,
+Contracts and the cached SOURCE hash. The selection adds two original graph
+references and an index; its returned aliases extend those original lifetimes.
+The frozen supplier descriptor, captured callback/receiver, provider methods,
+pending Promise/handlers and returned authorization may overlap the retained
+response, charge and later schema. Hashing/copying and all inventory comparisons
+remain bounded work, not free shared storage or numerical funding. Existing
+byte/work limits do not establish a complete physical metadata capacity supply.
+
+Independent exact-byte and selection-work vectors exercise these Catalog
+boundaries. Actual Common/Account/Credential/SQLite/local-TLS cases exercise the
+delayed original/path, separate operations, absent/foreign refusal, method
+snapshotting and post-await current/stop custody. Those cases use explicit
+Run-scoped fixture grants and observation tickets; they do not establish the new
+preparation subject's authority, installed publication or normal funding.
+
 ## Original Source system columns
 
 The public database Source includes the original page's `id`, `url`,

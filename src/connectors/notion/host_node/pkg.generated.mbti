@@ -8,6 +8,8 @@ import {
 // Values
 pub fn notion_bind_data_source_read_contracts(@catalog.NotionDatabaseReadDeclaration, @catalog.NotionDataSourceCatalog, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionDataSourceReadContracts, @catalog.NotionReadContractIssue]
 
+pub fn notion_bind_selected_read_contracts(@catalog.NotionReadSourceSelection, @catalog.NotionDataSourceCatalog, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionDataSourceReadContracts, @catalog.NotionReadContractIssue]
+
 pub fn notion_complete_read_row_property(@catalog.NotionReadRow, Int, @catalog.NotionPropertyItemPage) -> Result[Unit, @catalog.NotionReadRowIssue]
 
 pub fn notion_completed_property_json(@catalog.NotionDataSourceReadContracts, @catalog.NotionPropertyItemPage, Int, Int, Int, Int, Int, Int, Int) -> Result[String, @catalog.NotionPropertyItemIssue]
@@ -32,6 +34,8 @@ pub fn notion_project_property_item_page(@catalog.NotionPropertyItemRequest, Byt
 
 pub fn notion_project_query_page(@catalog.NotionDataSourceCatalog, Bytes, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.OriginalNotionQueryPage, @catalog.NotionQueryIssue]
 
+pub fn notion_project_selected_read_source(@catalog.NotionReadSourceSelection, Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionDataSourceCatalog, @catalog.NotionReadContractIssue]
+
 pub fn notion_project_user_list(Bytes, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionUserListPage, @catalog.NotionUserListIssue]
 
 pub fn notion_property_item_original_json(@catalog.NotionPropertyItemPage, Int) -> Result[String, @catalog.NotionPropertyItemIssue]
@@ -54,6 +58,10 @@ pub fn notion_query_property_value_json(@catalog.OriginalNotionQueryPage, Int, I
 
 pub fn notion_read_database_declaration(Bytes, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionDatabaseReadDeclaration, @catalog.NotionReadContractIssue]
 
+pub fn notion_read_database_declaration_source_bytes(@catalog.NotionDatabaseReadDeclaration) -> Int
+
+pub fn notion_read_database_declaration_source_cid(@catalog.NotionDatabaseReadDeclaration) -> String
+
 pub fn notion_read_database_id(@catalog.NotionDatabaseReadDeclaration) -> String
 
 pub fn notion_read_page_rows_json(@catalog.NotionDataSourceReadContracts, @catalog.OriginalNotionQueryPage, Array[@catalog.NotionReadRow], Int, Int, Int, Int, Int, Int, Int) -> Result[String, @catalog.NotionReadRowIssue]
@@ -63,6 +71,12 @@ pub fn notion_read_row_json(@catalog.NotionReadRow, Int, Int, Int) -> Result[Str
 pub fn notion_read_row_pending_json(@catalog.NotionReadRow, Int, Int, Int) -> Result[String, @catalog.NotionReadRowIssue]
 
 pub fn notion_read_source_index(@catalog.NotionDatabaseReadDeclaration, @catalog.NotionDatabaseCatalog) -> Result[Int, @catalog.NotionReadContractIssue]
+
+pub fn notion_read_source_selection_id(@catalog.NotionReadSourceSelection) -> String
+
+pub fn notion_read_source_selection_matches(@catalog.NotionReadSourceSelection, @catalog.NotionDatabaseReadDeclaration, @catalog.NotionDatabaseCatalog) -> Bool
+
+pub fn notion_select_read_source(@catalog.NotionDatabaseReadDeclaration, @catalog.NotionDatabaseCatalog, Int) -> Result[@catalog.NotionReadSourceSelection, @catalog.NotionReadContractIssue]
 
 pub fn notion_source_system_read_contracts(@catalog.NotionDataSourceReadContracts, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionDataSourceReadContracts, @catalog.NotionReadContractIssue]
 
