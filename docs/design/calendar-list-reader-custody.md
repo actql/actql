@@ -78,3 +78,60 @@ The bounded catalog and TLS caller tests establish response meaning, original
 Account/Credential checks, charging and sequencing. They do not establish this
 normal-installation capacity/retirement connection, credential token minting,
 public installed acquisition, or the other Calendar read/write operations.
+
+## Free/busy request and complete response
+
+The same Calendar Catalog owns `calendar.free_busy`'s fixed three columns:
+`calendar_id` is a non-null string, `start` and `end` are non-null Common
+timestamps, and the relation has no candidate key. `prepare_calendar_free_busy_query`
+snapshots the original ordered calendar IDs and canonical query window. Its
+private constructor issues a bounded vendor request, not a Source, Account,
+Credential, egress permission or execution grant. It neither expands a group
+nor infers a calendar identity from the returned values. The request explicitly
+asks for UTC and at most the vendor's 50-calendar expansion limit. The Google
+[free/busy protocol](https://developers.google.com/workspace/calendar/api/v3/reference/freebusy/query)
+defines the POST body, response calendar map and inclusive-start/exclusive-end
+busy intervals. A physical caller must still select the registered operation
+and original separately authorized Credential use.
+
+`project_calendar_free_busy` admits the complete bounded original response
+before returning any page. Its echoed window must denote the requested
+instants. The calendar map must contain exactly the original selected IDs:
+missing, additional or substituted calendars, group expansion, and any
+calendar-level error refuse the complete page rather than publish partial
+availability. An omitted empty `busy` array means no busy intervals; explicit
+null and malformed arrays do not. Every interval is checked before a selected
+projection. Calendar order follows the original selection and each busy
+occurrence is retained; no deduplication, sorting, clipping or key is invented.
+
+The vendor RFC3339 reader admits explicit offsets and exact fractional seconds,
+then uses existing Common timestamp conversion to represent the same UTC
+instant. It rejects invalid dates, unknown `-00:00` offsets and instants that
+cannot be represented by the current millisecond timestamp contract, including
+nonzero sub-millisecond precision. It does not round, use a local time zone, or
+change the general language's temporal semantics. A page retains the same
+opaque query and original response digest; physical equality of that query is
+available separately from byte-equal query content. Neither equality nor the
+digest is an authority or source-capture receipt.
+
+The query retains its ID array, window strings and emitted request string.
+Projection overlaps the original bytes, parser tree, admitted cursor tree,
+normalized timestamp strings, temporary cell cursors, checked row cells, page
+and original query. Emission adds a bounded writer/output; bridge metadata adds
+its small projection. Every retained cell occurrence consumes the explicit
+value node/text allowances, including repeated IDs. Request, response, parser,
+calendar count, row count and output ceilings remain separate. These local
+ceilings do not adopt a normal numerical profile, fund an existing Ledger or
+measure native/RSS use.
+
+This Catalog and its compiled Node bridge are synchronous: there is no physical
+send to cancel, journal to claim, retry or cleanup acknowledgement to emit.
+On refusal the caller retains its original response and cleanup responsibility.
+No free/busy transport, normal installer registration, resource supplier,
+physical-retirement port or service-account token exchange is established by
+these projections. The existing physical/Run/Account/Credential owners must
+retain those responsibilities when connecting this query to an actual Source.
+`free_busy_wbtest.mbt` independently checks request/response correspondence,
+precision, errors and budgets; `calendar-free-busy-projection.test.mjs` consumes
+the actual compiled bridge. Those tests are not normal installed or live Google
+acceptance and do not establish Calendar event writes or the other profiles.
