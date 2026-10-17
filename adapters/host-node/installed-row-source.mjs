@@ -47,8 +47,8 @@ const contractRoot = new URL('../../spec/contracts/', import.meta.url);
 
 const byCid = values => values.map(value => JSON.parse(value))
   .sort((a, b) => {
-    const left = contentCid(a);
-    const right = contentCid(b);
+    const left = valueCid(a);
+    const right = valueCid(b);
     return left < right ? -1 : left > right ? 1 : 0;
   });
 
@@ -60,6 +60,8 @@ const byCid = values => values.map(value => JSON.parse(value))
 // declared Command bodies keep their original Catalog/role correspondence for
 // Common admission; this assembly does not confer permission or issue targets.
 // Without Mappings or Commands the read-only environment remains unchanged.
+// Checked contracts contain exact data text, including enum values and field
+// names. Preserve those originals rather than applying configuration NFC.
 export function rowSourceCheckEnvironment(baseWire, declared, mappings = []) {
   const base = JSON.parse(baseWire);
   const {evidence_bundle_cid: _, ...body} = base;
@@ -87,9 +89,10 @@ export function rowSourceCheckEnvironment(baseWire, declared, mappings = []) {
       connectors: [JSON.parse(declared.manifest_entry)]},
     ...(mappings.length === 0 ? {} : {mapping_contracts: byCid(mappings)}),
     ...(commands.length === 0 ? {} : {command_contracts: byCid(commands)})};
-  const evidenceCid = contentCid(environment);
+  const evidenceCid = valueCid(environment);
   return Object.freeze({
-    wire: canonicalJson({...environment, evidence_bundle_cid: evidenceCid}),
+    wire: canonicalValueJson({...environment, evidence_bundle_cid: evidenceCid},
+      {dataKeys: true}),
     evidenceCid});
 }
 
