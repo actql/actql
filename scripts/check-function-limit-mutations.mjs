@@ -4,7 +4,7 @@ import {spawnSync} from 'node:child_process';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {mutationAcceptance} from './check-disclosure-mutations.mjs';
 
-const path = 'src/connectors_builtin_node/client_check.mbt';
+const path = 'src/client_local_preparation/client_check.mbt';
 const publicTests = 'adapters/host-node/client-check.test.mjs';
 const target = (name, id, operator = 'strictEqual') => ({name, assertions: [{id, operator}]});
 const locationTargets = (id, operator) => ['local', 'http'].map(entrance => target(

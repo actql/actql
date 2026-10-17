@@ -208,11 +208,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   if (process.argv.includes('--write')) {
     applyCheckOutcomeSchema(registry);
     writeFileSync(path, JSON.stringify(registry, null, 2) + '\n');
-    writeFileSync('src/connectors_builtin_node/check_reason_schema.generated.mbt',
+    writeFileSync('src/client_local_preparation/check_reason_schema.generated.mbt',
       generatedPins(registry));
   }
   checkCheckOutcomeSchema(registry);
   assert.equal(readFileSync(
-    'src/connectors_builtin_node/check_reason_schema.generated.mbt', 'utf8'),
+    'src/client_local_preparation/check_reason_schema.generated.mbt', 'utf8'),
   generatedPins(registry));
 }

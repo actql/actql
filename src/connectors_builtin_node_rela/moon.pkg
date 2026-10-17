@@ -44,6 +44,7 @@ import {
   "actql/actql/decode_core" @decode,
   "actql/actql/sourceview_resolution" @acquisition,
   "actql/actql/query_planning" @planning,
+  "actql/actql/client_local_preparation" @local_preparation,
   "actql/actql/client_source_publication" @source_publication,
   "actql/actql/connectors/duckdb/host" @duckdb_host,
   "actql/actql/connectors/salesforce/catalog" @salesforce_catalog,
