@@ -87,7 +87,12 @@ pub fn[T, C] NativeHostBootstrap::bind_prepared_process_region(
     return Err(Domain(Bootstrap(ReadersPending)))
   }
   self.capture_original_process_region(
-    domain, child, holder, descriptor, None, None,
+    domain,
+    child,
+    holder,
+    descriptor,
+    None,
+    None,
   )
 }
 
@@ -164,9 +169,14 @@ pub fn[T, C] NativeHostBootstrap::bind_prepared_process_channel_region(
     Err(Child(issue)) => return Err(OriginalChild(issue))
     Ok(_) => ()
   }
-  if !domain.transferred || domain.read_attempted || domain.read_retired ||
-    domain.read_use is None || domain.process_region is Some(_) ||
-    channel.child_binding_attempted || channel.binding_attempted || channel.admitted {
+  if !domain.transferred ||
+    domain.read_attempted ||
+    domain.read_retired ||
+    domain.read_use is None ||
+    domain.process_region is Some(_) ||
+    channel.child_binding_attempted ||
+    channel.binding_attempted ||
+    channel.admitted {
     return Err(Domain(Bootstrap(ReadersPending)))
   }
   match holder.require_prepared() {
@@ -185,7 +195,12 @@ pub fn[T, C] NativeHostBootstrap::bind_prepared_process_channel_region(
     return Err(Domain(Bootstrap(Physical(status))))
   }
   self.capture_original_process_region(
-    domain, channel.child, holder, descriptor, Some(channel), Some(transport),
+    domain,
+    channel.child,
+    holder,
+    descriptor,
+    Some(channel),
+    Some(transport),
   )
 }
 
@@ -198,7 +213,8 @@ fn[T, C] NativeHostBootstrap::require_process_channel_current(
   channel : NativeBackedLiveChannel[T, C],
   process : NativeBackedProcessRegion[T, C],
 ) -> Result[Unit, NativeBackedExecutionIssue] {
-  match self.require_region_child(original, channel.domain.view.loan, channel.child) {
+  match
+    self.require_region_child(original, channel.domain.view.loan, channel.child) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -216,7 +232,8 @@ fn[T, C] NativeHostBootstrap::require_process_channel_current(
   if process.retired || process.physical_retired || process.pin_closed {
     return Err(Bootstrap(Closing))
   }
-  guard process.transport is Some(transport) && process.physical is Some(physical) else {
+  guard process.transport is Some(transport) &&
+    process.physical is Some(physical) else {
     return Err(Bootstrap(Unavailable))
   }
   if transport.require_current(process.holder) is Err(_) {
@@ -254,7 +271,9 @@ pub fn[T, C] NativeHostBootstrap::bind_process_channel_child(
     Err(issue) => return Err(Process(issue))
     Ok(value) => value
   }
-  self.bind_backed_live_channel_child(original, channel, child.pid()).map_err(issue => Domain(issue))
+  self
+  .bind_backed_live_channel_child(original, channel, child.pid())
+  .map_err(issue => Domain(issue))
 }
 
 ///|
@@ -292,7 +311,10 @@ fn[T, C] NativeHostBootstrap::retire_process_channel_metadata(
       return Err(Domain(Bootstrap(ReadersPending)))
     }
     if channel.ledger_frame is Some(frame) && !channel.envelope_retired {
-      match self.retire_backed_channel_bootstrap_after_owner_ack(original, channel, frame) {
+      match
+        self.retire_backed_channel_bootstrap_after_owner_ack(
+          original, channel, frame,
+        ) {
         Err(Domain(issue)) => return Err(Domain(issue))
         Err(Child(issue)) => return Err(OriginalChild(issue))
         Ok(_) => ()
@@ -314,7 +336,8 @@ fn[T, C] NativeHostBootstrap::retire_process_channel_metadata(
     if record.domain.read_use is Some(_) {
       // This worker entry excluded parent C read-context acquisition before
       // capture. It returns the original Common borrow after actual stop only.
-      match self.close_backed_read_context(original, record.domain, record.child) {
+      match
+        self.close_backed_read_context(original, record.domain, record.child) {
         Err(issue) => return Err(Domain(issue))
         Ok(_) => ()
       }

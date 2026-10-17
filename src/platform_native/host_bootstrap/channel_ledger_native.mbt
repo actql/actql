@@ -250,12 +250,13 @@ pub fn[T, C] NativeHostBootstrap::require_backed_channel_bootstrap_current(
       Ok((payload, _)) => payload
     }
   } else {
-    match @resources.backed_execution_delegation_description(
-      record.domain.view.loan.region.accounting,
-      self,
-      record.child,
-      record.domain.view.loan.accounting,
-    ) {
+    match
+      @resources.backed_execution_delegation_description(
+        record.domain.view.loan.region.accounting,
+        self,
+        record.child,
+        record.domain.view.loan.accounting,
+      ) {
       Err(issue) => return Err(Domain(Accounting(issue)))
       Ok((extent, _, _)) => extent.payload_length
     }

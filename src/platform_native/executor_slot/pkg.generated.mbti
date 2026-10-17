@@ -1,0 +1,105 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/executor_slot"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub const NATIVE_EXECUTOR_SLOT_INHERITED_FD : Int = 3
+
+pub fn inherited_native_executor_slot(String) -> Result[NativeExecutorSlot, NativeExecutorSlotIssue]
+
+pub fn install_native_termination_request() -> Bool
+
+pub fn native_append_evidence_line(String, String) -> Bool
+
+pub fn native_current_executable() -> Result[String, NativeExecutorSlotIssue]
+
+pub fn native_kill_self() -> Unit
+
+pub fn native_read_holder_input(Int) -> NativeHolderInput
+
+pub fn native_termination_requested() -> Bool
+
+pub fn native_wait_milliseconds(Int) -> Unit
+
+pub fn native_write_progress_line(String) -> Bool
+
+pub fn open_native_executor_slot(String) -> Result[NativeExecutorSlot, NativeExecutorSlotIssue]
+
+// Errors
+
+// Types and methods
+type NativeExecutorSlot
+pub fn NativeExecutorSlot::close(Self) -> Bool
+pub fn NativeExecutorSlot::is_open(Self) -> Bool
+pub fn NativeExecutorSlot::prepare_scoped_holder(Self) -> NativeScopedExecutorPreparation
+pub fn NativeExecutorSlot::spawn_holder(Self, String, Array[String]) -> Result[NativeExecutorSlotChild, NativeExecutorSlotIssue]
+pub fn NativeExecutorSlot::spawn_holder_with_channel(Self, String, Array[String]) -> Result[(NativeExecutorSlotChild, NativeHolderChannel), NativeExecutorSlotIssue]
+pub fn NativeExecutorSlot::try_acquire(Self) -> Result[Bool, NativeExecutorSlotIssue]
+pub fn NativeExecutorSlot::verify_current_hold(Self) -> Result[Unit, NativeExecutorSlotIssue]
+
+type NativeExecutorSlotChild
+pub fn NativeExecutorSlotChild::pid(Self) -> Int
+pub fn NativeExecutorSlotChild::terminate(Self) -> Bool
+pub fn NativeExecutorSlotChild::wait(Self, Bool) -> Result[NativeExecutorSlotExit?, NativeExecutorSlotIssue]
+
+pub(all) enum NativeExecutorSlotExit {
+  Exited(Int)
+  Signaled(Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum NativeExecutorSlotIssue {
+  UnsupportedTarget
+  InvalidConfiguration
+  OpenFailed
+  Busy
+  Replaced
+  NotHeld
+  SpawnFailed
+  WaitFailed
+  Closed
+  LockFailed
+} derive(Eq, @debug.Debug)
+
+type NativeHolderChannel
+pub fn NativeHolderChannel::close(Self) -> Bool
+pub fn NativeHolderChannel::send(Self, String) -> Bool
+
+pub(all) enum NativeHolderInput {
+  InputLine(String)
+  InputEnded
+  InputInvalid
+}
+
+type NativeScopedDuplexBorrow
+pub fn NativeScopedDuplexBorrow::parent_descriptors(Self, NativeScopedExecutorHolder) -> Result[(Int, Int), NativeExecutorSlotIssue]
+pub fn NativeScopedDuplexBorrow::require_current(Self, NativeScopedExecutorHolder) -> Result[Unit, NativeExecutorSlotIssue]
+pub fn NativeScopedDuplexBorrow::return_transport(Self, NativeScopedExecutorHolder) -> Result[Unit, NativeExecutorSlotIssue]
+
+type NativeScopedDuplexTransport
+pub fn NativeScopedDuplexTransport::borrow_transport(Self, NativeScopedExecutorHolder) -> Result[NativeScopedDuplexBorrow, NativeExecutorSlotIssue]
+
+type NativeScopedExecutorHolder
+pub fn NativeScopedExecutorHolder::channel(Self) -> Result[NativeHolderChannel, NativeExecutorSlotIssue]
+pub fn NativeScopedExecutorHolder::child(Self) -> Result[NativeExecutorSlotChild, NativeExecutorSlotIssue]
+pub fn NativeScopedExecutorHolder::cleanup(Self) -> Bool
+pub fn NativeScopedExecutorHolder::poll_stop(Self) -> Result[NativeScopedExecutorStop?, NativeExecutorSlotIssue]
+pub fn NativeScopedExecutorHolder::prepare_duplex(Self) -> Result[NativeScopedDuplexTransport, NativeExecutorSlotIssue]
+pub fn NativeScopedExecutorHolder::require_prepared(Self) -> Result[Unit, NativeExecutorSlotIssue]
+pub fn NativeScopedExecutorHolder::spawn_duplex(Self, String, Array[String]) -> Result[Unit, NativeExecutorSlotIssue]
+pub fn NativeScopedExecutorHolder::spawn_with_channel(Self, String, Array[String]) -> Result[Unit, NativeExecutorSlotIssue]
+
+pub(all) enum NativeScopedExecutorPreparation {
+  Ready(NativeScopedExecutorHolder)
+  Refused(NativeScopedExecutorHolder, NativeExecutorSlotIssue)
+}
+
+type NativeScopedExecutorStop
+pub fn NativeScopedExecutorStop::close(Self) -> Bool
+pub fn NativeScopedExecutorStop::require_current(Self, NativeScopedExecutorHolder) -> Result[Unit, NativeExecutorSlotIssue]
+
+// Type aliases
+
+// Traits

@@ -256,7 +256,8 @@ fn[T, C] NativeHostBootstrap::require_live_channel_open(
     return Err(Bootstrap(Closing))
   }
   match record.domain.process_region {
-    Some(process) => self.require_process_channel_current(original, record, process)
+    Some(process) =>
+      self.require_process_channel_current(original, record, process)
     None => self.require_domain_current(original, record.domain, record.child)
   }
 }
@@ -284,7 +285,9 @@ fn[T, C] NativeHostBootstrap::live_channel_accounting_state(
   guard live.projection is Some(projection) else {
     return Err(Bootstrap(Unavailable))
   }
-  @resources.backed_execution_live_state(projection, record).map_err(issue => Accounting(issue))
+  @resources.backed_execution_live_state(projection, record).map_err(issue => {
+    Accounting(issue)
+  })
 }
 
 ///|
@@ -545,7 +548,9 @@ pub fn[T, C] NativeHostBootstrap::backed_live_channel_limits(
   guard record.live is Some(live) && live.projection is Some(projection) else {
     return Err(Bootstrap(Unavailable))
   }
-  @resources.backed_execution_live_limits(projection, record).map_err(issue => Accounting(issue))
+  @resources.backed_execution_live_limits(projection, record).map_err(issue => {
+    Accounting(issue)
+  })
 }
 
 ///|
