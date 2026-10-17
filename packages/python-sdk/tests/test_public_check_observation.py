@@ -66,6 +66,15 @@ class PublicCheckObservationTests(unittest.TestCase):
         self.assertEqual(observed.to_dict(), unavailable)
         self.assertIsNone(get_check_input(observed, 'source'))
 
+    def test_reinitializing_original_cannot_replace_its_bound_check(self):
+        outcome = bind_check(check_report(), BODY)
+        replacement = check_report()
+        replacement['report']['context_ref'] = 'different-context'
+        with self.assertRaises(AttributeError):
+            outcome.__init__(replacement)
+        self.assertEqual(outcome.report.context_ref, 'ctx:independent-python')
+        self.assertEqual(get_check_input(outcome, 'source')['text'], '0123456789')
+
     def test_mutating_response_or_input_does_not_change_admitted_snapshot(self):
         raw, body = check_report(), deepcopy(BODY)
         outcome = bind_check(raw, body)
@@ -83,3 +92,47 @@ class PublicCheckObservationTests(unittest.TestCase):
         with self.assertRaises(ClientError) as caught:
             bind_check(check_report(), BODY | {'input': {'text': 'short', 'format': 'sql'}})
         self.assertEqual(caught.exception.code, 'InvalidHostCheckInputBinding')
+
+    def test_malformed_values_keep_the_original_generated_admission_error(self):
+        for value in [check_report() | {'unknown': object()},
+                      check_report() | {'outcome_schema_cid': object()}]:
+            with self.subTest(value=list(value)), self.assertRaises(ClientError) as caught:
+                bind_check(value, BODY)
+            self.assertEqual(caught.exception.code, 'InvalidHostCheckOutcome')
+
+
+class PublicAsyncCheckTests(unittest.IsolatedAsyncioTestCase):
+    async def test_actual_async_check_exposes_guide_attributes_without_another_request(self):
+        import httpx
+        from actql_sdk import AsyncClient
+        from fixtures import PROFILE
+        calls = []
+        def respond(request):
+            calls.append(request.url.path.rsplit('/', 1)[-1])
+            return httpx.Response(200, json=PROFILE if calls[-1] == 'connect' else check_report())
+        client = await AsyncClient.connect('https://host.test', 'owner-token',
+                                           transport=httpx.MockTransport(respond))
+        try:
+            outcome = await client.check('0123456789', kind='text', format='sql', scope='bound_input')
+            self.assertEqual(outcome.report.reasons[0].code, 'query_lexical_invalid')
+            self.assertEqual(outcome.report.verdict, 'invalid')
+            self.assertEqual(get_check_input(outcome, 'source')['text'], '0123456789')
+            self.assertEqual(calls, ['connect', 'check'])
+        finally:
+            await client.aclose()
+
+
+class PublicSyncCheckTests(unittest.TestCase):
+    def test_actual_sync_check_exposes_guide_attributes_without_another_request(self):
+        import httpx
+        from actql_sdk import Client
+        from fixtures import PROFILE
+        calls = []
+        def respond(request):
+            calls.append(request.url.path.rsplit('/', 1)[-1])
+            return httpx.Response(200, json=PROFILE if calls[-1] == 'connect' else check_report())
+        with Client.connect('https://host.test', 'owner-token', transport=httpx.MockTransport(respond)) as client:
+            outcome = client.check('0123456789', kind='text', format='sql', scope='bound_input')
+            self.assertEqual(outcome.report.reasons[0].code, 'query_lexical_invalid')
+            self.assertEqual(resolve_check_location(outcome, outcome.report.reasons[0].location)['text'], '0123')
+            self.assertEqual(calls, ['connect', 'check'])

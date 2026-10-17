@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {spawn} from 'node:child_process';
 import {generateKeyPairSync} from 'node:crypto';
-import {mkdir,mkdtemp,rm,writeFile} from 'node:fs/promises';
+import {appendFile,mkdir,mkdtemp,rm,writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {join,resolve} from 'node:path';
@@ -16,7 +16,8 @@ async function python(args,cwd) {
   let stdout='',stderr='';
   child.stdout.on('data',value=>{stdout+=value;});child.stderr.on('data',value=>{stderr+=value;});
   await new Promise((resolve,reject)=>{child.once('error',reject);child.once('close',(code,signal)=>{
-    if(code!==0)reject(new Error(`Python public consumer failed: code=${code}; signal=${signal}\n${stderr}`));else resolve();});});
+    appendFile(join(cwd,'python-processes.jsonl'),JSON.stringify({pid:child.pid,code,signal})+'\n',{mode:0o600}).then(()=>{
+    if(code!==0)reject(new Error(`Python public consumer failed: code=${code}; signal=${signal}\n${stderr}`));else resolve();},reject);});});
   return JSON.parse(stdout);
 }
 
