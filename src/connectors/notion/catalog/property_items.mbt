@@ -516,3 +516,61 @@ pub fn notion_property_item_page_original_wire(
     _ => Err(InvalidResponse)
   }
 }
+
+///|
+/// Select the exact property occurrence of an original checked column before
+/// any physical request. The bounded scan is charged to this same chain.
+pub fn start_notion_column_property_item_request(
+  binding : NotionDataSourceReadContracts,
+  row : OriginalNotionQueryRow,
+  column_index : Int,
+  limits : NotionPropertyItemLimits,
+) -> Result[NotionPropertyItemRequest, NotionPropertyItemIssue] {
+  if !property_item_limits_valid(limits) {
+    return Err(InvalidLimits)
+  }
+  guard notion_data_source_read_column_at(binding, column_index) is Some(column) else {
+    return Err(InvalidSelection)
+  }
+  if !physical_equal(row.source, binding.source) || column.projection != Value {
+    return Err(ForeignOriginal)
+  }
+  let mut remaining = limits.max_work
+  for index in 0..<row.properties.length() {
+    if remaining == 0 {
+      return Err(BudgetExceeded)
+    }
+    remaining -= 1
+    if physical_equal(row.properties[index].metadata, column.property) {
+      if remaining == 0 {
+        return Err(BudgetExceeded)
+      }
+      return start_notion_property_item_request(row, index, {
+        ..limits,
+        max_work: remaining,
+      })
+    }
+  }
+  Err(ForeignOriginal)
+}
+
+///|
+pub fn notion_property_item_request_matches_binding(
+  request : NotionPropertyItemRequest,
+  binding : NotionDataSourceReadContracts,
+  column_index : Int,
+) -> Bool {
+  guard notion_data_source_read_column_at(binding, column_index) is Some(column) else {
+    return false
+  }
+  physical_equal(request.row.source, binding.source) &&
+  physical_equal(request.property.metadata, column.property) &&
+  column.projection == Value
+}
+
+///|
+pub fn notion_property_item_page_complete(
+  page : NotionPropertyItemPage,
+) -> Bool {
+  page.next_cursor is None
+}
