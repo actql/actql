@@ -4133,7 +4133,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "291efe69f7c82ece1e489c781a2b9bb6eed8861b15871d596332fdcf86b07e77",
+      "sha256": "830cb943b5fa907fdf52a28c7e2c94f6c803d862f4fd9007cfdabd6c3f05d999",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -4906,7 +4906,6 @@
         {
           "name": "createRowEffectStage/claimsOf/claimsOf/claimsOf/claimsOf",
           "parameters": [
-            "change",
             "rowIndex"
           ],
           "async": false
@@ -5058,6 +5057,28 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/orderedSourceIndexes",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/positions/positions",
+          "parameters": [
+            "row",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/ownerOf/ownerOf",
           "parameters": [
             "member"
@@ -5090,7 +5111,8 @@
             "applyPreview",
             "ledger",
             "targetReads",
-            "assertCurrent"
+            "assertCurrent",
+            "dispatchIndexes"
           ],
           "async": false
         },
@@ -5350,6 +5372,14 @@
           "parameters": [
             "member",
             "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries/claimBySource/claimBySource",
+          "parameters": [
+            "sourceIndex",
+            "dispatchIndex"
           ],
           "async": false
         },
@@ -5881,6 +5911,9 @@
             "createRowEffectStage/observeRows/observeRows",
             "createRowEffectStage/observeRows/observeRows/observeRows",
             "createRowEffectStage/openLedger/openLedger",
+            "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes",
+            "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/orderedSourceIndexes",
+            "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/positions/positions",
             "createRowEffectStage/ownerOf/ownerOf",
             "createRowEffectStage/permissionsOf/permissionsOf",
             "createRowEffectStage/permissionsOf/permissionsOf/rule/rule",
@@ -5922,6 +5955,7 @@
             "createRowEffectStage/readDecision/readDecision",
             "createRowEffectStage/recoveredEntries/recoveredEntries",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries",
+            "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries/claimBySource/claimBySource",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries/entries",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries/rows/rows",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries/rows/rows#2",
@@ -6275,6 +6309,14 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Verification: `installed-row-upsert-absence.integration.test.mjs` uses actual"
+              },
+              {
+                "path": "src/run_publication/effect_target_inventory_wbtest.mbt",
+                "anchor": "test \"target order retains original indexes and exact canonical data keys\""
+              },
+              {
+                "path": "adapters/host-node/installed-row-upsert-absence.integration.test.mjs",
+                "anchor": "test('same saved mixed UPSERT restores original source requests and canonical claims without authority or send'"
               }
             ]
           }
