@@ -6,6 +6,7 @@ fn initialize_native_local_client_custody(
   crypto : @crypto.Library,
   adoption : Bytes,
   settings? : NativeLocalConfigurationSelection? = None,
+  initial_signing? : NativeLocalInitialSigningCapture? = None,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   if database.transaction_fenced() {
     return Err(Fenced)
@@ -15,8 +16,16 @@ fn initialize_native_local_client_custody(
     Err(issue) => return Err(Physical(issue))
   }
   let result = initialize_native_local_client_rows(
-    database, crypto, adoption, settings,
+    database, crypto, adoption, settings, initial_signing,
   )
+  let result = match result {
+    Ok(_) =>
+      match initial_signing {
+        None => Ok(())
+        Some(original) => original.check_current(crypto, adoption)
+      }
+    Err(issue) => Err(issue)
+  }
   match result {
     Ok(_) =>
       match database.commit() {
@@ -43,6 +52,7 @@ fn initialize_native_local_client_rows(
   crypto : @crypto.Library,
   adoption : Bytes,
   settings : NativeLocalConfigurationSelection?,
+  initial_signing : NativeLocalInitialSigningCapture?,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   // Refuse preexisting or partially lost custody before generating any key.
   for
@@ -70,13 +80,27 @@ fn initialize_native_local_client_rows(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  match initialize_local_installation_originals(database, adoption) {
+  let installation = match initial_signing {
+    None => initialize_local_installation_originals(database, adoption)
+    Some(_) => check_empty_local_installation_originals(database)
+  }
+  match installation {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
   match initialize_native_client_epoch_in_transaction(database, crypto) {
     Ok(_) => ()
     Err(issue) => return Err(Epoch(issue))
+  }
+  if initial_signing is Some(original) {
+    let body = match original.control_body(database, crypto, adoption) {
+      Err(issue) => return Err(issue)
+      Ok(value) => value
+    }
+    match insert_local_installation_control(database, body) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
   }
   match initialize_local_worker_provisioning(database, adoption, crypto) {
     Err(issue) => return Err(issue)

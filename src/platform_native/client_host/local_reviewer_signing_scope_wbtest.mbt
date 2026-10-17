@@ -1,4 +1,10 @@
 ///|
+// Preserve the original malformed ordering as a separate negative occurrence;
+// the shared positive Reviewer fixture now has canonical entry order.
+let reviewer_signing_scope_noncanonical_account : String =
+  #|{"version":"actql-execution-account-config/0.1","account_id":"operator","entries":[{"entry_id":"original-client-read","outcome":"allow","principal":{"any_of":["operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["run"]},"operation":{"any_of":["read"]},"exclusions":[]},{"entry_id":"independent-reviewer-resolve","outcome":"allow","principal":{"any_of":["reviewer"]},"connection":{"any_of":["review-cli"]},"resource":{"any_of":["run"]},"operation":{"any_of":["resolve"]},"exclusions":[]}]}
+
+///|
 // The existing literal has the same two independent permissions but lists
 // original-client-read before independent-reviewer-resolve. The Account wire
 // Owner correctly refuses that noncanonical entry order; do not normalize it
@@ -164,7 +170,9 @@ fn reviewer_signing_scope_key_candidate(
 ///|
 test "Reviewer scope key correspondence uses authenticated originals without issuing a grant" {
   assert_true(
-    @authorization.admit_account_configuration_json(local_reviewer_account)
+    @authorization.admit_account_configuration_json(
+      reviewer_signing_scope_noncanonical_account,
+    )
     is Err(@authorization.NonCanonicalOrder("$.entries[1].entry_id")),
   )
   assert_true(

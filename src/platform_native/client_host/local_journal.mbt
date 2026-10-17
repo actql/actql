@@ -149,6 +149,8 @@ fn NativeLocalAdoptionSession::open_journal_selected(
   max_records : Int,
   max_snapshot_bytes : Int64,
   signing : Array[NativeLocalSigningInstallationSelection],
+  initial_signing? : NativeLocalInitialSigningMaterial? = None,
+  initial_policy? : @host.ClientLocalSigningBootstrapPolicy? = None,
 ) -> Result[NativeLocalHostConnection, NativeLocalAdoptionIssue] {
   if !valid_epoch_clock(ttl_ms) ||
     ttl_ms < 1.0 ||
@@ -210,6 +212,9 @@ fn NativeLocalAdoptionSession::open_journal_selected(
       }
     }
   }
+  if !first && (initial_signing is Some(_) || initial_policy is Some(_)) {
+    return Err(AmbiguousInitialization)
+  }
   match self.check_original() {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -229,6 +234,7 @@ fn NativeLocalAdoptionSession::open_journal_selected(
   }
   let connected = self.bind_journal(
     database, crypto, ownership, adoption_body, first, ttl_ms, max_records, signing,
+    initial_signing, initial_policy,
   )
   match connected {
     Ok(value) => Ok(value)
@@ -248,10 +254,24 @@ fn NativeLocalAdoptionSession::bind_journal(
   ttl_ms : Double,
   max_records : Int,
   signing : Array[NativeLocalSigningInstallationSelection],
+  initial_signing : NativeLocalInitialSigningMaterial?,
+  initial_policy : @host.ClientLocalSigningBootstrapPolicy?,
 ) -> Result[NativeLocalHostConnection, NativeLocalAdoptionIssue] {
   match self.check_original() {
     Ok(_) => ()
     Err(issue) => return Err(issue)
+  }
+  let initial = match (initial_signing, initial_policy) {
+    (None, None) => None
+    (Some(material), Some(policy)) if first =>
+      match
+        self.prepare_initial_signing_capture(
+          material, policy, crypto, adoption_body,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(value) => Some(value)
+      }
+    _ => return Err(InvalidInput)
   }
   if first {
     match
@@ -260,6 +280,7 @@ fn NativeLocalAdoptionSession::bind_journal(
         crypto,
         adoption_body,
         settings=Some(self.settings),
+        initial_signing=initial,
       ) {
       Ok(_) => ()
       Err(issue) => return Err(issue)

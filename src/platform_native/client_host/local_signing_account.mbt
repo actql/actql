@@ -63,6 +63,7 @@ pub fn NativeLocalSigningAccountBinding::require_current_account(
   match purpose {
     @credential.ReviewerProof => {
       guard self.reviewer is Some(reviewer) &&
+        reviewer.initial_original is None &&
         physical_equal(reviewer.host, self.host) &&
         reviewer.reviewer.principal == principal &&
         reviewer.reviewer.connection == connection &&

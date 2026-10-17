@@ -151,6 +151,41 @@ fn NativeLocalHostConnection::require_distinct_signing_key_locked(
     local_preparation_installation_selection(own_file.body) is Err(_) {
     return Err(CustodyLost)
   }
+  let control = match
+    self.database.read("client_local_installation_custody", "host") {
+    Err(issue) => return Err(Physical(issue))
+    Ok(value) => value
+  }
+  match read_local_initial_signing_control(self, control.body) {
+    Err(_) => return Err(CustodyLost)
+    Ok(None) => ()
+    Ok(Some(initial)) => {
+      if self.session.root.restore_private_file_projection(initial.exported)
+        is Err(_) {
+        return Err(CustodyLost)
+      }
+      let same_file = original.length() > 106 &&
+        initial.exported.length() > 106 &&
+        original[26:42].to_owned() == initial.exported[26:42].to_owned()
+      match own_signing {
+        Err(_) => if same_file { return Err(ChangedIntent) }
+        Ok(selection) => {
+          let (_, purpose, _, _, _, _, _, pem) = @credential_resource.native_local_signing_key_selection_projection(
+            selection,
+          )
+          if purpose == @credential.HostAttestation {
+            guard self.epoch.crypto.ed25519_public_key_raw32(pem) is Ok(raw) &&
+              initial.public_key.raw32() is Ok(initial_raw) else {
+              return Err(CustodyLost)
+            }
+            if same_file || raw == initial_raw {
+              return Err(ChangedIntent)
+            }
+          }
+        }
+      }
+    }
+  }
   let mut cursor = ""
   for _ in 0..<8 {
     let row = match
