@@ -12,6 +12,12 @@ import {createTransport, loadLoopbackTransport} from './transport.mjs';
 import {validClientProfile} from '@actql/client-wire';
 
 export async function connectSelected(selected, port) {
+  // Capture the installed provider's original operation once. Its DATA input
+  // is not key custody or authority; the provider owns those current checks.
+  const answerCheckpoint = port?.answerCheckpoint;
+  if (answerCheckpoint !== undefined && typeof answerCheckpoint !== 'function') {
+    fail('InvalidLocalHostPort');
+  }
   let directLoopback;
   if (selected.directLoopbackHttp) {
     try { ({requestLoopbackClient: directLoopback} = await loadLoopbackTransport()); }
@@ -58,7 +64,13 @@ export async function connectSelected(selected, port) {
     recoverRequest: submissions.recoverRequest,
     cancelRequest: submissions.cancelRequest,
     ...createResources(selected.wire, exchange, responseValue),
-    ...createCheckpointOperations(selected.wire, exchange, responseValue),
+    ...createCheckpointOperations(selected.wire, exchange, responseValue, {
+      isClosed: lifecycle.isClosed,
+      ...(answerCheckpoint === undefined ? {} : {
+        answerOriginal: (summary, decision, signal) =>
+          Reflect.apply(answerCheckpoint, port, [summary, decision, signal]),
+      }),
+    }),
     close: lifecycle.close,
     [Symbol.asyncDispose]: lifecycle.close,
   });
