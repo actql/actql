@@ -205,6 +205,8 @@ function commandContentBorrower(configuration) {
       const borrow = Object.freeze({
         binding: common.binding,
         current: () => original !== undefined && observe(() => common.current()),
+        matchesIssued: issued => original !== undefined &&
+          observe(() => common.matchesIssued(issued)),
         wire: () => observe(() => common.wire()),
         release: () => common.release(),
       });

@@ -24,7 +24,7 @@ import {canonical, cid, resource, token} from './file-listing-source.fixture.mjs
 export async function openContentCommandHost({scratch, generated, keys, entrance,
   allowSourceRead = true, fault, modelInstallation, registerModelProviders, hostCapacityPolicy,
   faultInjection, modelApprovalRequired = false, generatedCommand = false,
-  onPrepareContent, prepareContentChild}) {
+  onPrepareContent, prepareContentChild, originalContentValue}) {
   const content = JSON.parse(generated.description.wire);
   const destination = resource('d');
   const fixture = contentCommandFixture({contentMime: 'text/csv', inputMime: 'text/csv',
@@ -106,7 +106,7 @@ export async function openContentCommandHost({scratch, generated, keys, entrance
         async load(_profile, options) {
           const authorization = await installRowSourceAuthorization({accountConfiguration: account,
             principalId: owner, root: options.root, connectorRegistration: 'fixture'});
-          const issuer = moon.clientProgramRowReferenceIssuer((kind, wire) =>
+          const baseIssuer = moon.clientProgramRowReferenceIssuer((kind, wire) =>
             kind === 'file' && wire === canonical(destination),
           (media, wire) => generated.admitsContent === undefined
             ? media === 'text/csv' && wire === generated.description.wire
@@ -114,6 +114,13 @@ export async function openContentCommandHost({scratch, generated, keys, entrance
           wire => wire === canonical(destination) ||
             (generated.authorizesReference === undefined
               ? wire === generated.description.wire : generated.authorizesReference(wire)));
+          // Reuse an already issued original through the same existing
+          // reissuer as installed keyed capture; never recreate it from DATA.
+          const issuer = originalContentValue === undefined ? baseIssuer :
+            moon.clientProgramRowContentReferenceIssuer(baseIssuer,
+              moon.clientProgramCapturedContentReissuer((media, wire) =>
+                (media === undefined || media === generated.description.mediaType) &&
+                wire === generated.description.wire ? originalContentValue : undefined));
           return createInstalledRowSource({moon, declaration: fixture.declaration,
             declared: fixture.declared, environmentWire: fixture.environmentWire,
             connectorId: 'content-fixture', connectorRegistration: 'fixture',
