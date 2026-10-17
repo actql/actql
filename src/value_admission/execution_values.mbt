@@ -38,7 +38,8 @@ pub fn checked_text_value(
   let byte_count = bytes.to_int64()
   if (bounds.min_length is Some(limit) && count < limit) ||
     (bounds.max_codepoints is Some(limit) && count > limit) ||
-    (bounds.max_utf8_bytes is Some(limit) && byte_count > limit) {
+    (bounds.max_utf8_bytes is Some(limit) && byte_count > limit) ||
+    !text_enum_accepts(value, bounds) {
     None
   } else {
     Some({ contract, value: text, })

@@ -7,7 +7,7 @@
     {
       "module": "packages/client-wire/client-host.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "97fcde32a83d0b6112a6a9cd5fe474218619fa47056019a601c8221ead17f8d7",
+      "sha256": "26e21b160554e37ec9104bdca970fe89596482f8cbaa9c88f2eed92e198be585",
       "exports": [
         "checkOutcomeProtocol",
         "checkOutcomeSchemaCid",
@@ -1432,6 +1432,10 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"run_wait\": {"
+              },
+              {
+                "path": "docs/spec/language.md",
+                "anchor": "#### Text enumeration constraints"
               }
             ],
             "identity": [
@@ -1442,6 +1446,10 @@
               {
                 "path": "packages/sdk/internal/run-observation.mjs",
                 "anchor": "state.run_id !== latestState.runId"
+              },
+              {
+                "path": "docs/spec/language.md",
+                "anchor": "#### Text enumeration constraints"
               }
             ],
             "ownership": [
@@ -1514,6 +1522,10 @@
               {
                 "path": "scripts/generate-client-host-wire.mjs",
                 "anchor": "const wait = requestRules.run_wait;"
+              },
+              {
+                "path": "docs/spec/language.md",
+                "anchor": "#### Text enumeration constraints"
               }
             ],
             "verification": [
@@ -1540,6 +1552,10 @@
               {
                 "path": "adapters/host-node/client-run-wait-since.test.mjs",
                 "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
+              },
+              {
+                "path": "scripts/protocol-value-contracts.test.mjs",
+                "anchor": "actual generated structural type validator keeps enum shape"
               }
             ]
           }

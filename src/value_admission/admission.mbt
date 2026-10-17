@@ -84,6 +84,7 @@ fn read_scalar(
   cursor : @decode.Cursor,
   shape : @contract.Shape,
   budget : Budget,
+  defer_text_enum? : Bool = false,
 ) -> Value raise Abort {
   match shape {
     @contract.Text(bounds) => {
@@ -93,6 +94,9 @@ fn read_scalar(
       if (bounds.min_length is Some(n) && count < n) ||
         (bounds.max_codepoints is Some(n) && count > n) ||
         (bounds.max_utf8_bytes is Some(n) && bytes > n) {
+        fail(cursor, StringConstraint)
+      }
+      if !defer_text_enum && !text_enum_accepts(text, bounds) {
         fail(cursor, StringConstraint)
       }
       Text(text)
