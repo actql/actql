@@ -3116,6 +3116,7 @@ async function openInstalledHost(originalInstallation) {
     // request/Run observation remains available without relabeling its identity.
     submit: async () => {throw clientOperationError('ClientSubmissionReferenceRequired');},
     submitIntent: submissionService.submitAttempt,
+    submitNamedIntent: submissionService.submitNamedAttempt,
     lookupSubmission: submissionService.lookupSubmission,
     lookupRequest: lookupHeld,
     stateService, resultService, observeRun, observeOwners, wait, reconcile, cancel, lookupCancellation, cancelRequest,

@@ -1202,3 +1202,48 @@ The envelope is static with provider I/O zero. Its projection does not start a
 Run, acquire a Source, invoke a Model or dispatch a write. Existing readonly
 disclosure authorization remains separate. Member/work and complete nested
 read/emit limits apply together; registration advertises no installed capability.
+
+<a id="scoped-durable-submission-names"></a>
+## Scoped durable submission names
+
+The closed `submit-named-intent` operation is an intentional initial contract
+extension for a public request name. Its `requestName` uses the same bounded
+caller-ID domain as an original submission nonce; it is not a Run ID or a grant.
+The request also carries the ordinary original submitted intent and CID,
+`attemptRef`, and a retained candidate `submissionRef` for a first binding.
+The authenticated Host supplies the original workspace, actor and authority
+scope, not caller-selected substitutes. Old explicit-epoch submission bytes,
+canonical intent identities and exact-reference response validation are unchanged.
+
+<!-- requirement-block: named-submission.atomic-original -->
+The existing Journal Owner MUST atomically resolve or bind the authenticated
+workspace/actor/name key to one original authenticated submission reference and
+exact submitted intent before preparation or I/O, admitting only the first
+confirmed insertion to preparation and refusing changed intent or authority scope.
+
+<!-- requirement-block: named-submission.current-correlation -->
+The Host MUST verify current authenticated scope before disclosure and after
+awaits, correlate every named reply to its exact request name, intent and attempt,
+and return the same original reference and outcome without interpreting the
+candidate epoch, equal CID, caller name or lookup as new execution authority.
+
+<!-- requirement-block: named-submission.unresolved-custody -->
+Named custody MUST retain preparing, failed, unknown, corrupt, missing and retired
+history behind the same original Journal fences and finite admission capacity,
+without minting replacement work, evicting a consumed name into unused capacity,
+automatically retrying preparation or inferring no prior execution from response loss.
+
+An observed reply can contain the existing original initial check observation.
+Later resolution is read-only observation, not a recreated check, renewed epoch
+or continuation. A noncommitted refusal certifies only the selected attempt;
+conflict cannot replace the retained intent. Existing deliberate risk-restart,
+Run/Effect reconciliation, current authorization and resource rules remain separate.
+
+The structural projections are `submission_name`
+(`sha256:2c70e3f78e693a207550d3d6c57cf1a2cb26a5b0f7bcf89fea0044f666a26c4b`)
+and `named_submission_attempt`
+(`sha256:ce219bc256b0f466cef1245d078fdc056d45aaef1293517c3fd58812bb51e5e8`)
+in the existing [Client–Host machine contract](../../../spec/contracts/actql-client-host.json).
+The ordinary contract generator projects their validators and types; the
+independent boundary vectors pin those exact bodies. These structural DATA
+projections do not authenticate their contents or replace the Journal issuer.
