@@ -70,9 +70,9 @@ fn update_mapping_request(
   if write_tags {
     let tags = @admitted.recheck_runtime_value(
       @admitted.array_value([
-        @admitted.Text("東京"),
-        @admitted.Text("red"),
-        @admitted.Text("東京"),
+        @admitted.checked_text_value("東京", text).unwrap().value,
+        @admitted.checked_text_value("red", text).unwrap().value,
+        @admitted.checked_text_value("東京", text).unwrap().value,
       ]),
       @contract.array_contract(text, nullable=false).unwrap(),
       { max_nodes: 1000, max_depth: 16, max_text_bytes: 8192, },
