@@ -6,6 +6,25 @@ fn quick_query_arguments(argv : ArrayView[String]) -> @argparse.Matches raise {
 }
 
 ///|
+// Report only the closed issue variant, never the submitted document or wire.
+fn quick_query_intent_original(
+  wire : String,
+) -> @run_host.ClientSubmittedIntent raise {
+  match @run_host.prepare_client_submitted_intent(wire, 65536, 8192, 64) {
+    Ok(original) => original
+    Err(issue) => {
+      let kind = match issue {
+        InvalidLimits => "InvalidLimits"
+        Limit => "Limit"
+        InvalidEnvelope => "InvalidEnvelope"
+        Encoding => "Encoding"
+      }
+      fail("quick.prepare_client_submitted_intent." + kind)
+    }
+  }
+}
+
+///|
 test "public quick queries select literal SQL and Pipe inputs without reading a Program file" {
   for (operation, format) in [("sql", "sql"), ("aql", "aql-text")] {
     let text = "SELECT 'é\r\n😀' AS value"
@@ -16,20 +35,34 @@ test "public quick queries select literal SQL and Pipe inputs without reading a 
     assert_true(local_quick_query_requested(operation, child))
     assert_eq(optional(child, "program-file"), None)
     let wire = local_intent_wire("/never-open-this-root", operation, child)
-    let original = @run_host.prepare_client_submitted_intent(
-      wire, 65536, 8192, 64,
-    ).unwrap()
+    let original = quick_query_intent_original(wire)
     assert_true(@run_host.client_submitted_intent_requests_read_only(original))
     assert_false(
       @run_host.client_submitted_intent_requests_commit_stop(original),
     )
-    let intent = @decode.open_object(local_input_cursor(wire)).unwrap()
-    let input = @decode.open_object(@decode.required(intent, "input").unwrap()).unwrap()
+    let intent = effect_finite_cli_ok(
+      @decode.open_object(local_input_cursor(wire)),
+      "quick.intent.open_object",
+    )
+    let input = effect_finite_cli_ok(
+      @decode.open_object(
+        effect_finite_cli_ok(
+          @decode.required(intent, "input"),
+          "quick.input.required",
+        ),
+      ),
+      "quick.input.open_object",
+    )
     assert_eq(run_text(input, "text"), text)
     assert_eq(run_text(input, "format"), format)
     assert_eq(run_text(intent, "kind"), "aql")
     assert_true(
-      @decode.is_null(@decode.required(intent, "parameters").unwrap()),
+      @decode.is_null(
+        effect_finite_cli_ok(
+          @decode.required(intent, "parameters"),
+          "quick.parameters.required",
+        ),
+      ),
     )
   }
 }
