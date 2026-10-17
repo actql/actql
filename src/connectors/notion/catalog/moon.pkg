@@ -9,4 +9,3 @@ import {
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",
 }
-
