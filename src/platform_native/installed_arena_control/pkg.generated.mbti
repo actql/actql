@@ -118,6 +118,8 @@ pub fn prepare_installed_arena_from_primitives(String, Bytes, Int64, Int64, Int,
 
 pub fn prepare_installed_arena_host(String, Bytes, Int64, Int64, @physical_resources.LedgerLimits, Int64) -> Result[InstalledArenaHost, @host_bootstrap.NativeBootstrapIssue]
 
+pub fn prepare_installed_arena_initial_domain_reply(InstalledArenaHost, InstalledArenaBackingBorrow, Int, Int, Int, Int, Int64) -> InstalledArenaDomainReply
+
 pub fn prepare_installed_arena_live_channel_before_spawn_reply(InstalledArenaHost, InstalledArenaDomain, Int, Int, Int64) -> InstalledArenaLiveChannelReply
 
 pub fn prepare_installed_arena_live_channel_reply(InstalledArenaHost, InstalledArenaDomain, Int, Int, Int, Int64) -> InstalledArenaLiveChannelReply
@@ -275,6 +277,7 @@ pub fn InstalledArenaHost::poll_process_stop(Self, InstalledArenaDomain, Install
 pub fn InstalledArenaHost::prepare_domain(Self, InstalledArenaBackingBorrow, Int, Int64, @physical_resources.LedgerLimits) -> Result[InstalledArenaDomainAcquisition, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::prepare_domain_original_read(Self, InstalledArenaDomain, InstalledArenaOriginalReadBudget) -> Result[InstalledArenaOriginalReadAcquisition, InstalledArenaOriginalReadIssue]
 pub fn InstalledArenaHost::prepare_domain_read(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
+pub fn InstalledArenaHost::prepare_initial_domain(Self, InstalledArenaBackingBorrow, Int, Int, Int, Int, Int64) -> Result[InstalledArenaDomainAcquisition, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::prepare_live_channel(Self, InstalledArenaDomain, Int, Int, Int, Int64) -> Result[@host_bootstrap.NativeBackedLiveChannelAcquisition[Self, InstalledArenaDomain], @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::prepare_live_channel_before_spawn(Self, InstalledArenaDomain, Int, Int, Int64) -> Result[@host_bootstrap.NativeBackedLiveChannelAcquisition[Self, InstalledArenaDomain], @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::prepare_live_channel_original_ledger(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain]) -> Result[@physical_resources.ImportedChildLedger, @host_bootstrap.NativeBackedOriginalReadIssue]
