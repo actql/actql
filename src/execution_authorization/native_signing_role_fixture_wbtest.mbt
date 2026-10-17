@@ -30,27 +30,27 @@ test "Native signing role Account fixture preserves canonical order and exact tw
     })
     is Allow(_),
   )
-  for
-    tuple in [
-      {
-        principal: "operator",
-        connection: "cli",
-        resource: "run",
-        operation: "read",
-      },
-      {
-        principal: "reviewer",
-        connection: "review-cli",
-        resource: "key/host-attestation-2026",
-        operation: "sign",
-      },
-      {
-        principal: "host-signer",
-        connection: "host-cli",
-        resource: "run",
-        operation: "resolve",
-      },
-    ] {
+  let denied : Array[AccessTuple] = [
+    {
+      principal: "operator",
+      connection: "cli",
+      resource: "run",
+      operation: "read",
+    },
+    {
+      principal: "reviewer",
+      connection: "review-cli",
+      resource: "key/host-attestation-2026",
+      operation: "sign",
+    },
+    {
+      principal: "host-signer",
+      connection: "host-cli",
+      resource: "run",
+      operation: "resolve",
+    },
+  ]
+  for tuple in denied {
     assert_true(evaluate_account(admitted, tuple) is Deny(_))
   }
 }
