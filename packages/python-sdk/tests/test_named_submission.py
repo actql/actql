@@ -13,9 +13,10 @@ import httpx
 import rfc8785
 
 import actql_sdk
-from actql_sdk import AsyncClient, Client, ClientError, get_submission_input
+from actql_sdk import (AsyncClient, Client, ClientError, get_submission_input,
+                       get_submission_check_observation, get_check_input)
 from actql_sdk import _wire as wire
-from fixtures import ADMISSION, EPOCH, PROFILE, SELECTED, reference
+from fixtures import ADMISSION, EPOCH, PROFILE, SELECTED, reference, check_report
 
 
 def named_body():
@@ -101,6 +102,8 @@ class Peer:
         if operation == 'submit-intent':
             return httpx.Response(200, json={'kind': 'recorded', 'attemptRef': body['attemptRef'], 'outcome': {
                 'kind': 'ready', 'submissionRef': body['submissionRef'], 'intentCid': body['intentCid'], 'admission': ADMISSION}})
+        if operation == 'wait':
+            raise httpx.ReadError('Original wait response lost')
         raise AssertionError('Unexpected operation: ' + operation)
 
 
@@ -177,6 +180,62 @@ class AsyncNamedTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(failure.exception.submission_ref['nonce'], 'retired-original')
         self.assertEqual(failure.exception.request_id, 'retired')
         self.assertEqual(len(peer.requests), 2)
+
+    async def test_mismatched_name_reply_is_unknown_and_never_retried(self):
+        peer = Peer(); client = await self.client(peer)
+        peer.response = lambda body: observed(body) | {'requestName': 'foreign-original'}
+        with self.assertRaises(ClientError) as failure:
+            await client.start_source('SELECT 1', format='sql', request_id='original')
+        self.assertEqual(failure.exception.code, 'SubmissionUnknown')
+        self.assertEqual(failure.exception.request_id, 'original')
+        self.assertEqual(len(peer.requests), 2)
+
+    async def test_lazy_query_failure_keeps_returned_original_not_fresh_candidate(self):
+        peer = Peer(); client = await self.client(peer)
+        query = client.sql('SELECT 1', request_id='original-query')
+        with self.assertRaises(ClientError) as failure:
+            await query.all()
+        self.assertEqual(failure.exception.code, 'QueryObservationUnknown')
+        self.assertEqual(failure.exception.request_id, 'original-query')
+        self.assertEqual(failure.exception.submission_ref['nonce'], 'saved-original')
+        self.assertNotEqual(get_submission_input(query)['submissionRef']['nonce'], 'saved-original')
+        self.assertIs(failure.exception.execution, query.execution)
+        self.assertEqual([op for op, _ in peer.requests], ['connect', 'submit-named-intent', 'wait'])
+
+    async def test_confirmed_refusal_preserves_guarantee_without_admission(self):
+        peer = Peer(); client = await self.client(peer)
+        peer.response = lambda body: {k: body[k] for k in ('requestName', 'intentCid', 'attemptRef')} | {
+            'kind': 'refused', 'reason': 'admission_capacity', 'guarantee': 'attempt_uncommitted_unconsumed'}
+        with self.assertRaises(ClientError) as failure:
+            await client.start_source('SELECT 1', format='sql', request_id='refused')
+        self.assertEqual(failure.exception.code, 'SubmissionRefused')
+        self.assertEqual(failure.exception.outcome['guarantee'], 'attempt_uncommitted_unconsumed')
+        self.assertIsNone(failure.exception.execution)
+        self.assertEqual(len(peer.requests), 2)
+
+    async def test_only_first_failed_observation_carries_original_check_input(self):
+        peer = Peer(); client = await self.client(peer); first = True
+        def refused(body):
+            nonlocal first
+            value = observed(body, reference('saved-original'))
+            value['outcome'].pop('admission')
+            value['outcome'] |= {'kind': 'not_accepted', 'problem': {'code': 'CheckFailed', 'classification': 'invalid_input'}}
+            if first:
+                value['outcome']['checkObservation'] = check_report(start=1, end=5)
+                first = False
+            return value
+        peer.response = refused
+        failures = []
+        for _ in range(2):
+            with self.assertRaises(ClientError) as failure:
+                await client.start_source('a😀\r\nbé', format='sql', request_id='failed-original')
+            self.assertEqual(failure.exception.code, 'SubmissionNotAccepted')
+            self.assertEqual(failure.exception.submission_ref['nonce'], 'saved-original')
+            failures.append(failure.exception)
+        first_check = get_submission_check_observation(failures[0])
+        self.assertEqual(get_check_input(first_check, 'source')['text'], 'a😀\r\nbé')
+        self.assertIsNone(get_submission_check_observation(failures[1]))
+        self.assertEqual([op for op, _ in peer.requests], ['connect', 'submit-named-intent', 'submit-named-intent'])
 
 
 class SyncNamedTests(unittest.TestCase):
