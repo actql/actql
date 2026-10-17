@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {CalendarListReadFailure} from '../site/calendar-list-read.mjs';
+import {CalendarListReadFailure, createCalendarListReader} from '../site/calendar-list-read.mjs';
 import {calendarFixture, calendarRecord} from './calendar-list.fixture.mjs';
 
 const originalRows = [{id:'one',summary:'one',time_zone:'UTC',access_role:'reader'},
@@ -98,4 +98,67 @@ test('Calendar changed original credential is refused before the next page send 
     e=>e.cause.code==='RemoteCredentialBindingChanged'&&e.observations.length===1);
   assert.equal(f.state.requests.length,1);assert.equal(f.state.resolutions,2);
   assert.equal(f.state.charges,1);assert.equal(f.state.rows.length,1);f.row.assertNoCapture();
+});
+
+test('Calendar original reader handle snapshots once and never acknowledges retained success observations',async t=>{
+  const f=await calendarFixture(t);const moon={...f.options.moon};
+  const options={...f.options,moon,limits:{...f.options.limits}};
+  const reader=createCalendarListReader(options);const read=reader.read, observe=reader.observe;
+  assert.deepEqual(observe.call(reader),{phase:'ready',stopRequested:false,receivedResponses:0,
+    receivedBodyBytes:0n,observationCustody:'not-observed',cleanupConfirmed:false});
+  options.current=()=>{throw new Error('replaced current');};options.limits.perPage=251;
+  moon.calendarListRowsWire=()=>{throw new Error('replaced provider');};
+  const result=await read.call(reader);const originalBodies=result.observations.map(r=>Buffer.from(r.body));
+  assert.deepEqual(f.state.rows,originalRows);assert.equal(result.rowCount,2);
+  assert.deepEqual(observe.call(reader),{phase:'succeeded',stopRequested:false,receivedResponses:2,
+    receivedBodyBytes:result.observations.reduce((n,r)=>n+BigInt(r.body.byteLength),0n),
+    observationCustody:'retained',cleanupConfirmed:false});
+  reader.requestStop(new Error('post-read stop'));
+  assert.equal(observe.call(reader).cleanupConfirmed,false);
+  result.observations.forEach((r,i)=>assert.deepEqual(r.body,originalBodies[i]));
+  await assert.rejects(read.call(reader),{code:'CalendarListReaderAlreadyStarted'});
+  assert.equal(f.state.requests.length,2);f.row.finish();assert.equal(f.row.captureCount(),2);
+});
+
+test('Calendar copied reader receivers cannot read stop or observe the original acquisition',async t=>{
+  const f=await calendarFixture(t);const reader=createCalendarListReader(f.options);
+  const copied={...reader};await assert.rejects(copied.read(),{code:'ForeignCalendarListReader'});
+  assert.throws(()=>copied.requestStop(),{code:'ForeignCalendarListReader'});
+  assert.throws(()=>copied.observe(),{code:'ForeignCalendarListReader'});
+  assert.throws(()=>reader.observe.call(Object.create(reader)),{code:'ForeignCalendarListReader'});
+  assert.equal(reader.observe().phase,'ready');assert.equal(f.state.requests.length,0);
+  assert.equal(f.state.resolutions,0);f.row.assertNoCapture();
+});
+
+test('Calendar original reader stop before I/O preserves the same reason and never confirms retirement',async t=>{
+  const f=await calendarFixture(t);const reader=createCalendarListReader(f.options);
+  const reason=new Error('original reader stop');reader.requestStop(reason);
+  await assert.rejects(reader.read(),e=>e instanceof CalendarListReadFailure&&e.cause===reason);
+  assert.deepEqual(reader.observe(),{phase:'failed',stopRequested:true,receivedResponses:0,
+    receivedBodyBytes:0n,observationCustody:'not-observed',cleanupConfirmed:false});
+  assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);f.row.assertNoCapture();
+});
+
+test('Calendar original reader observes in-flight custody and preserves failed raw aliases after stop',async t=>{
+  const f=await calendarFixture(t);const consume=f.options.consumePage;let reader;
+  const reason=new Error('stop after first original response');
+  reader=createCalendarListReader({...f.options,consumePage:async(rows,charge)=>{
+    assert.equal(reader.observe().phase,'reading');assert.equal(reader.observe().receivedResponses,1);
+    assert.equal(reader.observe().cleanupConfirmed,false);await consume(rows,charge);reader.requestStop(reason);
+  }});
+  let original;
+  await assert.rejects(reader.read(),e=>{original=e;return e instanceof CalendarListReadFailure&&e.cause===reason;});
+  const body=original.observations[0].body;
+  assert.equal(body.toString(),f.state.pages[0]);assert.equal(reader.observe().phase,'failed');
+  assert.equal(reader.observe().receivedResponses,1);assert.equal(reader.observe().observationCustody,'retained');
+  assert.equal(reader.observe().cleanupConfirmed,false);reader.requestStop();
+  assert.equal(original.observations[0].body,body);assert.equal(body.toString(),f.state.pages[0]);
+  assert.equal(f.state.requests.length,1);assert.equal(f.state.charges,1);f.row.assertNoCapture();
+});
+
+test('Calendar reader factory refusal leaves pre-acquired RowRun and credential cleanup with the caller',async t=>{
+  const f=await calendarFixture(t);const before=f.row.usage();
+  assert.throws(()=>createCalendarListReader({...f.options,current:undefined}),{code:'InvalidCalendarListRead'});
+  assert.deepEqual(f.row.usage(),before);assert.equal(f.state.requests.length,0);
+  assert.equal(f.state.resolutions,0);f.row.assertNoCapture();
 });

@@ -25,7 +25,7 @@ export class CalendarListReadFailure extends Error {
   }
 }
 
-export async function readCalendarList({moon, names, initialAuthorization,
+function prepareCalendarListRead({moon, names, initialAuthorization,
   credential, authorizationFor, limits, current, chargeResponse, consumePage,
   signal, callResource = callHttpsCredentialResource}) {
   if (providerExports.some(name => typeof moon?.[name] !== 'function') ||
@@ -45,6 +45,10 @@ export async function readCalendarList({moon, names, initialAuthorization,
   // checked cells even when a query projects columns away; ordinary Relation
   // projection follows capture. Never hide a key or required cell here.
   const selected = Object.freeze(declaredColumns.slice());
+  return Object.freeze({provider, context, selected, signal});
+}
+
+async function executeCalendarListRead({provider, context, selected, signal}, received) {
   const bound = context.limits, observations = [], cursors = new Set(), ids = new Set();
   let pages = 0, requests = 0, rowCount = 0, token;
   const verify = async () => {
@@ -74,6 +78,7 @@ export async function readCalendarList({moon, names, initialAuthorization,
         headers: [['accept', 'application/json']], responseHeaders: [],
         maxResponseBytes: bound.maxResponseBytes, signal});
       observations.push(response);
+      received?.(response);
       // Count every complete response before checking status/current/type.
       const charge = await context.callbacks.chargeResponse(response.body);
       await verify();
@@ -105,4 +110,66 @@ export async function readCalendarList({moon, names, initialAuthorization,
   } catch (cause) {
     throw new CalendarListReadFailure(cause, observations);
   }
+}
+
+export async function readCalendarList(options) {
+  return executeCalendarListRead(prepareCalendarListRead(options));
+}
+
+const readers = new WeakMap();
+function originalReader(value) {
+  const state = readers.get(value);
+  if (!state) fail('ForeignCalendarListReader');
+  return state;
+}
+
+// A private physical-reader handle, not a new execution/cleanup authority.
+// Acquire and retain it before binding the original RowRun response observer.
+// Factory failure leaves the caller's already-acquired resources with it.
+export function createCalendarListReader(options) {
+  const original = prepareCalendarListRead(options);
+  const stop = new AbortController();
+  const signal = original.signal === undefined ? stop.signal
+    : AbortSignal.any([original.signal, stop.signal]);
+  const prepared = Object.freeze({...original, signal});
+  const state = {prepared, stop, phase: 'ready', receivedResponses: 0,
+    receivedBodyBytes: 0n};
+  const handle = Object.freeze({
+    async read() {
+      const state = originalReader(this);
+      if (state.phase !== 'ready') fail('CalendarListReaderAlreadyStarted');
+      state.phase = 'reading';
+      try {
+        const result = await executeCalendarListRead(state.prepared, response => {
+          state.receivedResponses++;
+          state.receivedBodyBytes += BigInt(response.body.byteLength);
+        });
+        state.phase = 'succeeded';
+        return result;
+      } catch (cause) {
+        state.phase = 'failed';
+        throw cause;
+      }
+    },
+    requestStop(reason) {
+      const state = originalReader(this);
+      // Request cancellation only. Neither stop nor promise settlement owns
+      // credential close, original observation release or RowRun settlement.
+      state.stop.abort(reason);
+    },
+    observe() {
+      const state = originalReader(this);
+      return Object.freeze({phase: state.phase,
+        stopRequested: state.prepared.signal.aborted,
+        receivedResponses: state.receivedResponses,
+        receivedBodyBytes: state.receivedBodyBytes,
+        observationCustody: state.receivedResponses === 0 ? 'not-observed' : 'retained',
+        // No caller-supplied mark-clean callback or array/GC-based ACK exists.
+        // Raw success/error aliases remain in their original custody. An
+        // eventual retirement connection must prove that same custody ends.
+        cleanupConfirmed: false});
+    },
+  });
+  readers.set(handle, state);
+  return handle;
 }

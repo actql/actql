@@ -56,6 +56,24 @@ Missing inventory, placement, original binding or cleanup confirmation remains
 unavailable/pending. Do not add a second ledger, reinterpret transfer as holding,
 use a fixed spare margin, or infer a cleanup ACK from a resolved promise.
 
+`createCalendarListReader` snapshots the original invocation before I/O and
+returns one private physical-reader handle. Its `read`, `requestStop` and
+`observe` methods require that same receiver; copied handles cannot observe or
+stop the acquisition. A read starts at most once. The caller retains the handle
+and its original methods before installing the existing response cleanup
+observer. If the factory refuses, previously acquired credentials, reservations
+and cleanup handles remain the caller's responsibility.
+
+The observation contains only phase, stop request, original response count/body
+bytes, custody status and an unconfirmed cleanup result. Requesting stop aborts
+the same reader's signal without substituting credential close or Run cleanup.
+The handle does not accept a mark-clean callback. In particular, its succeeded
+or failed phase leaves escaped raw observations retained and cleanup unconfirmed.
+This conservative observation is not a complete physical-retirement port: a
+normal caller must keep the original reservation pending until an existing
+trusted custody owner can actually confirm retirement of the same reader and
+its escaped observations.
+
 The bounded catalog and TLS caller tests establish response meaning, original
 Account/Credential checks, charging and sequencing. They do not establish this
 normal-installation capacity/retirement connection, credential token minting,
