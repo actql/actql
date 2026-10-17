@@ -152,3 +152,43 @@ pub fn notion_property_read_cell_json(
     max_depth,
   )
 }
+
+///|
+#export_name("notionSourceSystemReadContracts")
+pub fn notion_source_system_read_contracts(
+  binding : @catalog.NotionDataSourceReadContracts,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_data_sources : Int,
+  max_properties : Int,
+  max_identity_bytes : Int,
+  max_name_bytes : Int,
+  contract_nodes : Int,
+  contract_depth : Int,
+  contract_text_bytes : Int,
+  max_columns : Int,
+  max_work : Int,
+) -> Result[
+  @catalog.NotionDataSourceReadContracts,
+  @catalog.NotionReadContractIssue,
+] {
+  @catalog.with_notion_source_system_contracts(binding, {
+    metadata: {
+      max_bytes,
+      max_nodes,
+      max_depth,
+      max_data_sources,
+      max_properties,
+      max_identity_bytes,
+      max_name_bytes,
+    },
+    contracts: {
+      max_nodes: contract_nodes,
+      max_depth: contract_depth,
+      max_text_bytes: contract_text_bytes,
+    },
+    max_columns,
+    max_work,
+  })
+}
