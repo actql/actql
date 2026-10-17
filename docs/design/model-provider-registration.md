@@ -97,6 +97,35 @@ custody, Journal settlement, current authority and final send remain separate.
 
 ## Exclusive invocation mode
 
+The retained private Node registration can resolve candidate Task defaults only
+through its original record receiver and existing Provider map/current closure.
+It captures the actual registration callback's runtime and Core readers, retains
+the same three nonsecret binding originals, and attempts its profile read at most once.
+The existing binding issuer and profile reader share one private Common DATA
+record, so projecting generation with a separately admitted equal configuration
+refuses. Missing runtime support/originals remains unavailable; legacy explicit
+registrations do not acquire a default. New Task preparation checks the existing
+new-Host predicate without cancelling an already borrowed Run on Host closing.
+
+Reader ceilings are explicitly supplied, closed, finite DATA and snapshotted
+before use. A cached original cannot be reused under changed reader ceilings.
+The first attempt retains its bounds even on refusal, and a failed reader keeps
+its exact original throwable instead of parsing again or accepting a larger
+limit. Its bounded failure carrier/cause remains with that installation;
+dropping a managed reference is not physical release. Reader ceilings are not
+a reservation or the simultaneous holding envelope. Profile usage
+reports its own parser/decoder work even without a selected default; the
+existing binding's three canonical-original traversals, encoding and evidence
+record remain a separate Host workspace responsibility, not free work.
+
+The Common DATA record, profile/model/generation references, original binding,
+reader-bound snapshot, four captured Core callbacks and record method remain
+with that existing installation. Resolution adds its original-bound candidate
+and a small usage/binding view; explicit token replacement may add one generation
+copy. Current refusal retains the already read original rather than reparsing
+new configuration. This synchronous candidate path performs no I/O and issues
+no Task/Environment, restored Run, authority, resource loan, send or cleanup ACK.
+
 The existing ModelProvider Owner distinguishes a synchronous fixture callback
 from an asynchronous installed physical Provider. The variants are exclusive:
 async registration retains no dummy synchronous callback and has no synchronous

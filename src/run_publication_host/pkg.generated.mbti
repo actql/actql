@@ -789,6 +789,12 @@ pub fn client_model_original_origin_field(ClientModelReadScope, ClientCompiledRu
 
 pub fn client_model_parked_read_capacity_available(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Bool
 
+pub fn client_model_provider_defaults_binding(ClientModelProviderDefaults) -> @run_publication.RunEvidenceValue
+
+pub fn client_model_provider_defaults_generation(ClientModelProviderDefaults, @check_environment.ResolvedModelProviderDefaults) -> @check_environment.ModelGeneration?
+
+pub fn client_model_provider_defaults_usage(ClientModelProviderDefaults) -> (Int, Int, Int)
+
 pub fn client_model_raw_capture_matches(ClientModelRawCaptureRegistration, ClientInferDispatchAdmission, @run_publication.BoundModelInvocationScope) -> Bool
 
 pub fn client_model_raw_capture_policy(ClientModelRawCaptureRegistration) -> @run_publication.BoundModelRawCapturePolicy
@@ -1789,6 +1795,8 @@ pub fn read_client_infer_saved_call_scope(ClientCompiledRun, @run_publication.Pu
 
 pub fn read_client_local_runtime_successor_metadata(Bytes) -> Result[ClientLocalRuntimeSuccessorMetadata, ClientLocalRuntimeSuccessorIssue]
 
+pub fn read_client_model_provider_defaults(String, String, String, String, @check_environment.Limits, Int) -> Result[ClientModelProviderDefaults, ClientModelProviderDefaultsIssue]
+
 pub fn read_client_native_product_identity(String) -> Result[ClientNativeProductIdentity, ClientNativeLocalRuntimeIssue]
 
 pub fn[E] read_client_retained_run_journal(ClientRequestIdentity, (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], E) -> Result[ClientRetainedRunJournalRow?, ClientRunJournalAppendIssue[E]]
@@ -1826,6 +1834,8 @@ pub fn register_client_model_raw_capture(ClientInferDispatchAdmission, @run_publ
 pub fn release_client_effect_command_content(ClientEffectCommandContent) -> Unit
 
 pub fn[A] reserve_client_keyed_acquisition_attempt(@query_planning.QueryEvidenceRegistration[@sourceview_resolution.KeyedSourceFacts, @program_check.KeyedExecution, A], @query_planning.AcquisitionChoice[@program_check.KeyedExecution], @query_planning.PreparedAcquisition[@program_check.KeyedExecution, ClientKeyedAcquisition]) -> Result[(ClientKeyedAcquisition, @query_planning.QueryEvidenceAttemptAuthority[@sourceview_resolution.KeyedSourceFacts, @program_check.KeyedExecution, A]), @query_planning.QueryEvidenceCustodyIssue]
+
+pub fn resolve_client_model_provider_defaults(ClientModelProviderDefaults, String?, Int64?, Int) -> Result[@check_environment.ResolvedModelProviderDefaults, @check_environment.ModelProviderDefaultsResolutionIssue]
 
 pub fn restore_client_effect_run_normalization(ClientEffectRunMaterials) -> Result[@run_publication.RunEvidenceValue, ClientEffectNormalizationIssue]
 
@@ -2946,6 +2956,13 @@ pub(all) enum ClientModelPreparationLayoutIssue {
   PreparedRowsLimit
   Profile(@check_environment.ModelTaskIssueKind)
   Read(ClientModelReadPreparationIssue)
+} derive(Eq, @debug.Debug)
+
+type ClientModelProviderDefaults
+
+pub(all) enum ClientModelProviderDefaultsIssue {
+  InvalidBinding(@run_publication.RunEvidenceValueIssue)
+  InvalidDefaults(@check_environment.ModelTaskIssueKind)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ClientModelRawCaptureIssue {
