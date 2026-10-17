@@ -18,7 +18,10 @@ fn initial_reviewer_fixture(
     writer.seal(file).unwrap() |> ignore
   }
   let path = top + "/" + name
-  let crypto = epoch_test_crypto()
+  let crypto = @crypto.load_library(
+    @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY").unwrap(),
+    diagnostic_ceiling=Some(256),
+  ).unwrap()
   let session = begin_native_local_host_adoption(
     path,
     "store",
