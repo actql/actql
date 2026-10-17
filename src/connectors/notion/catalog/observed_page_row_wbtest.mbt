@@ -1,7 +1,7 @@
 ///|
 fn observed_row_test_page(wire? : String = "") -> OriginalNotionPage {
   let base = if wire.is_empty() { system_test_row() } else { wire }
-  let wire = base[0:base.length() - 1].to_string() + ",\"in_trash\":false}"
+  let wire = base[0:base.length() - 1].to_owned() + ",\"in_trash\":false}"
   project_notion_page(@utf8.encode(wire), "page", page_test_limits()).unwrap()
 }
 
@@ -190,7 +190,13 @@ test "Notion observed row binds the actual selected data source parent and every
     ] {
     let page = observed_row_test_page(wire~)
     assert_true(
-      start_notion_observed_page_read_row(binding, page, 16, row_test_limits())
+      start_notion_observed_page_read_row(
+        binding,
+        page,
+        16,
+        128,
+        row_test_limits(),
+      )
       is Err(Observation(_)),
     )
   }
@@ -208,16 +214,28 @@ test "Notion observed row conservatively charges original scans before assembly 
       { ..row_test_limits(), values: { ..cell_test_limits(), max_nodes: 2, }, },
     ] {
     assert_eq(
-      start_notion_observed_page_read_row(binding, page, 16, limits).unwrap_err(),
+      start_notion_observed_page_read_row(binding, page, 16, 128, limits).unwrap_err(),
       BudgetExceeded,
     )
   }
   assert_eq(
-    start_notion_observed_page_read_row(binding, page, 1, row_test_limits()).unwrap_err(),
+    start_notion_observed_page_read_row(
+      binding,
+      page,
+      1,
+      128,
+      row_test_limits(),
+    ).unwrap_err(),
     BudgetExceeded,
   )
   assert_eq(
-    start_notion_observed_page_read_row(binding, page, -1, row_test_limits()).unwrap_err(),
+    start_notion_observed_page_read_row(
+      binding,
+      page,
+      -1,
+      128,
+      row_test_limits(),
+    ).unwrap_err(),
     InvalidLimits,
   )
   let (binding, query) = row_test_setup()

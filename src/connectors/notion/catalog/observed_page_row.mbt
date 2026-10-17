@@ -6,6 +6,7 @@ pub fn start_notion_observed_page_read_row(
   binding : NotionDataSourceReadContracts,
   page : OriginalNotionPage,
   max_properties : Int,
+  max_identity_bytes : Int,
   limits : NotionReadRowLimits,
 ) -> Result[NotionReadRow, NotionReadRowIssue] {
   if limits.values.max_nodes <= 0 ||
@@ -13,7 +14,8 @@ pub fn start_notion_observed_page_read_row(
     limits.values.max_text_bytes < 0 ||
     limits.max_columns <= 0 ||
     limits.max_work <= 0 ||
-    max_properties < 0 {
+    max_properties < 0 ||
+    max_identity_bytes <= 0 {
     return Err(InvalidLimits)
   }
   if binding.source.properties.length() > max_properties {
@@ -42,7 +44,13 @@ pub fn start_notion_observed_page_read_row(
     }
   }
   let original = match
-    original_query_row(binding.source, page.original, page.raw, max_properties) {
+    original_query_row(
+      binding.source,
+      page.original,
+      page.raw,
+      max_properties,
+      max_identity_bytes,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Observation(issue))
   }
@@ -66,8 +74,9 @@ pub fn notion_read_row_matches_observed_page(
   binding : NotionDataSourceReadContracts,
   page : OriginalNotionPage,
 ) -> Bool {
-  read_row_is_original(row) &&
-  physical_equal(row.binding, binding) &&
+  if !read_row_is_original(row) || !physical_equal(row.binding, binding) {
+    return false
+  }
   match row.observed_page {
     Some(original) => physical_equal(original, page)
     None => false

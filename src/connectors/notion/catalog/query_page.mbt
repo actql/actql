@@ -101,6 +101,7 @@ fn original_query_row(
   original : @decode.Cursor,
   raw : Bytes,
   max_properties : Int,
+  max_identity_bytes : Int,
 ) -> Result[OriginalNotionQueryRow, NotionQueryIssue] {
   guard @decode.open_object(original) is Ok(row) &&
     @decode.lookup(row, "object") is Some(kind) &&
@@ -113,7 +114,7 @@ fn original_query_row(
   guard @decode.lookup(row, "id") is Some(id) else {
     return Err(InvalidResponse)
   }
-  let id = match query_metadata_text(id, limits.metadata.max_identity_bytes) {
+  let id = match query_metadata_text(id, max_identity_bytes) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -221,6 +222,7 @@ pub fn project_notion_query_page(
         @decode.element_at(results, index).unwrap(),
         raw,
         limits.metadata.max_properties,
+        limits.metadata.max_identity_bytes,
       ) {
       Ok(value) => value
       Err(issue) => return Err(issue)
