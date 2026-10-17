@@ -36,6 +36,7 @@ test "Notion observed exact GET retains the actual page and complete declared ro
     binding,
     page,
     16,
+    128,
     row_test_limits(),
   ).unwrap()
   assert_true(notion_read_row_matches_observed_page(row, binding, page))
@@ -81,12 +82,14 @@ test "Notion observed row property completion rejects another observation even w
     binding,
     page,
     16,
+    128,
     row_test_limits(),
   ).unwrap()
   let other = start_notion_observed_page_read_row(
     binding,
     page,
     16,
+    128,
     row_test_limits(),
   ).unwrap()
   let request = start_notion_read_row_property_item_request(
@@ -160,6 +163,7 @@ test "Notion observed row binds the actual selected data source parent and every
           binding,
           page,
           16,
+          128,
           row_test_limits(),
         )
         is Err(Observation(_)),
@@ -171,6 +175,7 @@ test "Notion observed row binds the actual selected data source parent and every
           binding,
           page,
           16,
+          128,
           row_test_limits(),
         )
         is Err(Observation(_)),
@@ -259,6 +264,7 @@ test "Notion observed row conservatively charges original scans before assembly 
     binding,
     page,
     16,
+    128,
     row_test_limits(),
   ).unwrap()
   assert_eq(
@@ -289,6 +295,7 @@ test "Notion observed page row retains exact system metadata and original versio
     binding,
     page,
     16,
+    128,
     row_test_limits(),
   ).unwrap()
   let request = start_notion_read_row_property_item_request(
