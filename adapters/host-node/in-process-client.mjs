@@ -10,7 +10,7 @@ import {clientWorkspaceMatches, validCheckpointPage, validCheckpointReview, vali
   validRequestCancellation, validRequestLookup, validResolveResults,
   validResourceInspection, validResourceListing, validResourcePeek,
   validRunState, validResultDescription, validCheckOutcome, validOwnerObservations,
-  validSubmissionAttempt, validSubmissionLookup} from
+  validSubmissionAttempt, validNamedSubmissionAttempt, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
 import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape, validWireRunViewShape, validWireRunPlanViewShape} from '../../packages/client-wire/index.mjs';
 import {inspectAuthorizedRunState} from
@@ -59,7 +59,7 @@ function publicResultRows(response) {
 }
 
 export function createNodeInProcessClientHost({
-  authenticate, authorizeConnection, workspaceForPrincipal, negotiate, prepareSubmit, submit, submitIntent, lookupSubmission,
+  authenticate, authorizeConnection, workspaceForPrincipal, negotiate, prepareSubmit, submit, submitIntent, submitNamedIntent, lookupSubmission,
   attach, lookupRequest, stateService, resultService, observeRun, observeOwners, wait,
   cancel, lookupCancellation, cancelRequest, reconcile, checkpoints, checkpointReview, resolve,
   resources, inspectResource, peekResource, check, plan, inspectRun, runPlan, maxRowBytes, observe,
@@ -118,7 +118,7 @@ export function createNodeInProcessClientHost({
         return handler(Object.freeze({principalId, connection,
           ...Object.fromEntries(Object.entries(body).filter(([key]) =>
             key !== 'connection')),
-          ...(signal === undefined || ['submit', 'submit-intent', 'restart-intent'].includes(operation)
+          ...(signal === undefined || ['submit', 'submit-intent', 'submit-named-intent', 'restart-intent'].includes(operation)
             ? {} : {signal}),
           ...(preparedProgram === undefined ? {} : {preparedProgram}),
         }));
@@ -135,6 +135,12 @@ export function createNodeInProcessClientHost({
           prepare: prepareSubmit === undefined ? undefined :
             () => invoke(prepareSubmit),
           submit: prepared => invoke(submit, prepared)});
+      }
+      if (operation === 'submit-named-intent') {
+        const answer = await invoke(submitNamedIntent);
+        if (!validNamedSubmissionAttempt(answer, connection, body.requestName,
+          body.submissionRef, body.intentCid, body.attemptRef)) fail('InvalidClientHostSubmissionOutcome');
+        return answer;
       }
       if (['submit-intent', 'restart-intent', 'lookup-submission'].includes(operation)) {
         const submitting = operation !== 'lookup-submission';

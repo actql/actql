@@ -18,6 +18,7 @@ import {clientHostOperations, clientHostRequestKeys, validClientRequestOptionalF
 import {validSubmissionEpochShape, validSubmissionRefShape,
   validSubmissionOutcomeShape, validSubmissionLookupShape, validSubmissionRestartShape} from './client-host.generated.js';
 import {validOperationAttemptRefShape, validCancellationAttemptShape, validSubmissionAttemptShape} from './client-host.generated.js';
+import {validSubmissionNameShape, validNamedSubmissionAttemptShape} from './client-host.generated.js';
 import {validOwnerRefShape, validOwnerCursorShape, validOwnerObservationsShape} from './client-host.generated.js';
 export {clientHostOperations} from './client-host.generated.js';
 // Legacy JSON/YAML spellings remain accepted by the transport Client. The
@@ -133,6 +134,12 @@ export function validSubmissionRef(value) {
     new TextEncoder().encode(value.nonce).byteLength <= 256;
 }
 
+export function validSubmissionName(value) {
+  return validSubmissionNameShape(value) && value.isWellFormed() &&
+    value.normalize('NFC') === value && !/[\u0080-\u009f]/u.test(value) &&
+    new TextEncoder().encode(value).byteLength <= 256;
+}
+
 export function sameSubmissionRef(left, right) {
   return validSubmissionRef(left) && validSubmissionRef(right) &&
     left.nonce === right.nonce && ['version', 'authorityScopeCid', 'epochNonce',
@@ -195,6 +202,23 @@ export function validSubmissionAttempt(value, selected, expected, intentCid, att
   }
   return value.kind === 'refused' && value.reason === 'authorization' ||
     sameSubmissionRef(value.submissionRef, expected) && value.intentCid === intentCid;
+}
+
+// A scoped name can resolve a reference issued under an earlier connection's
+// epoch. This separate envelope never relaxes explicit-epoch correlation.
+export function validNamedSubmissionAttempt(value, selected, name, candidate, intentCid, attemptRef) {
+  if (!validClientConnection(selected) || !validSubmissionName(name) || !validSubmissionRef(candidate) ||
+      !validOperationAttemptRef(attemptRef) || attemptRef.operation !== 'submit' ||
+      !validNamedSubmissionAttemptShape(value) || value.requestName !== name ||
+      value.intentCid !== intentCid || !validOperationAttemptRef(value.attemptRef) ||
+      value.attemptRef.operation !== 'submit' || value.attemptRef.attemptId !== attemptRef.attemptId) return false;
+  if (value.kind !== 'observed') return true;
+  const original = value.outcome.submissionRef;
+  return validSubmissionRef(original) &&
+    original.epoch.authorityScopeCid === candidate.epoch.authorityScopeCid &&
+    (value.outcome.kind === 'unresolvable'
+      ? validSubmissionLookup(value.outcome, selected, original)
+      : validSubmissionOutcome(value.outcome, selected, original, intentCid));
 }
 
 // This is one existing Engine-owned Run-state component. The public Client
@@ -321,7 +345,7 @@ export function prepareClientHostRequest(operation, original) {
   }
   // A serializer cannot remove or replace the captured Workspace assertion.
   body = {...body, connection};
-  if (['submit-intent', 'restart-intent', 'lookup-submission', 'owner-observations', 'plan', 'inspect-run', 'run-plan'].includes(operation)) {
+  if (['submit-intent', 'submit-named-intent', 'restart-intent', 'lookup-submission', 'owner-observations', 'plan', 'inspect-run', 'run-plan'].includes(operation)) {
     try { body = snapshotClientRequest(body); }
     catch { return undefined; }
     if (!validClientBody(operation, body)) return undefined;
@@ -356,10 +380,11 @@ export function validClientBody(operation, body) {
       !validClientConnection(body.connection) ||
       !validClientRequestOptionalFields(operation, body)) return false;
   if (operation === 'connect') return true;
-  if (operation === 'submit-intent' || operation === 'restart-intent') {
+  if (operation === 'submit-intent' || operation === 'submit-named-intent' || operation === 'restart-intent') {
     if (!validSubmissionRef(body.submissionRef) || !cid.test(body.intentCid) ||
         !validOperationAttemptRef(body.attemptRef) || body.attemptRef.operation !== 'submit') return false;
     if (operation === 'restart-intent' && !validSubmissionRestart(body.unresolvedHistory, body.submissionRef)) return false;
+    if (operation === 'submit-named-intent' && !validSubmissionName(body.requestName)) return false;
     return validClientBody('submit', {connection: body.connection,
       requestId: body.submissionRef.nonce, kind: body.kind,
       input: body.input, parameters: body.parameters,
