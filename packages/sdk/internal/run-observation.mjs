@@ -152,6 +152,15 @@ export function createExecutionFactory(selected, confirmed, transport, lifecycle
           latestControl = freezeInput({...control});
         }
         latestState = Object.freeze({runId:observation.run_id, revision:observation.revision});
+        if (observation.checkpoint !== undefined) {
+          // SDK presentation only: preserve the exact closed wire and JSON
+          // bytes. No checkpoint is manufactured for a nonwaiting state.
+          Object.defineProperty(observation.checkpoint, 'id', {
+            value: observation.checkpoint.checkpoint_id,
+            enumerable: false, writable: false, configurable: false,
+          });
+          Object.freeze(observation.checkpoint);
+        }
         return retainEffectUncertainty(observation, ref);
       } catch (cause) {
         if (runObservationFailures.has(cause)) throw cause;
