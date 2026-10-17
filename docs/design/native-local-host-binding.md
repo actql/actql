@@ -203,6 +203,20 @@ retain their separate original authorization, and a missing legacy supplier stay
 unavailable. The actual caller must retain the overlapping session/material,
 HMAC/codec workspace and escaped view until their own physical acknowledgements.
 
+The private initial Reviewer registration joins that same physical original to
+an already-adopted public Host configuration without explicit signers and the
+actual selected machine actor's independent current `run:resolve` Account
+decision. The actual public-key CID labels the key; the actor labels the
+Reviewer. Neither label supplies authority. Named selection and any explicit
+signer map refuse default fallback. Replacement of the Host configuration,
+Store key generation or original installation retires this view. Configured
+Reviewer/key readers cannot consume the initial registration as their own file.
+The subsequent binding uses the configured route's same original Checkpoint,
+Client read and paired-scope checks. This registration still supplies no issuer
+grant, private-key acquisition, durable claim, signature or approval application.
+Its original Host/configuration/key and Account reads retain their overlapping
+workspace and lifetime; parsing ceilings are not reservations or close receipts.
+
 ### Writer close custody
 
 The existing filesystem Writer records its original close outcome separately

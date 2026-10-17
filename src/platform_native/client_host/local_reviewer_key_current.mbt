@@ -50,6 +50,8 @@ pub fn NativeLocalSigningKeyOriginal::read_current_reviewer(
   guard physical_equal(account.host, binding.host) &&
     account.kind == @checkpoint.EffectSet &&
     account.reviewer is Some(installed) &&
+    installed.initial_original is None &&
+    binding.installed.initial_original is None &&
     physical_equal(installed.host, binding.host) &&
     installed.file == binding.installed.file &&
     installed.original_bytes == binding.installed.original_bytes &&
