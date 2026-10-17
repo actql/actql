@@ -12,14 +12,16 @@ struct InstallationPreparationCredentialSignatureEnvelope {
 pub fn installation_preparation_credential_signature_preimage(
   grant : InstallationPreparationCredentialGrant,
 ) -> Result[Bytes, RemoteCredentialIssue] {
-  grant.original_wire().map(body =>
+  grant
+  .original_wire()
+  .map(body => {
     @utf8.encode(
       "actql-remote-credential-grant-signature/0.1\u{0000}" +
       grant.identity +
       "\u{0000}" +
       body,
-    ),
-  )
+    )
+  })
 }
 
 ///|
@@ -27,7 +29,10 @@ pub fn prepare_installation_preparation_credential_signature_envelope(
   grant : InstallationPreparationCredentialGrant,
   key_id : String,
   signature : String,
-) -> Result[InstallationPreparationCredentialSignatureEnvelope, RemoteCredentialIssue] {
+) -> Result[
+  InstallationPreparationCredentialSignatureEnvelope,
+  RemoteCredentialIssue,
+] {
   if !installation_preparation_text(key_id, 512) || !valid_signature(signature) {
     Err(InvalidCredentialSignature)
   } else {
@@ -43,12 +48,17 @@ pub fn admit_installation_preparation_credential_signature_envelope(
   grant_cid : String,
   body : String,
   signature : String,
-) -> Result[InstallationPreparationCredentialSignatureEnvelope, RemoteCredentialIssue] {
+) -> Result[
+  InstallationPreparationCredentialSignatureEnvelope,
+  RemoteCredentialIssue,
+] {
   if version != "actql-remote-credential-grant-signature/0.1" {
     return Err(InvalidCredentialSignature)
   }
   let grant = match
-    admit_installation_preparation_credential_grant_json(subject, body, grant_cid) {
+    admit_installation_preparation_credential_grant_json(
+      subject, body, grant_cid,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

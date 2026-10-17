@@ -91,7 +91,7 @@ pub fn prepare_installation_preparation_subject(
       Ok(value) => value
       Err(_) => return Err(InvalidCredentialGrant)
     }
-    Ok({ fields, body, identity: "sha256:" + digest })
+    Ok({ fields, body, identity: "sha256:" + digest, })
   } catch {
     _ => Err(InvalidCredentialGrant)
   }
@@ -148,8 +148,8 @@ pub fn admit_installation_preparation_subject_json(
     )
     let object = credential_decoded(
       @decode.closed_object(cursor, [
-        "account_configuration_cid", "account_id", "connection",
-        "connector_registration", "connector_revision", "declaration_source_cid", "installation_request_id",
+        "account_configuration_cid", "account_id", "connection", "connector_registration",
+        "connector_revision", "declaration_source_cid", "installation_request_id",
         "principal", "runtime_bundle_cid", "site_generation", "site_key", "version",
       ]),
     )
@@ -159,13 +159,21 @@ pub fn admit_installation_preparation_subject_json(
     }
     let value = match
       prepare_installation_preparation_subject({
-        account_configuration_cid: credential_text(object, "account_configuration_cid"),
+        account_configuration_cid: credential_text(
+          object, "account_configuration_cid",
+        ),
         account_id: credential_text(object, "account_id"),
         connection: credential_text(object, "connection"),
-        connector_registration: credential_text(object, "connector_registration"),
+        connector_registration: credential_text(
+          object, "connector_registration",
+        ),
         connector_revision: credential_text(object, "connector_revision"),
-        declaration_source_cid: credential_text(object, "declaration_source_cid"),
-        installation_request_id: credential_text(object, "installation_request_id"),
+        declaration_source_cid: credential_text(
+          object, "declaration_source_cid",
+        ),
+        installation_request_id: credential_text(
+          object, "installation_request_id",
+        ),
         principal: credential_text(object, "principal"),
         runtime_bundle_cid: credential_text(object, "runtime_bundle_cid"),
         site_generation: credential_int(object, "site_generation"),
