@@ -39,6 +39,9 @@ class MemoryBindingTests(unittest.TestCase):
         self.assertIs(callback, CFUNCTYPE(None, c_void_p))
         self.assertIsNone(callback._restype_)
         self.assertEqual(callback._argtypes_, (c_void_p,))
+        configured = SIGNATURES['actql_native_owned_thread_start_configured'][0]
+        self.assertIs(configured[3], c_void_p)
+        self.assertIs(configured[4], callback)
 
     def test_callback_return_role_and_calling_convention_mutations_refuse(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -14,6 +14,12 @@ size_t actql_native_owned_thread_control_alignment(void);
  * destructors. Startup refusal is one-shot, not permission to reuse the record. */
 int actql_native_owned_thread_start(actql_owned_capacity *lease, void *storage,
     size_t storage_bytes, actql_owned_thread_entry entry, void *argument);
+/* The selected Rust backend supplies its original initialized pthread attributes.
+ * Borrowed only during this synchronous call; this port does not mint stack
+ * funding or choose another attribute/default policy. No ambient interposition. */
+int actql_native_owned_thread_start_configured(actql_owned_capacity *lease,
+    void *storage, size_t storage_bytes, const void *attributes,
+    actql_owned_thread_entry entry, void *argument);
 /* A known no-start or successful pthread_join confirms stop and retires the
  * original scope pin. A child-binding failure still requires this same join. Callback return, cancellation request or PID observations do not. Storage
  * remains caller-owned, including after join. A lost/failed join is sticky and

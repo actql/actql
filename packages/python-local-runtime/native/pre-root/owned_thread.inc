@@ -78,8 +78,9 @@ static void *owned_thread_entry(void *argument) {
     return NULL;
 }
 
-int actql_native_owned_thread_start(actql_owned_capacity *lease, void *storage,
-    size_t storage_bytes, actql_owned_thread_entry entry, void *argument) {
+static int owned_thread_start(actql_owned_capacity *lease, void *storage,
+    size_t storage_bytes, const pthread_attr_t *attributes,
+    actql_owned_thread_entry entry, void *argument) {
     if (lease == NULL || storage == NULL || entry == NULL ||
         storage_bytes != sizeof(struct actql_owned_thread_control) ||
         current_capacity != lease || current_depth == 0 || current_process != getpid())
@@ -115,7 +116,7 @@ int actql_native_owned_thread_start(actql_owned_capacity *lease, void *storage,
     unlock_capacity(lease);
     int status = pthread_once(&owned_scope_key_once, initialize_owned_scope_key);
     if (status == 0) status = owned_scope_key_status;
-    if (status == 0) status = pthread_create(&record->thread, NULL, owned_thread_entry, record);
+    if (status == 0) status = pthread_create(&record->thread, attributes, owned_thread_entry, record);
     if (status != 0) {
         /* POSIX failure creates no thread. Keep a non-reusable refusal record;
          * return only this confirmed-not-started pin, never an uncertain child. */
@@ -131,6 +132,17 @@ int actql_native_owned_thread_start(actql_owned_capacity *lease, void *storage,
     int attached;
     while ((attached = atomic_load_explicit(&record->attached, memory_order_acquire)) == 0) sched_yield();
     return attached == 1 ? ACTQL_OWNED_OK : ACTQL_OWNED_PHYSICAL_FAILURE;
+}
+
+int actql_native_owned_thread_start(actql_owned_capacity *lease, void *storage,
+    size_t storage_bytes, actql_owned_thread_entry entry, void *argument) {
+    return owned_thread_start(lease, storage, storage_bytes, NULL, entry, argument);
+}
+int actql_native_owned_thread_start_configured(actql_owned_capacity *lease, void *storage,
+    size_t storage_bytes, const void *attributes,
+    actql_owned_thread_entry entry, void *argument) {
+    if (attributes == NULL) return ACTQL_OWNED_INVALID;
+    return owned_thread_start(lease, storage, storage_bytes, attributes, entry, argument);
 }
 
 int actql_native_owned_thread_join(actql_owned_capacity *lease, void *storage) {

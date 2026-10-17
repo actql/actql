@@ -36,6 +36,7 @@ size_t actql_native_owned_thread_control_alignment(void);
 size_t actql_native_owned_thread_control_bytes(void);
 int actql_native_owned_thread_join(actql_owned_capacity * lease, void * storage);
 int actql_native_owned_thread_start(actql_owned_capacity * lease, void * storage, size_t storage_bytes, actql_owned_thread_entry entry, void * argument);
+int actql_native_owned_thread_start_configured(actql_owned_capacity * lease, void * storage, size_t storage_bytes, const void * attributes, actql_owned_thread_entry entry, void * argument);
 int actql_native_owned_transfer(actql_owned_capacity * lease, uint64_t generation, const unsigned char * recipe);
 int actql_native_owned_transfer_original_domain(actql_owned_capacity * lease);
 int actql_native_owned_try_close(actql_owned_capacity ** lease);
