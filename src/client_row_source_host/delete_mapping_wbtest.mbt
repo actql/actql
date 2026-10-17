@@ -319,8 +319,8 @@ test "DELETE Mapping is admitted by the existing shape and permission Owner only
 
 ///|
 test "DELETE Mapping preserves a required Array field and refuses invented conditional presence" {
-  let required = "{\"id\":{\"nullable\":false,\"type\":\"string\"},\"choices\":{\"items\":{\"nullable\":false,\"type\":\"string\"},\"nullable\":false,\"type\":\"array\"}}"
-  let conditional = "{\"id\":{\"nullable\":false,\"type\":\"string\"},\"choices\":{\"contract\":{\"items\":{\"nullable\":false,\"type\":\"string\"},\"nullable\":false,\"type\":\"array\"},\"presence\":\"conditional\"}}"
+  let required = "{\"choices\":{\"items\":{\"nullable\":false,\"type\":\"string\"},\"nullable\":false,\"type\":\"array\"},\"id\":{\"nullable\":false,\"type\":\"string\"}}"
+  let conditional = "{\"choices\":{\"contract\":{\"items\":{\"nullable\":false,\"type\":\"string\"},\"nullable\":false,\"type\":\"array\"},\"presence\":\"conditional\"},\"id\":{\"nullable\":false,\"type\":\"string\"}}"
   let generate = (wire : String) => {
     let body = @json.parse(wire)
     let declared = generate_relation_row_declaration(
