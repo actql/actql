@@ -81,6 +81,32 @@ default. An explicit Task token count replaces a default, even if larger;
 independent hard ceilings still belong to original bound execution admission.
 Current settings do not rewrite canonical Task identity or saved Run settings.
 
+The existing bounded Run-materials codec retains the normalized Task inside
+its original Environment and the original selected INFER execution contract.
+The dedicated installed-INFER reader checks that same saved Program and
+parameters, reconstructs the ordinary installed graph, and re-admits its saved
+prepared invocation, authorization and complete Run definition CID. It does not
+consult a current project registry or repeat default selection. Projection is
+limited to the codec's existing single installed, non-serialized INFER form;
+custom dependency graphs refuse before projection rather than emitting an
+unrestorable bundle. Other compositions retain their distinct original-material
+paths; this is not a language restriction or permission to discard them.
+
+The reconstructed preparation and graph are a new in-process nominal pair
+which must be used together. A caller cannot graft the old graph onto the new
+preparation, use an equal CID as physical custody, or adopt these materials as
+current authority. The original request/restrictions, provider registration,
+Store and Journal custody, resource admission, fixed input and current dispatch
+gates remain mandatory at the physical consumer. This codec supplies none of
+those permissions or cleanup acknowledgements. Ordinary Values and Source
+readers keep their previous INFER-field refusal and absent-field encoding.
+
+Projection and admission overlap the retained Environment/Program/parameters,
+execution-contract text, codec output, parsed cursors, checked compilation and
+original admission evidence. Rechecking the installed graph is bounded work,
+not free planning. Those holdings and decode/compile workspace belong to the
+existing Host/Run phase inventory; a material CID supplies no numerical lease.
+
 The public input/output field maps normalize through the existing ValueContract
 Owner. Their checked schema, not the shorthand text, supplies schema identity.
 Neither normalization path manufactures missing data-handling policy, a prompt,
