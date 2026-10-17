@@ -251,6 +251,7 @@ test('stored Content rejects an invalid original receiver before acquisition or 
   assert.equal(reads, 0);
   assert.equal(value.authorityChecks(), 0);
   assert.equal(value.physical.prepared.status().pending, true);
+  await value.physical.prepared.release();
 });
 
 test('physical capture retains its confirmed holding original before the issued value escapes', async t => {
