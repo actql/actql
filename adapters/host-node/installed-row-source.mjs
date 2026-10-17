@@ -480,7 +480,7 @@ async function prepareInstallationMetadataSite(options) {
           if (credential === undefined) fail('RowSourceMetadataGrantUnavailable');
           return credential;
         },
-        referenceCurrent: () => !closing && custody.referenceCurrent(),
+        referenceCurrent: () => !closing && originalFailure === undefined && custody.referenceCurrent(),
         cleanupPending: () => closing && !closed,
         close() {
           closing = true;

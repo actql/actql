@@ -182,6 +182,7 @@ test('Account file revoked across await remains stopped even after identical con
     await assert.rejects(site.issueMetadataGrant(f.request()), error => {failure = error; return true;});
     await writeFile(f.accountPath, f.accountWire);
     await assert.rejects(site.issueMetadataGrant(f.request(f.target, 'no-revival')), error => error === failure);
+    assert.equal(site.referenceCurrent(), false);
     assert.equal(f.counters().accepted, 0); assert.equal(f.counters().resolutions, 0);
   });
   await f.run();
@@ -252,6 +253,37 @@ test('failed original Journal close keeps the same Site pending and skips a late
     f.beforeClose(() => {}); site.close(); site.close();
     assert.equal(site.cleanupPending(), false); assert.equal(f.counters().closes, 2);
   });
+  await f.run();
+});
+
+test('closing during the original current await cannot sign into the retired Journal', async t => {
+  const f = await fixture(t, async f => {
+    const site = await f.open();
+    f.beforeObserve(async () => {site.close();});
+    await assert.rejects(site.issueMetadataGrant(f.request()), code('RowSourceSiteClosed'));
+    assert.equal(f.counters().accepted, 0);
+    assert.equal(f.counters().resolutions, 0);
+    assert.equal(f.counters().closes, 1);
+    assert.equal(site.referenceCurrent(), false);
+  });
+  await f.run();
+});
+
+test('a retained original target with changed projected facts refuses before signing', async t => {
+  let altered = false;
+  const f = await fixture(t, async f => {
+    const site = await f.open();
+    f.beforeObserve(async () => {altered = true;});
+    await assert.rejects(site.issueMetadataGrant(f.request()), code('RowSourceMetadataTargetChanged'));
+    assert.equal(f.counters().accepted, 0);
+    assert.equal(f.counters().resolutions, 0);
+  }, {input(value) {
+    const project = value.targetAuthority.project;
+    value.targetAuthority.project = function (...args) {
+      const facts = Reflect.apply(project, this, args);
+      return altered ? {...facts, path: '/v1/replacement'} : facts;
+    };
+  }});
   await f.run();
 });
 
