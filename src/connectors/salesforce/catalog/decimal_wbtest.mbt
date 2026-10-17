@@ -175,11 +175,11 @@ test "a Number reply is admitted as its declared decimal, exponent form included
   assert_eq(decimal_cell(largest, 2), Some("999999999999999e-0"))
   let null = number_page("null", "0").unwrap()
   assert_true(query_page_cell(null, 0, 1).unwrap().value is @admitted.Null)
-  // A Number above precision 15 is not readable.
+  // The same declared Number(16,2) is within the Decimal Contract domain.
   let (observation, binding) = number_observation()
   assert_true(
     prepare_read_projection(observation, binding, "Order__c", ["Wide__c"], 256)
-    is Err(UnsupportedReadType("Wide__c")),
+    is Ok(_),
   )
 }
 
@@ -265,7 +265,7 @@ test "an approved decimal is sent as the same number text, never through binary6
   // A digit beyond the scale is refused, never rounded.
   assert_eq(refused("\"12.505\""), ValueBeyondScale("Amount__c"))
   assert_eq(refused("\"12345678901.00\""), ValueOutOfRange("Amount__c"))
-  // A Number above precision 15 is not writable.
+  // The same declared Number(16,2) has an exact decimal write projection.
   let (observation, binding) = number_observation()
   assert_true(
     prepare_write_projection(
@@ -276,7 +276,7 @@ test "an approved decimal is sent as the same number text, never through binary6
       ["Wide__c"],
       1,
     )
-    is Err(UnsupportedWriteType("Wide__c")),
+    is Ok(_),
   )
 }
 
