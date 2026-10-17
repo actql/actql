@@ -270,3 +270,18 @@ test "Notion error and malformed original metadata cannot masquerade as empty su
     assert_true(project_notion_database(wire, database_test_limits()) is Err(_))
   }
 }
+
+///|
+test "Notion property names retain distinct Unicode and whitespace spellings" {
+  let wire =
+    #|{"object":"data_source","id":"s1","parent":{"type":"database_id","database_id":"db"},"properties":{"é":{"id":"a","name":"é","type":"title","title":{}},"é":{"id":"b","name":"é","type":"rich_text","rich_text":{}},"x\r\n":{"id":"c","name":"x\r\n","type":"checkbox","checkbox":{}}}}
+  let schema = project_notion_data_source(
+    database_test_original(),
+    0,
+    @utf8.encode(wire),
+    database_test_limits(),
+  ).unwrap()
+  assert_eq(notion_data_source_property_at(schema, 0).unwrap().name, "é")
+  assert_eq(notion_data_source_property_at(schema, 1).unwrap().name, "é")
+  assert_eq(notion_data_source_property_at(schema, 2).unwrap().name, "x\r\n")
+}

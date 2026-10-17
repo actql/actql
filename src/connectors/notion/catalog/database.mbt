@@ -77,7 +77,7 @@ fn database_cursor(
     return Err(BudgetExceeded)
   }
   let source = match
-    @source.parse_json_bytes(bytes, {
+    @source.parse_json_bytes_preserving(bytes, {
       max_input_bytes: limits.max_bytes,
       max_nodes: limits.max_nodes,
       max_depth: limits.max_depth,
