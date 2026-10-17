@@ -9,7 +9,7 @@ const originalRows = [{id:'one',summary:'one',time_zone:'UTC',access_role:'reade
 test('actual Calendar TLS pages use original signed grants Account and one accounted RowRun', async t => {
   const f=await calendarFixture(t);const result=await f.read();
   assert.equal(result.pages,2);assert.equal(result.rowCount,2);assert.deepEqual(f.state.rows,originalRows);
-  assert.equal(f.state.requests.length,2);assert.equal(f.state.charges,2);assert.equal(f.state.resolutions,1);
+  assert.equal(f.state.requests.length,2);assert.equal(f.state.charges,2);assert.equal(f.state.resolutions,2);
   assert.equal(result.observations.length,2);
   assert.equal(f.row.usage()[3],result.observations.reduce((sum,r)=>sum+BigInt(r.body.length),0n));
   for(const request of f.state.requests){const url=new URL('https://fixture'+request.path);
@@ -69,7 +69,7 @@ test('Calendar Account denial is checked before I/O and again between admitted p
   assert.equal(first.state.requests.length,0);assert.equal(first.state.resolutions,0);
   const f=await calendarFixture(t);const consume=f.options.consumePage;
   await assert.rejects(f.read({consumePage:async(rows,charge)=>{await consume(rows,charge);await f.writeAccount('deny');}}),
-    e=>e.cause.code==='CalendarReadDenied');
+    e=>e.cause.code==='AuthorizationCurrentAccountChanged');
   assert.equal(f.state.requests.length,1);assert.equal(f.state.charges,1);assert.equal(f.state.rows.length,1);f.row.assertNoCapture();
 });
 
@@ -89,4 +89,13 @@ test('Calendar physical sequencer snapshots provider callbacks names and limits 
   const result=await f.read(options);assert.equal(result.rowCount,2);assert.deepEqual(f.state.rows,originalRows);
   assert.ok(f.state.requests.every(request=>new URL('https://fixture'+request.path).searchParams.get('maxResults')==='2'));
   f.row.finish();assert.equal(f.row.captureCount(),2);
+});
+
+test('Calendar changed original credential is refused before the next page send and is not replaced',async t=>{
+  const f=await calendarFixture(t);const consume=f.options.consumePage;
+  await assert.rejects(f.read({consumePage:async(rows,charge)=>{
+    await consume(rows,charge);f.state.secret='replacement-private-fixture-secret';}}),
+    e=>e.cause.code==='RemoteCredentialBindingChanged'&&e.observations.length===1);
+  assert.equal(f.state.requests.length,1);assert.equal(f.state.resolutions,2);
+  assert.equal(f.state.charges,1);assert.equal(f.state.rows.length,1);f.row.assertNoCapture();
 });

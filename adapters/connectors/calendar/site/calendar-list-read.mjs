@@ -40,9 +40,10 @@ export async function readCalendarList({moon, names, initialAuthorization,
   const context = ownInvocationContext({authorization: initialAuthorization,
     credential, limits, callbacks: {authorizationFor, current, chargeResponse, consumePage, callResource}});
   if (context.scope.operation !== CALENDAR_LIST_OPERATION) fail('ForeignCalendarListOperation');
-  // The original Source key is observed even when the query projects it away.
-  // Projection cannot hide a duplicate calendar from whole-read validation.
-  const selected = Object.freeze(['id', ...names.filter(name => name !== 'id')]);
+  // The existing RowRun admits the complete declared row. Retain all four
+  // checked cells even when a query projects columns away; ordinary Relation
+  // projection follows capture. Never hide a key or required cell here.
+  const selected = Object.freeze(['id', 'summary', 'time_zone', 'access_role']);
   const bound = context.limits, observations = [], cursors = new Set(), ids = new Set();
   let pages = 0, requests = 0, rowCount = 0, token;
   const verify = async () => {

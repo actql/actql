@@ -81,7 +81,7 @@ export async function calendarFixture(t, {account = 'allow'} = {}) {
   const [key, cert] = await Promise.all([readFile(join(root, 'server.key')), readFile(join(root, 'server.crt'))]);
   const state = {pages: [JSON.stringify({kind: 'calendar#calendarList', items: [calendarRecord('one')], nextPageToken: 'opaque /+é'}),
     JSON.stringify({kind: 'calendar#calendarList', items: [calendarRecord('two')]})],
-    requests: [], charges: 0, resolutions: 0, rows: [], status: 200, beforeResponse: undefined, resolved: undefined};
+    requests: [], charges: 0, resolutions: 0, rows: [], status: 200, secret:'calendar-fixture-secret', beforeResponse: undefined, resolved: undefined};
   const server = createServer({key, cert}, async (request, response) => {
     state.requests.push({path: request.url, authorization: request.headers.authorization, method: request.method});
     try {
@@ -122,7 +122,7 @@ export async function calendarFixture(t, {account = 'allow'} = {}) {
   const gate=await createLocalAuthorizationGate({accountConfig:accountPath,principal:'operator',context:{principal:'operator',contextCid:cid('d')}});
   const current=async () => {const decision=await gate.authorize('acquisition',{connection:'calendar:fixture',resource:'calendars',operation:'read'},
     {subjectCid:scope.runInvocationCid});if(decision.action!=='dispatch')throw Object.assign(new Error('CalendarReadDenied'),{code:'CalendarReadDenied'});};
-  const credential={control,journal,ca:cert,resolveSecret:async () => {state.resolutions++;await state.resolved?.();return 'calendar-fixture-secret';}};
+  const credential={control,journal,ca:cert,resolveSecret:async () => {state.resolutions++;await state.resolved?.();return state.secret;}};
   binding=openHttpsCredentialBinding({...credential,scope,maxSecretBytes:128});
   row=await rowOwner(() => closeHttpsCredentialBinding(binding)==='closed');
   const initialAuthorization={grant,scope,useId:'initial'};
