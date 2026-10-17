@@ -11,6 +11,10 @@ import {
 options(
   "native-stub": [ "filesystem_stub.c" ],
   targets: {
+    "writer_custody_native.mbt": [ "native" ],
+    "writer_custody_unsupported.mbt": [ "not", "native" ],
+    "writer_custody_native_wbtest.mbt": [ "native" ],
+    "writer_custody_unsupported_wbtest.mbt": [ "not", "native" ],
     "filesystem_native.mbt": [ "native" ],
     "scoped_read_native.mbt": [ "native" ],
     "scoped_read_unsupported.mbt": [ "not", "native" ],
