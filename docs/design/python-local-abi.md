@@ -2324,3 +2324,20 @@ responsibility. It keeps the original process record and library alias; there
 is no initialization-record close that could acknowledge process-global Runtime
 storage on Engine deletion or arena retirement. That storage remains the
 existing process/runtime Owner's responsibility through actual process stop.
+
+The private compiler transport projects the same domain's material before
+process preparation. The original Native Owner then binds the live child
+frame, channel and captured backing descriptor; the material alone cannot
+launch it. After spawn and original-current confirmation, a single binding
+byte releases the child to map that descriptor. A short or lost write is not
+resent. The selected executable's byte check is correspondence, not funding
+or code admission; the compiler producer must separately verify its original
+source, configuration, module, toolchain and actual link inputs.
+
+Compiler stdout is bounded control DATA, not a stop acknowledgment or an image
+receipt. EOF is followed by original IPC restriction/return, typed stop and
+physical region/descriptor retirement before parent arena cleanup. The caller's
+backing FD and process-lifetime Runtime remain separately owned. Deadline,
+partial response, failed spawn or uncertain cleanup retains the same parent
+and process carrier; transport never substitutes PID absence, relaunches the
+compiler, closes borrowed pipe FDs directly or manufactures a cleanup result.
