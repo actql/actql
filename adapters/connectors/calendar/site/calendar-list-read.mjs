@@ -8,11 +8,10 @@ import {callHttpsCredentialResource} from '../../../site-node/https-credential-r
 export const CALENDAR_LIST_OPERATION = 'calendar:calendars:list';
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const positive = value => Number.isSafeInteger(value) && value > 0 && value < 2147483647;
-const providerExports = ['calendarProjectCalendarList', 'calendarListRowsWire', 'calendarListMetadataJson'];
+const providerExports = ['calendarProjectCalendarList', 'calendarListRowsWire', 'calendarListMetadataJson', 'calendarListColumnNames'];
 const limitFields = ['maxResponseBytes', 'maxNodes', 'maxDepth', 'maxPages', 'maxRows',
   'maxRequests', 'perPage', 'maxCursorUnits', 'maxValueNodes', 'maxValueTextBytes',
   'maxRowsWireBytes', 'maxRowsWireNodes', 'maxRowsWireDepth'];
-const columns = new Set(['id', 'summary', 'time_zone', 'access_role']);
 const selectedFields = 'kind,items(id,summary,timeZone,accessRole,deleted),nextPageToken';
 
 // Keep original received responses and the unchanged cause even if charging,
@@ -30,20 +29,22 @@ export async function readCalendarList({moon, names, initialAuthorization,
   credential, authorizationFor, limits, current, chargeResponse, consumePage,
   signal, callResource = callHttpsCredentialResource}) {
   if (providerExports.some(name => typeof moon?.[name] !== 'function') ||
-      !Array.isArray(names) || names.some(name => !columns.has(name)) ||
+      !Array.isArray(names) ||
       new Set(names).size !== names.length ||
       !limitFields.every(key => positive(limits?.[key])) || limits.perPage > 250 ||
       limits.maxPages > limits.maxRequests ||
       [authorizationFor, current, chargeResponse, consumePage, callResource].some(value => typeof value !== 'function') ||
       !credential?.binding || typeof credential.binding !== 'object') fail('InvalidCalendarListRead');
   const provider = Object.freeze(Object.fromEntries(providerExports.map(name => [name, moon[name]])));
+  const declaredColumns = provider.calendarListColumnNames();
+  if (names.some(name => !declaredColumns.includes(name))) fail('InvalidCalendarListRead');
   const context = ownInvocationContext({authorization: initialAuthorization,
     credential, limits, callbacks: {authorizationFor, current, chargeResponse, consumePage, callResource}});
   if (context.scope.operation !== CALENDAR_LIST_OPERATION) fail('ForeignCalendarListOperation');
   // The existing RowRun admits the complete declared row. Retain all four
   // checked cells even when a query projects columns away; ordinary Relation
   // projection follows capture. Never hide a key or required cell here.
-  const selected = Object.freeze(['id', 'summary', 'time_zone', 'access_role']);
+  const selected = Object.freeze(declaredColumns.slice());
   const bound = context.limits, observations = [], cursors = new Set(), ids = new Set();
   let pages = 0, requests = 0, rowCount = 0, token;
   const verify = async () => {

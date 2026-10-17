@@ -40,6 +40,11 @@ fn calendar_list_columns() -> Array[(String, String)] {
 }
 
 ///|
+pub fn calendar_list_column_names() -> Array[String] {
+  calendar_list_columns().map(entry => entry.0)
+}
+
+///|
 fn calendar_list_limits_valid(limits : CalendarListLimits) -> Bool {
   limits.max_bytes > 0 &&
   limits.max_nodes > 0 &&
@@ -244,18 +249,31 @@ pub fn calendar_list_schema_wire(
   if max_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidLimits)
   }
+  let object = match
+    @contract.object_contract(
+      calendar_list_column_names().map(name => {
+        (name, @contract.primitive(@contract.StringType, nullable=false))
+      }),
+      nullable=false,
+      max_fields=4,
+      max_name_bytes=64,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidResponse)
+  }
+  guard object.shape is @contract.Object(fields) else {
+    return Err(InvalidResponse)
+  }
   let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
     _ => return Err(BudgetExceeded)
   }
   try {
     @encode.begin_ordered_object(writer)
     // The full fixed declared field map is ordered by Common's wire rule.
-    for name in ["access_role", "id", "summary", "time_zone"] {
-      @encode.ordered_key(writer, name)
-      @contract.emit_checked(
-        @contract.primitive(@contract.StringType, nullable=false),
-        writer,
-      )
+    for index in 0..<@contract.field_count(fields) {
+      let field = @contract.field_at(fields, index).unwrap()
+      @encode.ordered_key(writer, field.name)
+      @contract.emit_checked(field.contract, writer)
     }
     @encode.end_object(writer)
     Ok(@encode.finish(writer))

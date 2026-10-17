@@ -183,6 +183,9 @@ test "Calendar list bounds cursor response row and admitted value budgets separa
 
 ///|
 test "Calendar list output schema facts and projection use existing Common contracts and bounds" {
+  assert_eq(calendar_list_column_names(), [
+    "id", "summary", "time_zone", "access_role",
+  ])
   assert_eq(
     calendar_list_schema_wire(1024, 64, 8).unwrap(),
     (

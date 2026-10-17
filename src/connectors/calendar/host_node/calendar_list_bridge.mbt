@@ -63,3 +63,9 @@ pub fn calendar_list_schema_wire(
 pub fn calendar_list_relation_facts_wire() -> String {
   @catalog.calendar_list_facts_wire()
 }
+
+///|
+#export_name("calendarListColumnNames")
+pub fn calendar_list_column_names() -> Array[String] {
+  @catalog.calendar_list_column_names()
+}
