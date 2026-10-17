@@ -14,7 +14,17 @@ test "Content workspace correspondence reads the same live original captured Led
   assert_false(
     @strategy.captured_effect_inputs_shared_capacity_current(inputs, foreign),
   )
-  assert_eq(@resources.ledger_usage(ledger), before)
+  let after = @resources.ledger_usage(ledger)
+  assert_eq(after.planning_work, before.planning_work)
+  assert_eq(after.attempts, before.attempts)
+  assert_eq(after.holdings, before.holdings)
+  assert_eq(after.transferred_bytes, before.transferred_bytes)
+  assert_eq(after.uncertain_transfer_bytes, before.uncertain_transfer_bytes)
+  assert_eq(after.reserved_transfer_bytes, before.reserved_transfer_bytes)
+  assert_eq(after.held_bytes, before.held_bytes)
+  assert_eq(after.reserved_retention_bytes, before.reserved_retention_bytes)
+  assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
+  assert_eq(after.peak_retention_bytes, before.peak_retention_bytes)
   let separate = @strategy.pin_captured_effect_sources(captured, 2).unwrap()
   assert_true(
     @strategy.captured_effect_inputs_shared_capacity_current(separate, capacity),
