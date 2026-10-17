@@ -25,7 +25,6 @@ from actql_sdk._local_native_process_custody import (
 )
 from actql_sdk._local_native_domain_custody import _OriginalDomainError
 
-functions = Functions(original['library'])
 processes = []
 
 def observe():
@@ -42,6 +41,7 @@ def acquire(label):
     fd = original['descriptor'](label+'.backing')
     parent = compiler._acquire_compiler_parent(value, selected, fd)
     parents.append(parent)
+    functions = Functions(parent.library)
     process = Process._prepare_original(parent.domain, functions,
         path=str(original['fixture']/(label+'.slot')), nonce=7,
         retained=0, execution=48*original['page'])
@@ -57,6 +57,7 @@ def finish(parent, fd, process):
     fd.close()
 
 parent, fd, process = acquire('process-unstarted')
+functions = process._functions
 assert process._domain is parent.domain and process._owner is parent.host
 assert process._process.value is not None and process._frame.value is not None
 process.current()
