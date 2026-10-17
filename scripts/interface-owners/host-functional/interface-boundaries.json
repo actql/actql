@@ -31073,7 +31073,7 @@
     {
       "module": "adapters/host-node/installed-host-cleanup.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d382b4b8feebefc0349d83a62dc1e317678bea81371062f3ebf94f51f4c71def",
+      "sha256": "db592eae07986de4a15b95a22fa06f4c515b00f98bae4de23118a41503b75281",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -31183,6 +31183,11 @@
           "async": true
         },
         {
+          "name": "retainInstalledHostInitializationFailure/captureOriginalStatus",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "retainInstalledHostInitializationFailure/drain",
           "parameters": [],
           "async": true
@@ -31234,6 +31239,11 @@
         },
         {
           "name": "retainInstalledHostInitializationFailure/drain/drain#9",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledHostInitializationFailure/observeOriginalCleanup",
           "parameters": [],
           "async": false
         },
@@ -31313,6 +31323,7 @@
             "createInstalledHostShutdown/status/status/status",
             "retainInstalledHostInitializationFailure",
             "retainInstalledHostInitializationFailure/attempt",
+            "retainInstalledHostInitializationFailure/captureOriginalStatus",
             "retainInstalledHostInitializationFailure/drain",
             "retainInstalledHostInitializationFailure/drain/drain",
             "retainInstalledHostInitializationFailure/drain/drain#10",
@@ -31324,6 +31335,7 @@
             "retainInstalledHostInitializationFailure/drain/drain#7",
             "retainInstalledHostInitializationFailure/drain/drain#8",
             "retainInstalledHostInitializationFailure/drain/drain#9",
+            "retainInstalledHostInitializationFailure/observeOriginalCleanup",
             "retainInstalledHostInitializationFailure/retry",
             "retainInstalledHostInitializationFailure/retry/retry",
             "retainInstalledHostInitializationFailure/status/status"
@@ -31373,6 +31385,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const originalCleanup = cause?.cleanupHandle;"
               }
             ],
             "ownership": [
@@ -31387,6 +31403,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "# Connector ownership and repository layout"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const originalCleanup = cause?.cleanupHandle;"
               }
             ],
             "synchronization": [
@@ -31401,6 +31421,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const originalCleanup = cause?.cleanupHandle;"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "function captureOriginalStatus() {"
               }
             ],
             "failure": [
@@ -31415,6 +31443,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "function observeOriginalCleanup() {"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "Property access can itself fail."
               }
             ],
             "cancellation": [
@@ -31443,6 +31479,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "# Connector ownership and repository layout"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "let observationFailure;"
               }
             ],
             "extension": [
@@ -31467,6 +31507,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-original-cleanup-observation.test.mjs",
+                "anchor": "for (const variant of ['status unavailable', 'handle replaced during retry']) {"
+              },
+              {
+                "path": "adapters/host-node/installed-original-cleanup-method-capture.test.mjs",
+                "anchor": "for (const property of ['retry', 'status']) {"
               }
             ]
           }
@@ -31581,7 +31629,10 @@
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-host-policy.mjs",
