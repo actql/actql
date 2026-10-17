@@ -1,13 +1,14 @@
 {
   "qualification": "existing Calendar Owner source-reference coverage; not normal acquisition, capacity, physical cleanup, credential mint or installed acceptance",
-  "source": "eefa426c988bd8e3fa2af64c195515d830216c2f",
+  "source": "18ce3333ed27ab951878ae258a06400e1c161ed1",
   "declarations": [
     {
       "module": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-      "sha256": "a1016f86fb71a71d6ad6193459b9dec43b7d99515617fdc093593816d7d34795",
+      "sha256": "a0d7dcd2ce9effce2c81fbd6b7140759ec230978bfbdf4ae2481708aba305889",
       "exports": [
         "CALENDAR_LIST_OPERATION",
         "CalendarListReadFailure",
+        "createCalendarListReader",
         "readCalendarList"
       ],
       "operations": [
@@ -20,9 +21,70 @@
           "async": false
         },
         {
+          "name": "createCalendarListReader",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCalendarListReader/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createCalendarListReader/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createCalendarListReader/handle/init:read/init:read/result/result",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCalendarListReader/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "executeCalendarListRead",
+          "parameters": [
+            "provider",
+            "context",
+            "selected",
+            "signal",
+            "received"
+          ],
+          "async": true
+        },
+        {
+          "name": "executeCalendarListRead/response/response",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "executeCalendarListRead/verify/verify",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "fail/fail",
           "parameters": [
             "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReader",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -34,7 +96,7 @@
           "async": false
         },
         {
-          "name": "readCalendarList",
+          "name": "prepareCalendarListRead",
           "parameters": [
             "moon",
             "names",
@@ -48,53 +110,48 @@
             "signal",
             "callResource"
           ],
-          "async": true
+          "async": false
         },
         {
-          "name": "readCalendarList/provider/provider",
+          "name": "prepareCalendarListRead/prepareCalendarListRead",
           "parameters": [
             "name"
           ],
           "async": false
         },
         {
-          "name": "readCalendarList/readCalendarList",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "readCalendarList/readCalendarList#2",
+          "name": "prepareCalendarListRead/prepareCalendarListRead#2",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
-          "name": "readCalendarList/readCalendarList#3",
+          "name": "prepareCalendarListRead/prepareCalendarListRead#3",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "readCalendarList/readCalendarList#4",
+          "name": "prepareCalendarListRead/prepareCalendarListRead#4",
           "parameters": [
             "name"
           ],
           "async": false
         },
         {
-          "name": "readCalendarList/response/response",
+          "name": "prepareCalendarListRead/provider/provider",
           "parameters": [
-            "options"
+            "name"
           ],
           "async": false
         },
         {
-          "name": "readCalendarList/verify/verify",
-          "parameters": [],
+          "name": "readCalendarList",
+          "parameters": [
+            "options"
+          ],
           "async": true
         }
       ],
@@ -105,16 +162,18 @@
         {
           "operations": [
             "<module>",
+            "executeCalendarListRead",
+            "executeCalendarListRead/response/response",
+            "executeCalendarListRead/verify/verify",
             "fail/fail",
             "positive/positive",
-            "readCalendarList",
-            "readCalendarList/provider/provider",
-            "readCalendarList/readCalendarList",
-            "readCalendarList/readCalendarList#2",
-            "readCalendarList/readCalendarList#3",
-            "readCalendarList/readCalendarList#4",
-            "readCalendarList/response/response",
-            "readCalendarList/verify/verify"
+            "prepareCalendarListRead",
+            "prepareCalendarListRead/prepareCalendarListRead",
+            "prepareCalendarListRead/prepareCalendarListRead#2",
+            "prepareCalendarListRead/prepareCalendarListRead#3",
+            "prepareCalendarListRead/prepareCalendarListRead#4",
+            "prepareCalendarListRead/provider/provider",
+            "readCalendarList"
           ],
           "exports": [
             "CALENDAR_LIST_OPERATION",
@@ -130,7 +189,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-                "anchor": "export async function readCalendarList"
+                "anchor": "async function executeCalendarListRead"
               }
             ],
             "identity": [
@@ -246,8 +305,94 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createCalendarListReader",
+            "createCalendarListReader/handle/init:observe/init:observe",
+            "createCalendarListReader/handle/init:read/init:read",
+            "createCalendarListReader/handle/init:read/init:read/result/result",
+            "createCalendarListReader/handle/init:requestStop/init:requestStop",
+            "originalReader"
+          ],
+          "exports": [
+            "createCalendarListReader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
+                "anchor": "export function createCalendarListReader"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
+                "anchor": "fail('ForeignCalendarListReader')"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "returns one private physical-reader handle"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
+                "anchor": "if (state.phase !== 'ready')"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/calendar-list-reader-custody.md",
+                "anchor": "If the factory refuses"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
+                "anchor": "state.stop.abort(reason)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/calendar/site/calendar-list-read.mjs",
+                "anchor": "cleanupConfirmed: false"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/calendar/catalog/calendar_list.mbt",
+                "anchor": "fn calendar_list_columns()"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/calendar/test/calendar-list-read.test.mjs",
+                "anchor": "Calendar copied reader receivers cannot read stop or observe the original acquisition"
+              },
+              {
+                "path": "adapters/connectors/calendar/test/calendar-list-read.test.mjs",
+                "anchor": "Calendar original reader observes in-flight custody"
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "src/connectors/calendar/catalog/calendar_list.mbt",
