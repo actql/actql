@@ -76,6 +76,12 @@ test('Google assertion does not accept alternate audience algorithm endpoint or 
     assert.throws(()=>prepareGoogleServiceAccountAssertion({...base(),...extra}),{code:'InvalidGoogleAssertionPreparation'});
   }
   assert.throws(()=>prepareGoogleServiceAccountAssertion({...base(),limits:{...limits,unknown:1}}),{code:'InvalidGoogleAssertionLimits'});
+  assert.throws(()=>prepareGoogleServiceAccountAssertion(Object.defineProperty(base(),'alg',{value:'none'})),
+    {code:'InvalidGoogleAssertionPreparation'});
+  assert.throws(()=>prepareGoogleServiceAccountAssertion({...base(),[Symbol('hidden-option')]:true}),
+    {code:'InvalidGoogleAssertionPreparation'});
+  assert.throws(()=>prepareGoogleServiceAccountAssertion({...base(),limits:Object.defineProperty({...limits},'unknown',{value:1})}),
+    {code:'InvalidGoogleAssertionLimits'});
 });
 
 test('Google assertion rejects malformed original identities without replacement or inferred delegation',()=>{

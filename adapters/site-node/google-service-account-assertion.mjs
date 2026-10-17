@@ -17,7 +17,7 @@ const requiredOptions = ['privateKey', 'clientEmail', 'scopes',
   'issuedAtUnixSeconds', 'lifetimeSeconds', 'limits'];
 const exactKeys = (object, keys, required = keys) => object !== null && typeof object === 'object' &&
   !types.isProxy(object) && !Array.isArray(object) &&
-  required.every(key => Object.hasOwn(object, key)) && Object.keys(object).every(key => keys.includes(key));
+  required.every(key => Object.hasOwn(object, key)) && Reflect.ownKeys(object).every(key => keys.includes(key));
 const identityText = (value, maxBytes) => typeof value === 'string' && value.length > 0 &&
   value.isWellFormed() && !/[\s\u0000-\u001f\u007f]/u.test(value) && Buffer.byteLength(value) <= maxBytes;
 const scopeToken = value => typeof value === 'string' && value.length > 0 && /^[\x21\x23-\x5b\x5d-\x7e]+$/u.test(value);
