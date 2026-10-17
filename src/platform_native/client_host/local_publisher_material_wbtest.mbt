@@ -136,3 +136,14 @@ test "Publisher shared material cannot use another Host or foreign request scope
   original.close().unwrap()
   other.close().unwrap()
 }
+
+///|
+// Keep the original positive fixture's actual failure as a typed refusal. This
+// literal is independent of the corrected helper and never becomes an Allow.
+test "Publisher fixture preserves original noncanonical Account entry rejection" {
+  let original = "{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"operator\",\"entries\":[{\"entry_id\":\"submit\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"cli\"]},\"resource\":{\"any_of\":[\"run\"]},\"operation\":{\"any_of\":[\"submit\"]},\"exclusions\":[]},{\"entry_id\":\"publish\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"cli\"]},\"resource\":{\"any_of\":[\"run\"]},\"operation\":{\"any_of\":[\"publish\"]},\"exclusions\":[]}]}"
+  assert_eq(
+    @authorization.admit_account_configuration_json(original).map(_ => ()),
+    Err(@authorization.NonCanonicalOrder("$.entries[1].entry_id")),
+  )
+}

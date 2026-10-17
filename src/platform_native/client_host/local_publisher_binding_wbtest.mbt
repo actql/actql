@@ -24,6 +24,9 @@ fn local_publisher_fixture(
       ),
     )
   }
+  // These two fixed entry IDs must use the Account Owner's canonical order.
+  // Their distinct operation tuples and all original permissions are unchanged.
+  entries.sort()
   let account = @utf8.encode(
     "{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"operator\",\"entries\":[" +
     entries.join(",") +
