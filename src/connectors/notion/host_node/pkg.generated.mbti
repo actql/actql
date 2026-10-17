@@ -6,9 +6,15 @@ import {
 }
 
 // Values
+pub fn notion_bind_data_source_read_contracts(@catalog.NotionDatabaseReadDeclaration, @catalog.NotionDataSourceCatalog, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionDataSourceReadContracts, @catalog.NotionReadContractIssue]
+
 pub fn notion_data_source_matches_database(@catalog.NotionDataSourceCatalog, @catalog.NotionDatabaseCatalog) -> Bool
 
 pub fn notion_data_source_metadata_json(@catalog.NotionDataSourceCatalog, Int, Int, Int) -> Result[String, @catalog.NotionDatabaseIssue]
+
+pub fn notion_data_source_read_matches(@catalog.NotionDataSourceReadContracts, @catalog.NotionDatabaseReadDeclaration, @catalog.NotionDataSourceCatalog) -> Bool
+
+pub fn notion_data_source_read_schema_json(@catalog.NotionDataSourceReadContracts, Int, Int, Int) -> Result[String, @catalog.NotionReadContractIssue]
 
 pub fn notion_database_metadata_json(@catalog.NotionDatabaseCatalog, Int, Int, Int) -> Result[String, @catalog.NotionDatabaseIssue]
 
@@ -20,6 +26,8 @@ pub fn notion_project_query_page(@catalog.NotionDataSourceCatalog, Bytes, Int, I
 
 pub fn notion_project_user_list(Bytes, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionUserListPage, @catalog.NotionUserListIssue]
 
+pub fn notion_property_read_cell_json(@catalog.NotionDataSourceReadContracts, @catalog.OriginalNotionQueryPage, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[String, @catalog.NotionReadCellIssue]
+
 pub fn notion_query_page_matches_source(@catalog.OriginalNotionQueryPage, @catalog.NotionDataSourceCatalog) -> Bool
 
 pub fn notion_query_page_metadata_json(@catalog.OriginalNotionQueryPage, Int, Int, Int) -> Result[String, @catalog.NotionQueryIssue]
@@ -27,6 +35,10 @@ pub fn notion_query_page_metadata_json(@catalog.OriginalNotionQueryPage, Int, In
 pub fn notion_query_page_original_json(@catalog.OriginalNotionQueryPage, Int) -> Result[String, @catalog.NotionQueryIssue]
 
 pub fn notion_query_property_value_json(@catalog.OriginalNotionQueryPage, Int, Int, Int) -> Result[String, @catalog.NotionQueryIssue]
+
+pub fn notion_read_database_declaration(Bytes, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionDatabaseReadDeclaration, @catalog.NotionReadContractIssue]
+
+pub fn notion_read_source_index(@catalog.NotionDatabaseReadDeclaration, @catalog.NotionDatabaseCatalog) -> Result[Int, @catalog.NotionReadContractIssue]
 
 pub fn notion_user_list_column_names() -> Array[String]
 
