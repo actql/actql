@@ -4,6 +4,7 @@ priv enum EqualityFrame {
   Names(Fields, Fields, Int, Int)
   Children(Fields, Fields, Int)
   ParameterText(String, String, Int)
+  Enumerants(TextEnumeration, TextEnumeration, Int, Int)
 }
 
 ///|
@@ -112,6 +113,17 @@ pub fn advance_type_equality(
           }
           cursor.scheduled += children
           match (left.shape, right.shape) {
+            (
+              Text({ enumeration: Some(a), .. }),
+              Text({ enumeration: Some(b), .. }),
+            ) =>
+              if !a.values.is_empty() {
+                if a.values.length() > cursor.remaining - cursor.scheduled {
+                  cancel_type_equality(cursor)
+                  raise RelationLimit
+                }
+                cursor.pending.push(Enumerants(a, b, 0, 0))
+              }
             (Array(a, ..), Array(b, ..)) => cursor.pending.push(Pair(a, b))
             (Object(a), Object(b)) =>
               if !a.values.is_empty() {
@@ -161,6 +173,29 @@ pub fn advance_type_equality(
       }
       if end < left.length() {
         cursor.pending.push(ParameterText(left, right, end))
+      }
+    }
+    Enumerants(left, right, entry, offset) => {
+      if cursor.remaining == 0 {
+        cancel_type_equality(cursor)
+        raise RelationLimit
+      }
+      cursor.remaining -= 1
+      let a = left.values[entry]
+      let b = right.values[entry]
+      if a.length() != b.length() {
+        return equality_done(cursor, false)
+      }
+      let end = offset + Int::min(64, a.length() - offset)
+      for index in offset..<end {
+        if a[index] != b[index] {
+          return equality_done(cursor, false)
+        }
+      }
+      if end < a.length() {
+        cursor.pending.push(Enumerants(left, right, entry, end))
+      } else if entry + 1 < left.values.length() {
+        cursor.pending.push(Enumerants(left, right, entry + 1, 0))
       }
     }
   }
