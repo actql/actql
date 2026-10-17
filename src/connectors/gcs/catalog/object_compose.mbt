@@ -38,7 +38,8 @@ pub fn prepare_object_compose_binding(
   max_sources : Int,
   max_result_bytes : Int64,
 ) -> Result[ObjectComposeBinding, ObjectUploadIssue] {
-  if max_sources < 1 || max_sources > 32 || max_result_bytes < 0L {
+  if max_sources < 1 || max_sources > 32 || max_result_bytes < 0L ||
+    max_result_bytes > 5497558138880L {
     return Err(InvalidBinding)
   }
   Ok({ target, max_sources, max_result_bytes })
@@ -169,7 +170,7 @@ pub fn prepare_object_compose(
   let mut size = 0L
   let mut checksum : UInt = 0
   let mut storage_class : String? = None
-  let source_objects = []
+  let source_objects : Array[Json] = []
   // Preserve original order and repetitions. Sorting/deduplication changes
   // the bytes, and a source can also be the original destination generation.
   for source in sources {
