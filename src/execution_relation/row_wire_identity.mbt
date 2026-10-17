@@ -278,7 +278,7 @@ pub fn row_wire_cid(value : RowWireIdentity) -> String {
 /// by acquisition output and reused here. This is not a physical codec or a
 /// Result relation-envelope identity.
 pub fn ordered_rows_canonical_contract_cid() -> String {
-  "sha256:4bb69dfaade0a15952fe23a8202a9475ff450c9f0fab93f9dd5cef1b82045ab1"
+  "sha256:37a581bc6b76d61d50527d58777343b655479356c6017ac41ff24ddaf5676bd2"
 }
 
 ///|

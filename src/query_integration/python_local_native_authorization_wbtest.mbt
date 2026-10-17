@@ -427,12 +427,12 @@ test "Native Source capability identifies the independently pinned current two-r
   ).unwrap()
   assert_true(
     @acquisition_host.source_evidence_context_supports(
-      context, "sha256:d3d2737da6d73801f85208a2cdfe50c412e9f7b24e8bf9807e6f804e11757dd7",
+      context, "sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a",
     ),
   )
   assert_false(
     @acquisition_host.source_evidence_context_supports(
-      context, "sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8",
+      context, "sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a",
     ),
   )
 }

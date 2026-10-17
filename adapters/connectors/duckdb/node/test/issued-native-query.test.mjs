@@ -41,7 +41,7 @@ function expectedObservation(requirement, [issuer, attempt, read_view], scan, se
     requirement_cid: requirementCid, role, snapshot: null, scan_scope_cid: scope, accesses, output,
   }));
   return { version: 'actql-query-two-receipt-observation/0.1', requirement_cid: requirementCid,
-    evidence_contract_cid: 'sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8',
+    evidence_contract_cid: 'sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a',
     execution: { issuer, attempt, read_view }, owner: requirement.owner,
     source_ref: requirement.source_ref, source_contract_cid: requirement.source_contract_cid,
     parameter_values_cid: requirement.parameter_values_cid, resolved_request_cid: requestCid,
