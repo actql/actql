@@ -222,6 +222,16 @@ fn NativeExecutorSlot::spawn_holder_reading(
       output,
     )
   }
+  self.record_spawn_result(pid, scoped)
+}
+
+///|
+// One bookkeeping boundary for both original and selected physical launch.
+fn NativeExecutorSlot::record_spawn_result(
+  self : NativeExecutorSlot,
+  pid : Int,
+  scoped : NativeScopedExecutorHolder?,
+) -> Result[NativeExecutorSlotChild, NativeExecutorSlotIssue] {
   if pid <= 0 {
     return Err(SpawnFailed)
   }
