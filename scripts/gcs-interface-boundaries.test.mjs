@@ -42,9 +42,9 @@ const moduleOf = (module, source = readFileSync(new URL(`../${module}`, import.m
       : {operations: moonOperations(source), exports: []}),
 });
 
-test('all twenty-three explicit GCS owner operations and APIs retain their ten contract references', () => {
-  assert.equal(declarations.length, 23);
-  assert.equal(assertInterfaceCoverage({root, modules: paths.map(path => moduleOf(path)), declarations}), 23);
+test('all twenty-four explicit GCS owner operations and APIs retain their ten contract references', () => {
+  assert.equal(declarations.length, 24);
+  assert.equal(assertInterfaceCoverage({root, modules: paths.map(path => moduleOf(path)), declarations}), 24);
   assert.deepEqual(moduleOf(paths.at(-1)).compilerFields, []);
 });
 
