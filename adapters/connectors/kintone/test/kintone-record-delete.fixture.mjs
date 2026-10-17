@@ -126,10 +126,10 @@ export async function deleteFixture(t, {effect = 'allow', faults = []} = {}) {
   const accountPath = join(root, 'account.json');
   const writeAccount = (outcome = effect) => writeFile(accountPath, canonicalJson({
     version: 'actql-execution-account-config/0.1', account_id: 'kintone-delete-fixture',
-    entries: [{entry_id: 'reads', outcome: 'allow', principal: {all: true},
+    entries: [{entry_id: 'a-reads', outcome: 'allow', principal: {all: true},
       connection: {any_of: ['kintone:fixture']}, resource: {any_of: ['form', 'inquiries']},
       operation: {any_of: ['read']}, exclusions: []},
-    {entry_id: 'delete', outcome, principal: {all: true}, connection: {any_of: ['kintone:fixture']},
+    {entry_id: 'b-delete', outcome, principal: {all: true}, connection: {any_of: ['kintone:fixture']},
       resource: {any_of: ['inquiries']}, operation: {any_of: ['effect']}, exclusions: []}]}));
   await writeAccount();
   const context = Object.freeze({principal: 'operator', contextCid: cid(root + '/account')});
