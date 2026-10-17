@@ -1,8 +1,7 @@
 ///|
 test "project model registry keeps exact Quickstart task provider and original bytes" {
-  let wire = (
+  let wire =
     #|{ "version":"actql-model-tasks/0.1", "tasks":{"model-task:churn-risk.v1":"./model-tasks/churn-risk.v1.yaml"}, "providers":{"openai":{"type":"openai","api_key_env":"OPENAI_API_KEY"}}, "default_provider":"openai" }
-  )
   let registry = admit_client_project_model_registry(wire).unwrap()
   assert_eq(registry.original_wire(), wire)
   assert_eq(registry.task_count(), 1)
@@ -31,12 +30,18 @@ test "project registry keeps declaration order paths and unselected implementati
   ).unwrap()
   assert_eq(registry.task_at(0), Some(("z", "../z.yaml")))
   assert_eq(registry.task_at(1), Some(("a", "a.json")))
-  assert_eq(registry.provider_at(0), Some(("second", "future-installed-type", None)))
+  assert_eq(
+    registry.provider_at(0),
+    Some(("second", "future-installed-type", None)),
+  )
   assert_eq(registry.provider_at(1), Some(("first", "openai", Some("KEY"))))
   assert_eq(registry.selected_default_provider(), None)
   // Nonempty DATA must not become a source-free/no-model execution profile.
   assert_true(
-    admit_client_source_free_project_bindings(None, Some(registry.original_wire()))
+    admit_client_source_free_project_bindings(
+      None,
+      Some(registry.original_wire()),
+    )
     is Err(BindingsUnavailable),
   )
 }
@@ -118,7 +123,10 @@ test "project registry rejects malformed unused entries and credential or author
 test "project registry rejects duplicate declarations null maps and trailing or oversized input" {
   for
     wire in [
-      "{}", "null", "[]", "{\"version\":\"actql-model-tasks/0.1\",\"tasks\":{}}",
+      "{}",
+      "null",
+      "[]",
+      "{\"version\":\"actql-model-tasks/0.1\",\"tasks\":{}}",
       "{\"version\":\"actql-model-tasks/0.1\",\"tasks\":null,\"providers\":{}}",
       "{\"version\":\"actql-model-tasks/0.1\",\"tasks\":{},\"providers\":[]}",
       "{\"version\":\"actql-model-tasks/0.1\",\"tasks\":{},\"providers\":{},\"default_provider\":null}",
@@ -129,6 +137,8 @@ test "project registry rejects duplicate declarations null maps and trailing or 
       "{\"version\":\"actql-model-tasks/0.1\",\"tasks\":{},\"providers\":{}}x",
       " ".repeat(65537),
     ] {
-    assert_true(admit_client_project_model_registry(wire) is Err(InvalidBindings))
+    assert_true(
+      admit_client_project_model_registry(wire) is Err(InvalidBindings),
+    )
   }
 }
