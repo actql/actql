@@ -170,14 +170,19 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   let sends=0;
   const requests=[];
   const ports=[];
+  const bootstrap={bootstrapRetainedBytes:100000n,bootstrapExecutionBytes:100000n,
+    maxReservations:8,maxHoldings:8,maxDelegations:8};
+  // Resource's current comparator requires 2+n+h+d, including the whole
+  // original census. The former one-row budget5 is not a multi-row bound.
+  // This finite fixture ceiling is not prepaid work or normal physical funds.
+  const comparisonWork=2+bootstrap.maxReservations+bootstrap.maxHoldings+bootstrap.maxDelegations;
   const registered=installModelProviders(moon,()=>[{providerId:'models/fixture',entryPersistence:'async',
     validatePrompt:(taskCid,selector,payload)=>taskCid===task.contract_cid&&selector===task.authored_model_selector&&
       payload===canonicalJson(prompt.body.payload,{dataKeys:true}),bindingOriginals:originals,
     quantityCapacity:quantities,rawCaptureSelection,
     originalReadInstallation:{nodeInstallation,modelRetainedBytes:100000n,modelExecutionBytes:3000n,
-      bootstrap:{bootstrapRetainedBytes:100000n,bootstrapExecutionBytes:100000n,
-        maxReservations:8,maxHoldings:8,maxDelegations:8},
-      currentStateCodec:{quantum:1,comparisonWork:5,decode:{maxWork:20000,
+      bootstrap,
+      currentStateCodec:{quantum:1,comparisonWork,decode:{maxWork:20000,
         parse:{max_input_bytes:10000,max_nodes:1000,max_depth:20},
         tree:{max_nodes:1000,max_depth:20,max_string_bytes:10000,max_total_string_bytes:10000}}},
       storeBootstrap:{maxWireBytes:4096,maxDirectoryEntries:22},
