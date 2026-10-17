@@ -258,12 +258,13 @@ or a failed resolver Reader's cleanup ACK. Resolver failures propagate unchanged
 with their original cleanup handle to the existing caller's failure carrier.
 No second lookup or new signing attempt is made on the same binding. A binding
 with an auth registration cannot use the legacy Bearer port to bypass its still
-separate original authentication exchange.
+separately completed original authentication exchange.
 
 This preparation component does not send an auth request, claim/settle an auth
-use, install a normal profile or mint a token. Site issuer, same-runtime Common
-request/use correspondence and the original form/token exchange remain separate
-physical connections. The resolver's material must carry actual generation and
+use, install a normal profile or mint a token. Its separately scoped exchange
+is described below; preparation without that connection is unavailable for API
+use. The actual Site issuer and installed material supplier remain separate
+responsibilities. The resolver's material must carry actual generation and
 current facts; a test fixture providing those facts is not an installed secret
 supplier. The original native key/selection, registration and copied ordered
 scopes/limits, parent claim/grant, resolver/current Promises, opaque reference,
@@ -305,3 +306,58 @@ original transport response, material, signing and API lifetime. Local codec
 ceilings are not a normal capacity declaration, physical retirement, release
 ACK or proof that a token is no longer reachable. There is no disposal shortcut
 or public JSON serialization of this material.
+
+### Original authentication exchange and token custody
+
+The same private binding may complete its fixed Google authentication dependency
+with `exchangeHttpsCredentialAuthentication`. Trusted preparation supplies the
+original `authenticationGrant` and `authenticationScope` before resolving/signing
+material. The existing Journal's signed prospective check verifies that scope,
+expiry and current authority; it issues no durable use. The assertion lifetime
+also respects that auth grant. The exchange must use the captured original grant
+CID and full generated invocation scope, with its separately declared operation.
+Neither the API grant's origin nor an arbitrary body/endpoint is substituted.
+
+After the original current/capacity callback, the exchange owns the exact bounded
+form bytes and claims its separate auth use. It supplies that claim's actual
+signature-admitted grant, original parent use, opaque material and actual bytes
+to the existing Common authentication request/bind/check functions. A second
+equal-data admission cannot replace the original claim grant. Final authorization
+follows every awaited callback and the supplier's synchronous current check;
+reentrant retirement/cancellation also refuses before the POST. The request uses
+the fixed HTTPS Google host and `/token`, form content type and exact content
+length. No assertion is placed in a Bearer header and no unauthenticated-send
+option is exposed to the Connector.
+
+The trusted installation must supply the actual private vendor `tokenRuntime`
+namespace and seven explicit positive `responseLimits`: `maxBytes`, `maxNodes`,
+`maxDepth`, `maxTokenBytes`, `maxLifetimeSeconds`, `maxScopes`, `maxScopeBytes`.
+The existing strict vendor codec consumes the complete bounded response. Scope
+observations cannot enlarge the original declared set; absence stays absent and
+does not become a grant. The binding retains the original response/codec object
+and token privately. Its expiry is the smaller of the observed duration and the
+original assertion, auth grant and material deadlines. Only confirmed outcome
+COMMIT permits the token to be used. Its result exposes only the original use CID.
+
+The first API request consumes the already claimed original parent use exactly;
+it does not claim another first use or turn a replay into a send. Later pages
+still claim their own uses. Each send retains original Site/current/expiry,
+material membership and actual Journal authorization; no legacy secret lookup,
+implicit refresh, replacement key/token or new assertion occurs. Response-await
+current checks also precede returning the API response. A private token is not
+Account authority, API scope or policy classification.
+
+Response loss remains the original sent use's Unknown. A later refused exchange
+cannot settle a previous completed/Unknown use; only the claim actually acquired
+by that invocation enters its failure path. A fallible outcome COMMIT is not
+automatically repeated or interpreted as unsaved. Request/socket retirement and
+binding close remain separate from durable Unknown resolution. The original
+parent/claim/pair, body backing, full response and codec tree/string/scope backing,
+token, native key, callbacks and overlapping frames remain in the original
+retention inventory through their real retirement. No new Owner, queue, Ledger,
+normal capacity or numerical profile is supplied by this connection.
+
+The component TLS fixture routes the fixed Google HTTP/TLS server name only to
+its own local server; it uses actual RSA, Common, signed Journal and SQLite while
+issuing no live Google request or installed material authority. That qualification
+does not establish ordinary installed or public authentication acceptance.

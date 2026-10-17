@@ -5,6 +5,7 @@ import {mkdir, mkdtemp, readFile, writeFile, rm} from 'node:fs/promises';
 import {Agent, createServer} from 'node:https';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as google from '../../_build/js/release/build/connectors/google_service_account/host_node/host_node.js';
@@ -291,4 +292,37 @@ test('the actual auth grant deadline constrains the original assertion and retai
   await assert.rejects(f.resource());
   assert.equal(f.resourceRequests(), 0);
   assert.equal(f.resolutions(), 1);
+});
+
+test('lost outcome COMMIT reply publishes no token and never repeats the confirmed SQLite write', async t => {
+  const f = await fixture(t);
+  const probe = new DatabaseSync(':memory:');
+  const statements = Object.getPrototypeOf(probe.prepare('SELECT 1')); probe.close();
+  const originalRun = statements.run, originalExec = DatabaseSync.prototype.exec;
+  let armed = false, writes = 0, lost = 0;
+  const loss = new Error('OriginalAuthenticationOutcomeCommitReplyLost');
+  statements.run = function(...values) {
+    const result = originalRun.apply(this, values);
+    if (/UPDATE credential_uses SET outcome/u.test(this.sourceSQL)) {armed = true;writes++;}
+    return result;
+  };
+  DatabaseSync.prototype.exec = function(sql) {
+    const result = originalExec.call(this, sql);
+    if (sql === 'COMMIT' && armed && lost++ === 0) {armed = false;throw loss;}
+    return result;
+  };
+  try {
+    await assert.rejects(f.exchange(), error => {
+      assert.equal(error.code, 'RemoteCredentialJournalCommitOutcomeUnknown');
+      assert.equal(error.cause, loss); assert.equal(error.outcome, 'unknown'); return true;
+    });
+  } finally { statements.run = originalRun; DatabaseSync.prototype.exec = originalExec; }
+  // Fault injection follows a real SQLite COMMIT, not a claimed kernel fault.
+  // Its durable state is evidence, not a token returned after an unknown reply.
+  assert.equal(writes, 1); assert.equal(lost, 1);
+  assert.equal(f.journal.recover().find(x => x.useId === 'original-auth').outcome, 'succeeded');
+  await assert.rejects(f.resource(), {code: 'RemoteCredentialAuthenticationUnavailable'});
+  await assert.rejects(f.exchange(), {code: 'RemoteCredentialAuthenticationAlreadyClaimed'});
+  assert.equal(f.tokenRequests(), 1); assert.equal(f.resourceRequests(), 0);
+  assert.equal(f.journal.recover().find(x => x.useId === 'original-auth').outcome, 'succeeded');
 });
