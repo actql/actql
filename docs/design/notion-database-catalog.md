@@ -634,3 +634,49 @@ The vendor metadata fields are defined by the existing selected
 [Page object](https://developers.notion.com/reference/page) and
 [data-source query](https://developers.notion.com/reference/query-a-data-source)
 contracts; this implementation does not migrate the selected API version.
+
+## Original installation metadata consumption
+
+The same discovery reader can consume the existing Credential Owner's explicit
+installation-metadata control as part of one trusted Host publication request.
+Its Subject and per-use Scope remain opaque originals. The reader obtains
+operation and origin DATA through the original control's Common projection;
+it never spreads a Scope into a primitive record, invents Run fields or
+re-admits an equal body to obtain authority. The shared invocation boundary
+checks that both scopes belong to that same original Subject. This differs
+from the existing Run route's complete thirteen-field correspondence; neither
+route substitutes for the other.
+
+Metadata requires the delayed schema supplier. Only the actual observed
+database and Common-selected occurrence can provide the schema target; an
+early speculative schema grant is not admitted in this mode. The reader checks
+the exact schema operation and the same original Notion origin before consuming
+the first response charge. The shared physical Credential port checks the
+per-use GET, exact selected path and empty body before sending. Database and
+schema uses are separate originals; a query/property grant is not a fallback.
+The old Run-scoped early and delayed paths retain their original behavior.
+
+Current Host publication/profile, Account, Site, issuer/material, egress and
+resource checks remain duties of the actual operational preparation. The
+reader rechecks current/stop before and after the supplier await and on each
+physical operation. A profile or Account replacement, copied/foreign Scope,
+wrong purpose/origin/path or cancellation refuses the operation and retains
+the original observed response and charge. Lost replies retain the same
+Credential journal Unknown and one-shot reader; selection, transport close,
+Promise completion or GC does not acknowledge raw retirement or permit resend.
+
+The captured credential/control and opaque scopes coexist with a frozen
+six-field request projection in the prepared record. Later scope projections,
+returned authorization, supplier Promise/handlers, initial and selected scope
+aliases, database/schema decode graphs, responses and original charge records
+can overlap. Getter and matcher work and temporary projection records are not
+free merely because their strings or opaque graph references are shared.
+Actual metadata lifetime funding must be supplied by the existing resource
+Owner before I/O. Parser/response ceilings, a read tuple, fixture tickets or
+the presence of a publication request cannot manufacture that supply.
+
+This consumption seam does not itself implement the installed database profile,
+operational Site issuer, publication persistence or final declaration/Run
+adoption. Those consumers must retain the actual original declaration and
+selected schema; static checking never fetches missing metadata and same-Run
+restoration never rediscovers it from current configuration.
