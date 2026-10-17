@@ -83,7 +83,8 @@ async function fixture(t) {
       const scopes = ['database', 'schema'].map(name => view.prepareScope(subject, {
         metadataOccurrenceId: name + '-original', operation: 'metadata:' + name, requestBodyCid: emptyBody,
         requestMethod: 'GET', requestPath: '/metadata/' + name, resourceOrigin: origin}));
-      const assertCurrent = () => {
+      function assertCurrent() {
+        assert.equal(this, undefined, 'The private Credential binding is not a callback receiver');
         assertInstalledSourcePublicationRequest(request, originals);
         if (!active) throw Object.assign(new Error('FixtureAuthorityRevoked'), {code: 'FixtureAuthorityRevoked'});
         return assertResult;

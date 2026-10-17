@@ -790,6 +790,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "inputsOutputs": [
@@ -800,6 +804,10 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "## Two explicit shapes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               },
               {
                 "path": "docs/development/credential-scope-interface.md",
@@ -818,6 +826,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "ownership": [
@@ -828,6 +840,10 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "## Simultaneous inventory"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               },
               {
                 "path": "docs/development/credential-scope-interface.md",
@@ -846,6 +862,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "failure": [
@@ -856,6 +876,10 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "Lost responses retain the same nominal Unknown use."
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               },
               {
                 "path": "docs/development/credential-scope-interface.md",
@@ -874,6 +898,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "resources": [
@@ -888,6 +916,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "extension": [
@@ -898,6 +930,10 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "not public JSON wire"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               },
               {
                 "path": "docs/development/credential-scope-interface.md",
@@ -920,6 +956,14 @@
               {
                 "path": "adapters/host-common/http-exchange.test.mjs",
                 "anchor": "byte length/backing properties cannot disguise"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "adapters/site-node/installation-metadata-https.integration.test.mjs",
+                "anchor": "test('metadata actual publication sends"
               },
               {
                 "path": "docs/development/credential-scope-interface.md",
@@ -4944,6 +4988,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "inputsOutputs": [
@@ -4970,6 +5018,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "identity": [
@@ -4988,6 +5040,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               },
               {
                 "path": "docs/development/credential-scope-interface.md",
@@ -5014,6 +5070,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "synchronization": [
@@ -5032,6 +5092,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               },
               {
                 "path": "docs/development/credential-scope-interface.md",
@@ -5058,6 +5122,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "cancellation": [
@@ -5076,6 +5144,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               },
               {
                 "path": "docs/development/credential-scope-interface.md",
@@ -5102,6 +5174,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "extension": [
@@ -5120,6 +5196,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               },
               {
                 "path": "docs/development/credential-scope-interface.md",
@@ -5178,12 +5258,20 @@
               {
                 "path": "adapters/site-node/installation-metadata-https.integration.test.mjs",
                 "anchor": "test('metadata actual publication sends"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "adapters/site-node/installation-metadata-https.integration.test.mjs",
+                "anchor": "test('metadata actual publication sends"
               }
             ]
           }
         }
       ],
-      "sha256": "dbc1488822f23609ceafb488c2e39c8a9f2cd0502f930a6edd2d1f79f9d94728",
+      "sha256": "bfa0fc5068e325b28b4d5e0ba24a80de9df696b5667c15fdb0ae36434e77570a",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",

@@ -468,7 +468,7 @@ function metadataCurrent(binding, scope, signal) {
   // Captured from the original private Host/Site preparation. It must finish
   // synchronously after the awaited current observation, before claim/send or
   // disclosure. A Promise/boolean is not a current authorization certificate.
-  const result = binding.assertCurrent();
+  const result = Reflect.apply(binding.assertCurrent, undefined, []);
   if (result !== undefined) {
     if (typeof result?.then === 'function') void Promise.resolve(result).catch(() => {});
     fail('InvalidInstallationMetadataCurrentFence');
