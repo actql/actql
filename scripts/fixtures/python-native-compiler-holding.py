@@ -14,7 +14,9 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
 from actql_sdk._local_distribution import _read_file  # noqa: E402
-from actql_sdk._local_native_holding import _NativeHoldingLease, NativeHoldingRetirementError  # noqa: E402
+from actql_sdk._local_native_holding import (  # noqa: E402
+    _NativeHoldingLease, NativeHoldingRetirementError, NativeHoldingObservationError,
+)
 from actql_sdk._local_native_memory_abi import bind  # noqa: E402
 
 
@@ -54,13 +56,16 @@ class DirectProviderHoldingTests(unittest.TestCase):
         self.assertIsNone(holding._core_identity)
         self.assertFalse(holding._transfer_attempted)
 
-    def test_original_span_remains_live_through_direct_scope_and_explicit_retirement(self):
+    def test_unbound_compiler_allocation_never_becomes_a_transferred_core_span(self):
         holding, _ = self.holding()
         span = c_void_p()
         with holding._scope():
             self.assertEqual(bind(self.library, 'actql_native_owned_allocate')(
                 holding._pointer, 32, 16, byref(span)), 0)
-            holding._require_live_span(span, 32)
+            # This observation intentionally requires the original Core
+            # transfer. A compiler scope/allocation is not that authority.
+            with self.assertRaises(NativeHoldingObservationError):
+                holding._require_live_span(span, 32)
             memmove(span, b'original scoped compiler bytes', 30)
             self.assertEqual(bind(self.library, 'actql_native_owned_retire')(holding._pointer, span), 0)
         holding.close()
