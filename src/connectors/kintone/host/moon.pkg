@@ -6,5 +6,6 @@ import {
   "actql/actql/query_planning" @planning,
   "actql/actql/value_contract" @contract,
   "actql/actql/sha256" @sha,
+  "actql/actql/encode_core" @encode,
   "moonbitlang/core/encoding/utf8",
 }

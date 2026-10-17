@@ -1,0 +1,231 @@
+// Same-runtime kintone original Catalog/RowRun forwarding. No wire or JS
+// factory reconstructs an original declaration, acquisition or cleanup owner.
+
+///|
+#export_name("clientProgramKintoneFormLimits")
+pub fn client_program_kintone_form_limits(
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_fields : Int,
+  max_name_units : Int,
+) -> @kintone_catalog.FormFieldLimits {
+  { max_bytes, max_nodes, max_depth, max_fields, max_name_units, }
+}
+
+///|
+#export_name("clientProgramKintonePageLimits")
+pub fn client_program_kintone_page_limits(
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_rows : Int,
+  max_columns : Int,
+  max_cells : Int,
+  max_table_rows : Int,
+) -> @kintone_catalog.RecordPageLimits {
+  {
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_rows,
+    max_columns,
+    max_cells,
+    max_table_rows,
+  }
+}
+
+///|
+#export_name("clientProgramKintoneValueLimits")
+pub fn client_program_kintone_value_limits(
+  max_columns : Int,
+  max_name_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_text_bytes : Int,
+) -> @kintone_catalog.RecordValueLimits {
+  { max_columns, max_name_bytes, max_nodes, max_depth, max_text_bytes, }
+}
+
+///|
+#export_name("clientProgramKintoneDeclarationLimits")
+pub fn client_program_kintone_declaration_limits(
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_views : Int,
+  max_fields : Int,
+) -> @client_row_source_host.RowDeclarationLimits {
+  { max_bytes, max_nodes, max_depth, max_views, max_fields, }
+}
+
+///|
+#export_name("clientProgramKintoneProjectForm")
+pub fn client_program_kintone_project_form(
+  body : Bytes,
+  app : String,
+  limits : @kintone_catalog.FormFieldLimits,
+) -> Result[@kintone_catalog.FormFieldCatalog, @kintone_catalog.FormFieldIssue] {
+  @kintone_catalog.project_form_fields(body, app, limits)
+}
+
+///|
+#export_name("clientProgramKintoneDeclareRecords")
+pub fn client_program_kintone_declare_records(
+  catalog : @kintone_catalog.FormFieldCatalog,
+  settings : @kintone_catalog.AppNumberSettings?,
+  names : Array[String],
+  connector : String,
+  revision : String,
+  resource : String,
+  values : @kintone_catalog.RecordValueLimits,
+  declaration : @client_row_source_host.RowDeclarationLimits,
+) -> Result[@kintone_host.RecordDeclaration, @kintone_host.RecordReadIssue] {
+  @kintone_host.declare_records(
+    catalog, settings, names, connector, revision, resource, values, declaration,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneRecordDeclaration")
+pub fn client_program_kintone_record_declaration(
+  original : @kintone_host.RecordDeclaration,
+) -> @client_row_source_host.RowDeclaration {
+  @kintone_host.record_declaration(original)
+}
+
+///|
+#export_name("clientProgramKintonePrepareRead")
+pub fn client_program_kintone_prepare_read(
+  original : @kintone_host.RecordDeclaration,
+  requirement : @planning.QueryRequirement,
+  query : String,
+  evidence : String,
+) -> Result[@kintone_host.PreparedRecordRead, @kintone_host.RecordReadIssue] {
+  @kintone_host.prepare_record_read(original, requirement, query, evidence)
+}
+
+///|
+#export_name("clientProgramKintoneReadAcquisition")
+pub fn client_program_kintone_read_acquisition(
+  read : @kintone_host.PreparedRecordRead,
+) -> @client_row_source_host.RowAcquisition {
+  @kintone_host.record_read_acquisition(read)
+}
+
+///|
+#export_name("clientProgramKintoneReadApp")
+pub fn client_program_kintone_read_app(
+  read : @kintone_host.PreparedRecordRead,
+) -> String {
+  @kintone_host.record_read_app_id(read)
+}
+
+///|
+#export_name("clientProgramKintoneReadFields")
+pub fn client_program_kintone_read_fields(
+  read : @kintone_host.PreparedRecordRead,
+) -> Array[String] {
+  @kintone_host.record_read_fields(read)
+}
+
+///|
+#export_name("clientProgramKintoneBorrowRead")
+pub fn client_program_kintone_borrow_read(
+  prepared : @kintone_host.PreparedRecordRead,
+  run : @client_row_source_host.RowRun,
+  page : @kintone_catalog.RecordPageLimits,
+  values : @kintone_catalog.RecordValueLimits,
+  max_pairs : Int,
+) -> Result[@kintone_host.RecordRead, @kintone_host.RecordReadIssue] {
+  @kintone_host.borrow_record_read(prepared, run, page, values, max_pairs)
+}
+
+///|
+#export_name("clientProgramKintoneBindReadCleanup")
+pub fn client_program_kintone_bind_read_cleanup(
+  read : @kintone_host.RecordRead,
+  stopped : () -> Bool,
+) -> Result[Unit, @kintone_host.RecordReadIssue] {
+  @kintone_host.bind_record_read_cleanup(read, stopped)
+}
+
+///|
+#export_name("clientProgramKintoneRecheckReadForm")
+pub fn client_program_kintone_recheck_read_form(
+  read : @kintone_host.RecordRead,
+  body : Bytes,
+  limits : @kintone_catalog.FormFieldLimits,
+) -> Result[Unit, @kintone_host.RecordReadIssue] {
+  @kintone_host.recheck_record_read_form(read, body, limits)
+}
+
+///|
+#export_name("clientProgramKintoneAcceptReadPage")
+pub fn client_program_kintone_accept_read_page(
+  read : @kintone_host.RecordRead,
+  body : Bytes,
+) -> Result[Int, @kintone_host.RecordReadIssue] {
+  @kintone_host.accept_record_read_page(read, body)
+}
+
+///|
+#export_name("clientProgramKintoneReadPageIds")
+pub fn client_program_kintone_read_page_ids(
+  read : @kintone_host.RecordRead,
+) -> Result[Array[String], @kintone_host.RecordReadIssue] {
+  @kintone_host.record_read_page_ids(read)
+}
+
+///|
+#export_name("clientProgramKintoneRetireRead")
+pub fn client_program_kintone_retire_read(
+  read : @kintone_host.RecordRead,
+) -> Result[Unit, @kintone_host.RecordReadIssue] {
+  @kintone_host.retire_record_read(read)
+}
+
+///|
+#export_name("clientProgramKintoneFormRequestBody")
+pub fn client_program_kintone_form_request_body(
+  prepared : @kintone_host.PreparedRecordRead,
+  max_bytes : Int,
+) -> Result[String, @kintone_host.RecordReadIssue] {
+  @kintone_host.record_form_request_body(prepared, max_bytes)
+}
+
+///|
+#export_name("clientProgramKintonePageRequestBody")
+pub fn client_program_kintone_page_request_body(
+  prepared : @kintone_host.PreparedRecordRead,
+  cursor : Array[String],
+  per_page : Int,
+  max_bytes : Int,
+) -> Result[String, @kintone_host.RecordReadIssue] {
+  let original = match @kintone_host.record_request_cursor(cursor) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  @kintone_host.record_page_request_body(
+    prepared, original, per_page, max_bytes,
+  )
+}
+
+///|
+#export_name("clientProgramKintonePageNextCursor")
+pub fn client_program_kintone_page_next_cursor(
+  read : @kintone_host.RecordRead,
+  prior : Array[String],
+  per_page : Int,
+) -> Result[Array[String], @kintone_host.RecordReadIssue] {
+  let original = match @kintone_host.record_request_cursor(prior) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  @kintone_host.record_page_next_cursor(read, original, per_page).map(next => {
+    match next {
+      Some(id) => [id]
+      None => []
+    }
+  })
+}
