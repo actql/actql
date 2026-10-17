@@ -2071,7 +2071,7 @@
     },
     {
       "module": "adapters/host-node/effect-input-export.mjs",
-      "sha256": "7d17cd93b4cee8403d581399e570d8fe0f7d28c29681b22ad24f29d9f7537650",
+      "sha256": "3524708e69d6ec9d510c0816941ea510c292f595e7c0a2aca5ac211d02d8e16e",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -2157,7 +2157,8 @@
           "parameters": [
             "options",
             "memberCount",
-            "maxWork"
+            "maxWork",
+            "hasCommandWorkspace"
           ],
           "async": true
         },
@@ -2172,15 +2173,15 @@
         {
           "name": "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet",
           "parameters": [
-            "value"
+            "left",
+            "right"
           ],
           "async": false
         },
         {
           "name": "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet#2",
           "parameters": [
-            "left",
-            "right"
+            "previous"
           ],
           "async": false
         },
