@@ -1,10 +1,10 @@
 {
   "qualification": "Lead-reviewed existing Owner references and syntax coverage only; not normal funding, raw retirement, installation, actual Slack service or release acceptance",
-  "source": "4b86d79e678dd6d84f017f7e22fa2f73744a8d59",
+  "source": "1680014add6ebc00f608b3524ca34add76bda025",
   "declarations": [
     {
       "module": "adapters/connectors/slack/site/user-list-read.mjs",
-      "sha256": "5d86a818523546b146999c1007344065b678e805849cea7704589f47fd5b2117",
+      "sha256": "e8deb4c7fdcd4ea5ddb42ca410f7962cca82431ea6e786b5a1c931851257cf3a",
       "exports": [
         "SLACK_USER_LIST_OPERATION",
         "SLACK_WORKSPACE_IDENTITY_OPERATION",
