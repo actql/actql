@@ -44,7 +44,8 @@ function fixture(t) {
 
 test('real declared providers supply runtime, adapter and static asset inventory', () => {
   const inputs = localNodePackageInputs(repository);
-  assert.deepEqual(inputs.providerBundles.map(entry => entry.name), ['gcs', 'github', 'salesforce', 'sheets']);
+  assert.deepEqual(inputs.providerBundles.map(entry => entry.name),
+    ['gcs', 'github', 'hubspot', 'salesforce', 'sheets']);
   for (const provider of inputs.providerBundles) {
     assert.ok(inputs.runtimePackages.includes(provider.package));
     assert.ok(inputs.runtimeFiles.includes(provider.file));

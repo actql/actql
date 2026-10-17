@@ -553,7 +553,9 @@ borrow remain separate incomplete connections; no installed STORE or service
 acceptance is claimed here.
 
 The added predicate closure and captured original installation callback stay
-with the existing Site/module lifetime. Its comparisons overlap the original
+with the existing Site/module lifetime. The temporary options/spread record
+and Site-opening Promise also overlap the original opening responsibility.
+Its comparisons overlap the original
 physical binding and bounded canonical String; approved records, current/entry
 callbacks, grant/signature/journal work and pending cleanup retain their
 existing Owner inventory. They are not a new reservation, zero-cost component
