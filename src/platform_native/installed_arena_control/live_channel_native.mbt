@@ -40,6 +40,82 @@ pub fn InstalledArenaHost::prepare_live_channel(
 }
 
 ///|
+/// Same original domain/ticket with actual prepared pipes, before spawn. This
+/// retains one access; it is not complete bootstrap funding or VM admission.
+pub fn InstalledArenaHost::prepare_live_channel_before_spawn(
+  self : InstalledArenaHost,
+  record : InstalledArenaDomain,
+  read_fd : Int,
+  write_fd : Int,
+  nonce : Int64,
+) -> Result[
+  @bootstrap.NativeBackedLiveChannelAcquisition[
+    InstalledArenaHost,
+    InstalledArenaDomain,
+  ],
+  @bootstrap.NativeBackedExecutionIssue,
+] {
+  match self.require_domain_current(record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let result = record.backing.prepare_backed_live_channel_before_spawn(
+    self,
+    record.domain.unwrap(),
+    record,
+    read_fd,
+    write_fd,
+    nonce,
+  )
+  match result {
+    Ok(@bootstrap.PreparedLiveChannel(channel)) =>
+      record.live_channel = Some(channel)
+    Ok(@bootstrap.PendingLiveChannel(channel, _)) =>
+      record.live_channel = Some(channel)
+    Err(_) => ()
+  }
+  result
+}
+
+///|
+/// Same original private resource frame only. VM/launch and independent
+/// process/FD/control funding remain separate; no scalar root is constructed.
+pub fn InstalledArenaHost::prepare_live_channel_original_ledger(
+  self : InstalledArenaHost,
+  domain : InstalledArenaDomain,
+  channel : @bootstrap.NativeBackedLiveChannel[
+    InstalledArenaHost,
+    InstalledArenaDomain,
+  ],
+) -> Result[
+  @resources.ImportedChildLedger,
+  @bootstrap.NativeBackedOriginalReadIssue,
+] {
+  match self.original_live_channel(domain, channel) {
+    Err(issue) => return Err(@bootstrap.Domain(issue))
+    Ok(_) => ()
+  }
+  domain.backing.prepare_backed_original_channel_ledger(self, channel)
+}
+
+///|
+pub fn InstalledArenaHost::bind_live_channel_child(
+  self : InstalledArenaHost,
+  domain : InstalledArenaDomain,
+  channel : @bootstrap.NativeBackedLiveChannel[
+    InstalledArenaHost,
+    InstalledArenaDomain,
+  ],
+  child_pid : Int,
+) -> Result[Unit, @bootstrap.NativeBackedExecutionIssue] {
+  match self.original_live_channel(domain, channel) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  domain.backing.bind_backed_live_channel_child(self, channel, child_pid)
+}
+
+///|
 /// Original references only. Closing preserves cleanup/report, not new work.
 fn InstalledArenaHost::original_live_channel(
   self : InstalledArenaHost,

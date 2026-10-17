@@ -4,7 +4,7 @@ from actql_sdk import (
     Client as Client, Execution as Execution, Result as Result, Reader as Reader,
     Query as Query, QueryReader as QueryReader,
     AsyncQuery as AsyncQuery, AsyncQueryReader as AsyncQueryReader,
-    ClientError as ClientError, Observation as Observation, RunState as RunState, Signer as Signer,
+    ClientError as ClientError, RequestConflict as RequestConflict, Observation as Observation, RunState as RunState, Signer as Signer,
     get_submission_input as get_submission_input, get_check_input as get_check_input,
     get_submission_check_observation as get_submission_check_observation,
     resolve_check_location as resolve_check_location,

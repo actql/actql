@@ -9,6 +9,8 @@ priv enum LiveChannelOperation {
   StopLive
   RetireLive
   CapacitiesLive
+  PrepareBeforeSpawn
+  BindChild
   InvalidLiveOperation
 }
 
@@ -80,6 +82,51 @@ pub fn prepare_installed_arena_live_channel_reply(
     limits: None,
     capacities: None,
   }
+}
+
+///|
+pub fn prepare_installed_arena_live_channel_before_spawn_reply(
+  host : InstalledArenaHost,
+  domain : InstalledArenaDomain,
+  read_fd : Int,
+  write_fd : Int,
+  nonce : Int64,
+) -> InstalledArenaLiveChannelReply {
+  let (channel, issue) = match
+    host.prepare_live_channel_before_spawn(domain, read_fd, write_fd, nonce) {
+    Err(issue) => (None, Some(issue))
+    Ok(@bootstrap.PreparedLiveChannel(value)) => (Some(value), None)
+    Ok(@bootstrap.PendingLiveChannel(value, issue)) =>
+      (Some(value), Some(issue))
+  }
+  {
+    host: domain.host,
+    domain,
+    channel,
+    issue,
+    operation: PrepareBeforeSpawn,
+    state: None,
+    limits: None,
+    capacities: None,
+  }
+}
+
+///|
+pub fn bind_installed_arena_live_channel_child_reply(
+  host : InstalledArenaHost,
+  domain : InstalledArenaDomain,
+  channel : @bootstrap.NativeBackedLiveChannel[
+    InstalledArenaHost,
+    InstalledArenaDomain,
+  ],
+  child_pid : Int,
+) -> InstalledArenaLiveChannelReply {
+  live_channel_unit_reply(
+    BindChild,
+    domain,
+    channel,
+    host.bind_live_channel_child(domain, channel, child_pid),
+  )
 }
 
 ///|
@@ -271,6 +318,8 @@ pub fn InstalledArenaLiveChannelReply::operation_tag(
     StopLive => 7
     RetireLive => 8
     CapacitiesLive => 9
+    PrepareBeforeSpawn => 10
+    BindChild => 11
     InvalidLiveOperation => -1
   }
 }

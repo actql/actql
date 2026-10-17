@@ -17,7 +17,10 @@ spec.loader.exec_module(TYPES)
 
 def declarations(root: Path = ROOT):
     functions = {}
-    for file in ('owned_capacity.h', 'owned_domain_borrow.h'):
+    thread_header = (root / NATIVE / 'owned_thread.h').read_text()
+    if re.search(r'typedef\s+void\s*\(\*actql_owned_thread_entry\)\(void \*argument\);', thread_header) is None:
+        raise ValueError('Original thread callback result/argument/convention changed')
+    for file in ('owned_capacity.h', 'owned_domain_borrow.h', 'owned_thread.h'):
         original = (root / NATIVE / file).read_text()
         source = re.sub(r'/\*.*?\*/', '', original, flags=re.S)
         for match in re.finditer(r'^(int|size_t|actql_owned_capacity\s*\*)\s*(actql_native_\w+)\s*\(([^()]*)\);', source, re.M):
@@ -58,16 +61,21 @@ def declarations(root: Path = ROOT):
     return functions
 
 
+def memory_ctype(kind: str) -> str:
+    # One exact C callback typedef, not a data pointer or another calling convention.
+    return '_CFUNCTYPE(None, c_void_p)' if kind == 'actql_owned_thread_entry' else TYPES.ctype(kind)
+
+
 def outputs(root: Path = ROOT):
     functions = declarations(root)
     python = ['"""Generated private C/Rust memory declarations; do not edit."""',
-              'from ctypes import POINTER, c_int, c_int64, c_uint64, c_size_t, c_ubyte, c_void_p',
+              'from ctypes import CFUNCTYPE as _CFUNCTYPE, POINTER, c_int, c_int64, c_uint64, c_size_t, c_ubyte, c_void_p',
               'from typing import Any', '', 'SIGNATURES: dict[str, tuple[list[Any], Any]] = {']
     header = ['/* Generated from existing C headers and checked Rust forwarders. */',
               '#ifndef ACTQL_PRIVATE_MEMORY_ABI_GENERATED_H', '#define ACTQL_PRIVATE_MEMORY_ABI_GENERATED_H',
-              '#include "owned_capacity.h"', '#include "owned_domain_borrow.h"']
+              '#include "owned_capacity.h"', '#include "owned_domain_borrow.h"', '#include "owned_thread.h"']
     for name, (result, parameters, _) in sorted(functions.items()):
-        python.append('    ' + repr(name) + ': ([' + ', '.join(TYPES.ctype(p[1]) for p in parameters) + '], ' + TYPES.ctype(result) + '),')
+        python.append('    ' + repr(name) + ': ([' + ', '.join(memory_ctype(p[1]) for p in parameters) + '], ' + TYPES.ctype(result) + '),')
         arguments = ', '.join(p[1] + ' ' + p[0] for p in parameters) or 'void'
         header.append(result + ' ' + name + '(' + arguments + ');')
     python += ['}', '', 'PARAMETERS = {']

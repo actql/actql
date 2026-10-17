@@ -304,8 +304,8 @@ pub fn client_program_prepare_source_computation_with_parameters(
       }
       if lowered.keyed_effect_kind is Some(Upsert | Delete) ||
         lowered.insert_effect {
-        // The existing original selection owner currently admits UPDATE and
-        // published STORE only. Never discard a new keyed operation's purpose.
+        // This Source caller has not connected original record capture yet.
+        // Keep its explicit refusal distinct from canonical DELETE selection.
         return SourcePure(
           Rejected(SourcePreparation(RecordTargetOriginalsUnavailable)),
         )
