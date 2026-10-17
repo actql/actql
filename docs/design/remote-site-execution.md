@@ -736,6 +736,35 @@ cleanup acknowledgement. An operational installer must independently retain
 the original Host publication request and its before/after-await current
 authority, actual Site/profile/control/journal/resolver and resource supplier.
 
+The explicit installed Source publication call issues its own process-local
+opaque request before its first profile-read await. The Host then binds the
+original root, actor, Common runtime, selected Connector entry, checked profile,
+runtime binding and secret-resolver reference once. A copied token, equal
+configuration, rechecked profile copy or another publication is not that
+request. Its original UUID is only a lookup coordinate for the preparation
+subject, never an authority or a cold operational reconstruction.
+
+`observeInstalledSourcePublicationCurrent` re-reads the selected bounded Host
+profile and compares its exact parsed original values without normalization or
+a new identity domain. An observed replacement or read failure closes new
+operation admission even if equal bytes are subsequently put back. The
+synchronous original-pair assertion follows awaited physical Site, Account,
+egress and resource checks immediately before the original claim/send; it is
+not a substitute for any of them. The same barriers apply after response
+awaits, before disclosure, metadata admission and publication. The Connector
+keeps its own exact declaration/source bytes, selected observation and original
+Contracts; this Host fence neither supplies them nor re-resolves them.
+
+Publication completion, failure and abort close new-operation admission. A
+failure with pending child cleanup retains that same request and all original
+references behind the existing Host reference finalizer. Only the captured
+original child status and retry can complete that duty; no replacement status,
+new publication, repeated metadata I/O or Promise settlement is an ACK. A
+retiring request can still project its original lookup coordinate for cleanup
+but cannot authorize another send. Reference retirement is not physical
+release, numerical funding or permission. Existing installers that do not
+consume this private seam retain their former publication behavior.
+
 ### Original authentication dependencies
 
 A registered Google service-account dependency uses a separate existing
