@@ -51045,7 +51045,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "114bb4e8724bee0c6a1e8686115b6cd00a1408b648b9e9d282048065ee2b9f25",
+      "sha256": "26481ec41f95fbfd0575e8cd9a83d455067866bf633ec66b76e64a66b3dbf68a",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -52577,6 +52577,15 @@
           "async": false
         },
         {
+          "name": "sameEffectValue/sameEffectValue",
+          "parameters": [
+            "kind",
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
           "name": "sameValue/sameValue",
           "parameters": [
             "left",
@@ -52628,6 +52637,13 @@
         },
         {
           "name": "updateObservations/updateObservations/updateObservations/updateObservations/updateObservations",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "updateObservations/updateObservations/updateObservations/updateObservations/updateObservations#2",
           "parameters": [
             "rule"
           ],
@@ -55398,6 +55414,7 @@
             "updateObservations/updateObservations/updateObservations",
             "updateObservations/updateObservations/updateObservations/updateObservations",
             "updateObservations/updateObservations/updateObservations/updateObservations/updateObservations",
+            "updateObservations/updateObservations/updateObservations/updateObservations/updateObservations#2",
             "validateInstalledUpdateOwnerSelections",
             "validateOwnerSelections/validateOwnerSelections"
           ],
@@ -55742,6 +55759,118 @@
               {
                 "path": "adapters/host-node/effect-content-original-borrow.integration.test.mjs",
                 "anchor": "test('actual Content preparation borrows the original captured Command input and rejects copied or retired views'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "sameEffectValue/sameEffectValue"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original guarded row deletion"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const sameEffectValue ="
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original guarded row deletion"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const sameEffectValue ="
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original guarded row deletion"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const sameEffectValue ="
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original guarded row deletion"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const sameEffectValue ="
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original guarded row deletion"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const sameEffectValue ="
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original guarded row deletion"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const sameEffectValue ="
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original guarded row deletion"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const sameEffectValue ="
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original guarded row deletion"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const sameEffectValue ="
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original guarded row deletion"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const sameEffectValue ="
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original guarded row deletion"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const sameEffectValue ="
+              },
+              {
+                "path": "adapters/host-node/installed-row-delete.integration.test.mjs",
+                "anchor": "actual Common captures the original DELETE full-diff"
               }
             ]
           }
