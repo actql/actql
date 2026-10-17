@@ -1,5 +1,5 @@
 {
-  "source": "8485c83f580719123bf0894d09a6767c3866e3bc",
+  "source": "4032b5e23d4434e94e27455dda1eff05b96c7d23",
   "qualification": "Lead-reviewed existing Owner references and syntax coverage only; not normal funding, raw retirement, installation, actual Notion service or release acceptance",
   "declarations": [
     {
@@ -940,7 +940,7 @@
     },
     {
       "module": "adapters/connectors/notion/site/database-discovery.mjs",
-      "sha256": "e9a3afd7a2bcc3e00ff689083db8ab0f02ed12541365fcc1835e496eba0d16eb",
+      "sha256": "7b86457e5ef7ee64492e4de3028a65575039bd3f70793dbbb5133d31aceb5fe5",
       "exports": [
         "NOTION_DATABASE_RETRIEVE_OPERATION",
         "NOTION_DATA_SOURCE_RETRIEVE_OPERATION",
@@ -994,7 +994,8 @@
           "parameters": [
             "operation",
             "index",
-            "path"
+            "path",
+            "selectedAuthorization"
           ],
           "async": true
         },
@@ -1054,6 +1055,7 @@
             "declaration",
             "initialAuthorization",
             "sourceAuthorization",
+            "sourceAuthorizationFor",
             "credential",
             "authorizationFor",
             "current",
@@ -1145,6 +1147,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "## Original Source system columns"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Original schema occurrence and delayed authorization"
               }
             ],
             "inputsOutputs": [
@@ -1159,6 +1165,14 @@
               {
                 "path": "adapters/connectors/notion/site/database-discovery.mjs",
                 "anchor": "const readContracts=original.systemColumns?checked(provider.notionSourceSystemReadContracts("
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Original schema occurrence and delayed authorization"
+              },
+              {
+                "path": "src/connectors/notion/host_node/read_source_selection_bridge.mbt",
+                "anchor": "pub fn notion_select_read_source("
               }
             ],
             "identity": [
@@ -1173,6 +1187,14 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "It retains the original declaration,"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Original schema occurrence and delayed authorization"
+              },
+              {
+                "path": "src/connectors/notion/catalog/read_source_selection.mbt",
+                "anchor": "pub fn notion_read_source_selection_matches("
               }
             ],
             "ownership": [
@@ -1183,6 +1205,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "The augmented binding adds a bounded system-contract vector, tuple records and"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Original schema occurrence and delayed authorization"
               }
             ],
             "synchronization": [
@@ -1193,6 +1219,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "The same original row, complete Value builder and whole-page"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Original schema occurrence and delayed authorization"
               }
             ],
             "failure": [
@@ -1207,6 +1237,10 @@
               {
                 "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
                 "anchor": "actual Notion full Source metadata omission refuses before property I/O without publishing rows"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Original schema occurrence and delayed authorization"
               }
             ],
             "cancellation": [
@@ -1217,6 +1251,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "canonical output and cancellation remain charged and fail closed."
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Original schema occurrence and delayed authorization"
               }
             ],
             "resources": [
@@ -1231,6 +1269,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "Row assembly adds"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Original schema occurrence and delayed authorization"
               }
             ],
             "extension": [
@@ -1241,6 +1283,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "It is not a\ncomplete public Source schema."
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Original schema occurrence and delayed authorization"
               }
             ],
             "verification": [
@@ -1263,6 +1309,22 @@
               {
                 "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
                 "anchor": "actual Notion full Source metadata omission refuses before property I/O without publishing rows"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Original schema occurrence and delayed authorization"
+              },
+              {
+                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "anchor": "actual Notion declaration source identity retains original UTF8 and never grants equal-data substitution"
+              },
+              {
+                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "anchor": "actual Notion schema authorization receives only the original observed Common selection and exact path"
+              },
+              {
+                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "anchor": "actual Notion current and stop after awaited schema issuer retain the same database charge without schema I/O"
               }
             ]
           }
