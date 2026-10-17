@@ -1,5 +1,32 @@
 # Connector ownership and repository layout
 
+## Owned guarded request preparation
+
+An installed UPDATE/upsert driver may use the existing `prepareRequestChild`
+port when its exact conditional request depends on an authorized target read.
+The Host first obtains each member's original target-read decision, then passes
+the row index and a zero-argument read-grant supplier closed over that exact
+member, Run/dispatch and row. No write authorization is substituted for the
+read, and denied reads create no child or provider work.
+
+The same capture retains the original child before method lookup, currentness
+checks or asynchronous preparation. The child acquires the target through its
+existing physical owner and derives the final request from that original
+before observation. Only then does the existing Common request/selector/value
+and Preview path admit it. At capture, `observeTargets` projects the same
+original before/version; later apply-current reads and recovery keep their
+existing independent obligations. An already identified request is not
+patched with a newly read condition.
+
+Children, pending prepare/read/close state, request/before aliases and callback
+closures remain in the existing bounded capture inventory. Stage cleanup does
+not return parent input/Artifact/Source custody before original child retirement.
+Current refusal, cancellation and prepare failure drive that same cleanup;
+Promise completion or a cancel request is not a physical ACK. This port issues
+no capacity or permission. Missing supplier funding remains unavailable.
+Pure synchronous preparation and the existing Command child path are unchanged;
+this connection does not add DELETE to the separate saved-selection domain.
+
 The repository layout must make implementation ownership visible. Connector-
 specific planning, execution, transport glue, and foreign interfaces belong to
 that Connector. Common scheduling, assembly, and cross-Connector verification
