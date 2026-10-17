@@ -296,6 +296,40 @@ child duties complete; Unknown or pending child cleanup retains responsibility.
 This connection supplies static checked materials, not execution dependencies,
 same-Run recovery, a physical Model supplier, permission or whole-phase funding.
 
+### Original INFER materials in the installed Host
+
+First admission of the ordinary single installed INFER graph captures the
+Environment and serialized Parameter Values actually used by its preparation.
+The existing preparation membership retains these immutable original inputs;
+current project/provider defaults are not substituted when issuing its saved
+Run materials. The opaque first-admission ticket enters the existing request
+Journal transaction with the same prepared/authorization evidence and Run.
+
+After the original Model input custody is authenticated, the Host reads the
+request identity, Definition and material evidence from that same Journal.
+The existing Common inverse reconstructs and checks the entire saved Run. Its
+original preparation, compiled admission and graph stay together in the same
+Host preparation membership. A private restored-membership index rejects a
+copied bundle; it does not create a second execution Owner or a resume permit.
+Planning uses the original admission and Definition without issuing another
+Run or extending its lifetime. The Model selection borrows that same graph's
+original execution contract; current Provider/dependency, Account, egress,
+physical-input, reservation, claim, cancellation and cleanup gates remain.
+
+Other live graph profiles retain their existing first-admission behavior, but
+missing original single-graph materials are not permission to reconstruct an
+ordinary cold continuation from current configuration. Legacy missing evidence
+and unsupported durable graph forms remain unavailable rather than silently
+acquiring a new original. Effect continuation retains its distinct original
+compilation and existing custody path.
+
+The preparation membership's Environment/Parameter snapshot, restored bundle
+reference, private restored-membership backing, compiled/prepared/graph/Run
+references, serialized material and Result policy, and Journal decode/UTF8/
+SQLite copies overlap the original retained Model input and cleanup duties.
+They belong to the existing Host/Run phase inventory; weak membership and
+reference retirement are neither zero cost, GC evidence nor physical ACK.
+
 ### Original project profile choice
 
 The same project configuration Owner selects an explicit profile override or

@@ -28,7 +28,23 @@ export function checkNotionReadDeclarationSchema(protocol){
   const schema=notionReadDeclarationSchema(protocol);
   assert.deepEqual(protocol.schemas.notion_database_read_declaration,schema);
   assert.equal(protocol.schema_cids.notion_database_read_declaration,machineCid(schema));
+  const snapshot=notionReadSnapshotSchema();
+  assert.deepEqual(protocol.schemas.notion_database_read_snapshot,snapshot);
+  assert.equal(protocol.schema_cids.notion_database_read_snapshot,machineCid(snapshot));
   assert.equal(protocol.registry_cid,machineCid(protocol.schemas));
+}
+
+// Exact saved Catalog DATA; the structural body is not authenticated custody,
+// current authority, complete acquisition, an installed issuer or funding.
+function notionReadSnapshotSchema(){
+  const text={type:'string',minLength:1};
+  return {$schema:'https://json-schema.org/draft/2020-12/schema',type:'object',
+    additionalProperties:false,required:['database_response','declaration_source',
+      'schema_cid','schema_wire','selected_data_source_response','system_columns','version'],
+    properties:{database_response:text,declaration_source:text,
+      schema_cid:{type:'string',pattern:'^sha256:[0-9a-f]{64}$'},schema_wire:text,
+      selected_data_source_response:text,system_columns:{type:'boolean'},
+      version:{const:'actql-notion-database-read-snapshot/0.1'}}};
 }
 
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
@@ -37,6 +53,9 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
     const schema=notionReadDeclarationSchema(protocol),cid=machineCid(schema);
     protocol.schemas.notion_database_read_declaration=schema;
     protocol.schema_cids.notion_database_read_declaration=cid;
+    const snapshot=notionReadSnapshotSchema();
+    protocol.schemas.notion_database_read_snapshot=snapshot;
+    protocol.schema_cids.notion_database_read_snapshot=machineCid(snapshot);
     protocol.registry_cid=machineCid(protocol.schemas);
     const manifestPath='spec/spec-family.json',manifest=read(manifestPath);
     const owner=manifest.documents.find(x=>x.document_id==='contracts');
@@ -49,6 +68,19 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
       source=source.replace('<a id="notion-read-contracts"></a>',
         `<a id="notion-read-contracts"></a>\n\n<!-- machine-import: ${prefix}${cid} -->`);
       owner.machine_contracts.push({path,pointer,cid,version:protocol.version});
+    }
+    const snapshotPointer='/schemas/notion_database_read_snapshot';
+    const snapshotCid=machineCid(snapshot);
+    const snapshotRef=owner.machine_contracts.find(x=>x.path===path&&x.pointer===snapshotPointer);
+    const snapshotPrefix=`../../../${path}#${snapshotPointer} `;
+    if(snapshotRef){
+      source=source.replace(snapshotPrefix+snapshotRef.cid,snapshotPrefix+snapshotCid);
+      snapshotRef.cid=snapshotCid;
+    }else{
+      assert.ok(source.includes('<a id="notion-read-snapshot"></a>'));
+      source=source.replace('<a id="notion-read-snapshot"></a>',
+        `<a id="notion-read-snapshot"></a>\n\n<!-- machine-import: ${snapshotPrefix}${snapshotCid} -->`);
+      owner.machine_contracts.push({path,pointer:snapshotPointer,cid:snapshotCid,version:protocol.version});
     }
     writeFileSync(path,JSON.stringify(protocol,null,2)+'\n');
     writeFileSync(manifestPath,JSON.stringify(manifest,null,2)+'\n');

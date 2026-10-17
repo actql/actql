@@ -96,3 +96,25 @@ pub fn client_program_infer_run_materials_graph(
 ) -> @publication_host.ClientInferPlanGraph? {
   @publication_host.client_task_compilation_infer(materials.compilation)
 }
+
+///|
+/// Project only the graph/execution retained by this same compiled owner.
+/// A physically different preparation, even with equal bytes, cannot use it.
+#export_name("clientProgramCompiledInferOriginal")
+pub fn client_program_compiled_infer_original(
+  compiled : @publication_host.ClientCompiledRun,
+  prepared : @publication_host.PreparedClientProgram,
+) -> (
+  @publication_host.ClientInferPlanGraph,
+  @check_environment.ModelExecutionContract,
+)? {
+  guard @publication_host.client_compiled_run_matches(compiled, prepared) else {
+    return None
+  }
+  guard @publication_host.client_compiled_run_infer(compiled) is Some(graph) else {
+    return None
+  }
+  Some(
+    (graph, @publication_host.client_infer_plan_graph_execution_contract(graph)),
+  )
+}

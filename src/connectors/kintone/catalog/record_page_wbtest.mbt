@@ -15,7 +15,7 @@ fn record_test_limits() -> RecordPageLimits {
 fn record_test_catalog() -> FormFieldCatalog {
   form_test_catalog(
     body=(
-      #|{"revision":"7","properties":{"number":{"type":"RECORD_NUMBER","code":"number"},"text":{"type":"SINGLE_LINE_TEXT","code":"text"},"amount":{"type":"NUMBER","code":"amount","displayScale":"3"},"date":{"type":"DATE","code":"date"},"time":{"type":"TIME","code":"time"},"choices":{"type":"MULTI_SELECT","code":"choices","options":{"a":{"label":"a"}}},"owner":{"type":"CREATOR","code":"owner"},"users":{"type":"USER_SELECT","code":"users"},"files":{"type":"FILE","code":"files"},"table":{"type":"SUBTABLE","code":"table","fields":{"id_text":{"type":"SINGLE_LINE_TEXT","code":"id_text"},"amount":{"type":"NUMBER","code":"amount"}}}}}
+      #|{"revision":"7","properties":{"number":{"type":"RECORD_NUMBER","code":"number"},"text":{"type":"SINGLE_LINE_TEXT","expression":"","code":"text"},"amount":{"type":"NUMBER","code":"amount","displayScale":"3"},"date":{"type":"DATE","code":"date"},"time":{"type":"TIME","code":"time"},"choices":{"type":"MULTI_SELECT","code":"choices","options":{"a":{"label":"a"}}},"owner":{"type":"CREATOR","code":"owner"},"users":{"type":"USER_SELECT","code":"users"},"files":{"type":"FILE","code":"files"},"table":{"type":"SUBTABLE","code":"table","fields":{"id_text":{"type":"SINGLE_LINE_TEXT","expression":"","code":"id_text"},"amount":{"type":"NUMBER","code":"amount"}}}}}
     ),
   )
 }
@@ -288,7 +288,7 @@ test "native wrapper families remain exact data and unavailable fields do not pa
 test "canonically equivalent external field codes are separate original dictionary keys" {
   let catalog = form_test_catalog(
     body=(
-      #|{"revision":"7","properties":{"e\u0301":{"type":"SINGLE_LINE_TEXT","code":"e\u0301"},"é":{"type":"SINGLE_LINE_TEXT","code":"é"}}}
+      #|{"revision":"7","properties":{"e\u0301":{"type":"SINGLE_LINE_TEXT","expression":"","code":"e\u0301"},"é":{"type":"SINGLE_LINE_TEXT","expression":"","code":"é"}}}
     ),
   )
   let bytes = @utf8.encode(

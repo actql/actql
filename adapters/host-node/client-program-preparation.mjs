@@ -85,7 +85,7 @@ function serializeProgram({kind, input, parameters}) {
 
 export function installNodeClientProgramPreparation({moon, environment,
   allowEffects = false, effectEvidence = [], sourcePublication, valuesMaxRows, check,
-  verifyRequestValuePolicy, restoreEffectOriginal}) {
+  verifyRequestValuePolicy, restoreEffectOriginal, restoreInferOriginal}) {
   if (!moon || typeof moon.clientProgramPrepareEffectFreeWithParameters !==
       'function' || typeof moon.clientProgramPreparationReady !== 'function' ||
       typeof moon.clientProgramPreparationIssue !== 'function' ||
@@ -93,6 +93,7 @@ export function installNodeClientProgramPreparation({moon, environment,
       environment === undefined || typeof allowEffects !== 'boolean' ||
       !Array.isArray(effectEvidence) || effectEvidence.length > 1024 ||
       (restoreEffectOriginal !== undefined && typeof restoreEffectOriginal !== 'function') ||
+      (restoreInferOriginal !== undefined && typeof restoreInferOriginal !== 'function') ||
       (check !== undefined && typeof check !== 'function') ||
       (verifyRequestValuePolicy !== undefined &&
         (typeof verifyRequestValuePolicy !== 'function' ||
@@ -111,7 +112,7 @@ export function installNodeClientProgramPreparation({moon, environment,
       typeof moon.clientProgramWithValuesRowLimit !== 'function' || allowEffects)) {
     throw new TypeError('InvalidLocalValuesRowLimit');
   }
-  const owned = new WeakSet();
+  const owned = new WeakMap();
   const effectOwned = new WeakSet();
   const sourceCheckFailures = new WeakSet();
   const installedEvidence = Object.freeze([...effectEvidence]);
@@ -150,7 +151,9 @@ export function installNodeClientProgramPreparation({moon, environment,
         prepared = moon.clientProgramWithValuesRowLimit(prepared, valuesMaxRows);
         if (prepared === undefined) fail('ClientProgramUnsupported');
       }
-      owned.add(prepared);
+      // Retain the actual normalized Environment and the original serialized
+      // Parameter Values used by this preparation, not current Host defaults.
+      owned.set(prepared, Object.freeze({environment: selectedEnvironment, parameters: supplied}));
       return prepared;
     }
     const issue = moon.clientProgramPreparationIssue(outcome);
@@ -248,6 +251,31 @@ export function installNodeClientProgramPreparation({moon, environment,
     return prepare(request, selected);
   };
   return Object.freeze(Object.assign(verified, {
+    originalInputs(prepared) {
+      const original = owned.get(prepared);
+      if (original === undefined || original.inferRun !== undefined) {
+        fail('ClientProgramPreparationFailure');
+      }
+      return original;
+    },
+    originalInferRun(prepared) {return owned.get(prepared)?.inferRun;},
+    restoreInferOriginal(original, definition, request, evidence) {
+      if (restoreInferOriginal === undefined) fail('ClientProgramUnsupported');
+      const restored = restoreInferOriginal(original, definition, request, evidence);
+      if (typeof restored?.then === 'function') {
+        void Promise.resolve(restored).catch(() => {});
+        fail('ClientProgramPreparationFailure');
+      }
+      if (restored?.prepared === undefined || restored?.compiled === undefined ||
+          restored?.graph === undefined || restored?.runDefinition !== definition) {
+        fail('ClientProgramPreparationFailure');
+      }
+      // This trusted callback uses the existing Common saved-material reader.
+      // One entry retains its exact nominal pair; no copied public preparation
+      // is admitted by adding an identity or a caller-provided ownership flag.
+      owned.set(restored.prepared, Object.freeze({inferRun: restored}));
+      return restored.prepared;
+    },
     // Only the installed Host passes an original from its existing verified
     // Checkpoint custody. Public submit objects never enter this method.
     restoreOriginal(original) {
