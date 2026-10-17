@@ -314,11 +314,26 @@ export type RowEffectFootprint = Readonly<{
   resource_kind: string; resource_identity_scheme_cid: string;
   provider_object_identity_cids: readonly string[];
 }>;
+/** Existing capture-owned child. Preparation completion is not cleanup. */
+export interface RowEffectRequestChild<Request extends object> {
+  prepare(): Awaitable<Readonly<{request: Request; requestCid: string}>>;
+  release(): Awaitable<boolean | void>;
+  retry(): Awaitable<boolean | void>;
+  status(): Readonly<{pending: boolean}>;
+}
 export interface RowEffectDriver<Request extends object, Current = unknown> {
   readonly kinds: readonly RowEffectKind[];
   prepareRequest(options: Readonly<{member: RowEffectMember;
     value: ConnectorJsonObject; selector?: ConnectorJsonValue;
     current: Current | undefined}>): Readonly<{request: Request; requestCid: string}>;
+  /** Synchronous, I/O-free factory for UPDATE/upsert preparation. Its child
+   * performs the original authorized target read before deriving request bytes.
+   * The row-bound grant supplier cannot select another row or a write grant. */
+  prepareRequestChild?(options: Readonly<{member: RowEffectMember;
+    value: ConnectorJsonObject; selector?: ConnectorJsonValue;
+    current: Current | undefined; rowIndex: number;
+    authorizationForRow: () => Promise<InvocationAuthorization>;
+    signal?: AbortSignal}>): RowEffectRequestChild<Request>;
   requestFacts(request: Request): Readonly<{
     value: ConnectorJsonObject; target?: ConnectorJsonValue}>;
   writeOperation(member: RowEffectMember): string;
