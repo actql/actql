@@ -129,13 +129,98 @@ The maintainer-only `scripts/compile-python-local-image.py` prepares the image
 receipt consumed by the component assembler. It requires an exact clean
 `--source`, original `--core-receipt`, new `--destination`, and explicit
 `--verify-only` or `--compile`. Verification does not import the native runtime
-or create an Engine. Compilation uses the same selected Engine adapter as the
+or create an Engine. It verifies the original module/source/toolchain/ABI and
+selected recipe independently of any installed ordinary Wasmtime package.
+Compilation additionally requires `--bindings-source`, `--native-libraries` and
+a fresh absolute `--preparation` directory. The same final product staging
+routine checks the pinned source/license, target and both selected DLLs and
+rechecks the owned copies. It emits the existing private
+`actql_local_runtime._wasmtime` namespace without constructing LocalComponents
+or claiming an image/physical receipt. This is preparation, not another wheel
+or runtime distribution route. The input DLL directory is never loaded.
+Only the owned staged provider is acquired; private import occurs inside that
+same original holding, and actual Rust/provider linkage is checked before Config.
+Foreign/preloaded private namespaces and changed preparation members are refused.
+The fresh preparation directory and imported aliases are retained on every
+outcome; partial import is sticky Unknown rather than an unload/reimport or
+inferred native cleanup. The final image/physical/workspace/Result and normal
+wheel/installed gates remain mandatory and strictly stronger.
+Compilation uses the same selected Engine adapter as the
 installed constructor, reuses the existing Core module signature validator,
 and serializes without creating a Wasm instance, Store, Run or Submission.
 Receipt issuance follows native cleanup and a second original-material fence.
+Compilation also requires the trusted maintainer supplier's already acquired,
+unbound holding from the same selected provider. Runtime import, Config, pool,
+Engine, module serialization and handle cleanup use that holding's scope.
+`_NativeHoldingLease._from_native_provider` moves a trusted supplier's existing
+C slot and uses its canonical C symbols, before importing the dependent Rust
+DLL. The historical Rust-forwarder and typed child-borrow entrances remain
+separate; no symbol fallback or second provider is selected.
+Provider correspondence reuses the installed constructor's exact imported
+addresses and file checks; it does not manufacture an installed image or Core
+identity. A failed or unconfirmed close retains the same handles and holding
+in `ImageCompilerCleanupError.cleanup_compilation`, emits no receipt, and does
+not repeat an unconfirmed call. Confirmed handle cleanup followed by a known
+holding-retirement refusal may retry only that original holding.
 The selected source-original recipe remains unavailable until reviewed; this
 script never supplies fixture values or runtime defaults for missing bounds.
-Actual `--compile` and wheel generation use the coordinator's finite lane.
+The standalone CLI's `--compile` uses the existing C provider acquire, not a
+declaration as a substitute for backing. It first requires the exact clean Git
+original `packages/python-local-runtime/selected-compiler-holding.json`. That
+file is currently absent, so compilation still refuses before loading the
+provider or importing Wasmtime. There is no CLI capacity default or normal
+factory fallback. Its closed fields are `scope: "image_compiler_only"`,
+`module_sha256`, `engine_sha256`, `runtime_library_sha256`,
+`provider_library_sha256`, `capacity_bytes` and `generation`. Capacity is a
+positive signed-64-bit byte count aligned to the actual Host page size;
+generation is a positive unsigned-64-bit value. Booleans are not integers.
+The selected source's exact raw declaration hash is the C holding recipe,
+bound to that source, module, Engine recipe and both libraries. Acquisition
+rechecks that exact original, including capacity and generation; a copied
+metadata value cannot replace any of those fields before provider loading.
+
+After file-only verification, the maintainer supplier loads that same selected
+C provider and physically acquires its extent. A confirmed nonempty out-slot
+is moved once through the existing holding Owner initializer, with the object
+retained before the move. The actual capacity observation must match before
+compiler work. A failed or lost acquire keeps the same provider, out-slot,
+original and any partial holding in `CompilerHoldingAcquisitionError`; it does
+not reacquire, close an uncertain slot, issue a Core identity or run Config.
+Known empty refusal remains distinct from response loss or a nonempty failed
+slot. A pre-acquire provider fence failure retains the loaded provider without
+claiming an acquire attempt. Existing compiler cleanup custody then owns the
+confirmed holding through serialization and confirmed retirement. A second
+preflight failure cleans up only that original; an existing unconfirmed
+compiler cleanup carrier is propagated without another close.
+
+This is a maintainer-only physical extent. Loading the provider, including its
+pinned MoonBit process initializer, belongs to the separate trusted maintainer
+control envelope. The extent does not pay for Python, OS loader or unrelated
+VM domains, provide product Host/Run funding, or select normal numerical
+allowances. Maintainer resource-guard reservations and eventual product
+bootstrap funding are separate; neither verify-only nor scalar custody tests
+establish their completeness.
+
+Module preparation precedes physical acceptance. The existing component
+producer can record `--record-module-original --source SOURCE --compiled-source
+BUILD_SOURCE --module MODULE --link-response ACTUAL_RSP --moon-home PINNED_HOME
+--destination MODULE_RECEIPT`. Run it after the normal pinned module build and
+retain that build's result. Its closed `compile_only_module_inputs` scope binds
+the regular module, complete selected source membership, toolchain/installed
+marker and executable versions/bytes, generated ABI freshness, actual link
+response/output and every original `.core` input. It records correspondence;
+it does not reconstruct a compiler read trace or assert physical success.
+Input-equivalent reuse retains the actual `compiled_source_sha` separately
+from the current selected source. Added or changed selected inputs refuse it.
+
+The image compiler's existing `--core-receipt` accepts that verified compile-only
+original or the stronger physical receipt through one shared module verifier.
+It still requires the same recipe, runtime/provider libraries and original
+holding. Final component assembly only accepts the physical receipt: it must
+embed that same module original and successful contract/result/physical/workspace
+observations for the exact source/module. A compile-only receipt, renamed scope
+or missing physical cases cannot form an artifact. Neither stage changes the
+installed image-only loader or supplies a normal numerical capacity profile.
 
 Private ABI73 projects a separately declared physical Host baseline into the
 same initial Core Root as the existing16MiB VM and12MiB transfer pool. It keeps

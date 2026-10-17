@@ -75,8 +75,22 @@ Effect requires the general `start_source` surface. An older Host that cannot
 admit the restriction refuses it; the SDK never removes it or sends a separate
 check as a substitute.
 
-Use `request_id=` or `submission_ref=` to select the existing original identity
-(not both). Changing the query or restriction under that identity is a conflict.
+Use `request_id="nightly-report"` for a durable name in the authenticated Host
+scope. The existing Host journal atomically resolves or binds that name before
+preparation. The same name and exact intent select the same original Run after
+Client or Host restart; changing text, parameters or either restriction raises
+`RequestConflict`. A name is neither an epoch nonce nor authorization. The
+explicit `submission_ref=` API retains its original epoch identity and conflict
+rules; select only one of these options.
+
+Lost responses remain `SubmissionUnknown`, with `request_id`, `submission_ref`
+and `attempt_ref` retained on the error. The SDK never automatically repeats the
+request. Use the retained reference for explicit lookup/attach; an explicit
+later same-name call can only resolve the original journal binding. Missing,
+retired or uncertain history never becomes a fresh submission. The captured
+input retains the proposed reference, while `execution.submission` identifies
+the actual original selected by the Host.
+
 Omission on general `start`/`start_source` preserves their original behavior;
 their explicit `read_only=True` selects the same restriction. `False` and `None`
 are invalid choices. No restriction is inferred when attaching to a Run.
@@ -256,6 +270,33 @@ schema cannot supply a missing protocol completion marker or Host receipt.
 | resources | Existing page/control/signature limits remain; the convenience makes one exact lookup, without independent polling, pagination or retained cache. |
 | extension | Optional application signer does not require a Host/token/path for Local open; missing original Local funding still refuses. Remote remains engine-free. |
 | verification | Public sync/async, exact-ID, interruption, close-retry, signature preimage and strict typing cases remain distinct from installed Local acceptance. |
+
+### Workspace connection strings
+
+The Remote clients accept the existing Workspace URI instead of an HTTPS
+endpoint and separate Workspace option:
+
+```python
+with Client.connect("actql://host.example/Case-Sensitive", get_access_token) as client:
+    rows = client.sql("SELECT 1 AS n").all()
+# Async: async with await AsyncClient.connect(uri, get_access_token) as client: ...
+```
+
+A secret-bearing URI may instead supply `token:<percent-encoded-bearer>@` in
+its authority; omit the separate token argument in that case. Selecting both
+is an error, even if the credentials agree. The Client decodes each component
+once and asserts that exact Workspace on every operation. A different or
+unsupported Host Workspace refuses the original request; the SDK never drops
+the assertion, follows redirects, retries, discovers another Host or opens
+Local. The URI and credential are absent from the profile and operation body.
+The existing HTTPS endpoint plus token API remains available.
+
+The exact `?transport=http` opt-in is currently a private Node-only transport.
+Python rejects that selection with `LoopbackHttpUnavailable` before credentials
+or I/O; ordinary HTTPS keeps certificate verification and `trust_env=False`.
+A connection string naming localhost still denotes a network Host, not an
+embedded installation. Use `Client.open()` for the installed Local supplier;
+its unfinished physical funding continues to refuse before VM startup.
 
 ### Check report attributes
 

@@ -155,6 +155,40 @@ pub fn[T, C, R] NativeHostBootstrap::prepare_backed_original_read_ledger(
 }
 
 ///|
+// Same private physical Owner's pre-bootstrap resource projection. It supplies
+// no VM/launch admission or fixed VM/Host capacities. The channel retains the
+// returned frame before any reply/current postcheck can leave Native custody.
+fn[T, C, R] NativeHostBootstrap::prepare_backed_original_live_ledger(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChild[T, C, R],
+  runtime : R,
+) -> Result[@resources.ImportedChildLedger, NativeBackedOriginalReadIssue] {
+  match self.original_live_child(original, record, runtime) {
+    Err(issue) => return Err(Domain(issue))
+    Ok(_) => ()
+  }
+  match self.require_domain_current(original, record.domain, record.child) {
+    Err(issue) => return Err(Domain(issue))
+    Ok(_) => ()
+  }
+  guard record.access is Some(access) else {
+    return Err(Domain(Bootstrap(Unavailable)))
+  }
+  let projection = match
+    @resources.admit_backed_execution_live_child(access, runtime) {
+    Err(issue) => return Err(Domain(Accounting(issue)))
+    Ok(projection) => {
+      record.projection = Some(projection)
+      projection
+    }
+  }
+  @resources.prepare_backed_original_child_ledger(projection, runtime).map_err(issue => {
+    Child(issue)
+  })
+}
+
+///|
 pub(all) enum NativeBackedOriginalReadIssue {
   Domain(NativeBackedExecutionIssue)
   Child(@resources.ImportedChildLedgerIssue)

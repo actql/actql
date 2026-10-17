@@ -47,11 +47,12 @@ class AsyncQuery(_OriginalQueryHandle):
         return self._execution
 
     def _error(self, code, cause=None):
-        from ._async import _submission_inputs
+        from ._async import _submission_inputs, _submission_context
         from ._values import freeze, snapshot
+        original = (None if self._execution is None or self._execution.submission is None
+                    else self._execution.submission.get('submissionRef'))
         error = ClientError(code, execution=self._execution, observation=self._state,
-                            original_error=cause, submission_ref=freeze(snapshot(self._body['submissionRef'])),
-                            attempt_ref=freeze(snapshot(self._body['attemptRef'])))
+                            original_error=cause, **_submission_context(self._body, original))
         _submission_inputs[error] = freeze(snapshot(self._body))
         return error
 
@@ -97,9 +98,11 @@ class AsyncQuery(_OriginalQueryHandle):
                 # never reinterpret loss of an observation as permission to send.
                 self._failure = failure
                 if isinstance(failure, asyncio.CancelledError):
-                    from ._values import freeze, snapshot
-                    failure.submission_ref = freeze(snapshot(self._body['submissionRef']))
-                    failure.attempt_ref = freeze(snapshot(self._body['attemptRef']))
+                    from ._async import _submission_context
+                    original = (None if self._execution is None or self._execution.submission is None
+                                else self._execution.submission.get('submissionRef'))
+                    for key, value in _submission_context(self._body, original).items():
+                        setattr(failure, key, value)
                 raise
             finally:
                 self._selecting_task = None

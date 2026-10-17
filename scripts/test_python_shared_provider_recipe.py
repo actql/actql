@@ -1,5 +1,6 @@
 """Source-recipe refusals; no Rust compiler, Engine or installed acceptance."""
 import copy
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -81,6 +82,89 @@ class SharedProviderRecipeTests(unittest.TestCase):
         path.write_text(original.replace('actql_owned_build.rs', 'foreign.rs'))
         with self.assertRaisesRegex(ValueError, 'artifact build entry'):
             VERIFY.verify_linked_workspace(self.root, self.original)
+
+
+class ThreadPreparationTests(unittest.TestCase):
+    """Independent small patch controls, separate from pinned source checks."""
+
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.candidate = Path(self.directory.name) / 'candidate'
+        self.root = Path(self.directory.name) / 'workspace'
+        self.candidate.mkdir()
+        self.root.mkdir()
+        paths = [item['path'] for item in json.loads((CANDIDATE / 'thread-source.json').read_bytes())['inputs']]
+        self.originals = {name: b'original\n' for name in paths}
+        patch = ''.join(f'diff --git a/{name} b/{name}\n--- a/{name}\n+++ b/{name}\n'
+                        '@@ -1 +1 @@\n-original\n+derived\n' for name in paths).encode()
+        (self.candidate / 'wasmtime-owned-thread-review.patch').write_bytes(patch)
+        wrapper = b'original private wrapper\n'
+        (self.candidate / 'owned_handler_thread.rs').write_bytes(wrapper)
+        self.record = {
+            'status': 'source-preparation-only', 'normal_profile': None,
+            'Engine_executed': False, 'runtime_build_executed': False,
+            'upstream_git_commit': 'original', 'target': 'aarch64-apple-darwin',
+            'feature': 'actql-owned-capacity',
+            'inputs': [dict(path=name, **self.digest(body)) for name, body in self.originals.items()],
+            'outputs': {name: self.digest(b'derived\n') for name in paths},
+            'copy': dict(source='owned_handler_thread.rs',
+                         target=VERIFY.RUST_COPIES['owned_handler_thread.rs'], **self.digest(wrapper)),
+            'patch': dict(path='wasmtime-owned-thread-review.patch', **self.digest(patch)),
+        }
+        for name, body in self.originals.items():
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(body)
+        path = self.root / self.record['copy']['target']
+        path.write_bytes(wrapper)
+
+    @staticmethod
+    def digest(body):
+        return dict(bytes=len(body), sha256=hashlib.sha256(body).hexdigest())
+
+    def verify(self):
+        raw = (json.dumps(self.record) + '\n').encode()
+        (self.candidate / 'thread-source.json').write_bytes(raw)
+        (self.candidate / 'workspace-build-inputs.json').write_text(json.dumps({
+            'upstream_git_commit': 'original', 'target': 'aarch64-apple-darwin',
+            'thread_preparation': dict(source='thread-source.json', sha256=hashlib.sha256(raw).hexdigest()),
+        }))
+        VERIFY.verify_thread_patch(self.root, self.originals, self.candidate)
+
+    def test_exact_source_only_patch_and_copy(self):
+        self.verify()
+        for name in self.originals:
+            self.assertEqual((self.root / name).read_bytes(), b'derived\n')
+
+    def test_execution_claim_and_duplicate_input_refuse(self):
+        self.record['Engine_executed'] = True
+        with self.assertRaisesRegex(ValueError, 'source-only'):
+            self.verify()
+        self.record['Engine_executed'] = False
+        self.record['inputs'].append(copy.deepcopy(self.record['inputs'][0]))
+        with self.assertRaisesRegex(ValueError, 'source closure'):
+            self.verify()
+
+    def test_foreign_original_and_changed_wrapper_refuse(self):
+        name = self.record['inputs'][0]['path']
+        self.originals[name] = b'foreign\n'
+        with self.assertRaisesRegex(ValueError, 'source digest'):
+            self.verify()
+        self.originals[name] = b'original\n'
+        (self.root / self.record['copy']['target']).write_bytes(b'foreign\n')
+        with self.assertRaisesRegex(ValueError, 'Changed original thread wrapper'):
+            self.verify()
+
+    def test_changed_patch_and_derived_output_refuse(self):
+        self.record['patch']['sha256'] = '0' * 64
+        with self.assertRaisesRegex(ValueError, 'patch digest'):
+            self.verify()
+        patch = (self.candidate / 'wasmtime-owned-thread-review.patch').read_bytes()
+        self.record['patch'].update(self.digest(patch))
+        self.record['outputs'][next(iter(self.originals))]['sha256'] = '0' * 64
+        with self.assertRaisesRegex(ValueError, 'Derived original thread digest'):
+            self.verify()
 
 
 if __name__ == '__main__':

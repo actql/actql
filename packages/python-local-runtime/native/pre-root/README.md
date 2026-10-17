@@ -1,7 +1,7 @@
 # Native preRoot allocation preparation
 
-This directory is an **uncompiled, unadopted source candidate**, excluded from
-the runtime wheel. It changes no installed loader, public API, capacity profile,
+This directory is a **source candidate, not an adopted installed runtime**,
+excluded from the runtime wheel. It changes no installed loader, public API, capacity profile,
 fuel, buffer limit, Core ABI or currently selected Wasmtime library. It does not
 provide the complete preRoot supplier. Do not enable or build the proposed
 Wasmtime patch as an installed runtime recipe yet.
@@ -402,3 +402,90 @@ existing load-time runtime constructor remains part of the independent startup
 responsibility described above. Actual source/DLL/consumer identities and raw
 results are separate evidence; neither this recipe nor a successful physical
 fixture supplies an ordinary installed funding profile.
+
+## Pre-bootstrap thread scope
+
+`owned_thread.h` is a private physical adapter in this same C provider. Before
+`pthread_create`, it retains an original lease scope and binds an address-bound
+one-shot controller in an existing live allocation of that lease. Its C
+trampoline binds the existing provider TLS before invoking the callback. A Rust
+caller must enter its Rust bootstrap through this trampoline: binding inside an
+ordinary `std::thread` closure is too late for Rust spawn hooks and TLS setup.
+No unbound-thread allocator fallback or second provider is supplied.
+
+The caller owns the controller, callback and data aliases until confirmed join;
+it must exclude their retirement or mutation during start, execution and join.
+These ports do not fund OS thread creation, stack, pthread internals or unrelated
+VM/control allocations. A known create refusal retains a nonreusable record and
+releases only the confirmed-not-started scope pin. A lost create response must
+retain that original record and pin; it does not permit another launch.
+
+The provider uses one private pthread key aliasing the same controller scope,
+not a new holding or thread registry. Its destructor reinstalls the same alias
+on every Darwin destructor pass; a plain C thread-local variable can be retired
+before later pthread destructors. Key creation is one-shot, and attachment
+failure forbids the callback while retaining created-child join custody. The
+provider/key remain in process/runtime custody; Engine close does not delete
+this key. Failed restoration traps without a fallback or an inferred ACK.
+
+The baseline child scope cannot be consumed by callback `leave` and remains
+bound through pthread thread-specific destructors. Only confirmed no-start or successful original
+`pthread_join` releases its pin. A failed/lost join keeps the original pin and
+one-shot join attempt, with no blind retry or inferred stop. Confirmed join does
+not retire the controller allocation, acknowledge other resources, or finish a
+Run. Copied, foreign, retired and fork-inherited controllers are rejected.
+
+This is a source-level seam for the selected backend. `fixtures/thread.c`
+executes the matching C provider without Rust, Engine or VM. Actual Rust thread
+origins, process-global Mach handler/port lifetime and runtime integration remain
+separate obligations. Process-global handlers belong to existing process/runtime
+custody and cannot be acknowledged by ordinary Engine close. New linked library
+bytes require new source/recipe/current/provider provenance. The earlier compiler
+abort and its unconfirmed original holding ACK remain unchanged; neither this
+adapter nor a successful compile adopts normal capacity or physical acceptance.
+
+The destructor binding relies on the selected Darwin thread contract, not an
+assumed destructor order. Apple's [pthread TSD cleanup implementation](https://github.com/apple-oss-distributions/libpthread/blob/main/src/pthread_tsd.c)
+clears a key before invoking its destructor, even when that destructor is NULL.
+The private key therefore reinstalls its original alias on each pass rather than
+relying on a NULL destructor or C thread-local storage surviving all other TLS
+cleanup. Matching-target conformance includes allocation in a real pthread
+key destructor; it does not establish every upstream Rust thread origin.
+
+`owned_handler_thread.rs` binds the existing C trampoline before invoking the
+selected Rust handler. `wasmtime-owned-thread-review.patch` is an exact,
+feature-gated source preparation against the pinned upstream commit. Its source
+verifier checks the three original preimages, copied wrapper and derived bodies;
+this is not evidence of a linked Wasmtime handler or an Engine execution.
+
+The small Rust/C fixture deliberately retains its positive final holding-close
+assertion. Its caught-panic path initializes Rust's process-static backtrace
+mutex through the original allocator; native join does not free that static
+allocation. A failed final close stays failed with the original responsibility.
+No panic-hook suppression, capacity increase or force-free substitutes for
+confirmed process/runtime stop and original backing return.
+
+## Private compiler parent assembly
+
+The maintainer compiler can prepare its selected arena through the existing
+Native `InstalledArenaHost` and original domain owner. The private bounded UTF16
+shim only transports preparation inputs to that owner. Native bootstrap creates
+and reserves its original Ledger before acquiring the actual backing FD; Python
+neither creates a Ledger nor rebrands an unbound native holding as worker funding.
+
+The preparation requires a committed `selected-compiler-parent.json` beside the
+existing holding declaration. Its closed `image_compiler_parent_only` body binds
+`holding_sha256`, explicit `parent` limits/control envelope and explicit `child`
+limits. Parent bytes equal the original holding envelope; physical control,
+page rounding, capacity/delegation refusal and child extent still belong to the
+Native owner. There is no default declaration or automatic profile expansion.
+The separately trusted initial control envelope is not a claim that the arena
+covers Python, library loading, process stacks or all VM allocations.
+
+The same acquired Host, backing loan, actual descriptor and partial domain stay
+reachable on failure. `close_unstarted` is limited to this unstarted assembly;
+unknown replies or existing process custody refuse it before parent return.
+Descriptor close remains with the original caller. This preparation does not
+launch a worker or satisfy `OriginalWorkerFunding`, issue a production supplier,
+acknowledge Rust/Mach process-static retirement, or weaken final physical/image
+and installed acceptance. Ordinary supplier/profile remains unavailable.

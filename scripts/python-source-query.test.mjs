@@ -20,17 +20,19 @@ async function consume(args,cwd,output) {
   return {pid:child.pid,...JSON.parse(stdout)};
 }
 
+const workspaceId=process.env.ACTQL_TEST_PYTHON_WORKSPACE;
 for(const facade of ['sync','async'])
-  test(`installed Python ${facade} lazy SQL/Pipe query uses the original Run for reads and Host reopen and separate-process attach`,async t=>{
-    const {root,certificates,counts,endpoint,reopen}=await openPythonPublicHost(t);
+  test(`installed Python ${facade} ${workspaceId===undefined?'HTTPS':'Workspace DSN'} lazy SQL/Pipe query uses the original Run for reads and Host reopen and separate-process attach`,async t=>{
+    const {root,certificates,counts,endpoint,reopen}=await openPythonPublicHost(t,{workspaceId});
     const custody=join(root,facade+'.query-custody.json'),results=[];
-    for(const phase of ['query','restore']){
+    for(const phase of workspaceId===undefined?['query','restore']:['refusal','query','restore']){
       if(phase==='restore')await reopen();
-      const result=await consume([phase,facade,endpoint,certificates.caPath,custody],root,join(root,phase));
+      const target=workspaceId===undefined?endpoint:`actql://${facade==='sync'?'token:fixture-token@':''}${new URL(endpoint).host}/${encodeURIComponent(phase==='refusal'?'foreign-'+workspaceId:workspaceId)}`;
+      const result=await consume([phase,facade,target,certificates.caPath,custody],root,join(root,phase));
       assert.equal(result.phase,phase);assert.equal(result.facade,facade);assert.equal(result.success,true);
       results.push(result);
-      assert.equal(counts.computed,2,'Only the two original read-only queries compute; Host reopen/explicit rereads/lookup/attach never resubmit');
+      assert.equal(counts.computed,phase==='refusal'?0:2,'Only the two original read-only queries compute; foreign Workspace/Host reopen/explicit rereads/lookup/attach never resubmit');
     }
-    assert.equal(new Set(results.map(item=>item.pid)).size,2,'Restore uses a separate real Python process');
+    assert.equal(new Set(results.map(item=>item.pid)).size,results.length,'Each phase uses a separate real Python process');
     await writeFile(join(root,'query-receipt.json'),JSON.stringify({facade,results,counts},null,2)+'\n',{mode:0o600});
   });

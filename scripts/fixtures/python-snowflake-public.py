@@ -9,12 +9,13 @@ from pathlib import Path
 import ssl
 import sys
 
-from actql_sdk import AsyncClient, Client
+from actql_sdk import AsyncClient, Client, get_submission_input
 import actql_sdk
 
 phase, facade, endpoint, token, ca_path, custody = sys.argv[1:]
 trust = ssl.create_default_context(cafile=ca_path)
 path = Path(custody)
+short_query = os.environ.get('ACTQL_TEST_PYTHON_SHORT_QUERY') == '1'
 text = ('SELECT ACCOUNT_ID AS account_id, ACTIVE_USERS AS active_users, TREND AS trend '
         'FROM snowflake.usage_30d |> RESULT usage')
 expected = [{'account_id': 'a1', 'active_users': '99999999999999999999999999999999999999', 'trend': 'down'},
@@ -51,7 +52,15 @@ async def asynchronous():
             assert checked['report']['verdict'] == 'verified'
             assert dict(checked['report']['runnable']) == {'verdict': 'yes', 'reasons': ()}
             reference = client.new_submission(nonce='snowflake-python-async')
-            run = await client.start_source(text, format='sql', submission_ref=reference)
+            if short_query:
+                query = client.sql(text, submission_ref=reference, result='usage')
+                assert query.execution is None
+                assert get_submission_input(query)['readOnly'] is True
+                assert await query.all(max_rows=2) == expected
+                run = query.execution
+                assert run is not None
+            else:
+                run = await client.start_source(text, format='sql', submission_ref=reference)
             state = await run.wait()
             assert state.status == 'succeeded' and type(state.revision) is int
             result = run.result('usage')
@@ -73,7 +82,14 @@ async def asynchronous():
             run = await client.attach(original['run'])
             assert (await run.status()).status == 'succeeded'
             assert await run.result('usage').all(max_rows=2) == expected
-            duplicate = await client.start_source(text, format='sql', submission_ref=original['submission'])
+            if short_query:
+                query = client.sql(text, submission_ref=original['submission'], result='usage')
+                assert query.execution is None
+                assert await query.all(max_rows=2) == expected
+                duplicate = query.execution
+                assert duplicate is not None
+            else:
+                duplicate = await client.start_source(text, format='sql', submission_ref=original['submission'])
             assert dict(duplicate.ref) == original['run']
             assert await duplicate.result('usage').all(max_rows=2) == expected
         else:
@@ -87,7 +103,15 @@ def synchronous():
             assert checked['report']['verdict'] == 'verified'
             assert dict(checked['report']['runnable']) == {'verdict': 'yes', 'reasons': ()}
             reference = client.new_submission(nonce='snowflake-python-sync')
-            run = client.start_source(text, format='sql', submission_ref=reference)
+            if short_query:
+                query = client.sql(text, submission_ref=reference, result='usage')
+                assert query.execution is None
+                assert get_submission_input(query)['readOnly'] is True
+                assert query.all(max_rows=2) == expected
+                run = query.execution
+                assert run is not None
+            else:
+                run = client.start_source(text, format='sql', submission_ref=reference)
             state = run.wait()
             assert state.status == 'succeeded' and type(state.revision) is int
             result = run.result('usage')
@@ -109,7 +133,14 @@ def synchronous():
             run = client.attach(original['run'])
             assert run.status().status == 'succeeded'
             assert run.result('usage').all(max_rows=2) == expected
-            duplicate = client.start_source(text, format='sql', submission_ref=original['submission'])
+            if short_query:
+                query = client.sql(text, submission_ref=original['submission'], result='usage')
+                assert query.execution is None
+                assert query.all(max_rows=2) == expected
+                duplicate = query.execution
+                assert duplicate is not None
+            else:
+                duplicate = client.start_source(text, format='sql', submission_ref=original['submission'])
             assert dict(duplicate.ref) == original['run']
             assert duplicate.result('usage').all(max_rows=2) == expected
         else:
@@ -128,5 +159,6 @@ else:
     raise AssertionError('Unknown facade')
 assert 'actql_sdk._local_core' not in sys.modules
 print(json.dumps({'phase': phase, 'facade': facade, 'success': True, 'pid': os.getpid(),
+                  'surface': 'sql' if short_query else 'start_source',
                   'sdk': str(Path(actql_sdk.__file__).resolve()),
                   'version': importlib.metadata.version('actql-sdk')}))

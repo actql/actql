@@ -150,7 +150,11 @@ class AsyncReader:
         if self._advance is not None and not self._advance.done():
             raise ClientError('ReaderAdvanceInProgress')
         self._advance = asyncio.create_task(self._iterator.__anext__())
-        return await self._advance
+        try:
+            return await self._advance
+        except ClientError as failure:
+            self._result._run._client._redact_connection_failure(failure)
+            raise
 
     async def aclose(self):
         self._closed = True
@@ -163,11 +167,16 @@ class AsyncReader:
             except (asyncio.CancelledError, StopAsyncIteration):
                 pass
             except ClientError as error:
+                self._result._run._client._redact_connection_failure(error)
                 if pending and error.code == 'ReaderCleanupFailed':
                     raise
-        if self._iterator is not None and self._advance is not asyncio.current_task():
-            await self._iterator.aclose()
-        await self._release()
+        try:
+            if self._iterator is not None and self._advance is not asyncio.current_task():
+                await self._iterator.aclose()
+            await self._release()
+        except ClientError as failure:
+            self._result._run._client._redact_connection_failure(failure)
+            raise
 
     async def _release(self):
         if self._response is not None:
