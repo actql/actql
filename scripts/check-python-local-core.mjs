@@ -84,6 +84,18 @@ if(process.argv.includes('--build-and-consume')){
   }
   assert.equal(createHash('sha256').update(await readFile(module)).digest('hex'),
     digest,'The retained artifact must match this fixed-source build');
+  let moduleOriginal;
+  if(physicalBoundary){
+    assert.ok(process.env.MOON_HOME,'Select the original pinned compiler directory');
+    const file=join(receipt,'module-original.json');
+    run(python,['scripts/produce-python-local-runtime.py','--record-module-original',
+      '--source',source,'--compiled-source',source,'--module',module,
+      '--link-response',built+'.rsp','--moon-home',process.env.MOON_HOME,'--destination',file]);
+    moduleOriginal=JSON.parse(await readFile(file,'utf8'));
+    assert.equal(moduleOriginal.scope,'compile_only_module_inputs');
+    assert.equal(moduleOriginal.source_sha,source);
+    assert.equal(moduleOriginal.module_sha256,digest);
+  }
   const contract=JSON.parse(run(python,['scripts/fixtures/python-local-contract-abi.py',module]));
   assert.equal(contract.success,true);
   assert.equal(contract.module_sha256,digest);
@@ -216,6 +228,7 @@ if(process.argv.includes('--build-and-consume')){
     const record={source_sha:source,module,module_sha256:digest,contract,
       scope:'physical_buffer_bridge_workspace_only',
       moonc:run('moonc',['-v']),python:run(python,['--version']),result,physical,workspace,
+      module_original:moduleOriginal,
       positive_native_result_acceptance:false,public_local_acceptance:false};
     const file=join(receipt,'physical-boundary-receipt.json');
     try{

@@ -8,6 +8,7 @@ import importlib.util
 import json
 from pathlib import Path
 import shutil
+import shlex
 import struct
 import subprocess
 import tempfile
@@ -31,12 +32,16 @@ class LocalArtifactProducerTests(unittest.TestCase):
         self.root = Path(self.temporary.name)
         self.source = self.root / 'source'
         self.source.mkdir()
-        paths = ['toolchain.json', 'vendor/duckdb/1.4.3/manifest.json',
+        paths = ['toolchain.json', 'moon.mod', 'vendor/duckdb/1.4.3/manifest.json',
+                 'scripts/generate-local-wasm-abi.py',
+                 'packages/python-sdk/src/actql_sdk/_local_wasm_abi.py',
+                 'src/physical_resources/imported_child_ledger_wasm.mbt',
                  'packages/python-product/pyproject.toml',
                  'packages/python-sdk/pyproject.toml', 'packages/python-local-runtime/pyproject.toml',
                  'packages/python-local-runtime/setup.py',
                  'packages/python-local-runtime/src/actql_local_runtime/__init__.py']
         paths += [str(path.relative_to(ROOT)) for path in producer.recipe.notice_originals().values()]
+        paths += [str(path.relative_to(ROOT)) for path in (ROOT / 'src/client_host_wasm').glob('*.mbt')]
         for filename in paths:
             target = self.source / filename
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -50,6 +55,21 @@ class LocalArtifactProducerTests(unittest.TestCase):
         # Synthetic format headers and declared receipt records exercise only
         # finite producer assembly. Neither component has been executed.
         self.module.write_bytes(b'\0asm\x01\0\0\0fixture-not-an-executed-module')
+        self.core_input = self.root / 'original.core'
+        self.core_input.write_bytes(b'Independent non-executable link input fixture')
+        self.link_response = self.root / 'original.wasm.rsp'
+        self.link_response.write_text(shlex.join(['link-core', str(self.core_input),
+            '-o', str(self.module), '-target', 'wasm', '-memory-limits-max', '256']))
+        self.moon_home = self.root / 'fixture-toolchain'
+        (self.moon_home / 'bin').mkdir(parents=True)
+        pin = json.loads((self.source / 'toolchain.json').read_bytes())
+        (self.moon_home / 'installed.json').write_text(json.dumps({'pin': pin, 'platform': 'darwin-arm64'}))
+        # These executable version-response fixtures are not compilers. Their
+        # file/version fences exercise only the maintainer input verifier.
+        for name, value in [('moon', 'moon ' + pin['moon']), ('moonc', pin['moonc'])]:
+            path = self.moon_home / 'bin' / name
+            path.write_text('#!/bin/sh\nprintf \'%s\\n\' ' + shlex.quote(value) + '\n')
+            path.chmod(0o755)
         command = struct.pack('<6I', 0x32, 24, 1, 11 << 16, 11 << 16, 0)
         self.library.write_bytes(struct.pack('<8I', 0xfeedfacf, 0x0100000c, 0, 6, 1, len(command), 0, 0) + command)
         digest = hash_bytes(self.module.read_bytes())
@@ -58,6 +78,7 @@ class LocalArtifactProducerTests(unittest.TestCase):
                      'moonc': json.loads((self.source / 'toolchain.json').read_bytes())['moonc'],
                      'python': 'synthetic fixture', 'positive_native_result_acceptance': False,
                      'public_local_acceptance': False,
+                     'contract': {'success': True, 'module_sha256': digest},
                      **{name: {'success': True, 'module_sha256': digest, 'cases': ['synthetic fixture']}
                         for name in ('result', 'physical', 'workspace')}}
         self.duckdb = {'source_sha': self.head, 'library': str(self.library),
@@ -97,6 +118,11 @@ class LocalArtifactProducerTests(unittest.TestCase):
         self.head = self.git('rev-parse', 'HEAD')
 
     def write_receipts(self):
+        self.module_original = producer.record_original_module(self.source, self.head, self.head,
+            self.module, self.link_response, self.moon_home)
+        self.core['module_original'] = self.module_original
+        self.module_file = self.root / 'module-original.json'
+        self.module_file.write_text(json.dumps(self.module_original))
         self.core_file.write_text(json.dumps(self.core))
         self.duckdb_file.write_text(json.dumps(self.duckdb))
         self.image_file.write_text(json.dumps(self.image))

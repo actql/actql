@@ -1002,6 +1002,12 @@
           "path": "spec/contracts/actql-local-signing-public-key.schema.json",
           "pointer": "",
           "cid": "sha256:42ec6febe92ce3582a27602bc8aff0b30a9d26c9f2f212aebd158310b77b7599"
+        },
+        {
+          "path": "spec/contracts/actql-protocol-schemas.json",
+          "pointer": "/schemas/model_provider_defaults",
+          "cid": "sha256:5aa89d89b0f91d52402179597140ef3f9e7f4d1752fcd3df5dd03f7eecfa721b",
+          "version": "actql-protocol-schema-registry/0.1"
         }
       ],
       "normative_imports": [
@@ -2002,7 +2008,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:eb2057244809e2cd2aa2af768725b5363f00a247a67f39e5893ddd32fb00eebe"
+          "document_cid": "sha256:268bf0e425202eb5fb12af44b3989fb900a313c29391e1e326e0fdf078363479"
         },
         {
           "owner": "actql.protocol.artifacts",
@@ -2075,7 +2081,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:eb2057244809e2cd2aa2af768725b5363f00a247a67f39e5893ddd32fb00eebe"
+          "document_cid": "sha256:268bf0e425202eb5fb12af44b3989fb900a313c29391e1e326e0fdf078363479"
         }
       ]
     },
@@ -2211,7 +2217,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:eb2057244809e2cd2aa2af768725b5363f00a247a67f39e5893ddd32fb00eebe"
+          "document_cid": "sha256:268bf0e425202eb5fb12af44b3989fb900a313c29391e1e326e0fdf078363479"
         },
         {
           "owner": "actql.protocol.artifacts",
@@ -2398,7 +2404,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:eb2057244809e2cd2aa2af768725b5363f00a247a67f39e5893ddd32fb00eebe"
+          "document_cid": "sha256:268bf0e425202eb5fb12af44b3989fb900a313c29391e1e326e0fdf078363479"
         },
         {
           "owner": "actql.protocol.artifacts",

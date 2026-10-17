@@ -48,6 +48,9 @@ int actql_native_owned_domain_matches_view(actql_owned_capacity *lease,
     const actql_owned_extent_view *view, int64_t original_process);
 int actql_native_owned_domain_has_child(actql_owned_capacity *lease,
     int64_t original_process, int64_t child_process);
+/* Read-only physical pre-start comparison; no launch or stop authority. */
+int actql_native_owned_domain_unborrowed(actql_owned_capacity *lease,
+    const actql_owned_extent_view *view);
 
 /* Borrow a trusted, exclusively initialized, exact-sized private regular FD.
  * This does not create/duplicate/close an FD or charge its physical overhead.
@@ -93,6 +96,14 @@ int actql_native_owned_borrow_extent_domain(actql_owned_extent_view *view,
  * parent loan settlement. Unknown child death leaves the borrow outstanding. */
 int actql_native_owned_return_extent_domain_borrow(actql_owned_extent_view *view,
                                                   actql_owned_capacity **slot);
+/* Physical leaf for the existing process Owner only, AFTER its original typed
+ * child/IPC stop observation. This function does not observe or authorize stop.
+ * It unmaps the parent's original exclusive child view without touching a dead
+ * child's allocator lock or pretending that retained allocations were freed.
+ * The original descriptor/loan and quota still require separate cleanup ACKs.
+ * Failure preserves this same view and slot. Never call from PID absence. */
+int actql_native_owned_unmap_stopped_child_domain(actql_owned_extent_view *view,
+                                                 actql_owned_capacity **slot);
 /* An unmap ACK is not a confirmed process stop or Common borrow return. */
 int actql_native_owned_close_extent_view(actql_owned_extent_view *view);
 /* Only the existing Owner's confirmed-stop/retirement path calls this port;

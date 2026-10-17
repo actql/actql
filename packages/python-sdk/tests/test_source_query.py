@@ -64,11 +64,15 @@ class Peer:
         if operation == self.loss:
             raise httpx.ReadError('Original response lost')
         if operation == 'connect': return httpx.Response(200, json=PROFILE)
-        if operation == 'submit-intent':
+        if operation in ('submit-intent', 'submit-named-intent'):
             if self.entered is not None:
                 self.entered.set()
                 await self.release.wait()
-            return httpx.Response(200, json=ready(body) if self.admission is None else self.admission(body))
+            value = ready(body) if self.admission is None else self.admission(body)
+            if operation == 'submit-named-intent':
+                value = {'kind': 'observed', 'requestName': body['requestName'], 'intentCid': body['intentCid'],
+                         'attemptRef': body['attemptRef'], 'outcome': value['outcome']}
+            return httpx.Response(200, json=value)
         if operation == 'wait': return httpx.Response(200, json=self.reply)
         if operation == 'read':
             stream = Stream(self.raw, self.fail_close)
@@ -136,7 +140,8 @@ class AsyncQueryTests(unittest.IsolatedAsyncioTestCase):
         query = client.aql('FROM source |> LIMIT 2', request_id='chosen-original', result='other')
         await query.all()
         self.assertEqual(peer.requests[1][1]['input']['format'], 'aql-text')
-        self.assertEqual(peer.requests[1][1]['submissionRef']['nonce'], 'chosen-original')
+        self.assertEqual(peer.requests[1][1]['requestName'], 'chosen-original')
+        self.assertNotEqual(peer.requests[1][1]['submissionRef']['nonce'], 'chosen-original')
         self.assertEqual(peer.requests[-1][1]['resultName'], 'other')
 
     async def test_concurrent_consumers_join_original_admission_and_wait(self):
@@ -172,7 +177,7 @@ class AsyncQueryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(peer.streams[0].closes, 1)
 
     async def test_submission_loss_keeps_original_unknown_and_never_resends(self):
-        peer = Peer(); peer.loss = 'submit-intent'; client = await self.client(peer)
+        peer = Peer(); peer.loss = 'submit-named-intent'; client = await self.client(peer)
         query = client.sql('SELECT 1', request_id='unknown-original', attempt_id='unknown-attempt')
         failures = []
         for _ in range(2):
@@ -182,10 +187,11 @@ class AsyncQueryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(failures[0].code, 'SubmissionUnknown')
         self.assertIsNone(failures[0].execution)
         self.assertIsNone(failures[0].observation)
-        self.assertEqual(failures[0].submission_ref['nonce'], 'unknown-original')
+        self.assertEqual(failures[0].request_id, 'unknown-original')
+        self.assertEqual(failures[0].submission_ref, get_submission_input(failures[0])['submissionRef'])
         self.assertEqual(get_submission_input(failures[0])['readOnly'], True)
         self.assertIsNone(query.execution)
-        self.assertEqual(peer.operations(), ['connect', 'submit-intent'])
+        self.assertEqual(peer.operations(), ['connect', 'submit-named-intent'])
 
     async def test_token_reentry_does_not_deadlock_or_duplicate_original_admission(self):
         peer = Peer(); query = None; reentered = False
@@ -215,8 +221,9 @@ class AsyncQueryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(failures[0].code, 'QueryObservationUnknown')
         self.assertIs(failures[0].execution, query.execution)
         self.assertEqual(failures[0].original_error.code, 'ClientTransportUnknown')
-        self.assertEqual(get_submission_input(failures[0])['submissionRef']['nonce'], 'wait-original')
-        self.assertEqual(peer.operations(), ['connect', 'submit-intent', 'wait'])
+        self.assertEqual(get_submission_input(failures[0])['requestName'], 'wait-original')
+        self.assertEqual(failures[0].request_id, 'wait-original')
+        self.assertEqual(peer.operations(), ['connect', 'submit-named-intent', 'wait'])
 
     async def test_cancel_after_submit_entry_retains_attempt_without_second_send(self):
         peer = Peer(); peer.entered, peer.release = asyncio.Event(), asyncio.Event()
@@ -224,11 +231,12 @@ class AsyncQueryTests(unittest.IsolatedAsyncioTestCase):
         query = client.sql('SELECT 1', request_id='cancel-original', attempt_id='cancel-attempt')
         pending = asyncio.create_task(query.all()); await peer.entered.wait(); pending.cancel()
         with self.assertRaises(asyncio.CancelledError) as failure: await pending
-        self.assertEqual(failure.exception.submission_ref['nonce'], 'cancel-original')
+        self.assertEqual(failure.exception.request_id, 'cancel-original')
+        self.assertEqual(failure.exception.submission_ref, get_submission_input(query)['submissionRef'])
         self.assertEqual(failure.exception.attempt_ref['attemptId'], 'cancel-attempt')
         with self.assertRaises(asyncio.CancelledError) as again: await query.all()
         self.assertIs(failure.exception, again.exception)
-        self.assertEqual(peer.operations(), ['connect', 'submit-intent'])
+        self.assertEqual(peer.operations(), ['connect', 'submit-named-intent'])
 
     async def test_held_admission_is_not_waited_restarted_or_read(self):
         peer = Peer()
@@ -315,7 +323,8 @@ class AsyncQueryTests(unittest.IsolatedAsyncioTestCase):
         finally:
             if not pending.done(): pending.cancel()
             with self.assertRaises(asyncio.CancelledError) as failure: await pending
-        self.assertEqual(failure.exception.submission_ref['nonce'], 'reader-close-original')
+        self.assertEqual(failure.exception.request_id, 'reader-close-original')
+        self.assertEqual(failure.exception.submission_ref, get_submission_input(query)['submissionRef'])
         self.assertEqual(peer.operations(), ['connect'])
         self.assertIsNone(query.execution)
         with self.assertRaises(asyncio.CancelledError): await query.all()
@@ -340,8 +349,8 @@ class AsyncQueryTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(asyncio.CancelledError): await pending
         self.assertIs(query.execution, original)
         self.assertIsNotNone(original)
-        self.assertEqual(get_submission_input(original)['submissionRef']['nonce'], 'reader-wait-original')
-        self.assertEqual(peer.operations(), ['connect', 'submit-intent', 'wait'])
+        self.assertEqual(get_submission_input(original)['requestName'], 'reader-wait-original')
+        self.assertEqual(peer.operations(), ['connect', 'submit-named-intent', 'wait'])
 
     async def test_same_advance_close_refuses_without_poisoning_reader(self):
         peer = Peer(); reader = None; reentered = False
@@ -438,7 +447,7 @@ class SyncQueryTests(unittest.TestCase):
                 with self.assertRaises(ClientError) as failure: query.rows()
                 self.assertEqual(failure.exception.code, 'SyncClientInRunningEventLoop')
             asyncio.run(inside())
-        self.assertEqual(peer.operations(), ['connect', 'submit-intent', 'wait', 'read', 'read'])
+        self.assertEqual(peer.operations(), ['connect', 'submit-named-intent', 'wait', 'read', 'read'])
         self.assertTrue(all(stream.closes == 1 for stream in peer.streams))
 
     def test_sync_close_of_unused_query_never_submits(self):

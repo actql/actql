@@ -11,13 +11,15 @@ import struct
 import subprocess
 import sys
 import tempfile
-from typing import Any, cast
+from typing import Any, TYPE_CHECKING, cast
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from python_release_cohort import read_cohort  # noqa: E402
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
 from actql_sdk._local_distribution import LocalComponents, inspect_local_components, _read_file  # noqa: E402
+if TYPE_CHECKING:
+    from actql_sdk._local_image_recipe import _SelectedImageRecipe
 
 
 def library_target(path: Path, *, identity: bytes | None = None,
@@ -111,8 +113,14 @@ def prepare_private_bindings(bindings_source: Path, stage: Path) -> dict[str, An
 
 def stage_private_runtime(components: LocalComponents, bindings_source: Path,
                           native_libraries: Path, target: Path) -> dict[str, object]:
+    """Final wheel caller keeps its original full component admission."""
+    return stage_selected_private_runtime(components.image_recipe, bindings_source,
+                                         native_libraries, target)
+
+
+def stage_selected_private_runtime(selected: _SelectedImageRecipe, bindings_source: Path,
+                                   native_libraries: Path, target: Path) -> dict[str, object]:
     """Generate pinned Python source and copy exact original DLLs; never import them."""
-    selected = components.image_recipe
     selected.validate()
     if native_libraries.is_symlink() or not native_libraries.is_dir():
         raise ValueError('Original private native library directory is unavailable')
@@ -165,9 +173,8 @@ def notice_originals() -> dict[str, Path]:
     }
 
 
-def image_recipe_original(root: Path, source: str) -> bytes:
-    """Bounded exact Git-original read; no unbounded git-show capture."""
-    relative = 'packages/python-local-runtime/selected-image-recipe.json'
+def _source_original(root: Path, source: str, relative: str, label: str) -> bytes:
+    """Read a fixed maintainer input against its bounded exact Git original."""
     try:
         original = _read_file(root / relative, maximum=65536)
         expected = subprocess.check_output(['git', 'rev-parse', '--verify',
@@ -175,10 +182,17 @@ def image_recipe_original(root: Path, source: str) -> bytes:
         actual = subprocess.check_output(['git', 'hash-object', '--stdin'],
             cwd=root, input=original).strip()
         if actual != expected:
-            raise ValueError('Selected image recipe differs from its committed original')
+            raise ValueError(f'{label} differs from its committed original')
         return original
     except (OSError, subprocess.CalledProcessError) as failure:
-        raise ValueError('Selected source-original image recipe is unavailable') from failure
+        raise ValueError(f'{label} is unavailable') from failure
+
+
+def image_recipe_original(root: Path, source: str) -> bytes:
+    """Bounded exact Git-original read; no unbounded git-show capture."""
+    return _source_original(root, source,
+        'packages/python-local-runtime/selected-image-recipe.json',
+        'Selected source-original image recipe')
 
 
 def verify_artifact(artifact: Path) -> LocalComponents:
