@@ -161,7 +161,9 @@ factory fallback. Its closed fields are `scope: "image_compiler_only"`,
 positive signed-64-bit byte count aligned to the actual Host page size;
 generation is a positive unsigned-64-bit value. Booleans are not integers.
 The selected source's exact raw declaration hash is the C holding recipe,
-bound to that source, module, Engine recipe and both libraries.
+bound to that source, module, Engine recipe and both libraries. Acquisition
+rechecks that exact original, including capacity and generation; a copied
+metadata value cannot replace any of those fields before provider loading.
 
 After file-only verification, the maintainer supplier loads that same selected
 C provider and physically acquires its extent. A confirmed nonempty out-slot

@@ -101,6 +101,15 @@ class CompilerHoldingTests(unittest.TestCase):
                 with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'another selected compilation'):
                     compiler._acquire_compiler_holding(original, selected._replace(**{field: 'foreign'}))
 
+    def test_copied_metadata_cannot_replace_original_capacity_generation_or_fingerprint(self):
+        original = self.original()
+        selected = compiler._compiler_holding_original(original)
+        with patch.object(compiler, 'CDLL', side_effect=AssertionError('Provider load')):
+            for field, value in [('capacity_bytes', selected.capacity_bytes * 2),
+                                 ('generation', 8), ('recipe', b'\0' * 32)]:
+                with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'another selected compilation'):
+                    compiler._acquire_compiler_holding(original, selected._replace(**{field: value}))
+
     def test_confirmed_acquire_moves_same_slot_once_to_existing_holding_owner(self):
         original = self.original()
         selected = compiler._compiler_holding_original(original)

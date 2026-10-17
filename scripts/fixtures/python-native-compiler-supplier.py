@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -32,19 +33,31 @@ class CompilerSupplierTests(unittest.TestCase):
     holdings = []
 
     def setUp(self):
-        self.source = subprocess.check_output(
-            ['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+        temporary = tempfile.TemporaryDirectory(prefix='actql-compiler-holding-original-')
+        self.addCleanup(temporary.cleanup)
+        source = Path(temporary.name)
         body = b'independent 64-page C supplier diagnostic; not an Engine recipe'
         recipe = SimpleNamespace(engine_body=body,
             runtime_library_sha256=hashlib.sha256(b'No Rust library in this diagnostic').hexdigest(),
             provider_library_sha256=self.digest, provider_library_bytes=self.provider.stat().st_size)
-        self.original = {'source': self.source,
-            'module_sha256': hashlib.sha256(b'No Wasm module in this diagnostic').hexdigest(),
-            'recipe': recipe, 'provider_library': self.provider}
-        self.selected = compiler._CompilerHoldingOriginal(self.source,
-            self.original['module_sha256'], hashlib.sha256(body).hexdigest(),
-            recipe.runtime_library_sha256, self.digest, 64 * os.sysconf('SC_PAGE_SIZE'),
-            7, hashlib.sha256(b'original 64-page compiler supplier diagnostic').digest())
+        original = source / 'packages/python-local-runtime/selected-compiler-holding.json'
+        original.parent.mkdir(parents=True)
+        module_hash = hashlib.sha256(b'No Wasm module in this diagnostic').hexdigest()
+        original.write_text(json.dumps({'scope': 'image_compiler_only',
+            'module_sha256': module_hash, 'engine_sha256': hashlib.sha256(body).hexdigest(),
+            'runtime_library_sha256': recipe.runtime_library_sha256,
+            'provider_library_sha256': self.digest,
+            'capacity_bytes': 64 * os.sysconf('SC_PAGE_SIZE'), 'generation': 7}))
+        def git(*args):
+            return subprocess.check_output(['git', '-c', 'user.name=Fixture', '-c',
+                'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false', *args],
+                cwd=source, text=True).strip()
+        git('init', '-q'); git('add', '.'); git('commit', '-qm', 'test: retain compiler extent original')
+        self.original = {'source': git('rev-parse', 'HEAD'), 'module_sha256': module_hash,
+                         'recipe': recipe, 'provider_library': self.provider}
+        scoped = patch.object(compiler, 'ROOT', source)
+        scoped.start(); self.addCleanup(scoped.stop)
+        self.selected = compiler._compiler_holding_original(self.original)
 
     def acquire(self):
         holding = compiler._acquire_compiler_holding(self.original, self.selected)

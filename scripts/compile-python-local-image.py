@@ -108,7 +108,8 @@ def _acquire_compiler_holding(original: dict[str, Any],
             or selected.module_sha256 != original['module_sha256']
             or selected.engine_sha256 != hashlib.sha256(recipe.engine_body).hexdigest()
             or selected.runtime_library_sha256 != recipe.runtime_library_sha256
-            or selected.provider_library_sha256 != recipe.provider_library_sha256):
+            or selected.provider_library_sha256 != recipe.provider_library_sha256
+            or selected != _compiler_holding_original(original)):
         raise ValueError('Compiler holding original belongs to another selected compilation')
     provider = original['provider_library']
     _read_file(provider, maximum=recipe.provider_library_bytes,
