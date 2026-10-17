@@ -51,8 +51,8 @@
     {"id":"text-enum-empty-nullable","contract":{"type":"string","nullable":true,"enum":[]},"value":null,"expected":"accepted"},
     {"id":"text-enum-duplicate","contract":{"type":"string","nullable":false,"enum":["high","high"]},"value":"high","expected":"accepted"},
     {"id":"text-enum-unicode-no-nfc","contract":{"type":"string","nullable":false,"enum":["é"]},"value":"é","expected":"StringConstraint"},
-    {"id":"text-enum-extent-intersection","contract":{"type":"string","nullable":false,"enum":["x","large"],"max_codepoints":1},"value":"large","expected":"StringConstraint"},
-    {"id":"text-enum-unicode-astral","contract":{"type":"string","nullable":false,"enum":["😀"],"max_codepoints":1,"max_utf8_bytes":4},"value":"😀","expected":"accepted"},
-    {"id":"text-enum-unicode-astral-byte-bound","contract":{"type":"string","nullable":false,"enum":["😀"],"max_utf8_bytes":3},"value":"😀","expected":"StringConstraint"}
+    {"id":"text-enum-extent-intersection","contract":{"type":"string","nullable":false,"enum":["x","large"],"max_codepoints":1},"value":"large","expected":"StringConstraint","contract_mode":"checked"},
+    {"id":"text-enum-unicode-astral","contract":{"type":"string","nullable":false,"enum":["😀"],"max_codepoints":1,"max_utf8_bytes":4},"value":"😀","expected":"accepted","contract_mode":"checked"},
+    {"id":"text-enum-unicode-astral-byte-bound","contract":{"type":"string","nullable":false,"enum":["😀"],"max_utf8_bytes":3},"value":"😀","expected":"StringConstraint","contract_mode":"checked"}
   ]
 }

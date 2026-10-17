@@ -19,14 +19,19 @@ export function generate(corpus) {
     ids.add(c.id);
     assert.ok(c.contract && typeof c.contract === 'object' && !Array.isArray(c.contract));
     assert.ok(Object.hasOwn(c, 'value'));
+    const mode = Object.hasOwn(c, 'contract_mode') ? c.contract_mode : 'author';
+    assert.ok(['author', 'checked'].includes(mode), 'explicit contract reader mode');
     assert.ok(outcomes.has(c.expected));
     if (Object.hasOwn(c, 'coefficient')) {
       assert.equal(c.expected, 'accepted');
       assert.equal(c.contract.type, 'decimal');
       assert.ok(typeof c.coefficient === 'string' && /^(?:0|-?[1-9][0-9]*)$/.test(c.coefficient));
     }
+    const admittedContract = mode === 'author'
+      ? `contract(${literal(JSON.stringify(c.contract))})`
+      : `@contract.read_checked(owned(parsed(${literal(JSON.stringify(c.contract))})), {max_nodes:100000,max_depth:20000,max_text_bytes:8000000}).unwrap()`;
     lines.push('', '///|', `test ${literal('value admission corpus: ' + c.id)} {`,
-      `  let c = contract(${literal(JSON.stringify(c.contract))})`,
+      `  let c = ${admittedContract}`,
       `  let result = @value_admission.admit(c, owned(parsed(${literal(JSON.stringify(c.value))})), limits())`,
       `  assert_eq(outcome(result), ${literal(c.expected)})`);
     if (Object.hasOwn(c, 'coefficient')) {

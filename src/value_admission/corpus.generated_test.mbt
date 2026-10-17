@@ -368,21 +368,21 @@ test "value admission corpus: text-enum-unicode-no-nfc" {
 
 ///|
 test "value admission corpus: text-enum-extent-intersection" {
-  let c = contract("{\"type\":\"string\",\"nullable\":false,\"enum\":[\"x\",\"large\"],\"max_codepoints\":1}")
+  let c = @contract.read_checked(owned(parsed("{\"type\":\"string\",\"nullable\":false,\"enum\":[\"x\",\"large\"],\"max_codepoints\":1}")), {max_nodes:100000,max_depth:20000,max_text_bytes:8000000}).unwrap()
   let result = @value_admission.admit(c, owned(parsed("\"large\"")), limits())
   assert_eq(outcome(result), "StringConstraint")
 }
 
 ///|
 test "value admission corpus: text-enum-unicode-astral" {
-  let c = contract("{\"type\":\"string\",\"nullable\":false,\"enum\":[\"\u{1f600}\"],\"max_codepoints\":1,\"max_utf8_bytes\":4}")
+  let c = @contract.read_checked(owned(parsed("{\"type\":\"string\",\"nullable\":false,\"enum\":[\"\u{1f600}\"],\"max_codepoints\":1,\"max_utf8_bytes\":4}")), {max_nodes:100000,max_depth:20000,max_text_bytes:8000000}).unwrap()
   let result = @value_admission.admit(c, owned(parsed("\"\u{1f600}\"")), limits())
   assert_eq(outcome(result), "accepted")
 }
 
 ///|
 test "value admission corpus: text-enum-unicode-astral-byte-bound" {
-  let c = contract("{\"type\":\"string\",\"nullable\":false,\"enum\":[\"\u{1f600}\"],\"max_utf8_bytes\":3}")
+  let c = @contract.read_checked(owned(parsed("{\"type\":\"string\",\"nullable\":false,\"enum\":[\"\u{1f600}\"],\"max_utf8_bytes\":3}")), {max_nodes:100000,max_depth:20000,max_text_bytes:8000000}).unwrap()
   let result = @value_admission.admit(c, owned(parsed("\"\u{1f600}\"")), limits())
   assert_eq(outcome(result), "StringConstraint")
 }
