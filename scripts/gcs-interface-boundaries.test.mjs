@@ -12,6 +12,8 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const declarations = JSON.parse(readFileSync(new URL(
   '../src/connectors/gcs/interface-boundaries.json', import.meta.url))).declarations;
 const paths = ['src/connectors/gcs/catalog/object_metadata.mbt',
+  'src/connectors/gcs/catalog/object_target_observation.mbt',
+  'src/connectors/gcs/catalog/target_headers.mbt',
   'src/connectors/gcs/catalog/object_request.mbt',
   'src/connectors/gcs/catalog/object_projection.mbt',
   'src/connectors/gcs/catalog/collection_identity.mbt',
@@ -42,9 +44,9 @@ const moduleOf = (module, source = readFileSync(new URL(`../${module}`, import.m
       : {operations: moonOperations(source), exports: []}),
 });
 
-test('all twenty-four explicit GCS owner operations and APIs retain their ten contract references', () => {
-  assert.equal(declarations.length, 24);
-  assert.equal(assertInterfaceCoverage({root, modules: paths.map(path => moduleOf(path)), declarations}), 24);
+test('all twenty-six explicit GCS owner modules and APIs retain their ten contract references', () => {
+  assert.equal(declarations.length, 26);
+  assert.equal(assertInterfaceCoverage({root, modules: paths.map(path => moduleOf(path)), declarations}), 26);
   assert.deepEqual(moduleOf(paths.at(-1)).compilerFields, []);
 });
 
