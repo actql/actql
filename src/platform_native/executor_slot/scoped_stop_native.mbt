@@ -412,8 +412,13 @@ pub fn NativeScopedExecutorHolder::cleanup(
 fn NativeScopedExecutorHolder::retire_unstarted_transport(
   self : NativeScopedExecutorHolder,
 ) -> Result[Unit, NativeExecutorSlotIssue] {
-  if self.duplex is Some(transport) && !transport.cleanup_unstarted(self) {
-    return Err(Busy)
+  if self.duplex is Some(transport) {
+    if transport.borrowed is Some(borrowed) && !borrowed.returned {
+      return Err(Busy)
+    }
+    if !transport.cleanup_unstarted(self) {
+      return Err(LockFailed)
+    }
   }
   if self.output >= 0 {
     let original = self.output

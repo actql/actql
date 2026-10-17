@@ -73,7 +73,7 @@ test "unstarted cleanup preserves an actual consumed-descriptor Unknown and inde
   let independent_reader = channel_reuse_closed_descriptor(writer)
   assert_true(independent_reader >= 0)
   scoped_test_ok(borrowed.return_transport(holder), "cleanup.unknown.return")
-  assert_true(holder.prepare_unstarted_cleanup() is Err(Busy))
+  assert_true(holder.prepare_unstarted_cleanup() is Err(LockFailed))
   assert_false(holder.cleanup())
   let payload = @utf8.encode("same-independent-reuse")
   assert_eq(
@@ -99,6 +99,20 @@ test "known unstarted cleanup can withdraw transport after original pathname rep
   scoped_test_ok(holder.prepare_unstarted_cleanup(), "cleanup.replaced")
   assert_eq(duplex_closed_ffi(transport.resource), 0)
   assert_false(holder.closed)
+  assert_true(holder.cleanup())
+  assert_true(slot.close())
+}
+
+///|
+test "old attempted one-way path does not gain a new no-child acknowledgement" {
+  let (slot, holder) = scoped_test_ready("cleanup-one-way")
+  assert_true(
+    holder.spawn_with_channel("/actql-no-such-one-way-executable", [])
+    is Err(SpawnFailed),
+  )
+  assert_true(holder.prepare_unstarted_cleanup() is Err(Busy))
+  assert_true(holder.require_prepared() is Err(Closed))
+  assert_true(holder.child() is Err(InvalidConfiguration))
   assert_true(holder.cleanup())
   assert_true(slot.close())
 }
