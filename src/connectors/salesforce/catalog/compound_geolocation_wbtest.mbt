@@ -164,3 +164,89 @@ test "geolocation provider cells preserve null and refuse incomplete extra or co
     )
   }
 }
+
+///|
+test "geolocation original component metadata keeps the original parse bounds and types" {
+  for replacement in ["false", "17", "\"\""] {
+    let body = geolocation_describe().replace_all(
+      old="\"compoundFieldName\":\"Location__c\"",
+      new="\"compoundFieldName\":" + replacement,
+    )
+    assert_true(
+      project_describe(@utf8.encode(body), "Record__c", {
+        max_bytes: 4096,
+        max_nodes: 100,
+        max_depth: 10,
+        max_fields: 10,
+        max_name_units: 100,
+      })
+      is Err(InvalidField("Location__Latitude__s")),
+    )
+  }
+}
+
+///|
+test "geolocation nested values do not escape the original page byte node or depth limits" {
+  let (observation, binding) = declared_observation(geolocation_describe())
+  let plan = prepare_read_projection(
+    observation,
+    binding,
+    "Record__c",
+    ["Location__c"],
+    256,
+  ).unwrap()
+  let wire = @utf8.encode(
+    (
+      #|{"totalSize":1,"done":true,"records":[{"Location__c":{"latitude":37.1,"longitude":-122.2}}]}
+    ),
+  )
+  let limits = query_test_limits()
+  for
+    constrained in [
+      { ..limits, max_bytes: wire.length() - 1, },
+      { ..limits, max_nodes: 7, },
+      { ..limits, max_depth: 2, },
+    ] {
+    assert_true(
+      project_query_page(wire, plan, "v62.0", constrained)
+      is Err(BudgetExceeded),
+    )
+  }
+}
+
+///|
+test "geolocation writes stay on the original described component mappings" {
+  let (observation, binding) = declared_observation(geolocation_describe())
+  let projection = prepare_write_projection(
+    observation,
+    binding,
+    "Record__c",
+    WriteUpdateById,
+    ["Location__Latitude__s", "Location__Longitude__s"],
+    1,
+  ).unwrap()
+  let body = prepare_write_body(
+    projection,
+    @utf8.encode(
+      (
+        #|{"Location__Latitude__s":"37.100000000000000","Location__Longitude__s":"-122.200000000000000"}
+      ),
+    ),
+    { max_bytes: 4096, max_nodes: 20, max_depth: 3, },
+  ).unwrap()
+  assert_eq(
+    write_body_json(body),
+    "{\"Location__Latitude__s\":37.100000000000000,\"Location__Longitude__s\":-122.200000000000000}",
+  )
+  assert_true(
+    prepare_write_projection(
+      observation,
+      binding,
+      "Record__c",
+      WriteUpdateById,
+      ["Location__c"],
+      1,
+    )
+    is Err(_),
+  )
+}
