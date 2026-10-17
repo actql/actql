@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6c37c6fd0db49c7447f0acb8f0fb9204496476d8bceb1cfa0a9fe17b09d9a826",
+      "sha256": "dc915970f164d4abd0c2ad433607f6a9330876691301794c95db4bfd8fb23a77",
       "exports": [
         "PublicationStoreError",
         "openLocalPublicationStore",
@@ -7479,6 +7479,14 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "one dedicated backing"
+              },
+              {
+                "path": "adapters/store-local/streaming-object-read-bound.test.mjs",
+                "anchor": "actual multi-piece short reads reuse one verifier backing"
+              },
+              {
+                "path": "docs/design/execution-completion-storage.md",
+                "anchor": "mandatory object verifier"
               }
             ]
           }

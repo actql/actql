@@ -196,3 +196,20 @@ aliases still overlap. Callback return and losing a local reference are not
 physical backing retirement, GC acknowledgement, or capacity credit. The
 original Source/installation supplier must cover these components and retain
 its loan through actual physical and consumer cleanup.
+
+The mandatory object verifier has a distinct, non-escaping read lifetime.
+It reuses one dedicated backing of `min(65536, original_size + 1)` bytes,
+including the original overflow sentinel for an empty object. Each positional
+read is limited to the remaining admitted extent plus that one probe byte.
+The verifier refuses an overflowing read before hashing any bytes from that
+read; unchanged size, FD/path identity, modification time and content hash
+remain required. Short reads reuse the same backing, with only temporary
+subarray views for the synchronous hash update, not another payload copy or
+queued read. Verification still owns its original FD independently of the
+later Content consumer and retries only that FD's close if it fails.
+
+Its fixed backing extent does not price the FileHandle/native read and hash
+state, view/result/control records, or the containing metadata/holding phase.
+The original supplier must cover those simultaneous components before the
+verification I/O; an accepted hash and a zero pending count are not a new
+funding issuer or another Owner's physical cleanup acknowledgement.

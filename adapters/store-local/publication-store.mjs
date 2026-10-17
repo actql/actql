@@ -1594,18 +1594,26 @@ export async function openLocalPublicationStore(
       // This same-FD verifier keeps one explicit overflow-probe byte so growth
       // is still refused before hashing it. Fund W+1 acquisition separately;
       // neither the accepted W nor a later clamp pays for that sentinel.
-      const stream = handle.createReadStream({autoClose: false,
-        end: before.size, highWaterMark: Math.min(65536, before.size + 1)});
-      for await (const chunk of stream) {
-        // Reject growth before charging this chunk to the hash/accepted byte
-        // inventory. The received chunk and stream backing remain a separate
-        // physical read cost, including the rejected in-flight chunk.
-        if (chunk.byteLength > before.size - bytes ||
-            chunk.byteLength > configuration.maxObjectBytes - bytes) {
+      // Nothing escapes this verifier's synchronous hash update. Reuse this
+      // dedicated backing for short reads instead of a stream's shrink copy
+      // or queued next backing; only the same original read is in flight.
+      const buffer = Buffer.allocUnsafeSlow(before.size < 65536 ? before.size + 1 : 65536);
+      for (;;) {
+        const remaining = before.size - bytes;
+        const requested = remaining < buffer.byteLength ? remaining + 1 : buffer.byteLength;
+        const {bytesRead} = await handle.read(buffer, 0, requested, bytes);
+        if (!quantity(bytesRead) || bytesRead > requested) fail('PublicationObjectCorrupt');
+        if (bytesRead === 0) break;
+        // Refuse the original overflow probe before hashing any of that
+        // read's bytes. The single backing includes its separately funded
+        // sentinel even for an initially empty object.
+        if (bytesRead > remaining ||
+            bytesRead > configuration.maxObjectBytes - bytes) {
           fail('PublicationObjectCorrupt');
         }
+        const chunk = bytesRead === buffer.byteLength ? buffer : buffer.subarray(0, bytesRead);
         hash.update(chunk);
-        bytes += chunk.byteLength;
+        bytes += bytesRead;
       }
       const after = await handle.stat();
       if (!before.isFile() || !after.isFile() || before.dev !== after.dev ||
