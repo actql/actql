@@ -882,3 +882,41 @@ Generic declaration intake then retains its own decode/canonical/preimage
 workspace and new declaration alongside those originals. Structural bounds do
 not supply their funding or make returned aliases free. Installation, Run
 custody, current checks and physical reader retirement remain independent.
+
+## Installed metadata target projection
+
+The existing Notion installer retains its original declaration as the database
+metadata target. Only after the actual database response has been admitted and
+Common has selected its singleton or explicit data-source occurrence does the
+schema callback retain that exact selection and database. Its target projection
+accepts those original references and the same declaration, never a matching id,
+display name, copied selection or body/CID as a replacement. The selected wrapper
+carries the opaque references; the wrapper's JSON shape alone cannot issue them.
+Selection is one-shot, including when a later Site action fails.
+
+The thin private adapter projects the fixed retrieve operation, original origin,
+GET method, exactly encoded path and empty body, plus the installation's explicit
+Account resource. It snapshots each existing provider function and its receiver
+once. Selected input fields must be own data properties; accessors, unknown
+fields, foreign originals, wrong purpose/path and a different receiver refuse.
+The URI coordinate retains exact Unicode/percent spelling without normalization;
+its input lower bound is checked before allocation and its encoded UTF-8 target
+has an independent bound. The public database declaration and all wire/CID
+domains remain unchanged.
+
+These synchronous target facts are DATA for the existing Site's independently
+scoped metadata grant/use. They neither issue a grant nor replace the original
+Host publication request, current Account decision, Site generation, physical
+issuer/key/secret, egress or resource supply. They cannot retarget a query/property
+Run grant or invent a metadata Program Run. The portable selection alone is not
+proof that a response was physically observed by this installation.
+
+The installer closure retains provider methods/receiver, declaration, origin,
+resource, database path and, after selection, the actual database/selection and
+selected path. Original and encoded coordinate strings, UTF-8 measurements,
+projected fact records and the Site's own copies/claims may overlap with the
+reader's raw responses, charges, parsed Catalogs and callbacks. All structural
+bounds remain distinct from lifetime funding. There is no asynchronous work,
+retry or cleanup acknowledgement in the projection; only the existing physical
+cleanup owner can retire those original aliases. Parent publication/reader
+cleanup must continue to retain the graph when it remains unconfirmed.
