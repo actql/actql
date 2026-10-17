@@ -827,6 +827,119 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/connectors/kintone/host/record_delete_mapping.mbt",
+      "sha256": "79a0c03a85ba97afda4b6326390fe54a34a36f233358be3d250248ba9210c696",
+      "exports": [],
+      "operations": [
+        {
+          "name": "prepare_record_delete_mapping",
+          "declaration": "prepare_record_delete_mapping ( original : RecordDeclaration , resource : String , approval : String , limits : @ rows . RowDeclarationLimits , ) - > Result [ RecordDeleteMapping , @ rows . RowMappingIssue ]"
+        },
+        {
+          "name": "record_delete_mapping",
+          "declaration": "record_delete_mapping ( original : RecordDeleteMapping , ) - > @ rows . RowMapping"
+        },
+        {
+          "name": "record_delete_mapping_matches_declaration",
+          "declaration": "record_delete_mapping_matches_declaration ( mapping : RecordDeleteMapping , original : RecordDeclaration , ) - > Bool"
+        },
+        {
+          "name": "record_delete_mapping_matches_request",
+          "declaration": "record_delete_mapping_matches_request ( mapping : RecordDeleteMapping , request : @ catalog . RecordDeleteRequest , ) - > Bool"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing original kintone Catalog and RowDeclaration/Mapping owners; metadata correspondence only",
+      "rationale": "Original opaque declaration/schema metadata and nominal matching; no physical authority, grant, current or cleanup ACK.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepare_record_delete_mapping",
+            "record_delete_mapping",
+            "record_delete_mapping_matches_declaration",
+            "record_delete_mapping_matches_request"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Verification:"
+              },
+              {
+                "path": "src/client_row_source_host/delete_mapping_wbtest.mbt",
+                "anchor": "DELETE Mapping retains original manifest full schema and no proposed-value fields"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_delete_mapping_wbtest.mbt",
+                "anchor": "kintone delete Mapping and request retain the same original App Form and API ID"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-delete-mapping.test.mjs",
+                "anchor": "actual original matching rejects equal foreign declaration, Catalog and incomplete page"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
