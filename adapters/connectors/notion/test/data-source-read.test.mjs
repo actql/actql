@@ -212,3 +212,24 @@ test('compiled Notion query admission refuses malformed status instead of treati
     assert.throws(()=>checked(provider.notionProjectQueryPage(source,body,...metadata,10,128)),{code:'MoonBitHostFailure'});
   }
 });
+
+test('actual Notion lazy property grant follows the original pending request without early authorization',async t=>{
+  const f=await fixture(t),selected=[];
+  const reader=f.create({propertyAuthorization:undefined,propertyAuthorizationFor:async original=>{
+    assert(Object.isFrozen(original));assert.equal(original.readContracts,f.original.readContracts);
+    assert.equal(original.declaration,f.original.declaration);assert.equal(original.source,f.original.source);
+    assert.equal(original.operation,NOTION_PROPERTY_READ_OPERATION);
+    assert.equal(provider.notionPropertyRequestMatchesBinding(original.originalRequest,
+      f.original.readContracts,original.column),true);
+    assert.equal(f.state.requests.length,selected.length===0?1:4,'select after this actual query response');
+    selected.push(original);
+    return f.authorize(NOTION_PROPERTY_READ_OPERATION,`lazy-property-${selected.length}`);
+  }});
+  const result=await reader.read();
+  assert.equal(selected.length,2);assert.equal(result.pages,2);assert.equal(result.rowCount,2);
+  assert.deepEqual(f.rows,[{amount:'9007199254740993.25',enabled:true,title:'ab'},
+    {amount:'9007199254740993.25',enabled:true,title:'cd'}]);
+  assert.notEqual(selected[0].originalRequest,selected[1].originalRequest);
+  assert.equal(f.state.requests.length,6);assert.deepEqual(result.responseCharges,f.state.charges);
+  assert.equal(reader.observe().cleanupConfirmed,false);
+});
