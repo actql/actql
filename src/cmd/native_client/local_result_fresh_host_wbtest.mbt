@@ -88,8 +88,8 @@ test "public Result reads actual published Values from a fresh Host and preserve
   guard command().parse(
       argv=[
         "--mode", "local", "start", "--program-file", "program.json", "--submission-ref-file",
-        "submission.json", "--operation-attempt-id", "public-result-first-start", "--request-id",
-        "public-result-fresh",
+        "submission.json", "--operation-attempt-id", "public-result-first-start",
+        "--request-id", "public-result-fresh",
       ],
       env=Map([]),
     ).subcommand
@@ -115,7 +115,10 @@ test "public Result reads actual published Values from a fresh Host and preserve
   assert_eq(run_text(reply, "kind"), "local_run_published")
   let original = effect_finite_cli_ok(
     host.lookup_submitted_run_original_by_id(
-      crypto, settings.principal, settings.connection, run_id,
+      crypto,
+      settings.principal,
+      settings.connection,
+      run_id,
     ),
     "fresh.original",
   )
@@ -133,10 +136,9 @@ test "public Result reads actual published Values from a fresh Host and preserve
   let saved_wire = saved.wire()
   let result = result_command_child(["--mode", "local", "result", run_id])
   result_fresh_host_marker("ACTQL_PUBLIC_RESULT_BEGIN")
-  local_public_result(host, settings, crypto, sqlite, result) catch {
+  let _ = local_public_result(host, settings, crypto, sqlite, result) catch {
     ClientStop(kind) => fail("fresh.result: " + kind)
   }
-  |> ignore
   result_fresh_host_marker("ACTQL_PUBLIC_RESULT_END")
   effect_finite_cli_ok(host.close(), "fresh.host.close")
   // Read only the same saved original after an actual close/reopen; never
@@ -155,7 +157,11 @@ test "public Result reads actual published Values from a fresh Host and preserve
       ),
       "fresh.reopen.adoption",
     ).open_journal(
-      sqlite, crypto, settings.ttl_ms, settings.record_limit, settings.snapshot_bytes,
+      sqlite,
+      crypto,
+      settings.ttl_ms,
+      settings.record_limit,
+      settings.snapshot_bytes,
     ),
     "fresh.reopen.journal",
   )
