@@ -313,3 +313,54 @@ test "empty original Result still checks selected key type and presence" {
     is Err(Key(NullableWitnessPending)),
   )
 }
+
+///|
+test "original Result key rejects a missing projected field and a different admitted type" {
+  for missing in [false, true] {
+    let (original, field) = result_key_fixture("[{\"n\":1,\"s\":\"a\"}]")
+    let number = @schema.lookup_reference(
+      completed_output_relation_schema(original.rows.source),
+      "n",
+    ).unwrap()
+    let selected : @schema.Field = {
+      name: if missing {
+        number.name
+      } else {
+        field.name
+      },
+      contract: number.contract,
+      presence: @schema.Required,
+    }
+    let validation = start_completed_result_key_validation(
+      @bounded.control(),
+      original,
+      selected,
+      100,
+      1,
+      20,
+    ).unwrap()
+    let mut refused = false
+    for _ in 0..<10000 {
+      match advance_completed_result_key_validation(validation, 1).unwrap() {
+        @bounded.ContinueWith(_, ..) => ()
+        @bounded.FailedWith(Key(issue), ..) => {
+          assert_true(
+            if missing {
+              issue is MissingField
+            } else {
+              issue is UnsupportedKeyDomain
+            },
+          )
+          refused = true
+          break
+        }
+        _ => fail("missing or differently typed original key was accepted")
+      }
+    }
+    assert_true(refused)
+    result_key_cleanup(validation)
+    assert_false(
+      completed_result_key_validation_matches(validation, original, selected),
+    )
+  }
+}

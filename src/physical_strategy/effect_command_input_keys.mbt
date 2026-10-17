@@ -202,3 +202,20 @@ fn captured_effect_optional_command_key_current(
     None => value is None
   }
 }
+
+///|
+/// Final callback-free fence after target/current and row projection calls.
+/// It observes the same original holdings; it issues no availability or ACK.
+fn captured_effect_optional_command_key_retained(
+  value : CapturedEffectCommandKeyValidation?,
+  inputs : CapturedEffectInputs,
+) -> Bool {
+  match value {
+    None => true
+    Some(value) =>
+      !value.revoked &&
+      value.terminal &&
+      physical_equal(value.inputs, inputs) &&
+      captured_effect_local_result_export_retained(inputs, value.exported)
+  }
+}

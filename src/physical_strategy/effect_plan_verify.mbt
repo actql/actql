@@ -160,6 +160,11 @@ pub fn prepare_captured_effect_proposal_plan(
     @execution.managed_result_occurrence_name(input.source.occurrence) {
     return Err(ForeignBinding)
   }
+  if !captured_effect_optional_command_key_current(
+      input_key, inputs, member_index, command,
+    ) {
+    return Err(NotReady)
+  }
   Ok({
     inputs,
     member_index,
@@ -293,6 +298,13 @@ pub fn project_captured_effect_proposal_row(
         ("null", changes)
       }
     }
+  }
+  if !captured_effect_optional_command_key_retained(
+      value.input_key,
+      value.inputs,
+    ) {
+    value.live = false
+    return Err(NotReady)
   }
   value.next_row += 1
   Ok((selector, changes))
@@ -575,6 +587,13 @@ pub fn check_captured_effect_plan_row(
     value.live = false
     return Err(PreviewMismatch)
   }
+  if !captured_effect_optional_command_key_retained(
+      value.input_key,
+      value.preview.inputs,
+    ) {
+    value.live = false
+    return Err(NotReady)
+  }
   value.next_row += 1
   Ok(())
 }
@@ -653,7 +672,12 @@ pub fn captured_effect_plan_proof_matches(
     return false
   }
   match captured_effect_preview_input_at(preview, preview_index) {
-    Some(input) => physical_equal(input, proof.input)
+    Some(input) =>
+      physical_equal(input, proof.input) &&
+      captured_effect_optional_command_key_retained(
+        proof.input_key,
+        preview.inputs,
+      )
     None => false
   }
 }

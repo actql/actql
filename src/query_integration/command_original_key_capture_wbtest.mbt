@@ -187,7 +187,7 @@ test "Command Preview payload proof cannot bypass incomplete or foreign whole-in
     captured,
     inputs,
     template,
-    @admitted.reference_wire_json(original),
+    @admitted.reference_wire(original),
   )
   assert_true(
     @strategy.prepare_captured_effect_plan_verifier(
