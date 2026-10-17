@@ -50,9 +50,12 @@ to the trusted channel caller. Descriptor numbers are physical facts, not a
 capacity grant, permission, process identity or Stop constructor.
 
 The channel Owner must fence new use and observe zero in-flight operations
-before returning that same borrow. Return invalidates its descriptor projection;
+before returning that same borrow. Return requires the original nominal identity,
+not continued use permission, and invalidates its descriptor projection;
 it does not acknowledge child exit, channel metadata, exclusive region or
 WorkspaceLoan cleanup. The Holder refuses close/Stop while the borrow is active.
+Lost currentness or an Unknown descriptor cannot prevent withdrawal of that
+same view; known endpoints may retire while the original Unknown remains sticky.
 After return it closes the original endpoints, observes actual child wait and
 reacquires the pinned original slot inode before issuing the existing scoped
 Stop. Closing the parent writer may permit an EOF-waiting child to exit, but EOF
