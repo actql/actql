@@ -451,3 +451,16 @@ The private key therefore reinstalls its original alias on each pass rather than
 relying on a NULL destructor or C thread-local storage surviving all other TLS
 cleanup. Matching-target conformance includes allocation in a real pthread
 key destructor; it does not establish every upstream Rust thread origin.
+
+`owned_handler_thread.rs` binds the existing C trampoline before invoking the
+selected Rust handler. `wasmtime-owned-thread-review.patch` is an exact,
+feature-gated source preparation against the pinned upstream commit. Its source
+verifier checks the three original preimages, copied wrapper and derived bodies;
+this is not evidence of a linked Wasmtime handler or an Engine execution.
+
+The small Rust/C fixture deliberately retains its positive final holding-close
+assertion. Its caught-panic path initializes Rust's process-static backtrace
+mutex through the original allocator; native join does not free that static
+allocation. A failed final close stays failed with the original responsibility.
+No panic-hook suppression, capacity increase or force-free substitutes for
+confirmed process/runtime stop and original backing return.
