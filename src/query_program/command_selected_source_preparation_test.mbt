@@ -53,9 +53,8 @@ fn selected_command_preparation_issue(
         Program(_) => "Candidate.Computation.Program"
         CapacityInputs(_) => "Candidate.Computation.CapacityInputs"
         Environment(_) => "Candidate.Computation.Environment"
-        Source(source) =>
-          "Candidate.Computation.Source." +
-          match source {
+        Source(source) => {
+          let category = match source {
             @check.SourceFailure::DeclarationWorkLimit => "DeclarationWorkLimit"
             CapacityMetadataBudget => "CapacityMetadataBudget"
             UnsupportedBindings(_) => "UnsupportedBindings"
@@ -68,6 +67,8 @@ fn selected_command_preparation_issue(
             Registration(_) => "Registration"
             SourceView(_) => "SourceView"
           }
+          "Candidate.Computation.Source." + category
+        }
         Closure(_) => "Candidate.Computation.Closure"
         Units(_) => "Candidate.Computation.Units"
         Template(_, _) => "Candidate.Computation.Template"
