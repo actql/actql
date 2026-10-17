@@ -274,6 +274,8 @@ pub fn client_program_effect_captured_source_matches_at(@run_publication_host.Pr
 
 pub fn client_program_effect_command_content_borrow(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, Int, String, Int, Int) -> Result[@run_publication_host.ClientEffectCommandContent, @run_publication_host.ClientEffectCommandContentIssue]
 
+pub fn client_program_effect_command_content_borrow_workspace(@run_publication_host.ClientEffectCommandContent, @value_admission.CheckedValue, @physical_resources.SharedCapacity, @physical_resources.SharedAllocation) -> Result[@physical_resources.SharedBorrow, @run_publication_host.ClientEffectCommandContentIssue]
+
 pub fn client_program_effect_command_content_matches(@run_publication_host.ClientEffectCommandContent, @run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, Int, String) -> Bool
 
 pub fn client_program_effect_command_content_matches_issued(@run_publication_host.ClientEffectCommandContent, @value_admission.CheckedValue) -> Bool
@@ -283,6 +285,8 @@ pub fn client_program_effect_command_content_prepare_artifact(@run_publication_h
 pub fn client_program_effect_command_content_release(@run_publication_host.ClientEffectCommandContent) -> Unit
 
 pub fn client_program_effect_command_content_release_artifact(@run_publication_host.ClientEffectLocalResultArtifact, Int) -> Bool
+
+pub fn client_program_effect_command_content_return_workspace(@physical_resources.SharedBorrow) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn client_program_effect_command_content_wire(@run_publication_host.ClientEffectCommandContent) -> Result[String, @run_publication_host.ClientEffectCommandContentIssue]
 

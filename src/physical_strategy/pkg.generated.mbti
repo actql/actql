@@ -67,6 +67,8 @@ pub fn borrow_captured_any_result_output(CapturedDAG, Int, @execution_relation.M
 
 pub fn borrow_captured_carrier_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, @execution_relation.CarrierManagedCompletedOutput, Int) -> Result[CapturedResidentResultBorrow, RunIssue]
 
+pub fn borrow_captured_effect_input_workspace(CapturedEffectInputs, @physical_resources.SharedCapacity, @physical_resources.SharedAllocation) -> Result[@physical_resources.SharedBorrow, @physical_resources.LedgerIssue]
+
 pub fn[T] borrow_captured_managed_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, @execution_relation.ManagedCompletedOutput[T], Int) -> Result[CapturedResidentResultBorrow, RunIssue]
 
 pub fn borrow_captured_result_completion(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, Int) -> Result[CapturedResultBorrow, RunIssue]
