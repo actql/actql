@@ -38,7 +38,7 @@ fn row_test_title(
   project_notion_property_item_page(
     request,
     @utf8.encode(
-      (try! @utf8.decode(response[:])).replace(old="\"v\"", new="\"t%3Ax\""),
+      (try! @utf8.decode(response[:])).replace_all(old="\"v\"", new="\"t%3Ax\""),
     ),
   ).unwrap()
 }
@@ -121,7 +121,7 @@ test "Notion row refuses copied assembly and uncompleted property controls" {
   let incomplete = project_notion_property_item_page(
     request,
     @utf8.encode(
-      (try! @utf8.decode(response[:])).replace(old="\"v\"", new="\"t%3Ax\""),
+      (try! @utf8.decode(response[:])).replace_all(old="\"v\"", new="\"t%3Ax\""),
     ),
   ).unwrap()
   assert_eq(
