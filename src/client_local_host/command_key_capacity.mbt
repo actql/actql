@@ -41,7 +41,9 @@ pub fn client_command_key_workspace_capacity(
       wire.max_nodes < 1 ||
       wire.max_nodes > exported.wire.max_nodes ||
       wire.max_depth < 0 ||
-      wire.max_depth > exported.wire.max_depth {
+      // Logical relation framing may exceed the payload wire's depth (for
+      // example 64 -> 66); quote its actual declared depth independently.
+      wire.max_depth > values.max_depth {
       return None
     }
   }

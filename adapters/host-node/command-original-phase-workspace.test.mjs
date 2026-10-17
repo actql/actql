@@ -110,3 +110,29 @@ test('actual original phase rejects a foreign Run or member and leaves absent-ke
     await Promise.all([first.close(), second.close(), absent.close()]);
   }
 });
+
+test('refused nested synchronous preparation cannot release the outer original stack fence', async () => {
+  const fixture = await originalCommandKeyFixture();
+  let scope;
+  try {
+    scope = checked(moon.clientProgramPlanEffectCommandKeyWorkspace(
+      fixture.owned, fixture.inputs, 0, fixture.limits, 10000));
+    // A private synchronous caller has entered but not yet reached its
+    // finally, including when the original operation refuses before import.
+    assert.throws(() => checked(moon.clientProgramStartEffectCommandKeyWorkspace(scope)),
+      {code: 'MoonBitHostFailure'});
+    assert.equal(checked(moon.clientProgramCloseEffectCommandKeyWorkspace(scope)), false);
+    assert.throws(() => start(scope), {code: 'MoonBitHostFailure'});
+    // The nested helper's finally must leave the OUTER entry outstanding.
+    assert.equal(checked(moon.clientProgramCloseEffectCommandKeyWorkspace(scope)), false);
+    moon.clientProgramEffectCommandKeyWorkspaceSynchronousEnd(scope);
+    await close(scope);
+    assert.equal(pending(scope), false);
+  } finally {
+    if (scope !== undefined) {
+      moon.clientProgramEffectCommandKeyWorkspaceSynchronousEnd(scope);
+      await close(scope);
+    }
+    await fixture.close();
+  }
+});

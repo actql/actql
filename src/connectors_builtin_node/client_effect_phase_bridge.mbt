@@ -4,7 +4,7 @@
 /// preparation and keeps it with its original captured payload until release.
 struct ClientEffectCommandWorkspace {
   mut origin : (ClientLocalEffectHost, @strategy.CapturedEffectInputs)?
-  member : Int
+  member_index : Int
   limits : @publication_host.PublicationOutputExportLimits
   max_work : Int
   quote : @execution.ExecutionCapacity
@@ -82,7 +82,7 @@ fn client_effect_workspace_limits_equal(
 pub fn client_program_plan_effect_command_key_workspace(
   owner : ClientLocalEffectHost,
   inputs : @strategy.CapturedEffectInputs,
-  member : Int,
+  member_index : Int,
   limits : @publication_host.PublicationOutputExportLimits,
   max_work : Int,
 ) -> Result[ClientEffectCommandWorkspace?, ClientEffectCommandWorkspaceIssue] {
@@ -91,7 +91,9 @@ pub fn client_program_plan_effect_command_key_workspace(
     return Err(ForeignOrigin)
   }
   match
-    @strategy.captured_effect_command_requires_input_key(inputs, member, max_work) {
+    @strategy.captured_effect_command_requires_input_key(
+      inputs, member_index, max_work,
+    ) {
     Ok(false) => return Ok(None)
     Ok(true) => ()
     Err(issue) => return Err(Key(issue))
@@ -102,7 +104,9 @@ pub fn client_program_plan_effect_command_key_workspace(
   }
   let mut task = None
   for index in 0..<count {
-    if @strategy.captured_effect_local_result_matches_member(inputs, index, member) {
+    if @strategy.captured_effect_local_result_matches_member(
+        inputs, index, member_index,
+      ) {
       if task is Some(_) {
         return Err(ForeignOrigin)
       }
@@ -121,14 +125,16 @@ pub fn client_program_plan_effect_command_key_workspace(
     return Err(ForeignOrigin)
   }
   let limits = client_program_own_effect_export_limits(limits)
-  guard @client_local_host.client_command_key_workspace_capacity(sequence, limits)
+  guard @client_local_host.client_command_key_workspace_capacity(
+      sequence, limits,
+    )
     is Some(quote) else {
     return Err(Unavailable)
   }
   Ok(
     Some({
       origin: Some((owner, inputs)),
-      member,
+      member_index,
       limits,
       max_work,
       quote,
@@ -153,7 +159,8 @@ fn begin_client_effect_command_key_workspace(
     return Err(ForeignOrigin)
   }
   let (owner, inputs) = value.origin.unwrap()
-  guard @strategy.captured_effect_input_at(inputs, value.member) is Some(input) else {
+  guard @strategy.captured_effect_input_at(inputs, value.member_index)
+    is Some(input) else {
     return Err(ForeignOrigin)
   }
   if !@strategy.captured_effect_input_matches_managed(input, output) {
@@ -193,7 +200,8 @@ fn begin_client_effect_command_key_workspace(
     return Err(Unavailable)
   }
   if value.borrow is None {
-    match @resources.borrow_shared_capacity(capacity, value.allocation.unwrap()) {
+    match
+      @resources.borrow_shared_capacity(capacity, value.allocation.unwrap()) {
       Ok(borrow) => value.borrow = Some(borrow)
       Err(issue) => return Err(Resource(issue))
     }
@@ -202,7 +210,12 @@ fn begin_client_effect_command_key_workspace(
     return Err(Unavailable)
   }
   let importing = match
-    client_program_effect_managed_input_begin(input, output, material, value.limits) {
+    client_program_effect_managed_input_begin(
+      input,
+      output,
+      material,
+      value.limits,
+    ) {
     Ok(importing) => importing
     Err(issue) => return Err(Import(issue))
   }
@@ -220,7 +233,7 @@ fn begin_client_effect_command_key_workspace(
 pub fn client_program_begin_effect_command_key_workspace(
   value : ClientEffectCommandWorkspace,
   inputs : @strategy.CapturedEffectInputs,
-  member : Int,
+  member_index : Int,
   limits : @publication_host.PublicationOutputExportLimits,
   output : @execution.ManagedCompletedOutput[Int],
   material : @execution.ManagedRetainedOutput[Int],
@@ -233,7 +246,7 @@ pub fn client_program_begin_effect_command_key_workspace(
   }
   guard value.origin is Some((_, original)) &&
     physical_equal(original, inputs) &&
-    value.member == member &&
+    value.member_index == member_index &&
     client_effect_workspace_limits_equal(value.limits, limits) else {
     return Err(ForeignOrigin)
   }
@@ -257,7 +270,10 @@ pub fn client_program_effect_command_key_workspace_synchronous_end(
 #export_name("clientProgramStartEffectCommandKeyWorkspace")
 pub fn client_program_start_effect_command_key_workspace(
   value : ClientEffectCommandWorkspace,
-) -> Result[@strategy.CapturedEffectCommandKeyValidation, ClientEffectCommandWorkspaceIssue] {
+) -> Result[
+  @strategy.CapturedEffectCommandKeyValidation,
+  ClientEffectCommandWorkspaceIssue,
+] {
   value.operating += 1
   if value.operating != 1 ||
     value.key is Some(_) ||
@@ -270,7 +286,10 @@ pub fn client_program_start_effect_command_key_workspace(
     return Err(Unavailable)
   }
   let result = client_program_effect_managed_command_key_start(
-    inputs, value.member, importing, value.max_work,
+    inputs,
+    value.member_index,
+    importing,
+    value.max_work,
   )
   let result = match result {
     Err(issue) => Err(Key(issue))
