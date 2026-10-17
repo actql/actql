@@ -378,8 +378,8 @@ fn require_native_client_work_current(
 
 ///|
 // One synchronous predicate uses the record returned by its own authenticated
-// lookup. That lookup still completes the full all-row custody scan and its
-// transaction before returning. No callback or physical operation separates
+// lookup. That lookup keeps its full custody/transaction protocol, including
+// the existing owned-publication-fence join. No callback or physical operation separates
 // this record from the caller's final original-start checks; nothing is cached
 // across predicates or exposed as an execution permission.
 fn require_native_client_work_current_record(
