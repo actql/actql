@@ -234,3 +234,26 @@ test('mixed original presence binds only actual version rows in sealed canonical
     current.observedRows, current.guardVersions, 100, 10000));
   assert.equal(f.state.sends, 0);
 });
+
+for (const kind of ['update', 'delete']) {
+  test(`actual ${kind} keeps source Plan order separate from canonical original claim order`, async t => {
+    const rows = [{id: 'c-key', value: 'c'}, {id: 'a-key', value: 'a'}];
+    const f = await fixture(t, {kind, observation: entry => ({identity: entry.target,
+      versionCid: cid(entry.target + ' version'),
+      before: {id: entry.target, value: 'original ' + entry.target}})});
+    await f.host.run(program(f.mapping, {kind, rows}), 'original-guarded-order');
+    const stage = f.host.outcomes[0].stage;
+    const member = JSON.parse(f.host.control.effectComputationPreviewWire(stage.preview)).effects[0];
+    assert.deepEqual(member.changes.map(row => row.target_row_identity), ['c-key', 'a-key']);
+    const byCid = new Map(member.changes.map(row => [row.row_preview_cid, row]));
+    assert.deepEqual(member.row_order.map(row => byCid.get(row).target_row_identity), ['a-key', 'c-key']);
+    assert.deepEqual(stage.apply.members[0].claims.map(row => row.canonicalRequestCid),
+      [...rows].reverse().map(value => cid({target: value.id, ...(kind === 'delete' ? {} : {value})})));
+    const current = await stage.apply.refreshPreflight({preflight: stage.apply.preflight});
+    assert.deepEqual(current.observedRows, member.row_order);
+    assert.deepEqual(current.guardVersions, [cid('a-key version'), cid('c-key version')]);
+    checked(moon.clientProgramCheckEffectPreviewTargetGuards(stage.apply.capturedInputs,
+      current.observedRows, current.guardVersions, 100, 10000));
+    assert.equal(f.state.sends, 0);
+  });
+}
