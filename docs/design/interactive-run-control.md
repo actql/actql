@@ -70,6 +70,22 @@ runtime dispatch order.
 
 ## Legacy consumer truthfulness
 
+### Typed current-state wait projection
+
+The existing `run_publication` Owner provides a closed `RunWaitUntil` choice.
+`Stable` preserves the original wait readiness, including a waiting Checkpoint
+or reconciliation; `Final` follows those phases until the existing Run outcome
+is succeeded, failed or cancelled. Both consume the same bounded, validated
+Run-state record and require an observation strictly newer than `since` when
+it is present. The original default entry point and wire are unchanged.
+
+This read-only projection does not create a transition, infer missing Run data,
+answer an approval, grant dispatch, or acknowledge physical cleanup. A final
+semantic outcome can retain unavailable Results or unknown physical-stop facts.
+Native status following consumes this Owner decision instead of maintaining a
+second adapter status table; its clock/deadline and current lookup remain Host
+responsibilities.
+
 The old SDK continues to expose only its original RunState. A negotiated
 paused state, or manual-origin resuming state, refuses old projection with
 `RunStateVersionUnsupported`. Where an exact legacy projection exists, Run,

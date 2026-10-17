@@ -5,10 +5,9 @@
 fn normalize_native_status_arguments(
   matches : @argparse.Matches,
 ) -> Unit raise ClientStop {
-  guard matches.subcommand is Some(("status", child)) &&
-    optional(child, "run") is Some(id) else {
-    return
-  }
+  guard matches.subcommand is Some(("status", child)) else { return }
+  ignore(local_status_watch_options(child))
+  guard optional(child, "run") is Some(id) else { return }
   for name in ["run-id", "ref-file", "submission-ref-file"] {
     if optional(child, name) is Some(_) {
       stop("ConflictingLocalStatusSelection")
@@ -27,6 +26,7 @@ fn local_saved_run_status(
   crypto : @local_crypto.Library,
   input_root : String,
   child : @argparse.Matches,
+  state_only? : Bool = false,
 ) -> String raise ClientStop {
   let scope = local_host_result(
     host.authority_scope_cid(settings.principal, settings.connection, crypto),
@@ -79,11 +79,11 @@ fn local_saved_run_status(
   }
   // The public ID spelling returns the portable saved State directly. Do not
   // nest it in private metadata or spend another wire budget on a wrapper.
-  if child.sources.get("run") is Some(@argparse.Argv) {
+  if state_only || child.sources.get("run") is Some(@argparse.Argv) {
     if !current() {
       stop("LocalRunStateReadAuthorizationDenied")
     }
-    return if child.flags.get("json").unwrap_or(false) {
+    return if state_only || child.flags.get("json").unwrap_or(false) {
       state.wire()
     } else {
       local_run_state_display(state.wire()).unwrap_or_else(() => {

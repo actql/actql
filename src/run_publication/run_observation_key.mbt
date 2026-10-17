@@ -8,16 +8,9 @@ pub fn run_observation_key(
   cleanup_pending : Bool?,
   physical_stop : Bool?,
 ) -> String? {
-  let status : RunOutcomeStatus = match outcome {
-    "preparing" => Preparing
-    "running" => Running
-    "waiting_checkpoint" => WaitingCheckpoint
-    "resuming" => Resuming
-    "needs_reconciliation" => NeedsReconciliation
-    "succeeded" => Succeeded
-    "failed" => Failed
-    "cancelled" => Cancelled
-    _ => return None
+  let status = match read_run_outcome_status(outcome) {
+    Some(status) => status
+    None => return None
   }
   if revision < 0L || revision > 9007199254740991L {
     return None

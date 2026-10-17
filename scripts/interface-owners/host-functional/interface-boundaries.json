@@ -39692,11 +39692,12 @@
     {
       "module": "adapters/host-node/source-profile-json.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "480e45f83f75118606fa04ef082a7b02297dc0edcefc36f40e9f4022140fb5a9",
+      "sha256": "ba9f0773e3a7f899a8bbfabe4ae853e7e947a3f635a5daea8f41f4fee391a502",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
         "readBoundedConfigurationText",
+        "readBoundedConfigurationUtf8",
         "readSourceProfileJson"
       ],
       "operations": [
@@ -39711,6 +39712,22 @@
         },
         {
           "name": "readBoundedConfigurationText/readBoundedConfigurationText",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "readBoundedConfigurationUtf8",
+          "parameters": [
+            "path",
+            "maxBytes",
+            "openFile"
+          ],
+          "async": true
+        },
+        {
+          "name": "readBoundedConfigurationUtf8/readBoundedConfigurationUtf8",
           "parameters": [
             "bytes"
           ],
@@ -39774,6 +39791,8 @@
             "<module>",
             "readBoundedConfigurationText",
             "readBoundedConfigurationText/readBoundedConfigurationText",
+            "readBoundedConfigurationUtf8",
+            "readBoundedConfigurationUtf8/readBoundedConfigurationUtf8",
             "readConfiguration",
             "readConfiguration/descriptors/descriptors",
             "readConfiguration/retry/retry",
@@ -39785,6 +39804,7 @@
           ],
           "exports": [
             "readBoundedConfigurationText",
+            "readBoundedConfigurationUtf8",
             "readSourceProfileJson"
           ],
           "attributes": {
@@ -39800,6 +39820,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The private installed Host acquisition stage searches the selected directory"
               }
             ],
             "inputsOutputs": [
@@ -39814,6 +39838,14 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "export async function loadInstalledProjectConfiguration(moon,"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export async function readBoundedConfigurationUtf8(path,"
               }
             ],
             "identity": [
@@ -39828,6 +39860,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "const admitted = readConfiguration(moon, configurationWire, readers);"
               }
             ],
             "ownership": [
@@ -39842,6 +39882,14 @@
               {
                 "path": "docs/design/resident-source-acquisition.md",
                 "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "let original = await openFile(path, 'r');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "const original = Object.freeze({configuration, modelRegistry,"
               }
             ],
             "synchronization": [
@@ -39856,6 +39904,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "// These original callbacks and their receiver remain fixed across file I/O."
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "await readBoundedConfigurationUtf8(registryPath,"
               }
             ],
             "failure": [
@@ -39870,6 +39926,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "if (opened || error?.code !== 'ENOENT') throw error;"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "const cleanupHandle = Object.freeze({status, retry,"
               }
             ],
             "cancellation": [
@@ -39884,6 +39948,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "A pending read remains pending; caller"
               }
             ],
             "resources": [
@@ -39898,6 +39966,14 @@
               {
                 "path": "docs/design/resident-source-acquisition.md",
                 "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The acquisition envelope includes the current read backing, lookahead byte,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "{maxBytes: 65536, openFile: async (...args) => {"
               }
             ],
             "extension": [
@@ -39912,6 +39988,14 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_project_configuration_bridge.mbt",
+                "anchor": "#export_name(\"clientProjectConfigurationAdmit\")"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(bytes)"
               }
             ],
             "verification": [
@@ -39922,12 +40006,25 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.test.mjs",
+                "anchor": "test('project close pending retains the same FD and retries without reread or admission'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.actual.test.mjs",
+                "anchor": "test('actual Common receives one discovered original pair from real bounded file reads'"
               }
             ]
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "node:fs/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/sqlite-checkpoint-journal.mjs",
@@ -50105,9 +50202,10 @@
     {
       "module": "adapters/host-node/installed-project-configuration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "33221285ec436b4a95635d98e4369d7880621c44041a1578a02a7892d692ad4f",
+      "sha256": "d0d265779ff04b16aa18b3b09ca805cf0cf8aa3c51c99cb8cba9e615f76ac14f",
       "exports": [
-        "admitInstalledProjectConfiguration"
+        "admitInstalledProjectConfiguration",
+        "loadInstalledProjectConfiguration"
       ],
       "operations": [
         {
@@ -50120,63 +50218,116 @@
           "async": false
         },
         {
-          "name": "admitInstalledProjectConfiguration/init:originalsForRuntime/init:originalsForRuntime",
-          "parameters": [
-            "runtime"
-          ],
-          "async": false
-        },
-        {
           "name": "fail/fail",
           "parameters": [
             "code"
           ],
           "async": false
+        },
+        {
+          "name": "loadInstalledProjectConfiguration",
+          "parameters": [
+            "moon",
+            "directory",
+            "openFile"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledProjectConfiguration/loadInstalledProjectConfiguration",
+          "parameters": [
+            "args"
+          ],
+          "async": true
+        },
+        {
+          "name": "readConfiguration",
+          "parameters": [
+            "moon",
+            "configurationWire",
+            "readers"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainConfiguration",
+          "parameters": [
+            "moon",
+            "configurationWire",
+            "modelRegistryWire",
+            "configuration",
+            "selected",
+            "readers"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainConfiguration/init:originalsForRuntime/init:originalsForRuntime",
+          "parameters": [
+            "runtime"
+          ],
+          "async": false
         }
       ],
       "imports": [
-        "../host-common/runtime-result.mjs"
+        "../host-common/runtime-result.mjs",
+        "./source-profile-json.mjs",
+        "node:fs/promises",
+        "node:path"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
       "role": "physical-io",
       "owner": "existing Common project admission and installed Host material lifetime",
-      "rationale": "Private same-runtime capture of admitted declaration DATA only. Common owns parsing and meaning; original Host owns physical selection/currentness/funding. No Environment/Model/Run/authority or cleanup grant.",
+      "rationale": "Existing Common project admission with sequential bounded physical acquisition of exact configuration/registry originals. No task elaboration, currentness, Host/Run authority or numerical funding is issued.",
       "contracts": [
         {
           "operations": [
             "<module>",
             "admitInstalledProjectConfiguration",
-            "admitInstalledProjectConfiguration/init:originalsForRuntime/init:originalsForRuntime",
-            "fail/fail"
+            "fail/fail",
+            "loadInstalledProjectConfiguration",
+            "loadInstalledProjectConfiguration/loadInstalledProjectConfiguration",
+            "readConfiguration",
+            "retainConfiguration",
+            "retainConfiguration/init:originalsForRuntime/init:originalsForRuntime"
           ],
           "exports": [
-            "admitInstalledProjectConfiguration"
+            "admitInstalledProjectConfiguration",
+            "loadInstalledProjectConfiguration"
           ],
           "attributes": {
             "responsibility": [
               {
                 "path": "docs/design/model-provider-registration.md",
-                "anchor": "## Project declarations and installed originals"
+                "anchor": "The private installed Host acquisition stage searches the selected directory"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "if (typeof configurationWire !== 'string' ||"
+                "anchor": "export async function loadInstalledProjectConfiguration(moon,"
               },
               {
-                "path": "src/run_publication_host/client_project_model_registry.mbt",
-                "anchor": "pub fn admit_client_project_model_registry("
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export async function readBoundedConfigurationUtf8(path,"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
                 "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "const admitted = readConfiguration(moon, configurationWire, readers);"
               }
             ],
             "ownership": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "let original = await openFile(path, 'r');"
+              },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
                 "anchor": "const original = Object.freeze({configuration, modelRegistry,"
@@ -50185,45 +50336,61 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "const configuration = checked(Reflect.apply(admitConfiguration, moon,"
+                "anchor": "// These original callbacks and their receiver remain fixed across file I/O."
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "await readBoundedConfigurationUtf8(registryPath,"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "if (modelRegistryWire === undefined) fail('InstalledProjectRegistryUnavailable');"
+                "anchor": "if (opened || error?.code !== 'ENOENT') throw error;"
               },
               {
-                "path": "adapters/host-common/runtime-result.mjs",
-                "anchor": "throw Object.assign(new Error('InvalidHostRuntimeResult')"
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "const cleanupHandle = Object.freeze({status, retry,"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "// caller's existing installation Owner; this operation performs no I/O."
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "A pending read remains pending; caller"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "if (await original.close() === false) {"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/model-provider-registration.md",
-                "anchor": "Its record, callback and original runtime/handle/String references remain part"
+                "anchor": "The acquisition envelope includes the current read backing, lookahead byte,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "{maxBytes: 65536, openFile: async (...args) => {"
               }
             ],
             "extension": [
               {
                 "path": "src/connectors_builtin_node/client_project_configuration_bridge.mbt",
                 "anchor": "#export_name(\"clientProjectConfigurationAdmit\")"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(bytes)"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/installed-project-configuration.test.mjs",
-                "anchor": "test('Common rejection and abnormal return are not a successful original pair'"
+                "anchor": "test('project close pending retains the same FD and retries without reread or admission'"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.actual.test.mjs",
-                "anchor": "test('actual Common retains the original project registry pair and all selected locators'"
+                "anchor": "test('actual Common receives one discovered original pair from real bounded file reads'"
               }
             ]
           }

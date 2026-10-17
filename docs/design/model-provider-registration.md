@@ -30,6 +30,32 @@ does not acknowledge physical cleanup or prove a funded envelope. Filesystem
 acquisition, generation/current checks, saved-material admission and the
 complete startup reservation are independently required before public use.
 
+The private installed Host acquisition stage searches the selected directory
+and its parents for `actql.config.json`. Only an acknowledged missing open
+advances the search. A malformed nearer file, failed read or pending close
+cannot select a parent's configuration. Each selected original is bounded to
+65,536 UTF-8 bytes before Common admission; invalid UTF-8 refuses without
+replacement characters or implicit BOM removal. The same admitted configuration
+selects the registry file and state-directory locator, relative to that original
+configuration file. It is not parsed a second time after the registry await.
+The captured Common callbacks retain their original runtime receiver across I/O.
+
+The existing bounded Reader owns the same file descriptor through read and
+close. Pending or failed close returns its original retry/status handle, not
+the text or a substitute project. A pending read remains pending; caller
+abandonment does not acknowledge close. Configuration and registry acquisition
+are sequential, not an atomic filesystem snapshot or an installation-current
+proof. The returned paths and admitted handles are DATA/original references,
+not task elaboration, a Provider registration, a resource loan or permission.
+
+The acquisition envelope includes the current read backing, lookahead byte,
+concatenated input and strict UTF-8 decoder workspace, then the original String
+and Common parsed/admitted handles. Configuration originals remain retained
+while the registry is read and admitted. Records, paths, fixed reader callbacks,
+the returned runtime-check closure and any unresolved cleanup handle also
+remain in the same Host inventory. A byte intake ceiling does not reserve this
+overlap; the original startup/Run funding supplier must cover it separately.
+
 ## Exclusive invocation mode
 
 The existing ModelProvider Owner distinguishes a synchronous fixture callback
