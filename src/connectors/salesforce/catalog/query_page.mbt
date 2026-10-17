@@ -155,6 +155,67 @@ fn admit_decimal_cell(
 }
 
 ///|
+/// The provider delimiter is projected into the same bounded Array Contract.
+/// Count and bound the expansion before allocating converted nodes or copies.
+fn admit_multipicklist_cell(
+  cursor : @decode.Cursor,
+  contract : @contract.Contract,
+  field_name : String,
+  budget : QueryValueBudget,
+) -> Result[@admitted.CheckedValue, QueryPageIssue] {
+  guard @decode.text(cursor) is Ok(text) else {
+    return Err(
+      ValueAdmission(
+        field_name,
+        @admitted.ValueIssue(
+          @admitted.WrongType,
+          path=[],
+          span=@decode.cursor_span(cursor),
+        ),
+      ),
+    )
+  }
+  if budget.nodes < 1 || (!text.is_empty() && budget.nodes < 2) {
+    return Err(BudgetExceeded)
+  }
+  let mut count = if text.is_empty() { 0 } else { 1 }
+  for unit in text {
+    if unit == ';' {
+      if count >= budget.nodes - 1 {
+        return Err(BudgetExceeded)
+      }
+      count += 1
+    }
+  }
+  // Delimiters are not payload text after the original physical projection.
+  guard @scalar.admit_utf8_length64(
+      text,
+      budget.text_bytes.to_int64() + (count - 1).max(0).to_int64(),
+    )
+    is Ok(_) else {
+    return Err(BudgetExceeded)
+  }
+  let span = @decode.cursor_span(cursor)
+  let nodes : Array[@source.Node] = []
+  if !text.is_empty() {
+    for part in text.split(";") {
+      nodes.push({ value: @source.String(part.to_owned()), span, })
+    }
+  }
+  let converted = match
+    @decode.admit({ value: @source.Array(nodes), span, }, {
+      max_nodes: budget.nodes,
+      max_depth: budget.max_depth,
+      max_string_bytes: budget.text_bytes,
+      max_total_string_bytes: budget.text_bytes,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(BudgetExceeded)
+  }
+  admit_query_cell(converted, contract, field_name, budget)
+}
+
+///|
 fn query_api_version_valid(version : String) -> Bool {
   if version.length() < 4 || !version.has_prefix("v") {
     return false
@@ -315,6 +376,9 @@ pub fn project_query_page(
           let admitted = if field.native_type == "datetime" &&
             !@decode.is_null(value) {
             admit_datetime_cell(value, contract, field.name, budget)
+          } else if field.native_type == "multipicklist" &&
+            !@decode.is_null(value) {
+            admit_multipicklist_cell(value, contract, field.name, budget)
           } else if described_decimal_type(field.native_type) &&
             !@decode.is_null(value) {
             admit_decimal_cell(value, bytes, field, contract, budget)

@@ -62,3 +62,30 @@ its identity with the persisted Preview before sending. No-ready-row recovery
 does not acquire mutation authority merely to inspect saved outcomes. It still
 requires current evidence-read admission. Success and unknown are never made
 retryable by issuing a new capability.
+
+
+## Multi-select value projection
+
+The existing Salesforce codec projects Multi-select Picklist API text into the
+existing Array Contract with non-null String elements. Explicit provider null
+stays null. Empty text becomes an empty array; otherwise exact semicolon tokens
+retain order, duplicates, whitespace and empty elements. This is a vendor
+physical projection, not a new Array type rule or permission. The provider's
+[documented semicolon representation](https://help.salesforce.com/s/articleView?id=000387814&language=en_US&type=1)
+and [duplicate-value limitations](https://help.salesforce.com/s/articleView?id=sf.picklist_limitations.htm&language=en_US&type=5)
+do not justify sorting or deduplicating observed values.
+
+An approved empty array is sent as empty text. A literal semicolon inside one
+item and the exact singleton `[""]` are refused through the existing field
+`InvalidValue` before request issuance: they cannot round-trip under this
+projection. Other empty elements, including `["a", ""]`, `["", "a"]` and
+`["", ""]`, are preserved. No escape or provider choice is guessed; provider
+validation remains separate. Input, conversion and emitted Array nodes/text
+consume the original caller's bounded budgets. These checks are not capacity
+reservation, current authorization or a physical success acknowledgement.
+
+Target observation and Preview keep the actual projected original value. A
+provider returning null after an empty-text write is observed as null, never
+substituted with the requested `[]`; existing Effect outcome and reconciliation
+rules still apply. Fresh declarations use the existing Owner to issue their own
+bodies/CIDs; saved original declarations and contract versions are not relabeled.
