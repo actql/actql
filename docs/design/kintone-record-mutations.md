@@ -455,3 +455,34 @@ No installed write support or numerical profile is issued by these codecs.
   fixture response units and same-source workspace packages are explicit test
   preparation; they are not normal Effect funding, pristine installed or live
   service acceptance. Full approved Preview/apply/recovery remains required.
+
+### Original writable-field evidence
+
+The original Form retains each Text calculation expression and each Lookup's
+mapping destinations alongside its existing readable metadata. Native
+`SINGLE_LINE_TEXT` alone is not a manual-write proof: an explicitly empty
+original expression is required. A nonempty expression, missing expression or
+non-string expression cannot issue intended writable values. Calculated Text
+continues to be readable with its original value and field code.
+
+The [provider's update limitations](https://kintone.dev/en/docs/kintone/rest-api/records/update-records/)
+exclude Lookup mapping destinations and ignore automatically calculated Text
+writes. The [original Form Fields response](https://kintone.dev/en/docs/kintone/rest-api/apps/form/get-form-fields/)
+provides the expression and exact destination field codes. A Lookup input is
+not itself a mapping destination. Both documented empty mapping representations
+(an empty array or empty string) retain independent writable fields. A hidden,
+missing or malformed mapping observation cannot establish the absence of
+copied destinations: write preparation remains unavailable under that Form,
+while its existing readable fields remain available. No second lookup, other
+App, display label or Unicode normalization repairs missing evidence.
+
+Existing Form rechecks compare these retained facts too, even when the original
+revision string is unchanged. Exact original response bytes/digests and record
+identities remain unchanged; the extra private projections do not mint a new
+CID, permission, current grant or acknowledgement. They remain within the
+original byte/node/depth bounds. Destination arrays, retained expression strings
+and bounded field/destination comparisons overlap the existing Catalog and
+writer lifetimes; these bounds do not supply whole-phase funding. This is a
+finite physical write profile, not a restriction on readable fields or a claim
+that the full Connector's remaining carriers and actual installed writes are
+complete.

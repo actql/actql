@@ -30,6 +30,29 @@ pub struct RecordWriteValues {
 }
 
 ///|
+fn write_field_available(
+  catalog : FormFieldCatalog,
+  field : FormFieldMetadata,
+) -> Bool {
+  if field.native_type == "SINGLE_LINE_TEXT" &&
+    field.write_expression != Some("") {
+    return false
+  }
+  // The complete Form owns every original mapping destination, including
+  // mappings declared later or in a subtable. Neither a missing observation
+  // nor the lookup input itself is a copied-field proof.
+  for owner in catalog.fields {
+    guard owner.write_lookup_targets is Some(targets) else { return false }
+    for target in targets {
+      if target == field.code {
+        return false
+      }
+    }
+  }
+  true
+}
+
+///|
 fn write_value_contract(field : FormFieldMetadata) -> @contract.Contract? {
   let text = @contract.primitive(@contract.StringType, nullable=false)
   match field.native_type {
@@ -131,6 +154,7 @@ pub fn prepare_record_write_values(
     seen[code] = true
     text_bytes -= bytes
     guard form_field_named(catalog, [code]) is Some(field) &&
+      write_field_available(catalog, field) &&
       write_value_contract(field) is Some(contract) else {
       return Err(FieldUnavailable(code))
     }

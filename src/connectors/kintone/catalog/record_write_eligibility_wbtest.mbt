@@ -121,3 +121,42 @@ test "same revision Form recheck retains calculation and Lookup mapping evidence
     )
   }
 }
+
+///|
+test "mapping destination identity is exact across later and nested original fields" {
+  let catalog = eligibility_catalog(
+    (
+      #|{"é":{"type":"SINGLE_LINE_TEXT","code":"é","expression":""},"e\u0301":{"type":"SINGLE_LINE_TEXT","code":"e\u0301","expression":""},"table":{"type":"SUBTABLE","code":"table","fields":{"lookup":{"type":"SINGLE_LINE_TEXT","code":"lookup","expression":"","lookup":{"fieldMappings":[{"field":"é","relatedField":"source"},{"field":"é","relatedField":"other"}]}}}}}
+    ),
+  )
+  assert_true(eligibility_write(catalog, "é") is Err(FieldUnavailable("é")))
+  assert_true(eligibility_write(catalog, "é") is Ok(_))
+  assert_eq(form_field_paths(catalog).length(), 4)
+}
+
+///|
+test "new write evidence stays within original Form decode bounds and preserves read values" {
+  let body = "{\"revision\":\"7\",\"properties\":{\"calculated\":{\"type\":\"SINGLE_LINE_TEXT\",\"code\":\"calculated\",\"expression\":\"\\\"server\\\"\"}}}"
+  let catalog = form_test_catalog(body~)
+  assert_eq(catalog.response_sha256, @sha.hex(@utf8.encode(body)))
+  let page = project_record_page(
+    b"{\"records\":[{\"$id\":{\"type\":\"__ID__\",\"value\":\"3\"},\"$revision\":{\"type\":\"__REVISION__\",\"value\":\"9\"},\"calculated\":{\"type\":\"SINGLE_LINE_TEXT\",\"value\":\"server\"}}],\"totalCount\":null}",
+    catalog,
+    ["calculated"],
+    record_test_limits(),
+  ).unwrap()
+  let checked = project_checked_record_page(page, None, values_test_limits()).unwrap()
+  assert_true(
+    checked_record_rows(checked)[0][1].value is @admitted.Text("server"),
+  )
+  for
+    limits in [
+      { ..form_test_limits(), max_bytes: @utf8.encode(body).length() - 1, },
+      { ..form_test_limits(), max_nodes: 2, },
+    ] {
+    assert_true(
+      project_form_fields(@utf8.encode(body), "12", limits)
+      is Err(BudgetExceeded),
+    )
+  }
+}
