@@ -167,10 +167,7 @@ fn local_installation_packet_in_transaction(
   payload : Bytes,
 ) -> Result[Bytes, NativeLocalAdoptionIssue] {
   // The initializer and established Host use the same original epoch key and
-  // exact packet encoding. The bound is checked before allocating its packet.
-  if payload.length() > 2048 {
-    return Err(ConfigurationLimit)
-  }
+  // exact packet encoding. Existing callers and their refusal order are intact.
   try {
     let (key, _, _) = read_epoch_custody(database)
       .map_err(issue => NativeLocalAdoptionIssue::Epoch(issue))

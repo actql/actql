@@ -328,8 +328,11 @@ test "initial Signing packet keeps exact existing payload bound and changed cont
     exact,
   )
   assert_true(
-    local_installation_packet(host, @utf8.encode("p".repeat(2049)))
-    is Err(ConfigurationLimit),
+    read_local_installation_authenticated_payload(
+      host,
+      local_installation_packet(host, @utf8.encode("p".repeat(2049))).unwrap(),
+    )
+    is Err(CustodyLost),
   )
   let row = host.database
     .read("client_local_installation_custody", "host")

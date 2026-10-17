@@ -134,6 +134,9 @@ fn NativeLocalInitialSigningCapture::control_body(
 ) -> Result[Bytes, NativeLocalAdoptionIssue] {
   try {
     local_initial_signing_value(self.check_current(crypto, adoption))
+    if self.payload.length() > 2048 {
+      return Err(ConfigurationLimit)
+    }
     let packet = local_initial_signing_value(
       local_installation_packet_in_transaction(database, crypto, self.payload),
     )
