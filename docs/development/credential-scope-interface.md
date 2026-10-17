@@ -222,7 +222,8 @@ unknown-depth and oversized extension trees refuse before token material is
 returned. Unknown OAuth extension members are ignored only after the complete
 response passes the same byte, node, depth and string admission.
 
-An optional response `scope` is observed as an ordered, unique token array;
+An optional response `scope` is observed as an ordered token array without
+sorting or deduplicating the original response;
 absence remains absent. The codec neither substitutes requested scopes nor
 authorizes a scope appearing in the response. The trusted original issuer must
 check correspondence with its declared dependency. The advertised lifetime is

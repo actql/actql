@@ -97,13 +97,11 @@ fn response_scopes(
     }
   }
   let scopes = []
-  let seen : Map[String, Bool] = {}
   for scope in value.split(" ") {
     let scope = scope.to_owned()
-    if scope.is_empty() || seen.contains(scope) {
+    if scope.is_empty() {
       return Err(InvalidScopes)
     }
-    seen[scope] = true
     scopes.push(scope)
   }
   Ok(scopes)

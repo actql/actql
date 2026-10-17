@@ -203,7 +203,7 @@ test "Google response only admits explicit safe Bearer material and positive bou
 }
 
 ///|
-test "Google response observed scopes stay ordered distinct explicit and are never inferred from token success" {
+test "Google response observed scopes stay ordered explicit and are never inferred from token success" {
   for
     body in [
       (
@@ -225,9 +225,6 @@ test "Google response observed scopes stay ordered distinct explicit and are nev
         #|{"access_token":"a","token_type":"Bearer","expires_in":2,"scope":"a  b"}
       ),
       (
-        #|{"access_token":"a","token_type":"Bearer","expires_in":2,"scope":"a a"}
-      ),
-      (
         #|{"access_token":"a","token_type":"Bearer","expires_in":2,"scope":"a\tb"}
       ),
       (
@@ -242,6 +239,12 @@ test "Google response observed scopes stay ordered distinct explicit and are nev
     ),
   ).unwrap()
   assert_eq(token_response_scopes(value), Some(["b", "a"]))
+  let repeated = response(
+    (
+      #|{"access_token":"a","token_type":"Bearer","expires_in":2,"scope":"a a"}
+    ),
+  ).unwrap()
+  assert_eq(token_response_scopes(repeated), Some(["a", "a"]))
 }
 
 ///|
