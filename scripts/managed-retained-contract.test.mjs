@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
 import test from 'node:test';
 import {machineCid} from './actql-spec-family.mjs';
 import './managed-runtime-vectors.mjs';
@@ -58,7 +59,27 @@ test('managed profile pins quantities without weakening old evidence wire', () =
     ['actql-query-acquisition', 'sha256:4bb69dfaade0a15952fe23a8202a9475ff450c9f0fab93f9dd5cef1b82045ab1'],
     ['actql-query-process-evidence', 'sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89'],
     ['actql-query-two-receipt', 'sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8'],
-  ]) assert.equal(machineCid(read(`spec/contracts/${name}.json`)), expected, name);
+  ]) {
+    const path = `spec/contracts/${name}.json`;
+    const current = read(path);
+    // These original whole-contract pins predate the ContentRef dependency
+    // update. Keep their actual Git bodies rather than repinning the oracle
+    // or treating today's dependent contract as the historical wire.
+    const historical = JSON.parse(execFileSync('git', ['show',
+      `0c3c561f45356f74cac8af1bf83c94d58770dfba:${path}`], {encoding: 'utf8', maxBuffer: 1024 * 1024}));
+    assert.equal(machineCid(historical), expected, name);
+    assert.deepEqual(Object.keys(current.dependencies), Object.keys(historical.dependencies));
+    const originalWire = structuredClone(current);
+    for (const [key, dependency] of Object.entries(current.dependencies)) {
+      const referenced = dependency.pointer.split('/').slice(1).reduce((value, part) =>
+        value?.[part.replace(/~1/g, '/').replace(/~0/g, '~')], read(dependency.path));
+      assert.notEqual(referenced, undefined, `${name}: original dependency ${key}`);
+      assert.equal(machineCid(referenced), dependency.cid, `${name}: current dependency ${key}`);
+      originalWire.dependencies[key].cid = historical.dependencies[key].cid;
+    }
+    assert.deepEqual(originalWire, historical, `${name}: only dependency identities advanced`);
+    assert.notEqual(machineCid(current), expected, `${name}: current is not the historical body`);
+  }
 });
 
 test('managed contract retains agreed coverage rather than a process-local projection-only subset', () => {
