@@ -7,7 +7,7 @@ import {canonicalText, verifyIdentity} from './check-canonical-json.mjs';
 import * as wire from '../packages/client-wire/interactive-control.generated.js';
 import {validRunStateShape} from '../packages/client-wire/client-host.generated.js';
 import {identityVectors, shapeVectors, negativeVectors, legacyState, profile,
-  command, cid, bindingVectors} from './fixtures/interactive-run-control-vectors.mjs';
+  command, cid, bindingVectors, running} from './fixtures/interactive-run-control-vectors.mjs';
 
 const schemaName = name => 'validWire' + name.split('_')
   .map(part => part[0].toUpperCase() + part.slice(1)).join('') + 'Shape';
@@ -82,4 +82,23 @@ test('legacy RunState identity and consumer remain unchanged as registries expan
   assert.equal(validRunStateShape({...legacyState, previous_stop_reason: 'entry'}), false);
   assert.equal(wire.validWireControlCommandShape({...command, self_cid: cid('1'),
     operation: 'pause'}), false);
+});
+
+test('state observation revision is independently required and preserves legal zero', () => {
+  assert.equal(legacyState.revision, 0);
+  assert.equal(legacyState.control.revision, 17);
+  assert.equal(running.control_revision, 17);
+  assert.equal(wire.validWireControlledRunStateShape(running), true);
+  assert.equal(wire.validWireControlledRunStateShape({...running,
+    legacy_state: {...legacyState, revision: 1}}), true);
+  const missing = Object.fromEntries(Object.entries(legacyState)
+    .filter(([key]) => key !== 'revision'));
+  assert.equal(validRunStateShape(missing), false);
+  assert.equal(wire.validWireControlledRunStateShape({...running, legacy_state: missing}), false);
+  for (const revision of [null, -1, 0.5, 9007199254740992]) {
+    assert.equal(validRunStateShape({...legacyState, revision}), false);
+    assert.equal(wire.validWireControlledRunStateShape({...running,
+      legacy_state: {...legacyState, revision}}), false);
+  }
+  assert.equal(legacyState.revision, 0, 'validation cannot fill from control revision');
 });
