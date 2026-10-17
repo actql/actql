@@ -164,7 +164,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "2c5cb459a2541f69f3e30c54ff5d80ed13717e4c290d3e4d10d36f5b89299dc2",
+      "sha256": "3ba3aff046832417d9278e48d486f6323f0174edb6c7c0e496088b52b37e501a",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -6456,9 +6456,7 @@
         },
         {
           "name": "runtimeCore/runtimeCore",
-          "parameters": [
-            "value"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -6472,14 +6470,18 @@
         {
           "name": "runtimeCore/runtimeCore#10",
           "parameters": [
-            "transfer"
+            "receipt",
+            "transfer",
+            "source",
+            "bytes",
+            "retained"
           ],
           "async": false
         },
         {
           "name": "runtimeCore/runtimeCore#11",
           "parameters": [
-            "progress"
+            "transfer"
           ],
           "async": false
         },
@@ -6500,15 +6502,15 @@
         {
           "name": "runtimeCore/runtimeCore#14",
           "parameters": [
-            "progress",
-            "value"
+            "progress"
           ],
           "async": false
         },
         {
           "name": "runtimeCore/runtimeCore#15",
           "parameters": [
-            "progress"
+            "progress",
+            "value"
           ],
           "async": false
         },
@@ -6543,8 +6545,7 @@
         {
           "name": "runtimeCore/runtimeCore#2",
           "parameters": [
-            "value",
-            "task"
+            "value"
           ],
           "async": false
         },
@@ -6565,6 +6566,13 @@
         {
           "name": "runtimeCore/runtimeCore#22",
           "parameters": [
+            "progress"
+          ],
+          "async": false
+        },
+        {
+          "name": "runtimeCore/runtimeCore#23",
+          "parameters": [
             "value",
             "bytes",
             "nodes"
@@ -6572,7 +6580,7 @@
           "async": false
         },
         {
-          "name": "runtimeCore/runtimeCore#23",
+          "name": "runtimeCore/runtimeCore#24",
           "parameters": [
             "value"
           ],
@@ -6580,6 +6588,14 @@
         },
         {
           "name": "runtimeCore/runtimeCore#3",
+          "parameters": [
+            "value",
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "runtimeCore/runtimeCore#4",
           "parameters": [
             "value",
             "source",
@@ -6590,7 +6606,7 @@
           "async": false
         },
         {
-          "name": "runtimeCore/runtimeCore#4",
+          "name": "runtimeCore/runtimeCore#5",
           "parameters": [
             "value",
             "transfer",
@@ -6599,20 +6615,11 @@
           "async": false
         },
         {
-          "name": "runtimeCore/runtimeCore#5",
-          "parameters": [
-            "value",
-            "transfer",
-            "confirmed"
-          ],
-          "async": false
-        },
-        {
           "name": "runtimeCore/runtimeCore#6",
           "parameters": [
             "value",
             "transfer",
-            "retained"
+            "confirmed"
           ],
           "async": false
         },
@@ -6621,7 +6628,7 @@
           "parameters": [
             "value",
             "transfer",
-            "confirmed"
+            "retained"
           ],
           "async": false
         },
@@ -6629,18 +6636,16 @@
           "name": "runtimeCore/runtimeCore#8",
           "parameters": [
             "value",
-            "receipt"
+            "transfer",
+            "confirmed"
           ],
           "async": false
         },
         {
           "name": "runtimeCore/runtimeCore#9",
           "parameters": [
-            "receipt",
-            "transfer",
-            "source",
-            "bytes",
-            "retained"
+            "value",
+            "receipt"
           ],
           "async": false
         },
@@ -8001,11 +8006,112 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "runtimeCore/runtimeCore#24"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "The Node Host's private Local-signing metadata view delegates exact grant/use"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "export function createLocalSigningMetadata(moon)"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
+                "anchor": "pub fn client_local_signing_use_prepare("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "fail('ForeignLocalSigningMetadata')"
+              },
+              {
+                "path": "src/remote_credential/local_signing_use.mbt",
+                "anchor": "current_scope != grant.scope"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "let grants = new WeakMap(), scopes = new WeakMap(), uses = new WeakMap();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "It does not stop signing, forget a pending claim, acknowledge key"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "Reflect.apply(methods[name], moon, args)"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Callbacks and their runtime receiver are captured once."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "fail('LocalSigningMetadataRuntimeUnavailable')"
+              },
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "fail('LocalSigningMetadataRetired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Account/issuer, request/Checkpoint/Run, durable original-use and outcome duties"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "independently. Its private maps/tokens/callbacks, decoded metadata and writer"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "view-local references; copied or foreign references cannot cross the seam."
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "localSigningMetadata: () => createLocalSigningMetadata(moon)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-signing-metadata.integration.test.mjs",
+                "anchor": "same actual Credential Owner preserves independent signing grant"
+              },
+              {
+                "path": "adapters/host-node/local-signing-metadata.integration.test.mjs",
+                "anchor": "the full expected original purpose/key/Checkpoint/Run/request scope"
+              },
+              {
+                "path": "adapters/host-node/local-signing-metadata.integration.test.mjs",
+                "anchor": "retiring only the metadata view refuses escaped references"
+              }
+            ]
+          }
         }
       ],
       "imports": [
         "../../packages/client-wire/index.mjs",
         "./compiler-binding.generated.mjs",
+        "./local-signing-metadata.mjs",
         "./publication-action.mjs",
         "./result-output-limits.mjs",
         "./runtime-result.mjs"
@@ -18774,6 +18880,306 @@
               {
                 "path": "src/remote_transfer_abi/pkg.generated.mbti",
                 "anchor": "pub fn transfer_active_at(@remote_transfer.RemoteTransferRequest, Int64) -> Bool"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-common/local-signing-metadata.mjs",
+      "sha256": "4fd8fd6205507a38c02f4a32198a5fcb56abbafb7a58d8d54e6f2019d6e9f846",
+      "exports": [
+        "createLocalSigningMetadata"
+      ],
+      "operations": [
+        {
+          "name": "createLocalSigningMetadata",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/active/active",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/createLocalSigningMetadata",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/createLocalSigningMetadata#2",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/createLocalSigningMetadata#3",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/createLocalSigningMetadata#4",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/createLocalSigningMetadata#5",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/init:admitGrant/init:admitGrant",
+          "parameters": [
+            "wire",
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/init:admitUse/init:admitUse",
+          "parameters": [
+            "grantToken",
+            "wire",
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/init:checkUseBinding/init:checkUseBinding",
+          "parameters": [
+            "token",
+            "trustedNowMilliseconds",
+            "revoked",
+            "expectedScope"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/init:grantLimits/init:grantLimits",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/init:originalScope/init:originalScope",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/init:prepareUse/init:prepareUse",
+          "parameters": [
+            "grantToken",
+            "useId",
+            "trustedNowMilliseconds",
+            "usedCount",
+            "revoked",
+            "expectedScope"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/init:retireMetadataView/init:retireMetadataView",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/init:useProjection/init:useProjection",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/original/original",
+          "parameters": [
+            "map",
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/retain/retain",
+          "parameters": [
+            "map",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/time/time",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Credential metadata Owner, Node opaque view and original Host lifetime",
+      "rationale": "Delegates all grant/use meaning to Credential; view-local references are not current authority or a durable claim",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createLocalSigningMetadata",
+            "createLocalSigningMetadata/active/active",
+            "createLocalSigningMetadata/call/call",
+            "createLocalSigningMetadata/createLocalSigningMetadata",
+            "createLocalSigningMetadata/createLocalSigningMetadata#2",
+            "createLocalSigningMetadata/createLocalSigningMetadata#3",
+            "createLocalSigningMetadata/createLocalSigningMetadata#4",
+            "createLocalSigningMetadata/createLocalSigningMetadata#5",
+            "createLocalSigningMetadata/init:admitGrant/init:admitGrant",
+            "createLocalSigningMetadata/init:admitUse/init:admitUse",
+            "createLocalSigningMetadata/init:checkUseBinding/init:checkUseBinding",
+            "createLocalSigningMetadata/init:grantLimits/init:grantLimits",
+            "createLocalSigningMetadata/init:originalScope/init:originalScope",
+            "createLocalSigningMetadata/init:prepareUse/init:prepareUse",
+            "createLocalSigningMetadata/init:retireMetadataView/init:retireMetadataView",
+            "createLocalSigningMetadata/init:useProjection/init:useProjection",
+            "createLocalSigningMetadata/methods/methods",
+            "createLocalSigningMetadata/original/original",
+            "createLocalSigningMetadata/retain/retain",
+            "createLocalSigningMetadata/time/time",
+            "fail/fail"
+          ],
+          "exports": [
+            "createLocalSigningMetadata"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "The Node Host's private Local-signing metadata view delegates exact grant/use"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "export function createLocalSigningMetadata(moon)"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
+                "anchor": "pub fn client_local_signing_use_prepare("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "fail('ForeignLocalSigningMetadata')"
+              },
+              {
+                "path": "src/remote_credential/local_signing_use.mbt",
+                "anchor": "current_scope != grant.scope"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "let grants = new WeakMap(), scopes = new WeakMap(), uses = new WeakMap();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "It does not stop signing, forget a pending claim, acknowledge key"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "Reflect.apply(methods[name], moon, args)"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Callbacks and their runtime receiver are captured once."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "fail('LocalSigningMetadataRuntimeUnavailable')"
+              },
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "fail('LocalSigningMetadataRetired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Account/issuer, request/Checkpoint/Run, durable original-use and outcome duties"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "independently. Its private maps/tokens/callbacks, decoded metadata and writer"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "view-local references; copied or foreign references cannot cross the seam."
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "localSigningMetadata: () => createLocalSigningMetadata(moon)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-signing-metadata.integration.test.mjs",
+                "anchor": "same actual Credential Owner preserves independent signing grant"
+              },
+              {
+                "path": "adapters/host-node/local-signing-metadata.integration.test.mjs",
+                "anchor": "the full expected original purpose/key/Checkpoint/Run/request scope"
+              },
+              {
+                "path": "adapters/host-node/local-signing-metadata.integration.test.mjs",
+                "anchor": "retiring only the metadata view refuses escaped references"
               }
             ]
           }

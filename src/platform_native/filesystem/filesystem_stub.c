@@ -95,6 +95,9 @@ typedef struct {
   bool cleanup_requested;
   bool cancelled;
   bool create_conflict;
+  // 0: not attempted, 1: retired, -1: consumed/unconfirmed; never reclose.
+  int32_t close_result;
+  char *close_error;
 } actql_native_filesystem_writer;
 
 typedef struct {
@@ -514,11 +517,18 @@ static bool actql_writer_name_matches(
 }
 
 static int actql_close_writer_file(actql_native_filesystem_writer *writer) {
+  if (writer->close_result != 0) return writer->close_result > 0 ? 0 : -1;
   if (writer->fd < 0) return 0;
   int descriptor = writer->fd;
+  // Consume the original descriptor before the foreign close. No return path
+  // may retry its integer or acknowledge an unconfirmed retirement.
   writer->fd = -1;
-  if (close(descriptor) == 0) return 0;
-  actql_replace_errno_error(&writer->error, "close writer", errno);
+  writer->close_result = -1;
+  if (close(descriptor) == 0) {
+    writer->close_result = 1;
+    return 0;
+  }
+  actql_replace_errno_error(&writer->close_error, "close writer", errno);
   return -1;
 }
 
@@ -636,11 +646,10 @@ static void actql_native_filesystem_lock_finalize(void *value) {
 
 static void actql_native_filesystem_writer_finalize(void *value) {
   actql_native_filesystem_writer *writer = value;
-  if (writer->fd >= 0) {
-    close(writer->fd);
-    writer->fd = -1;
-  }
-  if (writer->root != NULL && writer->root->fd >= 0) {
+  (void)actql_close_writer_file(writer);
+  // An unconfirmed close cannot authorize unlinking partial material. Keep
+  // the original names for inspection even when this handle is dropped.
+  if (writer->close_result >= 0 && writer->root != NULL && writer->root->fd >= 0) {
     if (writer->final_present && writer->final_name != NULL &&
         (!writer->sealed || writer->cleanup_requested)) {
       struct stat status;
@@ -670,9 +679,11 @@ static void actql_native_filesystem_writer_finalize(void *value) {
   free(writer->staging_name);
   free(writer->final_name);
   free(writer->error);
+  free(writer->close_error);
   writer->staging_name = NULL;
   writer->final_name = NULL;
   writer->error = NULL;
+  writer->close_error = NULL;
   if (writer->root != NULL) {
     moonbit_decref(writer->root);
     writer->root = NULL;
@@ -1720,7 +1731,8 @@ int32_t actql_native_filesystem_writer_conflict(
 moonbit_bytes_t actql_native_filesystem_writer_error(
   actql_native_filesystem_writer *writer
 ) {
-  return actql_copy_bytes(writer == NULL ? "invalid writer" : writer->error);
+  return actql_copy_bytes(writer == NULL ? "invalid writer" :
+    writer->close_result < 0 ? writer->close_error : writer->error);
 }
 
 int32_t actql_native_filesystem_writer_append(
@@ -1764,6 +1776,7 @@ int32_t actql_native_filesystem_writer_seal(
   moonbit_bytes_t name,
   int32_t length
 ) {
+  if (writer != NULL && writer->close_result < 0) return -1;
   if (writer == NULL || !writer->ready || writer->cancelled ||
       writer->cleanup_requested) {
     return 3;
@@ -2024,6 +2037,7 @@ int32_t actql_native_filesystem_writer_pending_cleanup(
   actql_native_filesystem_writer *writer
 ) {
   if (writer == NULL || !writer->ready || writer->cancelled) return 0;
+  if (writer->close_result < 0) return 1;
   if (writer->cleanup_requested) {
     return writer->staging_present || writer->final_present;
   }

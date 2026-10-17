@@ -15618,7 +15618,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "2c5cb459a2541f69f3e30c54ff5d80ed13717e4c290d3e4d10d36f5b89299dc2",
+      "sha256": "3ba3aff046832417d9278e48d486f6323f0174edb6c7c0e496088b52b37e501a",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -21911,9 +21911,7 @@
         },
         {
           "name": "runtimeCore/runtimeCore",
-          "parameters": [
-            "value"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -21927,14 +21925,18 @@
         {
           "name": "runtimeCore/runtimeCore#10",
           "parameters": [
-            "transfer"
+            "receipt",
+            "transfer",
+            "source",
+            "bytes",
+            "retained"
           ],
           "async": false
         },
         {
           "name": "runtimeCore/runtimeCore#11",
           "parameters": [
-            "progress"
+            "transfer"
           ],
           "async": false
         },
@@ -21955,15 +21957,15 @@
         {
           "name": "runtimeCore/runtimeCore#14",
           "parameters": [
-            "progress",
-            "value"
+            "progress"
           ],
           "async": false
         },
         {
           "name": "runtimeCore/runtimeCore#15",
           "parameters": [
-            "progress"
+            "progress",
+            "value"
           ],
           "async": false
         },
@@ -21998,8 +22000,7 @@
         {
           "name": "runtimeCore/runtimeCore#2",
           "parameters": [
-            "value",
-            "task"
+            "value"
           ],
           "async": false
         },
@@ -22020,6 +22021,13 @@
         {
           "name": "runtimeCore/runtimeCore#22",
           "parameters": [
+            "progress"
+          ],
+          "async": false
+        },
+        {
+          "name": "runtimeCore/runtimeCore#23",
+          "parameters": [
             "value",
             "bytes",
             "nodes"
@@ -22027,7 +22035,7 @@
           "async": false
         },
         {
-          "name": "runtimeCore/runtimeCore#23",
+          "name": "runtimeCore/runtimeCore#24",
           "parameters": [
             "value"
           ],
@@ -22035,6 +22043,14 @@
         },
         {
           "name": "runtimeCore/runtimeCore#3",
+          "parameters": [
+            "value",
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "runtimeCore/runtimeCore#4",
           "parameters": [
             "value",
             "source",
@@ -22045,7 +22061,7 @@
           "async": false
         },
         {
-          "name": "runtimeCore/runtimeCore#4",
+          "name": "runtimeCore/runtimeCore#5",
           "parameters": [
             "value",
             "transfer",
@@ -22054,20 +22070,11 @@
           "async": false
         },
         {
-          "name": "runtimeCore/runtimeCore#5",
-          "parameters": [
-            "value",
-            "transfer",
-            "confirmed"
-          ],
-          "async": false
-        },
-        {
           "name": "runtimeCore/runtimeCore#6",
           "parameters": [
             "value",
             "transfer",
-            "retained"
+            "confirmed"
           ],
           "async": false
         },
@@ -22076,7 +22083,7 @@
           "parameters": [
             "value",
             "transfer",
-            "confirmed"
+            "retained"
           ],
           "async": false
         },
@@ -22084,18 +22091,16 @@
           "name": "runtimeCore/runtimeCore#8",
           "parameters": [
             "value",
-            "receipt"
+            "transfer",
+            "confirmed"
           ],
           "async": false
         },
         {
           "name": "runtimeCore/runtimeCore#9",
           "parameters": [
-            "receipt",
-            "transfer",
-            "source",
-            "bytes",
-            "retained"
+            "value",
+            "receipt"
           ],
           "async": false
         },
@@ -25010,11 +25015,112 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "runtimeCore/runtimeCore#24"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "The Node Host's private Local-signing metadata view delegates exact grant/use"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "export function createLocalSigningMetadata(moon)"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
+                "anchor": "pub fn client_local_signing_use_prepare("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "fail('ForeignLocalSigningMetadata')"
+              },
+              {
+                "path": "src/remote_credential/local_signing_use.mbt",
+                "anchor": "current_scope != grant.scope"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "let grants = new WeakMap(), scopes = new WeakMap(), uses = new WeakMap();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "It does not stop signing, forget a pending claim, acknowledge key"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "Reflect.apply(methods[name], moon, args)"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Callbacks and their runtime receiver are captured once."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "fail('LocalSigningMetadataRuntimeUnavailable')"
+              },
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "fail('LocalSigningMetadataRetired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Account/issuer, request/Checkpoint/Run, durable original-use and outcome duties"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "independently. Its private maps/tokens/callbacks, decoded metadata and writer"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "view-local references; copied or foreign references cannot cross the seam."
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "localSigningMetadata: () => createLocalSigningMetadata(moon)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-signing-metadata.integration.test.mjs",
+                "anchor": "same actual Credential Owner preserves independent signing grant"
+              },
+              {
+                "path": "adapters/host-node/local-signing-metadata.integration.test.mjs",
+                "anchor": "the full expected original purpose/key/Checkpoint/Run/request scope"
+              },
+              {
+                "path": "adapters/host-node/local-signing-metadata.integration.test.mjs",
+                "anchor": "retiring only the metadata view refuses escaped references"
+              }
+            ]
+          }
         }
       ],
       "imports": [
         "../../packages/client-wire/index.mjs",
         "./compiler-binding.generated.mjs",
+        "./local-signing-metadata.mjs",
         "./publication-action.mjs",
         "./result-output-limits.mjs",
         "./runtime-result.mjs"

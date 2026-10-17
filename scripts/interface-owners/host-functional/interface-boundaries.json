@@ -31250,7 +31250,7 @@
     {
       "module": "adapters/host-node/installed-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5e3abaccab1c47ce4bea59cece044fe8c7417d1072ed6ecdd95353b2da21c757",
+      "sha256": "3033f8ccb680bcf46fb71893ecc0b097b7a3a54dc7809d7dd0da246bddfea485",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -31376,13 +31376,6 @@
           "async": false
         },
         {
-          "name": "runtimeBundleCid/runtimeBundleCid",
-          "parameters": [
-            "runtimeUrl"
-          ],
-          "async": true
-        },
-        {
           "name": "selectInstallation",
           "parameters": [
             "profile",
@@ -31421,7 +31414,6 @@
             "readProfile",
             "readProfileJson",
             "refuse/refuse",
-            "runtimeBundleCid/runtimeBundleCid",
             "selectInstallation",
             "installedEffectIdentity/exact/exact"
           ],
@@ -31509,7 +31501,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "import {readSourceProfileJson} from './source-profile-json.mjs';"
+                "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid} from './source-profile-json.mjs';"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -31682,7 +31674,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "import {readSourceProfileJson} from './source-profile-json.mjs';"
+                "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid} from './source-profile-json.mjs';"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -31772,9 +31764,118 @@
               }
             ]
           }
+        },
+        {
+          "operations": [],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "## Selected installed runtime verification"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export async function installedRuntimeBundleCid(path, {openFile = open} = {})"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "byte digest. Each installation rereads its original runtime file: an ESM module"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "const digest = createHash('sha256');"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "async function withOriginalFile(path, openFile, consume)"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "keeps the original open handle through both reading and close; a pending close"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "return await consume(original);"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "if (flight !== undefined) return flight;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "primary = new AggregateError([failure, cause], message, {cause: failure});"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "throw exported;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "refuses installation and retains the same retry without reopening or rehashing."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "Runtime hashing updates SHA256 incrementally with one reusable 64 KiB input"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "is neither a file-size/work ceiling nor a numerical funding or whole-RSS claim."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "JSON/text readers retain their original bounds, codecs and failure behavior;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-runtime-bundle.test.mjs",
+                "anchor": "each real selected runtime is reread after same-path byte replacement"
+              },
+              {
+                "path": "adapters/host-node/installed-runtime-bundle.test.mjs",
+                "anchor": "frozen original read failure and close failure retain both causes and initializer custody"
+              },
+              {
+                "path": "adapters/host-node/installed-runtime-bundle.test.mjs",
+                "anchor": "actual Source/Effect loaders and publication bind each reread exact digest"
+              }
+            ]
+          }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "../connectors-builtin/installations.generated.mjs",
+        "./installed-connectors.mjs",
+        "./installed-effect-inventory.mjs",
+        "./installed-host-cleanup.mjs",
+        "./installed-row-effect.mjs",
+        "./local-account-config.mjs",
+        "./source-profile-json.mjs",
+        "node:crypto",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [
+        "runtime-dependent module dependency requires original owner/artifact mapping"
+      ]
     },
     {
       "module": "adapters/host-node/installed-host-cleanup.mjs",
@@ -33544,7 +33645,7 @@
     {
       "module": "adapters/host-node/installed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9130a723051b79a5d83c941a9945b85030e657f54367f29c61b1e50004c59614",
+      "sha256": "b651f1f62c2afbcd532c8c399f1991e3de126bfe669530d1a398f28b912900bb",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -33817,13 +33918,6 @@
           "async": true
         },
         {
-          "name": "runtimeBundleCidOf/runtimeBundleCidOf",
-          "parameters": [
-            "runtimeUrl"
-          ],
-          "async": true
-        },
-        {
           "name": "selectInstallation",
           "parameters": [
             "profile",
@@ -33896,7 +33990,6 @@
             "providerRuntime",
             "publishInstalledSourceProfile",
             "readProfile",
-            "runtimeBundleCidOf/runtimeBundleCidOf",
             "selectInstallation",
             "sourceIdentityFromParts",
             "sourceIdentityFromParts/exact/exact",
@@ -33974,7 +34067,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-source.mjs",
-                "anchor": "import {readFile} from 'node:fs/promises';"
+                "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid} from './source-profile-json.mjs';"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -34052,9 +34145,123 @@
               }
             ]
           }
+        },
+        {
+          "operations": [],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "## Selected installed runtime verification"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export async function installedRuntimeBundleCid(path, {openFile = open} = {})"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "byte digest. Each installation rereads its original runtime file: an ESM module"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "const digest = createHash('sha256');"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "async function withOriginalFile(path, openFile, consume)"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "keeps the original open handle through both reading and close; a pending close"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "return await consume(original);"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "if (flight !== undefined) return flight;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "primary = new AggregateError([failure, cause], message, {cause: failure});"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "throw exported;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "refuses installation and retains the same retry without reopening or rehashing."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "Runtime hashing updates SHA256 incrementally with one reusable 64 KiB input"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "is neither a file-size/work ceiling nor a numerical funding or whole-RSS claim."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "JSON/text readers retain their original bounds, codecs and failure behavior;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-runtime-bundle.test.mjs",
+                "anchor": "each real selected runtime is reread after same-path byte replacement"
+              },
+              {
+                "path": "adapters/host-node/installed-runtime-bundle.test.mjs",
+                "anchor": "frozen original read failure and close failure retain both causes and initializer custody"
+              },
+              {
+                "path": "adapters/host-node/installed-runtime-bundle.test.mjs",
+                "anchor": "actual Source/Effect loaders and publication bind each reread exact digest"
+              }
+            ]
+          }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "../connectors-builtin/installations.generated.mjs",
+        "../connectors/duckdb/node/native-runtime.mjs",
+        "./captured-duckdb-source.mjs",
+        "./duckdb-physical-target.mjs",
+        "./installed-check-environment.mjs",
+        "./installed-connectors.mjs",
+        "./installed-duckdb-source.mjs",
+        "./installed-host-cleanup.mjs",
+        "./installed-source-limits.mjs",
+        "./local-account-config.mjs",
+        "./source-alias-publication.mjs",
+        "./source-profile-json.mjs",
+        "node:crypto",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [
+        "runtime-dependent module dependency requires original owner/artifact mapping"
+      ]
     },
     {
       "module": "adapters/host-node/installed-table-source.mjs",
@@ -40556,15 +40763,31 @@
     {
       "module": "adapters/host-node/source-profile-json.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ba9f0773e3a7f899a8bbfabe4ae853e7e947a3f635a5daea8f41f4fee391a502",
+      "sha256": "703af7213e43a02ea9d1e52ee9747d980242f11689b163c725ae112811171d49",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
+        "installedRuntimeBundleCid",
         "readBoundedConfigurationText",
         "readBoundedConfigurationUtf8",
         "readSourceProfileJson"
       ],
       "operations": [
+        {
+          "name": "installedRuntimeBundleCid",
+          "parameters": [
+            "path",
+            "openFile"
+          ],
+          "async": true
+        },
+        {
+          "name": "installedRuntimeBundleCid/installedRuntimeBundleCid",
+          "parameters": [
+            "original"
+          ],
+          "async": true
+        },
         {
           "name": "readBoundedConfigurationText",
           "parameters": [
@@ -40608,29 +40831,11 @@
           "async": true
         },
         {
-          "name": "readConfiguration/descriptors/descriptors",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "readConfiguration/retry/retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "readConfiguration/retry/retry/retry",
-          "parameters": [],
+          "name": "readConfiguration/readConfiguration",
+          "parameters": [
+            "original"
+          ],
           "async": true
-        },
-        {
-          "name": "readConfiguration/retry/retry/retry#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "readConfiguration/status/status",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "readSourceProfileJson",
@@ -40647,6 +40852,40 @@
             "bytes"
           ],
           "async": false
+        },
+        {
+          "name": "withOriginalFile",
+          "parameters": [
+            "path",
+            "openFile",
+            "consume"
+          ],
+          "async": true
+        },
+        {
+          "name": "withOriginalFile/descriptors/descriptors",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "withOriginalFile/retry/retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "withOriginalFile/retry/retry/retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "withOriginalFile/retry/retry/retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "withOriginalFile/status/status",
+          "parameters": [],
+          "async": false
         }
       ],
       "contracts": [
@@ -40658,11 +40897,11 @@
             "readBoundedConfigurationUtf8",
             "readBoundedConfigurationUtf8/readBoundedConfigurationUtf8",
             "readConfiguration",
-            "readConfiguration/descriptors/descriptors",
-            "readConfiguration/retry/retry",
-            "readConfiguration/retry/retry/retry",
-            "readConfiguration/retry/retry/retry#2",
-            "readConfiguration/status/status",
+            "withOriginalFile/descriptors/descriptors",
+            "withOriginalFile/retry/retry",
+            "withOriginalFile/retry/retry/retry",
+            "withOriginalFile/retry/retry/retry#2",
+            "withOriginalFile/status/status",
             "readSourceProfileJson",
             "readSourceProfileJson/readSourceProfileJson"
           ],
@@ -40881,10 +41120,112 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "installedRuntimeBundleCid",
+            "installedRuntimeBundleCid/installedRuntimeBundleCid",
+            "readConfiguration/readConfiguration",
+            "withOriginalFile"
+          ],
+          "exports": [
+            "installedRuntimeBundleCid"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "## Selected installed runtime verification"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "export async function installedRuntimeBundleCid(path, {openFile = open} = {})"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "byte digest. Each installation rereads its original runtime file: an ESM module"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "const digest = createHash('sha256');"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "async function withOriginalFile(path, openFile, consume)"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "keeps the original open handle through both reading and close; a pending close"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "return await consume(original);"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "if (flight !== undefined) return flight;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "primary = new AggregateError([failure, cause], message, {cause: failure});"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "throw exported;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "refuses installation and retains the same retry without reopening or rehashing."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "Runtime hashing updates SHA256 incrementally with one reusable 64 KiB input"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "is neither a file-size/work ceiling nor a numerical funding or whole-RSS claim."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "JSON/text readers retain their original bounds, codecs and failure behavior;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-runtime-bundle.test.mjs",
+                "anchor": "each real selected runtime is reread after same-path byte replacement"
+              },
+              {
+                "path": "adapters/host-node/installed-runtime-bundle.test.mjs",
+                "anchor": "frozen original read failure and close failure retain both causes and initializer custody"
+              },
+              {
+                "path": "adapters/host-node/installed-runtime-bundle.test.mjs",
+                "anchor": "actual Source/Effect loaders and publication bind each reread exact digest"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
+        "node:crypto",
         "node:fs/promises"
       ],
       "compilerFields": [],
@@ -52006,9 +52347,9 @@
   ],
   "counts": {
     "modules": 126,
-    "operations": 3120,
-    "exports": 852,
-    "explicitContractGroups": 140
+    "operations": 3122,
+    "exports": 853,
+    "explicitContractGroups": 143
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }
