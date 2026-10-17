@@ -16,7 +16,7 @@ import {connect} from '../../../../packages/sdk/index.mjs';
 import {installedKintoneFixture} from './installed-kintone.fixture.mjs';
 
 const executeFile = promisify(execFile);
-const source = 'SELECT $id, Subject, Tags, RecordNumber FROM kintone.inquiries |> RESULT records';
+const source = 'SELECT `$id`, Subject, Tags, RecordNumber FROM kintone.inquiries |> RESULT records';
 const columns = [
   {name: '$id', contract: {type: 'string', nullable: false}},
   {name: 'Subject', contract: {type: 'string', nullable: false}},
