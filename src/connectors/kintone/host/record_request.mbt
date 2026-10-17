@@ -12,6 +12,24 @@ fn record_request_id(value : String) -> Bool {
 }
 
 ///|
+/// Closed presence projection for private JS forwarding. It creates no
+/// provider cursor, original identity, permission or completion evidence.
+pub fn record_request_cursor(
+  fields : Array[String],
+) -> Result[String?, RecordReadIssue] {
+  if fields.length() > 1 {
+    return Err(InvalidRequest)
+  }
+  if fields.is_empty() {
+    return Ok(None)
+  }
+  if !record_request_id(fields[0]) {
+    return Err(InvalidRequest)
+  }
+  Ok(Some(fields[0]))
+}
+
+///|
 /// Compare the provider's numeric seek ordering without converting, rewriting
 /// or replacing either original API ID used in a request or ResourceRef.
 fn record_id_after(value : String, prior : String) -> Bool {

@@ -494,6 +494,17 @@ fn kintone_form_limits() -> @kintone_catalog.FormFieldLimits {
 ///|
 test "kintone fixed request parameters retain the original projection and wide seek ID" {
   let prepared = kintone_read_preparation()
+  assert_eq(@kintone_host.record_request_cursor([]).unwrap(), None)
+  assert_eq(
+    @kintone_host.record_request_cursor(["9007199254740993"]).unwrap(),
+    Some("9007199254740993"),
+  )
+  for fields in [[""], ["1", "2"], ["not-an-id"]] {
+    assert_true(
+      @kintone_host.record_request_cursor(fields)
+      is Err(@kintone_host.InvalidRequest),
+    )
+  }
   assert_eq(
     @kintone_host.record_form_request_body(prepared, 4096).unwrap(),
     "{\"app\":\"12\"}",

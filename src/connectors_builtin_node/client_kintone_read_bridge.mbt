@@ -202,10 +202,10 @@ pub fn client_program_kintone_page_request_body(
   per_page : Int,
   max_bytes : Int,
 ) -> Result[String, @kintone_host.RecordReadIssue] {
-  if cursor.length() > 1 {
-    return Err(@kintone_host.InvalidRequest)
+  let original = match @kintone_host.record_request_cursor(cursor) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
-  let original = if cursor.is_empty() { None } else { Some(cursor[0]) }
   @kintone_host.record_page_request_body(
     prepared, original, per_page, max_bytes,
   )
@@ -218,10 +218,10 @@ pub fn client_program_kintone_page_next_cursor(
   prior : Array[String],
   per_page : Int,
 ) -> Result[Array[String], @kintone_host.RecordReadIssue] {
-  if prior.length() > 1 {
-    return Err(@kintone_host.InvalidRequest)
+  let original = match @kintone_host.record_request_cursor(prior) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
-  let original = if prior.is_empty() { None } else { Some(prior[0]) }
   @kintone_host.record_page_next_cursor(read, original, per_page).map(next => {
     match next {
       Some(id) => [id]
