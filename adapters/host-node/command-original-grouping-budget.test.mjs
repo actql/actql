@@ -30,6 +30,9 @@ test('ordinary capture fits two original Result memberships and member keys in e
     assert.equal(moon.clientProgramEffectInputCount(f.inputs),2);
     assert.equal(moon.clientProgramEffectLocalResultCount(f.inputs),2);
     assert.equal(f.execution.resultInventory.length,0,'this genuine Program declares no public Named Result');
+    // Hand the original outputs back before the ordinary caller pins them.
+    // Keeping the fixture's observation pins would test overlapping holdings.
+    assert.equal(moon.clientProgramReleaseEffectInputs(f.inputs),true);
     const c=f.publicationContext(control),unexpected=()=>assert.fail('No provider grant or send');
     const store={storeAuthorityCid:cid('a'),createPreparedObjectWriter(){
       const chunks=[];events.writers.push(chunks);let bytes=0,pending=true;
