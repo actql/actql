@@ -154,8 +154,9 @@ test('metadata expiry revocation and view retirement do not issue replacement us
   journal.revoke(f.control.identity(grant));
   assert.throws(() => journal.claim(f.control.identity(grant), 'revoked', 1n, f.scope, f.control), hostFailure);
   assert.deepEqual(journal.recover(), []);
+  const envelope = f.sign(grant);
   f.view.retireMetadataView();
-  assert.throws(() => journal.acceptGrant(f.sign(grant), f.control), {code: 'InstallationPreparationMetadataRetired'});
+  assert.throws(() => journal.acceptGrant(envelope, f.control), {code: 'InstallationPreparationMetadataRetired'});
 });
 
 test('metadata original COMMIT uncertainty is retained without repeating signed acceptance', t => {
