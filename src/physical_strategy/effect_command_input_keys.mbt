@@ -195,7 +195,8 @@ fn captured_effect_command_key_workspace_current(
     None => true
     Some(workspace) =>
       @resources.shared_borrow_matches_ledger(
-        workspace, value.inputs.run.captured.ledger,
+        workspace,
+        value.inputs.run.captured.ledger,
       )
   }
 }
@@ -215,7 +216,8 @@ pub fn bind_captured_effect_command_key_workspace(
     value.step_work != 0L ||
     !captured_effect_command_key_origin(value) ||
     !@resources.shared_borrow_matches_ledger(
-      workspace, value.inputs.run.captured.ledger,
+      workspace,
+      value.inputs.run.captured.ledger,
     ) {
     return false
   }
