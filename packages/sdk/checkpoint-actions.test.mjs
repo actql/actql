@@ -163,6 +163,25 @@ test('foreign or malformed Local signed answers refuse without resolution I/O', 
   }
 });
 
+for (const [action, opposite] of [['approve', 'rejected'], ['reject', 'approved']]) {
+  test(`${action} refuses an original-port answer for the opposite decision and retains its bytes`, async t => {
+    const originalAnswer = await signedAnswer(original, opposite, signer,
+      '2026-10-18T00:01:00.000Z');
+    let signatures = 0;
+    const {client, calls} = await fixture(t, {async answerCheckpoint(summary, decision) {
+      assert.equal(summary.checkpointId, original.checkpointId);
+      assert.equal(decision, action === 'approve' ? 'approved' : 'rejected');
+      signatures++;
+      return originalAnswer;
+    }});
+    const failure = await client[action](original.checkpointId).catch(error => error);
+    assert.equal(failure.code, 'InvalidCheckpointAnswer');
+    assert.deepEqual(failure.signed, [originalAnswer]);
+    assert.equal(signatures, 1);
+    assert.equal(calls.filter(call => call.operation === 'resolve').length, 0);
+  });
+}
+
 test('a lost resolution reply preserves exact signed bytes without automatic re-sign or resend', async t => {
   let signatures = 0, lost = true;
   const {client, calls} = await fixture(t, {resolve(body) {
