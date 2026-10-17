@@ -363,6 +363,7 @@ fn read_field_contract_json(
     }
     return Some(
       object([
+        ("additional_properties", Json::boolean(false)),
         ("fields", object(fields)),
         ("nullable", Json::boolean(field.nullable)),
         ("type", "object".to_json()),

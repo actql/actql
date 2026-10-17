@@ -394,7 +394,14 @@ pub fn bind_read_projection_contracts(
     return None
   }
   for index in 0..<contracts.length() {
-    if !(@contract.type_equal(plan.contracts[index], contracts[index], 2) catch {
+    // A geolocation is the original Object plus its two Decimal children.
+    // Scalar and Array plans retain their existing two-pair comparison bound.
+    let pairs = if plan.fields[index].native_type == "location" {
+      1 + plan.field_components[index].length()
+    } else {
+      2
+    }
+    if !(@contract.type_equal(plan.contracts[index], contracts[index], pairs) catch {
         _ => false
       }) {
       return None

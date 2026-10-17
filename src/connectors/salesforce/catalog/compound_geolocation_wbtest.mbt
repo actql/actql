@@ -62,7 +62,7 @@ test "compound geolocation declaration keeps the original component decimal cont
   assert_true(declaration.views[0].fields.contains("Location__c"))
   assert_true(
     declaration.catalog.contains(
-      "\"Location__c\":{\"fields\":{\"latitude\":{\"nullable\":true,\"precision\":18,\"scale\":15,\"type\":\"decimal\"},\"longitude\":{\"nullable\":true,\"precision\":18,\"scale\":15,\"type\":\"decimal\"}},\"nullable\":true,\"type\":\"object\"}",
+      "\"Location__c\":{\"additional_properties\":false,\"fields\":{\"latitude\":{\"nullable\":true,\"precision\":18,\"scale\":15,\"type\":\"decimal\"},\"longitude\":{\"nullable\":true,\"precision\":18,\"scale\":15,\"type\":\"decimal\"}},\"nullable\":true,\"type\":\"object\"}",
     ),
   )
 }
