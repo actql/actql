@@ -289,14 +289,31 @@ fn main {
     "original allocation retires only after separate view and loan cleanup",
   )
   exercise_channel_partial(count, host, original, page, scope)
+  require(
+    count,
+    host.allocate(original, 24L * page)
+    is Err(Resource(@resources.RetentionLimit)),
+    "retained original allocations refuse a third extent within the unchanged64 pages",
+  )
   host.return_borrow(original, scope).unwrap()
+  // The first original view/loan has already retired. Return its actual backing
+  // reader before retiring its allocation, then borrow the SAME Host again.
+  host.retire(original, allocation).unwrap()
+  let next_scope = host.borrow_backing(original).unwrap()
+  exercise_pre_spawn_channel(count, host, original, page, next_scope)
+  host.return_borrow(original, next_scope).unwrap()
   host.try_close(original).unwrap()
   require(
     count,
     host.usage().reserved_execution_bytes == 0L,
     "actual parent close finally returns its one backing reservation",
   )
+  if count.val != 68 {
+    abort(
+      "original live-child conformance discovery must execute exactly68 cases",
+    )
+  }
   println(
-    "{\"success\":true,\"discovered\":36,\"executed\":36,\"passed\":36,\"failed\":0,\"VM\":0,\"public_e2e\":0}",
+    "{\"success\":true,\"discovered\":68,\"executed\":68,\"passed\":68,\"failed\":0,\"VM\":0,\"public_e2e\":0}",
   )
 }

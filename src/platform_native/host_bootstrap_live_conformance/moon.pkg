@@ -6,3 +6,7 @@ import {
   "actql/actql/platform_native/host_bootstrap" @bootstrap,
   "actql/actql/physical_resources" @resources,
 }
+
+options(
+  "native-stub": [ "pre_spawn_fixture.c" ],
+)

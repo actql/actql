@@ -7,13 +7,14 @@ import {join,resolve} from 'node:path';
 import {openInstalledRemoteHttpHost} from '../../adapters/host-node/embedded-local.mjs';
 import {fixtureCertificates} from '../../adapters/site-node/https-exchange-fixture.mjs';
 
-export async function openPythonPublicHost(t){
+export async function openPythonPublicHost(t,{workspaceId}={}){
   const scratch=resolve('_build/python-client-public');await mkdir(scratch,{recursive:true});
   const root=await mkdtemp(join(scratch,'public-'));
   const keys=generateKeyPairSync('ed25519'),principalId=userInfo().username;
   const counts={computed:0};
   const certificates=await fixtureCertificates(root);
   const options={directory:join(root,'host'),
+    ...(workspaceId===undefined?{}:{workspaceId}),
     authenticate:header=>header==='Bearer fixture-token'?principalId:undefined,
     authorization:{accountConfiguration:JSON.stringify({version:'actql-execution-account-config/0.1',
       account_id:'python-public',entries:[{entry_id:'execution',outcome:'allow',principal:{all:true},

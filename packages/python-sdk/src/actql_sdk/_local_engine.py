@@ -173,24 +173,30 @@ _ORIGINAL_PROVIDER_SYMBOLS = (
 
 def _verify_original_provider_link(image: _InstalledImageFileInput,
                                    runtime: Any, provider: Any) -> None:
+    if type(image) is not _InstalledImageFileInput:
+        raise LocalInstallationError('Original installed image input is unavailable')
+    _verify_selected_provider_link(image.recipe, image.runtime_library, runtime, provider)
+
+
+def _verify_selected_provider_link(recipe: _SelectedImageRecipe, runtime_library: Path,
+                                   runtime: Any, provider: Any) -> None:
     """Check already loaded matching components, without loading/calling them.
 
     This proves code/provider identity only, never a holding, capacity, funding,
     current authority, Engine initialization or physical retirement. A distinct
     library that embeds its own provider/TLS cannot pass the imported addresses.
     """
-    if (type(image) is not _InstalledImageFileInput
-            or not isinstance(runtime, CDLL) or not isinstance(provider, CDLL)
+    if (not isinstance(runtime, CDLL) or not isinstance(provider, CDLL)
             or type(runtime._name) is not str or type(provider._name) is not str
-            or Path(runtime._name) != image.runtime_library
-            or Path(provider._name) != image.runtime_library.parent / 'libactql_native_control.dylib'):
+            or Path(runtime._name) != runtime_library
+            or Path(provider._name) != runtime_library.parent / 'libactql_native_control.dylib'):
         raise LocalInstallationError('Loaded Local runtime and original provider paths differ')
-    image.recipe.validate()
+    recipe.validate()
     # Revalidate staged bytes of both exact selected files immediately before
     # comparing the already loaded dependency. There is no system/Node lookup.
-    _read_file(image.runtime_library, maximum=image.recipe.runtime_library_bytes,
-               expected=image.recipe.runtime_library_bytes, digest=image.recipe.runtime_library_sha256)
-    _verify_original_provider(image.runtime_library, image.recipe)
+    _read_file(runtime_library, maximum=recipe.runtime_library_bytes,
+               expected=recipe.runtime_library_bytes, digest=recipe.runtime_library_sha256)
+    _verify_original_provider(runtime_library, recipe)
     for suffix in _ORIGINAL_PROVIDER_SYMBOLS:
         name = 'actql_native_owned_' + suffix
         try:
@@ -202,6 +208,6 @@ def _verify_original_provider_link(image: _InstalledImageFileInput,
             raise LocalInstallationError('Local runtime uses a different original capacity or TLS provider')
     # Address queries are read-only; keep the same selected file fence on both
     # sides of them rather than validating an earlier path candidate only.
-    _read_file(image.runtime_library, maximum=image.recipe.runtime_library_bytes,
-               expected=image.recipe.runtime_library_bytes, digest=image.recipe.runtime_library_sha256)
-    _verify_original_provider(image.runtime_library, image.recipe)
+    _read_file(runtime_library, maximum=recipe.runtime_library_bytes,
+               expected=recipe.runtime_library_bytes, digest=recipe.runtime_library_sha256)
+    _verify_original_provider(runtime_library, recipe)

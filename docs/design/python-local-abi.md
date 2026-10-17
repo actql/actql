@@ -59,6 +59,46 @@ record; repeated transfers do not accumulate released descriptors.
 Closing this Host bridge is separate from closing a Client connection and
 cannot decide Run cancellation.
 
+### Child-process lifetime of native allocations
+
+A joined native thread has stopped using its thread-local payload; it has not
+retired its process. Rust and platform runtimes may retain process-static
+allocations after every handler thread has joined. Such an allocation remains
+in its original physical holding. Allocation-level `try_close` and domain
+borrow return continue to refuse while it remains live. Engine close, thread
+join, a cancellation request and observation of an absent PID cannot turn that
+retained responsibility into a released holding.
+
+An exclusively owned child region has a distinct physical retirement boundary.
+Before child startup, the existing process Owner retains the original child,
+channel, region, lease and backing correspondence. Its scoped stop observation
+must confirm that the original execution and IPC users have stopped. The
+original mapping and descriptor cleanup must then actually complete before
+that region's borrower can be discharged. This does not individually free a
+process-static allocation, reset its allocator header, make unused quota
+available, or authorize another child to adopt the region.
+
+Failed or uncertain stop, unmap, descriptor close or acknowledgment retains the
+same original responsibility and partial-cleanup carrier. A completed physical
+cleanup step is retained and is not blindly repeated after a later failure.
+Foreign child, region or lease observations cannot retire the original region.
+The process Owner's stop pin remains held through physical cleanup; an exit
+code or PID alone is not a substitute for that original scoped observation.
+
+Ending a parent transport borrow is a separate, earlier restriction. The same
+channel first prevents new I/O and physical-current observations and restricts
+its Common child frame. Its serialized physical caller must finish actual
+in-flight uses before returning the original endpoint borrow to the FD Owner.
+Metadata, original frame, Unknown outcomes and backing custody remain retained.
+The FD Owner may then confirm its own child stop and descriptor closes. Neither
+the restriction nor borrow return acknowledges that stop, metadata retirement,
+mapping cleanup, final quota settlement, or the Run's business outcome.
+
+Physical region retirement is separate from conservative quota reconciliation,
+Common borrow settlement and the Run's remote or business outcome. It does not
+prove that an external operation was never sent, acknowledge a commit, permit
+automatic resend, or supply missing ordinary runtime funding.
+
 The private payload-request projection borrows one original completed Result
 publication and its exact physical input. The input contains only the Store
 authority CID, material generation CID and payload byte ceiling. The existing
@@ -658,6 +698,40 @@ This barrier does not assert that a trapped Core retired its resources, refill
 instruction fuel, retry the interrupted operation or dispose a pending Run.
 
 ## Installed Host root capacity
+
+Module compilation inputs and physical acceptance are distinct evidence.
+The maintainer component producer's closed compile-only module original binds
+the selected clean source and original compiled source, pinned toolchain,
+generated ABI, actual regular module and link input/output identities through
+one shared verifier. Equal-input reuse retains its original compiled source;
+it does not relabel an old build or imply a complete compiler read trace.
+The image compiler may consume that preparation before physical probes, but
+must hold the original provider-backed scope through Config, pool, Engine,
+module serialization and confirmed cleanup. Preparation is not a capacity,
+Runtime, Run or authority admission.
+
+Final component assembly requires the stronger physical receipt for that
+exact selected source/module, including the same verified module original and
+successful contract, result, physical and workspace observations. Missing
+physical cases or a compile-only scope refuse assembly. This order avoids
+requiring physical image execution before the image can be prepared while
+preserving the final physical gate, original recipe/library/image bindings,
+normal funding refusal and image-only installed loader.
+
+The maintainer compiler and final runtime assembly share one pinned binding
+source/two-library staging implementation. Compiler preparation takes the
+selected source-original recipe directly; it does not synthesize LocalComponents,
+an image or physical success to reach that implementation. Final assembly keeps
+its stronger component/image/physical admission. Source-only verification does
+not require or import an ordinary Wasmtime installation. The compiler imports
+only the staged private namespace after acquiring the same staged provider's
+original holding. Actual Rust/provider address correspondence precedes Config.
+The original preparation files, imported aliases and partial import exceptions
+remain attached to compiler custody. A partial import is unconfirmed cleanup;
+it cannot release the holding, replace a loaded module, infer DLL unload or retry
+with a new provider. This reuse introduces no alternate distribution, runtime
+fallback, capacity declaration or normal funding profile.
+
 
 The installed Host requires explicit trusted Host resource limits when opening the
 instance. The existing Ledger reserves the fixed 16 MiB linear-memory allowance
