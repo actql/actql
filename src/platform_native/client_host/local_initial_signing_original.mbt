@@ -414,7 +414,7 @@ fn NativeLocalHostConnection::require_initial_signing_separation(
       other[26:42].to_owned() == original.exported[26:42].to_owned()
     let wire = @utf8.decode(file.body) catch { _ => return Err(CustodyLost) }
     match @credential_resource.admit_native_local_signing_key_selection(wire) {
-      Err(_) => if same_file { return Err(ChangedIntent) }
+      Err(_) => if same_file { return Err(CustodyLost) }
       Ok(selection) => {
         let (_, purpose, _, _, _, _, _, pem) = @credential_resource.native_local_signing_key_selection_projection(
           selection,
@@ -428,7 +428,7 @@ fn NativeLocalHostConnection::require_initial_signing_separation(
             return Err(CustodyLost)
           }
           if same_file || raw == own_raw {
-            return Err(ChangedIntent)
+            return Err(CustodyLost)
           }
         }
       }
