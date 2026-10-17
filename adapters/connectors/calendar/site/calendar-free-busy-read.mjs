@@ -69,7 +69,9 @@ async function execute(original, received) {
       credential: context.credential,
       callResource: options => context.callbacks.callResource({...options, currentBeforeSend: verify}),
       operation: CALENDAR_FREE_BUSY_OPERATION, method: 'POST', path: '/calendar/v3/freeBusy',
-      query: [], headers: [['accept', 'application/json'], ['content-type', 'application/json']],
+      // The existing Credential String-body port owns JSON content-type and
+      // framing; a provider cannot insert that reserved request header.
+      query: [], headers: [['accept', 'application/json']],
       body: requestBody, responseHeaders: [],
       maxRequestBytes: limits.maxRequestBytes, maxResponseBytes: limits.maxResponseBytes, signal});
     observations.push(response);

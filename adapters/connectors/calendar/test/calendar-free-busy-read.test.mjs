@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {CalendarFreeBusyReadFailure, createCalendarFreeBusyReader} from '../site/calendar-free-busy-read.mjs';
 import {freeBusyFixture, freeBusyResponse} from './calendar-free-busy.fixture.mjs';
+import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
 
 const expectedRows = [
   {calendar_id:'sales@example.test',start:'2026-10-17T01:00:00.000Z',end:'2026-10-17T01:30:00.000Z'},
@@ -40,6 +41,17 @@ test('Calendar free busy original operation and invalid preparation refuse befor
     scope:{...f.scope,dispatchRequestCid:`sha256:${'d'.repeat(64)}`}})}),
     error=>error.cause.code==='ForeignCalendarFreeBusyAuthorization');
   assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);f.row.assertNoCapture();
+});
+
+test('Calendar provider cannot replace Credential-owned content type or framing',async t=>{
+  const f=await freeBusyFixture(t);
+  await assert.rejects(f.read({callResource:options=>{
+    const [operation,original]=[...options.operations][0];
+    return callHttpsCredentialResource({...options,operations:new Map([[operation,
+      {...original,headers:[...(original.headers??[]),['content-type','application/json']]}]])});
+  }}),error=>error.cause.code==='ReservedHttpRequestHeader');
+  assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);assert.equal(f.state.charges,0);
+  assert.deepEqual(f.journal.recover(),[]);f.row.assertNoCapture();
 });
 
 test('Calendar free busy per-calendar refusal never publishes partial availability and retains exact body',async t=>{
