@@ -3,6 +3,7 @@
 /// fields and immutable write/omit inventories remain DATA, not permission,
 /// a targeted Preview, an insertion claim or provider default values.
 pub struct RecordCreateMapping {
+  priv mut self : RecordCreateMapping?
   priv original : RecordDeclaration
   priv mapping : @rows.RowMapping
   priv written_fields : Array[String]
@@ -62,16 +63,27 @@ pub fn prepare_record_create_mapping(
       sources,
       limits,
     ) {
-    Ok(mapping) =>
-      Ok({
+    Ok(mapping) => {
+      let result : RecordCreateMapping = {
+        self: None,
         original,
         mapping,
         written_fields: mapping.write_fields.copy(),
         omitted_fields: mapping.omittable.copy(),
         required_fields: required.copy(),
-      })
+      }
+      result.self = Some(result)
+      Ok(result)
+    }
     Err(issue) => Err(issue)
   }
+}
+
+///|
+/// The original constructor result, not a copy retaining its private fields.
+/// This nominal check is DATA provenance, not permission or current authority.
+pub fn record_create_mapping_is_original(value : RecordCreateMapping) -> Bool {
+  value.self is Some(original) && physical_equal(original, value)
 }
 
 ///|
@@ -84,6 +96,7 @@ pub fn record_create_mapping_matches_declaration(
   value : RecordCreateMapping,
   original : RecordDeclaration,
 ) -> Bool {
+  record_create_mapping_is_original(value) &&
   physical_equal(value.original, original)
 }
 
@@ -94,6 +107,7 @@ pub fn record_create_mapping_matches_request(
   value : RecordCreateMapping,
   request : @catalog.RecordCreateRequest,
 ) -> Bool {
+  record_create_mapping_is_original(value) &&
   @catalog.record_create_request_values(request).all(write => {
     let written = @catalog.record_write_values_fields(write)
     @catalog.record_write_values_match_catalog(write, value.original.catalog) &&
