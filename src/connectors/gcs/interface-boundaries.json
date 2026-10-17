@@ -457,7 +457,7 @@
     {
       "module": "src/connectors/gcs/catalog/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "115033cff92be86fd5e6f874a6d6b4b936a2dfb06a101a6af280ff1e392784db",
+      "sha256": "4571a62951f9f2983a8fa755b2412a52db16db49d32051e3178c98141a254ca6",
       "role": "connector-semantics",
       "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
       "exports": [
@@ -465,11 +465,18 @@
         "pub fn admit_object_metadata_page(Bytes, String, String, Int, ObjectMetadataLimits) -> Result[ObjectMetadataPage, ObjectMetadataIssue]",
         "pub fn admit_object_mutation_request(ObjectMutationBinding, ObjectMutationRequest) -> Result[Unit, ObjectRequestIssue]",
         "pub fn admit_object_upload_observation(ObjectUploadBinding, String, Int, Bytes) -> Result[ObjectUploadObservation, ObjectUploadIssue]",
+        "pub fn admit_object_upload_target_observation(ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[ObjectUploadObservation, ObjectUploadIssue]",
         "pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]",
         "pub fn classify_object_upload_response(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes) -> Result[ObjectUploadOutcome, ObjectUploadIssue]",
+        "pub fn content_metadata_json(Bytes, String, String, String, Int64, ObjectMetadataLimits) -> Result[String, ContentMetadataIssue]",
         "pub fn object_collection_identity_cid(ObjectCollectionBinding) -> String",
         "pub fn object_collection_identity_json(ObjectCollectionBinding) -> String",
         "pub fn object_collection_resource_json(ObjectCollectionBinding) -> String",
+        "pub fn object_compose_body_for(ObjectComposeBinding, ObjectComposeRequest) -> Result[String, ObjectUploadIssue]",
+        "pub fn object_compose_cid(ObjectComposeRequest) -> String",
+        "pub fn object_compose_projection_json(ObjectComposeBinding, ObjectComposeRequest, Int) -> Result[String, ObjectUploadIssue]",
+        "pub fn object_compose_response_matches(ObjectComposeBinding, ObjectComposeRequest, ObjectMetadata) -> Bool",
+        "pub fn object_compose_response_projection_json(ObjectComposeBinding, ObjectComposeRequest, Int, Bytes, Int) -> Result[String, ObjectUploadIssue]",
         "pub fn object_listing_prefix(String, Bytes, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]",
         "pub fn object_metadata_fields(ObjectMetadata) -> ObjectMetadataFields",
         "pub fn object_metadata_logical_json(ObjectMetadata, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]",
@@ -503,14 +510,19 @@
         "pub fn object_upload_response_matches(ObjectUploadBinding, ObjectUploadRequest, ObjectMetadata) -> Bool",
         "pub fn object_upload_response_projection_json(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes, Int) -> Result[String, ObjectUploadIssue]",
         "pub fn prepare_object_collection_binding(String, String, String, String, String, String, String, ObjectCollectionLimits) -> Result[ObjectCollectionBinding, ObjectCollectionIssue]",
+        "pub fn prepare_object_compose(ObjectComposeBinding, ObjectUploadObservation, Array[ObjectMetadata], String) -> Result[ObjectComposeRequest, ObjectUploadIssue]",
+        "pub fn prepare_object_compose_binding(ObjectUploadBinding, Int, Int64) -> Result[ObjectComposeBinding, ObjectUploadIssue]",
         "pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
         "pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
         "pub fn prepare_object_multipart_upload(ObjectUploadBinding, ObjectUploadObservation, Bytes, String, String, String, Bool?, String) -> Result[ObjectUploadRequest, ObjectUploadIssue]",
         "pub fn prepare_object_mutation_binding(ObjectMutationKind, String, String, String, String, String, Array[String], ObjectRequestLimits) -> Result[ObjectMutationBinding, ObjectRequestIssue]",
         "pub fn prepare_object_upload_binding(ObjectCollectionBinding, String, Array[String], ObjectUploadLimits) -> Result[ObjectUploadBinding, ObjectUploadIssue]",
+        "pub fn recheck_object_compose(ObjectComposeBinding, ObjectComposeRequest, ObjectUploadObservation, Array[ObjectMetadata]) -> Result[Unit, ObjectUploadIssue]",
         "pub fn recheck_object_mutation(ObjectMutationBinding, ObjectMutationRequest, ObjectMetadata) -> Result[Unit, ObjectRequestIssue]",
         "pub fn recheck_object_upload(ObjectUploadBinding, ObjectUploadRequest, ObjectUploadObservation) -> Result[Unit, ObjectUploadIssue]",
         "pub struct ObjectCollectionBinding {",
+        "pub struct ObjectComposeBinding {",
+        "pub struct ObjectComposeRequest {",
         "pub struct ObjectMetadata {",
         "pub struct ObjectMetadataPage {",
         "pub struct ObjectMutationBinding {",
@@ -537,12 +549,20 @@
           "declaration": "pub fn admit_object_upload_observation(ObjectUploadBinding, String, Int, Bytes) -> Result[ObjectUploadObservation, ObjectUploadIssue]"
         },
         {
+          "name": "admit_object_upload_target_observation",
+          "declaration": "pub fn admit_object_upload_target_observation(ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[ObjectUploadObservation, ObjectUploadIssue]"
+        },
+        {
           "name": "check_object_collection_binding",
           "declaration": "pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]"
         },
         {
           "name": "classify_object_upload_response",
           "declaration": "pub fn classify_object_upload_response(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes) -> Result[ObjectUploadOutcome, ObjectUploadIssue]"
+        },
+        {
+          "name": "content_metadata_json",
+          "declaration": "pub fn content_metadata_json(Bytes, String, String, String, Int64, ObjectMetadataLimits) -> Result[String, ContentMetadataIssue]"
         },
         {
           "name": "object_collection_identity_cid",
@@ -555,6 +575,26 @@
         {
           "name": "object_collection_resource_json",
           "declaration": "pub fn object_collection_resource_json(ObjectCollectionBinding) -> String"
+        },
+        {
+          "name": "object_compose_body_for",
+          "declaration": "pub fn object_compose_body_for(ObjectComposeBinding, ObjectComposeRequest) -> Result[String, ObjectUploadIssue]"
+        },
+        {
+          "name": "object_compose_cid",
+          "declaration": "pub fn object_compose_cid(ObjectComposeRequest) -> String"
+        },
+        {
+          "name": "object_compose_projection_json",
+          "declaration": "pub fn object_compose_projection_json(ObjectComposeBinding, ObjectComposeRequest, Int) -> Result[String, ObjectUploadIssue]"
+        },
+        {
+          "name": "object_compose_response_matches",
+          "declaration": "pub fn object_compose_response_matches(ObjectComposeBinding, ObjectComposeRequest, ObjectMetadata) -> Bool"
+        },
+        {
+          "name": "object_compose_response_projection_json",
+          "declaration": "pub fn object_compose_response_projection_json(ObjectComposeBinding, ObjectComposeRequest, Int, Bytes, Int) -> Result[String, ObjectUploadIssue]"
         },
         {
           "name": "object_listing_prefix",
@@ -689,6 +729,14 @@
           "declaration": "pub fn prepare_object_collection_binding(String, String, String, String, String, String, String, ObjectCollectionLimits) -> Result[ObjectCollectionBinding, ObjectCollectionIssue]"
         },
         {
+          "name": "prepare_object_compose",
+          "declaration": "pub fn prepare_object_compose(ObjectComposeBinding, ObjectUploadObservation, Array[ObjectMetadata], String) -> Result[ObjectComposeRequest, ObjectUploadIssue]"
+        },
+        {
+          "name": "prepare_object_compose_binding",
+          "declaration": "pub fn prepare_object_compose_binding(ObjectUploadBinding, Int, Int64) -> Result[ObjectComposeBinding, ObjectUploadIssue]"
+        },
+        {
           "name": "prepare_object_delete",
           "declaration": "pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]"
         },
@@ -709,6 +757,10 @@
           "declaration": "pub fn prepare_object_upload_binding(ObjectCollectionBinding, String, Array[String], ObjectUploadLimits) -> Result[ObjectUploadBinding, ObjectUploadIssue]"
         },
         {
+          "name": "recheck_object_compose",
+          "declaration": "pub fn recheck_object_compose(ObjectComposeBinding, ObjectComposeRequest, ObjectUploadObservation, Array[ObjectMetadata]) -> Result[Unit, ObjectUploadIssue]"
+        },
+        {
           "name": "recheck_object_mutation",
           "declaration": "pub fn recheck_object_mutation(ObjectMutationBinding, ObjectMutationRequest, ObjectMetadata) -> Result[Unit, ObjectRequestIssue]"
         },
@@ -725,11 +777,18 @@
             "admit_object_metadata_page",
             "admit_object_mutation_request",
             "admit_object_upload_observation",
+            "admit_object_upload_target_observation",
             "check_object_collection_binding",
             "classify_object_upload_response",
+            "content_metadata_json",
             "object_collection_identity_cid",
             "object_collection_identity_json",
             "object_collection_resource_json",
+            "object_compose_body_for",
+            "object_compose_cid",
+            "object_compose_projection_json",
+            "object_compose_response_matches",
+            "object_compose_response_projection_json",
             "object_listing_prefix",
             "object_metadata_fields",
             "object_metadata_logical_json",
@@ -763,11 +822,14 @@
             "object_upload_response_matches",
             "object_upload_response_projection_json",
             "prepare_object_collection_binding",
+            "prepare_object_compose",
+            "prepare_object_compose_binding",
             "prepare_object_delete",
             "prepare_object_metadata_patch",
             "prepare_object_multipart_upload",
             "prepare_object_mutation_binding",
             "prepare_object_upload_binding",
+            "recheck_object_compose",
             "recheck_object_mutation",
             "recheck_object_upload"
           ],
@@ -776,11 +838,18 @@
             "pub fn admit_object_metadata_page(Bytes, String, String, Int, ObjectMetadataLimits) -> Result[ObjectMetadataPage, ObjectMetadataIssue]",
             "pub fn admit_object_mutation_request(ObjectMutationBinding, ObjectMutationRequest) -> Result[Unit, ObjectRequestIssue]",
             "pub fn admit_object_upload_observation(ObjectUploadBinding, String, Int, Bytes) -> Result[ObjectUploadObservation, ObjectUploadIssue]",
+            "pub fn admit_object_upload_target_observation(ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[ObjectUploadObservation, ObjectUploadIssue]",
             "pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]",
             "pub fn classify_object_upload_response(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes) -> Result[ObjectUploadOutcome, ObjectUploadIssue]",
+            "pub fn content_metadata_json(Bytes, String, String, String, Int64, ObjectMetadataLimits) -> Result[String, ContentMetadataIssue]",
             "pub fn object_collection_identity_cid(ObjectCollectionBinding) -> String",
             "pub fn object_collection_identity_json(ObjectCollectionBinding) -> String",
             "pub fn object_collection_resource_json(ObjectCollectionBinding) -> String",
+            "pub fn object_compose_body_for(ObjectComposeBinding, ObjectComposeRequest) -> Result[String, ObjectUploadIssue]",
+            "pub fn object_compose_cid(ObjectComposeRequest) -> String",
+            "pub fn object_compose_projection_json(ObjectComposeBinding, ObjectComposeRequest, Int) -> Result[String, ObjectUploadIssue]",
+            "pub fn object_compose_response_matches(ObjectComposeBinding, ObjectComposeRequest, ObjectMetadata) -> Bool",
+            "pub fn object_compose_response_projection_json(ObjectComposeBinding, ObjectComposeRequest, Int, Bytes, Int) -> Result[String, ObjectUploadIssue]",
             "pub fn object_listing_prefix(String, Bytes, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]",
             "pub fn object_metadata_fields(ObjectMetadata) -> ObjectMetadataFields",
             "pub fn object_metadata_logical_json(ObjectMetadata, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]",
@@ -814,14 +883,19 @@
             "pub fn object_upload_response_matches(ObjectUploadBinding, ObjectUploadRequest, ObjectMetadata) -> Bool",
             "pub fn object_upload_response_projection_json(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes, Int) -> Result[String, ObjectUploadIssue]",
             "pub fn prepare_object_collection_binding(String, String, String, String, String, String, String, ObjectCollectionLimits) -> Result[ObjectCollectionBinding, ObjectCollectionIssue]",
+            "pub fn prepare_object_compose(ObjectComposeBinding, ObjectUploadObservation, Array[ObjectMetadata], String) -> Result[ObjectComposeRequest, ObjectUploadIssue]",
+            "pub fn prepare_object_compose_binding(ObjectUploadBinding, Int, Int64) -> Result[ObjectComposeBinding, ObjectUploadIssue]",
             "pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
             "pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
             "pub fn prepare_object_multipart_upload(ObjectUploadBinding, ObjectUploadObservation, Bytes, String, String, String, Bool?, String) -> Result[ObjectUploadRequest, ObjectUploadIssue]",
             "pub fn prepare_object_mutation_binding(ObjectMutationKind, String, String, String, String, String, Array[String], ObjectRequestLimits) -> Result[ObjectMutationBinding, ObjectRequestIssue]",
             "pub fn prepare_object_upload_binding(ObjectCollectionBinding, String, Array[String], ObjectUploadLimits) -> Result[ObjectUploadBinding, ObjectUploadIssue]",
+            "pub fn recheck_object_compose(ObjectComposeBinding, ObjectComposeRequest, ObjectUploadObservation, Array[ObjectMetadata]) -> Result[Unit, ObjectUploadIssue]",
             "pub fn recheck_object_mutation(ObjectMutationBinding, ObjectMutationRequest, ObjectMetadata) -> Result[Unit, ObjectRequestIssue]",
             "pub fn recheck_object_upload(ObjectUploadBinding, ObjectUploadRequest, ObjectUploadObservation) -> Result[Unit, ObjectUploadIssue]",
             "pub struct ObjectCollectionBinding {",
+            "pub struct ObjectComposeBinding {",
+            "pub struct ObjectComposeRequest {",
             "pub struct ObjectMetadata {",
             "pub struct ObjectMetadataPage {",
             "pub struct ObjectMutationBinding {",
@@ -895,6 +969,14 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
                 "anchor": "Ordinary object rows share"
+              },
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<a id=\"gcs-compose-destination-profile\"></a>"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Original ordered composition"
               }
             ],
             "inputsOutputs": [
@@ -957,6 +1039,14 @@
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
                 "anchor": "type: 'decimal', precision: 19"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn prepare_object_compose"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_compose_prepare"
               }
             ],
             "identity": [
@@ -1023,6 +1113,14 @@
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
                 "anchor": "identity_cid: cid({"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "actql-gcs-object-compose-request/0.1"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/fixtures/compose-independent.json",
+                "anchor": "request_preimage"
               }
             ],
             "ownership": [
@@ -1093,6 +1191,14 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "startInstalledRowRun"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "pub struct ObjectComposeRequest"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-compose-request.mjs",
+                "anchor": "const originals = new WeakMap()"
               }
             ],
             "synchronization": [
@@ -1155,6 +1261,14 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
                 "anchor": "await consumePage(rows, {charge})"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "pub fn recheck_object_compose"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-compose-request.mjs",
+                "anchor": "function original(request, binding)"
               }
             ],
             "failure": [
@@ -1217,6 +1331,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
                 "anchor": "Err(ObjectMismatch)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "status == 412"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-compose-request.mjs",
+                "anchor": "Reject/throw (including original cleanup facets) propagates without resend"
               }
             ],
             "cancellation": {
@@ -1298,6 +1420,18 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "per-row canonical writer/String"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "Two 32-element matrices suffice"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "target.limits.max_identity_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "the same caller's inventory"
               }
             ],
             "extension": [
@@ -1356,6 +1490,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "Installed nonempty service reads"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Installed Command declaration/capture"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "not promise preservation"
               }
             ],
             "verification": [
@@ -1438,6 +1580,18 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
                 "anchor": "original cancellation and physical failure"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_compose_wbtest.mbt",
+                "anchor": "GCS compose independent exact body path and identity ceilings"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-compose-request.test.mjs",
+                "anchor": "compose matches independent original absent/existing preimages"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-compose-request.test.mjs",
+                "anchor": "compose response loss keeps exact frozen cleanup failure"
               }
             ]
           }
@@ -1890,6 +2044,16 @@
             "gcs_collection_issue_reference",
             "gcs_collection_reference_failure_code",
             "gcs_collection_resource_json",
+            "gcs_compose_binding",
+            "gcs_compose_body",
+            "gcs_compose_failure_code",
+            "gcs_compose_prepare",
+            "gcs_compose_projection",
+            "gcs_compose_recheck",
+            "gcs_compose_response_matches",
+            "gcs_compose_response_projection",
+            "gcs_content_metadata_failure_code",
+            "gcs_content_metadata_json",
             "gcs_object_failure_code",
             "gcs_object_listing_prefix",
             "gcs_object_metadata",
@@ -1919,7 +2083,8 @@
             "gcs_upload_projection",
             "gcs_upload_recheck",
             "gcs_upload_response_matches",
-            "gcs_upload_response_projection"
+            "gcs_upload_response_projection",
+            "gcs_upload_target_observation"
           ],
           "exports": [
             "pub fn gcs_collection_binding(String, String, String, String, String, String, String, Int, Int, Int) -> Result[@catalog.ObjectCollectionBinding, @catalog.ObjectCollectionIssue]",
@@ -1930,6 +2095,16 @@
             "pub fn gcs_collection_issue_reference(@catalog.ObjectCollectionBinding, @check_environment.StoreCommandBinding, String, String, @value_admission.ReferenceIssuer, Int, Int, Int, Int) -> Result[@value_admission.CheckedValue, @original_reference.CollectionReferenceIssue]",
             "pub fn gcs_collection_reference_failure_code(@original_reference.CollectionReferenceIssue) -> String",
             "pub fn gcs_collection_resource_json(@catalog.ObjectCollectionBinding) -> String",
+            "pub fn gcs_compose_binding(@catalog.ObjectUploadBinding, Int, Int64) -> Result[@catalog.ObjectComposeBinding, @catalog.ObjectUploadIssue]",
+            "pub fn gcs_compose_body(@catalog.ObjectComposeBinding, @catalog.ObjectComposeRequest) -> Result[String, @catalog.ObjectUploadIssue]",
+            "pub fn gcs_compose_failure_code(@catalog.ObjectUploadIssue) -> String",
+            "pub fn gcs_compose_prepare(@catalog.ObjectComposeBinding, @catalog.ObjectUploadObservation, Array[@catalog.ObjectMetadata], String) -> Result[@catalog.ObjectComposeRequest, @catalog.ObjectUploadIssue]",
+            "pub fn gcs_compose_projection(@catalog.ObjectComposeBinding, @catalog.ObjectComposeRequest, Int) -> Result[String, @catalog.ObjectUploadIssue]",
+            "pub fn gcs_compose_recheck(@catalog.ObjectComposeBinding, @catalog.ObjectComposeRequest, @catalog.ObjectUploadObservation, Array[@catalog.ObjectMetadata]) -> Result[Unit, @catalog.ObjectUploadIssue]",
+            "pub fn gcs_compose_response_matches(@catalog.ObjectComposeBinding, @catalog.ObjectComposeRequest, @catalog.ObjectMetadata) -> Bool",
+            "pub fn gcs_compose_response_projection(@catalog.ObjectComposeBinding, @catalog.ObjectComposeRequest, Int, Bytes, Int) -> Result[String, @catalog.ObjectUploadIssue]",
+            "pub fn gcs_content_metadata_failure_code(@catalog.ContentMetadataIssue) -> String",
+            "pub fn gcs_content_metadata_json(Bytes, String, String, String, Int64, Int) -> Result[String, @catalog.ContentMetadataIssue]",
             "pub fn gcs_object_failure_code(GcsFailure) -> String",
             "pub fn gcs_object_listing_prefix(String, Bytes, Int, Int, Int) -> Result[String, GcsFailure]",
             "pub fn gcs_object_metadata(Bytes, String, String, String?, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadata, GcsFailure]",
@@ -1960,6 +2135,7 @@
             "pub fn gcs_upload_recheck(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, @catalog.ObjectUploadObservation) -> Result[Unit, @catalog.ObjectUploadIssue]",
             "pub fn gcs_upload_response_matches(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, @catalog.ObjectMetadata) -> Bool",
             "pub fn gcs_upload_response_projection(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, Int, Bytes, Int) -> Result[String, @catalog.ObjectUploadIssue]",
+            "pub fn gcs_upload_target_observation(@catalog.ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectUploadObservation, @catalog.ObjectUploadIssue]",
             "pub enum GcsFailure {"
           ],
           "attributes": {
@@ -2023,6 +2199,14 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
                 "anchor": "Ordinary object rows share"
+              },
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<a id=\"gcs-compose-destination-profile\"></a>"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Original ordered composition"
               }
             ],
             "inputsOutputs": [
@@ -2093,6 +2277,14 @@
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
                 "anchor": "type: 'decimal', precision: 19"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn prepare_object_compose"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_compose_prepare"
               }
             ],
             "identity": [
@@ -2163,6 +2355,14 @@
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
                 "anchor": "identity_cid: cid({"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "actql-gcs-object-compose-request/0.1"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/fixtures/compose-independent.json",
+                "anchor": "request_preimage"
               }
             ],
             "ownership": [
@@ -2233,6 +2433,14 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "startInstalledRowRun"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "pub struct ObjectComposeRequest"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-compose-request.mjs",
+                "anchor": "const originals = new WeakMap()"
               }
             ],
             "synchronization": [
@@ -2295,6 +2503,14 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
                 "anchor": "await consumePage(rows, {charge})"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "pub fn recheck_object_compose"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-compose-request.mjs",
+                "anchor": "function original(request, binding)"
               }
             ],
             "failure": [
@@ -2357,6 +2573,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
                 "anchor": "Err(ObjectMismatch)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "status == 412"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-compose-request.mjs",
+                "anchor": "Reject/throw (including original cleanup facets) propagates without resend"
               }
             ],
             "cancellation": [
@@ -2387,6 +2611,14 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
                 "anchor": "signal.throwIfAborted()"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-compose-request.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "WeakMap/Promise completion is not that ACK"
               }
             ],
             "resources": [
@@ -2461,6 +2693,18 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "per-row canonical writer/String"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "Two 32-element matrices suffice"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "target.limits.max_identity_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "the same caller's inventory"
               }
             ],
             "extension": [
@@ -2519,6 +2763,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "Installed nonempty service reads"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Installed Command declaration/capture"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "not promise preservation"
               }
             ],
             "verification": [
@@ -2605,6 +2857,18 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
                 "anchor": "original cancellation and physical failure"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_compose_wbtest.mbt",
+                "anchor": "GCS compose independent exact body path and identity ceilings"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-compose-request.test.mjs",
+                "anchor": "compose matches independent original absent/existing preimages"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-compose-request.test.mjs",
+                "anchor": "compose response loss keeps exact frozen cleanup failure"
               }
             ]
           }
@@ -2619,6 +2883,16 @@
         "pub fn gcs_collection_issue_reference(@catalog.ObjectCollectionBinding, @check_environment.StoreCommandBinding, String, String, @value_admission.ReferenceIssuer, Int, Int, Int, Int) -> Result[@value_admission.CheckedValue, @original_reference.CollectionReferenceIssue]",
         "pub fn gcs_collection_reference_failure_code(@original_reference.CollectionReferenceIssue) -> String",
         "pub fn gcs_collection_resource_json(@catalog.ObjectCollectionBinding) -> String",
+        "pub fn gcs_compose_binding(@catalog.ObjectUploadBinding, Int, Int64) -> Result[@catalog.ObjectComposeBinding, @catalog.ObjectUploadIssue]",
+        "pub fn gcs_compose_body(@catalog.ObjectComposeBinding, @catalog.ObjectComposeRequest) -> Result[String, @catalog.ObjectUploadIssue]",
+        "pub fn gcs_compose_failure_code(@catalog.ObjectUploadIssue) -> String",
+        "pub fn gcs_compose_prepare(@catalog.ObjectComposeBinding, @catalog.ObjectUploadObservation, Array[@catalog.ObjectMetadata], String) -> Result[@catalog.ObjectComposeRequest, @catalog.ObjectUploadIssue]",
+        "pub fn gcs_compose_projection(@catalog.ObjectComposeBinding, @catalog.ObjectComposeRequest, Int) -> Result[String, @catalog.ObjectUploadIssue]",
+        "pub fn gcs_compose_recheck(@catalog.ObjectComposeBinding, @catalog.ObjectComposeRequest, @catalog.ObjectUploadObservation, Array[@catalog.ObjectMetadata]) -> Result[Unit, @catalog.ObjectUploadIssue]",
+        "pub fn gcs_compose_response_matches(@catalog.ObjectComposeBinding, @catalog.ObjectComposeRequest, @catalog.ObjectMetadata) -> Bool",
+        "pub fn gcs_compose_response_projection(@catalog.ObjectComposeBinding, @catalog.ObjectComposeRequest, Int, Bytes, Int) -> Result[String, @catalog.ObjectUploadIssue]",
+        "pub fn gcs_content_metadata_failure_code(@catalog.ContentMetadataIssue) -> String",
+        "pub fn gcs_content_metadata_json(Bytes, String, String, String, Int64, Int) -> Result[String, @catalog.ContentMetadataIssue]",
         "pub fn gcs_object_failure_code(GcsFailure) -> String",
         "pub fn gcs_object_listing_prefix(String, Bytes, Int, Int, Int) -> Result[String, GcsFailure]",
         "pub fn gcs_object_metadata(Bytes, String, String, String?, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadata, GcsFailure]",
@@ -2649,6 +2923,7 @@
         "pub fn gcs_upload_recheck(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, @catalog.ObjectUploadObservation) -> Result[Unit, @catalog.ObjectUploadIssue]",
         "pub fn gcs_upload_response_matches(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, @catalog.ObjectMetadata) -> Bool",
         "pub fn gcs_upload_response_projection(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, Int, Bytes, Int) -> Result[String, @catalog.ObjectUploadIssue]",
+        "pub fn gcs_upload_target_observation(@catalog.ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectUploadObservation, @catalog.ObjectUploadIssue]",
         "pub enum GcsFailure {"
       ],
       "operations": [
@@ -2683,6 +2958,46 @@
         {
           "name": "gcs_collection_resource_json",
           "declaration": "pub fn gcs_collection_resource_json(@catalog.ObjectCollectionBinding) -> String"
+        },
+        {
+          "name": "gcs_compose_binding",
+          "declaration": "pub fn gcs_compose_binding(@catalog.ObjectUploadBinding, Int, Int64) -> Result[@catalog.ObjectComposeBinding, @catalog.ObjectUploadIssue]"
+        },
+        {
+          "name": "gcs_compose_body",
+          "declaration": "pub fn gcs_compose_body(@catalog.ObjectComposeBinding, @catalog.ObjectComposeRequest) -> Result[String, @catalog.ObjectUploadIssue]"
+        },
+        {
+          "name": "gcs_compose_failure_code",
+          "declaration": "pub fn gcs_compose_failure_code(@catalog.ObjectUploadIssue) -> String"
+        },
+        {
+          "name": "gcs_compose_prepare",
+          "declaration": "pub fn gcs_compose_prepare(@catalog.ObjectComposeBinding, @catalog.ObjectUploadObservation, Array[@catalog.ObjectMetadata], String) -> Result[@catalog.ObjectComposeRequest, @catalog.ObjectUploadIssue]"
+        },
+        {
+          "name": "gcs_compose_projection",
+          "declaration": "pub fn gcs_compose_projection(@catalog.ObjectComposeBinding, @catalog.ObjectComposeRequest, Int) -> Result[String, @catalog.ObjectUploadIssue]"
+        },
+        {
+          "name": "gcs_compose_recheck",
+          "declaration": "pub fn gcs_compose_recheck(@catalog.ObjectComposeBinding, @catalog.ObjectComposeRequest, @catalog.ObjectUploadObservation, Array[@catalog.ObjectMetadata]) -> Result[Unit, @catalog.ObjectUploadIssue]"
+        },
+        {
+          "name": "gcs_compose_response_matches",
+          "declaration": "pub fn gcs_compose_response_matches(@catalog.ObjectComposeBinding, @catalog.ObjectComposeRequest, @catalog.ObjectMetadata) -> Bool"
+        },
+        {
+          "name": "gcs_compose_response_projection",
+          "declaration": "pub fn gcs_compose_response_projection(@catalog.ObjectComposeBinding, @catalog.ObjectComposeRequest, Int, Bytes, Int) -> Result[String, @catalog.ObjectUploadIssue]"
+        },
+        {
+          "name": "gcs_content_metadata_failure_code",
+          "declaration": "pub fn gcs_content_metadata_failure_code(@catalog.ContentMetadataIssue) -> String"
+        },
+        {
+          "name": "gcs_content_metadata_json",
+          "declaration": "pub fn gcs_content_metadata_json(Bytes, String, String, String, Int64, Int) -> Result[String, @catalog.ContentMetadataIssue]"
         },
         {
           "name": "gcs_object_failure_code",
@@ -2803,9 +3118,13 @@
         {
           "name": "gcs_upload_response_projection",
           "declaration": "pub fn gcs_upload_response_projection(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, Int, Bytes, Int) -> Result[String, @catalog.ObjectUploadIssue]"
+        },
+        {
+          "name": "gcs_upload_target_observation",
+          "declaration": "pub fn gcs_upload_target_observation(@catalog.ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectUploadObservation, @catalog.ObjectUploadIssue]"
         }
       ],
-      "sha256": "c423243471cd828bd0b380a567a051ff8868ddc3364ad14db1202e312812d2f7"
+      "sha256": "27af5887e9051116ee3e839d046ccca83711983cb8b5623ea464aa23effc2240"
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
@@ -6546,6 +6865,690 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
                 "anchor": "original cancellation and physical failure"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/gcs/catalog/object_compose.mbt",
+      "sha256": "064cfc3a571880a3a4623fe8d8d2ab9d01df0837af3e943d7a73423b5bb99de1",
+      "operations": [
+        {
+          "name": "compose_crc_join",
+          "declaration": "compose_crc_join ( first : UInt , second : UInt , length : Int64 ) - > UInt"
+        },
+        {
+          "name": "compose_crc_text",
+          "declaration": "compose_crc_text ( value : UInt ) - > String"
+        },
+        {
+          "name": "compose_crc_value",
+          "declaration": "compose_crc_value ( text : String ) - > UInt ?"
+        },
+        {
+          "name": "compose_matrix_apply",
+          "declaration": "compose_matrix_apply ( matrix : Array [ UInt ] , vector : UInt ) - > UInt"
+        },
+        {
+          "name": "compose_properties",
+          "declaration": "compose_properties ( before : ObjectUploadObservation , first : ObjectMetadata , marker : String , limits : ObjectMetadataLimits , ) - > Result [ ( ObjectComposeProperties , Json ) , ObjectUploadIssue ]"
+        },
+        {
+          "name": "object_compose_body_for",
+          "declaration": "object_compose_body_for ( binding : ObjectComposeBinding , request : ObjectComposeRequest , ) - > Result [ String , ObjectUploadIssue ]"
+        },
+        {
+          "name": "object_compose_cid",
+          "declaration": "object_compose_cid ( request : ObjectComposeRequest ) - > String"
+        },
+        {
+          "name": "object_compose_projection_json",
+          "declaration": "object_compose_projection_json ( binding : ObjectComposeBinding , request : ObjectComposeRequest , max_bytes : Int , ) - > Result [ String , ObjectUploadIssue ]"
+        },
+        {
+          "name": "object_compose_response_matches",
+          "declaration": "object_compose_response_matches ( binding : ObjectComposeBinding , request : ObjectComposeRequest , response : ObjectMetadata , ) - > Bool"
+        },
+        {
+          "name": "object_compose_response_projection_json",
+          "declaration": "object_compose_response_projection_json ( binding : ObjectComposeBinding , request : ObjectComposeRequest , status : Int , body : Bytes , max_bytes : Int , ) - > Result [ String , ObjectUploadIssue ]"
+        },
+        {
+          "name": "prepare_object_compose",
+          "declaration": "prepare_object_compose ( binding : ObjectComposeBinding , before : ObjectUploadObservation , sources : Array [ ObjectMetadata ] , marker : String , ) - > Result [ ObjectComposeRequest , ObjectUploadIssue ]"
+        },
+        {
+          "name": "prepare_object_compose_binding",
+          "declaration": "prepare_object_compose_binding ( target : ObjectUploadBinding , max_sources : Int , max_result_bytes : Int64 , ) - > Result [ ObjectComposeBinding , ObjectUploadIssue ]"
+        },
+        {
+          "name": "recheck_object_compose",
+          "declaration": "recheck_object_compose ( binding : ObjectComposeBinding , request : ObjectComposeRequest , current : ObjectUploadObservation , sources : Array [ ObjectMetadata ] , ) - > Result [ Unit , ObjectUploadIssue ]"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing GCS Connector original ordered composition and finite metadata profile; no new authorization or custody Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "compose_crc_join",
+            "compose_crc_text",
+            "compose_crc_value",
+            "compose_matrix_apply",
+            "compose_properties",
+            "object_compose_body_for",
+            "object_compose_cid",
+            "object_compose_projection_json",
+            "object_compose_response_matches",
+            "object_compose_response_projection_json",
+            "prepare_object_compose",
+            "prepare_object_compose_binding",
+            "recheck_object_compose"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<a id=\"gcs-compose-destination-profile\"></a>"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Original ordered composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn prepare_object_compose"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_compose_prepare"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "actql-gcs-object-compose-request/0.1"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/fixtures/compose-independent.json",
+                "anchor": "request_preimage"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "pub struct ObjectComposeRequest"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-compose-request.mjs",
+                "anchor": "const originals = new WeakMap()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "pub fn recheck_object_compose"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-compose-request.mjs",
+                "anchor": "function original(request, binding)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "status == 412"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-compose-request.mjs",
+                "anchor": "Reject/throw (including original cleanup facets) propagates without resend"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-compose-request.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "WeakMap/Promise completion is not that ACK"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "Two 32-element matrices suffice"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "target.limits.max_identity_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "the same caller's inventory"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Installed Command declaration/capture"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "not promise preservation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_compose_wbtest.mbt",
+                "anchor": "GCS compose independent exact body path and identity ceilings"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-compose-request.test.mjs",
+                "anchor": "compose matches independent original absent/existing preimages"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-compose-request.test.mjs",
+                "anchor": "compose response loss keeps exact frozen cleanup failure"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/gcs/host_node/compose.mbt",
+      "sha256": "7381badd9d7eb17eaa2016a0d6c21f436add0700914c4ae24c122f44c68e724d",
+      "operations": [
+        {
+          "name": "gcs_compose_binding",
+          "declaration": "gcs_compose_binding ( target : @ catalog . ObjectUploadBinding , max_sources : Int , max_result_bytes : Int64 , ) - > Result [ @ catalog . ObjectComposeBinding , @ catalog . ObjectUploadIssue ]"
+        },
+        {
+          "name": "gcs_compose_body",
+          "declaration": "gcs_compose_body ( binding : @ catalog . ObjectComposeBinding , request : @ catalog . ObjectComposeRequest , ) - > Result [ String , @ catalog . ObjectUploadIssue ]"
+        },
+        {
+          "name": "gcs_compose_failure_code",
+          "declaration": "gcs_compose_failure_code ( issue : @ catalog . ObjectUploadIssue ) - > String"
+        },
+        {
+          "name": "gcs_compose_prepare",
+          "declaration": "gcs_compose_prepare ( binding : @ catalog . ObjectComposeBinding , before : @ catalog . ObjectUploadObservation , sources : Array [ @ catalog . ObjectMetadata ] , marker : String , ) - > Result [ @ catalog . ObjectComposeRequest , @ catalog . ObjectUploadIssue ]"
+        },
+        {
+          "name": "gcs_compose_projection",
+          "declaration": "gcs_compose_projection ( binding : @ catalog . ObjectComposeBinding , request : @ catalog . ObjectComposeRequest , max_bytes : Int , ) - > Result [ String , @ catalog . ObjectUploadIssue ]"
+        },
+        {
+          "name": "gcs_compose_recheck",
+          "declaration": "gcs_compose_recheck ( binding : @ catalog . ObjectComposeBinding , request : @ catalog . ObjectComposeRequest , current : @ catalog . ObjectUploadObservation , sources : Array [ @ catalog . ObjectMetadata ] , ) - > Result [ Unit , @ catalog . ObjectUploadIssue ]"
+        },
+        {
+          "name": "gcs_compose_response_matches",
+          "declaration": "gcs_compose_response_matches ( binding : @ catalog . ObjectComposeBinding , request : @ catalog . ObjectComposeRequest , response : @ catalog . ObjectMetadata , ) - > Bool"
+        },
+        {
+          "name": "gcs_compose_response_projection",
+          "declaration": "gcs_compose_response_projection ( binding : @ catalog . ObjectComposeBinding , request : @ catalog . ObjectComposeRequest , status : Int , body : Bytes , max_bytes : Int , ) - > Result [ String , @ catalog . ObjectUploadIssue ]"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing private typed GCS provider bridge, not a Reference/permission/dispatch issuer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "gcs_compose_binding",
+            "gcs_compose_body",
+            "gcs_compose_failure_code",
+            "gcs_compose_prepare",
+            "gcs_compose_projection",
+            "gcs_compose_recheck",
+            "gcs_compose_response_matches",
+            "gcs_compose_response_projection"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<a id=\"gcs-compose-destination-profile\"></a>"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Original ordered composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn prepare_object_compose"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_compose_prepare"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "actql-gcs-object-compose-request/0.1"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/fixtures/compose-independent.json",
+                "anchor": "request_preimage"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "pub struct ObjectComposeRequest"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-compose-request.mjs",
+                "anchor": "const originals = new WeakMap()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "pub fn recheck_object_compose"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-compose-request.mjs",
+                "anchor": "function original(request, binding)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "status == 412"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-compose-request.mjs",
+                "anchor": "Reject/throw (including original cleanup facets) propagates without resend"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-compose-request.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "WeakMap/Promise completion is not that ACK"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "Two 32-element matrices suffice"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "target.limits.max_identity_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "the same caller's inventory"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Installed Command declaration/capture"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "not promise preservation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_compose_wbtest.mbt",
+                "anchor": "GCS compose independent exact body path and identity ceilings"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-compose-request.test.mjs",
+                "anchor": "compose matches independent original absent/existing preimages"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-compose-request.test.mjs",
+                "anchor": "compose response loss keeps exact frozen cleanup failure"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/gcs/site/gcs-owned-compose-request.mjs",
+      "sha256": "4b97032236c9e314205c6c57db0113f40c1b11e67266938764672f55316573fd",
+      "exports": [
+        "ownedGcsCompositionBody",
+        "ownedGcsCompositionResponseMatches",
+        "prepareGcsComposeBinding",
+        "prepareOwnedGcsComposition",
+        "projectOwnedGcsCompositionResponse",
+        "recheckOwnedGcsComposition",
+        "sendOwnedGcsComposition"
+      ],
+      "operations": [
+        {
+          "name": "abi",
+          "parameters": [
+            "moon",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "bytes",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "freeze/freeze",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "integer/integer",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "original",
+          "parameters": [
+            "request",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownedGcsCompositionBody",
+          "parameters": [
+            "request",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownedGcsCompositionBody/ownedGcsCompositionBody",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "ownedGcsCompositionResponseMatches",
+          "parameters": [
+            "request",
+            "observed",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGcsComposeBinding",
+          "parameters": [
+            "moon",
+            "target",
+            "maxSources",
+            "maxResultBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGcsComposeBinding/prepareGcsComposeBinding",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOwnedGcsComposition",
+          "parameters": [
+            "moon",
+            "binding",
+            "before",
+            "sources",
+            "marker",
+            "maxProjectionBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOwnedGcsComposition/handle/handle",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOwnedGcsComposition/projection/projection",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectOwnedGcsCompositionResponse",
+          "parameters": [
+            "request",
+            "observation",
+            "maxProjectionBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectOwnedGcsCompositionResponse/projectOwnedGcsCompositionResponse",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "recheckOwnedGcsComposition",
+          "parameters": [
+            "request",
+            "current",
+            "sources",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "recheckOwnedGcsComposition/recheckOwnedGcsComposition",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "result",
+          "parameters": [
+            "moon",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendOwnedGcsComposition",
+          "parameters": [
+            "request",
+            "authorization",
+            "credential",
+            "callResource",
+            "maxRequestBytes",
+            "maxResponseBytes",
+            "signal"
+          ],
+          "async": true
+        }
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing GCS original request projection and single scoped Credential operation; no retry/settlement authority",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "abi",
+            "bytes",
+            "fail/fail",
+            "freeze/freeze",
+            "integer/integer",
+            "original",
+            "ownedGcsCompositionBody",
+            "ownedGcsCompositionBody/ownedGcsCompositionBody",
+            "ownedGcsCompositionResponseMatches",
+            "prepareGcsComposeBinding",
+            "prepareGcsComposeBinding/prepareGcsComposeBinding",
+            "prepareOwnedGcsComposition",
+            "prepareOwnedGcsComposition/handle/handle",
+            "prepareOwnedGcsComposition/projection/projection",
+            "projectOwnedGcsCompositionResponse",
+            "projectOwnedGcsCompositionResponse/projectOwnedGcsCompositionResponse",
+            "recheckOwnedGcsComposition",
+            "recheckOwnedGcsComposition/recheckOwnedGcsComposition",
+            "result",
+            "sendOwnedGcsComposition"
+          ],
+          "exports": [
+            "ownedGcsCompositionBody",
+            "ownedGcsCompositionResponseMatches",
+            "prepareGcsComposeBinding",
+            "prepareOwnedGcsComposition",
+            "projectOwnedGcsCompositionResponse",
+            "recheckOwnedGcsComposition",
+            "sendOwnedGcsComposition"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<a id=\"gcs-compose-destination-profile\"></a>"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Original ordered composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn prepare_object_compose"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_compose_prepare"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "actql-gcs-object-compose-request/0.1"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/fixtures/compose-independent.json",
+                "anchor": "request_preimage"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "pub struct ObjectComposeRequest"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-compose-request.mjs",
+                "anchor": "const originals = new WeakMap()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "pub fn recheck_object_compose"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-compose-request.mjs",
+                "anchor": "function original(request, binding)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "status == 412"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-compose-request.mjs",
+                "anchor": "Reject/throw (including original cleanup facets) propagates without resend"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-compose-request.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "WeakMap/Promise completion is not that ACK"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "Two 32-element matrices suffice"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "target.limits.max_identity_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "the same caller's inventory"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Installed Command declaration/capture"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_compose.mbt",
+                "anchor": "not promise preservation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_compose_wbtest.mbt",
+                "anchor": "GCS compose independent exact body path and identity ceilings"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-compose-request.test.mjs",
+                "anchor": "compose matches independent original absent/existing preimages"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-compose-request.test.mjs",
+                "anchor": "compose response loss keeps exact frozen cleanup failure"
               }
             ]
           }

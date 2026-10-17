@@ -28,6 +28,16 @@ pub fn object_collection_identity_json(ObjectCollectionBinding) -> String
 
 pub fn object_collection_resource_json(ObjectCollectionBinding) -> String
 
+pub fn object_compose_body_for(ObjectComposeBinding, ObjectComposeRequest) -> Result[String, ObjectUploadIssue]
+
+pub fn object_compose_cid(ObjectComposeRequest) -> String
+
+pub fn object_compose_projection_json(ObjectComposeBinding, ObjectComposeRequest, Int) -> Result[String, ObjectUploadIssue]
+
+pub fn object_compose_response_matches(ObjectComposeBinding, ObjectComposeRequest, ObjectMetadata) -> Bool
+
+pub fn object_compose_response_projection_json(ObjectComposeBinding, ObjectComposeRequest, Int, Bytes, Int) -> Result[String, ObjectUploadIssue]
+
 pub fn object_listing_prefix(String, Bytes, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]
 
 pub fn object_metadata_fields(ObjectMetadata) -> ObjectMetadataFields
@@ -94,6 +104,10 @@ pub fn object_upload_response_projection_json(ObjectUploadBinding, ObjectUploadR
 
 pub fn prepare_object_collection_binding(String, String, String, String, String, String, String, ObjectCollectionLimits) -> Result[ObjectCollectionBinding, ObjectCollectionIssue]
 
+pub fn prepare_object_compose(ObjectComposeBinding, ObjectUploadObservation, Array[ObjectMetadata], String) -> Result[ObjectComposeRequest, ObjectUploadIssue]
+
+pub fn prepare_object_compose_binding(ObjectUploadBinding, Int, Int64) -> Result[ObjectComposeBinding, ObjectUploadIssue]
+
 pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]
 
 pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]
@@ -103,6 +117,8 @@ pub fn prepare_object_multipart_upload(ObjectUploadBinding, ObjectUploadObservat
 pub fn prepare_object_mutation_binding(ObjectMutationKind, String, String, String, String, String, Array[String], ObjectRequestLimits) -> Result[ObjectMutationBinding, ObjectRequestIssue]
 
 pub fn prepare_object_upload_binding(ObjectCollectionBinding, String, Array[String], ObjectUploadLimits) -> Result[ObjectUploadBinding, ObjectUploadIssue]
+
+pub fn recheck_object_compose(ObjectComposeBinding, ObjectComposeRequest, ObjectUploadObservation, Array[ObjectMetadata]) -> Result[Unit, ObjectUploadIssue]
 
 pub fn recheck_object_mutation(ObjectMutationBinding, ObjectMutationRequest, ObjectMetadata) -> Result[Unit, ObjectRequestIssue]
 
@@ -136,6 +152,28 @@ pub(all) struct ObjectCollectionLimits {
   max_bytes : Int
   max_nodes : Int
   max_depth : Int
+}
+
+pub struct ObjectComposeBinding {
+  target : ObjectUploadBinding
+  max_sources : Int
+  max_result_bytes : Int64
+}
+
+type ObjectComposeProperties
+
+pub struct ObjectComposeRequest {
+  binding : ObjectComposeBinding
+  before : ObjectUploadObservation
+  sources : Array[ObjectMetadata]
+  properties : ObjectComposeProperties
+  storage_class : String
+  path : String
+  body : String
+  marker : String
+  size : Int64
+  crc32c : String
+  cid : String
 }
 
 pub struct ObjectMetadata {

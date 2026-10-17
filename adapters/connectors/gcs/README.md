@@ -146,6 +146,16 @@ count is a resource reservation, native exemption, byte price or normal Model
 four-role profile. Original acquisition/capture funding and real retirement
 remain obligations of the installed caller.
 
+The private typed Node projection additionally retains a WeakMap association
+with the exact provider/binding/request handles, a copied source-handle Array,
+the bounded parsed Preview tree and deep-frozen nested maps/arrays. Body
+projection borrows the original String; scoped invocation adds its own request,
+authorization/credential envelope, operation Map, closure and pending Promise.
+Direct-response parsing and logical projection overlap the original response
+backing, parser/tree/writer and returned JSON/String view. These aliases and
+temporary copies stay in the same caller's inventory until its last real
+borrower and cleanup duty retire; WeakMap/Promise completion is not that ACK.
+
 The method's [explicit preconditions](https://docs.cloud.google.com/storage/docs/json_api/v1/objects/compose)
 and [composition/integrity semantics](https://docs.cloud.google.com/storage/docs/composite-objects)
 are selected without a live service call. Pure consistency or a matching
