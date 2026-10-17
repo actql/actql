@@ -145,10 +145,12 @@ test('public GCS Named Result preserves exact Decimal and JSON contracts across 
   const program = {version: 'actql/0.1', id: 'gcs-public-typed-result', stages: [{id: 'scan',
     inputs: {objects: {connector: 'storage', resource: 'objects', view: 'records', request: {prefix: null}}},
     steps: [{from: 'objects', filter: 'true', as: 'listed'},
-      {from: 'listed', select: fields, as: 'rows'},
-      {from: 'rows', assert_rows: {unique_by: ['name']}, as: 'unique_names'},
+      {from: 'listed', select: fields, as: 'rows'}],
+    results: {r: {from: 'rows', fields}}}, {id: 'compute',
+    inputs: {rows: {result: {stage: 'scan', result: 'r'}}},
+    steps: [{from: 'rows', assert_rows: {unique_by: ['name']}, as: 'unique_names'},
       {from: 'unique_names', sort: [{name: 'asc'}], as: 'ordered'}],
-    results: {r: {from: 'ordered', fields}}}], results: {r: {from: {stage: 'scan', result: 'r'}}}};
+    results: {r: {from: 'ordered', fields}}}], results: {r: {from: {stage: 'compute', result: 'r'}}}};
   const checkedEnvironment = moon.clientProgramCheckEnvironment(environment.wire,
     environment.evidenceCid, false, false, true, false, false, false, false);
   assert.ok(checkedEnvironment);
