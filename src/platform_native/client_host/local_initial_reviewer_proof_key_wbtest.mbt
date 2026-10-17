@@ -197,6 +197,10 @@ test "initial proof key detects adopted Host configuration and physical Store ke
   writer.append(bytes).unwrap()
   writer.seal("local-signing-key.pem").unwrap() |> ignore
   let changed_key = key.require_current() is Err(SigningOriginalUnavailable)
+  let changed_terminal_key = key.finish_original_projection()
+    is Err(SigningOriginalUnavailable)
   host.close().unwrap()
-  assert_true(changed_host && changed_terminal_host && changed_key)
+  assert_true(
+    changed_host && changed_terminal_host && changed_key && changed_terminal_key,
+  )
 }

@@ -213,7 +213,10 @@ pub fn NativeLocalReviewerProofMaterials::require_current(
       value.cancellation_requested == self.original.cancellation_requested &&
       value.state == self.original.state &&
       value.checkpoint_cid == self.original.artifact.checkpoint_cid &&
-      value.run_definition_cid == reviewer.original.run_definition_cid => Ok(())
+      value.run_definition_cid == reviewer.original.run_definition_cid =>
+      // The last clock/RunRead callback may replace the selected key or Host
+      // file. Recheck the same physical originals without another callback.
+      self.key.finish_original_projection()
     Ok(_) => Err(ProofOriginal(Checkpoint(StaleRevision)))
     Err(Journal(issue)) => Err(ProofOriginal(issue))
     Err(_) => Err(ProofUnavailable)
