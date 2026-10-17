@@ -19,6 +19,19 @@ const originalMetadataSources = new WeakMap();
 const metadataUnavailable = () => { throw Object.assign(new Error('InferOriginalMetadataAcquisitionUnavailable'),
   {code: 'InferOriginalMetadataAcquisitionUnavailable'}); };
 
+// Keep an escaped per-preflight setter from retaining the installing operation
+// after this synchronous constructor. Its mutable port is consumed once and
+// cleared even when the original physical factory refuses or throws.
+function prepareWithOriginalRawSetter(prepare, request, notification, retain) {
+  const set = callback => {
+    if (retain === undefined) throw new TypeError('InferRawCaptureBinderUnavailable');
+    retain(callback);
+    retain = undefined;
+  };
+  try { return prepare(request, notification, set); }
+  finally { retain = undefined; }
+}
+
 export function selectOriginalInferMetadataAcquisition(handle, ownerId, requestCid) {
   const original = originalMetadataSources.get(handle)?.deref();
   if (original === undefined) metadataUnavailable();
@@ -486,19 +499,13 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   // The same original preparation envelope must cover this array/reference
   // and setter/callback overlap BEFORE preparation, not at later registration.
   // No provider-global map, slot scheduler or additional physical Call is used.
-  const prepareWithRawCaptureBinder = request => {
-    let accepting = true, retained = false;
-    const retain = callback => {
-      if (!accepting || retained || closing || reclaimed || rawCaptureBound ||
-          rawCaptureBinder !== undefined || typeof callback !== 'function') {
-        throw new TypeError('InferRawCaptureBinderUnavailable');
-      }
-      preparedRawCaptureBinders ??= [];
-      preparedRawCaptureBinders.push(callback);
-      retained = true;
-    };
-    try { return physicalPreflight(request, ioNotification, retain); }
-    finally { accepting = false; }
+  const retainRawCaptureBinder = callback => {
+    if (closing || reclaimed || rawCaptureBound || rawCaptureBinder !== undefined ||
+        typeof callback !== 'function') {
+      throw new TypeError('InferRawCaptureBinderUnavailable');
+    }
+    preparedRawCaptureBinders ??= [];
+    preparedRawCaptureBinders.push(callback);
   };
   const operation = Object.freeze({run, stop, close, cleanup,
     contentGenerationCount: serializedInput === undefined ? 0 : 1,
@@ -992,7 +999,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       // The original preparation envelope funds this one callback closure and
       // its overlap with Core's retained callback; no per-poll context is made.
       const prepare = ioNotification === undefined ? physicalPreflight
-        : prepareWithRawCaptureBinder;
+        : request => prepareWithOriginalRawSetter(physicalPreflight, request,
+          ioNotification, retainRawCaptureBinder);
       checked(assertRuntimeCurrent === undefined
         ? moon.clientProgramBindInferPhysicalPreflight(active, prepare)
         : moon.clientProgramBindInferPhysicalPreflightCurrent(active, prepare, runtimeCurrent));
