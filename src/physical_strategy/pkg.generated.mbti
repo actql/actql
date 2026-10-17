@@ -149,6 +149,8 @@ pub fn captured_effect_inputs_run_definition_cid(CapturedEffectInputs) -> String
 
 pub fn captured_effect_inputs_share_view(CapturedEffectInputs, Int, Int) -> Bool
 
+pub fn captured_effect_inputs_shared_capacity_current(CapturedEffectInputs, @physical_resources.SharedCapacity) -> Bool
+
 pub fn captured_effect_local_result_at(CapturedEffectInputs, Int) -> CapturedEffectLocalResult?
 
 pub fn captured_effect_local_result_borrow(CapturedEffectLocalResult) -> CapturedAnyResultBorrow
