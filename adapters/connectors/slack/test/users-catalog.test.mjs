@@ -55,3 +55,9 @@ test('Slack actual Node byte cursor cell and output bounds never truncate or coe
   const page=project(body);
   assert.throws(()=>checked(provider.slackUserListRowsWire(page,['id'],1,100,8)),{code:'MoonBitHostFailure'});
 });
+
+test('Slack actual Node documented null continuation is terminal without dropping member rows',()=>{
+  const page=project('{"ok":true,"members":[{"id":"U1","name":"original"}],"response_metadata":{"next_cursor":null}}');
+  assert.deepEqual(JSON.parse(provider.slackUserListMetadataJson(page)),{rowCount:1,nextCursor:null});
+  assert.deepEqual(rows(page,['id','name']),[{id:'U1',name:'original'}]);
+});
