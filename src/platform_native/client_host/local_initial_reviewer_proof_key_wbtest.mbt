@@ -204,3 +204,24 @@ test "initial proof key detects adopted Host configuration and physical Store ke
     changed_host && changed_terminal_host && changed_key && changed_terminal_key,
   )
 }
+
+///|
+test "configured proof key terminal fence rechecks the original selection after a current callback" {
+  let (host, key) = reviewer_signing_scope_key_fixture(
+    "configured-proof-key-terminal",
+  )
+  let wrapped = ConfiguredReviewerKey(key)
+  let before = wrapped.finish_original_projection() is Ok(_)
+  let root = host.session.source_root
+  let file = key.account.file.name
+  let (body, generation) = local_adoption_read(root, file, 65536L).unwrap()
+  root.reclaim_generation(file, generation).unwrap()
+  let writer = root
+    .create_writer("configured-key-selection-change.stage", 65536L)
+    .unwrap()
+  writer.append(body).unwrap()
+  writer.seal(file).unwrap() |> ignore
+  let after = wrapped.finish_original_projection() is Err(ProofKey(_))
+  host.close().unwrap()
+  assert_true(before && after)
+}

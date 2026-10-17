@@ -249,11 +249,18 @@ fn NativeLocalReviewerProofKey::finish_original_projection(
   match self {
     InitialReviewerKey(key) =>
       key.finish_original_projection().map_err(issue => ProofKey(issue))
-    ConfiguredReviewerKey(key) =>
+    ConfiguredReviewerKey(key) => {
+      // The shared proof's final clock callback may also replace the original
+      // configured selection or retire its Account/Reviewer authority.
+      match key.require_current_key() {
+        Err(issue) => return Err(ProofKey(issue))
+        Ok(_) => ()
+      }
       match key.projection.export_original() {
         Ok(bytes) if bytes == key.exported => Ok(())
         _ => Err(ProofKey(SigningOriginalUnavailable))
       }
+    }
   }
 }
 
