@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {pathToFileURL} from 'node:url';
-import {admitInstalledProjectConfiguration} from './installed-project-configuration.mjs';
+import {admitInstalledProjectConfiguration,
+  loadInstalledProjectConfiguration} from './installed-project-configuration.mjs';
+import {mkdtemp, mkdir, writeFile, rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 
 // The outer source/artifact guard supplies an exact newly built runtime. Never
 // silently fall back to another retained package or count registration as run.
@@ -69,4 +73,58 @@ test('actual Common plain project keeps absent registry and does not accept unre
   assert.throws(() => admitInstalledProjectConfiguration(moon,
     '{"version":"actql-config/0.1"}', registry),
   {code: 'UnexpectedInstalledProjectRegistry'});
+});
+
+test('actual Common receives one discovered original pair from real bounded file reads', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-project-originals-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const child = join(directory, 'nested', 'work');
+  await mkdir(child, {recursive: true});
+  const configWire = ' {"version":"actql-config/0.1","state_dir":"./state-e\u0301😀","model_tasks":"./tasks.json"}\n';
+  await writeFile(join(directory, 'actql.config.json'), configWire);
+  await writeFile(join(directory, 'tasks.json'), registry);
+  const selected = await loadInstalledProjectConfiguration(moon, {directory: child});
+  assert.equal(selected.configurationPath, join(directory, 'actql.config.json'));
+  assert.equal(selected.directory, directory);
+  assert.equal(selected.stateDirectory, join(directory, 'state-e\u0301😀'));
+  assert.equal(selected.registryPath, join(directory, 'tasks.json'));
+  const original = selected.originalsForRuntime(moon);
+  assert.equal(original.configurationWire, configWire);
+  assert.equal(original.modelRegistryWire, registry);
+  assert.equal(moon.clientProjectConfigurationStateDirectory(original.configuration), './state-e\u0301😀');
+  assert.equal(moon.clientProjectModelRegistryOriginalWire(original.modelRegistry), registry);
+  assert.equal(moon.clientProjectModelRegistryTaskName(original.modelRegistry, 0), 'model-task:risk.v1');
+  assert.strictEqual(selected.originalsForRuntime(moon), original);
+  assert.throws(() => selected.originalsForRuntime({...moon}),
+    {code: 'ForeignInstalledProjectRuntime'});
+});
+
+test('actual Common nearer malformed configuration never adopts a valid parent', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-project-refusal-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const child = join(directory, 'child');
+  await mkdir(child);
+  await writeFile(join(directory, 'actql.config.json'), '{"version":"actql-config/0.1"}');
+  for (const wire of ['{"version":"actql-config/0.1","version":"actql-config/0.1"}',
+    '{"version":"actql-config/0.1","permission":"allow"}',
+    '{"version":"actql-config/0.1","state_dir":null}']) {
+    await writeFile(join(child, 'actql.config.json'), wire);
+    await assert.rejects(loadInstalledProjectConfiguration(moon, {directory: child}),
+      {code: 'MoonBitHostFailure'});
+  }
+  await writeFile(join(child, 'actql.config.json'), Buffer.from([0xff]));
+  await assert.rejects(loadInstalledProjectConfiguration(moon, {directory: child}),
+    {code: 'ERR_ENCODING_INVALID_ENCODED_DATA'});
+});
+
+test('actual Common selected registry absence and foreign shape cannot become a plain project', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-project-registry-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  await writeFile(join(directory, 'actql.config.json'),
+    '{"version":"actql-config/0.1","model_tasks":"./selected.json"}');
+  await assert.rejects(loadInstalledProjectConfiguration(moon, {directory}), {code: 'ENOENT'});
+  await writeFile(join(directory, 'selected.json'),
+    registry.replace('"default_provider":"original"', '"default_provider":"foreign"'));
+  await assert.rejects(loadInstalledProjectConfiguration(moon, {directory}),
+    {code: 'MoonBitHostFailure'});
 });
