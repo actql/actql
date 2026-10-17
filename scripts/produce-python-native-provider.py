@@ -21,16 +21,18 @@ ROOT = Path(__file__).resolve().parents[1]
 ENTRY = 'src/platform_native/installed_arena_entry'
 LIBRARY = 'libactql_native_control.dylib'
 PACKAGE_INPUT = ROOT / 'scripts/python-native-provider-packages.json'
-# Exact ordinary entry dependency closure, including effect_program_binding.
+# Exact ordinary entry dependency closure, including effect_program_binding
+# and the original scoped executor-slot process/descriptor Owner.
 # This is compiler recipe selection, never runtime compatibility or authority.
 _packages = json.loads(PACKAGE_INPUT.read_bytes())
-if (type(_packages) is not list or len(_packages) != 162
+if (type(_packages) is not list or len(_packages) != 163
         or any(type(p) is not str or not p.startswith('actql/actql/') for p in _packages)
         or len(set(_packages)) != len(_packages)):
     raise ValueError('Selected Native package inventory is unavailable')
 PACKAGES = frozenset(_packages)
 FOREIGN_SOURCES = (
     ('platform_native/host_bootstrap/bootstrap_stub.c', 'bootstrap'),
+    ('platform_native/executor_slot/executor_slot_stub.c', 'executor-slot'),
     ('platform_native/filesystem/filesystem_stub.c', 'filesystem'),
     ('platform_native/http_client/http_client_stub.c', 'http'),
     ('platform_native/signature/signature_stub.c', 'signature'),
@@ -80,7 +82,7 @@ def emission_commands(output: str, moon_home: Path) -> list[list[str]]:
             raise ValueError('Selected Native package registry is missing')
         parts[0] = str(moon_home / 'bin/moonc')
         commands.append(parts)
-    if (sum(c[1] == 'build-package' for c in commands) != 162
+    if (sum(c[1] == 'build-package' for c in commands) != 163
             or sum(c[1] == 'link-core' for c in commands) != 1):
         raise ValueError('Selected Native emission inventory changed')
     if {c[c.index('-pkg') + 1] for c in commands if c[1] == 'build-package'} != PACKAGES:
@@ -309,7 +311,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
             or run(['git', 'status', '--porcelain'], capture=True)):
         raise ValueError('Original Native provider source changed during build')
     record = {'source': source, 'target': 'aarch64-apple-darwin', 'deployment_target': '11.0',
-              'emission_build_packages': 162, 'emission_link_core': 1,
+              'emission_build_packages': 163, 'emission_link_core': 1,
               'diagnostic_debug_registry_omitted': False,
               'c_compile': len(objects), 'c_link': 1, 'emitted_c': original(emitted),
               'library': original(library), 'objects': [original(path) for path in objects],

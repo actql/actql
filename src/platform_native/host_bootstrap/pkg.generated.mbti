@@ -177,6 +177,7 @@ pub fn[T, C] NativeHostBootstrap::settle_backed_region_after_owner_ack(Self[T], 
 pub fn[T, C] NativeHostBootstrap::start_backed_channel_ledger(Self[T], T, NativeBackedLiveChannel[T, C], @physical_resources.ImportedChildLedger) -> Result[Unit, NativeBackedOriginalReadIssue]
 pub fn[T, C] NativeHostBootstrap::stop_backed_channel_ledger(Self[T], T, NativeBackedLiveChannel[T, C], @physical_resources.ImportedChildLedger) -> Result[Unit, NativeBackedOriginalReadIssue]
 pub fn[T, C] NativeHostBootstrap::stop_backed_live_channel(Self[T], T, NativeBackedLiveChannel[T, C]) -> Result[Unit, NativeBackedExecutionIssue]
+pub fn[T, C] NativeHostBootstrap::stop_backed_live_channel_transport_use(Self[T], T, NativeBackedLiveChannel[T, C]) -> Result[Unit, NativeBackedOriginalReadIssue]
 pub fn[T, C, R] NativeHostBootstrap::stop_backed_live_child(Self[T], T, NativeBackedLiveChild[T, C, R], R) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::transfer_backed_domain(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T] NativeHostBootstrap::try_close(Self[T], T) -> Result[Unit, NativeBootstrapIssue]

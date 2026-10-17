@@ -246,7 +246,8 @@ fn exercise_pre_spawn_channel(
   require(
     count,
     host.stop_backed_live_channel_transport_use({ marker: 1, }, channel)
-    is Err(Domain(Bootstrap(ForeignOriginal))) && host.usage() == reported,
+    is Err(Domain(Bootstrap(ForeignOriginal))) &&
+    host.usage() == reported,
     "foreign original cannot end another channel's transport use",
   )
   host.stop_backed_live_channel_transport_use(original, channel).unwrap()
@@ -281,16 +282,15 @@ fn exercise_pre_spawn_channel(
   )
   require(
     count,
-    host.backed_live_channel_state(original, channel)
-    is Err(Bootstrap(Closing)),
+    host.backed_live_channel_state(original, channel) is Err(Bootstrap(Closing)),
     "transport closing fences physical observation before descriptor return",
   )
   close_fixture_pipes().unwrap()
   host.report_backed_channel_ledger(original, channel, frame).unwrap()
   require(
     count,
-    host.backed_live_channel_state(original, channel)
-    is Err(Bootstrap(Closing)) && host.usage() == reported,
+    host.backed_live_channel_state(original, channel) is Err(Bootstrap(Closing)) &&
+    host.usage() == reported,
     "closed endpoints cannot be reobserved while same-original cleanup report remains available",
   )
   // No spawn occurred. The fixture has now confirmed its exact pipe closes;

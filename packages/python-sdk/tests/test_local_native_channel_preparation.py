@@ -94,6 +94,70 @@ class PreparationFixture(ChannelFixture):
 
 
 class OriginalChannelPreparationTests(unittest.TestCase):
+    def test_transport_restriction_delegates_without_physical_or_legacy_stop_ack(self):
+        f = PreparationFixture(self); c = f.prepare(); c.prepare_original_frame()
+        c.stop_transport_use()
+        self.assertIn(('frame_operate', 501, 10, 0, 0), f.events)
+        self.assertFalse(c._stop_acknowledged)
+        self.assertFalse(c._closed)
+        self.assertFalse(f.process._parent_closed)
+        self.assertIsNone(f.process._pid)
+        self.assertFalse(c._read.closed)
+        self.assertFalse(c._write.closed)
+        self.assertFalse(any(e[0] == 'frame_finish' for e in f.events))
+
+    def test_transport_operation_is_closed_and_never_charges_from_scalar_arguments(self):
+        f = PreparationFixture(self); c = f.prepare(); c.prepare_original_frame()
+        before = list(f.events)
+        for operation, retained, execution in ((True, 0, 0), (11, 0, 0),
+                                                (10, 1, 0), (10, 0, 1)):
+            with self.assertRaises(ValueError):
+                c._frame_operation(operation, retained, execution, cleanup=True)
+        self.assertEqual(f.events, before)
+        self.assertIsNone(c._unknown)
+
+    def test_transport_known_refusal_preserves_same_frame_and_descriptors(self):
+        f = PreparationFixture(self); c = f.prepare(); c.prepare_original_frame()
+        f.frame_issues[10] = 9
+        with self.assertRaises(_OriginalLiveChannelError) as caught:
+            c.stop_transport_use()
+        self.assertFalse(caught.exception.unknown)
+        self.assertEqual(caught.exception.fact.operation, 10)
+        self.assertIsNone(c._unknown)
+        self.assertEqual(c._frame.value, 501)
+        self.assertFalse(c._closed or c._read.closed or c._write.closed)
+
+    def test_transport_unknown_keeps_reply_and_never_resends_or_returns_fd(self):
+        f = PreparationFixture(self); c = f.prepare(); c.prepare_original_frame()
+        f.frame_issues[10] = 10
+        with self.assertRaises(_OriginalLiveChannelError) as caught:
+            c.stop_transport_use()
+        self.assertTrue(caught.exception.unknown)
+        self.assertIsNotNone(c._frame_reply.value)
+        self.assertEqual(c._frame.value, 501)
+        before = list(f.events)
+        with self.assertRaises(_OriginalLiveChannelError) as again:
+            c.stop_transport_use()
+        self.assertIs(again.exception, caught.exception)
+        self.assertEqual(f.events, before)
+        self.assertFalse(c._read.closed or c._write.closed)
+
+    def test_transport_lost_reply_retains_written_outslot_and_original_unknown(self):
+        f = PreparationFixture(self); c = f.prepare(); c.prepare_original_frame()
+        def lost():
+            raise OSError('Original transport restriction reply lost')
+        f.frame_hook = lost
+        with self.assertRaises(_OriginalLiveChannelError) as caught:
+            c.stop_transport_use()
+        self.assertIsNotNone(c._frame_reply.value)
+        self.assertEqual(c._frame.value, 501)
+        before = list(f.events)
+        with self.assertRaises(_OriginalLiveChannelError) as again:
+            c.stop_transport_use()
+        self.assertIs(again.exception, caught.exception)
+        self.assertEqual(f.events, before)
+        self.assertFalse(c._closed or c._read.closed or c._write.closed)
+
     def test_missing_exports_do_not_fall_back_to_legacy_post_spawn(self):
         f = PreparationFixture(self)
         del f.library.actql_channel_ledger_prepare_into

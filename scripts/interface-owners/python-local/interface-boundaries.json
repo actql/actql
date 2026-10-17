@@ -1,7 +1,7 @@
 {
-  "source": "10ec17c17958aa84fab133abc3aac398e3130a1d",
-  "syntaxProjectionSha256": "31d692db927b90faf5b24bfcddaf50bcb4990edd6e5f13f0c702ee6577a2eeac",
-  "qualification": "Reference coverage only for the supplied existing fixed-source syntax. No product, schema, ABI, policy, numeric profile, runtime, package or current permission change. References are not claims of fresh execution or normal funding. Actual Source3115 binding/artifact facts remain independently qualified in the separate D index.",
+  "source": "51f3ac93e36caf2c9b765d841c9c9e78fe3635ce",
+  "syntaxProjectionSha256": "756720d5d6c93843db6b574924cbaea4f8b0d282897bfe229c129e93982b1602",
+  "qualification": "Current source owner-reference projection only; not runtime/artifact/ordinary funding/permission admission. Original transport-use restriction is separate from actual endpoint borrow return, process stop, metadata retirement and quota settlement. Retained prior binding/artifact facts keep their original execution Sources.",
   "generated": [
     {
       "module": "packages/python-sdk/src/actql_sdk/_duckdb_environment.py",
@@ -32326,6 +32326,13 @@
         },
         {
           "async": false,
+          "name": "_OriginalLiveChannelCustody/stop_transport_use",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "_OriginalLiveChannelError",
           "parameters": []
         },
@@ -32366,7 +32373,7 @@
           ]
         }
       ],
-      "sha256": "c3dbb101ebabc7426c0dde75fe2fc01e8a99471a9f4f00cbcc37590412e79dc3",
+      "sha256": "fe054243d78077b8e91c77208af8d131194abd85a9785a533642ed3901c34bc0",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -32409,7 +32416,8 @@
             "_OriginalLiveChannelCustody/start_original_frame",
             "_OriginalLiveChannelCustody/state",
             "_OriginalLiveChannelCustody/stop",
-            "_OriginalLiveChannelCustody/stop_original_frame"
+            "_OriginalLiveChannelCustody/stop_original_frame",
+            "_OriginalLiveChannelCustody/stop_transport_use"
           ],
           "exports": [],
           "attributes": {
@@ -32433,6 +32441,10 @@
               {
                 "path": "src/platform_native/host_bootstrap/channel_ledger_native.mbt",
                 "anchor": "pub fn[T, C] NativeHostBootstrap::start_backed_channel_ledger("
+              },
+              {
+                "path": "src/platform_native/host_bootstrap/backed_live_channel_native.mbt",
+                "anchor": "pub fn[T, C] NativeHostBootstrap::stop_backed_live_channel_transport_use("
               }
             ],
             "inputsOutputs": [
@@ -32455,6 +32467,10 @@
               {
                 "path": "src/platform_native/host_bootstrap/channel_ledger_native.mbt",
                 "anchor": "pub fn[T, C] NativeHostBootstrap::start_backed_channel_ledger("
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/live_channel_shim.h",
+                "anchor": "Operation10 restricts the same original transport/Common frame"
               }
             ],
             "identity": [
@@ -32473,6 +32489,10 @@
               {
                 "path": "src/platform_native/host_bootstrap/channel_ledger_native.mbt",
                 "anchor": "pub fn[T, C] NativeHostBootstrap::start_backed_channel_ledger("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_live_channel.py",
+                "anchor": "def _require_frame_identity(self)"
               }
             ],
             "ownership": [
@@ -32491,6 +32511,10 @@
               {
                 "path": "src/platform_native/host_bootstrap/channel_ledger_native.mbt",
                 "anchor": "pub fn[T, C] NativeHostBootstrap::start_backed_channel_ledger("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Metadata, original frame, Unknown outcomes and backing custody remain retained."
               }
             ],
             "synchronization": [
@@ -32505,6 +32529,10 @@
               {
                 "path": "src/platform_native/host_bootstrap/channel_ledger_native.mbt",
                 "anchor": "pub fn[T, C] NativeHostBootstrap::start_backed_channel_ledger("
+              },
+              {
+                "path": "src/platform_native/host_bootstrap/backed_live_channel_native.mbt",
+                "anchor": "borrowed endpoints. The serialized caller must separately finish actual"
               }
             ],
             "failure": [
@@ -32523,6 +32551,10 @@
               {
                 "path": "src/platform_native/host_bootstrap/channel_ledger_native.mbt",
                 "anchor": "pub fn[T, C] NativeHostBootstrap::start_backed_channel_ledger("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_channel_preparation.py",
+                "anchor": "def test_transport_unknown_keeps_reply_and_never_resends_or_returns_fd("
               }
             ],
             "cancellation": [
@@ -32537,6 +32569,10 @@
               {
                 "path": "src/platform_native/host_bootstrap/channel_ledger_native.mbt",
                 "anchor": "pub fn[T, C] NativeHostBootstrap::start_backed_channel_ledger("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_live_channel.py",
+                "anchor": "metadata retirement, quota settlement or business acknowledgment."
               }
             ],
             "resources": [
@@ -32555,6 +32591,10 @@
               {
                 "path": "src/platform_native/host_bootstrap/channel_ledger_native.mbt",
                 "anchor": "pub fn[T, C] NativeHostBootstrap::start_backed_channel_ledger("
+              },
+              {
+                "path": "src/platform_native/host_bootstrap/backed_live_channel_native.mbt",
+                "anchor": "@resources.stop_imported_child_ledger(frame)"
               }
             ],
             "extension": [
@@ -32569,6 +32609,10 @@
               {
                 "path": "src/platform_native/host_bootstrap/channel_ledger_native.mbt",
                 "anchor": "pub fn[T, C] NativeHostBootstrap::start_backed_channel_ledger("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_live_channel.py",
+                "anchor": "not 2 <= operation <= 10"
               }
             ],
             "verification": [
@@ -32595,6 +32639,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_native_channel_preparation.py",
                 "anchor": "def test_retirement_requires_original_acks_and_both_typed_native_results("
+              },
+              {
+                "path": "src/platform_native/host_bootstrap_live_conformance/pre_spawn_native.mbt",
+                "anchor": "closed endpoints cannot be reobserved while same-original cleanup report remains available"
               }
             ]
           }

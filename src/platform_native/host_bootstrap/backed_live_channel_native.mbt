@@ -273,9 +273,9 @@ pub fn[T, C] NativeHostBootstrap::stop_backed_live_channel_transport_use(
       match record.live {
         None => Ok(())
         Some(_) =>
-          self.stop_backed_live_channel(original, record).map_err(issue => {
-            Domain(issue)
-          })
+          self
+          .stop_backed_live_channel(original, record)
+          .map_err(issue => Domain(issue))
       }
   }
 }

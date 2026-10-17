@@ -2,7 +2,7 @@
 
 Reuse the unchanged four-case private parent fixture and its actual 64/48-page
 Native acquisition. No OriginalWorkerFunding or production worker is fabricated.
-The eight additional cases keep original pipes and extra managed aliases through
+The ten additional cases keep original pipes and extra managed aliases through
 separate same-caller cleanup. Python syscall/reply fault tests remain distinct.
 """
 import ctypes as C
@@ -107,6 +107,27 @@ resource(4); drop_frame(); resource(9); drop_frame()
 resource(6); drop_frame(); resource(6); drop_frame()
 cases.append('actual original bootstrap reservation/current and cumulative reports')
 
+# End parent transport use through the same actual Common frame. This leaves
+# the exact original aliases and every pipe open: it is not a physical ACK.
+before_restriction = (fh.value, fdomain.value, fchannel.value, frame.value)
+resource(10); drop_frame()
+assert (fh.value, fdomain.value, fchannel.value, frame.value) == before_restriction
+assert not parent._closed and not any(descriptor.closed for descriptor in pipe_fds)
+for descriptor in pipe_fds: os.fstat(descriptor.value)
+cases.append('actual operation10 restricts same original transport without closing pipes or aliases')
+
+# Restriction refuses fresh current/limit work but keeps the original cleanup
+# report and repeat restriction available, without substituting a new frame.
+resource(4, refused=True); drop_frame()
+resource(5, refused=True); drop_frame()
+resource(6); drop_frame(); resource(10); drop_frame()
+for operation, retained, execution in ((11, 0, 0), (10, 1, 0), (10, 0, 1)):
+    assert functions.operate(fh, fdomain, fchannel, frame, operation, retained,
+                             execution, C.byref(frame_reply)) == -2
+    assert frame_reply.value is None
+assert (fh.value, fdomain.value, fchannel.value, frame.value) == before_restriction
+cases.append('actual restricted current refuses, cleanup report remains, closed opcode amounts refuse')
+
 # 7: Logical stop refuses new work; frame aliases cannot be freed using it as
 # the channel's physical retirement reply. All original slots remain retained.
 resource(7); drop_frame(); resource(4, refused=True)
@@ -141,10 +162,10 @@ assert all(slot.value is None for slot in (host, domain, channel, reply))
 parent.close_unstarted(); assert parent._closed and not fd.close_attempted
 fd.close()
 cases.append('actual same-caller pipe closes and typed frame/channel retirement before parent close')
-assert len(cases) == 12 and all(p._closed for p in parents) and all(d.closed for d in descriptors)
+assert len(cases) == 14 and all(p._closed for p in parents) and all(d.closed for d in descriptors)
 original['retain_observation']()
-print(original['json'].dumps(dict(discovered=12,executed=12,passed=12,failed=0,skipped=0,
-    original_parent_cases=4,new_channel_frame_cases=8,cases=cases,
+print(original['json'].dumps(dict(discovered=14,executed=14,passed=14,failed=0,skipped=0,
+    original_parent_cases=4,original_channel_frame_cases=8,new_transport_restriction_cases=2,cases=cases,
     product_source=plan['source'],library_sha256=plan['library']['sha256'],
     original_regular_C_source=plan['regular_C_source'],initializer_calls=1,
     originals_closed=True,normal_profile=None,Engine=0,VM=0,worker=0,Run=0,

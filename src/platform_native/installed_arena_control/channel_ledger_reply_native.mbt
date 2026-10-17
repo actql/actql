@@ -74,7 +74,9 @@ pub fn operate_installed_arena_channel_ledger_reply(
   execution : Int64,
 ) -> InstalledArenaChannelLedgerReply {
   let mut limits = None
-  let result = if operation != 3 && (retained != 0L || execution != 0L) {
+  let result : Result[Unit, @bootstrap.NativeBackedOriginalReadIssue] = if operation !=
+    3 &&
+    (retained != 0L || execution != 0L) {
     Err(@bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.Unavailable)))
   } else {
     match original_channel_ledger_frame(host, domain, channel) {
@@ -103,6 +105,7 @@ pub fn operate_installed_arena_channel_ledger_reply(
             backing.require_backed_channel_bootstrap_current(
               host, channel, frame,
             )
+          10 => backing.stop_backed_live_channel_transport_use(host, channel)
           8 =>
             backing.retire_backed_channel_bootstrap_after_owner_ack(
               host, channel, frame,

@@ -309,7 +309,9 @@ fn main {
     "actual parent close finally returns its one backing reservation",
   )
   if count.val != 68 {
-    abort("original live-child conformance discovery must execute exactly68 cases")
+    abort(
+      "original live-child conformance discovery must execute exactly68 cases",
+    )
   }
   println(
     "{\"success\":true,\"discovered\":68,\"executed\":68,\"passed\":68,\"failed\":0,\"VM\":0,\"public_e2e\":0}",
