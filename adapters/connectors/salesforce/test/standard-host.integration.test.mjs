@@ -832,7 +832,14 @@ test('invalid diagnostics retain an acquired source and its failed cleanup',
           'InvalidDiagnosticObserver');
         assert.equal(error.cleanupPending, true);
         assert.equal(error.cleanupErrors[0].error, cleanup);
-        assert.ok(error.cleanupHandle.status().owners.includes(
+        assert.deepEqual(error.cleanupHandle.status().owners,
+          ['initialization', 'runtime']);
+        // The adopted outer runtime finalizer retains this exact original
+        // initialization failure; its Source duty stays on the child owner.
+        assert.equal(error.cause.code, 'InstalledHostInitializationFailed');
+        assert.equal(error.cause.primaryFailure, error.primaryFailure);
+        assert.equal(error.cause.cleanupErrors[0].error, cleanup);
+        assert.ok(error.cause.cleanupHandle.status().owners.includes(
           'source-profile'));
         return true;
       });
