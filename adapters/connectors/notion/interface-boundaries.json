@@ -2110,7 +2110,7 @@
               },
               {
                 "path": "src/connectors/notion/catalog/page_observation_wbtest.mbt",
-                "anchor": "test \""
+                "anchor": "test \"Notion page metadata projection keeps original parent tags version and bounded output\""
               }
             ]
           }
