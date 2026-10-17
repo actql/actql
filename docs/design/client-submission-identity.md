@@ -108,9 +108,7 @@ publication or cleanup responsibility. Lost issuance custody also refuses new
 work. Neither refusal nor successful new work establishes that the original did
 not execute.
 
-## Submitted intent and outcome projection
-
-### Scoped durable request names
+## Scoped durable request names
 
 The public Python `request_id` convenience denotes a scoped durable name for
 one original submitted operation, not a nonce to reuse under each connection's
@@ -145,11 +143,29 @@ array. Normal resolution uses the exact indexed key and singleton control, not
 a scan of historical Programs or a process-local name cache. These controls are
 not a claim of whole Host heap funding or unlimited permanent name capacity.
 
-The separate closed transport correlation must identify the requested name,
-original intent and returned original reference. The old explicit-epoch
-submission response still requires its original exact reference match; it is
-not weakened to accommodate named resolution. The private Journal primitive
-alone does not establish that this public producer/consumer path is connected.
+The closed `submit-named-intent` packet carries the exact `requestName`, ordinary
+submitted intent and intent CID, operation attempt, and a newly retained candidate
+submission reference. The candidate is used only when this same Journal confirms
+that the name has never been bound. An observed reply correlates the same name,
+intent and attempt with the original authenticated reference, which can differ
+from the candidate on reconnection. Refusal certifies only this uncommitted
+attempt; conflict does not replace any saved original. The name uses the same
+bounded caller-ID string domain, without normalization or coercion.
+
+The old explicit-epoch submission response still requires its original exact
+reference match; it is not weakened to accommodate named resolution. A named
+observation can include the existing initial check observation, but never
+manufactures it on a later lookup. Missing retained outcome, formal retirement,
+and ambiguous transaction outcomes stay unresolved. An existing preparing name
+is observation-only; it does not grant automatic continuation or resend.
+
+This is an intentional extension of the initial contract, not reinterpretation
+of a bare legacy request ID or a per-client mapping from a name to a fresh epoch.
+The existing explicit-epoch and explicit-risk-restart paths retain their own
+identity and uncertainty rules. The private Journal primitive alone does not
+establish a public installed Python producer/consumer or whole Host funding.
+
+## Submitted intent and outcome projection
 
 `actql-submitted-intent/0.1` identifies the original JSON submission before a
 checked Program or Run definition exists. Its canonical preimage contains
