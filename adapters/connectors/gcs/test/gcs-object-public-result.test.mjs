@@ -116,8 +116,12 @@ test('public GCS Named Result preserves exact Decimal and JSON contracts across 
                 return resources.get(target.objectName);
               }, callResource: async call => {
                 calls++;
-                assert.equal(call.method, 'GET');
-                assert.equal(call.path, '/storage/v1/b/actql-fixture/o');
+                assert.deepEqual([...call.operations.keys()], [GCS_FILE_LIST_OPERATION]);
+                const operation = call.operations.get(GCS_FILE_LIST_OPERATION);
+                assert.equal(operation.method, 'GET');
+                assert.equal(operation.path,
+                  '/storage/v1/b/actql-fixture/o?prefix=in%2F&maxResults=3&projection=noAcl' +
+                  (calls === 1 ? '' : '&pageToken=next'));
                 const page = calls === 1 ? {kind: 'storage#objects', nextPageToken: 'next'}
                   : {kind: 'storage#objects', items: objects};
                 return {accepted: true, statusCode: 200, headers: [], body: Buffer.from(JSON.stringify(page))};
