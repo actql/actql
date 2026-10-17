@@ -1,5 +1,39 @@
 # OSS Host authorization behavior
 
+## Original Checkpoint ID answers and SDK reference views
+
+The SDK's `approve(id)` and `reject(id)` use the existing authorized exact-ID
+Checkpoint lookup with one result. They do not scan pages, select the first
+pending Checkpoint, resolve an alias or submit another Run. The admitted full
+Summary supplies the original subject, required artifact, review and claims to
+the existing signed-answer/resolution path. Lookup or an ID grants no authority;
+the Host still authenticates the actor and checks current policy, original
+Checkpoint/Run, approval scope, trusted key and saved answer correspondence.
+
+An explicit application signer retains its original callback, receiver and
+selected metadata across lookup. An installed Local provider may instead offer
+an original-answer operation, not a generic signing callback. It must separately
+bind the supplied Summary DATA to its actual original key, request, signing use
+and current authority. Absence is unavailable, never Host-key fallback, unsigned
+approval or key creation. Its pending Promise belongs to the existing Client
+lease/Host handling sets until it settles; closing does not forget that duty.
+An uncertain signing operation retains its own original claim and cleanup.
+
+Only the original signed answer is delivered through the existing resolve
+operation. A lost resolution reply exposes those exact signed bytes under the
+existing `ResolutionUnknown` contract. There is no automatic re-sign or resend,
+and neither cancellation nor Promise completion proves physical key retirement.
+
+An SDK Run-state observation adds readonly, nonenumerable `id` only to an
+actually captured and validated Checkpoint reference. It equals that same
+immutable reference's `checkpoint_id`. Wire bytes, canonical preimages, signed
+and saved data and outgoing packets do not gain this property. The SDK declares
+its presentation type separately from the closed wire. Ordinary `wait()` may
+return a legitimate outcome without a Checkpoint; optionality stays explicit,
+with no placeholder, assertion or implicitly throwing accessor. The reference
+is not a review, item list or approval evidence; applications retrieve the
+original semantic review separately when needed.
+
 ## Original public Host signer selections
 
 The existing Common Host configuration boundary projects the `signers` portion
