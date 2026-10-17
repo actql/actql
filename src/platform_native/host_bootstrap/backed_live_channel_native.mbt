@@ -70,6 +70,10 @@ struct NativeBackedLiveChannel[T, C] {
   mut child_binding_attempted : Bool
   mut binding_attempted : Bool
   mut bound : Bool
+  // Resource projection and actual VM admission are separate original steps.
+  mut admitted : Bool
+  mut ledger_attempted : Bool
+  mut ledger_frame : @resources.ImportedChildLedger?
   mut retired : Bool
 }
 
@@ -172,6 +176,9 @@ fn[T, C] NativeHostBootstrap::capture_backed_live_channel(
     child_binding_attempted: child_pid is Some(_),
     binding_attempted: false,
     bound: false,
+    admitted: false,
+    ledger_attempted: false,
+    ledger_frame: None,
     retired: false,
   }
   // Existing domain custody precedes any fallible physical or access capture.
@@ -248,6 +255,54 @@ pub fn[T, C] NativeHostBootstrap::bind_backed_live_channel_child(
 }
 
 ///|
+/// Trusted same-parent resource assembly before bootstrap, with the original
+/// transferred domain/ticket and actual prepared pipes. No scalar limits,
+/// callbacks, VM/Host baseline or launch permission enter this issuer. The
+/// same channel retains a partial frame on lost reply/current postcheck.
+pub fn[T, C] NativeHostBootstrap::prepare_backed_original_channel_ledger(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChannel[T, C],
+) -> Result[@resources.ImportedChildLedger, NativeBackedOriginalReadIssue] {
+  match self.original_live_channel(original, record) {
+    Err(issue) => return Err(Domain(issue))
+    Ok(_) => ()
+  }
+  match self.require_domain_current(original, record.domain, record.child) {
+    Err(issue) => return Err(Domain(issue))
+    Ok(_) => ()
+  }
+  if record.ledger_attempted || record.admitted {
+    return Err(Domain(Bootstrap(AlreadyConsumed)))
+  }
+  guard record.physical is Some(physical) && record.live is Some(live) else {
+    return Err(Domain(Bootstrap(Unavailable)))
+  }
+  let status = live_channel_status_ffi(physical)
+  if status != 0 {
+    return Err(Domain(Bootstrap(Physical(status))))
+  }
+  record.ledger_attempted = true
+  let frame = match
+    self.prepare_backed_original_live_ledger(original, live, record) {
+    Err(issue) => return Err(issue)
+    Ok(frame) => frame
+  }
+  // Original custody precedes postchecks and the foreign reply boundary.
+  record.ledger_frame = Some(frame)
+  match self.require_domain_current(original, record.domain, record.child) {
+    Err(issue) => return Err(Domain(issue))
+    Ok(_) => ()
+  }
+  let status = live_channel_status_ffi(physical)
+  if status != 0 {
+    Err(Domain(Bootstrap(Physical(status))))
+  } else {
+    Ok(frame)
+  }
+}
+
+///|
 /// Same private channel only, after validating the original child's Memory
 /// observation. Relative DATA is not a public VM/admission constructor. The
 /// same caller must check its original channel and physical custody again.
@@ -304,10 +359,24 @@ pub fn[T, C] NativeHostBootstrap::admit_backed_live_channel(
   if status != 0 {
     return Err(Bootstrap(Physical(status)))
   }
-  match self.admit_backed_live_child(original, live, record) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
+  if record.admitted {
+    return Err(Accounting(@resources.LiveChildAlreadyAdmitted))
   }
+  if record.ledger_frame is Some(_) {
+    // Its resource projection already exists; this step still requires the
+    // actual original child/VM observation above and cannot readmit Common.
+    match self.backed_live_child_state(original, live, record) {
+      Err(issue) => return Err(issue)
+      Ok(@resources.LiveClosing) => return Err(Bootstrap(Closing))
+      Ok(@resources.LiveOpen) => ()
+    }
+  } else {
+    match self.admit_backed_live_child(original, live, record) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  record.admitted = true
   let status = live_vm_current_ffi(physical)
   if status != 0 {
     Err(Bootstrap(Physical(status)))
@@ -332,6 +401,9 @@ pub fn[T, C] NativeHostBootstrap::backed_live_channel_state(
   let status = live_vm_current_ffi(physical)
   if status != 0 {
     return Err(Bootstrap(Physical(status)))
+  }
+  if !record.admitted {
+    return Err(Bootstrap(Unavailable))
   }
   let state = match self.backed_live_child_state(original, live, record) {
     Err(issue) => return Err(issue)
@@ -467,6 +539,9 @@ pub fn[T, C] NativeHostBootstrap::retire_backed_live_channel_after_owner_ack(
     }
     record.physical = None
   }
+  // Common's same-owner ACK retirement invalidates escaped original frames
+  // and breaks their callbacks. Dropping this reference alone is never an ACK.
+  record.ledger_frame = None
   record.retired = true
   record.domain.live_channel = None
   Ok(())

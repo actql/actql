@@ -123,6 +123,74 @@ fn exercise_pre_spawn_channel(
   )
   require(
     count,
+    host.prepare_backed_original_channel_ledger({ marker: 1, }, channel)
+    is Err(Domain(Bootstrap(ForeignOriginal))) &&
+    host.usage() == before,
+    "equal-valued foreign Host cannot obtain an original channel Ledger",
+  )
+  let frame = host
+    .prepare_backed_original_channel_ledger(original, channel)
+    .unwrap()
+  require(
+    count,
+    @resources.take_imported_original_child_ledger(frame) is Err(Unavailable) &&
+    host.usage() == before,
+    "prepared same-ticket frame is not started and adds no parent reservation",
+  )
+  require(
+    count,
+    host.prepare_backed_original_channel_ledger(original, channel)
+    is Err(Domain(Bootstrap(AlreadyConsumed))) &&
+    host.usage() == before,
+    "lost frame reply cannot issue another nominal child or allowance",
+  )
+  @resources.start_imported_child_ledger(frame).unwrap()
+  let ledger = @resources.take_imported_original_child_ledger(frame).unwrap()
+  require(
+    count,
+    @resources.ledger_usage(ledger).reserved_execution_bytes == 0L &&
+    @resources.ledger_limits(ledger).execution_bytes == 16L * page &&
+    @resources.take_imported_child_ledger(frame) is Err(Unavailable) &&
+    host.usage() == before,
+    "same original child has inherited limits but no seeded VM or Host capacities",
+  )
+  require(
+    count,
+    @resources.start_imported_child_ledger(frame) is Err(AlreadyConsumed) &&
+    @resources.take_imported_original_child_ledger(frame)
+    is Err(AlreadyConsumed),
+    "frame start and original Ledger take remain one-shot",
+  )
+  require(
+    count,
+    @resources.reserve_shared_capacity(ledger, 17L * page)
+    is Err(ExecutionLimit) &&
+    host.usage() == before &&
+    @resources.ledger_usage(ledger).attempts == 0,
+    "child cannot widen inherited bytes or consume another parent allowance",
+  )
+  let child_capacity = @resources.reserve_shared_capacity(ledger, page).unwrap()
+  require(
+    count,
+    @resources.ledger_usage(ledger).reserved_execution_bytes == page &&
+    host.usage() == before,
+    "child reservation subaccounts original backing without parent double charge",
+  )
+  @resources.report_imported_child_ledger(frame).unwrap()
+  let reported = host.usage()
+  require(
+    count,
+    reported == { ..before, attempts: before.attempts + 1, },
+    "actual child snapshot reports its one attempt into the same parent ticket",
+  )
+  @resources.report_imported_child_ledger(frame).unwrap()
+  require(
+    count,
+    host.usage() == reported,
+    "duplicate cumulative child report cannot recharge original backing or quota",
+  )
+  require(
+    count,
     host.prepare_backed_live_channel_before_spawn(
       original, domain, child, read_fd, write_fd, 7L,
     )
@@ -159,6 +227,22 @@ fn exercise_pre_spawn_channel(
     is Err(Bootstrap(AlreadyConsumed)),
     "failed child bind retains original one-shot custody",
   )
+  @resources.stop_imported_child_ledger(frame).unwrap()
+  require(
+    count,
+    @resources.reserve_capacity(ledger, 0L, 1L) is Err(ClosedReservation) &&
+    host.usage() == reported,
+    "logical child stop denies new work without physical retirement or refund",
+  )
+  @resources.close_shared_capacity(child_capacity).unwrap()
+  @resources.settle_shared_capacity(child_capacity).unwrap()
+  @resources.report_imported_child_ledger(frame).unwrap()
+  require(
+    count,
+    @resources.ledger_usage(ledger).reserved_execution_bytes == 0L &&
+    host.usage() == reported,
+    "same original cleanup report releases no parent physical reservation",
+  )
   close_fixture_pipes().unwrap()
   // No spawn occurred. The fixture has now confirmed its exact pipe closes;
   // metadata retirement neither closes the domain nor settles its parent loan.
@@ -167,8 +251,16 @@ fn exercise_pre_spawn_channel(
     count,
     host.bind_backed_live_channel_child(original, channel, 1)
     is Err(Bootstrap(ForeignOriginal)) &&
-    host.usage() == before,
+    host.usage() == reported,
     "retired channel cannot regain identity or return the parent allowance",
+  )
+  require(
+    count,
+    @resources.reserve_capacity(ledger, 0L, 1L) is Err(ForeignOwner) &&
+    host.prepare_backed_original_channel_ledger(original, channel)
+    is Err(Domain(Bootstrap(ForeignOriginal))) &&
+    host.usage() == reported,
+    "owner ACK retirement invalidates escaped Ledger without another child or refund",
   )
   host.close_backed_domain(original, domain, child).unwrap()
   host.close_backed_view(original, view, child).unwrap()

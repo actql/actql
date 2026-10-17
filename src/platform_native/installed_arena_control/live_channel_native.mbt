@@ -78,6 +78,27 @@ pub fn InstalledArenaHost::prepare_live_channel_before_spawn(
 }
 
 ///|
+/// Same original private resource frame only. VM/launch and independent
+/// process/FD/control funding remain separate; no scalar root is constructed.
+pub fn InstalledArenaHost::prepare_live_channel_original_ledger(
+  self : InstalledArenaHost,
+  domain : InstalledArenaDomain,
+  channel : @bootstrap.NativeBackedLiveChannel[
+    InstalledArenaHost,
+    InstalledArenaDomain,
+  ],
+) -> Result[
+  @resources.ImportedChildLedger,
+  @bootstrap.NativeBackedOriginalReadIssue,
+] {
+  match self.original_live_channel(domain, channel) {
+    Err(issue) => return Err(@bootstrap.Domain(issue))
+    Ok(_) => ()
+  }
+  domain.backing.prepare_backed_original_channel_ledger(self, channel)
+}
+
+///|
 pub fn InstalledArenaHost::bind_live_channel_child(
   self : InstalledArenaHost,
   domain : InstalledArenaDomain,

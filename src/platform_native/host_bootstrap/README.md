@@ -167,6 +167,31 @@ Partial preparation is registered in the original domain before fallible capture
 or Common access issuance. Cleanup retains that same carrier and requires the
 existing physical caller's separate ACKs. Metadata retirement closes no pipe or
 process and returns no reservation. This private seam does not create a
-production `OriginalWorkerFunding` supplier, an imported child Ledger or a
-normal numerical profile; those remaining connections cannot use scalar DATA
-or an unbound holding as authority.
+production `OriginalWorkerFunding` supplier or a normal numerical profile;
+remaining connections cannot use scalar DATA or an unbound holding as authority.
+
+## Same-channel original child resource frame
+
+`prepare_backed_original_channel_ledger` delegates to the existing Common
+`admit_backed_execution_live_child` and
+`prepare_backed_original_child_ledger` on that same prepared channel, original
+read use, ticket, domain and runtime reference. It issues no scalar root or
+second parent reservation. The channel marks the attempt before issuance and
+retains the returned frame before physical/current postchecks and the reply.
+Lost replies retain this original carrier and cannot issue another frame.
+
+The existing imported-child start/take/report/stop rules own first-use checks,
+inherited limits, cumulative snapshots, conservative Unknown accounting and
+retirement of escaped frames. This branch seeds no fixed VM/Host capacities.
+The original physical caller must still supply complete independent process,
+FD and control funding and check current physical custody for every physical
+operation. Pure resource preparation is not a VM, launch or Account grant.
+
+VM admission remains a separate one-shot step after the original child's actual
+span and borrower observation. A resource projection cannot make state/limits
+report a VM admission; when the frame was prepared, the later VM step checks
+that same existing logical projection instead of issuing it again. Only the
+original physical Owner's separate stop/alias/descriptor ACK permits retirement
+of the frame callbacks. Dropping a frame or closing an Engine does not prove
+process-static Rust/Mach resources retired. Normal supplier/profile and the
+Python worker/VM/final physical and wheel gates remain incomplete.

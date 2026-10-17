@@ -309,6 +309,6 @@ fn main {
     "actual parent close finally returns its one backing reservation",
   )
   println(
-    "{\"success\":true,\"discovered\":48,\"executed\":48,\"passed\":48,\"failed\":0,\"VM\":0,\"public_e2e\":0}",
+    "{\"success\":true,\"discovered\":60,\"executed\":60,\"passed\":60,\"failed\":0,\"VM\":0,\"public_e2e\":0}",
   )
 }
