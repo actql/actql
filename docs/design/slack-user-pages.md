@@ -49,8 +49,11 @@ pure projection does not supply normal quantities or transfer that custody.
 The private user-list reader uses the existing Credential binding for both
 `POST /api/auth.test` and each `GET /api/users.list`. The trusted caller supplies
 separate original grants and uses for these declared operations within the same
-original invocation. The binding retains the original secret and refuses a
-replacement before later sends. Neither a token string nor a `team_id` query
+original invocation. The binding retains the secret returned by its original
+trusted resolver and refuses changed bytes before later sends. Byte equality
+and a shared callback are not proof of an original physical secret generation;
+normal Site material membership and current generation remain independent.
+Neither a token string nor a `team_id` query
 argument proves workspace membership: Slack ignores that argument for workspace
 tokens. The Catalog checks the actual bounded
 [auth.test response](https://docs.slack.dev/reference/methods/auth.test/), and

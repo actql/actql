@@ -12,7 +12,7 @@ pub fn slack_project_workspace_identity(Bytes, Int, Int, Int, Int) -> Result[@ca
 
 pub fn slack_user_list_column_names() -> Array[String]
 
-pub fn slack_user_list_ids_json(@catalog.SlackUserListPage) -> String
+pub fn slack_user_list_ids(@catalog.SlackUserListPage) -> Array[String]
 
 pub fn slack_user_list_metadata_json(@catalog.SlackUserListPage) -> String
 
