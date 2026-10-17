@@ -981,7 +981,7 @@
     },
     {
       "module": "adapters/connectors/notion/site/database-discovery.mjs",
-      "sha256": "7b86457e5ef7ee64492e4de3028a65575039bd3f70793dbbb5133d31aceb5fe5",
+      "sha256": "6d32c863defa19a7f3029c8da1ad6cf63aaeb85cfe83380f26e6ddc31118f2b1",
       "exports": [
         "NOTION_DATABASE_RETRIEVE_OPERATION",
         "NOTION_DATA_SOURCE_RETRIEVE_OPERATION",
@@ -1192,6 +1192,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "### Original schema occurrence and delayed authorization"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "## Original installation metadata consumption"
               }
             ],
             "inputsOutputs": [
@@ -1214,6 +1218,10 @@
               {
                 "path": "src/connectors/notion/host_node/read_source_selection_bridge.mbt",
                 "anchor": "pub fn notion_select_read_source("
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "## Original installation metadata consumption"
               }
             ],
             "identity": [
@@ -1236,6 +1244,10 @@
               {
                 "path": "src/connectors/notion/catalog/read_source_selection.mbt",
                 "anchor": "pub fn notion_read_source_selection_matches("
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "## Original installation metadata consumption"
               }
             ],
             "ownership": [
@@ -1250,6 +1262,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "### Original schema occurrence and delayed authorization"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "## Original installation metadata consumption"
               }
             ],
             "synchronization": [
@@ -1264,6 +1280,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "### Original schema occurrence and delayed authorization"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "## Original installation metadata consumption"
               }
             ],
             "failure": [
@@ -1282,6 +1302,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "### Original schema occurrence and delayed authorization"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "## Original installation metadata consumption"
               }
             ],
             "cancellation": [
@@ -1296,6 +1320,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "### Original schema occurrence and delayed authorization"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "## Original installation metadata consumption"
               }
             ],
             "resources": [
@@ -1314,6 +1342,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "### Original schema occurrence and delayed authorization"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "## Original installation metadata consumption"
               }
             ],
             "extension": [
@@ -1328,6 +1360,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "### Original schema occurrence and delayed authorization"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "## Original installation metadata consumption"
               }
             ],
             "verification": [
@@ -1366,6 +1402,10 @@
               {
                 "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
                 "anchor": "actual Notion current and stop after awaited schema issuer retain the same database charge without schema I/O"
+              },
+              {
+                "path": "adapters/connectors/notion/test/installation-metadata-discovery.test.mjs",
+                "anchor": "test('actual Notion pre-schema discovery consumes one original Host metadata Subject without a fake Program Run'"
               }
             ]
           }
