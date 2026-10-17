@@ -59,10 +59,10 @@ test "Content workspace borrows the original allocation without another reservat
   (operations.cleanup_refresh)() |> ignore
   @strategy.stop_captured_dag(run)
   @strategy.refresh_captured_retention(run)
-  let final = @resources.ledger_usage(ledger)
-  assert_eq(final.held_bytes, 0L)
-  assert_eq(final.reserved_execution_bytes, 0L)
-  assert_eq(final.reserved_retention_bytes, 0L)
+  let settled = @resources.ledger_usage(ledger)
+  assert_eq(settled.held_bytes, 0L)
+  assert_eq(settled.reserved_execution_bytes, 0L)
+  assert_eq(settled.reserved_retention_bytes, 0L)
 }
 
 ///|
@@ -133,8 +133,8 @@ test "Content workspace rejects foreign Run and same-Ledger allocation substitut
   let foreign_run = @strategy.captured_effect_run_dag(foreign_capture)
   @strategy.stop_captured_dag(foreign_run)
   @strategy.refresh_captured_retention(foreign_run)
-  let final = @resources.ledger_usage(ledger)
-  assert_eq(final.held_bytes, 0L)
-  assert_eq(final.reserved_execution_bytes, 0L)
-  assert_eq(final.reserved_retention_bytes, 0L)
+  let settled = @resources.ledger_usage(ledger)
+  assert_eq(settled.held_bytes, 0L)
+  assert_eq(settled.reserved_execution_bytes, 0L)
+  assert_eq(settled.reserved_retention_bytes, 0L)
 }
