@@ -1306,7 +1306,10 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       onCommandKey(memberIndex, key) { commandKeys[memberIndex] = key; },
       checkedOwner: prepared, execution, inputs,
       maxMembers: members.length,
-      maxGroupingWork: (members.length + limits.maxPinnedResults) * 2,
+      // Membership, distinct keyed/target groups and dependency imports share
+      // the existing finite Host structural-work ceiling. Result/member counts
+      // bound inventory size, not the work of its cross-product comparisons.
+      maxGroupingWork: limits.maxWork,
       limits: sourceLimits,
       store, maxBytes: plan.outputLimits.maxWireBytes, control,
       invocation: plan.invocation, retention: plan.effectInputRetention,

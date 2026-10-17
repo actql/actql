@@ -20,7 +20,7 @@ const outputLimits=Object.freeze({maxResultFields:10,maxResultMappingWork:1000,
   maxLogicalWireDepth:66,maxSchemaFields:10,maxSchemaBytes:100000,
   maxSchemaNodes:10000,maxSchemaDepth:64,maxBatchBytes:4096});
 
-test('ordinary capture fits two original Result memberships and member keys in existing Host work',async()=>{
+for(const maxWork of [8,10000]) test(`ordinary capture uses finite Host grouping work ${maxWork}`,async()=>{
   const f=await originalFieldCommandKeyFixture({secondMember:true,published:false});
   let factory;
   const events={writers:[],descriptions:0};
@@ -51,7 +51,7 @@ test('ordinary capture fits two original Result memberships and member keys in e
       connectorRevision:'fixture-1',connection:'fixture',site:{issueEffectGrant:unexpected,
         issueReadGrant:unexpected,close(){}},authorization:{authorize:unexpected},
       runtimeBundleCid:cid('7'),bindingCid:cid('8'),ledgerRoot:await mkdtemp(join(tmpdir(),'actql-command-grouping-')),
-      driver,limits:{maxMembers:2,maxPinnedResults:2,maxWork:10000}});
+      driver,limits:{maxMembers:2,maxPinnedResults:2,maxWork}});
     let failure;
     try {await factory.prepareCaptured({moon,control,store,execution:f.execution,
       checkedHost:f.owned,prepared:f.prepared,
@@ -59,10 +59,16 @@ test('ordinary capture fits two original Result memberships and member keys in e
       publicationPlan:{...c,runDefinition:c.localEvidenceContext.runDefinition,
         results:[],outputLimits,contractLimits:{maxWireBytes:100000,maxNodes:10000,maxDepth:64}},
       previewContext:{},unit:f.unit});} catch(error){failure=error;}
-    assert.equal(failure?.primaryFailure??failure,stop);
-    assert.equal(events.descriptions,1,'actual ordinary caller reaches its next physical boundary');
-    assert.equal(events.writers.length,3,'original producer plus two distinct keyed member exports');
-    for(const chunks of events.writers)assert.deepEqual(JSON.parse(chunks.join('')),f.rows);
+    if(maxWork===8){
+      assert.equal((failure?.primaryFailure??failure)?.message,'EffectSourceGroupingLimit');
+      assert.equal(events.descriptions,0);
+      assert.equal(events.writers.length,0,'exhaustion refuses before any Store writer');
+    }else{
+      assert.equal(failure?.primaryFailure??failure,stop);
+      assert.equal(events.descriptions,1,'actual ordinary caller reaches its next physical boundary');
+      assert.equal(events.writers.length,3,'original producer plus two distinct keyed member exports');
+      for(const chunks of events.writers)assert.deepEqual(JSON.parse(chunks.join('')),f.rows);
+    }
     assert.equal(f.execution.cleanupPending(),false,'ordinary failure releases its own pins/phase borrowers');
   } finally {await factory?.close();await f.close();}
 });
