@@ -43,7 +43,13 @@ export function originalHttpCommonFixture(t,moon,options) {
 
 async function originalCommonFixture(t,moon,{responseWire,signal=new AbortController().signal,
   storeOriginals=true,beforeOriginalRead,modelId='gpt-4.1-nano',nativeDecision=false,
-  physical}={},independentHttp) {
+  physical,rowTexts}={},independentHttp) {
+  // Explicit finite test inventory, not another normal capacity supplier.
+  // This route has no installed ModelIoAccess and therefore remains serial;
+  // a profile's active_slots declaration alone cannot enable a window.
+  const count=rowTexts?.length??1;
+  assert.ok(count>=1&&count<=2);
+  if(rowTexts!==undefined){assert.equal(nativeDecision,false);assert.ok(rowTexts.every(value=>typeof value==='string'));}
   if(independentHttp) {
     assert.equal(nativeDecision,false);
     assert.notEqual(physical,undefined,'Independent HTTP requires its explicit loopback transport');
@@ -71,6 +77,7 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   const retry=seal({version:'actql-model-retry-policy/0.1',retryable_failures:[]});
   const backoff=seal({version:'actql-model-backoff/0.1',delays_ms:[]});
   const environmentBody=JSON.parse(nativeDecision ? nativeInput('native_call_environment') : input('infer_fixture_environment'));
+  if(rowTexts!==undefined)environmentBody.host_policy_profile.capacity.max_model_total_duration_ms=1000*count;
   const originalTask=environmentBody.model_task_contracts[0];
   const {contract_cid:ignored,...taskBody}=originalTask;
   taskBody.prompt_template_cid=prompt.cid;
@@ -81,6 +88,11 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   const environmentWire=canonicalText({...environmentBody,evidence_bundle_cid:environmentCid});
   const env=moon.clientProgramCheckEnvironment(environmentWire,environmentCid,false,false,true,false,false,false,false);
   let programWire=input('infer_fixture_program');
+  if(rowTexts!==undefined){
+    const program=JSON.parse(programWire);
+    program.stages[0].steps[0].values.rows=rowTexts.map((text,slot)=>({id:String.fromCharCode(97+slot),text}));
+    programWire=JSON.stringify(program);
+  }
   if(nativeDecision) {
     // A separately selected one-row private native case. Preserve the original
     // Task's checked all-row bound4, schema and key/input expression contract.
@@ -94,8 +106,8 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   const step=moon.clientProgramSelectedInferStep(prepared);
   const executionBody={version:'actql-model-execution-contract/0.1',model_task_contract_cid:task.contract_cid,
     retry_classification_contract_cid:retry.cid,backoff_contract_cid:backoff.cid,
-    max_attempts_per_slot:1,max_total_attempts:1,max_total_cost_units:0,
-    max_total_duration_ms:1000,max_total_wire_bytes:133072,max_total_token_reservation:128,
+    max_attempts_per_slot:1,max_total_attempts:count,max_total_cost_units:0,
+    max_total_duration_ms:1000*count,max_total_wire_bytes:133072,max_total_token_reservation:128*count,
     media_input_contracts:{},default_publication:'outcomes'};
   const executionCid=hash(canonicalText(executionBody));
   const executionWire=canonicalText({...executionBody,self_cid:executionCid});
@@ -151,7 +163,7 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
     program_definition_cid:template.program_definition_cid,parameter_values_cid:template.parameter_values_cid,
     barrier_cid:moon.clientProgramInferPlanBoundary(graph)._3,prepared_rows:BigInt(task.max_items),retained_bytes:7000n,execution_bytes:3000n},
     installation,runtimeArtifactCid:cid('d'),layoutArtifactCid:cid('e'),probability};
-  const quantities={limits:{tokens:128n,costUnits:0n,durationMs:1000n},
+  const quantities={limits:{tokens:128n*BigInt(count),costUnits:0n,durationMs:1000n*BigInt(count)},
     perAttempt:{tokens:128n,costUnits:0n,durationMs:1000n}};
   const originals=providerBindingOriginals('models/fixture',{selector:task.authored_model_selector,
     endpoint:profileBody.operation.endpoint});
@@ -199,7 +211,7 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   const account=moon.executionAuthorizationAdmit(accountWire);
   const storeAuthorityCid=cid('e');
   const store=await openLocalPublicationStore({directory:join(root,'objects'),storeAuthorityCid,
-    capacityBytes:1048576,maxObjectBytes:4096,maxObjects:40,maxContractNodes:1000,maxContractDepth:30,
+    capacityBytes:1048576,maxObjectBytes:4096,maxObjects:40*count,maxContractNodes:1000,maxContractDepth:30,
     privateEvidenceKey:Buffer.alloc(32,7)},control);
   // Explicit fixture installation of independently authored originals. This
   // does not synthesize policy selection, current authority or normal funding.
@@ -232,8 +244,12 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
     metadataInstallation:original,readRetainedBytes:7000n,readExecutionBytes:3000n,
     modelRetainedBytes:100000n,modelExecutionBytes:3000n};
   const ioNotification=createInferIoNotification();
-  const operation=openNodeInferOperation({moon,preparedProgram:prepared,step,graph,
-    registry:input('infer_fixture_registry'),values:input('infer_fixture_values'),
+  // Read the existing normative originals, not old copies embedded in a WB
+  // admission vector. Expected response/capture values remain independent.
+  const aoa=JSON.parse(readFileSync(new URL('../../spec/contracts/actql-aoa.json',import.meta.url),'utf8'));
+  const registry=canonicalText(JSON.parse(readFileSync(new URL('../../'+aoa.pipeline_registry_file,import.meta.url),'utf8')));
+  const values=canonicalText(aoa.execution_contracts['REL.values']);
+  const operation=openNodeInferOperation({moon,preparedProgram:prepared,step,graph,registry,values,
     provider:moon.clientProgramAdmittedModelProvider(admittedProvider,execution),
     originalPreparation,durableCalls:true,quantityCapacity:quantities,signal,ioNotification,
     physicalPreflight:(request,notification,binder)=>registered.physicalPreflight(request,notification,binder,admittedProvider)});
