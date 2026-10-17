@@ -49,8 +49,11 @@ test('actual private Google Node codec rejects errors statuses schemes and heade
 test('actual private Google Node codec enforces original exact response and semantic bounds', () => {
   const length = Buffer.byteLength(valid);
   assert.equal(google.googleServiceAccountTokenResponseLifetimeSeconds(read(valid, {bytes: length})), 3600);
-  for (const limits of [{bytes: length - 1}, {nodes: 3}, {depth: 1},
+  // Source/decode depth counts containers: one flat object fits depth 1.
+  assert.equal(google.googleServiceAccountTokenResponseLifetimeSeconds(read(valid, {depth: 1})), 3600);
+  for (const limits of [{bytes: length - 1}, {nodes: 3},
     {token: 1}, {lifetime: 3599}, {bytes: 0}]) refusal(valid, limits);
+  refusal('{"access_token":"a","token_type":"Bearer","expires_in":1,"ignored":[[0]]}', {depth: 1});
   const scopes = '{"access_token":"PRIVATE_TOKEN","token_type":"Bearer","expires_in":1,"scope":"a b"}';
   refusal(scopes, {scopes: 1});
   refusal(scopes, {scopeBytes: 2});
