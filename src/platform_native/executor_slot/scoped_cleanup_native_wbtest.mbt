@@ -37,7 +37,10 @@ test "known refused duplex spawn can retire transport without reopening its one 
 ///|
 test "actual child remains outside unstarted cleanup after its wait observation" {
   let (slot, holder, _, borrowed) = duplex_test_prepare("cleanup-started")
-  scoped_test_ok(holder.spawn_duplex("/bin/sh", ["-c", "exit 0"]), "cleanup.spawn")
+  scoped_test_ok(
+    holder.spawn_duplex("/bin/sh", ["-c", "exit 0"]),
+    "cleanup.spawn",
+  )
   scoped_test_ok(borrowed.return_transport(holder), "cleanup.started.return")
   let child = scoped_test_ok(holder.child(), "cleanup.child")
   assert_eq(scoped_test_ok(child.wait(true), "cleanup.wait"), Some(Exited(0)))
