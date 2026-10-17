@@ -105,6 +105,7 @@ test "installation subject refuses missing foreign noncanonical and unbounded or
 ///|
 test "installation grant exact independent preimage keeps old Run reader closed" {
   let scope = installation_scope()
+  assert_true(installation_preparation_scope_valid(scope))
   let grant = installation_grant(scope)
   let body = grant.original_wire().unwrap()
   assert_eq(
