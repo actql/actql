@@ -299,6 +299,7 @@ fn read_value_type(native_type : String) -> String? {
 /// whole seconds (see `timestamp_whole_seconds`).
 fn write_value_type(native_type : String) -> String? {
   match native_type {
+    "location" | "address" => None
     "date" => Some("date")
     "datetime" => Some("timestamp")
     _ => read_value_type(native_type)
@@ -345,7 +346,29 @@ fn typed_contract(field : FieldMetadata, kind : String?) -> Json? {
 }
 
 ///|
-fn read_field_contract_json(field : FieldMetadata) -> Json? {
+fn read_field_contract_json(
+  field : FieldMetadata,
+  components? : Array[(String, FieldMetadata)] = [],
+) -> Json? {
+  if field.native_type == "location" {
+    if components.length() != 2 {
+      return None
+    }
+    let fields = []
+    for (name, component) in components {
+      guard typed_contract(component, Some("decimal")) is Some(contract) else {
+        return None
+      }
+      fields.push((name, contract))
+    }
+    return Some(
+      object([
+        ("fields", object(fields)),
+        ("nullable", Json::boolean(field.nullable)),
+        ("type", "object".to_json()),
+      ]),
+    )
+  }
   typed_contract(field, read_value_type(field.native_type))
 }
 
@@ -507,7 +530,9 @@ fn generate_owned_static_declaration(
       let fields : Array[(String, Json)] = []
       let field_names = []
       for field in resource.fields {
-        match read_field_contract_json(field) {
+        let components = geolocation_components(field, resource.fields).unwrap_or([],
+        )
+        match read_field_contract_json(field, components~) {
           Some(contract) => {
             fields.push((field.name, contract))
             field_names.push(field.name)
@@ -846,6 +871,7 @@ fn same_field_meaning(
   declared.reference_to == current.reference_to &&
   declared.precision == current.precision &&
   declared.scale == current.scale
+  && declared.compound_field_name == current.compound_field_name
 }
 
 ///|
@@ -905,10 +931,23 @@ pub fn check_declared_read(
     if view.resource == plan.resource && view.view_cid == source_view_cid {
       // Each field must be declared and still exactly typed now; the
       // checked input contract is compared with the plan separately.
-      for field in plan.fields {
+      for column, field in plan.fields {
         if !view.fields.contains(field.name) ||
-          read_field_contract_json(field) is None {
+          read_field_contract_json(
+            field,
+            components=plan.field_components[column],
+          )
+          is None {
           return Err(UndeclaredField(field.name))
+        }
+        match
+          check_declared_fields(
+            declaration,
+            plan.resource,
+            plan.field_components[column].map(part => part.1),
+          ) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
         }
       }
       return check_declared_fields(declaration, plan.resource, plan.fields)
