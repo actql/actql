@@ -24,15 +24,44 @@ fn NativeLocalPolicyAuthority::current_for(
   journal : NativeClientRunJournal,
   request : @host.ClientRequestIdentity,
 ) -> Bool {
+  guard self.current_material_for(journal, request) is Some(material) else {
+    return false
+  }
+  self.current_with_material_for(journal, request, material)
+}
+
+///|
+// One trusted synchronous predicate may share original material, never an
+// Account outcome. The Common scope/Account operations retain every actual
+// before/after current callback, including after Store or journal operations.
+fn NativeLocalPolicyAuthority::current_material_for(
+  self : NativeLocalPolicyAuthority,
+  journal : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+) -> @host.ClientLocalAdoptedHostMaterial[
+  @sqlite.Database,
+  NativeLocalAdoptionIssue,
+]? {
+  if !physical_equal(self.host.journal, journal) ||
+    @host.client_request_authority_scope_cid(request) != self.scope {
+    return None
+  }
+  self.host.adopted_current_material().to_option()
+}
+
+///|
+fn NativeLocalPolicyAuthority::current_with_material_for(
+  self : NativeLocalPolicyAuthority,
+  journal : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  material : @host.ClientLocalAdoptedHostMaterial[
+    @sqlite.Database,
+    NativeLocalAdoptionIssue,
+  ],
+) -> Bool {
   if !physical_equal(self.host.journal, journal) ||
     @host.client_request_authority_scope_cid(request) != self.scope {
     return false
-  }
-  // Fresh only for this synchronous predicate. Each Common operation still
-  // observes actual current custody before and after its scope/Account work.
-  let material = match self.host.adopted_current_material() {
-    Ok(value) => value
-    Err(_) => return false
   }
   let scope = {
     let body = match
