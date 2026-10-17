@@ -53,12 +53,13 @@ test('Notion constructor rejects invalid projection callbacks binding and page l
 });
 
 test('Notion original operation and invocation cannot be replaced by a foreign scope or nominal grant',async t=>{
-  for(const mode of ['parent','grant']){
+  for(const mode of ['parent','origin','grant']){
     const f=await userListFixture(t),original=f.options.authorizationFor;
     const foreign=f.control.prepare({...f.scope,principal:'foreign'});
     f.journal.acceptGrant(f.sign(foreign),f.control);
     const authorizationFor=input=>mode==='parent'
       ?{...original(input),scope:{...f.scope,dispatchRequestCid:`sha256:${'d'.repeat(64)}`}}
+      :mode==='origin'?{...original(input),scope:{...f.scope,resourceOrigin:'https://foreign.example.test'}}
       :{...original(input),grant:foreign};
     await assert.rejects(f.create({authorizationFor}).read(),error=>error instanceof NotionUserListReadFailure);
     assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);f.row.assertNoCapture();
@@ -96,9 +97,10 @@ test('Notion aggregate raw bound charges and retains the exact offending body',a
 });
 
 test('Notion malformed pages inconsistent cursors and restricted responses never become empty success',async t=>{
-  for(const mode of ['status','error','cursor','cell']){
+  for(const mode of ['status','error','cursor','cell','bytes']){
     const f=await userListFixture(t);
     if(mode==='status')f.state.status=403;
+    if(mode==='bytes')f.state.beforeResponse=(_request,response)=>{response.writeHead(200);response.end(Buffer.from([0xff,0x80]));};
     if(mode==='error')f.state.pages=[{object:'error',status:403,code:'restricted_resource'}];
     if(mode==='cursor')f.state.pages=[{...userPage([],null),has_more:true}];
     if(mode==='cell')f.state.pages=[userPage([{object:'user',id:'U1',type:'person',person:{email:false}}],null)];
