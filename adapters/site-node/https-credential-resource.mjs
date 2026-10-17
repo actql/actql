@@ -169,7 +169,10 @@ export async function prepareHttpsCredentialAuthenticationMaterial({binding,
     if (deadline <= BigInt(trustedNow) || lifetime <= 0n) {
       fail('RemoteCredentialAuthenticationMaterialExpired');
     }
-    // No await separates current authorization/material checks and signing.
+    // The supplier's current callback and metadata readers may reenter the
+    // original Journal. Re-authorize after them, immediately before signing.
+    current();
+    // No await separates this final original authorization and signing.
     original.assertion = prepareGoogleServiceAccountAssertion({
       privateKey: original.privateKey, clientEmail: registration.clientEmail,
       scopes: registration.scopes, delegate: registration.delegate,
