@@ -543,3 +543,11 @@ arrays cannot weaken complete-before or exact-write correspondence. This
 additional bounded Mapping Source/Decode/JSON/Contract pass overlaps the
 retained body, temporary name projection and three private name arrays; it is
 not a reservation, new parser Owner or acknowledgement of retirement.
+The DELETE correspondence wrapper also snapshots its complete before-field
+selection from the immutable Mapping body when prepared. Escaped declaration
+arrays cannot weaken that selection before or after wrapper construction. The
+original Form membership, API ID/revision, canonical DELETE Mapping bytes and
+physical claim/approval/response/cleanup duties remain unchanged. This private
+name-array retention and its bounded Mapping-body Decode/Contract projection
+overlap the original declaration, Mapping and checked request; they are not a
+numerical reservation or a release acknowledgement.
