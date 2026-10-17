@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 import {createInferIoNotification} from './infer-io-notification.mjs';
 import {createHash} from 'node:crypto';
 import {rawCaptureStoreFixture} from './infer-raw-capture.fixture.mjs';
-import {createModelRawTransportPersistence} from './infer-raw-capture.mjs';
+import {createModelRawTransportPersistenceFactory} from './infer-raw-capture.mjs';
 import {prepareOpenAIChatRequest} from '../../packages/provider-ai-sdk/_internal/openai-chat.mjs';
 import {pollSdkPreparation, sdkPreparedRequest, cancelSdkPreparation,
   cleanupSdkPreparation} from '../../packages/provider-ai-sdk/_internal/intercepted-request.mjs';
@@ -167,7 +167,7 @@ test('each prepared request saves its original raw Call in the same Store withou
   const operation = f.open();
   try {
     f.bound()(f.request); f.bound()({});
-    const persistence = createModelRawTransportPersistence({store: store.physical, moon,
+    const persistence = createModelRawTransportPersistenceFactory({store: store.physical, moon,
       operation, registration, notify: f.notification.notify,
       retainHolding(port) { holdings.push({port, original: observed}); }});
     operation.bindModelRawCapture(registration, persistence);
@@ -182,6 +182,10 @@ test('each prepared request saves its original raw Call in the same Store withou
     assert.equal(holdings.length, 2);
     assert.equal(store.state.writes, 2);
     assert.equal(ports[0].cleanup(calls[1].call), false);
+    assert.equal(ports[0].cleanup(calls[0].call), true);
+    await assert.rejects(ports[0](calls[0].call, {}), /OriginalRawPersistenceRetired/u);
+    assert.equal(ports[1].cleanup(calls[0].call), false,
+      'retiring the first Call cannot retire a distinct raw holding');
     for (const [index, value] of calls.entries()) {
       assert.equal(ports[index].cleanup(value.call), true);
     }

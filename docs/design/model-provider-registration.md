@@ -212,12 +212,24 @@ The original Common execution prepares its finite request/cursor inventory
 before issuing the complete prepared CallSet. A selected raw SDK cursor retains
 one synchronous callback during its own preflight constructor; one execution
 can therefore retain several such callbacks. The installed continuation binds
-all of them once to its same original raw registration and physical Store port.
-That port still checks each actual Call against the Common registration. This
-is callback fanout, not another slot scheduler, send gate, registration or Call.
+all of them once to its same original raw registration and selected Store. A
+private nominal factory is consumed during that synchronous binding and gives
+each request a distinct existing single-Call persistence port. Each port still
+checks its actual Call against Common's registration and refuses another Call
+or raw object. This is adapter projection, not another slot scheduler, send
+gate, registration or Call. A directly supplied legacy persistence function
+keeps its single-Call semantics.
 
 The original preparation envelope must cover the callback-reference array and
-per-preflight setter/cell overlap before preparation. Neither the later CallSet
+per-preflight setter/cell overlap before preparation. It also covers the
+one-shot factory descriptor and constructor workspace, each child port and
+every retained holding reference: the count is the complete prepared inventory,
+not the active window. The factory drops its original captures after the
+synchronous attempt; escaped constructor callbacks cannot mint more ports.
+Each child keeps its own raw/Store/read cleanup, and an unstarted or retired
+child cannot retire a sibling. The parent keeps all original holding aliases
+until Common confirms the entire operation's cleanup; dropping these aliases
+is not Store data deletion, GC, capacity release or a physical ACK. Neither the later CallSet
 nor a successful binding supplies that funding. Copied/foreign persistence
 still refuses before any callback. A partial binding failure is one-shot: it
 cannot retry already bound children, and unbound cursors remain with Common's
