@@ -808,6 +808,8 @@ pub fn client_program_plan_fact_manifest_cid(@run_publication_host.PlanFactManif
 
 pub fn client_program_plan_fact_manifest_wire(@run_publication_host.PlanFactManifestIdentity) -> String
 
+pub fn client_program_preparation_decoded_response_limit_json(ClientProgramBridgeOutcome) -> String?
+
 pub fn client_program_preparation_issue(ClientProgramBridgeOutcome) -> ClientProgramBridgeIssue?
 
 pub fn client_program_preparation_issue_code(ClientProgramBridgeOutcome) -> String?
