@@ -17,6 +17,7 @@ pub(all) enum NotionReadRowIssue {
   Property(NotionPropertyItemIssue)
   InvalidValue
   InvalidSystemField(String)
+  Observation(NotionQueryIssue)
 } derive(Eq, Debug)
 
 ///|
@@ -26,6 +27,7 @@ pub struct NotionReadRow {
   priv original_self : Ref[NotionReadRow?]
   priv binding : NotionDataSourceReadContracts
   priv row : OriginalNotionQueryRow
+  priv observed_page : OriginalNotionPage?
   priv limits : NotionReadRowLimits
   priv cells : Array[@admitted.CheckedValue?]
   priv mut nodes : Int
@@ -108,6 +110,26 @@ pub fn start_notion_read_row(
   guard notion_query_page_row_at(page, row_index) is Some(original) else {
     return Err(InvalidColumn)
   }
+  start_notion_read_row_original(
+    binding,
+    original,
+    page.raw.length(),
+    None,
+    limits,
+  )
+}
+
+///|
+// Share the checked-cell algorithm without manufacturing a query response.
+// The optional observation retains the actual exact-GET original as well as
+// the schema-bound property occurrences; legacy query rows keep None.
+fn start_notion_read_row_original(
+  binding : NotionDataSourceReadContracts,
+  original : OriginalNotionQueryRow,
+  raw_bytes : Int,
+  observed_page : OriginalNotionPage?,
+  limits : NotionReadRowLimits,
+) -> Result[NotionReadRow, NotionReadRowIssue] {
   let count = notion_row_column_count(binding)
   if count > 0 && limits.values.max_depth <= 1 {
     return Err(BudgetExceeded)
@@ -122,6 +144,7 @@ pub fn start_notion_read_row(
     original_self,
     binding,
     row: original,
+    observed_page,
     limits,
     cells: Array::make(count, None),
     nodes: 1,
@@ -147,7 +170,7 @@ pub fn start_notion_read_row(
     if index >= binding.columns.length() {
       // The same original response/decode graph remains held. Charge every
       // metadata occurrence scan before conversion, including aliased id/time.
-      if !read_row_spend(row, page.raw.length()) {
+      if !read_row_spend(row, raw_bytes) {
         return Err(BudgetExceeded)
       }
       let value = match
@@ -169,7 +192,7 @@ pub fn start_notion_read_row(
     }
     // Conservatively precharge a complete original page scan/lexeme bound for
     // every scalar. No hidden per-cell reset replenishes this row's work.
-    if !read_row_spend(row, page.raw.length()) ||
+    if !read_row_spend(row, raw_bytes) ||
       !read_row_spend(row, original.properties.length()) {
       return Err(BudgetExceeded)
     }
