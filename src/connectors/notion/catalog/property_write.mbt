@@ -61,11 +61,10 @@ fn notion_write_text_end(text : String, start : Int, max_scalars : Int) -> Int {
 ///|
 /// Every option, including unselected options, is checked and charged. An
 /// exact existing label selects its original id; no option is created by name.
-fn notion_write_option(
+fn notion_write_options(
   property : NotionPropertyMetadata,
-  selected : String,
   work : Int,
-) -> Result[(String, Int), NotionPropertyWriteIssue] {
+) -> Result[(Map[String, String], Int), NotionPropertyWriteIssue] {
   guard @decode.open_object(property.definition) is Ok(definition) &&
     @decode.lookup(definition, property.kind) is Some(body) &&
     @decode.open_object(body) is Ok(body) &&
@@ -74,9 +73,8 @@ fn notion_write_option(
     return Err(InvalidOptions(property.id))
   }
   let mut remaining = work
-  let mut found = None
   let ids : Map[String, Bool] = Map([])
-  let names : Map[String, Bool] = Map([])
+  let names : Map[String, String] = Map([])
   for index in 0..<count {
     guard @decode.open_object(@decode.element_at(options, index).unwrap())
       is Ok(option) &&
@@ -100,12 +98,22 @@ fn notion_write_option(
       return Err(InvalidOptions(property.id))
     }
     ids[id] = true
-    names[name] = true
-    if name == selected {
-      found = Some(id)
-    }
+    names[name] = id
   }
-  match found {
+  Ok((names, remaining))
+}
+
+///|
+fn notion_write_option(
+  property : NotionPropertyMetadata,
+  selected : String,
+  work : Int,
+) -> Result[(String, Int), NotionPropertyWriteIssue] {
+  let (options, remaining) = match notion_write_options(property, work) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match options.get(selected) {
     Some(id) => Ok((id, remaining))
     None => Err(UnknownOption(property.id))
   }
@@ -130,7 +138,7 @@ pub fn prepare_notion_property_write(
   let kind = property.kind
   if ![
       "title", "rich_text", "number", "checkbox", "url", "email", "phone_number",
-      "select", "status", "people", "relation",
+      "select", "status", "multi_select", "people", "relation", "date",
     ].contains(kind) {
     // Computed/created/edited values and Content references cannot acquire a
     // writable representation from similarly shaped JSON or strings.
@@ -161,6 +169,21 @@ pub fn prepare_notion_property_write(
     }
     _ => None
   }
+  // Validate the complete original option inventory even for an empty array.
+  // Each supplied label is then resolved by exact original name, never sent as
+  // a new name that could mutate the data-source schema.
+  let multi_options = if kind == "multi_select" &&
+    value.value is @admitted.Array(_) {
+    match notion_write_options(property, remaining) {
+      Ok((options, work)) => {
+        remaining = work
+        Some(options)
+      }
+      Err(issue) => return Err(issue)
+    }
+  } else {
+    None
+  }
   let writer = @encode.writer(
     limits.max_bytes,
     limits.max_nodes,
@@ -174,7 +197,9 @@ pub fn prepare_notion_property_write(
     match value.value {
       // status:null may reset a default; this codec has no default original.
       @admitted.Null =>
-        if !["number", "url", "email", "phone_number", "select"].contains(kind) {
+        if !["number", "url", "email", "phone_number", "select", "date"].contains(
+            kind,
+          ) {
           Err(InvalidValue(property.id))
         } else {
           @encode.null_value(writer)
@@ -191,6 +216,19 @@ pub fn prepare_notion_property_write(
             Ok(())
           }
           _ => Err(BudgetExceeded)
+        }
+      @admitted.Date(text) | @admitted.Timestamp(text) if kind == "date" =>
+        if text.length() > limits.max_text_units || text.length() > remaining {
+          Err(BudgetExceeded)
+        } else {
+          // Common's checked Date/Timestamp spelling is the original typed
+          // scalar. Do not parse a Text value, invent a timezone or ignore an
+          // end field from a supplied range object.
+          @encode.begin_object(writer)
+          @encode.key(writer, "start")
+          @encode.string_value(writer, text)
+          @encode.end_object(writer)
+          Ok(())
         }
       @admitted.Text(text) if kind == "title" || kind == "rich_text" => {
         @encode.begin_array(writer)
@@ -249,11 +287,11 @@ pub fn prepare_notion_property_write(
         @encode.end_object(writer)
         Ok(())
       }
-      @admitted.Array(values) if kind == "people" || kind == "relation" => {
+      @admitted.Array(values) if ["people", "relation", "multi_select"].contains(
+          kind,
+        ) => {
         let count = @admitted.element_count(values)
-        if count > limits.max_items ||
-          (kind == "relation" && count > 100) ||
-          count > remaining {
+        if count > limits.max_items || count > 100 || count > remaining {
           Err(BudgetExceeded)
         } else {
           remaining -= count
@@ -261,13 +299,25 @@ pub fn prepare_notion_property_write(
           @encode.begin_array(writer)
           for index in 0..<count {
             match @admitted.element_at(values, index).unwrap() {
-              @admitted.Text(id) if !id.is_empty() => {
-                if id.length() > limits.max_text_units ||
-                  id.length() > remaining {
+              @admitted.Text(text) if kind == "multi_select" || !text.is_empty() => {
+                let scans = if kind == "multi_select" { 2 } else { 1 }
+                if text.length() > limits.max_text_units ||
+                  text.length() > remaining / scans {
                   issue = Some(BudgetExceeded)
                   break
                 }
-                remaining -= id.length()
+                remaining -= scans * text.length()
+                let id = if kind == "multi_select" {
+                  match multi_options.unwrap().get(text) {
+                    Some(id) => id
+                    None => {
+                      issue = Some(UnknownOption(property.id))
+                      break
+                    }
+                  }
+                } else {
+                  text
+                }
                 @encode.begin_object(writer)
                 @encode.key(writer, "id")
                 @encode.string_value(writer, id)

@@ -341,11 +341,11 @@ test "Notion relation and people encode actual checked identifier arrays without
 }
 
 ///|
-test "Notion computed native properties and unimplemented Content or temporal projections never become writable JSON" {
+test "Notion computed native properties and unimplemented Content projections never become writable JSON" {
   for
     kind in [
       "formula", "rollup", "created_time", "last_edited_time", "created_by", "last_edited_by",
-      "unique_id", "files", "date",
+      "unique_id", "files",
     ] {
     assert_eq(
       prepare_notion_property_write(
