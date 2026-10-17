@@ -72,3 +72,32 @@ pub fn slack_user_list_schema_wire(
 pub fn slack_user_list_relation_facts_wire() -> String {
   @catalog.slack_user_list_facts_wire()
 }
+
+///|
+#export_name("slackUserListIds")
+pub fn slack_user_list_ids(page : @catalog.SlackUserListPage) -> Array[String] {
+  @catalog.slack_user_list_ids(page)
+}
+
+///|
+#export_name("slackProjectWorkspaceIdentity")
+pub fn slack_project_workspace_identity(
+  bytes : Bytes,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_identity_bytes : Int,
+) -> Result[@catalog.SlackWorkspaceIdentity, @catalog.SlackUserListIssue] {
+  @catalog.project_slack_workspace_identity(
+    bytes, max_bytes, max_nodes, max_depth, max_identity_bytes,
+  )
+}
+
+///|
+#export_name("slackWorkspaceIdentityMatches")
+pub fn slack_workspace_identity_matches(
+  identity : @catalog.SlackWorkspaceIdentity,
+  workspace_id : String,
+) -> Bool {
+  @catalog.slack_workspace_identity_matches(identity, workspace_id)
+}

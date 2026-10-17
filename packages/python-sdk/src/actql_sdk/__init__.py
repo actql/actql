@@ -6,12 +6,13 @@ from ._query import AsyncQuery, AsyncQueryReader
 from ._errors import ClientError
 from ._values import Observation
 from ._run_state import RunState
+from ._check_observation import CheckObservation, CheckReport, CheckReason
 from ._checkpoints import Signer
 from ._public_types import JSONValue, Scope, SourceFormat, Token
 from ._diagnostics import (get_check_input, get_submission_check_observation,
                            resolve_check_location, resolve_check_text_range, explain_check_reason, get_check_fixes)
 
-__all__ = ['AsyncClient', 'AsyncExecution', 'AsyncResult', 'AsyncReader', 'Client', 'Execution', 'Result', 'Reader', 'AsyncQuery', 'AsyncQueryReader', 'Query', 'QueryReader', 'ClientError', 'Observation', 'RunState', 'Signer',
+__all__ = ['AsyncClient', 'AsyncExecution', 'AsyncResult', 'AsyncReader', 'Client', 'Execution', 'Result', 'Reader', 'AsyncQuery', 'AsyncQueryReader', 'Query', 'QueryReader', 'ClientError', 'Observation', 'RunState', 'CheckObservation', 'CheckReport', 'CheckReason', 'Signer',
            'get_submission_input', 'get_check_input', 'get_submission_check_observation',
            'resolve_check_location', 'resolve_check_text_range', 'explain_check_reason', 'get_check_fixes',
            'JSONValue', 'Scope', 'SourceFormat', 'Token']

@@ -320,6 +320,34 @@ pub fn client_effect_command_content_matches_issued(
 }
 
 ///|
+/// Borrow only the original supplier's already allocated workspace. A matching
+/// Ledger is necessary, not evidence that this allocation covers the selected
+/// physical phase/installation. This operation reserves or allocates no bytes.
+///
+/// The caller must retain the returned borrower in its existing child custody
+/// BEFORE rechecking currentness or invoking another Host callback. Resource
+/// admission may itself invoke a callback: a late refusal must not lose an
+/// acquired borrower. This token is not a read/dispatch or cleanup permission.
+/// Return it only after the same physical use and aliases actually retire;
+/// the original supplier still owns allocation/arena/sibling retirement.
+pub fn borrow_client_effect_command_content_workspace(
+  value : ClientEffectCommandContent,
+  issued : @values.CheckedValue,
+  capacity : @resources.SharedCapacity,
+  allocation : @resources.SharedAllocation,
+) -> Result[@resources.SharedBorrow, ClientEffectCommandContentIssue] {
+  if !client_effect_command_content_matches_issued(value, issued) {
+    return Err(Unavailable)
+  }
+  guard value.original is Some(original) else { return Err(Unavailable) }
+  @strategy.borrow_captured_effect_input_workspace(
+    original.inputs,
+    capacity,
+    allocation,
+  ).map_err(_ => Unavailable)
+}
+
+///|
 /// Immutable observed DATA only. Byte custody, funding and read permission
 /// must still be supplied by the original selected physical Store owner.
 pub fn client_effect_command_content_wire(

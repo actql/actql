@@ -172,6 +172,25 @@ capture; each call also holds its CheckedValue argument and observation callback
 workspace. Retirement still cuts the original back-reference, not those costs.
 This predicate issues no reservation, allocation, byte loan or read permission.
 
+The same Owner can additionally borrow a supplier's already allocated
+`SharedAllocation`. It first matches the original issued Reference and captured
+input, then checks the same live Run Ledger and Resource's exact capacity /
+allocation ownership. It reserves and allocates no bytes. In particular,
+same-Ledger correspondence does not select an installation or physical phase:
+that original assignment and its complete simultaneous envelope must come from
+the existing trusted physical supplier, not arbitrary caller tokens.
+
+The borrower is transferred to the existing physical child's custody before
+another currentness callback or I/O. Resource admission may itself invoke the
+original Host. If a late callback retires the view, the caller must keep the
+successfully acquired borrower, refuse new I/O and clean up that same duty;
+throwing after acquisition must not discard the loan. View/input retirement,
+cancellation, Promise completion and a stored receipt return no capacity.
+The exact loan is returned once only after its physical use and last aliases
+retire. Returning it neither retires its parent allocation or arena nor affects
+another borrower or sibling allocation. Missing physical phase assignment or
+funding remains unavailable; this private port is not a read/dispatch grant.
+
 A synchronous trusted Command preparation can borrow the same view repeatedly
 for one row/input. The capture retains it before further caller callbacks and
 retires it through its existing input cleanup, including failure and cancellation

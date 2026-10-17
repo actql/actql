@@ -242,6 +242,7 @@ struct CapturedEffectLocalResultExport {
   owner : CapturedEffectLocalResultExportOwner
   result : CapturedEffectLocalResult
   preparation : @execution.CompletedResultRelationExportPreparation
+  derived_retained : (() -> Bool)?
 }
 
 ///|
@@ -291,7 +292,12 @@ pub fn start_captured_effect_local_result_export(
     Ok(value) => value
     Err(issue) => return Err(Export(issue))
   }
-  Ok({ owner: EffectInputs(inputs), result, preparation, })
+  Ok({
+    owner: EffectInputs(inputs),
+    result,
+    preparation,
+    derived_retained: None,
+  })
 }
 
 ///|
@@ -319,7 +325,26 @@ pub fn[T] bind_captured_effect_local_result_managed_export(
     ) {
     return Err(ForeignOutput)
   }
-  Ok({ owner: EffectInputs(inputs), result, preparation, })
+  Ok({
+    owner: EffectInputs(inputs),
+    result,
+    preparation,
+    derived_retained: Some(() => {
+      @execution.managed_publication_bridge_retained(bridge)
+    }),
+  })
+}
+
+///|
+/// Recheck the original derived-view fence after availability callbacks. This
+/// is separate from the longer-lived original captured Result retention.
+fn captured_effect_local_result_export_derived_retained(
+  value : CapturedEffectLocalResultExport,
+) -> Bool {
+  match value.derived_retained {
+    Some(retained) => retained()
+    None => true
+  }
 }
 
 ///|

@@ -207,8 +207,53 @@ function retainPrivateRawCleanup(descriptor, content) {
 
 async function syncDirectoryPath(path) {
   const directory = await open(path, constants.O_RDONLY);
+  let syncFailure, syncFailed = false;
   try { await directory.sync(); }
-  finally { await directory.close(); }
+  catch (cause) { syncFailed = true; syncFailure = cause; }
+  try {
+    if (await directory.close() === false) fail('PublicationDirectorySyncCleanupPending');
+  } catch (closeFailure) {
+    // Keep this already-acquired FD, not a pathname reopen or repeated sync.
+    // Its initialization/publication caller still owns all surrounding duty.
+    let original = directory, flight;
+    const status = () => Object.freeze({pending: original !== undefined});
+    const cleanup = Object.freeze({status, retry() {
+      if (flight !== undefined) return flight;
+      if (original === undefined) return Promise.resolve(status());
+      flight = Promise.resolve().then(() => original.close()).then(result => {
+        if (result === false) fail('PublicationDirectorySyncCleanupPending');
+        original = undefined;
+        return status();
+      }).finally(() => { flight = undefined; });
+      return flight;
+    }});
+    const primary = syncFailed ? syncFailure : closeFailure;
+    let failure;
+    try {
+      failure = primary !== null && typeof primary === 'object' &&
+        Object.isExtensible(primary) && primary.cleanupHandle === undefined &&
+        ['cleanupHandle', 'cleanupPending', 'cleanupError'].every(name => {
+          const field = Object.getOwnPropertyDescriptor(primary, name);
+          return field === undefined || field.writable === true;
+        }) ? primary : new Error('PublicationDirectorySyncCleanupPending', {cause: primary});
+      Object.defineProperties(failure, {
+        cleanupHandle: {...(Object.getOwnPropertyDescriptor(failure, 'cleanupHandle') ??
+          {writable: true, enumerable: true, configurable: true}), value: cleanup},
+        cleanupPending: {...(Object.getOwnPropertyDescriptor(failure, 'cleanupPending') ??
+          {writable: true, enumerable: true, configurable: true}), value: true},
+        cleanupError: {...(Object.getOwnPropertyDescriptor(failure, 'cleanupError') ??
+          {writable: true, enumerable: true, configurable: true}), value: closeFailure},
+      });
+      if (failure !== primary) Object.defineProperty(failure, 'primaryFailure', {value: primary});
+    } catch {
+      // Presentation must never mask raw thrown values or original FD duty.
+      failure = Object.assign(new Error('PublicationDirectorySyncCleanupPending', {cause: primary}),
+        {code: 'PublicationDirectorySyncCleanupPending', primaryFailure: primary,
+          cleanupHandle: cleanup, cleanupPending: true, cleanupError: closeFailure});
+    }
+    throw failure;
+  }
+  if (syncFailed) throw syncFailure;
 }
 
 const localDurability = Object.freeze({syncDirectory: syncDirectoryPath});
@@ -472,7 +517,7 @@ async function removeOpeningTree(path, bootstrap) {
   } else await unlink(path);
 }
 
-async function acquireStoreOwnership(root, bootstrap) {
+async function acquireStoreOwnership(root, bootstrap, key) {
   const ownershipDirectory = resolve(root, 'owner');
   const ownerPath = resolve(ownershipDirectory, 'owner.json');
   const token = randomUUID();
@@ -488,12 +533,10 @@ async function acquireStoreOwnership(root, bootstrap) {
         token,
       }), 'utf8');
       await writeFile(ownerPath, owner, {flag: 'wx', mode: 0o600});
-      await syncDirectoryPath(ownershipDirectory);
-      await syncDirectoryPath(root);
       let released = false, ownerRemoved = false, directoryRemoved = false;
       let ownershipDevice, ownershipInode;
       let retirementDirectory, retirementSynced = false;
-      return Object.freeze({
+      const ownership = Object.freeze({
         async release() {
           if (released) return false;
           // This FD is already owned independently of the current pathname.
@@ -572,6 +615,15 @@ async function acquireStoreOwnership(root, bootstrap) {
           return true;
         },
       });
+      try {
+        await syncDirectoryPath(ownershipDirectory);
+        await syncDirectoryPath(root);
+        return ownership;
+      } catch (cause) {
+        // The original token/release closure exists before either awaited
+        // durability operation. Drain its failed FD before retiring ownership.
+        throw await retainStoreOpeningFailure(cause, ownership, key);
+      }
     } catch (error) {
       if (error?.cleanupHandle !== undefined) throw error;
       if (error?.code !== 'EEXIST') throw error;
@@ -614,7 +666,7 @@ async function retainStoreOpeningFailure(cause, ownership, key) {
     reader?.status().pending === true});
   const retry = () => {
     if (flight !== undefined) return flight;
-    if (!status().pending) return Promise.resolve(status());
+    if (!status().pending) { key?.fill(0); return Promise.resolve(status()); }
     flight = Promise.resolve().then(async () => {
       if (reader?.status().pending) {
         await reader.retry();
@@ -625,8 +677,8 @@ async function retainStoreOpeningFailure(cause, ownership, key) {
         // Absence/false is not proof of this opener's successful cleanup.
         if (released !== true) fail('PublicationStoreOwnershipLost');
         original = undefined;
-        key?.fill(0);
       }
+      key?.fill(0);
       return status();
     }).finally(() => { flight = undefined; });
     return flight;
@@ -636,7 +688,8 @@ async function retainStoreOpeningFailure(cause, ownership, key) {
   if (!status().pending) return cause;
   const failure = new Error('PublicationStoreOpeningCleanupPending', {cause});
   failure.code = cause?.code ?? 'PublicationStoreOpeningCleanupPending';
-  failure.primaryFailure = cause?.primaryFailure ?? cause;
+  failure.primaryFailure = cause !== null && typeof cause === 'object' &&
+    Object.hasOwn(cause, 'primaryFailure') ? cause.primaryFailure : cause;
   failure.cleanupPending = true;
   failure.cleanupError = cleanupError;
   failure.cleanupHandle = Object.freeze({status, retry});
@@ -828,6 +881,9 @@ export async function openLocalPublicationStore(
     await writeExclusive(storeContractPath, storeContractBytes);
     await syncDirectory(root);
   } catch (error) {
+    if (error?.cleanupHandle !== undefined) {
+      throw await retainStoreOpeningFailure(error, undefined, configuration.privateEvidenceKey);
+    }
     if (error?.code !== 'EEXIST') throw error;
     const existing = await readOpeningMetadata(storeContractPath);
     if (!existing.equals(storeContractBytes)) {
@@ -857,7 +913,7 @@ export async function openLocalPublicationStore(
   // One process owns the complete capacity authority for this local Store.
   // A dead local owner can be reclaimed, but two live opens never maintain
   // independent counters for the same physical allocation scope.
-  const ownership = await acquireStoreOwnership(root, bootstrap);
+  const ownership = await acquireStoreOwnership(root, bootstrap, configuration.privateEvidenceKey);
   try {
   for (const name of await readOpeningDirectory(stagingDirectory)) {
     const path = resolve(stagingDirectory, name);

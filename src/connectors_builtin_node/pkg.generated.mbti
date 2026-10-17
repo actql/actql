@@ -534,6 +534,8 @@ pub fn client_program_effect_captured_source_matches_at(@run_publication_host.Pr
 
 pub fn client_program_effect_command_content_borrow(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, Int, String, Int, Int) -> Result[@run_publication_host.ClientEffectCommandContent, @run_publication_host.ClientEffectCommandContentIssue]
 
+pub fn client_program_effect_command_content_borrow_workspace(@run_publication_host.ClientEffectCommandContent, @value_admission.CheckedValue, @physical_resources.SharedCapacity, @physical_resources.SharedAllocation) -> Result[@physical_resources.SharedBorrow, @run_publication_host.ClientEffectCommandContentIssue]
+
 pub fn client_program_effect_command_content_matches(@run_publication_host.ClientEffectCommandContent, @run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, Int, String) -> Bool
 
 pub fn client_program_effect_command_content_matches_issued(@run_publication_host.ClientEffectCommandContent, @value_admission.CheckedValue) -> Bool
@@ -544,7 +546,13 @@ pub fn client_program_effect_command_content_release(@run_publication_host.Clien
 
 pub fn client_program_effect_command_content_release_artifact(@run_publication_host.ClientEffectLocalResultArtifact, Int) -> Bool
 
+pub fn client_program_effect_command_content_return_workspace(@physical_resources.SharedBorrow) -> Result[Unit, @physical_resources.LedgerIssue]
+
 pub fn client_program_effect_command_content_wire(@run_publication_host.ClientEffectCommandContent) -> Result[String, @run_publication_host.ClientEffectCommandContentIssue]
+
+pub fn client_program_effect_command_key_advance(@physical_strategy.CapturedEffectCommandKeyValidation, Int) -> Result[(Bool, Int), @physical_strategy.CapturedEffectCommandKeyIssue]
+
+pub fn client_program_effect_command_key_cleanup(@physical_strategy.CapturedEffectCommandKeyValidation) -> Result[Bool, @physical_strategy.CapturedEffectCommandKeyIssue]
 
 pub fn client_program_effect_compilation_compiled_plan_wire(@run_publication_host.ClientEffectCompilation) -> String
 
@@ -626,6 +634,8 @@ pub fn client_program_effect_issue_captured_source_logical_at(@run_publication_h
 
 pub fn client_program_effect_keyed_lookup_join_prepare(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientKeyedLookupInput, String, String, String?, String?) -> @client_local_host.ClientKeyedJoinPreparation?
 
+pub fn client_program_effect_local_command_key_start(@physical_strategy.CapturedEffectInputs, Int, Int, @physical_strategy.CapturedEffectLocalResultExport, @run_publication_host.PublicationOutputExportLimits, Int) -> Result[@physical_strategy.CapturedEffectCommandKeyValidation?, @physical_strategy.CapturedEffectCommandKeyIssue]
+
 pub fn client_program_effect_local_dependency_body(@run_publication_host.PreparedClientEffectComputation, Int, String, Int, Int, Int, Int) -> Result[@program_check.CheckedLocalDependencyBody, @program_check.LocalDependencyBodyIssue]
 
 pub fn client_program_effect_local_dependency_body_cid(@program_check.CheckedLocalDependencyBody) -> String
@@ -656,6 +666,8 @@ pub fn client_program_effect_local_result_task(@physical_strategy.CapturedEffect
 
 pub fn client_program_effect_local_static_bodies(@run_publication_host.PreparedClientEffectComputation, Int, Int, Int, Int, Int) -> Result[Array[(String, @program_check.CheckedLocalDependencyBody)], @program_check.LocalDependencyBodyIssue]
 
+pub fn client_program_effect_managed_command_key_start(@physical_strategy.CapturedEffectInputs, Int, ClientEffectManagedInputImport, Int) -> Result[@physical_strategy.CapturedEffectCommandKeyValidation?, @physical_strategy.CapturedEffectCommandKeyIssue]
+
 pub fn client_program_effect_managed_input_append(ClientEffectManagedInputImport, String) -> Result[Unit, ClientEffectManagedInputIssue]
 
 pub fn client_program_effect_managed_input_begin(@physical_strategy.CapturedEffectInput, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int], @run_publication_host.PublicationOutputExportLimits) -> Result[ClientEffectManagedInputImport, ClientEffectManagedInputIssue]
@@ -684,7 +696,11 @@ pub fn client_program_effect_plan_import_append(ClientEffectPlanImport, String) 
 
 pub fn client_program_effect_plan_import_begin(@physical_strategy.CapturedEffectPreviewInputs, Int, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int], @run_publication_host.PublicationOutputExportLimits, Int, Int) -> Result[ClientEffectPlanImport, ClientEffectPlanStreamIssue]
 
+pub fn client_program_effect_plan_import_begin_with_key(@physical_strategy.CapturedEffectPreviewInputs, Int, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int], @run_publication_host.PublicationOutputExportLimits, Int, Int, @physical_strategy.CapturedEffectCommandKeyValidation) -> Result[ClientEffectPlanImport, ClientEffectPlanStreamIssue]
+
 pub fn client_program_effect_plan_import_begin_with_target(@physical_strategy.CapturedEffectPreviewInputs, Int, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int], @run_publication_host.PublicationOutputExportLimits, Int, Int, @physical_strategy.CapturedEffectCommandTarget) -> Result[ClientEffectPlanImport, ClientEffectPlanStreamIssue]
+
+pub fn client_program_effect_plan_import_begin_with_target_and_key(@physical_strategy.CapturedEffectPreviewInputs, Int, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int], @run_publication_host.PublicationOutputExportLimits, Int, Int, @physical_strategy.CapturedEffectCommandTarget, @physical_strategy.CapturedEffectCommandKeyValidation) -> Result[ClientEffectPlanImport, ClientEffectPlanStreamIssue]
 
 pub fn client_program_effect_plan_import_finish(ClientEffectPlanImport) -> Result[ClientEffectPlanPreparation, ClientEffectPlanStreamIssue]
 
@@ -722,7 +738,11 @@ pub fn client_program_effect_preview_plan_terminal(@physical_strategy.CapturedEf
 
 pub fn client_program_effect_proposal_begin(@physical_strategy.CapturedEffectInputs, Int, Int, Int) -> Result[@physical_strategy.CapturedEffectProposalPlan, @physical_strategy.CapturedEffectProposalIssue]
 
+pub fn client_program_effect_proposal_begin_with_key(@physical_strategy.CapturedEffectInputs, Int, Int, Int, @physical_strategy.CapturedEffectCommandKeyValidation) -> Result[@physical_strategy.CapturedEffectProposalPlan, @physical_strategy.CapturedEffectProposalIssue]
+
 pub fn client_program_effect_proposal_begin_with_target(@physical_strategy.CapturedEffectInputs, Int, Int, Int, @physical_strategy.CapturedEffectCommandTarget) -> Result[@physical_strategy.CapturedEffectProposalPlan, @physical_strategy.CapturedEffectProposalIssue]
+
+pub fn client_program_effect_proposal_begin_with_target_and_key(@physical_strategy.CapturedEffectInputs, Int, Int, Int, @physical_strategy.CapturedEffectCommandTarget, @physical_strategy.CapturedEffectCommandKeyValidation) -> Result[@physical_strategy.CapturedEffectProposalPlan, @physical_strategy.CapturedEffectProposalIssue]
 
 pub fn client_program_effect_proposal_cancel(@physical_strategy.CapturedEffectProposalPlan) -> Unit
 
@@ -2321,6 +2341,46 @@ pub fn client_program_values_static_plan_view(@run_publication_host.PreparedClie
 pub fn client_program_verify_infer_attachment_admission(@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue?) -> Result[Unit, @run_publication.RunEvidenceValueIssue]
 
 pub fn client_program_with_values_row_limit(@run_publication_host.PreparedClientProgram, Int) -> @run_publication_host.PreparedClientProgram?
+
+pub fn client_project_configuration_admit(String) -> Result[@run_publication_host.ClientProjectConfiguration, @run_publication_host.ClientProjectConfigurationIssue]
+
+pub fn client_project_configuration_connectors_file(@run_publication_host.ClientProjectConfiguration) -> String?
+
+pub fn client_project_configuration_lock_file(@run_publication_host.ClientProjectConfiguration) -> String?
+
+pub fn client_project_configuration_mock_answer_count(@run_publication_host.ClientProjectConfiguration) -> Int
+
+pub fn client_project_configuration_mock_answer_file(@run_publication_host.ClientProjectConfiguration, Int) -> String?
+
+pub fn client_project_configuration_mock_answer_task(@run_publication_host.ClientProjectConfiguration, Int) -> String?
+
+pub fn client_project_configuration_mock_data_file(@run_publication_host.ClientProjectConfiguration) -> String?
+
+pub fn client_project_configuration_model_tasks_file(@run_publication_host.ClientProjectConfiguration) -> String?
+
+pub fn client_project_configuration_selected_profile(@run_publication_host.ClientProjectConfiguration) -> String?
+
+pub fn client_project_configuration_state_directory(@run_publication_host.ClientProjectConfiguration) -> String
+
+pub fn client_project_model_registry_admit(String) -> Result[@run_publication_host.ClientProjectModelRegistry, @run_publication_host.ClientProjectBindingsIssue]
+
+pub fn client_project_model_registry_default_provider(@run_publication_host.ClientProjectModelRegistry) -> String?
+
+pub fn client_project_model_registry_original_wire(@run_publication_host.ClientProjectModelRegistry) -> String
+
+pub fn client_project_model_registry_provider_count(@run_publication_host.ClientProjectModelRegistry) -> Int
+
+pub fn client_project_model_registry_provider_key_environment(@run_publication_host.ClientProjectModelRegistry, Int) -> String?
+
+pub fn client_project_model_registry_provider_name(@run_publication_host.ClientProjectModelRegistry, Int) -> String?
+
+pub fn client_project_model_registry_provider_type(@run_publication_host.ClientProjectModelRegistry, Int) -> String?
+
+pub fn client_project_model_registry_task_count(@run_publication_host.ClientProjectModelRegistry) -> Int
+
+pub fn client_project_model_registry_task_file(@run_publication_host.ClientProjectModelRegistry, Int) -> String?
+
+pub fn client_project_model_registry_task_name(@run_publication_host.ClientProjectModelRegistry, Int) -> String?
 
 pub fn client_request_admit_record(String, String, String, String, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 
@@ -4104,6 +4164,7 @@ pub(all) enum ClientSourcePreparationIssue {
   Publication
   Limit
   UnsupportedCarrier
+  CommandTargetOriginalsUnavailable
   Declarations
   Alias(@source_frontend.AliasIssue)
   Frontend(@source_frontend.Issue)

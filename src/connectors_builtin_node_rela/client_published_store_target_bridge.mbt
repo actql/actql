@@ -56,3 +56,26 @@ pub fn client_program_effect_proposal_begin_with_target(
     published_target=Some(target),
   )
 }
+
+///|
+#export_name("clientProgramEffectProposalBeginWithTargetAndKey")
+pub fn client_program_effect_proposal_begin_with_target_and_key(
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  max_fields : Int,
+  max_work : Int,
+  target : @strategy.CapturedEffectCommandTarget,
+  input_key : @strategy.CapturedEffectCommandKeyValidation,
+) -> Result[
+  @strategy.CapturedEffectProposalPlan,
+  @strategy.CapturedEffectProposalIssue,
+] {
+  @strategy.prepare_captured_effect_proposal_plan(
+    inputs,
+    member_index,
+    max_fields,
+    max_work,
+    published_target=Some(target),
+    input_key=Some(input_key),
+  )
+}

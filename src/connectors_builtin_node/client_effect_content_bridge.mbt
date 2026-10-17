@@ -80,6 +80,34 @@ pub fn client_program_effect_command_content_matches_issued(
 }
 
 ///|
+/// Private original supplier port. No capacity/installation is issued from DATA;
+/// retain the resulting borrower before another callback and physical I/O.
+#export_name("clientProgramEffectCommandContentBorrowWorkspace")
+pub fn client_program_effect_command_content_borrow_workspace(
+  value : @publication_host.ClientEffectCommandContent,
+  issued : @admitted.CheckedValue,
+  capacity : @resources.SharedCapacity,
+  allocation : @resources.SharedAllocation,
+) -> Result[
+  @resources.SharedBorrow,
+  @publication_host.ClientEffectCommandContentIssue,
+] {
+  @publication_host.borrow_client_effect_command_content_workspace(
+    value, issued, capacity, allocation,
+  )
+}
+
+///|
+/// Only the exact physical borrow is returned. This does not retire its parent
+/// allocation/arena, release siblings or acknowledge any other physical duty.
+#export_name("clientProgramEffectCommandContentReturnWorkspace")
+pub fn client_program_effect_command_content_return_workspace(
+  borrow : @resources.SharedBorrow,
+) -> Result[Unit, @resources.LedgerIssue] {
+  @resources.return_shared_capacity(borrow)
+}
+
+///|
 #export_name("clientProgramEffectCommandContentRelease")
 pub fn client_program_effect_command_content_release(
   value : @publication_host.ClientEffectCommandContent,

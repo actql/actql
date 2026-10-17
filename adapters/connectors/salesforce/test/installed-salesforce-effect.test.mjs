@@ -704,6 +704,38 @@ test('an approved decimal is previewed as decimal text and sent as the same numb
       .sort(), ['-0.10', '9999999999999.99']);
   });
 
+for (const numberNativeType of ['currency', 'percent']) {
+test(`an approved ${numberNativeType} preserves original preview digits and physical PATCH bytes`,
+  async t => {
+    const installation = await installedEffect(t, {writes: [numberUpdate],
+      org: {numberFields: true, numberNativeType, patchFields: ['Amount__c']}});
+    const host = await effectHost(t, installation,
+      join(installation.root, 'host'));
+    const rows = [{id: ids[0], amount: '9999999999999.99'},
+      {id: ids[1], amount: '-0.10'}];
+    const {started} = await host.run(numberRows(host.installed.mappings,
+      rows), `${numberNativeType}-update`);
+    assert.equal(started.value.status, 'published');
+    // Independently expected: the provider bodies spell the approved digits
+    // as JSON numbers, trailing zero kept.
+    assert.deepEqual(writesOf(installation.org).map(item => [
+      item.path.split('/').slice(-2).join('/'), item.body]), [
+      [`Test_Record__c/${ids[0]}`, '{"Amount__c":9999999999999.99}'],
+      [`Test_Record__c/${ids[1]}`, '{"Amount__c":-0.10}'],
+    ]);
+    // The Preview states the approved decimal text, and the observed
+    // `1.2345678E7` as the same decimal at scale 2.
+    const preview = JSON.parse(host.control.effectComputationPreviewWire(
+      host.outcomes[0].stage.preview));
+    const changes = preview.effects[0].changes;
+    assert.deepEqual(changes.map(change => change.before), ids.map(() => ({
+      state: 'present', value: {Amount__c: '12345678.00'}})));
+    assert.deepEqual(changes.map(change => change.after.value.Amount__c)
+      .sort(), ['-0.10', '9999999999999.99']);
+  });
+
+}
+
 // A Host that stops right after the first row's applied outcome is durable:
 // the second row's dispatch is refused before it claims or sends anything.
 const stopAfterFirstRow = stage => ({...stage, apply: {...stage.apply,
