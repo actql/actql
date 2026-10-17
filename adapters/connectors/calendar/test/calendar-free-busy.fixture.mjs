@@ -31,13 +31,13 @@ export const freeBusyResponse = () => ({kind:'calendar#freeBusy',
   calendars:{'sales@example.test':{busy:[{start:'2026-10-17T10:00:00+09:00',end:'2026-10-17T10:30:00+09:00'}]},
     private:{busy:[{start:'2026-10-17T02:00:00Z',end:'2026-10-17T02:15:00Z'}]}}});
 
-async function rowOwner(verifyOriginalTransport) {
+async function rowOwner(verifyOriginalTransport, factsWire) {
   const wire = canonicalJson(freeBusyRowSchema);
   const declaration = checked(common.clientProgramRowSourceRestoreRelationDeclaration(
     'fixture', 'calendar', 'calendar/0.1', JSON.stringify({views: [{resource: 'free_busy',
       resource_kind: 'calendar_free_busy', schema_wire: wire,
       schema_cid: `sha256:${createHash('sha256').update(wire).digest('hex')}`,
-      facts_wire: '{"relation_keys":{"candidate_keys":[]}}'}]}), undefined));
+      facts_wire: factsWire}]}), undefined));
   const declared = JSON.parse(common.clientProgramRowSourceDeclarationJson(declaration));
   const environment = rowSourceCheckEnvironment((await read('spec/local-check-environment.json')).trimEnd(), declared);
   const check = common.clientProgramCheckEnvironment(environment.wire, environment.evidenceCid,
@@ -75,7 +75,7 @@ async function rowOwner(verifyOriginalTransport) {
     close: () => checked(common.clientProgramRowSourceCloseAccounted(run))};
 }
 
-export async function freeBusyFixture(t, {account = 'allow'} = {}) {
+export async function freeBusyFixture(t, {account = 'allow', factsWire = '{}'} = {}) {
   const parent = join(repo, '_build', 'calendar-free-busy-fixtures'); await mkdir(parent, {recursive: true});
   const root = await mkdtemp(join(parent, 'query-'));
   execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', 'server.key',
@@ -128,7 +128,7 @@ export async function freeBusyFixture(t, {account = 'allow'} = {}) {
     {subjectCid:scope.runInvocationCid});if(decision.action!=='dispatch')throw Object.assign(new Error('CalendarReadDenied'),{code:'CalendarReadDenied'});};
   const credential={control,journal,ca:cert,resolveSecret:async () => {state.resolutions++;await state.resolved?.();return state.secret;}};
   binding=openHttpsCredentialBinding({...credential,scope,maxSecretBytes:128});
-  row=await rowOwner(() => closeHttpsCredentialBinding(binding)==='closed');
+  row=await rowOwner(() => closeHttpsCredentialBinding(binding)==='closed', factsWire);
   const initialAuthorization={grant,scope,useId:'initial'};
   const query=checked(provider.calendarPrepareFreeBusyQuery(['sales@example.test','private'],
     '2026-10-17T00:00:00.000Z','2026-10-18T00:00:00.000Z',4096,512,16,4,10,4096,100,4096));

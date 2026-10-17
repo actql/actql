@@ -8,6 +8,11 @@ const expectedRows = [
   {calendar_id:'private',start:'2026-10-17T02:00:00.000Z',end:'2026-10-17T02:15:00.000Z'},
 ];
 
+test('Calendar keyless facts omit key evidence and real Common still rejects an empty-key declaration',async t=>{
+  await assert.rejects(freeBusyFixture(t,{factsWire:'{"relation_keys":{"candidate_keys":[]}}'}),
+    error=>error.code==='ERR_ASSERTION'&&error.message==='check_invalid_configuration');
+});
+
 test('Calendar free busy actual TLS POST binds original query signed use Account and accounted RowRun',async t=>{
   const f=await freeBusyFixture(t);const result=await f.read();
   assert.equal(result.pages,1);assert.equal(result.rowCount,2);assert.deepEqual(f.state.rows,expectedRows);

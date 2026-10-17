@@ -308,7 +308,7 @@ test "Calendar free busy applies complete response cell and projection budgets i
   assert_eq(calendar_free_busy_column_names(), ["calendar_id", "start", "end"])
   assert_eq(
     calendar_free_busy_facts_wire(),
-    "{\"relation_keys\":{\"candidate_keys\":[]}}",
+    "{}",
   )
   assert_eq(
     calendar_free_busy_schema_wire(1024, 64, 8).unwrap(),

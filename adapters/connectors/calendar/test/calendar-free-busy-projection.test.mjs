@@ -65,7 +65,7 @@ test('actual Calendar response preserves empty source schema without inventing a
     calendar_id: {type: 'string', nullable: false},
     start: {type: 'timestamp', nullable: false}, end: {type: 'timestamp', nullable: false},
   });
-  assert.deepEqual(JSON.parse(calendar.calendarFreeBusyRelationFactsWire()), {relation_keys: {candidate_keys: []}});
+  assert.deepEqual(JSON.parse(calendar.calendarFreeBusyRelationFactsWire()), {});
   body.calendars.b.busy = null;
   assert.throws(() => project(body));
 });

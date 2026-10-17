@@ -469,5 +469,7 @@ pub fn calendar_free_busy_schema_wire(
 
 ///|
 pub fn calendar_free_busy_facts_wire() -> String {
-  "{\"relation_keys\":{\"candidate_keys\":[]}}"
+  // The existing facts Owner requires nonempty tuples whenever relation_keys
+  // is present. Omit that evidence component for this keyless Source.
+  "{}"
 }
