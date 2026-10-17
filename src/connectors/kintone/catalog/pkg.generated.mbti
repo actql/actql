@@ -75,6 +75,8 @@ pub fn project_record_page(Bytes, FormFieldCatalog, Array[String], RecordPageLim
 
 pub fn project_record_update_acknowledgement(RecordUpdateRequest, Int, Bytes, RecordMutationLimits) -> Result[RecordUpdateAcknowledgement, RecordMutationIssue]
 
+pub fn recheck_record_create_form(RecordCreateRequest, Bytes, FormFieldLimits) -> Result[Unit, RecordMutationIssue]
+
 pub fn recheck_record_delete_form(RecordDeleteRequest, Bytes, FormFieldLimits) -> Result[Unit, RecordMutationIssue]
 
 pub fn recheck_record_delete_records(RecordDeleteRequest, Bytes, RecordPageLimits, Int, Int) -> Result[Unit, RecordMutationIssue]
@@ -132,6 +134,8 @@ pub fn record_update_request_app_id(RecordUpdateRequest) -> String
 pub fn record_update_request_body(RecordUpdateRequest) -> String
 
 pub fn record_update_request_count(RecordUpdateRequest) -> Int
+
+pub fn record_update_request_observation(RecordUpdateRequest, RecordMutationLimits) -> Result[RecordDeleteRequest, RecordMutationIssue]
 
 pub fn record_update_request_values(RecordUpdateRequest) -> Array[(OriginalRecordTarget, RecordWriteValues)]
 
