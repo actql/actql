@@ -99,32 +99,54 @@ pub fn start_completed_result_key_validation(
   let (session, token) = @bounded.start(
     engine,
     state,
-    (state, quantum, reader) -> @bounded.KernelStep[Int, CompletedResultKeyIssue] => {
+    (state, quantum, reader) => {
       let mut used = 0
       while used < quantum {
         if @bounded.stop_requested(reader) is Some(reason) {
           return @bounded.Stopped(reason, used, used)
         }
         guard state.original is Some(original) && state.field is Some(field) else {
-          return @bounded.Failed(Unavailable, used, used)
+          return @bounded.Failed(
+            CompletedResultKeyIssue::Unavailable,
+            used,
+            used,
+          )
         }
         let available = completed_output_available(original.rows.source)
         if !available || state.retired || state.original is None {
-          return @bounded.Failed(Unavailable, used, used)
+          return @bounded.Failed(
+            CompletedResultKeyIssue::Unavailable,
+            used,
+            used,
+          )
         }
         used += 1
         if state.view is Some(view) {
           let done = match advance_completed_result_rows(view, 1) {
             Ok((done, _)) => done
-            Err(issue) => return @bounded.Failed(View(issue), used, used)
+            Err(issue) =>
+              return @bounded.Failed(
+                CompletedResultKeyIssue::View(issue),
+                used,
+                used,
+              )
           }
           if done {
             let rows = match finish_completed_result_rows(view) {
               Ok(rows) => rows
-              Err(issue) => return @bounded.Failed(View(issue), used, used)
+              Err(issue) =>
+                return @bounded.Failed(
+                  CompletedResultKeyIssue::View(issue),
+                  used,
+                  used,
+                )
             }
             if IndexedRows::row_count(rows) > original.max_rows {
-              return @bounded.Failed(Key(Limit), used, used)
+              return @bounded.Failed(
+                CompletedResultKeyIssue::Key(InputKeyIssue::Limit),
+                used,
+                used,
+              )
             }
             let cursor = match
               input_key_rows_cursor(
@@ -135,7 +157,12 @@ pub fn start_completed_result_key_validation(
                 row_workspace(state.max_entries),
               ) {
               Ok(cursor) => cursor
-              Err(issue) => return @bounded.Failed(Key(issue), used, used)
+              Err(issue) =>
+                return @bounded.Failed(
+                  CompletedResultKeyIssue::Key(issue),
+                  used,
+                  used,
+                )
             }
             state.cursor = Some(cursor)
             state.view = None
@@ -143,13 +170,22 @@ pub fn start_completed_result_key_validation(
         } else {
           let cursor = state.cursor.unwrap()
           match step_input_key_cursor(cursor) {
-            Err(issue) => return @bounded.Failed(Key(issue), used, used)
+            Err(issue) =>
+              return @bounded.Failed(
+                CompletedResultKeyIssue::Key(issue),
+                used,
+                used,
+              )
             Ok(false) => ()
             Ok(true) => {
               if !completed_output_available(original.rows.source) ||
                 state.retired ||
                 state.original is None {
-                return @bounded.Failed(Unavailable, used, used)
+                return @bounded.Failed(
+                  CompletedResultKeyIssue::Unavailable,
+                  used,
+                  used,
+                )
               }
               state.completed = true
               return @bounded.Complete(cursor.control.remaining, used, used)
