@@ -2,6 +2,113 @@
   "qualification": "Explicit GCS semantics, typed bridge and physical transport reference supply; not installed capability, funded admission, genuine Effect/Store recovery or service acceptance",
   "declarations": [
     {
+      "module": "adapters/connectors/gcs/site/gcs-credential-site.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "ee9b09524542041c30a8d894933f5d00fe7a8647b13b6e892e954dfdf8fbfaca",
+      "role": "connector-semantics",
+      "owner": "Existing GCS installation scope policy; Checkpoint/current/credential signing remain in the original row Site Owner",
+      "exports": [
+        "openGcsCredentialSite"
+      ],
+      "operations": [
+        {
+          "name": "openGcsCredentialSite",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "openGcsCredentialSite/openGcsCredentialSite",
+          "parameters": [
+            "binding",
+            "resource",
+            "operation"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-node/installed-row-source.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "openGcsCredentialSite",
+            "openGcsCredentialSite/openGcsCredentialSite"
+          ],
+          "exports": [
+            "openGcsCredentialSite"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Same-Site collection target read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-credential-site.mjs",
+                "anchor": "export function openGcsCredentialSite(options)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "binding.scope_cid === scopeCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "const approvals = new WeakMap()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "synchronous(approved.enter())"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/gcs/test/gcs-effect-target-read.test.mjs",
+                "anchor": "GCS target read rejects a matching approval for foreign"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "The added predicate closure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/gcs/test/gcs-effect-target-read.test.mjs",
+                "anchor": "GCS target grant rechecks the original current fence and same Site lifetime"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/site/gcs-credential-site.mjs",
+                "anchor": "resource === 'objects' && operation === 'gcs:file:read'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/gcs/test/gcs-effect-target-read.test.mjs",
+                "anchor": "GCS same Site admits the original objects read"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "src/connectors/gcs/catalog/object_metadata.mbt",
       "responsibilityFacet": "primary",
       "sha256": "033978bbea9c765ee515109fe52b7899d3c1e05f56bdeff359dc9aa01c9e4e14",
@@ -457,7 +564,7 @@
     {
       "module": "src/connectors/gcs/catalog/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "115033cff92be86fd5e6f874a6d6b4b936a2dfb06a101a6af280ff1e392784db",
+      "sha256": "f01588952bb2de74edafa2d1b7761b7555965b26bdd9100a6feda92de7832d70",
       "role": "connector-semantics",
       "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
       "exports": [
@@ -465,8 +572,11 @@
         "pub fn admit_object_metadata_page(Bytes, String, String, Int, ObjectMetadataLimits) -> Result[ObjectMetadataPage, ObjectMetadataIssue]",
         "pub fn admit_object_mutation_request(ObjectMutationBinding, ObjectMutationRequest) -> Result[Unit, ObjectRequestIssue]",
         "pub fn admit_object_upload_observation(ObjectUploadBinding, String, Int, Bytes) -> Result[ObjectUploadObservation, ObjectUploadIssue]",
+        "pub fn admit_object_upload_target_observation(ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[ObjectUploadObservation, ObjectUploadIssue]",
         "pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]",
+        "pub fn classify_object_mutation_response(ObjectMutationBinding, ObjectMutationRequest, Int, Bytes) -> Result[ObjectMutationOutcome, ObjectRequestIssue]",
         "pub fn classify_object_upload_response(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes) -> Result[ObjectUploadOutcome, ObjectUploadIssue]",
+        "pub fn content_metadata_json(Bytes, String, String, String, Int64, ObjectMetadataLimits) -> Result[String, ContentMetadataIssue]",
         "pub fn object_collection_identity_cid(ObjectCollectionBinding) -> String",
         "pub fn object_collection_identity_json(ObjectCollectionBinding) -> String",
         "pub fn object_collection_resource_json(ObjectCollectionBinding) -> String",
@@ -490,6 +600,8 @@
         "pub fn object_mutation_path(ObjectMutationRequest) -> String",
         "pub fn object_mutation_projection_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]",
         "pub fn object_mutation_protocol_behavior(ObjectMutationRequest) -> String?",
+        "pub fn object_mutation_response_matches(ObjectMutationBinding, ObjectMutationRequest, ObjectMetadata) -> Bool",
+        "pub fn object_mutation_response_projection_json(ObjectMutationBinding, ObjectMutationRequest, Int, Bytes, Int) -> Result[String, ObjectRequestIssue]",
         "pub fn object_upload_body_for(ObjectUploadBinding, ObjectUploadRequest) -> Result[Bytes, ObjectUploadIssue]",
         "pub fn object_upload_body_media_type(ObjectUploadRequest) -> String",
         "pub fn object_upload_catalog_json(String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]",
@@ -537,12 +649,24 @@
           "declaration": "pub fn admit_object_upload_observation(ObjectUploadBinding, String, Int, Bytes) -> Result[ObjectUploadObservation, ObjectUploadIssue]"
         },
         {
+          "name": "admit_object_upload_target_observation",
+          "declaration": "pub fn admit_object_upload_target_observation(ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[ObjectUploadObservation, ObjectUploadIssue]"
+        },
+        {
           "name": "check_object_collection_binding",
           "declaration": "pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]"
         },
         {
+          "name": "classify_object_mutation_response",
+          "declaration": "pub fn classify_object_mutation_response(ObjectMutationBinding, ObjectMutationRequest, Int, Bytes) -> Result[ObjectMutationOutcome, ObjectRequestIssue]"
+        },
+        {
           "name": "classify_object_upload_response",
           "declaration": "pub fn classify_object_upload_response(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes) -> Result[ObjectUploadOutcome, ObjectUploadIssue]"
+        },
+        {
+          "name": "content_metadata_json",
+          "declaration": "pub fn content_metadata_json(Bytes, String, String, String, Int64, ObjectMetadataLimits) -> Result[String, ContentMetadataIssue]"
         },
         {
           "name": "object_collection_identity_cid",
@@ -637,6 +761,14 @@
           "declaration": "pub fn object_mutation_protocol_behavior(ObjectMutationRequest) -> String?"
         },
         {
+          "name": "object_mutation_response_matches",
+          "declaration": "pub fn object_mutation_response_matches(ObjectMutationBinding, ObjectMutationRequest, ObjectMetadata) -> Bool"
+        },
+        {
+          "name": "object_mutation_response_projection_json",
+          "declaration": "pub fn object_mutation_response_projection_json(ObjectMutationBinding, ObjectMutationRequest, Int, Bytes, Int) -> Result[String, ObjectRequestIssue]"
+        },
+        {
           "name": "object_upload_body_for",
           "declaration": "pub fn object_upload_body_for(ObjectUploadBinding, ObjectUploadRequest) -> Result[Bytes, ObjectUploadIssue]"
         },
@@ -720,13 +852,15 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "admit_object_metadata",
             "admit_object_metadata_page",
             "admit_object_mutation_request",
             "admit_object_upload_observation",
+            "admit_object_upload_target_observation",
             "check_object_collection_binding",
+            "classify_object_mutation_response",
             "classify_object_upload_response",
+            "content_metadata_json",
             "object_collection_identity_cid",
             "object_collection_identity_json",
             "object_collection_resource_json",
@@ -750,6 +884,8 @@
             "object_mutation_path",
             "object_mutation_projection_json",
             "object_mutation_protocol_behavior",
+            "object_mutation_response_matches",
+            "object_mutation_response_projection_json",
             "object_upload_body_for",
             "object_upload_body_media_type",
             "object_upload_catalog_json",
@@ -769,15 +905,19 @@
             "prepare_object_mutation_binding",
             "prepare_object_upload_binding",
             "recheck_object_mutation",
-            "recheck_object_upload"
+            "recheck_object_upload",
+            "<module>"
           ],
           "exports": [
             "pub fn admit_object_metadata(Bytes, String, String, String?, ObjectMetadataLimits) -> Result[ObjectMetadata, ObjectMetadataIssue]",
             "pub fn admit_object_metadata_page(Bytes, String, String, Int, ObjectMetadataLimits) -> Result[ObjectMetadataPage, ObjectMetadataIssue]",
             "pub fn admit_object_mutation_request(ObjectMutationBinding, ObjectMutationRequest) -> Result[Unit, ObjectRequestIssue]",
             "pub fn admit_object_upload_observation(ObjectUploadBinding, String, Int, Bytes) -> Result[ObjectUploadObservation, ObjectUploadIssue]",
+            "pub fn admit_object_upload_target_observation(ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[ObjectUploadObservation, ObjectUploadIssue]",
             "pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]",
+            "pub fn classify_object_mutation_response(ObjectMutationBinding, ObjectMutationRequest, Int, Bytes) -> Result[ObjectMutationOutcome, ObjectRequestIssue]",
             "pub fn classify_object_upload_response(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes) -> Result[ObjectUploadOutcome, ObjectUploadIssue]",
+            "pub fn content_metadata_json(Bytes, String, String, String, Int64, ObjectMetadataLimits) -> Result[String, ContentMetadataIssue]",
             "pub fn object_collection_identity_cid(ObjectCollectionBinding) -> String",
             "pub fn object_collection_identity_json(ObjectCollectionBinding) -> String",
             "pub fn object_collection_resource_json(ObjectCollectionBinding) -> String",
@@ -801,6 +941,8 @@
             "pub fn object_mutation_path(ObjectMutationRequest) -> String",
             "pub fn object_mutation_projection_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]",
             "pub fn object_mutation_protocol_behavior(ObjectMutationRequest) -> String?",
+            "pub fn object_mutation_response_matches(ObjectMutationBinding, ObjectMutationRequest, ObjectMetadata) -> Bool",
+            "pub fn object_mutation_response_projection_json(ObjectMutationBinding, ObjectMutationRequest, Int, Bytes, Int) -> Result[String, ObjectRequestIssue]",
             "pub fn object_upload_body_for(ObjectUploadBinding, ObjectUploadRequest) -> Result[Bytes, ObjectUploadIssue]",
             "pub fn object_upload_body_media_type(ObjectUploadRequest) -> String",
             "pub fn object_upload_catalog_json(String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]",
@@ -895,6 +1037,14 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
                 "anchor": "Ordinary object rows share"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "existing Effect Ledger must authenticate"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Original metadata and delete responses"
               }
             ],
             "inputsOutputs": [
@@ -957,6 +1107,22 @@
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
                 "anchor": "type: 'decimal', precision: 19"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/content_metadata.mbt",
+                "anchor": "pub fn content_metadata_json("
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_target_observation.mbt",
+                "anchor": "pub fn admit_object_upload_target_observation("
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn classify_object_mutation_response"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_response_projection"
               }
             ],
             "identity": [
@@ -1023,6 +1189,10 @@
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
                 "anchor": "identity_cid: cid({"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "physical_equal(binding, request.binding)"
               }
             ],
             "ownership": [
@@ -1093,6 +1263,14 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "startInstalledRowRun"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "original sealed request"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "const originals = new WeakMap()"
               }
             ],
             "synchronization": [
@@ -1217,6 +1395,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
                 "anchor": "Err(ObjectMismatch)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "status == 412"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "A later GET/404 never proves a delete"
               }
             ],
             "cancellation": {
@@ -1298,6 +1484,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "per-row canonical writer/String"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "binding.limits.metadata.max_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Response bytes and original request body overlap bounded parsed trees"
               }
             ],
             "extension": [
@@ -1356,6 +1550,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "Installed nonempty service reads"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "same-Run restore"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "soft-delete bucket"
               }
             ],
             "verification": [
@@ -1438,6 +1640,26 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
                 "anchor": "original cancellation and physical failure"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "original target metadata uses the same exact bytes"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/content_metadata_wbtest.mbt",
+                "anchor": "test "
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome_wbtest.mbt",
+                "anchor": "GCS mutation outcome confirms only original direct empty delete"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-object-ledger-response.test.mjs",
+                "anchor": "actual Core lost delete reply stays unknown"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-object-request.test.mjs",
+                "anchor": "metadata direct response requires the original marker"
               }
             ]
           }
@@ -1617,7 +1839,9 @@
             "gcs_object_recheck",
             "gcs_object_request_body",
             "gcs_object_request_changes",
-            "gcs_object_request_projection"
+            "gcs_object_request_projection",
+            "gcs_object_response_matches",
+            "gcs_object_response_projection"
           ],
           "exports": [],
           "attributes": {
@@ -1637,6 +1861,14 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
                 "anchor": "Ordinary object rows share"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "existing Effect Ledger must authenticate"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Original metadata and delete responses"
               }
             ],
             "inputsOutputs": [
@@ -1655,6 +1887,14 @@
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
                 "anchor": "type: 'decimal', precision: 19"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn classify_object_mutation_response"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_response_projection"
               }
             ],
             "identity": [
@@ -1673,6 +1913,10 @@
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
                 "anchor": "identity_cid: cid({"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "physical_equal(binding, request.binding)"
               }
             ],
             "ownership": [
@@ -1691,6 +1935,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "startInstalledRowRun"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "original sealed request"
               }
             ],
             "synchronization": [
@@ -1709,6 +1957,14 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
                 "anchor": "await consumePage(rows, {charge})"
+              },
+              {
+                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "anchor": "ledger.recordResponse"
+              },
+              {
+                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "anchor": "readAuthorizedEffectResponse"
               }
             ],
             "failure": [
@@ -1727,6 +1983,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
                 "anchor": "Err(ObjectMismatch)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "status == 412"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "A later GET/404 never proves a delete"
               }
             ],
             "cancellation": [
@@ -1741,6 +2005,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
                 "anchor": "signal.throwIfAborted()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "pending cleanup are not replaced by this interpretation"
               }
             ],
             "resources": [
@@ -1763,6 +2031,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "per-row canonical writer/String"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "binding.limits.metadata.max_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Response bytes and original request body overlap bounded parsed trees"
               }
             ],
             "extension": [
@@ -1781,6 +2057,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "Installed nonempty service reads"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "same-Run restore"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "soft-delete bucket"
               }
             ],
             "verification": [
@@ -1803,6 +2087,18 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
                 "anchor": "original cancellation and physical failure"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome_wbtest.mbt",
+                "anchor": "GCS mutation outcome confirms only original direct empty delete"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-object-ledger-response.test.mjs",
+                "anchor": "actual Core lost delete reply stays unknown"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-object-request.test.mjs",
+                "anchor": "metadata direct response requires the original marker"
               }
             ]
           }
@@ -1868,10 +2164,18 @@
         {
           "name": "gcs_object_request_projection",
           "declaration": "gcs_object_request_projection ( binding : @ catalog . ObjectMutationBinding , request : @ catalog . ObjectMutationRequest , max_bytes : Int , ) - > Result [ String , GcsFailure ]"
+        },
+        {
+          "name": "gcs_object_response_matches",
+          "declaration": "gcs_object_response_matches ( binding : @ catalog . ObjectMutationBinding , request : @ catalog . ObjectMutationRequest , observed : @ catalog . ObjectMetadata , ) - > Bool"
+        },
+        {
+          "name": "gcs_object_response_projection",
+          "declaration": "gcs_object_response_projection ( binding : @ catalog . ObjectMutationBinding , request : @ catalog . ObjectMutationRequest , status : Int , body : Bytes , max_bytes : Int , ) - > Result [ String , GcsFailure ]"
         }
       ],
       "exports": [],
-      "sha256": "594b40c12220ebdc4f7e6a758f67046e3fea1356a39d53ee6f28fa2ed6211f0d"
+      "sha256": "336d4d353e8331b417bbfa38de70a54e7732516ce1a9e2ec595e8dfabda1c6f7"
     },
     {
       "module": "src/connectors/gcs/host_node/pkg.generated.mbti",
@@ -1881,7 +2185,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "gcs_collection_binding",
             "gcs_collection_check_binding",
             "gcs_collection_failure_code",
@@ -1890,6 +2193,8 @@
             "gcs_collection_issue_reference",
             "gcs_collection_reference_failure_code",
             "gcs_collection_resource_json",
+            "gcs_content_metadata_failure_code",
+            "gcs_content_metadata_json",
             "gcs_object_failure_code",
             "gcs_object_listing_prefix",
             "gcs_object_metadata",
@@ -1905,6 +2210,8 @@
             "gcs_object_request_body",
             "gcs_object_request_changes",
             "gcs_object_request_projection",
+            "gcs_object_response_matches",
+            "gcs_object_response_projection",
             "gcs_upload_binding",
             "gcs_upload_body",
             "gcs_upload_catalog_json",
@@ -1919,7 +2226,9 @@
             "gcs_upload_projection",
             "gcs_upload_recheck",
             "gcs_upload_response_matches",
-            "gcs_upload_response_projection"
+            "gcs_upload_response_projection",
+            "gcs_upload_target_observation",
+            "<module>"
           ],
           "exports": [
             "pub fn gcs_collection_binding(String, String, String, String, String, String, String, Int, Int, Int) -> Result[@catalog.ObjectCollectionBinding, @catalog.ObjectCollectionIssue]",
@@ -1930,6 +2239,8 @@
             "pub fn gcs_collection_issue_reference(@catalog.ObjectCollectionBinding, @check_environment.StoreCommandBinding, String, String, @value_admission.ReferenceIssuer, Int, Int, Int, Int) -> Result[@value_admission.CheckedValue, @original_reference.CollectionReferenceIssue]",
             "pub fn gcs_collection_reference_failure_code(@original_reference.CollectionReferenceIssue) -> String",
             "pub fn gcs_collection_resource_json(@catalog.ObjectCollectionBinding) -> String",
+            "pub fn gcs_content_metadata_failure_code(@catalog.ContentMetadataIssue) -> String",
+            "pub fn gcs_content_metadata_json(Bytes, String, String, String, Int64, Int) -> Result[String, @catalog.ContentMetadataIssue]",
             "pub fn gcs_object_failure_code(GcsFailure) -> String",
             "pub fn gcs_object_listing_prefix(String, Bytes, Int, Int, Int) -> Result[String, GcsFailure]",
             "pub fn gcs_object_metadata(Bytes, String, String, String?, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadata, GcsFailure]",
@@ -1945,6 +2256,8 @@
             "pub fn gcs_object_request_body(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]",
             "pub fn gcs_object_request_changes(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]",
             "pub fn gcs_object_request_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]",
+            "pub fn gcs_object_response_matches(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, @catalog.ObjectMetadata) -> Bool",
+            "pub fn gcs_object_response_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int, Bytes, Int) -> Result[String, GcsFailure]",
             "pub fn gcs_upload_binding(@catalog.ObjectCollectionBinding, String, Array[String], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectUploadBinding, @catalog.ObjectUploadIssue]",
             "pub fn gcs_upload_body(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest) -> Result[Bytes, @catalog.ObjectUploadIssue]",
             "pub fn gcs_upload_catalog_json(String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]",
@@ -1960,6 +2273,7 @@
             "pub fn gcs_upload_recheck(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, @catalog.ObjectUploadObservation) -> Result[Unit, @catalog.ObjectUploadIssue]",
             "pub fn gcs_upload_response_matches(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, @catalog.ObjectMetadata) -> Bool",
             "pub fn gcs_upload_response_projection(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, Int, Bytes, Int) -> Result[String, @catalog.ObjectUploadIssue]",
+            "pub fn gcs_upload_target_observation(@catalog.ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectUploadObservation, @catalog.ObjectUploadIssue]",
             "pub enum GcsFailure {"
           ],
           "attributes": {
@@ -2023,6 +2337,14 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
                 "anchor": "Ordinary object rows share"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "existing Effect Ledger must authenticate"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Original metadata and delete responses"
               }
             ],
             "inputsOutputs": [
@@ -2093,6 +2415,22 @@
               {
                 "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
                 "anchor": "type: 'decimal', precision: 19"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/content_metadata.mbt",
+                "anchor": "pub fn content_metadata_json("
+              },
+              {
+                "path": "src/connectors/gcs/catalog/upload_target_observation.mbt",
+                "anchor": "pub fn admit_object_upload_target_observation("
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn classify_object_mutation_response"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_response_projection"
               }
             ],
             "identity": [
@@ -2163,6 +2501,10 @@
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
                 "anchor": "identity_cid: cid({"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "physical_equal(binding, request.binding)"
               }
             ],
             "ownership": [
@@ -2233,6 +2575,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "startInstalledRowRun"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "original sealed request"
               }
             ],
             "synchronization": [
@@ -2357,6 +2703,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
                 "anchor": "Err(ObjectMismatch)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "status == 412"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "A later GET/404 never proves a delete"
               }
             ],
             "cancellation": [
@@ -2387,6 +2741,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
                 "anchor": "signal.throwIfAborted()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "pending cleanup are not replaced by this interpretation"
               }
             ],
             "resources": [
@@ -2461,6 +2819,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "per-row canonical writer/String"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "binding.limits.metadata.max_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Response bytes and original request body overlap bounded parsed trees"
               }
             ],
             "extension": [
@@ -2519,6 +2885,14 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "Installed nonempty service reads"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "same-Run restore"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "soft-delete bucket"
               }
             ],
             "verification": [
@@ -2605,6 +2979,26 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
                 "anchor": "original cancellation and physical failure"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-upload-request.test.mjs",
+                "anchor": "original target metadata uses the same exact bytes"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/content_metadata_wbtest.mbt",
+                "anchor": "test "
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome_wbtest.mbt",
+                "anchor": "GCS mutation outcome confirms only original direct empty delete"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-object-ledger-response.test.mjs",
+                "anchor": "actual Core lost delete reply stays unknown"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-object-request.test.mjs",
+                "anchor": "metadata direct response requires the original marker"
               }
             ]
           }
@@ -2619,6 +3013,8 @@
         "pub fn gcs_collection_issue_reference(@catalog.ObjectCollectionBinding, @check_environment.StoreCommandBinding, String, String, @value_admission.ReferenceIssuer, Int, Int, Int, Int) -> Result[@value_admission.CheckedValue, @original_reference.CollectionReferenceIssue]",
         "pub fn gcs_collection_reference_failure_code(@original_reference.CollectionReferenceIssue) -> String",
         "pub fn gcs_collection_resource_json(@catalog.ObjectCollectionBinding) -> String",
+        "pub fn gcs_content_metadata_failure_code(@catalog.ContentMetadataIssue) -> String",
+        "pub fn gcs_content_metadata_json(Bytes, String, String, String, Int64, Int) -> Result[String, @catalog.ContentMetadataIssue]",
         "pub fn gcs_object_failure_code(GcsFailure) -> String",
         "pub fn gcs_object_listing_prefix(String, Bytes, Int, Int, Int) -> Result[String, GcsFailure]",
         "pub fn gcs_object_metadata(Bytes, String, String, String?, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadata, GcsFailure]",
@@ -2634,6 +3030,8 @@
         "pub fn gcs_object_request_body(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]",
         "pub fn gcs_object_request_changes(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]",
         "pub fn gcs_object_request_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]",
+        "pub fn gcs_object_response_matches(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, @catalog.ObjectMetadata) -> Bool",
+        "pub fn gcs_object_response_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int, Bytes, Int) -> Result[String, GcsFailure]",
         "pub fn gcs_upload_binding(@catalog.ObjectCollectionBinding, String, Array[String], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectUploadBinding, @catalog.ObjectUploadIssue]",
         "pub fn gcs_upload_body(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest) -> Result[Bytes, @catalog.ObjectUploadIssue]",
         "pub fn gcs_upload_catalog_json(String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]",
@@ -2649,6 +3047,7 @@
         "pub fn gcs_upload_recheck(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, @catalog.ObjectUploadObservation) -> Result[Unit, @catalog.ObjectUploadIssue]",
         "pub fn gcs_upload_response_matches(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, @catalog.ObjectMetadata) -> Bool",
         "pub fn gcs_upload_response_projection(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, Int, Bytes, Int) -> Result[String, @catalog.ObjectUploadIssue]",
+        "pub fn gcs_upload_target_observation(@catalog.ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectUploadObservation, @catalog.ObjectUploadIssue]",
         "pub enum GcsFailure {"
       ],
       "operations": [
@@ -2683,6 +3082,14 @@
         {
           "name": "gcs_collection_resource_json",
           "declaration": "pub fn gcs_collection_resource_json(@catalog.ObjectCollectionBinding) -> String"
+        },
+        {
+          "name": "gcs_content_metadata_failure_code",
+          "declaration": "pub fn gcs_content_metadata_failure_code(@catalog.ContentMetadataIssue) -> String"
+        },
+        {
+          "name": "gcs_content_metadata_json",
+          "declaration": "pub fn gcs_content_metadata_json(Bytes, String, String, String, Int64, Int) -> Result[String, @catalog.ContentMetadataIssue]"
         },
         {
           "name": "gcs_object_failure_code",
@@ -2745,6 +3152,14 @@
           "declaration": "pub fn gcs_object_request_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]"
         },
         {
+          "name": "gcs_object_response_matches",
+          "declaration": "pub fn gcs_object_response_matches(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, @catalog.ObjectMetadata) -> Bool"
+        },
+        {
+          "name": "gcs_object_response_projection",
+          "declaration": "pub fn gcs_object_response_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int, Bytes, Int) -> Result[String, GcsFailure]"
+        },
+        {
           "name": "gcs_upload_binding",
           "declaration": "pub fn gcs_upload_binding(@catalog.ObjectCollectionBinding, String, Array[String], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectUploadBinding, @catalog.ObjectUploadIssue]"
         },
@@ -2803,9 +3218,13 @@
         {
           "name": "gcs_upload_response_projection",
           "declaration": "pub fn gcs_upload_response_projection(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, Int, Bytes, Int) -> Result[String, @catalog.ObjectUploadIssue]"
+        },
+        {
+          "name": "gcs_upload_target_observation",
+          "declaration": "pub fn gcs_upload_target_observation(@catalog.ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectUploadObservation, @catalog.ObjectUploadIssue]"
         }
       ],
-      "sha256": "c423243471cd828bd0b380a567a051ff8868ddc3364ad14db1202e312812d2f7"
+      "sha256": "9d02e8fca3c7cf5ca0298a2804c398f3262d3b8a1ed782118dd14b83844e1b72"
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
@@ -2824,6 +3243,7 @@
             "metadataArguments",
             "originalRequest",
             "ownedGcsObjectRequestCid",
+            "ownedGcsObjectResponseMatches",
             "prepareGcsObjectBinding",
             "prepareGcsObjectBinding/prepareGcsObjectBinding",
             "prepareGcsObjectBinding/prepareGcsObjectBinding#2",
@@ -2832,6 +3252,7 @@
             "prepareOwnedGcsObjectDelete",
             "projectGcsObjectMetadata",
             "projectOwnedGcsObjectRequest",
+            "projectOwnedGcsObjectResponse",
             "recheckOwnedGcsObjectRequest",
             "sendOwnedGcsObjectRequest",
             "wire/wire"
@@ -2840,11 +3261,13 @@
             "admitGcsObjectMetadata",
             "gcsOwnedResult",
             "ownedGcsObjectRequestCid",
+            "ownedGcsObjectResponseMatches",
             "prepareGcsObjectBinding",
             "prepareOwnedGcsMetadataPatch",
             "prepareOwnedGcsObjectDelete",
             "projectGcsObjectMetadata",
             "projectOwnedGcsObjectRequest",
+            "projectOwnedGcsObjectResponse",
             "recheckOwnedGcsObjectRequest",
             "sendOwnedGcsObjectRequest"
           ],
@@ -2857,6 +3280,14 @@
               {
                 "path": "docs/spec/protocols/contracts.md",
                 "anchor": "<a id=\"gcs-private-request-metadata\"></a>"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "existing Effect Ledger must authenticate"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Original metadata and delete responses"
               }
             ],
             "inputsOutputs": [
@@ -2867,6 +3298,14 @@
               {
                 "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
                 "anchor": "pub fn gcs_object_request_projection"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn classify_object_mutation_response"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_response_projection"
               }
             ],
             "identity": [
@@ -2876,6 +3315,10 @@
               },
               {
                 "path": "src/connectors/gcs/catalog/object_projection.mbt",
+                "anchor": "physical_equal(binding, request.binding)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
                 "anchor": "physical_equal(binding, request.binding)"
               }
             ],
@@ -2887,6 +3330,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
                 "anchor": "const originals = new WeakMap()"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "original sealed request"
               }
             ],
             "synchronization": [
@@ -2897,6 +3344,14 @@
               {
                 "path": "adapters/host-common/owned-invocation-context.mjs",
                 "anchor": "export function invokeScopedCredentialOperation"
+              },
+              {
+                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "anchor": "ledger.recordResponse"
+              },
+              {
+                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "anchor": "readAuthorizedEffectResponse"
               }
             ],
             "failure": [
@@ -2907,6 +3362,14 @@
               {
                 "path": "src/connectors/gcs/host_node/object.mbt",
                 "anchor": "pub fn gcs_object_failure_code"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "status == 412"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "A later GET/404 never proves a delete"
               }
             ],
             "cancellation": [
@@ -2917,6 +3380,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "physical cleanup ACK"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "pending cleanup are not replaced by this interpretation"
               }
             ],
             "resources": [
@@ -2927,6 +3394,14 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
                 "anchor": "maxRequestBytes, maxResponseBytes, signal"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "binding.limits.metadata.max_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Response bytes and original request body overlap bounded parsed trees"
               }
             ],
             "extension": [
@@ -2937,6 +3412,14 @@
               {
                 "path": "src/connectors/gcs/host_node/object.mbt",
                 "anchor": "Typed ABI projection only"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "same-Run restore"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "soft-delete bucket"
               }
             ],
             "verification": [
@@ -2947,6 +3430,18 @@
               {
                 "path": "src/connectors/gcs/catalog/object_projection_wbtest.mbt",
                 "anchor": "GCS physical projection borrows the same request"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome_wbtest.mbt",
+                "anchor": "GCS mutation outcome confirms only original direct empty delete"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-object-ledger-response.test.mjs",
+                "anchor": "actual Core lost delete reply stays unknown"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-object-request.test.mjs",
+                "anchor": "metadata direct response requires the original marker"
               }
             ]
           }
@@ -2956,11 +3451,13 @@
         "admitGcsObjectMetadata",
         "gcsOwnedResult",
         "ownedGcsObjectRequestCid",
+        "ownedGcsObjectResponseMatches",
         "prepareGcsObjectBinding",
         "prepareOwnedGcsMetadataPatch",
         "prepareOwnedGcsObjectDelete",
         "projectGcsObjectMetadata",
         "projectOwnedGcsObjectRequest",
+        "projectOwnedGcsObjectResponse",
         "recheckOwnedGcsObjectRequest",
         "sendOwnedGcsObjectRequest"
       ],
@@ -3026,6 +3523,15 @@
           "name": "ownedGcsObjectRequestCid",
           "parameters": [
             "request",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownedGcsObjectResponseMatches",
+          "parameters": [
+            "request",
+            "observed",
             "binding"
           ],
           "async": false
@@ -3111,6 +3617,15 @@
           "async": false
         },
         {
+          "name": "projectOwnedGcsObjectResponse",
+          "parameters": [
+            "request",
+            "observation",
+            "maxProjectionBytes"
+          ],
+          "async": false
+        },
+        {
           "name": "recheckOwnedGcsObjectRequest",
           "parameters": [
             "request",
@@ -3147,7 +3662,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "41bf35abb938dbdc11fb1d9ab354edb20b5aedca392a626c7aa182b17905e4b0"
+      "sha256": "927373c209d8b96ffa8d44e75ab3f7924fe219bc37ebddcbd061e2ffc36475b5"
     },
     {
       "module": "src/connectors/gcs/catalog/collection_identity.mbt",
@@ -5395,7 +5910,7 @@
     },
     {
       "module": "src/connectors/gcs/host_node/upload_request.mbt",
-      "sha256": "31f6b1a0018754caf0441b3002719f08efa142c5c80ce6184230a6c9a78e650f",
+      "sha256": "ab9ecfc0ea376521f49d546134670f0031a012c3160a714efceca8a96f280d94",
       "operations": [
         {
           "name": "gcs_upload_binding",
@@ -5440,6 +5955,10 @@
         {
           "name": "gcs_upload_response_projection",
           "declaration": "gcs_upload_response_projection ( binding : @ catalog . ObjectUploadBinding , request : @ catalog . ObjectUploadRequest , status : Int , body : Bytes , max_bytes : Int , ) - > Result [ String , @ catalog . ObjectUploadIssue ]"
+        },
+        {
+          "name": "gcs_upload_target_observation",
+          "declaration": "gcs_upload_target_observation ( binding : @ catalog . ObjectUploadBinding , name : String , status : Int , bytes : Bytes , headers : Array [ ( String , String ) ] , ) - > Result [ @ catalog . ObjectUploadObservation , @ catalog . ObjectUploadIssue ]"
         }
       ],
       "exports": [],
@@ -5460,7 +5979,8 @@
             "gcs_upload_projection",
             "gcs_upload_recheck",
             "gcs_upload_response_matches",
-            "gcs_upload_response_projection"
+            "gcs_upload_response_projection",
+            "gcs_upload_target_observation"
           ],
           "exports": [],
           "attributes": {
@@ -6546,6 +7066,146 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
                 "anchor": "original cancellation and physical failure"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+      "sha256": "94eea7453526e358da28c2857c70a65b15d0e3c424436d467f9c89ace4b08d92",
+      "operations": [
+        {
+          "name": "classify_object_mutation_response",
+          "declaration": "classify_object_mutation_response ( binding : ObjectMutationBinding , request : ObjectMutationRequest , status : Int , body : Bytes , ) - > Result [ ObjectMutationOutcome , ObjectRequestIssue ]"
+        },
+        {
+          "name": "mutation_request_marker",
+          "declaration": "mutation_request_marker ( request : ObjectMutationRequest ) - > String ?"
+        },
+        {
+          "name": "object_mutation_response_matches",
+          "declaration": "object_mutation_response_matches ( binding : ObjectMutationBinding , request : ObjectMutationRequest , observed : ObjectMetadata , ) - > Bool"
+        },
+        {
+          "name": "object_mutation_response_projection_json",
+          "declaration": "object_mutation_response_projection_json ( binding : ObjectMutationBinding , request : ObjectMutationRequest , status : Int , body : Bytes , max_bytes : Int , ) - > Result [ String , ObjectRequestIssue ]"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing GCS original metadata/delete response meaning; Core/Effect Ledger/Store retain authority, dispatch, evidence and Unknown custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "classify_object_mutation_response",
+            "mutation_request_marker",
+            "object_mutation_response_matches",
+            "object_mutation_response_projection_json"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "existing Effect Ledger must authenticate"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Original metadata and delete responses"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "pub fn classify_object_mutation_response"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_response_projection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "physical_equal(binding, request.binding)"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_request.mbt",
+                "anchor": "actql-gcs-object-mutation-request/0.1"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "original sealed request"
+              },
+              {
+                "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
+                "anchor": "const originals = new WeakMap()"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "anchor": "ledger.recordResponse"
+              },
+              {
+                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "anchor": "readAuthorizedEffectResponse"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "status == 412"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "A later GET/404 never proves a delete"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "pending cleanup are not replaced by this interpretation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome.mbt",
+                "anchor": "binding.limits.metadata.max_bytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Response bytes and original request body overlap bounded parsed trees"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "same-Run restore"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "soft-delete bucket"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_outcome_wbtest.mbt",
+                "anchor": "GCS mutation outcome confirms only original direct empty delete"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-object-ledger-response.test.mjs",
+                "anchor": "actual Core lost delete reply stays unknown"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-owned-object-request.test.mjs",
+                "anchor": "metadata direct response requires the original marker"
               }
             ]
           }

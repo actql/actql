@@ -5,8 +5,9 @@ import {createHash} from 'node:crypto';
 import {isAbsolute} from 'node:path';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {createInstalledRowSource, installRowSourceAuthorization,
-  openRowSourceCredentialSite, rowSourceCheckEnvironment} from
+  rowSourceCheckEnvironment} from
   '../../../host-node/installed-row-source.mjs';
+import {openGcsCredentialSite} from '../site/gcs-credential-site.mjs';
 import {retainInstalledHostInitializationFailure} from
   '../../../host-node/installed-host-cleanup.mjs';
 import {readSourceProfileJson} from '../../../host-node/source-profile-json.mjs';
@@ -125,7 +126,7 @@ export async function loadInstalledGcsSource(profile, {root, principalId, moon,
     binding.resource === resource && fieldLists.has(resource) &&
     Array.isArray(binding.fields) && new Set(binding.fields).size === binding.fields.length &&
     binding.fields.every(field => fieldLists.get(resource).includes(field));
-  const site = await openRowSourceCredentialSite({
+  const site = await openGcsCredentialSite({
     profile: {...siteProfile, resourceOrigin: origin}, principalId, authorization,
     connection, connectorRegistration: GCS_REGISTRATION, connectorRevision: GCS_REVISION,
     runtimeBundleCid, commonMoon: moon, admitsApprovalTarget,
