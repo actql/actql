@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <pthread.h>
 #if defined(__APPLE__)
 #include <mach-o/dyld.h>
 #endif
@@ -15,6 +16,7 @@
 #include <spawn.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/file.h>
@@ -119,6 +121,214 @@ int32_t actql_executor_slot_verify(
 int32_t actql_executor_slot_close(int32_t descriptor) {
   if (descriptor < 0) return -1;
   return close(descriptor) == 0 ? 0 : -1;
+}
+
+// One independently opened description pins the original slot inode without
+// extending the child's inherited flock description. This parent-owned object
+// must live outside an exclusive child region that its stop observation retires.
+typedef struct {
+  int descriptor;
+  int unknown_descriptor;
+  pthread_t owner_thread;
+  int32_t status;
+  dev_t device;
+  ino_t inode;
+  bool pinned;
+  bool close_unknown;
+} actql_executor_slot_anchor;
+
+static void actql_executor_slot_anchor_finalize(void *pointer) {
+  actql_executor_slot_anchor *anchor = pointer;
+  // Best-effort finalization is never an observed cleanup acknowledgement.
+  if (anchor->descriptor >= 0) {
+    int original = anchor->descriptor;
+    anchor->descriptor = -1;
+    (void)close(original);
+  }
+}
+
+void *actql_executor_slot_anchor_open(
+  int32_t descriptor, moonbit_bytes_t path, int32_t length
+) {
+  actql_executor_slot_anchor *anchor = moonbit_make_external_object(
+    actql_executor_slot_anchor_finalize, sizeof(*anchor)
+  );
+  memset(anchor, 0, sizeof(*anchor));
+  anchor->descriptor = -1;
+  anchor->unknown_descriptor = -1;
+  anchor->owner_thread = pthread_self();
+  anchor->status = -2;
+  if (descriptor < 0) return anchor;
+  anchor->status = actql_executor_slot_verify(descriptor, path, length);
+  if (anchor->status != 0) return anchor;
+  char *text = actql_executor_slot_text(path, length);
+  if (text == NULL) { anchor->status = -3; return anchor; }
+  int opened = open(text, O_RDWR | O_CLOEXEC | O_NOFOLLOW);
+  free(text);
+  if (opened < 0) { anchor->status = -3; return anchor; }
+  // Keep even a refused opened original in this same cleanup carrier.
+  anchor->descriptor = opened;
+  if (opened < ACTQL_EXECUTOR_SLOT_FIRST_PRIVATE_FD) {
+    int moved = fcntl(opened, F_DUPFD_CLOEXEC,
+      ACTQL_EXECUTOR_SLOT_FIRST_PRIVATE_FD);
+    if (moved < 0) { anchor->status = -3; return anchor; }
+    anchor->descriptor = moved;
+    if (actql_executor_slot_close(opened) != 0) {
+      anchor->unknown_descriptor = opened;
+      anchor->close_unknown = true;
+      anchor->status = -4;
+      return anchor;
+    }
+    opened = moved;
+  }
+  struct stat original, observed;
+  if (fstat(descriptor, &original) != 0 || fstat(opened, &observed) != 0 ||
+      !actql_executor_slot_private(&observed)) {
+    anchor->status = -1;
+    return anchor;
+  }
+  anchor->device = observed.st_dev;
+  anchor->inode = observed.st_ino;
+  if (original.st_dev != observed.st_dev || original.st_ino != observed.st_ino) {
+    anchor->status = 2;
+  }
+  return anchor;
+}
+
+int32_t actql_executor_slot_anchor_status(actql_executor_slot_anchor *anchor) {
+  if (!pthread_equal(anchor->owner_thread, pthread_self())) return -1;
+  return anchor->status;
+}
+
+int32_t actql_executor_slot_anchor_thread_current(actql_executor_slot_anchor *anchor) {
+  return pthread_equal(anchor->owner_thread, pthread_self()) ? 0 : -1;
+}
+
+static int32_t actql_executor_slot_anchor_check(
+  actql_executor_slot_anchor *anchor, moonbit_bytes_t path, int32_t length
+) {
+  if (!pthread_equal(anchor->owner_thread, pthread_self())) return -1;
+  if (anchor->close_unknown) return -4;
+  if (anchor->descriptor < 0) return -2;
+  if (anchor->status != 0) return anchor->status;
+  struct stat opened;
+  if (fstat(anchor->descriptor, &opened) != 0 ||
+      opened.st_dev != anchor->device || opened.st_ino != anchor->inode) {
+    // An externally consumed descriptor is not safe to close after reuse.
+    anchor->unknown_descriptor = anchor->descriptor;
+    anchor->descriptor = -1;
+    anchor->close_unknown = true;
+    return -4;
+  }
+  char *text = actql_executor_slot_text(path, length);
+  if (text == NULL) return -1;
+  struct stat named;
+  bool valid = lstat(text, &named) == 0 &&
+    actql_executor_slot_private(&named) &&
+    named.st_dev == anchor->device && named.st_ino == anchor->inode;
+  free(text);
+  if (!valid) anchor->status = 2; // Observed replacement cannot be repaired.
+  return anchor->status;
+}
+
+int32_t actql_executor_slot_anchor_pin(
+  actql_executor_slot_anchor *anchor, moonbit_bytes_t path, int32_t length
+) {
+  int32_t status = actql_executor_slot_anchor_check(anchor, path, length);
+  if (status != 0) return status;
+  status = actql_executor_slot_try_lock(anchor->descriptor);
+  if (status != 0) return status;
+  anchor->pinned = true;
+  return actql_executor_slot_anchor_check(anchor, path, length);
+}
+
+int32_t actql_executor_slot_anchor_current(
+  actql_executor_slot_anchor *anchor, moonbit_bytes_t path, int32_t length,
+  int32_t require_pin
+) {
+  if (require_pin != 0 && require_pin != 1) return -1;
+  int32_t status = actql_executor_slot_anchor_check(anchor, path, length);
+  if (status != 0) return status;
+  if (require_pin == 0) return 0;
+  if (!anchor->pinned) return -1;
+  return actql_executor_slot_try_lock(anchor->descriptor);
+}
+
+int32_t actql_executor_slot_anchor_close(actql_executor_slot_anchor *anchor) {
+  if (!pthread_equal(anchor->owner_thread, pthread_self())) return -1;
+  if (anchor->descriptor < 0) return anchor->close_unknown ? -1 : 0;
+  // Consume once before observing close; an ambiguous result never retries it.
+  int original = anchor->descriptor;
+  anchor->descriptor = -1;
+  anchor->pinned = false;
+  if (actql_executor_slot_close(original) != 0) {
+    anchor->unknown_descriptor = original;
+    anchor->close_unknown = true;
+    return -1;
+  }
+  return anchor->close_unknown ? -1 : 0;
+}
+
+// Whitebox fault observation only, never a scoped-stop constructor.
+int32_t actql_executor_slot_test_anchor_descriptor(
+  actql_executor_slot_anchor *anchor
+) {
+  return anchor->descriptor;
+}
+
+typedef struct {
+  actql_executor_slot_anchor *anchor;
+  int result;
+} actql_executor_slot_test_anchor_thread;
+
+static void *actql_executor_slot_test_anchor_thread_run(void *pointer) {
+  actql_executor_slot_test_anchor_thread *probe = pointer;
+  probe->result = actql_executor_slot_anchor_thread_current(probe->anchor);
+  return NULL;
+}
+
+int32_t actql_executor_slot_test_anchor_foreign_thread(
+  actql_executor_slot_anchor *anchor
+) {
+  actql_executor_slot_test_anchor_thread *probe = malloc(sizeof(*probe));
+  if (probe == NULL) return -2;
+  probe->anchor = anchor;
+  probe->result = 0;
+  moonbit_incref(anchor);
+  pthread_t thread;
+  if (pthread_create(&thread, NULL, actql_executor_slot_test_anchor_thread_run, probe) != 0) {
+    moonbit_decref(anchor);
+    free(probe);
+    return -2;
+  }
+  // An unconfirmed join retains its original payload and reference; it does
+  // not free storage that a possibly live probe could still access.
+  if (pthread_join(thread, NULL) != 0) return -2;
+  int result = probe->result;
+  moonbit_decref(anchor);
+  free(probe);
+  return result == -1 ? 1 : 0;
+}
+
+// Fresh whitebox namespace only: retain the old inode under a separate name.
+int32_t actql_executor_slot_test_replace_scoped_slot(
+  moonbit_bytes_t path, int32_t length
+) {
+  char *text = actql_executor_slot_text(path, length);
+  if (text == NULL) return -1;
+  size_t n = strlen(text);
+  char *retained = malloc(n + sizeof(".original"));
+  if (retained == NULL) { free(text); return -1; }
+  memcpy(retained, text, n);
+  memcpy(retained + n, ".original", sizeof(".original"));
+  int result = rename(text, retained);
+  if (result == 0) {
+    int fd = open(text, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC | O_NOFOLLOW, 0600);
+    result = fd < 0 ? -1 : close(fd);
+  }
+  free(retained);
+  free(text);
+  return result;
 }
 
 // Starts executable with NUL-separated arguments (argv[0] included). The slot
