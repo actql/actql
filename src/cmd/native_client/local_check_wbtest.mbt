@@ -271,3 +271,142 @@ test "Native check reads original file-backed Program and parameters through the
   assert_false(report.contains("\"document_id\":\"source\""))
   effect_finite_cli_ok(context.host.close(), "check.host.close")
 }
+
+///|
+let check_cli_yaml_program : String =
+  #|version: actql/0.1
+  #|id: native.yaml.original
+  #|params:
+  #|  x: {type: number, nullable: false}
+  #|stages:
+  #|  - id: main
+  #|    inputs: {}
+  #|    steps:
+  #|      - values:
+  #|          schema:
+  #|            n: {type: number, nullable: false}
+  #|          rows: [{n: 1}]
+  #|        as: rows
+  #|      - derive: {value: 'n + $x'}
+  #|        as: derived
+  #|    results:
+  #|      r: {from: derived, fields: [value]}
+  #|results:
+  #|  answer: {from: {stage: main, result: r}}
+
+///|
+test "Native check reads original YAML Program and separately JSON Parameters through the command consumer" {
+  let (context, root) = check_cli_fixture("native-check-yaml-command")
+  let original = ("# é 😀\n" + check_cli_yaml_program).replace_all(
+    old="\n",
+    new="\r\n",
+  )
+  let files = effect_finite_cli_ok(
+    @local_filesystem.open_private_root(root),
+    "check.yaml.inputs",
+  )
+  result_fresh_host_write(files, "program.yaml", original)
+  result_fresh_host_write(files, "parameters.json", "{\"x\":2}")
+  effect_finite_cli_ok(files.close(), "check.yaml.inputs.close")
+  let parsed = command().parse(
+    argv=[
+      "--mode", "local", "check", "--program-file", "program.yaml", "--format", "yaml",
+      "--parameters-file", "parameters.json", "--json",
+    ],
+    env=Map([]),
+  )
+  let wire = local_check_for_host(
+    context.host,
+    context.crypto,
+    "config.json",
+    root,
+    parsed.subcommand.unwrap().1,
+  )
+  let report = check_cli_report(wire)
+  assert_eq(local_explain_field(report, "verdict"), Json::string("verified"))
+  assert_eq(
+    local_explain_field(local_explain_field(report, "runnable"), "verdict"),
+    Json::string("yes"),
+  )
+  assert_true(wire.contains("\"document_id\":\"program\""))
+  // Independent UTF-8 count includes the original Unicode comment and CR/LF.
+  assert_true(wire.contains("\"byte_length\":449"))
+  // The command creates its own fresh key. Check exact revision binding only
+  // within one original context, never by borrowing another context's key.
+  let keyed = context.project({
+    document: original,
+    format: Yaml,
+    declarations: None,
+    parameters: Some("{\"x\":2}"),
+  })
+  assert_true(keyed.contains(context.revision("program", original)))
+  assert_true(keyed.contains(context.revision("parameters", "{\"x\":2}")))
+  assert_false(wire.contains("\"document_id\":\"source\""))
+  effect_finite_cli_ok(context.host.close(), "check.yaml.host.close")
+}
+
+///|
+test "Native YAML check preserves format and exact original context binding without changing JSON" {
+  let (context, _) = check_cli_fixture("native-check-yaml-reference")
+  // JSON spelling is also a valid YAML input, but its parser selection is distinct.
+  let json : LocalCheckInput = {
+    document: public_run_result_program,
+    format: Json,
+    declarations: None,
+    parameters: None,
+  }
+  let yaml : LocalCheckInput = { ..json, format: Yaml, }
+  let reference = context.reference(yaml)
+  assert_eq(reference, context.reference(yaml))
+  assert_false(reference == context.reference(json))
+  assert_eq(
+    context.revision("program", yaml.document),
+    context.revision("program", json.document),
+  )
+  assert_false(
+    context.reference({ ..yaml, document: "# é\r\n" + yaml.document, }) ==
+    context.reference({ ..yaml, document: "# é\n" + yaml.document, }),
+  )
+  let before = context.project(json)
+  assert_true(before.contains("\"verdict\":\"verified\""))
+  let yaml_wire = context.project(yaml)
+  assert_true(yaml_wire.contains("\"verdict\":\"verified\""))
+  assert_true(yaml_wire.contains(reference))
+  let after = context.project(json)
+  assert_eq(check_cli_report(before), check_cli_report(after))
+  effect_finite_cli_ok(context.host.close(), "check.yaml.reference.close")
+}
+
+///|
+test "Native YAML check retains malformed original and JSON parameter refusals and terminal current" {
+  let (context, _) = check_cli_fixture("native-check-yaml-refusal")
+  let input : LocalCheckInput = {
+    document: check_cli_yaml_program,
+    format: Yaml,
+    declarations: None,
+    parameters: None,
+  }
+  let missing = context.project(input)
+  assert_true(missing.contains("parameter_value_required"))
+  for parameters in ["{\"x\":null}", "{\"x\":\"private-yaml-value\"}", "x: 2"] {
+    let wire = context.project({ ..input, parameters: Some(parameters), })
+    assert_eq(
+      local_explain_field(check_cli_report(wire), "verdict"),
+      Json::string("invalid"),
+    )
+    assert_false(wire.contains("private-yaml-value"))
+  }
+  let malformed = context.project({
+    ..input,
+    document: "version: [unterminated",
+  })
+  assert_eq(
+    local_explain_field(check_cli_report(malformed), "verdict"),
+    Json::string("invalid"),
+  )
+  effect_finite_cli_ok(context.host.close(), "check.yaml.refusal.close")
+  let unavailable = context.project({ ..input, parameters: Some("{\"x\":2}"), })
+  assert_true(unavailable.contains("\"outcome\":\"unavailable\""))
+  assert_false(unavailable.contains("\"report\""))
+  assert_false(unavailable.contains("\"context_ref\""))
+}

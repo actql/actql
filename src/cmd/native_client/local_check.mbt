@@ -164,6 +164,14 @@ fn LocalCheckContext::reference(
   match input.format {
     @frontend.Json =>
       fields["program"] = local_check_received(Some(input.document))
+    @frontend.Yaml =>
+      fields["program"] = Json::object(
+        Map([
+          ("kind", Json::string("structured")),
+          ("format", Json::string("yaml")),
+          ("received", Json::string(input.document)),
+        ]),
+      )
     _ => {
       fields["source"] = Json::object(
         Map([
@@ -254,7 +262,20 @@ fn LocalCheckContext::project(
         "bound_input",
         None,
       )
-    Yaml => stop("LocalYamlCheckProjectionUnavailable")
+    Yaml =>
+      @preparation.client_program_check_program_with_format(
+        input.document,
+        "yaml",
+        self.environment,
+        publication,
+        input.parameters,
+        reference,
+        self.revision("program", input.document),
+        parameters_revision,
+        correlation,
+        "bound_input",
+        None,
+      )
   }
   // Pure projection does not establish terminal current. Never return its
   // verdict if original Host/configuration custody changed during this call.
