@@ -5,7 +5,7 @@
     {
       "module": "adapters/connectors-builtin/installations.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "13739fc2ff9e95625e99b8eed4980a425a8d3c681bd21a9f1d0eff5f9ae5a11b",
+      "sha256": "a96ebee74d4abcab3123515ba8f7070200dca094d8bf54314cbd74d9f4c81302",
       "exports": [
         "installedConnectors"
       ],
@@ -147,10 +147,12 @@
         "../connectors/gcs/host/installed-gcs-source.mjs",
         "../connectors/github/host/installed-github-effect.mjs",
         "../connectors/github/host/installed-github-source.mjs",
+        "../connectors/hubspot/host/installed-hubspot-source.mjs",
         "../connectors/local/host/installed-local-table.mjs",
         "../connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
         "../connectors/salesforce/host/installed-salesforce-source.mjs",
-        "../connectors/sheets/host/installed-sheets.mjs"
+        "../connectors/sheets/host/installed-sheets.mjs",
+        "../connectors/snowflake/host/installed-snowflake-source.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
