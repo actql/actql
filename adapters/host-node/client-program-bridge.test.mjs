@@ -118,7 +118,7 @@ test('public source preparation binds installed aliases before checking a Progra
     source_data_policy_cid: 'sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf',
     data_classification: 'unknown'}];
   body.connector_capabilities = [{...selector, capability_contract_cids: [
-    'sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8']}];
+    'sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a']}];
   delete body.evidence_bundle_cid;
   body.evidence_bundle_cid = machineCid(body);
   const environment = moon.clientProgramCheckEnvironment(canonicalText(body),
@@ -258,7 +258,7 @@ test('checked acquired source and downstream task emit their input ports',
     }];
     environmentBody.connector_capabilities = [{...sourceSelector,
       capability_contract_cids: [
-        'sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8'],
+        'sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a'],
     }];
     delete environmentBody.evidence_bundle_cid;
     environmentBody.evidence_bundle_cid = machineCid(environmentBody);

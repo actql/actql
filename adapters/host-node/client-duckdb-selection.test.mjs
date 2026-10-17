@@ -13,8 +13,8 @@ import {capturedDuckDBNativeConfiguration, openCapturedDuckDBSource,
   prepareCapturedDuckDBSource} from './captured-duckdb-source.mjs';
 import * as capturedModule from './captured-duckdb-source.mjs';
 
-const nativeCapability = 'sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8';
-const broadCapability = 'sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89';
+const nativeCapability = 'sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a';
+const broadCapability = 'sha256:cdaab753fd3c01709fbd9ae32022a8462bc8200edf1e9c93d533a293989f8a3b';
 const text = path => readFile(new URL(path, import.meta.url), 'utf8');
 const contracts = await Promise.all(['actql-query-acquisition.json',
   'actql-query-process-evidence.json', 'actql-query-two-receipt.json']
