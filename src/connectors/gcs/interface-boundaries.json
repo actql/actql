@@ -589,16 +589,18 @@
     {
       "module": "src/connectors/gcs/catalog/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "f01588952bb2de74edafa2d1b7761b7555965b26bdd9100a6feda92de7832d70",
+      "sha256": "41f9c15b94b638d6603b0bb32591f587f0937d8af78ccb3afcaed2e65863d413",
       "role": "connector-semantics",
       "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
       "exports": [
         "pub fn admit_object_metadata(Bytes, String, String, String?, ObjectMetadataLimits) -> Result[ObjectMetadata, ObjectMetadataIssue]",
         "pub fn admit_object_metadata_page(Bytes, String, String, Int, ObjectMetadataLimits) -> Result[ObjectMetadataPage, ObjectMetadataIssue]",
         "pub fn admit_object_mutation_request(ObjectMutationBinding, ObjectMutationRequest) -> Result[Unit, ObjectRequestIssue]",
+        "pub fn admit_object_mutation_target_observation(ObjectMutationBinding, String, Int, Bytes, Array[(String, String)]) -> Result[ObjectMetadata, ObjectTargetReadIssue]",
         "pub fn admit_object_upload_observation(ObjectUploadBinding, String, Int, Bytes) -> Result[ObjectUploadObservation, ObjectUploadIssue]",
         "pub fn admit_object_upload_target_observation(ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[ObjectUploadObservation, ObjectUploadIssue]",
         "pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]",
+        "pub fn check_object_metadata_patch_input(ObjectMutationBinding, Bytes, String, Bool) -> Result[Unit, ObjectRequestIssue]",
         "pub fn classify_object_mutation_response(ObjectMutationBinding, ObjectMutationRequest, Int, Bytes) -> Result[ObjectMutationOutcome, ObjectRequestIssue]",
         "pub fn classify_object_upload_response(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes) -> Result[ObjectUploadOutcome, ObjectUploadIssue]",
         "pub fn content_metadata_json(Bytes, String, String, String, Int64, ObjectMetadataLimits) -> Result[String, ContentMetadataIssue]",
@@ -613,6 +615,7 @@
         "pub fn object_metadata_page_next_token(ObjectMetadataPage) -> String?",
         "pub fn object_metadata_page_response_sha256(ObjectMetadataPage) -> String",
         "pub fn object_metadata_page_row_json(ObjectMetadataPage, Int, Int, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]",
+        "pub fn object_metadata_patch_effect_target_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]",
         "pub fn object_metadata_response_sha256(ObjectMetadata) -> String",
         "pub fn object_metadata_version(ObjectMetadata) -> String",
         "pub fn object_mutation_after(ObjectMutationRequest) -> ObjectMetadataFields?",
@@ -621,6 +624,9 @@
         "pub fn object_mutation_body_for(ObjectMutationBinding, ObjectMutationRequest) -> Result[String, ObjectRequestIssue]",
         "pub fn object_mutation_changes_json(ObjectMutationBinding, ObjectMutationRequest) -> Result[String, ObjectRequestIssue]",
         "pub fn object_mutation_cid(ObjectMutationRequest) -> String",
+        "pub fn object_mutation_kind(ObjectMutationBinding) -> ObjectMutationKind",
+        "pub fn object_mutation_metadata_max_bytes(ObjectMutationBinding) -> Int",
+        "pub fn object_mutation_metadata_path(ObjectMutationBinding, String) -> Result[String, ObjectTargetReadIssue]",
         "pub fn object_mutation_method(ObjectMutationRequest) -> String",
         "pub fn object_mutation_path(ObjectMutationRequest) -> String",
         "pub fn object_mutation_projection_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]",
@@ -642,6 +648,7 @@
         "pub fn prepare_object_collection_binding(String, String, String, String, String, String, String, ObjectCollectionLimits) -> Result[ObjectCollectionBinding, ObjectCollectionIssue]",
         "pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
         "pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
+        "pub fn prepare_object_metadata_patch_value_wire(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
         "pub fn prepare_object_multipart_upload(ObjectUploadBinding, ObjectUploadObservation, Bytes, String, String, String, Bool?, String) -> Result[ObjectUploadRequest, ObjectUploadIssue]",
         "pub fn prepare_object_mutation_binding(ObjectMutationKind, String, String, String, String, String, Array[String], ObjectRequestLimits) -> Result[ObjectMutationBinding, ObjectRequestIssue]",
         "pub fn prepare_object_upload_binding(ObjectCollectionBinding, String, Array[String], ObjectUploadLimits) -> Result[ObjectUploadBinding, ObjectUploadIssue]",
@@ -670,6 +677,10 @@
           "declaration": "pub fn admit_object_mutation_request(ObjectMutationBinding, ObjectMutationRequest) -> Result[Unit, ObjectRequestIssue]"
         },
         {
+          "name": "admit_object_mutation_target_observation",
+          "declaration": "pub fn admit_object_mutation_target_observation(ObjectMutationBinding, String, Int, Bytes, Array[(String, String)]) -> Result[ObjectMetadata, ObjectTargetReadIssue]"
+        },
+        {
           "name": "admit_object_upload_observation",
           "declaration": "pub fn admit_object_upload_observation(ObjectUploadBinding, String, Int, Bytes) -> Result[ObjectUploadObservation, ObjectUploadIssue]"
         },
@@ -680,6 +691,10 @@
         {
           "name": "check_object_collection_binding",
           "declaration": "pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]"
+        },
+        {
+          "name": "check_object_metadata_patch_input",
+          "declaration": "pub fn check_object_metadata_patch_input(ObjectMutationBinding, Bytes, String, Bool) -> Result[Unit, ObjectRequestIssue]"
         },
         {
           "name": "classify_object_mutation_response",
@@ -738,6 +753,10 @@
           "declaration": "pub fn object_metadata_page_row_json(ObjectMetadataPage, Int, Int, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]"
         },
         {
+          "name": "object_metadata_patch_effect_target_json",
+          "declaration": "pub fn object_metadata_patch_effect_target_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]"
+        },
+        {
           "name": "object_metadata_response_sha256",
           "declaration": "pub fn object_metadata_response_sha256(ObjectMetadata) -> String"
         },
@@ -768,6 +787,18 @@
         {
           "name": "object_mutation_cid",
           "declaration": "pub fn object_mutation_cid(ObjectMutationRequest) -> String"
+        },
+        {
+          "name": "object_mutation_kind",
+          "declaration": "pub fn object_mutation_kind(ObjectMutationBinding) -> ObjectMutationKind"
+        },
+        {
+          "name": "object_mutation_metadata_max_bytes",
+          "declaration": "pub fn object_mutation_metadata_max_bytes(ObjectMutationBinding) -> Int"
+        },
+        {
+          "name": "object_mutation_metadata_path",
+          "declaration": "pub fn object_mutation_metadata_path(ObjectMutationBinding, String) -> Result[String, ObjectTargetReadIssue]"
         },
         {
           "name": "object_mutation_method",
@@ -854,6 +885,10 @@
           "declaration": "pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]"
         },
         {
+          "name": "prepare_object_metadata_patch_value_wire",
+          "declaration": "pub fn prepare_object_metadata_patch_value_wire(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]"
+        },
+        {
           "name": "prepare_object_multipart_upload",
           "declaration": "pub fn prepare_object_multipart_upload(ObjectUploadBinding, ObjectUploadObservation, Bytes, String, String, String, Bool?, String) -> Result[ObjectUploadRequest, ObjectUploadIssue]"
         },
@@ -881,9 +916,11 @@
             "admit_object_metadata",
             "admit_object_metadata_page",
             "admit_object_mutation_request",
+            "admit_object_mutation_target_observation",
             "admit_object_upload_observation",
             "admit_object_upload_target_observation",
             "check_object_collection_binding",
+            "check_object_metadata_patch_input",
             "classify_object_mutation_response",
             "classify_object_upload_response",
             "content_metadata_json",
@@ -898,6 +935,7 @@
             "object_metadata_page_next_token",
             "object_metadata_page_response_sha256",
             "object_metadata_page_row_json",
+            "object_metadata_patch_effect_target_json",
             "object_metadata_response_sha256",
             "object_metadata_version",
             "object_mutation_after",
@@ -906,6 +944,9 @@
             "object_mutation_body_for",
             "object_mutation_changes_json",
             "object_mutation_cid",
+            "object_mutation_kind",
+            "object_mutation_metadata_max_bytes",
+            "object_mutation_metadata_path",
             "object_mutation_method",
             "object_mutation_path",
             "object_mutation_projection_json",
@@ -927,6 +968,7 @@
             "prepare_object_collection_binding",
             "prepare_object_delete",
             "prepare_object_metadata_patch",
+            "prepare_object_metadata_patch_value_wire",
             "prepare_object_multipart_upload",
             "prepare_object_mutation_binding",
             "prepare_object_upload_binding",
@@ -937,9 +979,11 @@
             "pub fn admit_object_metadata(Bytes, String, String, String?, ObjectMetadataLimits) -> Result[ObjectMetadata, ObjectMetadataIssue]",
             "pub fn admit_object_metadata_page(Bytes, String, String, Int, ObjectMetadataLimits) -> Result[ObjectMetadataPage, ObjectMetadataIssue]",
             "pub fn admit_object_mutation_request(ObjectMutationBinding, ObjectMutationRequest) -> Result[Unit, ObjectRequestIssue]",
+            "pub fn admit_object_mutation_target_observation(ObjectMutationBinding, String, Int, Bytes, Array[(String, String)]) -> Result[ObjectMetadata, ObjectTargetReadIssue]",
             "pub fn admit_object_upload_observation(ObjectUploadBinding, String, Int, Bytes) -> Result[ObjectUploadObservation, ObjectUploadIssue]",
             "pub fn admit_object_upload_target_observation(ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[ObjectUploadObservation, ObjectUploadIssue]",
             "pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]",
+            "pub fn check_object_metadata_patch_input(ObjectMutationBinding, Bytes, String, Bool) -> Result[Unit, ObjectRequestIssue]",
             "pub fn classify_object_mutation_response(ObjectMutationBinding, ObjectMutationRequest, Int, Bytes) -> Result[ObjectMutationOutcome, ObjectRequestIssue]",
             "pub fn classify_object_upload_response(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes) -> Result[ObjectUploadOutcome, ObjectUploadIssue]",
             "pub fn content_metadata_json(Bytes, String, String, String, Int64, ObjectMetadataLimits) -> Result[String, ContentMetadataIssue]",
@@ -954,6 +998,7 @@
             "pub fn object_metadata_page_next_token(ObjectMetadataPage) -> String?",
             "pub fn object_metadata_page_response_sha256(ObjectMetadataPage) -> String",
             "pub fn object_metadata_page_row_json(ObjectMetadataPage, Int, Int, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]",
+            "pub fn object_metadata_patch_effect_target_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]",
             "pub fn object_metadata_response_sha256(ObjectMetadata) -> String",
             "pub fn object_metadata_version(ObjectMetadata) -> String",
             "pub fn object_mutation_after(ObjectMutationRequest) -> ObjectMetadataFields?",
@@ -962,6 +1007,9 @@
             "pub fn object_mutation_body_for(ObjectMutationBinding, ObjectMutationRequest) -> Result[String, ObjectRequestIssue]",
             "pub fn object_mutation_changes_json(ObjectMutationBinding, ObjectMutationRequest) -> Result[String, ObjectRequestIssue]",
             "pub fn object_mutation_cid(ObjectMutationRequest) -> String",
+            "pub fn object_mutation_kind(ObjectMutationBinding) -> ObjectMutationKind",
+            "pub fn object_mutation_metadata_max_bytes(ObjectMutationBinding) -> Int",
+            "pub fn object_mutation_metadata_path(ObjectMutationBinding, String) -> Result[String, ObjectTargetReadIssue]",
             "pub fn object_mutation_method(ObjectMutationRequest) -> String",
             "pub fn object_mutation_path(ObjectMutationRequest) -> String",
             "pub fn object_mutation_projection_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]",
@@ -983,6 +1031,7 @@
             "pub fn prepare_object_collection_binding(String, String, String, String, String, String, String, ObjectCollectionLimits) -> Result[ObjectCollectionBinding, ObjectCollectionIssue]",
             "pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
             "pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
+            "pub fn prepare_object_metadata_patch_value_wire(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
             "pub fn prepare_object_multipart_upload(ObjectUploadBinding, ObjectUploadObservation, Bytes, String, String, String, Bool?, String) -> Result[ObjectUploadRequest, ObjectUploadIssue]",
             "pub fn prepare_object_mutation_binding(ObjectMutationKind, String, String, String, String, String, Array[String], ObjectRequestLimits) -> Result[ObjectMutationBinding, ObjectRequestIssue]",
             "pub fn prepare_object_upload_binding(ObjectCollectionBinding, String, Array[String], ObjectUploadLimits) -> Result[ObjectUploadBinding, ObjectUploadIssue]",
@@ -2277,16 +2326,22 @@
             "gcs_collection_resource_json",
             "gcs_content_metadata_failure_code",
             "gcs_content_metadata_json",
+            "gcs_object_check_patch_input",
             "gcs_object_failure_code",
             "gcs_object_listing_prefix",
             "gcs_object_metadata",
             "gcs_object_metadata_json",
+            "gcs_object_metadata_max_bytes",
             "gcs_object_metadata_page",
             "gcs_object_metadata_page_count",
             "gcs_object_metadata_page_next_token",
             "gcs_object_metadata_page_row_json",
+            "gcs_object_metadata_path",
             "gcs_object_mutation_binding",
+            "gcs_object_mutation_kind",
+            "gcs_object_patch_effect_target",
             "gcs_object_prepare_delete",
+            "gcs_object_prepare_effect_patch",
             "gcs_object_prepare_patch",
             "gcs_object_recheck",
             "gcs_object_request_body",
@@ -2294,6 +2349,7 @@
             "gcs_object_request_projection",
             "gcs_object_response_matches",
             "gcs_object_response_projection",
+            "gcs_object_target_observation",
             "gcs_upload_binding",
             "gcs_upload_body",
             "gcs_upload_catalog_json",
@@ -2322,16 +2378,22 @@
             "pub fn gcs_collection_resource_json(@catalog.ObjectCollectionBinding) -> String",
             "pub fn gcs_content_metadata_failure_code(@catalog.ContentMetadataIssue) -> String",
             "pub fn gcs_content_metadata_json(Bytes, String, String, String, Int64, Int) -> Result[String, @catalog.ContentMetadataIssue]",
+            "pub fn gcs_object_check_patch_input(@catalog.ObjectMutationBinding, Bytes, String, Bool) -> Result[Unit, GcsFailure]",
             "pub fn gcs_object_failure_code(GcsFailure) -> String",
             "pub fn gcs_object_listing_prefix(String, Bytes, Int, Int, Int) -> Result[String, GcsFailure]",
             "pub fn gcs_object_metadata(Bytes, String, String, String?, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadata, GcsFailure]",
             "pub fn gcs_object_metadata_json(@catalog.ObjectMetadata, Int, Int, Int, Int) -> Result[String, GcsFailure]",
+            "pub fn gcs_object_metadata_max_bytes(@catalog.ObjectMutationBinding) -> Int",
             "pub fn gcs_object_metadata_page(Bytes, String, String, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadataPage, GcsFailure]",
             "pub fn gcs_object_metadata_page_count(@catalog.ObjectMetadataPage) -> Int",
             "pub fn gcs_object_metadata_page_next_token(@catalog.ObjectMetadataPage) -> String?",
             "pub fn gcs_object_metadata_page_row_json(@catalog.ObjectMetadataPage, Int, Int, Int, Int) -> Result[String, GcsFailure]",
+            "pub fn gcs_object_metadata_path(@catalog.ObjectMutationBinding, String) -> Result[String, GcsFailure]",
             "pub fn gcs_object_mutation_binding(String, String, String, String, String, String, Array[String], Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMutationBinding, GcsFailure]",
+            "pub fn gcs_object_mutation_kind(@catalog.ObjectMutationBinding) -> String",
+            "pub fn gcs_object_patch_effect_target(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]",
             "pub fn gcs_object_prepare_delete(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
+            "pub fn gcs_object_prepare_effect_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
             "pub fn gcs_object_prepare_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
             "pub fn gcs_object_recheck(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, @catalog.ObjectMetadata) -> Result[Unit, GcsFailure]",
             "pub fn gcs_object_request_body(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]",
@@ -2339,6 +2401,7 @@
             "pub fn gcs_object_request_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]",
             "pub fn gcs_object_response_matches(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, @catalog.ObjectMetadata) -> Bool",
             "pub fn gcs_object_response_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int, Bytes, Int) -> Result[String, GcsFailure]",
+            "pub fn gcs_object_target_observation(@catalog.ObjectMutationBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectMetadata, GcsFailure]",
             "pub fn gcs_upload_binding(@catalog.ObjectCollectionBinding, String, Array[String], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectUploadBinding, @catalog.ObjectUploadIssue]",
             "pub fn gcs_upload_body(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest) -> Result[Bytes, @catalog.ObjectUploadIssue]",
             "pub fn gcs_upload_catalog_json(String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]",
@@ -3104,16 +3167,22 @@
         "pub fn gcs_collection_resource_json(@catalog.ObjectCollectionBinding) -> String",
         "pub fn gcs_content_metadata_failure_code(@catalog.ContentMetadataIssue) -> String",
         "pub fn gcs_content_metadata_json(Bytes, String, String, String, Int64, Int) -> Result[String, @catalog.ContentMetadataIssue]",
+        "pub fn gcs_object_check_patch_input(@catalog.ObjectMutationBinding, Bytes, String, Bool) -> Result[Unit, GcsFailure]",
         "pub fn gcs_object_failure_code(GcsFailure) -> String",
         "pub fn gcs_object_listing_prefix(String, Bytes, Int, Int, Int) -> Result[String, GcsFailure]",
         "pub fn gcs_object_metadata(Bytes, String, String, String?, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadata, GcsFailure]",
         "pub fn gcs_object_metadata_json(@catalog.ObjectMetadata, Int, Int, Int, Int) -> Result[String, GcsFailure]",
+        "pub fn gcs_object_metadata_max_bytes(@catalog.ObjectMutationBinding) -> Int",
         "pub fn gcs_object_metadata_page(Bytes, String, String, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadataPage, GcsFailure]",
         "pub fn gcs_object_metadata_page_count(@catalog.ObjectMetadataPage) -> Int",
         "pub fn gcs_object_metadata_page_next_token(@catalog.ObjectMetadataPage) -> String?",
         "pub fn gcs_object_metadata_page_row_json(@catalog.ObjectMetadataPage, Int, Int, Int, Int) -> Result[String, GcsFailure]",
+        "pub fn gcs_object_metadata_path(@catalog.ObjectMutationBinding, String) -> Result[String, GcsFailure]",
         "pub fn gcs_object_mutation_binding(String, String, String, String, String, String, Array[String], Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMutationBinding, GcsFailure]",
+        "pub fn gcs_object_mutation_kind(@catalog.ObjectMutationBinding) -> String",
+        "pub fn gcs_object_patch_effect_target(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]",
         "pub fn gcs_object_prepare_delete(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
+        "pub fn gcs_object_prepare_effect_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
         "pub fn gcs_object_prepare_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
         "pub fn gcs_object_recheck(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, @catalog.ObjectMetadata) -> Result[Unit, GcsFailure]",
         "pub fn gcs_object_request_body(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]",
@@ -3121,6 +3190,7 @@
         "pub fn gcs_object_request_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]",
         "pub fn gcs_object_response_matches(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, @catalog.ObjectMetadata) -> Bool",
         "pub fn gcs_object_response_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int, Bytes, Int) -> Result[String, GcsFailure]",
+        "pub fn gcs_object_target_observation(@catalog.ObjectMutationBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectMetadata, GcsFailure]",
         "pub fn gcs_upload_binding(@catalog.ObjectCollectionBinding, String, Array[String], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectUploadBinding, @catalog.ObjectUploadIssue]",
         "pub fn gcs_upload_body(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest) -> Result[Bytes, @catalog.ObjectUploadIssue]",
         "pub fn gcs_upload_catalog_json(String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]",
@@ -3181,6 +3251,10 @@
           "declaration": "pub fn gcs_content_metadata_json(Bytes, String, String, String, Int64, Int) -> Result[String, @catalog.ContentMetadataIssue]"
         },
         {
+          "name": "gcs_object_check_patch_input",
+          "declaration": "pub fn gcs_object_check_patch_input(@catalog.ObjectMutationBinding, Bytes, String, Bool) -> Result[Unit, GcsFailure]"
+        },
+        {
           "name": "gcs_object_failure_code",
           "declaration": "pub fn gcs_object_failure_code(GcsFailure) -> String"
         },
@@ -3195,6 +3269,10 @@
         {
           "name": "gcs_object_metadata_json",
           "declaration": "pub fn gcs_object_metadata_json(@catalog.ObjectMetadata, Int, Int, Int, Int) -> Result[String, GcsFailure]"
+        },
+        {
+          "name": "gcs_object_metadata_max_bytes",
+          "declaration": "pub fn gcs_object_metadata_max_bytes(@catalog.ObjectMutationBinding) -> Int"
         },
         {
           "name": "gcs_object_metadata_page",
@@ -3213,12 +3291,28 @@
           "declaration": "pub fn gcs_object_metadata_page_row_json(@catalog.ObjectMetadataPage, Int, Int, Int, Int) -> Result[String, GcsFailure]"
         },
         {
+          "name": "gcs_object_metadata_path",
+          "declaration": "pub fn gcs_object_metadata_path(@catalog.ObjectMutationBinding, String) -> Result[String, GcsFailure]"
+        },
+        {
           "name": "gcs_object_mutation_binding",
           "declaration": "pub fn gcs_object_mutation_binding(String, String, String, String, String, String, Array[String], Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMutationBinding, GcsFailure]"
         },
         {
+          "name": "gcs_object_mutation_kind",
+          "declaration": "pub fn gcs_object_mutation_kind(@catalog.ObjectMutationBinding) -> String"
+        },
+        {
+          "name": "gcs_object_patch_effect_target",
+          "declaration": "pub fn gcs_object_patch_effect_target(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]"
+        },
+        {
           "name": "gcs_object_prepare_delete",
           "declaration": "pub fn gcs_object_prepare_delete(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata) -> Result[@catalog.ObjectMutationRequest, GcsFailure]"
+        },
+        {
+          "name": "gcs_object_prepare_effect_patch",
+          "declaration": "pub fn gcs_object_prepare_effect_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]"
         },
         {
           "name": "gcs_object_prepare_patch",
@@ -3247,6 +3341,10 @@
         {
           "name": "gcs_object_response_projection",
           "declaration": "pub fn gcs_object_response_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int, Bytes, Int) -> Result[String, GcsFailure]"
+        },
+        {
+          "name": "gcs_object_target_observation",
+          "declaration": "pub fn gcs_object_target_observation(@catalog.ObjectMutationBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectMetadata, GcsFailure]"
         },
         {
           "name": "gcs_upload_binding",
@@ -3313,7 +3411,7 @@
           "declaration": "pub fn gcs_upload_target_observation(@catalog.ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectUploadObservation, @catalog.ObjectUploadIssue]"
         }
       ],
-      "sha256": "9d02e8fca3c7cf5ca0298a2804c398f3262d3b8a1ed782118dd14b83844e1b72"
+      "sha256": "1649f5cbea2578fb80d11c235e7d654d80bf5991c0cc8cbdfa653a549f1454eb"
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
