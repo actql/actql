@@ -5,7 +5,7 @@
     {
       "module": "adapters/connectors-builtin/installations.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fa7e1de7455c0f7241db31210effb5306fe86ca65135bd88062e0bdb494efaa0",
+      "sha256": "1ad6325a175779cabf89505578cf8cf3ae24914789ccbe41b553bced8781d3d6",
       "exports": [
         "installedConnectors"
       ],
@@ -38,6 +38,13 @@
         },
         {
           "name": "installedConnectors/installedConnectors/installedConnectors#12",
+          "parameters": [
+            "module"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors/installedConnectors#13",
           "parameters": [
             "module"
           ],
@@ -115,6 +122,11 @@
           "async": false
         },
         {
+          "name": "installedConnectors/installedConnectors#13",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installedConnectors/installedConnectors#2",
           "parameters": [],
           "async": false
@@ -181,6 +193,7 @@
             "installedConnectors/installedConnectors/installedConnectors#10",
             "installedConnectors/installedConnectors/installedConnectors#11",
             "installedConnectors/installedConnectors/installedConnectors#12",
+            "installedConnectors/installedConnectors/installedConnectors#13",
             "installedConnectors/installedConnectors/installedConnectors#2",
             "installedConnectors/installedConnectors/installedConnectors#3",
             "installedConnectors/installedConnectors/installedConnectors#4",
@@ -192,6 +205,7 @@
             "installedConnectors/installedConnectors#10",
             "installedConnectors/installedConnectors#11",
             "installedConnectors/installedConnectors#12",
+            "installedConnectors/installedConnectors#13",
             "installedConnectors/installedConnectors#2",
             "installedConnectors/installedConnectors#3",
             "installedConnectors/installedConnectors#4",

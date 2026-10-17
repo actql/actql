@@ -50214,9 +50214,10 @@
     {
       "module": "adapters/host-node/installed-project-configuration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d0d265779ff04b16aa18b3b09ca805cf0cf8aa3c51c99cb8cba9e615f76ac14f",
+      "sha256": "16c2d1c560fc338623b5450a1f580248a80413f77f21e4eb0b80ce6e19931bec",
       "exports": [
         "admitInstalledProjectConfiguration",
+        "installedProjectOriginalsForRuntime",
         "loadInstalledProjectConfiguration"
       ],
       "operations": [
@@ -50233,6 +50234,14 @@
           "name": "fail/fail",
           "parameters": [
             "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedProjectOriginalsForRuntime",
+          "parameters": [
+            "project",
+            "moon"
           ],
           "async": false
         },
@@ -50274,7 +50283,7 @@
           "async": false
         },
         {
-          "name": "retainConfiguration/init:originalsForRuntime/init:originalsForRuntime",
+          "name": "retainConfiguration/project/init:originalsForRuntime/init:originalsForRuntime",
           "parameters": [
             "runtime"
           ],
@@ -50301,8 +50310,7 @@
             "loadInstalledProjectConfiguration",
             "loadInstalledProjectConfiguration/loadInstalledProjectConfiguration",
             "readConfiguration",
-            "retainConfiguration",
-            "retainConfiguration/init:originalsForRuntime/init:originalsForRuntime"
+            "retainConfiguration"
           ],
           "exports": [
             "admitInstalledProjectConfiguration",
@@ -50313,6 +50321,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "The private installed Host acquisition stage searches the selected directory"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Project Task Host assembly"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
               }
             ],
             "inputsOutputs": [
@@ -50323,6 +50339,14 @@
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
                 "anchor": "export async function readBoundedConfigurationUtf8(path,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const bounds = snapshotLimits(limits);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
               }
             ],
             "identity": [
@@ -50333,6 +50357,18 @@
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
                 "anchor": "const admitted = readConfiguration(moon, configurationWire, readers);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const original = installedProjectOriginalsForRuntime(project, moon);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
+              },
+              {
+                "path": "src/run_publication_host/client_project_model_task_selection.mbt",
+                "anchor": "pub fn client_project_model_task_selection_for("
               }
             ],
             "ownership": [
@@ -50343,6 +50379,18 @@
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
                 "anchor": "const original = Object.freeze({configuration, modelRegistry,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const retained = Object.freeze(tasks);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "projectTasks = undefined;"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
               }
             ],
             "synchronization": [
@@ -50353,6 +50401,18 @@
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
                 "anchor": "await readBoundedConfigurationUtf8(registryPath,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const call = (name, ...args) => Reflect.apply(callbacks[name], moon, args);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "originalsForRuntime(runtime);"
               }
             ],
             "failure": [
@@ -50363,6 +50423,14 @@
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
                 "anchor": "const cleanupHandle = Object.freeze({status, retry,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
               }
             ],
             "cancellation": [
@@ -50373,6 +50441,14 @@
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
                 "anchor": "if (await original.close() === false) {"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Unknown or pending child cleanup retains responsibility."
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
               }
             ],
             "resources": [
@@ -50383,6 +50459,18 @@
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
                 "anchor": "{maxBytes: 65536, openFile: async (...args) => {"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The initial Local reader selection is explicit:"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Projection overlaps the old Environment, sorted member references/CIDs, hash"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const tasks = [];"
               }
             ],
             "extension": [
@@ -50393,6 +50481,14 @@
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
                 "anchor": "new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(bytes)"
+              },
+              {
+                "path": "src/check_environment/public_model_task_environment.mbt",
+                "anchor": "pub fn project_public_model_task_environment("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "This connection supplies static checked materials, not execution dependencies,"
               }
             ],
             "verification": [
@@ -50403,6 +50499,398 @@
               {
                 "path": "adapters/host-node/installed-project-configuration.actual.test.mjs",
                 "anchor": "test('actual Common receives one discovered original pair from real bounded file reads'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project rejects copied project and foreign runtime before file acquisition'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual retained project detects replacement of the selected installation provider'"
+              },
+              {
+                "path": "adapters/host-node/project-model-task-host.actual.test.mjs",
+                "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installedProjectOriginalsForRuntime",
+            "retainConfiguration/project/init:originalsForRuntime/init:originalsForRuntime"
+          ],
+          "exports": [
+            "installedProjectOriginalsForRuntime"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Project Task Host assembly"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const bounds = snapshotLimits(limits);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const original = installedProjectOriginalsForRuntime(project, moon);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
+              },
+              {
+                "path": "src/run_publication_host/client_project_model_task_selection.mbt",
+                "anchor": "pub fn client_project_model_task_selection_for("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const retained = Object.freeze(tasks);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "projectTasks = undefined;"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const call = (name, ...args) => Reflect.apply(callbacks[name], moon, args);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "originalsForRuntime(runtime);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Unknown or pending child cleanup retains responsibility."
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The initial Local reader selection is explicit:"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Projection overlaps the old Environment, sorted member references/CIDs, hash"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const tasks = [];"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/check_environment/public_model_task_environment.mbt",
+                "anchor": "pub fn project_public_model_task_environment("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "This connection supplies static checked materials, not execution dependencies,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project rejects copied project and foreign runtime before file acquisition'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual retained project detects replacement of the selected installation provider'"
+              },
+              {
+                "path": "adapters/host-node/project-model-task-host.actual.test.mjs",
+                "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/installed-project-model-tasks.mjs",
+      "sha256": "73a1184e01b8015d480216663842bb91c066ee7302d6fda0bd6d84c2758b9e99",
+      "exports": [
+        "loadInstalledProjectModelTasks"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledProjectModelTasks",
+          "parameters": [
+            "moon",
+            "project",
+            "providers",
+            "limits",
+            "assertCurrent",
+            "openFile"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledProjectModelTasks/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledProjectModelTasks/check/check",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledProjectModelTasks/init:projectEnvironmentForRuntime/init:projectEnvironmentForRuntime",
+          "parameters": [
+            "runtime",
+            "wire",
+            "evidenceCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledProjectModelTasks/init:projectEnvironmentForRuntime/init:projectEnvironmentForRuntime/projection/projection",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledProjectModelTasks/loadInstalledProjectModelTasks",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledProjectModelTasks/loadInstalledProjectModelTasks#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledProjectModelTasks/originalsForRuntime",
+          "parameters": [
+            "runtime"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotLimits",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotLimits/snapshotLimits",
+          "parameters": [
+            "key",
+            "index"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./installed-project-configuration.mjs",
+        "./source-profile-json.mjs",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing installed Host project acquisition and Common Task/Environment admission Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "loadInstalledProjectModelTasks",
+            "loadInstalledProjectModelTasks/call/call",
+            "loadInstalledProjectModelTasks/check/check",
+            "loadInstalledProjectModelTasks/init:projectEnvironmentForRuntime/init:projectEnvironmentForRuntime",
+            "loadInstalledProjectModelTasks/init:projectEnvironmentForRuntime/init:projectEnvironmentForRuntime/projection/projection",
+            "loadInstalledProjectModelTasks/loadInstalledProjectModelTasks",
+            "loadInstalledProjectModelTasks/loadInstalledProjectModelTasks#2",
+            "loadInstalledProjectModelTasks/originalsForRuntime",
+            "snapshotLimits",
+            "snapshotLimits/snapshotLimits"
+          ],
+          "exports": [
+            "loadInstalledProjectModelTasks"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Project Task Host assembly"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const bounds = snapshotLimits(limits);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const original = installedProjectOriginalsForRuntime(project, moon);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
+              },
+              {
+                "path": "src/run_publication_host/client_project_model_task_selection.mbt",
+                "anchor": "pub fn client_project_model_task_selection_for("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const retained = Object.freeze(tasks);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "projectTasks = undefined;"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const call = (name, ...args) => Reflect.apply(callbacks[name], moon, args);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "originalsForRuntime(runtime);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Unknown or pending child cleanup retains responsibility."
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The initial Local reader selection is explicit:"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Projection overlaps the old Environment, sorted member references/CIDs, hash"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const tasks = [];"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/check_environment/public_model_task_environment.mbt",
+                "anchor": "pub fn project_public_model_task_environment("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "This connection supplies static checked materials, not execution dependencies,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project rejects copied project and foreign runtime before file acquisition'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual retained project detects replacement of the selected installation provider'"
+              },
+              {
+                "path": "adapters/host-node/project-model-task-host.actual.test.mjs",
+                "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])"
               }
             ]
           }
@@ -50420,10 +50908,10 @@
     "Whole-distribution or installed-cohort completion"
   ],
   "counts": {
-    "modules": 122,
-    "operations": 2952,
-    "exports": 822,
-    "explicitContractGroups": 122
+    "modules": 125,
+    "operations": 3101,
+    "exports": 851,
+    "explicitContractGroups": 135
   },
-  "scope": "All122 supplied as source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
+  "scope": "The original122 and the added original Project Task acquisition module are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }

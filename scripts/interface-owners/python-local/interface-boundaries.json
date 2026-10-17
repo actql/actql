@@ -1,7 +1,7 @@
 {
-  "source": "51f3ac93e36caf2c9b765d841c9c9e78fe3635ce",
+  "source": "7a3c2c5c5579d41d0ead93eb2dbedbc52a6ce224",
   "syntaxProjectionSha256": "756720d5d6c93843db6b574924cbaea4f8b0d282897bfe229c129e93982b1602",
-  "qualification": "Current source owner-reference projection only; not runtime/artifact/ordinary funding/permission admission. Original transport-use restriction is separate from actual endpoint borrow return, process stop, metadata retirement and quota settlement. Retained prior binding/artifact facts keep their original execution Sources.",
+  "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
       "module": "packages/python-sdk/src/actql_sdk/_duckdb_environment.py",
@@ -53,7 +53,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_shim_abi.py",
-      "sha256": "15c727d470180a219b1098947c3f30aa3824aa3b410eee5129654f667141475e",
+      "sha256": "309b1be5fb758c757e78e8bba2518cb689559855ad00d58cf693142e580829e9",
       "generator": {
         "path": "scripts/generate-local-native-shim-bindings.py",
         "anchor": "def render("
@@ -28676,7 +28676,7 @@
           "parameters": []
         }
       ],
-      "sha256": "e24a154bbe3c0e83708968f69d6e220e51b09c6a3bb48e1b8f9ac576b369c93f",
+      "sha256": "beed50c0f5d8a953ef21e9fb4db239912275c433cd1d75ec1278ad8cd4ece1f1",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -29859,6 +29859,423 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_domain_custody.py",
                 "anchor": "\"\"\"Original Native domain reply custody; no Python funding or Run decisions.\"\"\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [
+        "Any",
+        "annotations",
+        "bind",
+        "byref",
+        "c_int32",
+        "c_ubyte",
+        "c_uint16",
+        "c_void_p"
+      ],
+      "imports": [
+        "._local_native_control_custody",
+        "._local_native_domain_custody",
+        "._local_native_shim_abi",
+        "__future__",
+        "ctypes",
+        "typing"
+      ],
+      "module": "packages/python-sdk/src/actql_sdk/_local_native_process_custody.py",
+      "operations": [
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessCustody",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessCustody/__copy__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessCustody/__deepcopy__",
+          "parameters": [
+            "self",
+            "memo"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessCustody/__init__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessCustody/__reduce__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessCustody/_drop",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessCustody/_enter",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessCustody/_fact",
+          "parameters": [
+            "self",
+            "expected"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessCustody/_mark_unknown",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessCustody/_operate",
+          "parameters": [
+            "self",
+            "operation"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessCustody/_prepare_original",
+          "parameters": [
+            "cls",
+            "domain",
+            "functions",
+            "path",
+            "nonce",
+            "retained",
+            "execution"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessCustody/_slots",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessCustody/_status",
+          "parameters": [
+            "self",
+            "status"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessCustody/close_unstarted",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessCustody/current",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessCustody/poll_stop",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessCustody/prepare_child",
+          "parameters": [
+            "self",
+            "executable",
+            "arguments",
+            "environment"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessCustody/restrict_transport",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessCustody/retire_stopped",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessCustody/return_transport",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessCustody/spawn",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessError",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessError/__init__",
+          "parameters": [
+            "self",
+            "process",
+            "unknown",
+            "fact"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessFunctions",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_OriginalInstalledProcessFunctions/__init__",
+          "parameters": [
+            "self",
+            "library"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_fields",
+          "parameters": [
+            "values"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_text",
+          "parameters": [
+            "value"
+          ]
+        }
+      ],
+      "sha256": "e9189f3c3d383d7cc1c8d03402c15af56d1859f4a70cb75e187287669179ee49",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "existing installed Host/domain and Native process Holder",
+      "contracts": [
+        {
+          "exports": [
+            "Any",
+            "annotations",
+            "bind",
+            "byref",
+            "c_int32",
+            "c_ubyte",
+            "c_uint16",
+            "c_void_p"
+          ],
+          "operations": [
+            "<module>",
+            "_OriginalInstalledProcessCustody",
+            "_OriginalInstalledProcessCustody/__copy__",
+            "_OriginalInstalledProcessCustody/__deepcopy__",
+            "_OriginalInstalledProcessCustody/__init__",
+            "_OriginalInstalledProcessCustody/__reduce__",
+            "_OriginalInstalledProcessCustody/_drop",
+            "_OriginalInstalledProcessCustody/_enter",
+            "_OriginalInstalledProcessCustody/_fact",
+            "_OriginalInstalledProcessCustody/_mark_unknown",
+            "_OriginalInstalledProcessCustody/_operate",
+            "_OriginalInstalledProcessCustody/_prepare_original",
+            "_OriginalInstalledProcessCustody/_slots",
+            "_OriginalInstalledProcessCustody/_status",
+            "_OriginalInstalledProcessCustody/close_unstarted",
+            "_OriginalInstalledProcessCustody/current",
+            "_OriginalInstalledProcessCustody/poll_stop",
+            "_OriginalInstalledProcessCustody/prepare_child",
+            "_OriginalInstalledProcessCustody/restrict_transport",
+            "_OriginalInstalledProcessCustody/retire_stopped",
+            "_OriginalInstalledProcessCustody/return_transport",
+            "_OriginalInstalledProcessCustody/spawn",
+            "_OriginalInstalledProcessError",
+            "_OriginalInstalledProcessError/__init__",
+            "_OriginalInstalledProcessFunctions",
+            "_OriginalInstalledProcessFunctions/__init__",
+            "_fields",
+            "_text"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original Native process transport"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_process_custody.py",
+                "anchor": "class _OriginalInstalledProcessCustody:"
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/process_native.mbt",
+                "anchor": "struct InstalledArenaProcess {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original Native process transport"
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/process_shim.h",
+                "anchor": "int actql_process_originals_into("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_process_custody.py",
+                "anchor": "def _slots("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original Native process transport"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_process_custody.py",
+                "anchor": "functions.library is not domain._functions.library"
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/process_shim.c",
+                "anchor": "static int same_process("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original Native process transport"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_process_custody.py",
+                "anchor": "domain._installed_process_original = process"
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/process_shim.c",
+                "anchor": "int actql_process_finish_closed_data("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original Native process transport"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_process_custody.py",
+                "anchor": "process._owner._enter()"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_process_custody.py",
+                "anchor": "def _enter("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original Native process transport"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_process_custody.py",
+                "anchor": "def _mark_unknown("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_process_custody.py",
+                "anchor": "except BaseException as error:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original Native process transport"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_process_custody.py",
+                "anchor": "def restrict_transport("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_process_custody.py",
+                "anchor": "def retire_stopped("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original Native process transport"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_process_custody.py",
+                "anchor": "def prepare_child("
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/process_child_native.mbt",
+                "anchor": "pub fn InstalledArenaHost::prepare_process_child("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original Native process transport"
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/process_shim.h",
+                "anchor": "Actual regular Sourceb3fbe876 C SHA256"
+              },
+              {
+                "path": "scripts/generate-local-native-shim-bindings.py",
+                "anchor": "def render("
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_native_process_custody.py",
+                "anchor": "def test_prepare_response_loss_retains_slot_and_never_reprepares("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_process_custody.py",
+                "anchor": "def test_busy_entry_is_known_before_registration_or_ffi("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_process_custody.py",
+                "anchor": "def test_lost_finish_with_null_slots_keeps_parent_fenced("
+              },
+              {
+                "path": "scripts/fixtures/python-native-installed-process.py",
+                "anchor": "actual Native child FD4/selected environment/pipe roundtrip"
               }
             ]
           }
@@ -35945,7 +36362,7 @@
           ]
         }
       ],
-      "sha256": "15c727d470180a219b1098947c3f30aa3824aa3b410eee5129654f667141475e",
+      "sha256": "309b1be5fb758c757e78e8bba2518cb689559855ad00d58cf693142e580829e9",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [

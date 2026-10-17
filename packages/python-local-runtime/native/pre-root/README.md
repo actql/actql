@@ -489,3 +489,12 @@ Descriptor close remains with the original caller. This preparation does not
 launch a worker or satisfy `OriginalWorkerFunding`, issue a production supplier,
 acknowledge Rust/Mach process-static retirement, or weaken final physical/image
 and installed acceptance. Ordinary supplier/profile remains unavailable.
+
+`prepare_process` uses that same parent's Native domain and the original
+child retained/execution selection; it accepts no replacement quota or Ledger.
+The domain registers its partial process before foreign preparation. Both
+installed-process and earlier worker-process registrations prevent the parent
+from returning its backing, even if the process reply or final close reply was
+lost. The original process Owner must confirm its own transport/child cleanup
+and remove that registration before parent cleanup can proceed. Preparing a
+transport does not by itself launch an interpreter or fund independent domains.

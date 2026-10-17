@@ -2209,3 +2209,38 @@ definitions. The independent signature fixture preserves the existing
 caller-selected declarations. Actual component probes remain necessary:
 declaration freshness and C syntax alone do not establish physical custody,
 runtime compatibility, ordinary funding or installed product acceptance.
+
+## Original Native process transport
+
+The private installed assembly retains the existing Native process Holder,
+region and imported child frame in their original Host/domain before physical
+preparation. Python transports the same opaque references through persistent
+caller-owned C slots; it does not construct a process Owner, quota, retry ledger
+or recovery controller. Domain retirement remains fenced while this custody or
+its unconfirmed reply remains. A no-process typed preparation refusal can drop
+only its extra original aliases. Actual process/IPC stop, captured FD/mapping
+cleanup, logical quota reporting and business outcomes remain separate.
+
+Private child arguments use NUL-terminated UTF-8 fields, with an empty block
+representing no fields and a terminated empty field representing an empty value.
+Environment fields alternate name/value. Invalid UTF-8, incomplete fields or
+counts beyond the existing Holder's 255 arguments/four environment entries
+refuse before physical child capture. The same Holder validates the closed
+selected environment, keeps its own duplicate of the original captured region
+FD, and snapshots its inputs. Neither C nor Python copies a managed Array
+layout, reconstructs backing from a path or turns an FD into launch authority.
+
+Known local thread/reentry/busy refusals precede the uncertain foreign-call
+catch. Once a foreign operation can have consumed an original, a lost response
+retains that same partial carrier and sticky Unknown; a cleared mutable slot is
+not success. Typed same-original cleanup acknowledgment is required before data
+aliases and their parent registration can retire. A successful child receives
+FD4 through the original process Owner, which retains the pin until typed stop
+and physical cleanup. EOF, PID absence, cancellation, thread join or a local
+Python close flag cannot substitute for that acknowledgment or prove that an
+external operation never occurred.
+
+This private transport requires separately funded original process, descriptor,
+control and runtime responsibilities. An arena domain or compiler declaration
+does not cover unrelated allocations, admit a VM or supply an ordinary funding
+profile. Missing complete normal funding remains unavailable.

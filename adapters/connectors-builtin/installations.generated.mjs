@@ -83,6 +83,20 @@ export const installedConnectors = Object.freeze([
     }),
   }),
   Object.freeze({
+    name: "kintone", registration: "kintone",
+    revision: "kintone/0.1",
+    implementationFiles: Object.freeze([
+      Object.freeze({path: "adapters/connectors/kintone/host/installed-kintone-source.mjs", href: new URL("../connectors/kintone/host/installed-kintone-source.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/kintone/site/kintone-record-read.mjs", href: new URL("../connectors/kintone/site/kintone-record-read.mjs", import.meta.url).href}),
+    ]),
+    responseHeaders: Object.freeze([]),
+    source: Object.freeze({
+      profileVersion: "actql-installed-kintone-source/0.1",
+      load: () => import("../connectors/kintone/host/installed-kintone-source.mjs")
+        .then(module => Object.freeze({check: module.checkInstalledKintoneSourceProfile, identityParts: module.installedKintoneSourceIdentityParts, load: module.loadInstalledKintoneSource})),
+    }),
+  }),
+  Object.freeze({
     name: "local", registration: "local",
     revision: "local/0.1",
     implementationFiles: Object.freeze([

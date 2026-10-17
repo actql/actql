@@ -4,6 +4,16 @@ import {open} from 'node:fs/promises';
 import {readBoundedConfigurationUtf8} from './source-profile-json.mjs';
 
 const fail = code => { throw Object.assign(new Error(code), {code}); };
+const retainedProjects = new WeakMap();
+
+// A private issued-project lookup, not a DATA or equal-wire reconstruction.
+// Consumers keep the original callback runtime through every file read.
+export function installedProjectOriginalsForRuntime(project, moon) {
+  const retained = retainedProjects.get(project);
+  if (retained === undefined) fail('ForeignInstalledProjectOriginal');
+  if (retained.moon !== moon) fail('ForeignInstalledProjectRuntime');
+  return retained.original;
+}
 
 function readConfiguration(moon, configurationWire, readers) {
   const admitConfiguration = readers === undefined
@@ -37,10 +47,12 @@ function retainConfiguration(moon, configurationWire, modelRegistryWire,
   // equal-CID reconstruction, fallback runtime or new preparation is used.
   const original = Object.freeze({configuration, modelRegistry,
     configurationWire, modelRegistryWire});
-  return Object.freeze({originalsForRuntime(runtime) {
+  const project = Object.freeze({originalsForRuntime(runtime) {
     if (runtime !== moon) fail('ForeignInstalledProjectRuntime');
     return original;
   }});
+  retainedProjects.set(project, {moon, original});
+  return project;
 }
 
 // Private Host assembly, not a public wire/authority/registry factory. The
@@ -102,8 +114,11 @@ export async function loadInstalledProjectConfiguration(moon,
       await readBoundedConfigurationUtf8(registryPath,
         {maxBytes: 65536, openFile});
     const retained = retainConfiguration(moon, configurationWire, registryWire, admitted, readers);
-    return Object.freeze({configurationPath, directory: selectedDirectory,
+    const project = Object.freeze({configurationPath, directory: selectedDirectory,
       stateDirectory: resolve(selectedDirectory, state), registryPath,
       originalsForRuntime: retained.originalsForRuntime});
+    retainedProjects.set(project, {moon,
+      original: installedProjectOriginalsForRuntime(retained, moon)});
+    return project;
   }
 }

@@ -4,6 +4,10 @@ pub enum RecordReadIssue {
   ForeignDeclaration
   Closed
   TransportUnsettled
+  InvalidRequest
+  InvalidPageOrder
+  RequestEncoding(@encode.EncodeFailure)
+  Form(@catalog.FormFieldIssue)
   Catalog(@catalog.RecordValueIssue)
   Page(@catalog.RecordPageIssue)
   Host(@rows.RowHostIssue)
@@ -107,6 +111,16 @@ pub fn record_read_acquisition(
 }
 
 ///|
+pub fn record_read_app_id(value : PreparedRecordRead) -> String {
+  value.original.catalog.app_id
+}
+
+///|
+pub fn record_read_fields(value : PreparedRecordRead) -> Array[String] {
+  value.names.copy()
+}
+
+///|
 /// The Host has already reserved and begun this exact accounted RowRun. This
 /// borrowed reader cannot start, finish, capture or close that original root.
 pub struct RecordRead {
@@ -118,6 +132,7 @@ pub struct RecordRead {
   priv max_contract_pairs : Int
   priv mut cleanup : (() -> Bool)?
   priv mut original : @catalog.OriginalRecordPage?
+  priv mut observed_form : @catalog.FormFieldCatalog?
   priv mut bound : Bool
   priv mut failed : Bool
   priv mut retired : Bool
@@ -159,6 +174,7 @@ pub fn borrow_record_read(
     max_contract_pairs,
     cleanup: None,
     original: None,
+    observed_form: None,
     bound: false,
     failed: false,
     retired: false,
@@ -183,6 +199,7 @@ pub fn bind_record_read_cleanup(
     // Retire aliases before Common releases the original reservation. A
     // callback invocation, abort or request completion alone is not this ACK.
     read.original = None
+    read.observed_form = None
     read.retired = true
     read.cleanup = None
     true
@@ -205,6 +222,53 @@ fn[T] refuse_record_read(
   read.failed = true
   @rows.abort_row_run(read.run)
   Err(issue)
+}
+
+///|
+/// The physical Site labels this response only after sending the original
+/// authenticated App request. This metadata observation grants no authority.
+/// Its complete bytes consume the same RowRun's original response budget.
+pub fn recheck_record_read_form(
+  read : RecordRead,
+  bytes : Bytes,
+  limits : @catalog.FormFieldLimits,
+) -> Result[Unit, RecordReadIssue] {
+  if !read.bound || read.failed || read.retired {
+    return Err(Closed)
+  }
+  match @rows.check_row_run_response_borrow_current(read.borrow) {
+    Ok(_) => ()
+    Err(issue) => return Err(Host(issue))
+  }
+  let charge = match @rows.charge_row_run_page(read.run, bytes) {
+    Ok(value) => value
+    Err(issue) => return refuse_record_read(read, Host(issue))
+  }
+  let original = read.prepared.original.catalog
+  let observed = match
+    @catalog.project_form_fields(bytes, original.app_id, limits) {
+    Ok(value) => value
+    Err(issue) => return refuse_record_read(read, Form(issue))
+  }
+  read.observed_form = Some(observed)
+  let paths = @catalog.form_field_paths(original)
+  if paths.length() != @catalog.form_field_paths(observed).length() {
+    return refuse_record_read(read, ForeignDeclaration)
+  }
+  for path in paths {
+    if !@catalog.form_field_definition_matches(original, observed, path) {
+      return refuse_record_read(read, ForeignDeclaration)
+    }
+  }
+  // Empty Forms also retain the exact observed App/revision correspondence.
+  if original.app_id != observed.app_id ||
+    original.revision != observed.revision {
+    return refuse_record_read(read, ForeignDeclaration)
+  }
+  match @rows.consume_row_run_observation_charge(read.run, charge) {
+    Ok(_) => Ok(())
+    Err(issue) => refuse_record_read(read, Host(issue))
+  }
 }
 
 ///|
@@ -270,6 +334,28 @@ pub fn accept_record_read_page(
 ///|
 pub fn record_read_original(read : RecordRead) -> @catalog.OriginalRecordPage? {
   read.original
+}
+
+///|
+/// The retained original metadata observation, including on a later refusal.
+/// It is neither current permission nor an acknowledgement of physical stop.
+pub fn record_read_observed_form(
+  read : RecordRead,
+) -> @catalog.FormFieldCatalog? {
+  read.observed_form
+}
+
+///|
+/// Copied original API IDs for the physical seek cursor, never RECORD_NUMBER
+/// labels, a numeric conversion, a new ResourceRef or a completion certificate.
+pub fn record_read_page_ids(
+  read : RecordRead,
+) -> Result[Array[String], RecordReadIssue] {
+  if !read.bound || read.failed || read.retired {
+    return Err(Closed)
+  }
+  guard read.original is Some(page) else { return Err(Closed) }
+  Ok(@catalog.record_page_records(page).map(record => record.record_id))
 }
 
 ///|
