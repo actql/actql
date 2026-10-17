@@ -114,44 +114,6 @@ custody and pending media charge rather than manufacturing a partial row.
 
 ## Original object request
 
-### Original mutation response and retained recovery
-
-The portable GCS request Owner classifies only a response authenticated by
-the existing Effect Ledger for that same conditional request. A successful
-metadata PATCH response must contain the exact original object generation,
-a later metageneration, the original request marker, the intended complete
-user metadata map and content type, and unchanged original content facts.
-Metadata entry order is not meaning; exact keys and values are. A matching
-payload without its marker, a foreign marker, changed object/content or an
-unadmitted response stays unclassified. The matching helper returns only
-correlation DATA, not permission or a settled outcome.
-
-A direct conditional412 is classified as conflict. DELETE requires its own
-direct204 with an empty body; a later404, object absence or metadata read never
-turns a lost DELETE reply into success. Other unclassified or malformed
-responses leave the existing possible-dispatch/Unknown responsibility intact.
-Neither classification nor saved-response projection starts another send or
-reads the provider. Saved evidence must pass the existing original request,
-Ledger basis and evidence-read authorization before projection. Restoring a
-provider request from an approved saved capture is a separate connection;
-reopening only this Ledger is not a whole cold-Run restoration claim.
-
-The response contract follows the official
-[PATCH response](https://docs.cloud.google.com/storage/docs/json_api/v1/objects/patch),
-[DELETE response](https://docs.cloud.google.com/storage/docs/json_api/v1/objects/delete)
-and [generation/metageneration fields](https://docs.cloud.google.com/storage/docs/json_api/v1/objects#resource).
-It does not promise preservation of unrequested ACL, encryption or retention
-properties and does not authorize a service operation.
-
-The bounded response decoder/tree, original request/before/after, retained raw
-response, filtered user-metadata array, comparisons and canonical outcome
-writer/String/parsed projection may coexist with Store/Ledger encoding,
-Promises and escaped response aliases. Comparisons are finite under the
-existing metadata entry ceiling, not a heap price or free workspace. All
-remain in the original capture/dispatch/Store envelope until their actual
-retirement. No new reservation, numerical profile, physical ACK or cleanup
-Owner is introduced.
-
 ### Original mutation target observations
 
 Metadata PATCH and DELETE use a current complete target metadata GET under
@@ -755,6 +717,9 @@ response of its original conditional metadata PATCH or DELETE. A PATCH needs
 the same bucket/name/generation and byte size, advancing metageneration, exact
 intended user properties and the new marker extracted from its own sealed
 request. Available original storage class/checksums/encoding remain consistent.
+Optional storage class and checksum facts absent from the original observation
+may appear in the response; their earlier absence is not an expected value.
+Facts supplied by the original observation are still checked for equality.
 Case, NFD user text, omission and explicit empty metadata maps are not merged.
 
 An original empty 204 DELETE response confirms the provider operation. A later
