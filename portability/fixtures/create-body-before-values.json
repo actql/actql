@@ -1,0 +1,78 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [],
+  "properties": {
+    "target": {
+      "type": "string",
+      "pattern": "^connector://"
+    },
+    "mapping": {
+      "type": "string",
+      "pattern": "^mapping:[A-Za-z0-9][A-Za-z0-9._/-]*\\.v[0-9]+$"
+    },
+    "from": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "result"
+      ],
+      "properties": {
+        "result": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "max_items": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "$param"
+          ],
+          "properties": {
+            "$param": {
+              "type": "string",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+            }
+          }
+        }
+      ]
+    },
+    "on_item_failure": {
+      "const": "continue"
+    },
+    "payload": {
+      "type": "object"
+    }
+  },
+  "allOf": [
+    {
+      "required": [
+        "target",
+        "mapping"
+      ]
+    },
+    {
+      "oneOf": [
+        {
+          "required": [
+            "from"
+          ]
+        },
+        {
+          "required": [
+            "payload"
+          ]
+        }
+      ]
+    }
+  ]
+}

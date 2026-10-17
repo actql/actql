@@ -40,8 +40,11 @@ pub fn effect_create_row_intended_changes_wire(
   guard @json.object_field_count(source_row) is Some(row_width) else {
     return Err(InvalidRow)
   }
-  let fields = terminal.row_fields
-  let count = @environment.mapping_row_fields_count(fields)
+  let count = match (terminal.row_fields, terminal.values) {
+    (Some(fields), None) => @environment.mapping_row_fields_count(fields)
+    (None, Some(values)) => @decode.object_length(values).unwrap()
+    _ => return Err(InvalidRow)
+  }
   let rule_count = effect_mapping_rule_count(literals.rules)
   let literal_count = effect_mapping_literal_count(literals)
   if count > max_fields ||
@@ -72,17 +75,35 @@ pub fn effect_create_row_intended_changes_wire(
   }
   let changes : Array[(String, EffectCreateChangeValue)] = []
   for index in 0..<count {
-    let (target, source) = @environment.mapping_row_fields_source_at(
-      fields, index,
-    ).unwrap()
+    let (target, source, origin, behavior) = match terminal.values {
+      Some(values) => {
+        let (target, value) = @decode.field_at(values, index).unwrap()
+        let wrapper = @decode.open_object(value).unwrap()
+        let source = @decode.lookup(wrapper, "field").map(field => {
+          @decode.text(field).unwrap()
+        })
+        (target, source, InlineCreate, "write_null")
+      }
+      None => {
+        let fields = terminal.row_fields.unwrap()
+        let (target, source) = @environment.mapping_row_fields_source_at(
+          fields, index,
+        ).unwrap()
+        (
+          target,
+          source,
+          ContractRow,
+          @environment.mapping_row_fields_null_behavior_at(fields, index).unwrap(),
+        )
+      }
+    }
     if source is Some(name) {
       let value = match @json.object_field(source_row, name) {
         Some(value) => value
         None => return Err(MissingSourceField(name))
       }
       if value is @json.Null {
-        match
-          @environment.mapping_row_fields_null_behavior_at(fields, index).unwrap() {
+        match behavior {
           "reject" => return Err(RejectedNull(target))
           "omit" => continue
           _ => ()
@@ -95,7 +116,7 @@ pub fn effect_create_row_intended_changes_wire(
         let binding = effect_mapping_literal_at(literals, at).unwrap()
         if physical_equal(binding.rule, terminal.rule) &&
           binding.target_field == target &&
-          binding.origin == ContractRow {
+          binding.origin == origin {
           found = true
           match binding.value {
             Written(value) => changes.push((target, Literal(value)))

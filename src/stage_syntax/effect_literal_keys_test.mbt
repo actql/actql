@@ -55,7 +55,12 @@ test "Program Effect literal payload keys retain exact Unicode and line endings 
     "e\u0301", "é", "line\r", "line\n", "line\r\n", "nested", "$json",
   ]
   for
-    (kind, slot) in [("update", "set"), ("upsert", "set"), ("command", "input")] {
+    (kind, slot) in [
+      ("update", "set"),
+      ("upsert", "set"),
+      ("command", "input"),
+      ("create", "values"),
+    ] {
     for format in [Format::Json, Format::Yaml] {
       let text = effect_key_source(
         effect_key_declaration(kind, slot, payload),

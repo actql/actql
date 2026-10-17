@@ -8,6 +8,7 @@ import {
   "actql/actql/decode_core",
   "actql/actql/encode_core",
   "actql/actql/parameter_binding",
+  "actql/actql/parameter_references",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_results",
   "actql/actql/relation_schema",
@@ -21,7 +22,7 @@ import {
 }
 
 // Values
-pub fn admit_effect_mapping_literals(EffectMappingRules, EffectMappingLiteralLimits) -> Result[EffectMappingLiterals, EffectMappingLiteralIssue]
+pub fn admit_effect_mapping_literals(EffectMappingRules, EffectMappingLiteralLimits, parameter_values? : Array[@parameter_references.BoundIndex]) -> Result[EffectMappingLiterals, EffectMappingLiteralIssue]
 
 pub fn attach_imports(ResultImports, @stage_parameters.CollectedStage, max_work~ : Int) -> Result[AttachedImports, ImportIssue]
 
@@ -301,7 +302,7 @@ pub fn operations(Checked) -> @stage_parameters.CollectedOperations
 
 pub fn prepare_effect_plan_terminal(EffectMappingRuleBinding, Int) -> Result[EffectPlanTerminal?, EffectPlanTerminalIssue]
 
-pub fn prepare_effect_static_candidate(@stage_syntax.EffectHeaders, Checked, @check_environment.WireEnvironment, @check_environment.MappingContractShapes, @check_environment.CatalogReferences, EffectStaticCandidateLimits) -> Result[EffectStaticCandidate, EffectStaticCandidateIssue]
+pub fn prepare_effect_static_candidate(@stage_syntax.EffectHeaders, Checked, @check_environment.WireEnvironment, @check_environment.MappingContractShapes, @check_environment.CatalogReferences, EffectStaticCandidateLimits, parameter_values? : Array[@parameter_references.BoundIndex]) -> Result[EffectStaticCandidate, EffectStaticCandidateIssue]
 
 pub fn prepare_local_program(@stage_parameters.Source, LocalProgramLimits, environment? : @stage_local_inputs.ProgramEnvironmentInputs?, sourceview_registrations? : Array[Array[(String, @pipeline_typing.InputContract)]]?, calendar_profile? : @calendar_profile.Profile?, model_tasks? : @check_environment.ModelTasks?) -> Result[(ResultWiring, LocalProgramUsage), LocalProgramIssue]
 
@@ -532,7 +533,8 @@ pub(all) enum EffectCreateRowIssue {
 pub struct EffectCreateRowTerminal {
   rule : EffectMappingRuleBinding
   source_result : String
-  row_fields : @check_environment.MappingRowFields
+  row_fields : @check_environment.MappingRowFields?
+  values : @decode_core.Cursor?
 }
 
 pub struct EffectMappingLiteralBinding {

@@ -4,6 +4,7 @@ import {
   "actql/actql/calendar_profile",
   "actql/actql/check_environment" @environment,
   "actql/actql/parameter_binding" @binding,
+  "actql/actql/parameter_references" @references,
   "actql/actql/stage_parameters" @parameters,
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/pipeline_parameters" @collection,
@@ -30,12 +31,9 @@ import {
   "actql/actql/lowering_relation" @lower,
   "actql/actql/source_value" @source,
   "moonbitlang/core/encoding/utf8",
-  "actql/actql/parameter_references" @references,
   "actql/actql/sha256" @sha,
   "actql/actql/program_source_builder" @builder,
   "actql/actql/frontend_source_map" @origin,
 } for "test"
 
-formatter(
-  ignore: ["command_input_presence.generated_test.mbt"],
-)
+formatter(ignore: [ "command_input_presence.generated_test.mbt" ])

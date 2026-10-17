@@ -6,6 +6,7 @@ import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 import {parameterPrograms} from './parameter-schema.mjs';
 import {publishedCommandTargetSchema,publishedCommandTargetSchemas} from './published-command-target.mjs';
+import {withoutCreateValuesSchema} from './create-values.mjs';
 const read=p=>JSON.parse(readFileSync(p,'utf8'));
 const protocol=read('spec/contracts/actql-protocol-schemas.json');
 const vectors=read('portability/corpus/published-command-selectors.json');
@@ -17,7 +18,7 @@ test('canonical Command selector changes only the declared target alternative in
   assert.equal(machineCid(prior),vectors.previous_program_cid);
   assert.deepEqual(prior,JSON.parse(execFileSync('git',['show',vectors.previous_source+':spec/contracts/actql-protocol-schemas.json'],{encoding:'utf8',maxBuffer:16*1024*1024})).artifact_schemas.executable_plan.properties.execution_material.properties.program);
   for(const program of parameterPrograms(protocol)) {
-    const restored=structuredClone(program);
+    const restored=withoutCreateValuesSchema(program);
     // Input-key correspondence has its own retained full-schema/vector gate.
     // The original target-only identity remains unchanged, not re-authored.
     delete command(restored).properties.input_key;

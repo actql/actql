@@ -201,6 +201,7 @@ priv struct RetainedResult {
   // captured-value receipts, key proofs or execution authority.
   update : (String, Array[(String, @builder.Node)])?
   store : Bool
+  insert : Array[(String, @builder.Node)]?
   command : (String, String?, Array[(String, @builder.Node)])?
 }
 
@@ -221,7 +222,10 @@ fn retained_result_exports(
   implicit_primary? : Bool = true,
 ) -> Array[(String, String)]? raise Abort {
   let public = retained.filter(result => {
-    result.update is None && !result.store && result.command is None
+    result.update is None &&
+    !result.store &&
+    result.insert is None &&
+    result.command is None
   })
   if public.is_empty() {
     return if retained.is_empty() {
@@ -268,6 +272,7 @@ fn retained_stage_results(
       !retained.any(result => {
         result.update is None &&
         !result.store &&
+        result.insert is None &&
         result.command is None &&
         result.terminal
       })
@@ -275,10 +280,16 @@ fn retained_stage_results(
     (
       !keep_default &&
       retained.any(result => {
-        result.update is Some(_) || result.store || result.command is Some(_)
+        result.update is Some(_) ||
+        result.store ||
+        result.insert is Some(_) ||
+        result.command is Some(_)
       }) &&
       retained.all(result => {
-        result.update is Some(_) || result.store || result.command is Some(_)
+        result.update is Some(_) ||
+        result.store ||
+        result.insert is Some(_) ||
+        result.command is Some(_)
       })
     ) {
     []
@@ -3108,6 +3119,7 @@ fn compile_steps(
           carrier_complete: !needs_view,
           update: None,
           store: false,
+          insert: None,
           command: None,
         })
         if terminal_result {
@@ -7050,6 +7062,50 @@ fn compile_steps(
     retained.push(capture)
     effect_capture_steps.append(body)
   }
+  if @query.terminal_insert_effect(query) is Some(clause) &&
+    @query.set_part_count(query) == 0 &&
+    retained is Some(retained) {
+    let names = reserved_bindings +
+      nearest_inputs.map(input => input.name) +
+      [input.name, final_alias] +
+      retained.map(result => result.from)
+    let producer = pipe_physical_name(names, "aql_insert_input_")
+    reserved_bindings.push(producer)
+    let checkpoint : Array[(String, @builder.Node)] = []
+    if first || terminal_result {
+      checkpoint.push(("from", construction.text(input_from)))
+    }
+    checkpoint.push(
+      (
+        "select",
+        construction.array(active_fields.map(field => construction.text(field))),
+      ),
+    )
+    checkpoint.push(("as", construction.text(producer)))
+    step_entries.push(checkpoint)
+    input_from = producer
+    first = true
+    let (capture, body) = lower_insert_capture(
+      construction,
+      clause,
+      producer,
+      pipe_visible,
+      pipe_ranges,
+      active_fields,
+      max_work,
+      reserved_bindings~,
+      expression_columns=Some(
+        unnest_expression_columns(
+          pipe_visible, value_table_receivers, scalar_value_table_ranges, pipe_columns,
+        ),
+      ),
+      value_ranges=value_range_names(
+        value_table_receivers, scalar_value_table_ranges,
+      ),
+    )
+    retained.push(capture)
+    effect_capture_steps.append(body)
+  }
   if @query.terminal_short_command_effect(query) is Some(clause) &&
     @query.set_part_count(query) == 0 &&
     retained is Some(retained) {
@@ -7257,6 +7313,7 @@ pub fn compile_with_source(
   // producers or transformed range inputs.
   if @query.terminal_short_command_effect(query) is Some(_) ||
     @query.terminal_store_effect(query) is Some(_) ||
+    @query.terminal_insert_effect(query) is Some(_) ||
     @query.terminal_command_effect_count(query) > 0 ||
     @query.terminal_effect(query) is Some(_) ||
     @query.terminal_table_effect(query) is Some(_) ||

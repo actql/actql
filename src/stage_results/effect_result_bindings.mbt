@@ -370,6 +370,8 @@ pub fn bind_effect_results(
         @decode.lookup(body, "input")
       } else if kind == "update" || kind == "upsert" {
         @decode.lookup(body, "set")
+      } else if kind == "create" {
+        @syntax.effect_header_create_values(header)
       } else {
         None
       }
