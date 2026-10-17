@@ -649,5 +649,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   } else {
     checkContracts(registry, cli);
   }
-  console.log('Run publication 0.1 schemas and embeddings verified.');
+  console.log(process.argv.includes('--review-only')
+    ? 'Effect Preview/review 0.1 schemas verified; unrelated publication/CLI contracts not checked.'
+    : 'Run publication 0.1 schemas and embeddings verified.');
 }
