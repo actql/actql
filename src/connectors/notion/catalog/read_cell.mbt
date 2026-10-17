@@ -75,7 +75,7 @@ fn notion_read_scalar_value(
   }
   match column.contract.shape {
     Decimal(precision~, scale~) => {
-      guard @decode.number(cursor) is Ok(_) else {
+      guard @decode.finite_number(cursor) is Ok(_) else {
         return Err(InvalidCell(name))
       }
       let lexeme = match
