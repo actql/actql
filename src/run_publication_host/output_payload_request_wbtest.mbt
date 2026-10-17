@@ -43,7 +43,7 @@ test "portable payload intent requires original live EOF Result custody" {
   )
   assert_eq(
     @payload.publication_payload_request_codec(request),
-    "sha256:4bb69dfaade0a15952fe23a8202a9475ff450c9f0fab93f9dd5cef1b82045ab1",
+    "sha256:37a581bc6b76d61d50527d58777343b655479356c6017ac41ff24ddaf5676bd2",
   )
   let before = @payload.publication_payload_request_json(request).unwrap()
   let snapshot = parent.start_captured_snapshot(100000, 10000, 100).unwrap()

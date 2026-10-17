@@ -127,7 +127,7 @@ test "portable Result binding requires original EOF evidence and physical identi
   assert_true(wire.contains("\"physical_sha256\":\"" + digest + "\""))
   assert_true(
     wire.contains(
-      "\"codec_contract_cid\":\"sha256:4bb69dfaade0a15952fe23a8202a9475ff450c9f0fab93f9dd5cef1b82045ab1\"",
+      "\"codec_contract_cid\":\"sha256:37a581bc6b76d61d50527d58777343b655479356c6017ac41ff24ddaf5676bd2\"",
     ),
   )
   let snapshot = parent.start_captured_snapshot(100000, 10000, 100).unwrap()

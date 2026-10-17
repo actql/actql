@@ -3,8 +3,8 @@
   "connector_capabilities": [
     {
       "capability_contract_cids": [
-        "sha256:2fb477209d9149ec8fa6d103fb14af3c287e2d2bc331b237dadd281f9dbab916",
-        "sha256:d3d2737da6d73801f85208a2cdfe50c412e9f7b24e8bf9807e6f804e11757dd7"
+        "sha256:cdaab753fd3c01709fbd9ae32022a8462bc8200edf1e9c93d533a293989f8a3b",
+        "sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a"
       ],
       "read_mode": "snapshot",
       "source_contract_cid": "sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3",
@@ -13,8 +13,8 @@
     },
     {
       "capability_contract_cids": [
-        "sha256:2fb477209d9149ec8fa6d103fb14af3c287e2d2bc331b237dadd281f9dbab916",
-        "sha256:d3d2737da6d73801f85208a2cdfe50c412e9f7b24e8bf9807e6f804e11757dd7"
+        "sha256:cdaab753fd3c01709fbd9ae32022a8462bc8200edf1e9c93d533a293989f8a3b",
+        "sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a"
       ],
       "read_mode": "snapshot",
       "source_contract_cid": "sha256:3e9acc1b4279fc56faba3fd1fd060d15305bb0c2f3e4e1bd2de827e4991e6246",
@@ -357,7 +357,7 @@
       "version": "fixture"
     }
   ],
-  "evidence_bundle_cid": "sha256:a52fbd0dedb61150c97610060e5c82dba72dc97a76b6e24624262983a352ca75",
+  "evidence_bundle_cid": "sha256:8dddb2a590629efb451ee5c579798da0ec64a674980601b49a97ff6a79140505",
   "host_policy_profile": {
     "capacity": {
       "max_aggregate_array_items": 1000,

@@ -166,7 +166,7 @@
       "parameter_values_cid": "sha256:ce3468bea3995136201f0f1242c8d388f927d5c1b751f60a6cccf6b539ef4897",
       "resolved_request_cid": "sha256:9e475b942ea0d73d63e2e4cdeffb72d0d145e5bbd3cdf4605d2acbca829cdde1",
       "snapshot": null,
-      "evidence_contract_cid": "sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8",
+      "evidence_contract_cid": "sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a",
       "execution": {
         "issuer": "fixture-two-receipt",
         "attempt": "1",
@@ -190,6 +190,6 @@
       },
       "retention": "process"
     },
-    "cid": "sha256:f85ce5d881b8692de8f79c734e44f9cec471961b334facc0fe6ceeb149e2e2c7"
+    "cid": "sha256:73c62005713491b64112c2f3b383e7590815546c9d10c07806fd88cbdff3c6f6"
   }
 }
