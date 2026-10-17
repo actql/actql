@@ -911,6 +911,9 @@ class CompilerProcessAssemblyError(RuntimeError):
         self.response = b''
         self.primary: BaseException | None = None
         self.cleanup_error: BaseException | None = None
+        # Call progress only, never a physical ACK. Invoke's same Native owners
+        # must independently have completed before descriptor-only cleanup.
+        self.transport_returned = False
         super().__init__('Original compiler process assembly failed or is unconfirmed')
 
 
@@ -948,18 +951,29 @@ def finish_failed_compilation(failure: CompilerProcessAssemblyError,
             or type(failure.program) is not _CompilerProgram
             or failure.program.source != parent.original.holding.source_sha
             or failure.program.module_sha256 != parent.original.holding.module_sha256
-            or failure.program.engine_sha256 != parent.original.holding.engine_sha256
-            or type(primary) is not CompilerChildProcessError
-            or primary.cleanup_parent is not parent):
+            or failure.program.engine_sha256 != parent.original.holding.engine_sha256):
         raise ValueError('Original failed compiler child cleanup is unavailable')
     try:
-        relayed = finish_original_compiler_after_stop_request(primary, timeout=seconds)
-        if not parent._closed:
+        if type(primary) is CompilerChildProcessError and primary.cleanup_parent is parent:
+            relayed = finish_original_compiler_after_stop_request(primary, timeout=seconds)
+        else:
+            # Report/image validation can fail after invoke's Native chain has
+            # already returned. Only those same owners' completed projections,
+            # with no Unknown or registered user, permit descriptor-only cleanup.
+            if not failure.transport_returned or not parent._closed:
+                raise ValueError('Original failed compiler child cleanup is unavailable')
+            parent.runtime.current()
+            relayed = False
+        if (not parent._closed
+                or any(carrier is None or not carrier._closed or carrier._unknown is not None
+                    for carrier in (parent.host, parent.backing, parent.domain))
+                or parent.domain._installed_process_original is not None
+                or parent.domain._worker_process_original is not None):
             raise ValueError('Original compiler parent cleanup remains unconfirmed')
         descriptor.close()
         return {'scope': 'original_compiler_failure_cleanup_only',
             'source_sha': failure.program.source, 'request_relayed': relayed,
-            'original_process_closed': primary.cleanup_process._closed,
+            'original_process_closed': True,
             'original_parent_closed': parent._closed,
             'backing_descriptor_closed': descriptor.closed,
             'process_runtime_retirement_ACK': False,
@@ -1046,6 +1060,7 @@ def compile_from_original(core_receipt: Path, expected_source: str,
             module=original['module'], destination=image,
             slot=str(destination / 'compiler-process.slot'), nonce=selected.generation,
             timeout=deadline - time.monotonic())
+        failure.transport_returned = True
         failure.response = response
         if not parent._closed:
             raise ValueError('Original compiler process/region cleanup is unconfirmed')

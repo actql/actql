@@ -2,6 +2,10 @@
 import unittest
 from unittest.mock import patch
 import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
 
 import test_local_compiler_process as process_tests
 import test_local_compiler_parent as parent_tests
@@ -83,9 +87,48 @@ class FailedCompilerCleanupTests(unittest.TestCase):
     def test_partial_parent_acquisition_is_not_a_failed_child_cleanup_fallback(self):
         self.failure.primary = compiler.CompilerParentAcquisitionError(self.parent)
         before = list(self.original.native.events)
-        with self.assertRaises(ValueError): compiler.finish_failed_compilation(self.failure, seconds=1)
+        with self.assertRaises(compiler.CompilerProcessAssemblyError):
+            compiler.finish_failed_compilation(self.failure, seconds=1)
         self.assertEqual(self.original.native.events, before)
         self.assertFalse(self.parent.descriptor.close_attempted)
+
+    def test_bad_report_after_same_native_cleanup_only_finishes_original_descriptor(self):
+        import python_compiler_process as transport
+        transport.finish_original_compiler_after_stop_request(self.transport, timeout=1)
+        self.failure.primary = ValueError('Original child report was unavailable')
+        self.failure.transport_returned = True
+        before = list(self.original.native.events)
+        result = compiler.finish_failed_compilation(self.failure, seconds=1)
+        self.assertEqual(self.original.native.events, before)
+        self.assertFalse(result['request_relayed'])
+        self.assertFalse(result['image_accepted'])
+        self.assertTrue(self.parent.descriptor.closed)
+
+    def test_transport_return_flag_alone_cannot_substitute_for_native_retirement(self):
+        self.failure.primary = ValueError('Unaccepted child report')
+        self.failure.transport_returned = True
+        before = list(self.original.native.events)
+        with self.assertRaises(compiler.CompilerProcessAssemblyError):
+            compiler.finish_failed_compilation(self.failure, seconds=1)
+        self.assertEqual(self.original.native.events, before)
+        self.assertFalse(self.parent.descriptor.close_attempted)
+        self.assertFalse(self.parent._closed)
+
+
+class CompilerCleanupCliTests(unittest.TestCase):
+    def test_invalid_cleanup_window_refuses_before_module_output_or_native_preparation(self):
+        script = Path(__file__).resolve().parents[3] / 'scripts/compile-python-local-image.py'
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory).resolve() / 'unused-output'
+            for value in ('0', '-1', 'nan', 'inf'):
+                with self.subTest(value=value):
+                    result = subprocess.run([sys.executable, '-I', '-B', str(script),
+                        '--source', 'a' * 40, '--core-receipt', str(output / 'absent.json'),
+                        '--destination', str(output), '--compile', '--cleanup-seconds', value],
+                        capture_output=True, text=True, timeout=5)
+                    self.assertEqual(result.returncode, 2)
+                    self.assertIn('finite positive failed-child cleanup window', result.stderr)
+                    self.assertFalse(output.exists())
 
 
 if __name__ == '__main__':
