@@ -103,11 +103,12 @@ test('UPDATE target revision drift never falls through to CREATE', async t => {
 
 test('rejected and uncorrelated write bodies remain original observations rather than committed Effects', async t => {
   for (const kind of ['create', 'update']) for (const reply of [
-    {statusCode: 409, body: {code: 'GAIA_CO02'}},
+    {status: 409, body: {code: 'GAIA_CO02'}},
     {body: kind === 'create' ? {ids: ['7'], revisions: ['1']} : {records: []}},
   ]) {
     const f = await writeFixture(t, {kind}); f.state.reply = () => reply;
     const raw = await f.send();
+    assert.equal(raw.observation.statusCode, reply.status ?? 200);
     const projected = projectKintoneWriteObservation({moon: f.common, kind, request: f.request,
       observation: raw.observation, limits: f.options.limits});
     assert.equal(projected.kind, 'unclassified-response'); assert.equal(projected.observation, raw.observation);
