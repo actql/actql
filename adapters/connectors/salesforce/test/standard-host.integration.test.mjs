@@ -46,7 +46,9 @@ const tlsKey = await readFile(join(tlsRoot, 'host.key'));
 const tlsCertificate = await readFile(join(tlsRoot, 'host.crt'));
 setDefaultCACertificates([...getCACertificates('default'),
   tlsCertificate.toString('utf8')]);
-after(() => rm(tlsRoot, {recursive: true, force: true}));
+after(() => process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1'
+  ? console.error(`Salesforce standard Host TLS custody retained: ${tlsRoot}`)
+  : rm(tlsRoot, {recursive: true, force: true}));
 
 const owner = userInfo().username;
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -121,7 +123,11 @@ async function installation(t, {readable = ['Test_Record__c'],
   const closers = [];
   t.after(async () => {
     for (const close of closers.reverse()) await close();
-    await rm(root, {recursive: true, force: true});
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      console.error(`Salesforce standard Host custody retained: ${root}`);
+    } else {
+      await rm(root, {recursive: true, force: true});
+    }
   });
   const authority = generateKeyPairSync('ed25519');
   await writeFile(join(root, 'credential.key'), authority.privateKey.export({
