@@ -46,7 +46,9 @@ const tlsKey = await readFile(join(tlsRoot, 'host.key'));
 const tlsCertificate = await readFile(join(tlsRoot, 'host.crt'));
 setDefaultCACertificates([...getCACertificates('default'),
   tlsCertificate.toString('utf8')]);
-after(() => rm(tlsRoot, {recursive: true, force: true}));
+after(() => process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1'
+  ? console.error(`Salesforce standard Host TLS custody retained: ${tlsRoot}`)
+  : rm(tlsRoot, {recursive: true, force: true}));
 
 const owner = userInfo().username;
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -121,7 +123,11 @@ async function installation(t, {readable = ['Test_Record__c'],
   const closers = [];
   t.after(async () => {
     for (const close of closers.reverse()) await close();
-    await rm(root, {recursive: true, force: true});
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      console.error(`Salesforce standard Host custody retained: ${root}`);
+    } else {
+      await rm(root, {recursive: true, force: true});
+    }
   });
   const authority = generateKeyPairSync('ed25519');
   await writeFile(join(root, 'credential.key'), authority.privateKey.export({
@@ -2001,9 +2007,14 @@ test('installed Salesforce Read has only the neutral capture owner', async t => 
   await setup.publish();
   let pages = 0;
   const acquisitions = [], captures = [];
+  let legacyPreparations = 0;
   const runtime = {...commonMoon,
     clientProgramPrepareSalesforceDeclaredRowAcquisition(...args) {
-      const result = commonMoon.clientProgramPrepareSalesforceDeclaredRowAcquisition(...args);
+      legacyPreparations++;
+      return commonMoon.clientProgramPrepareSalesforceDeclaredRowAcquisition(...args);
+    },
+    clientProgramRowSourcePrepareAcquisition(...args) {
+      const result = commonMoon.clientProgramRowSourcePrepareAcquisition(...args);
       acquisitions.push(result._0);
       return result;
     },
@@ -2026,6 +2037,8 @@ test('installed Salesforce Read has only the neutral capture owner', async t => 
   const first = await adapter.open(common);
   const second = await adapter.open(common);
   try {
+    assert.equal(legacyPreparations, 0);
+    assert.equal(acquisitions.length, 2);
     assert.equal(pages, 2);
     assert.equal(typeof await first.issueSourceEvidence({authorityScopeCid: cid('a'),
       effectiveDataPolicyCid: first.checkedSource.sourceDataPolicyCid}), 'string');
@@ -2231,4 +2244,74 @@ test('acquisition-only Named Result refuses before physical start', async t => {
       physical_start_reserved: 0, pre_dispatch_failure_confirmed: 1}]);
   } finally {requests.close();}
   await close();
+});
+
+
+test('shared Salesforce Source preserves original read and credential preimages and grant order', async t => {
+  const setup = await installation(t);
+  await setup.publish();
+  const before = setup.org.seen.length;
+  const subjects = [];
+  let nonce, starts = 0, begins = 0, preparedSource;
+  const originalCid = body => `sha256:${createHash('sha256')
+    .update(JSON.stringify(body)).digest('hex')}`;
+  const runtime = {...commonMoon,
+    clientProgramRowSourceStart(acquisition, originalNonce, current) {
+      starts++; nonce = originalNonce;
+      // The original one Describe-plan observation still precedes the RowRun.
+      assert.equal(setup.org.seen.length, before + 1);
+      return commonMoon.clientProgramRowSourceStart(acquisition, originalNonce, current);
+    },
+    clientProgramRowSourceBegin(...args) {
+      begins++;
+      const runInvocationCid = originalCid({version: 'actql-salesforce-acquisition/0.1',
+        requirementCid: preparedSource.checkedSource.requirementCid, nonce});
+      const dispatchRequestCid = originalCid({
+        version: 'actql-salesforce-acquisition-dispatch/0.1', runInvocationCid});
+      const journal = new DatabaseSync(join(setup.siteDocument.journalRoot,
+        'credential-journal.sqlite3'), {readOnly: true});
+      try {
+        const grants = journal.prepare('SELECT grant_json FROM credential_grants').all()
+          .map(row => JSON.parse(row.grant_json))
+          .filter(grant => grant.operation === 'salesforce:query:read');
+        assert.equal(grants.length, 1, 'original query grant is committed before begin');
+        assert.equal(grants[0].run_invocation_cid, runInvocationCid);
+        assert.equal(grants[0].dispatch_request_cid, dispatchRequestCid);
+        assert.equal(grants[0].task_attempt, 1);
+        assert.equal(grants[0].max_uses, 10);
+      } finally { journal.close(); }
+      return commonMoon.clientProgramRowSourceBegin(...args);
+    }};
+  const {adapter, common} = await installedAdapter(setup, program, runtime);
+  const access = {...adapter.sourceAccess, authorization: {
+    async authorize(...args) {
+      subjects.push(args[2].subjectCid);
+      return adapter.sourceAccess.authorization.authorize(...args);
+    }}};
+  let capture;
+  try {
+    assert.equal(adapter.realizationKey, 'salesforce-acquired');
+    assert.deepEqual(Object.keys(adapter.sourceAccess).sort(), ['authorization', 'connection']);
+    assert.equal(adapter.openKeyed, undefined, 'no new profile exposed by compatibility entry');
+    preparedSource = await adapter.prepare({...common, sourceAccess: access});
+    const expectedSubject = originalCid({version: 'actql-salesforce-acquisition-read/0.1',
+      requirementCid: preparedSource.checkedSource.requirementCid,
+      physicalBinding: preparedSource.physicalBinding});
+    capture = await adapter.open({...common, sourceAccess: access, preparedSource});
+    assert.equal(starts, 1); assert.equal(begins, 1);
+    assert(subjects.length >= 3, 'prepare, initial current and final capture current remain');
+    assert(subjects.every(subject => subject === expectedSubject));
+    assert.equal(setup.queries().length, 1);
+    assert.notEqual(capture.capture.source(), undefined);
+    const journal = new DatabaseSync(join(setup.siteDocument.journalRoot,
+      'credential-journal.sqlite3'), {readOnly: true});
+    try {
+      const uses = journal.prepare('SELECT use_id FROM credential_uses').all()
+        .map(row => row.use_id).filter(use => use.startsWith(nonce + '-query-'));
+      assert.deepEqual(uses, [nonce + '-query-0']);
+    } finally { journal.close(); }
+  } finally {
+    capture?.close();
+    adapter.close();
+  }
 });
