@@ -89,3 +89,39 @@ provider returning null after an empty-text write is observed as null, never
 substituted with the requested `[]`; existing Effect outcome and reconciliation
 rules still apply. Fresh declarations use the existing Owner to issue their own
 bodies/CIDs; saved original declarations and contract versions are not relabeled.
+
+## Compound geolocation projection
+
+A geolocation parent is read as one closed Object Contract. Its `latitude` and
+`longitude` properties retain the existing Decimal Contracts of the actual
+Describe components, including their declared precision, scale and nullability.
+The original `compoundFieldName` association is required before the documented
+component-name suffix identifies either role. A matching suffix alone, a
+missing component, ambiguous roles or missing digit metadata cannot supply the
+parent contract. Neither a generic Number fallback nor another metadata lookup
+repairs that absence.
+
+Provider numeric cells are converted from their exact original source lexemes
+through the same checked Decimal Owner used for standalone Number fields.
+Explicit parent null remains null; child nullability is checked independently.
+Extra or missing properties and coerced string coordinates are refused. The
+same original components remain with the read plan and are rechecked against
+current metadata; digit, type, association and nullability drift cannot attach
+to the old declaration. Current Site and read authority remain separate.
+
+The emitted Object Contract includes the existing required closed-object flag
+and passes the same checked Contract reader as other published fields. Binding
+the caller's original Contract compares the Object and its two retained Decimal
+children; its pair bound follows that fixed structure, while scalar and Array
+plans retain their previous bound. A changed component Contract is still refused.
+
+Compound parents are not write fields. Existing component-field mappings retain
+their own declared writable flags, original target/Preview and checked decimal
+body; compound read support does not turn a parent into a mutation target.
+
+The retained plan adds bounded component references and tuples under the
+original Describe field ceiling. During conversion, original response/decode
+material, two canonical decimal strings, converted Object nodes and checked
+values can overlap. Original byte/node/depth limits still apply, but these
+bounds are neither a reservation nor an adopted normal capacity profile. The
+original caller's custody and cleanup own their lifetime.
