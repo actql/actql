@@ -96,10 +96,10 @@ pub fn[T, C] NativeHostBootstrap::require_backed_channel_ledger_current(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  guard record.live is Some(live) else {
+  guard record.live is Some(_) else {
     return Err(Domain(Bootstrap(Unavailable)))
   }
-  match self.backed_live_child_state(original, live, record) {
+  match self.live_channel_accounting_state(original, record) {
     Err(issue) => return Err(Domain(issue))
     Ok(@resources.LiveClosing) =>
       return Err(Child(@resources.Resource(@resources.ClosedReservation)))
@@ -244,10 +244,22 @@ pub fn[T, C] NativeHostBootstrap::require_backed_channel_bootstrap_current(
     record.envelope is Some(envelope) else {
     return Err(Child(@resources.Unavailable))
   }
-  let (payload, _) = match
-    self.backed_domain_capacity(original, record.domain, record.child) {
-    Err(issue) => return Err(Domain(issue))
-    Ok(value) => value
+  let payload = if record.domain.process_region is None {
+    match self.backed_domain_capacity(original, record.domain, record.child) {
+      Err(issue) => return Err(Domain(issue))
+      Ok((payload, _)) => payload
+    }
+  } else {
+    match
+      @resources.backed_execution_delegation_description(
+        record.domain.view.loan.region.accounting,
+        self,
+        record.child,
+        record.domain.view.loan.accounting,
+      ) {
+      Err(issue) => return Err(Domain(Accounting(issue)))
+      Ok((extent, _, _)) => extent.payload_length
+    }
   }
   if @resources.capacity_reservation_covers(ledger, envelope, 0L, payload) {
     Ok(())

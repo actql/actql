@@ -94,6 +94,22 @@ The FD Owner may then confirm its own child stop and descriptor closes. Neither
 the restriction nor borrow return acknowledges that stop, metadata retirement,
 mapping cleanup, final quota settlement, or the Run's business outcome.
 
+The same process/channel association admits only the original scoped Holder's
+opaque endpoint borrow and the channel's original Common frame. Descriptor
+numbers are checked only for physical correspondence after that nominal check.
+The association excludes a parent Root/Reader context in the child's domain.
+Generic domain-current access remains refused; only the associated channel
+reuses its same Common projection under the original process/borrow checks.
+The child identity comes from that Holder, not a supplied PID.
+
+After confirmed process/IPC stop, the original region/FD and stop-pin closes
+are remembered independently of Common reporting, reservation and metadata
+retirement. A later reporting or cleanup refusal retains the same carrier and
+its exact child issue, including Unknown. Retrying that cleanup does not repeat
+unmap or pin close. Parent registrations and reverse references are removed
+only after their corresponding retirement acknowledgments; this connection
+does not recreate a child Ledger or refund uncertain parent quota.
+
 Physical region retirement is separate from conservative quota reconciliation,
 Common borrow settlement and the Run's remote or business outcome. It does not
 prove that an external operation was never sent, acknowledge a commit, permit

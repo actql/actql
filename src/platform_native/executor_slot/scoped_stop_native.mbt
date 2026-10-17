@@ -54,6 +54,7 @@ struct NativeScopedExecutorHolder {
   mut attempted : Bool
   mut child : NativeExecutorSlotChild?
   mut channel : NativeHolderChannel?
+  mut duplex : NativeScopedDuplexTransport?
   mut input : Int
   mut output : Int
   mut partial_close_unknown : Bool
@@ -75,7 +76,7 @@ struct NativeScopedExecutorStop {
   original : NativeExecutorSlot
   anchor : NativeExecutorSlotAnchor
   child : NativeExecutorSlotChild
-  channel : NativeHolderChannel
+  transport : NativeScopedStopTransport
   mut closed : Bool
   mut close_unknown : Bool
 }
@@ -126,6 +127,7 @@ pub fn NativeExecutorSlot::prepare_scoped_holder(
     attempted: false,
     child: None,
     channel: None,
+    duplex: None,
     input: -1,
     output: -1,
     partial_close_unknown: false,
@@ -177,6 +179,9 @@ pub fn NativeScopedExecutorHolder::spawn_with_channel(
   match self.require_prepared() {
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  if self.duplex is Some(_) {
+    return Err(InvalidConfiguration)
   }
   self.attempted = true
   let ends = open_channel_ffi()
@@ -262,6 +267,9 @@ pub fn NativeScopedExecutorHolder::poll_stop(
     }
     return Ok(Some(stop))
   }
+  if self.duplex is Some(transport) {
+    return self.poll_duplex_stop(transport)
+  }
   let child = match self.child() {
     Err(issue) => return Err(issue)
     Ok(value) => value
@@ -294,7 +302,7 @@ pub fn NativeScopedExecutorHolder::poll_stop(
     original: self.original,
     anchor: self.anchor,
     child,
-    channel,
+    transport: HolderChannel(channel),
     closed: false,
     close_unknown: false,
   }
@@ -321,7 +329,7 @@ pub fn NativeScopedExecutorStop::require_current(
   }
   if !(expected.stop is Some(original) && physical_equal(original, self)) ||
     !(expected.child is Some(child) && physical_equal(child, self.child)) ||
-    !(expected.channel is Some(channel) && physical_equal(channel, self.channel)) ||
+    !scoped_stop_transport_matches(expected, self.transport) ||
     expected.parent_close_unknown ||
     expected.partial_close_unknown {
     return Err(NotHeld)
@@ -331,10 +339,7 @@ pub fn NativeScopedExecutorStop::require_current(
     Ok(None) => return Err(Busy)
     Ok(Some(_)) => ()
   }
-  if self.channel.descriptor >= 0 ||
-    self.channel.inspection_descriptor >= 0 ||
-    self.channel.close_unknown ||
-    self.channel.pending_frame is Some(_) {
+  if !scoped_stop_transport_closed(self.transport) {
     return Err(Busy)
   }
   let path = @utf8.encode(self.original.path)
@@ -385,6 +390,9 @@ pub fn NativeScopedExecutorHolder::cleanup(
       self.closed = true
       return true
     }
+    return false
+  }
+  if self.duplex is Some(transport) && !transport.cleanup_unstarted(self) {
     return false
   }
   if self.output >= 0 {
