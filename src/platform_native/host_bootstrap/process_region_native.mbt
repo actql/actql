@@ -15,7 +15,9 @@ extern "C" fn process_region_status_ffi(record : PhysicalProcessRegion) -> Int =
 
 ///|
 #borrow(record)
-extern "C" fn prepared_process_region_descriptor_ffi(record : PhysicalProcessRegion) -> Int = "actql_bootstrap_prepared_process_region_descriptor"
+extern "C" fn prepared_process_region_descriptor_ffi(
+  record : PhysicalProcessRegion,
+) -> Int = "actql_bootstrap_prepared_process_region_descriptor"
 
 ///|
 #borrow(record)
@@ -386,10 +388,14 @@ pub fn[T, C] NativeHostBootstrap::prepared_process_region_descriptor(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if record.retired || record.physical_retired || record.pin_closed || record.stop is Some(_) {
+  if record.retired ||
+    record.physical_retired ||
+    record.pin_closed ||
+    record.stop is Some(_) {
     return Err(Domain(Bootstrap(Closing)))
   }
-  match self.require_region_child(original, record.domain.view.loan, record.child) {
+  match
+    self.require_region_child(original, record.domain.view.loan, record.child) {
     Err(issue) => return Err(Domain(issue))
     Ok(_) => ()
   }

@@ -29,7 +29,10 @@ struct InstalledArenaProcess {
 ///|
 pub(all) enum InstalledArenaProcessAcquisition {
   PreparedProcess(InstalledArenaProcess)
-  PendingProcess(InstalledArenaProcess, @bootstrap.NativeBackedProcessRegionIssue)
+  PendingProcess(
+    InstalledArenaProcess,
+    @bootstrap.NativeBackedProcessRegionIssue
+  )
 }
 
 ///|
@@ -55,13 +58,20 @@ pub fn InstalledArenaHost::prepare_process(
   nonce : Int64,
   retained : Int64,
   execution : Int64,
-) -> Result[InstalledArenaProcessAcquisition, @bootstrap.NativeBackedProcessRegionIssue] {
+) -> Result[
+  InstalledArenaProcessAcquisition,
+  @bootstrap.NativeBackedProcessRegionIssue,
+] {
   match self.require_domain_current(domain) {
     Err(issue) => return Err(@bootstrap.Domain(issue))
     Ok(_) => ()
   }
-  if domain.live_channel is Some(_) || domain.sqlite_library is Some(_) ||
-    domain.original_read is Some(_) || retained < 0L || execution <= 0L || nonce <= 0L {
+  if domain.live_channel is Some(_) ||
+    domain.sqlite_library is Some(_) ||
+    domain.original_read is Some(_) ||
+    retained < 0L ||
+    execution <= 0L ||
+    nonce <= 0L {
     return Err(@bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.Unavailable)))
   }
   let process : InstalledArenaProcess = {
@@ -81,7 +91,8 @@ pub fn InstalledArenaHost::prepare_process(
     closed: false,
   }
   domain.process = Some(process)
-  match process.prepare_original(slot_path, descriptor, nonce, retained, execution) {
+  match
+    process.prepare_original(slot_path, descriptor, nonce, retained, execution) {
     Err(issue) => Ok(PendingProcess(process, issue))
     Ok(_) => Ok(PreparedProcess(process))
   }
@@ -131,9 +142,10 @@ fn InstalledArenaProcess::prepare_original(
     Err(issue) => return Err(@bootstrap.Process(issue))
     Ok(value) => value
   }
-  let channel = match backing.prepare_backed_live_channel_before_spawn(
-    host, native_domain, domain, reader, writer, nonce,
-  ) {
+  let channel = match
+    backing.prepare_backed_live_channel_before_spawn(
+      host, native_domain, domain, reader, writer, nonce,
+    ) {
     Err(issue) => return Err(@bootstrap.Domain(issue))
     Ok(@bootstrap.PendingLiveChannel(channel, issue)) => {
       domain.live_channel = Some(channel)
@@ -144,9 +156,12 @@ fn InstalledArenaProcess::prepare_original(
   }
   self.channel = Some(channel)
   domain.live_channel = Some(channel)
-  let frame = match backing.prepare_backed_original_channel_ledger(host, channel) {
+  let frame = match
+    backing.prepare_backed_original_channel_ledger(host, channel) {
     Err(issue) => {
-      self.frame = backing.original_backed_channel_ledger_frame(host, channel).unwrap_or(None)
+      self.frame = backing
+        .original_backed_channel_ledger_frame(host, channel)
+        .unwrap_or(None)
       return Err(process_frame_issue(issue))
     }
     Ok(frame) => frame
@@ -156,7 +171,10 @@ fn InstalledArenaProcess::prepare_original(
     Err(issue) => return Err(process_frame_issue(issue))
     Ok(_) => ()
   }
-  match backing.reserve_backed_channel_bootstrap(host, channel, frame, retained, execution) {
+  match
+    backing.reserve_backed_channel_bootstrap(
+      host, channel, frame, retained, execution,
+    ) {
     Err(issue) => return Err(process_frame_issue(issue))
     Ok(_) => ()
   }
@@ -164,7 +182,10 @@ fn InstalledArenaProcess::prepare_original(
     Err(issue) => return Err(process_frame_issue(issue))
     Ok(_) => ()
   }
-  match backing.bind_prepared_process_channel_region(host, channel, holder, borrowed, descriptor) {
+  match
+    backing.bind_prepared_process_channel_region(
+      host, channel, holder, borrowed, descriptor,
+    ) {
     Err(issue) => Err(issue)
     Ok(@bootstrap.ProcessRegionPending(region, issue)) => {
       self.region = Some(region)
@@ -185,9 +206,14 @@ fn InstalledArenaHost::original_process(
 ) -> Result[Unit, @bootstrap.NativeBackedProcessRegionIssue] {
   if !physical_equal(process.domain, domain) ||
     !(domain.process is Some(original) && physical_equal(original, process)) {
-    return Err(@bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal)))
+    return Err(
+      @bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal)),
+    )
   }
-  self.original_read_domain(domain).map(_ => ()).map_err(issue => @bootstrap.Domain(issue))
+  self
+  .original_read_domain(domain)
+  .map(_ => ())
+  .map_err(issue => @bootstrap.Domain(issue))
 }
 
 ///|
@@ -206,7 +232,8 @@ pub fn InstalledArenaHost::require_process_current(
   guard process.channel is Some(channel) && process.frame is Some(frame) else {
     return Err(@bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.Unavailable)))
   }
-  domain.backing.require_backed_channel_bootstrap_current(self, channel, frame)
+  domain.backing
+  .require_backed_channel_bootstrap_current(self, channel, frame)
   .map_err(issue => process_frame_issue(issue))
 }
 
@@ -224,7 +251,9 @@ pub fn InstalledArenaHost::process_descriptors(
   guard process.holder is Some(holder) && process.transport is Some(transport) else {
     return Err(@bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.Unavailable)))
   }
-  transport.parent_descriptors(holder).map_err(issue => @bootstrap.Process(issue))
+  transport
+  .parent_descriptors(holder)
+  .map_err(issue => @bootstrap.Process(issue))
 }
 
 ///|
@@ -260,9 +289,9 @@ pub fn InstalledArenaHost::restrict_process_transport(
   guard process.channel is Some(channel) else {
     return Err(@bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.Unavailable)))
   }
-  domain.backing.stop_backed_live_channel_transport_use(self, channel).map_err(issue => {
-    process_frame_issue(issue)
-  })
+  domain.backing
+  .stop_backed_live_channel_transport_use(self, channel)
+  .map_err(issue => process_frame_issue(issue))
 }
 
 ///|
@@ -283,7 +312,9 @@ pub fn InstalledArenaHost::return_process_transport(
   // No process was admitted by an incomplete preparation. Its retained
   // endpoint view can be withdrawn for the same never-started Holder only.
   if process.closed {
-    return Err(@bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.AlreadyConsumed)))
+    return Err(
+      @bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.AlreadyConsumed)),
+    )
   }
   guard process.holder is Some(holder) && process.transport is Some(transport) else {
     return Err(@bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.Unavailable)))
@@ -318,7 +349,9 @@ pub fn InstalledArenaHost::close_prepared_process(
   }
   process.closing = true
   if process.stop is Some(_) {
-    return Err(@bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.AlreadyConsumed)))
+    return Err(
+      @bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.AlreadyConsumed)),
+    )
   }
   if process.slot_close_unknown {
     return Err(@bootstrap.Process(@executor.LockFailed))
@@ -340,19 +373,25 @@ pub fn InstalledArenaHost::close_prepared_process(
         }
       }
       if process.holder is Some(holder) && !holder.cleanup() {
-        return Err(@bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)))
+        return Err(
+          @bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)),
+        )
       }
       process.holder_closed = true
     }
     if process.channel is Some(channel) && !process.channel_retired {
       if process.frame is Some(frame) {
         if !process.envelope_retired {
-          match domain.backing.retire_backed_channel_bootstrap_after_owner_ack(self, channel, frame) {
+          match
+            domain.backing.retire_backed_channel_bootstrap_after_owner_ack(
+              self, channel, frame,
+            ) {
             Err(issue) => return Err(process_frame_issue(issue))
             Ok(_) => process.envelope_retired = true
           }
         }
-        match domain.backing.report_backed_channel_ledger(self, channel, frame) {
+        match
+          domain.backing.report_backed_channel_ledger(self, channel, frame) {
           Err(issue) => return Err(process_frame_issue(issue))
           Ok(_) => ()
         }
@@ -387,7 +426,9 @@ pub fn InstalledArenaHost::poll_process_stop(
     Ok(_) => ()
   }
   if process.closed || process.region is None {
-    return Err(@bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.AlreadyConsumed)))
+    return Err(
+      @bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.AlreadyConsumed)),
+    )
   }
   guard process.holder is Some(holder) else {
     return Err(@bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.Unavailable)))
@@ -423,7 +464,9 @@ pub fn InstalledArenaHost::retire_stopped_process(
   }
   process.closing = true
   guard process.region is Some(region) && process.stop is Some(stop) else {
-    return Err(@bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)))
+    return Err(
+      @bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)),
+    )
   }
   match domain.backing.retire_stopped_process_region(self, region, stop) {
     Err(issue) => return Err(issue)
