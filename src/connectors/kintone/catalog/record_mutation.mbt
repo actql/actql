@@ -21,6 +21,9 @@ pub(all) enum RecordMutationIssue {
   InvalidRequest
   UnexpectedStatus
   InvalidResponse
+  Form(FormFieldIssue)
+  Page(RecordPageIssue)
+  UncorrelatedResult
 } derive(Eq, Debug)
 
 ///|
@@ -246,6 +249,183 @@ pub fn record_delete_request_targets(
   request : RecordDeleteRequest,
 ) -> Array[OriginalRecordTarget] {
   request.targets.copy()
+}
+
+///|
+pub fn record_delete_request_app_id(request : RecordDeleteRequest) -> String {
+  request.targets[0].page.app_id
+}
+
+///|
+pub fn record_delete_request_count(request : RecordDeleteRequest) -> Int {
+  request.targets.length()
+}
+
+///|
+fn delete_observation_names(
+  request : RecordDeleteRequest,
+  max_fields : Int,
+) -> Result[Array[String], RecordMutationIssue] {
+  if max_fields <= 0 || max_fields > 998 {
+    return Err(InvalidLimits)
+  }
+  let names = []
+  for target in request.targets {
+    for name in target.page.names {
+      if !names.contains(name) {
+        if names.length() >= max_fields {
+          return Err(BudgetExceeded)
+        }
+        names.push(name)
+      }
+    }
+  }
+  Ok(names)
+}
+
+///|
+/// The physical caller separately authorizes this observation. Exact numeric
+/// IDs come from original targets, never interpolated caller SQL or aliases.
+pub fn record_delete_observation_body(
+  request : RecordDeleteRequest,
+  max_fields : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, RecordMutationIssue] {
+  if max_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
+    return Err(InvalidLimits)
+  }
+  let names = match delete_observation_names(request, max_fields) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let count = request.targets.length().to_string()
+  let mut remaining = max_bytes
+  // Check the complete ASCII query size before allocating/joining it. The
+  // bounded Encoder still checks the entire JSON envelope and UTF-8 names.
+  let fixed = ("$id in () order by $id asc limit " + count).length()
+  if fixed > remaining {
+    return Err(BudgetExceeded)
+  }
+  remaining -= fixed
+  let ids = []
+  for index, target in request.targets {
+    let id = target.record.record_id
+    let separator = if index == 0 { 0 } else { 1 }
+    if separator > remaining || id.length() > remaining - separator {
+      return Err(BudgetExceeded)
+    }
+    remaining -= separator + id.length()
+    ids.push(id)
+  }
+  let query = "$id in (" + ids.join(",") + ") order by $id asc limit " + count
+  let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
+    _ => return Err(BudgetExceeded)
+  }
+  try {
+    @encode.begin_ordered_object(writer)
+    @encode.ordered_key(writer, "app")
+    @encode.string_value(writer, record_delete_request_app_id(request))
+    @encode.ordered_key(writer, "fields")
+    @encode.begin_array(writer)
+    @encode.string_value(writer, "$id")
+    @encode.string_value(writer, "$revision")
+    for name in names {
+      @encode.string_value(writer, name)
+    }
+    @encode.end_array(writer)
+    @encode.ordered_key(writer, "query")
+    @encode.string_value(writer, query)
+    @encode.end_object(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      Err(BudgetExceeded)
+    }
+  }
+}
+
+///|
+pub fn recheck_record_delete_form(
+  request : RecordDeleteRequest,
+  bytes : Bytes,
+  limits : FormFieldLimits,
+) -> Result[Unit, RecordMutationIssue] {
+  let original = request.targets[0].page.catalog
+  let observed = match project_form_fields(bytes, original.app_id, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(Form(issue))
+  }
+  let paths = form_field_paths(original)
+  if original.app_id != observed.app_id ||
+    original.revision != observed.revision ||
+    paths.length() != form_field_paths(observed).length() {
+    return Err(ForeignCatalog)
+  }
+  for path in paths {
+    if !form_field_definition_matches(original, observed, path) {
+      return Err(ForeignCatalog)
+    }
+  }
+  Ok(())
+}
+
+///|
+/// Complete current target DATA under the same original catalog. Order is not
+/// assumed; every original ID must occur once with its exact saved revision.
+pub fn recheck_record_delete_records(
+  request : RecordDeleteRequest,
+  bytes : Bytes,
+  limits : RecordPageLimits,
+  max_fields : Int,
+  max_comparison_work : Int,
+) -> Result[Unit, RecordMutationIssue] {
+  if max_comparison_work <= 0 {
+    return Err(InvalidLimits)
+  }
+  let names = match delete_observation_names(request, max_fields) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let observed = match
+    project_record_page(bytes, request.targets[0].page.catalog, names, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(Page(issue))
+  }
+  if observed.records.length() != request.targets.length() {
+    return Err(UncorrelatedResult)
+  }
+  let mut remaining = max_comparison_work
+  for target in request.targets {
+    let mut found = false
+    for record in observed.records {
+      for value in [target.record.record_id, record.record_id] {
+        if value.length() > remaining {
+          return Err(BudgetExceeded)
+        }
+        remaining -= value.length()
+      }
+      if target.record.record_id == record.record_id {
+        found = true
+        for value in [target.record.revision, record.revision] {
+          if value.length() > remaining {
+            return Err(BudgetExceeded)
+          }
+          remaining -= value.length()
+        }
+        if target.record.revision != record.revision {
+          return Err(ChangedRevision)
+        }
+        break
+      }
+    }
+    if !found {
+      return Err(MissingTarget)
+    }
+  }
+  Ok(())
 }
 
 ///|

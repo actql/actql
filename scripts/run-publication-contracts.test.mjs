@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
 import {
+  checkContracts,
   correctedContracts,
   effectApplyReceiptSchema,
   effectReconciliationReceiptSchema,
@@ -27,8 +28,24 @@ test('Run Definition optional selection projection preserves the old shape', () 
   const previous = structuredClone(schema);
   delete previous.properties.effect_target_selections_cid;
   assert.equal(machineCid(previous), vectors.schema_pins.run_definition.before);
-  assert.equal(registry.artifact_registry_cid,
-    vectors.artifact_registry_pins.after);
+  assert.equal(machineCid(registry.artifact_schemas), registry.artifact_registry_cid);
+  // The vector's aggregate pin belongs to fde035cf, before later adopted
+  // schema changes. Reconstruct that exact body with checked leaf inverses;
+  // neither its historical pin nor today's registry is silently repinned.
+  const history = read('portability/corpus/publication-selection-registry-history.json');
+  const historical = structuredClone(registry.artifact_schemas);
+  for (const change of history.changes) {
+    const parent = change.path.slice(0, -1).reduce((value, key) => value[key], historical);
+    const key = change.path.at(-1);
+    assert.equal(Object.hasOwn(parent, key), change.current_present !== false);
+    if (change.current_present !== false) assert.deepEqual(parent[key], change.current);
+    if (change.historical_present === false) {
+      if (Array.isArray(parent)) parent.splice(key, 1);
+      else delete parent[key];
+    } else parent[key] = structuredClone(change.historical);
+  }
+  assert.equal(history.artifact_registry_cid, vectors.artifact_registry_pins.after);
+  assert.equal(machineCid(historical), vectors.artifact_registry_pins.after);
 });
 
 test('independent Run vectors bind admitted compilation and original selection', () => {
@@ -461,6 +478,28 @@ test('correction is idempotent and updates the CLI embedding', () => {
   assert.deepEqual(cli.properties.run, registry.artifact_schemas.run_state);
 });
 
+for (const omission of ['state revision', 'state revision property', 'applied upsert identity comment']) {
+  test(`full publication check refuses a rehashed omitted ${omission}`, () => {
+    const registry = read('spec/contracts/actql-protocol-schemas.json');
+    const cli = read('spec/contracts/actql-cli-run-response.schema.json');
+    if (omission.startsWith('state revision')) {
+      if (omission === 'state revision property') delete registry.artifact_schemas.run_state.properties.revision;
+      else registry.artifact_schemas.run_state.required = registry.artifact_schemas.run_state
+        .required.filter(name => name !== 'revision');
+      cli.properties.run = structuredClone(registry.artifact_schemas.run_state);
+    } else {
+      const applied = registry.artifact_schemas.effect_row_outcome_receipt.properties
+        .typed_outcome.oneOf.find(branch => branch.properties.state.const === 'applied');
+      delete applied.$comment;
+    }
+    for (const [name, schema] of Object.entries(registry.artifact_schemas)) {
+      registry.artifact_schema_cids[name] = machineCid(schema);
+    }
+    registry.artifact_registry_cid = machineCid(registry.artifact_schemas);
+    assert.throws(() => checkContracts(registry, cli), /Run publication schemas are stale/);
+  });
+}
+
 test('corrected schemas have independently fixed canonical identities', () => {
   const registry = read('spec/contracts/actql-protocol-schemas.json');
   assert.equal(
@@ -558,9 +597,14 @@ test('corrected schemas have independently fixed canonical identities', () => {
   delete baselineCapture.properties.effect_context.properties.content_generations;
   assert.equal(machineCid(baselineCapture),
     'sha256:b46b747d9b40e7c3eaf4bc30806c7f048b96b9e957792e41453d3b66e67cb9e4');
-  // The new empty-inventory rule is the only change to this fixed prior
-  // Run-state contract. Retain its original CID as historical evidence.
+  // Reverse the later state-level observation revision before the older
+  // empty-inventory change. Control revision is an independent existing field.
   const priorState = structuredClone(registry.artifact_schemas.run_state);
+  assert.deepEqual(priorState.properties.revision,
+    {type: 'integer', minimum: 0, maximum: 9007199254740991});
+  assert.equal(priorState.required.filter(name => name === 'revision').length, 1);
+  priorState.required = priorState.required.filter(name => name !== 'revision');
+  delete priorState.properties.revision;
   priorState.properties.result_availability.minProperties = 1;
   const emptyRules = priorState.allOf.filter(rule =>
     rule.if?.properties?.result_availability?.maxProperties === 0);
@@ -635,9 +679,29 @@ test('ResourceRef targets change only the independently pinned Preview and revie
       'sha256:7585ae7f6737a8a0a196df98e64f496fbca271c910840f1116f6d7990caf39fb',
       schema => schema.properties.displayed_rows.items.properties.target_row_identity],
   ]) {
-    assert.equal(machineCid(registry.artifact_schemas[name]), currentCid);
-    assert.equal(registry.artifact_schema_cids[name], currentCid);
-    const prior = structuredClone(registry.artifact_schemas[name]);
+    const adopted = structuredClone(registry.artifact_schemas[name]);
+    // Undo only the later sealed-review extensions before testing the older
+    // ff6ee156 ResourceRef row-identity change and its original literal pins.
+    if (name === 'effect_preview') {
+      const member = adopted.properties.effects.items;
+      assert.deepEqual(member.properties.preview_strength.enum, ['full_diff', 'targeted']);
+      member.properties.preview_strength.enum = ['full_diff', 'targeted', 'blind'];
+      assert.deepEqual(member.properties.target.oneOf.pop(), registry.schemas.resource_ref);
+    } else {
+      const row = adopted.properties.displayed_rows.items;
+      const member = registry.artifact_schemas.effect_preview.properties.effects.items;
+      for (const field of ['preview_strength', 'target_guard', 'intended_changes']) {
+        assert.deepEqual(row.properties[field], field === 'preview_strength'
+          ? member.properties[field] : member.properties.changes.items.properties[field]);
+        assert.ok(!row.required.includes(field));
+        delete row.properties[field];
+      }
+      assert.deepEqual(adopted.properties.displayed_scope.properties.effects.items
+        .properties.target.oneOf.pop(), registry.schemas.resource_ref);
+    }
+    assert.equal(machineCid(registry.artifact_schemas[name]), registry.artifact_schema_cids[name]);
+    assert.equal(machineCid(adopted), currentCid);
+    const prior = structuredClone(adopted);
     const union = target(prior);
     assert.equal(union.oneOf.length, 4);
     assert.deepEqual(union.oneOf.at(-1), registry.schemas.resource_ref);

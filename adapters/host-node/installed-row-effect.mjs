@@ -119,10 +119,10 @@ const defaultProfile = Object.freeze({
   targetCheck: 'actql-installed-row-effect-check/0.1',
   unit: 'actql-installed-row-effect-unit/0.1',
 });
-const kinds = Object.freeze(['create', 'update', 'upsert', 'command']);
+const kinds = Object.freeze(['create', 'update', 'upsert', 'delete', 'command']);
 // A guarded write selects an existing target and is guarded by its observed
 // version.
-const guarded = kind => kind === 'update' || kind === 'upsert';
+const guarded = kind => kind === 'update' || kind === 'upsert' || kind === 'delete';
 // Commands select a ResourceRef, but do not invent a row version guard or
 // before/after state. The checked payload and current target authority are
 // independent obligations.
@@ -131,8 +131,12 @@ const contractCidOf = member => member.kind === 'command'
   ? member.command.commandCid : member.mapping.mappingCid;
 const approvalOf = member => member.kind === 'command'
   ? member.command.approval : member.mapping.approval;
-const approvedValue = (kind, row) => kind === 'command'
+const approvedValue = (kind, row) => kind === 'delete' ? undefined : kind === 'command'
   ? row.intended_changes?.value : row.after?.value;
+// A deletion has no proposed value. It must not acquire an empty object,
+// null, an UPDATE body or a Command input to satisfy the shared comparison.
+const sameEffectValue = (kind, left, right) => kind === 'delete'
+  ? left === undefined && right === undefined : sameValue(left, right);
 const footprintKinds = Object.freeze(['exact_targets', 'collection',
   'opaque']);
 
@@ -251,9 +255,12 @@ const selectionChanged = cause => {
     {code: 'InstalledRowEffectInstallationChanged'}));
 };
 const updateObservations = owners => owners.map(owner => ({installation: ownerBinding(owner),
-  update: owner.owned.kinds.includes('update'), mappings: owner.installed.map(mapping => ({
+  update: owner.owned.kinds.includes('update'),
+  ...(owner.owned.kinds.includes('delete') ? {delete: true} : {}),
+  mappings: owner.installed.map(mapping => ({
     target: mapping.target, mappingRef: mapping.mappingRef, mappingCid: mapping.mappingCid,
-    update: mapping.rules.some(rule => rule.effect_kind === 'update')}))}));
+    update: mapping.rules.some(rule => rule.effect_kind === 'update'),
+    ...(mapping.rules.some(rule => rule.effect_kind === 'delete') ? {delete: true} : {})}))}));
 const validateOwnerSelections = (owners, selections, prepared) => {
   if (selections === undefined) return undefined;
   try { assertUpdateTargetSelectionCurrent(selections, updateObservations(owners), prepared); }
@@ -536,7 +543,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     if (selections === undefined) return undefined;
     const liveAssertion = facts.assertUpdateSelectionCurrent;
     if (typeof liveAssertion !== 'function') selectionChanged();
-    const updates = members.filter(member => member.kind === 'update');
+    const updates = members.filter(member => member.kind === 'update' || member.kind === 'delete');
     const assertCurrent = () => {
       validateOwnerSelections(owners, selections, facts.prepared);
       try {
@@ -642,7 +649,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const facts = owned.requestFacts(request);
     if (!request || !cidPattern.test(requestCid ?? '') ||
         facts === null || typeof facts !== 'object' ||
-        facts.value === null || typeof facts.value !== 'object' ||
+        (member.kind === 'delete' ? facts.value !== undefined :
+          facts.value === null || typeof facts.value !== 'object') ||
         targeted(member.kind) === (facts.target === undefined)) {
       fail('InvalidInstalledRowEffectRequest');
     }
@@ -655,7 +663,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   // target, than the Program's row is refused.
   const requestEntry = (member, row, prepared) => {
     const entry = entryOf(member, prepared?.request, prepared?.requestCid);
-    if (!sameValue(entry.value, row.value) ||
+    if (!sameEffectValue(member.kind, entry.value, row.value) ||
         (targeted(member.kind) && !sameValue(entry.target, row.selector))) {
       fail('ForeignInstalledRowEffectRequest');
     }
@@ -873,7 +881,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   const admitRow = ({applyPreview, memberIndex, rowIndex, claim, member,
     entry, previewRow}) => {
     if (claim.canonicalRequestCid !== entry.requestCid ||
-        !sameValue(entry.value, approvedValue(member.kind, previewRow)) ||
+        !sameEffectValue(member.kind, entry.value, approvedValue(member.kind, previewRow)) ||
         (targeted(member.kind) &&
           !sameValue(entry.target, previewRow.target_row_identity))) {
       fail('ForeignInstalledRowEffectRequest');
@@ -1174,6 +1182,13 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           before: {state: 'not_applicable'}, after: {state: 'not_applicable'},
           intended_changes: {state: 'present', value: row.entry.value},
           row_preview_cid: pendingCid, row_idempotency_key: pendingCid,
+        } : member.kind === 'delete' ? {
+          target_row_identity: row.entry.target,
+          target_guard: {state: 'version', version_cid: row.versionCid},
+          before: {state: 'present', value: row.before},
+          after: {state: 'absent'},
+          intended_changes: {state: 'not_applicable'},
+          row_preview_cid: pendingCid, row_idempotency_key: pendingCid,
         } : {
           target_row_identity: row.entry.target,
           target_guard: {state: 'version', version_cid: row.versionCid},
@@ -1442,7 +1457,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     body.effects.forEach((member, index) => {
       if (member.changes.length !== entries[index].length ||
           member.changes.some((change, row) =>
-            !sameValue(approvedValue(members[index].kind, change), entries[index][row].value) ||
+            !sameEffectValue(members[index].kind, approvedValue(members[index].kind, change), entries[index][row].value) ||
             (targeted(members[index].kind) && !sameValue(
               change.target_row_identity, entries[index][row].target)))) {
         fail('InstalledRowEffectPreviewOrderMismatch');
@@ -1690,7 +1705,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       }
       rows.forEach((entry, row) => {
         if (entry.requestCid !== claims[row].canonicalRequestCid ||
-            !sameValue(entry.value, approvedValue(member.kind, changes[row])) ||
+            !sameEffectValue(member.kind, entry.value, approvedValue(member.kind, changes[row])) ||
             (targeted(member.kind) && !sameValue(entry.target,
               changes[row].target_row_identity))) {
           fail('ForeignInstalledRowEffectRequest');

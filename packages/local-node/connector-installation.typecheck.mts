@@ -185,3 +185,106 @@ const missingGuardedRead: ChildContext = {
   member: childMember, value: {}, current: undefined, rowIndex: 0,
 };
 void [commandWithoutRead, commandWithRead, missingGuardedRead];
+
+// DELETE has no proposed value in the actual installed Row Effect. Its
+// original target still comes from the checked row, not a placeholder body.
+type DeleteRequest = Readonly<{target: import('./connector-installation.js').ConnectorJsonValue}>;
+type DeleteDriver = RowEffectDriver<DeleteRequest, unknown, 'delete'>;
+declare const originalDeleteDriver: DeleteDriver;
+const deleteDriver: DeleteDriver = {
+  ...originalDeleteDriver, kinds: ['delete'],
+  prepareRequest({value, selector}) {
+    const absent: undefined = value;
+    if (selector === undefined) throw new Error('OriginalDeleteTargetRequired');
+    void absent;
+    return {request: {target: selector}, requestCid: bindingCid};
+  },
+  requestFacts: request => ({target: request.target}),
+  prepareRequestChild(context) {
+    if (context.rowIndex === undefined) throw new Error('OriginalDeleteReadRequired');
+    const absent: undefined = context.value;
+    void absent;
+    return {
+      async prepare() {
+        await context.authorizationForRow();
+        return deleteDriver.prepareRequest(context);
+      },
+      release: () => false, retry: async () => undefined,
+      status: () => ({pending: true}),
+    };
+  },
+};
+const publicDeleteKind: import('./connector-installation.js').RowEffectKind = 'delete';
+const publicAbsentEntry: import('./connector-installation.js').RowEffectEntry<DeleteRequest> = {
+  request: {target: 'original-id'}, requestCid: bindingCid, value: undefined,
+};
+const deleteEntry: import('./connector-installation.js').RowEffectEntry<DeleteRequest, 'delete'> = publicAbsentEntry;
+void [publicDeleteKind, publicAbsentEntry, deleteEntry];
+
+type DeletePreparation = Parameters<DeleteDriver['prepareRequest']>[0];
+declare const originalDeletePreparation: DeletePreparation;
+const dummyDeleteObject: DeletePreparation = {...originalDeletePreparation,
+  // @ts-expect-error DELETE: An empty object is not an absent proposed value.
+  value: {},
+};
+const dummyDeleteNull: DeletePreparation = {...originalDeletePreparation,
+  // @ts-expect-error DELETE: Null is not an absent proposed value.
+  value: null,
+};
+const invalidDeleteFacts: Pick<DeleteDriver, 'requestFacts'> = {
+  // @ts-expect-error DELETE: Request facts cannot introduce a proposed object.
+  requestFacts: request => ({target: request.target, value: {}}),
+};
+const invalidDeleteChild: DeleteDriver = {...deleteDriver,
+  // @ts-expect-error DELETE: The child must be retained synchronously before any await.
+  prepareRequestChild: async context => deleteDriver.prepareRequestChild!(context),
+};
+const invalidDeleteCleanup: DeleteDriver = {...deleteDriver,
+  // @ts-expect-error DELETE: Preparation completion cannot omit original cleanup custody.
+  prepareRequestChild: context => ({prepare: () => deleteDriver.prepareRequest(context), status: () => ({pending: true})}),
+};
+type ExistingPreparation = Parameters<RowEffectDriver<Request>['prepareRequest']>[0];
+declare const originalValuePreparation: ExistingPreparation;
+const absentUpdateValue: ExistingPreparation = {...originalValuePreparation,
+  // @ts-expect-error Value-bearing: Existing value-bearing inputs still require their object.
+  value: undefined,
+};
+const absentUpdateFacts: Pick<RowEffectDriver<Request>, 'requestFacts'> = {
+  // @ts-expect-error Value-bearing: A value-bearing request cannot omit its original value.
+  requestFacts: () => ({}),
+};
+void [dummyDeleteObject, dummyDeleteNull, invalidDeleteFacts, invalidDeleteChild,
+  invalidDeleteCleanup, absentUpdateValue, absentUpdateFacts];
+
+// Existing Command input remains value-bearing, with the original rowless
+// optional indexed read context and a Command contract rather than a Mapping.
+type CommandRequest = Readonly<{value: ConnectorJsonObject}>;
+type CommandDriver = RowEffectDriver<CommandRequest, unknown, 'command'>;
+declare const originalCommandDriver: CommandDriver;
+const commandDriver: CommandDriver = {...originalCommandDriver, kinds: ['command'],
+  prepareRequest({member, value}) {
+    const input: ConnectorJsonObject = value;
+    const contract: string = member.command.commandCid;
+    void contract;
+    return {request: {value: input}, requestCid: bindingCid};
+  },
+  requestFacts: request => ({value: request.value}),
+};
+type CommandChildContext = Parameters<NonNullable<CommandDriver['prepareRequestChild']>>[0];
+declare const originalCommandMember: CommandChildContext['member'];
+const originalCommandWithoutRead: CommandChildContext = {
+  member: originalCommandMember, value: {body: 'original'}, current: undefined,
+};
+const originalCommandWithRead: CommandChildContext = {
+  ...originalCommandWithoutRead, authorizationForRow: indexedRead,
+};
+const absentCommandFacts: Pick<CommandDriver, 'requestFacts'> = {
+  // @ts-expect-error Value-bearing: A Command still needs its original input value.
+  requestFacts: () => ({}),
+};
+declare const originalDeleteOptions: Parameters<typeof createInstalledRowEffect<DeleteRequest, unknown, 'delete'>>[0];
+const publicDeleteFactory = createInstalledRowEffect({...originalDeleteOptions, driver: deleteDriver});
+declare const originalCommandOptions: Parameters<typeof createInstalledRowEffect<CommandRequest, unknown, 'command'>>[0];
+const publicCommandFactory = createInstalledRowEffect({...originalCommandOptions, driver: commandDriver});
+void [commandDriver, originalCommandWithoutRead, originalCommandWithRead, absentCommandFacts,
+  publicDeleteFactory, publicCommandFactory];
