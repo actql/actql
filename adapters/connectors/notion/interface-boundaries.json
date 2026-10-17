@@ -1,5 +1,5 @@
 {
-  "source": "cbf2ad749a6c98189553aee85b5614b9aad0c3f0",
+  "source": "8485c83f580719123bf0894d09a6767c3866e3bc",
   "qualification": "Lead-reviewed existing Owner references and syntax coverage only; not normal funding, raw retirement, installation, actual Notion service or release acceptance",
   "declarations": [
     {
@@ -940,7 +940,7 @@
     },
     {
       "module": "adapters/connectors/notion/site/database-discovery.mjs",
-      "sha256": "ed0481c27aa11be0c07835fd67b54edbfdba8b4732da6d9e0b5a1c05ac081b3a",
+      "sha256": "e9a3afd7a2bcc3e00ff689083db8ab0f02ed12541365fcc1835e496eba0d16eb",
       "exports": [
         "NOTION_DATABASE_RETRIEVE_OPERATION",
         "NOTION_DATA_SOURCE_RETRIEVE_OPERATION",
@@ -1060,7 +1060,8 @@
             "chargeResponse",
             "consumeObservation",
             "limits",
-            "signal"
+            "signal",
+            "systemColumns"
           ],
           "async": false
         },
@@ -1140,6 +1141,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "## Original database discovery requests"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "## Original Source system columns"
               }
             ],
             "inputsOutputs": [
@@ -1150,6 +1155,10 @@
               {
                 "path": "src/connectors/notion/host_node/read_contract_bridge.mbt",
                 "anchor": "pub fn notion_read_database_id("
+              },
+              {
+                "path": "adapters/connectors/notion/site/database-discovery.mjs",
+                "anchor": "const readContracts=original.systemColumns?checked(provider.notionSourceSystemReadContracts("
               }
             ],
             "identity": [
@@ -1160,18 +1169,30 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "The selected original\nschema and declaration then form the same `NotionDataSourceReadContracts`"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "It retains the original declaration,"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "Every response is retained before charging/admission/current callbacks."
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The augmented binding adds a bounded system-contract vector, tuple records and"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "current Account authorization is checked before, through and after"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The same original row, complete Value builder and whole-page"
               }
             ],
             "failure": [
@@ -1182,12 +1203,20 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "reply remains the original Credential journal's Unknown and is never resent."
+              },
+              {
+                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "anchor": "actual Notion full Source metadata omission refuses before property I/O without publishing rows"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "Stop aborts the same pending operation."
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "canonical output and cancellation remain charged and fail closed."
               }
             ],
             "resources": [
@@ -1198,12 +1227,20 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "Aliases still extend the original lifetime and do not cost zero by sharing."
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Row assembly adds"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "Trusted installation/configuration-revision membership, saved Run"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "It is not a\ncomplete public Source schema."
               }
             ],
             "verification": [
@@ -1218,6 +1255,14 @@
               {
                 "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
                 "anchor": "actual Notion discovery aggregate exhaustion retains the offending original body and charge"
+              },
+              {
+                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "anchor": "actual Notion discovery retains full Source metadata through the same original typed property row"
+              },
+              {
+                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "anchor": "actual Notion full Source metadata omission refuses before property I/O without publishing rows"
               }
             ]
           }
