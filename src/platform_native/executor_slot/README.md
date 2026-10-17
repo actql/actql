@@ -66,3 +66,15 @@ The Holder, transport, borrow, anchor and library roots must remain in the same
 parent holding outside the child region. This module supplies no numerical
 profile or funding and cannot replace the original installed resource Owner.
 The existing one-way Channel API and scoped Stop contract remain unchanged.
+
+`prepare_unstarted_cleanup` is a cleanup-only fence for an original physical
+region that was bound before launch. An actual child always refuses this path,
+including after its wait observation. After an attempted duplex launch the same
+Holder must have observed that synchronous call return with no retained child;
+an unresolved attempt, external error or missing PID supplies no such fact. The
+older attempted one-way path is not admitted by this new seam.
+
+The fence retires known original transport endpoints only after borrow return,
+preserves close Unknown, and retains the anchor until the existing physical
+Owner completes its unstarted-region cleanup and calls `holder.cleanup`.
+It does not reopen a launch attempt or issue Stop, region or WorkspaceLoan ACK.

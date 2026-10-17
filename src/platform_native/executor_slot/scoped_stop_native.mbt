@@ -52,6 +52,7 @@ struct NativeScopedExecutorHolder {
   anchor : NativeExecutorSlotAnchor
   preparation_issue : NativeExecutorSlotIssue?
   mut attempted : Bool
+  mut duplex_spawn_returned : Bool
   mut child : NativeExecutorSlotChild?
   mut channel : NativeHolderChannel?
   mut duplex : NativeScopedDuplexTransport?
@@ -125,6 +126,7 @@ pub fn NativeExecutorSlot::prepare_scoped_holder(
     anchor,
     preparation_issue: issue,
     attempted: false,
+    duplex_spawn_returned: false,
     child: None,
     channel: None,
     duplex: None,
@@ -392,8 +394,26 @@ pub fn NativeScopedExecutorHolder::cleanup(
     }
     return false
   }
-  if self.duplex is Some(transport) && !transport.cleanup_unstarted(self) {
+  if self.duplex is Some(_) && self.attempted && !self.duplex_spawn_returned {
     return false
+  }
+  if self.retire_unstarted_transport() is Err(_) {
+    return false
+  }
+  if scoped_anchor_close_ffi(self.anchor) != 0 {
+    self.partial_close_unknown = true
+    return false
+  }
+  self.closed = true
+  true
+}
+
+///|
+fn NativeScopedExecutorHolder::retire_unstarted_transport(
+  self : NativeScopedExecutorHolder,
+) -> Result[Unit, NativeExecutorSlotIssue] {
+  if self.duplex is Some(transport) && !transport.cleanup_unstarted(self) {
+    return Err(Busy)
   }
   if self.output >= 0 {
     let original = self.output
@@ -410,12 +430,7 @@ pub fn NativeScopedExecutorHolder::cleanup(
     }
   }
   if self.partial_close_unknown || self.parent_close_unknown {
-    return false
+    return Err(LockFailed)
   }
-  if scoped_anchor_close_ffi(self.anchor) != 0 {
-    self.partial_close_unknown = true
-    return false
-  }
-  self.closed = true
-  true
+  Ok(())
 }
