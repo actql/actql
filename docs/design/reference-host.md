@@ -151,3 +151,33 @@ account deny always prevents dispatch. Project configuration never grants
 itself authority, and an invalid configured policy never falls back to these
 defaults. Mock fixture replacement remains explicit and cannot substitute
 fixture credentials or permissions into a real connection.
+
+### Purpose-confined initial Local signing issuer
+
+The original explicit Local initialization/adoption may retain an internal
+issuance responsibility for the same physical Store and installed key
+generation. This is a narrow operational admission inside the existing trusted
+Host/installation and Credential boundary. It is not an authority inferred from
+Host adoption, parsed signer metadata, public-key identity or possession of a
+PEM, and it does not change the explicit Native issuer-file/Account route.
+
+The initialization/adoption originals must authenticate the actual issuer
+identity and an explicit finite signing expiry/use policy. Missing originals
+stay unavailable, including on cold open. Do not derive a policy from the
+Submission epoch, assume a use count or create a synthetic issuer selection.
+Named selection cannot silently become the default. The machine-user identity
+comes from the actual trusted installation/current actor, not a caller label.
+
+Confine issuance to the existing original request/Submission/Run/attempt/unit,
+Checkpoint/kind, purpose, key configuration/generation, preimage and finite use.
+Current actor, Reviewer/Host-attestation purpose, Run read, Account and key/sign
+authority remain independent requirements. This connection grants no generic
+credential issue, Source/Model/Effect or dispatch authority. Authenticate and
+persist the original grant and durably claim the original use before signing,
+with current rechecks around callbacks. Uncertain commits/signatures retain the
+same original duty; no replacement key/grant/use, re-signing or resend. Recovery
+and saved-outcome reads cannot initialize missing originals or issue again.
+
+The [Local signing contract](../../spec/contracts/local-signing-credential.md)
+owns this distinction and the unchanged grant/use bytes. A metadata/key
+component test is not evidence of initialized default or installed approval.

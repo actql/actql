@@ -96,7 +96,11 @@ The existing Host and Credential Owners must authenticate original adoption,
 selected key generation and private resource custody, obtain current
 purpose-specific authority, reserve bounded workspace, claim the original use
 durably, and recheck current authority after callbacks. Reviewer resolve,
-Client Run read, issuer issue authority and Host attestation remain distinct.
+Client Run read, issuer issuance responsibility and Host attestation remain
+distinct. The explicit Native issuer route still requires its original selected
+issuer configuration and current `credential/<issuer>:issue` decision; the
+narrow initial-Host route below does not replace that route or manufacture that
+Account decision.
 Restored metadata cannot open a key, produce a new claim, repair missing
 originals, extend expiry, or retry an unknown signature outcome.
 
@@ -106,6 +110,44 @@ return authorization. Lost claim/ACK remains unresolved until the existing
 journal establishes its original outcome; failed cleanup retains the same
 Owner, retry handle and reservation. This metadata contract introduces no
 parallel Grant issuer, Store, Ledger, Scheduler or Recovery Owner.
+
+### Initial Local Host issuance responsibility
+
+An authenticated original explicit Local initialization/adoption may supply a
+private operational admission to the existing LocalSigning issuer for that same
+physical Store and original installed key generation. This is an intentional
+initial-0.1 operational extension, not authority previously supplied by signer
+metadata or key generation. General Host adoption, a PEM, public-key CID, path,
+signer label, current file hash or incoming approval is insufficient. Missing
+original initialization, installation or policy remains unavailable; an ordinary
+cold open cannot initialize or reconstruct it.
+
+The original trusted initialization/adoption must retain or durably authenticate
+the actual installation issuer identity and its explicitly selected finite
+expiry/use policy. Neither a guessed issuer label, Submission epoch lifetime,
+arbitrary signing lifetime nor an inferred use limit replaces those originals.
+The admission is confined to one original Checkpoint, purpose, exact preimage
+and original finite use. It is not an exported generic issuer, a wildcard
+key-use capability or a Source, Model, Effect, egress or dispatch grant.
+
+Require the same retained Client request, Submission, Run definition/invocation,
+attempt and unit; the original current Checkpoint/kind; and the original selected
+key configuration/generation. Independently require current actor, Account,
+Reviewer or Host-attestation purpose authority, Run read and physical key/sign
+permission. ReviewerProof and HostAttestation retain distinct selected key
+originals. A Host attestation cannot supply Reviewer permission. Default
+machine-user identity comes from the actual trusted installation/current actor,
+not a caller's claimed human identity. A failed named selection never falls
+back to the default. Cancellation, denial, retired or replaced originals refuse.
+
+Persist/adopt the original grant and durably claim its original use in the
+existing journal/custody before physical signing. Recheck current bindings
+around asynchronous key access and callbacks. Commit or signature uncertainty
+retains the same duty: no replacement grant, ordinal, attempt, key or signer,
+re-signing or resend. Authenticated original saved-signature return and history
+inspection remain separate, current-authorized no-issuance paths. Recovery may
+read the same original key/issuer/grant/use/outcome; it cannot repair missing
+records by initialization or reissuance.
 
 
 ## Native original history read

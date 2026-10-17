@@ -2541,6 +2541,54 @@ and its pinned independent vectors define the byte framing. Existing Local
 grant/use bodies and pins remain unchanged; Native signing and operational
 caller connection are separate.
 
+<a id="initial-local-signing-issuer"></a>
+
+## Initial Local signing issuer admission
+
+<!-- requirement-block: initial-local-signing-issuer.authenticated-original -->
+The existing trusted Local Host/installation Owner MUST admit private
+LocalSigning issuance responsibility only from authenticated original explicit
+initialization/adoption for the same physical Store and original installed key
+generation, retaining or durably authenticating the actual installation issuer
+identity and explicit original finite expiry/use policy, refusing general Host
+adoption, signer metadata, PEM, public-key CID, path or current file hash as
+substitutes, and leaving missing originals unavailable without cold
+initialization or reconstruction.
+
+<!-- requirement-block: initial-local-signing-issuer.exact-operation -->
+The admission MUST be confined to the same original Client request, Submission,
+Run definition/invocation, attempt/unit, current Checkpoint/kind, purpose,
+selected key configuration/generation, exact preimage and finite use.
+
+<!-- requirement-block: initial-local-signing-issuer.independent-current-authority -->
+Current actor, Account, Reviewer or Host-attestation purpose, Run-read and
+physical key/sign authority MUST remain independent requirements, refusing
+cancellation, denial, retired/replaced originals and wrong-purpose substitution.
+
+<!-- requirement-block: initial-local-signing-issuer.original-default-identity -->
+Default machine-user identity MUST come from the actual trusted
+installation/current actor, without a named selection falling back to the
+default.
+
+<!-- requirement-block: initial-local-signing-issuer.no-authority-expansion -->
+The admission MUST exclude generic issuance, Source/Model/Effect/dispatch
+grants, changes to the explicit Native issuer route and policy inferred from
+Submission expiry.
+
+<!-- requirement-block: initial-local-signing-issuer.original-durable-use -->
+The existing journal/custody MUST persist/adopt the original grant and durably
+claim its original use before physical signing, with current rechecks around
+asynchronous key access and callbacks, retained original duty on commit/signature
+uncertainty without replacement grant, ordinal, attempt, key, signer, re-signing
+or resend, recovery/saved-outcome authentication of the same original
+key/issuer/grant/use/outcome and current return authority without initialization
+or reissuance, and separate ReviewerProof/HostAttestation key/purpose originals.
+
+The [existing Local signing Owner](../../../spec/contracts/local-signing-credential.md)
+defines the unchanged closed grant/use bodies. This private operational
+extension introduces no public signer field, new Owner, Ledger or approval
+mechanism; structural DATA admission is not operational acceptance.
+
 <a id="machine-contracts"></a>
 
 <!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/compiled_plan sha256:25094bdc116c9edae1f9ea4123e182d9d898f718941527fe466f55bd448fe7b8 -->
