@@ -22,6 +22,7 @@ int actql_native_owned_acquire(size_t capacity, uint64_t generation, const unsig
 int actql_native_owned_allocate(actql_owned_capacity * lease, size_t bytes, size_t alignment, void ** out);
 int actql_native_owned_capacity_bytes(actql_owned_capacity * lease, uint64_t * out);
 int actql_native_owned_capture_image_fd(actql_owned_capacity * lease, int fd, size_t expected_bytes, size_t maximum_bytes, const unsigned char * digest, void ** out);
+int actql_native_owned_contains_live_rust_span(actql_owned_capacity * lease, const void * address, size_t bytes);
 int actql_native_owned_contains_live_span(actql_owned_capacity * lease, const void * address, size_t bytes);
 int actql_native_owned_control_bytes(actql_owned_capacity * lease, uint64_t * out);
 int actql_native_owned_control_scope_clear(void);

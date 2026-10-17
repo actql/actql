@@ -197,7 +197,10 @@ static int compile_original(struct compilation *call, const char *module_path,
     describe_inventory(call->owner, "after-serialization");
     if (call->error != NULL || call->image.data == NULL || call->image.size == 0 ||
         call->image.size > ACTQL_COMPILER_IMAGE_MAX_BYTES ||
-        actql_native_owned_contains_live_span(call->owner, call->image.data,
+        /* The official C API owns this original Rust byte vector until
+         * close_compilation deletes it. Physical containment is not a grant
+         * or a generic export: never lend/protect/retire its heap page here. */
+        actql_native_owned_contains_live_rust_span(call->owner, call->image.data,
                                               call->image.size) != ACTQL_OWNED_OK) return 13;
     COMPILER_PHASE("image write");
     call->output_fd = open(output_path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600);

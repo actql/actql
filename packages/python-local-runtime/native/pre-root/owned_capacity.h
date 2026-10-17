@@ -74,6 +74,12 @@ int actql_native_owned_rust_allocate(actql_owned_capacity *lease, size_t bytes,
     size_t alignment, void **out, uint64_t *token);
 int actql_native_owned_rust_retire(actql_owned_capacity *lease, void *allocation,
                                    uint64_t token);
+/* Read-only physical containment inside one live Rust allocation. The trusted
+ * native caller must retain its original owning buffer/handle for the entire
+ * read. This does not identify a stale pointer after reuse, issue a borrow or
+ * authority, or make a heap page a generic/protectable/exportable span. */
+int actql_native_owned_contains_live_rust_span(actql_owned_capacity *lease,
+                                               const void *address, size_t bytes);
 /* Requires all children retired. Failure preserves the original pointer. */
 int actql_native_owned_try_close(actql_owned_capacity **lease);
 

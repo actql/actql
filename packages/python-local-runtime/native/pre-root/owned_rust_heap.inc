@@ -203,3 +203,50 @@ done:
     unlock_capacity(lease);
     return status;
 }
+
+
+int actql_native_owned_contains_live_rust_span(actql_owned_capacity *lease,
+                                               const void *address, size_t bytes) {
+    if (lease == NULL || address == NULL || bytes == 0 ||
+        current_capacity != lease || current_process != getpid() ||
+        atomic_load_explicit(&lease->rust_process, memory_order_acquire) != getpid())
+        return ACTQL_OWNED_INVALID;
+    if (foreign_domain_process(lease)) return ACTQL_OWNED_BUSY;
+    lock_capacity(lease);
+    int status = ACTQL_OWNED_INVALID;
+    uintptr_t base = (uintptr_t)lease, pointer = (uintptr_t)address;
+    if (foreign_domain_process(lease) || !lease->transferred || lease->closing ||
+        pointer < base || pointer - base >= lease->length ||
+        bytes > lease->length - (pointer - base)) goto done;
+    size_t index = (pointer - base) / lease->page_size;
+    if (index < lease->control_pages) goto done;
+    while (index > lease->control_pages && lease->extents[index].pages == SIZE_MAX)
+        index--;
+    struct extent *extent = &lease->extents[index];
+    if (extent->pages == 0 || extent->pages == SIZE_MAX || extent->retired ||
+        extent->pages > lease->page_count - index) goto done;
+    uintptr_t begin = base + index * lease->page_size;
+    if (extent->rust_class == RUST_HEAP_LARGE) {
+        if (extent->rust_token != 0 && pointer >= begin &&
+            pointer - begin < extent->pages * lease->page_size &&
+            bytes <= extent->pages * lease->page_size - (pointer - begin))
+            status = ACTQL_OWNED_OK;
+        goto done;
+    }
+    if (extent->rust_class == 0 || extent->rust_class > RUST_HEAP_CLASSES || extent->pages != 1)
+        goto done;
+    struct rust_heap_page *page = rust_page(lease, index);
+    if (page->slot_bytes != (size_t)64 << (extent->rust_class - 1) ||
+        page->offset < sizeof(struct rust_heap_page) || page->offset > lease->page_size ||
+        page->count > RUST_HEAP_SLOTS ||
+        page->count != (lease->page_size - page->offset) / page->slot_bytes ||
+        pointer < begin + page->offset) goto done;
+    size_t relative = pointer - begin - page->offset;
+    size_t slot = relative / page->slot_bytes;
+    if (slot < page->count && page->tokens[slot] != 0 &&
+        bytes <= page->slot_bytes - relative % page->slot_bytes)
+        status = ACTQL_OWNED_OK;
+done:
+    unlock_capacity(lease);
+    return status;
+}

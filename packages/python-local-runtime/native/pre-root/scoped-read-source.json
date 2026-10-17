@@ -32,8 +32,8 @@
       "root": "provider",
       "path": "owned_capacity.h",
       "output": "owned_capacity.h",
-      "bytes": 4741,
-      "sha256": "918cc64413e7f2483e3ef8bda5a082e5b915e651cbde6e37247236c38d490ea1"
+      "bytes": 5212,
+      "sha256": "48bae3d28fc913d1eccf7b42487d9515d1935567c7aabc3ff8a2fa10b7065278"
     },
     {
       "root": "provider",
@@ -158,8 +158,8 @@
       "root": "provider",
       "path": "owned_rust_heap.inc",
       "output": "owned_rust_heap.inc",
-      "bytes": 9733,
-      "sha256": "08aa31df8a24a1b13e000027fcf2a4507b499e0cbd44a9b81fbeb20959c23c19"
+      "bytes": 12126,
+      "sha256": "a7855eb64efc00369690e0177a2ff7e5dc8690ecf34ee5ec7de0ca4e5a12e938"
     }
   ],
   "outputs": {
@@ -204,8 +204,8 @@
       "sha256": "84f4110479418119aa08739874a66953cb9be5eac6935a3790351fa32f322dbd"
     },
     "owned_capacity.h": {
-      "bytes": 4741,
-      "sha256": "918cc64413e7f2483e3ef8bda5a082e5b915e651cbde6e37247236c38d490ea1"
+      "bytes": 5212,
+      "sha256": "48bae3d28fc913d1eccf7b42487d9515d1935567c7aabc3ff8a2fa10b7065278"
     },
     "owned_domain_borrow.h": {
       "bytes": 2573,
@@ -224,8 +224,8 @@
       "sha256": "952fa3c95f46a41d9e276f59abb2a0b28ae60c8a2c5c1a73c1bf53620d74bb7d"
     },
     "owned_rust_heap.inc": {
-      "bytes": 9733,
-      "sha256": "08aa31df8a24a1b13e000027fcf2a4507b499e0cbd44a9b81fbeb20959c23c19"
+      "bytes": 12126,
+      "sha256": "a7855eb64efc00369690e0177a2ff7e5dc8690ecf34ee5ec7de0ca4e5a12e938"
     },
     "owned_thread.h": {
       "bytes": 1894,

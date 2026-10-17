@@ -841,3 +841,24 @@ external operations or a normal numerical profile. Observations cannot clear
 RuntimeRetained, acknowledge a stop, export a heap alias or replace original
 cleanup responsibility. Matching compiler diagnostics remain outside the
 successful image response protocol.
+
+
+#### Original Rust buffer inspection
+
+A trusted native caller may inspect physical containment of an original Rust
+buffer while it retains that buffer's owning handle. The same provider checks
+current holding/process, one live Rust slot or large allocation, and a range
+contained within it. Slab control metadata, retired/pending storage, foreign
+holdings and ranges crossing allocation boundaries refuse. This is a physical
+range observation, not proof of Rust type, logical length, authorization or a
+stale pointer after reuse; original allocation tokens still govern retirement.
+Rust allocation headers remain with their existing Rust owner and are not
+reinterpreted by C.
+
+For the maintainer compiler, the official Wasmtime C API owns its original
+serialized byte vector until the existing cleanup deletes that same vector.
+Only that same lifetime supplies the buffer/length to physical inspection and
+bounded image writing. No generic span, heap-page protection/lending, loader
+fallback or copied-buffer owner is created. The original vector remains live
+through write failure and is deleted in its original scope before holding
+retirement. Generic Rust-page export refusals remain unchanged.
