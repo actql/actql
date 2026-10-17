@@ -31081,7 +31081,7 @@
             "responsibility": [
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
-                "anchor": "class _NativeHoldingLease:"
+                "anchor": "def _from_native_provider(cls, pointer: c_void_p, library: Any, *,"
               },
               {
                 "path": "packages/python-local-runtime/native/pre-root/owned_capacity.h",
@@ -31099,7 +31099,7 @@
             "inputsOutputs": [
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
-                "anchor": "class _NativeHoldingLease:"
+                "anchor": "def _from_native_provider(cls, pointer: c_void_p, library: Any, *,"
               },
               {
                 "path": "packages/python-local-runtime/native/pre-root/owned_capacity.h",
@@ -31216,6 +31216,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
                 "anchor": "class _NativeHoldingLease:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_holding_close.py",
+                "anchor": "def test_direct_provider_slot_uses_only_canonical_c_entry_without_rust_loading(self):"
               }
             ]
           }
@@ -31229,7 +31233,7 @@
             "responsibility": [
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
-                "anchor": "class _NativeHoldingLease:"
+                "anchor": "def _initialize_original(self, pointer: c_void_p, library: Any, generation: int,"
               },
               {
                 "path": "packages/python-local-runtime/native/pre-root/owned_capacity.h",
@@ -31247,7 +31251,7 @@
             "inputsOutputs": [
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
-                "anchor": "class _NativeHoldingLease:"
+                "anchor": "def _initialize_original(self, pointer: c_void_p, library: Any, generation: int,"
               },
               {
                 "path": "packages/python-local-runtime/native/pre-root/owned_capacity.h",
@@ -31364,6 +31368,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_holding.py",
                 "anchor": "class _NativeHoldingLease:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_holding_close.py",
+                "anchor": "def test_direct_provider_slot_uses_only_canonical_c_entry_without_rust_loading(self):"
               }
             ]
           }
