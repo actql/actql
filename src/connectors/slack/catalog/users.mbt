@@ -88,7 +88,14 @@ pub fn project_slack_user_list(
       max_total_string_bytes: limits.max_bytes,
     }) {
     Ok(value) => value
-    Err(_) => return Err(InvalidResponse)
+    Err(issue) =>
+      return Err(
+        if issue.kind == @decode.BudgetExceeded {
+          BudgetExceeded
+        } else {
+          InvalidResponse
+        },
+      )
   }
   guard @decode.open_object(cursor) is Ok(root) &&
     @decode.lookup(root, "ok") is Some(ok) &&
@@ -225,6 +232,11 @@ pub fn slack_user_list_ids(page : SlackUserListPage) -> Array[String] {
       _ => abort("checked Slack user identity invariant")
     }
   })
+}
+
+///|
+pub fn slack_user_list_row_count(page : SlackUserListPage) -> Int {
+  page.rows.length()
 }
 
 ///|
