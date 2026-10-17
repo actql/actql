@@ -6,7 +6,8 @@ import {readFileSync, mkdtempSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
-import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import {spawnSync} from 'node:child_process';
+import {pathToFileURL} from 'node:url';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
@@ -14,6 +15,14 @@ import {readInstalledModelExecution} from './installed-model.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 import {canonical, identity, configuration, program, task} from '../../scripts/fixtures/first-m1-common-materials.mjs';
+
+// A directly supervised selected build may use a separate output directory so
+// unrelated retained runtimes are not overwritten. The receipt binds its exact
+// Source and bytes; this test choice supplies no operational runtime authority.
+const runtimeUrl = process.env.ACTQL_INFER_ORIGINAL_RUNTIME === undefined
+  ? new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url)
+  : pathToFileURL(process.env.ACTQL_INFER_ORIGINAL_RUNTIME);
+const moon = await import(runtimeUrl.href);
 
 const base = JSON.parse(readFileSync(new URL('../../spec/local-check-environment.json', import.meta.url)));
 const profiles = Object.freeze([false, false, true, false, false, false, false]);
@@ -180,4 +189,41 @@ test('Infer material and Run roll back together when original journal custody CO
   assert.equal(database.prepare('SELECT COUNT(*) AS n FROM client_requests').get().n, 0);
   assert.equal(database.prepare('SELECT issued_count AS n FROM client_submission_custody').get().n, 0);
   // The failed attempt stays failed. No retry or replacement claim is issued.
+});
+
+test('another process reads the same Journal original pair after an acceptance reply is discarded', t => {
+  const f = journalFixture(t);
+  f.accept();
+  f.journal.close();
+  const module = relative => new URL(relative, import.meta.url).href;
+  const code = `import assert from 'node:assert/strict';
+    import * as moon from ${JSON.stringify(runtimeUrl.href)};
+    import {runtimeCore} from ${JSON.stringify(module('../host-common/runtime-core.mjs'))};
+    import {openClientRequestJournal} from ${JSON.stringify(module('./client-request-journal.mjs'))};
+    import {originalModelRunWire} from ${JSON.stringify(module('./installed-model-originals.mjs'))};
+    const control=runtimeCore(moon).publicationControl;
+    const journal=openClientRequestJournal(process.argv[1]);
+    try {
+      const ref=JSON.parse(process.argv[2]);
+      const saved=journal.lookupRunDefinition(ref,moon,control);
+      assert.equal(saved.physicalStartReserved,false);
+      const restored=control.admitStoredClientInferRunOriginal(saved.runAdmissionEvidence.inferRunOriginal,
+        saved.runDefinition,saved.programDefinitionCid,saved.runAdmissionEvidence,
+        ${JSON.stringify(profiles)},${JSON.stringify(bounds)});
+      assert.equal(originalModelRunWire(restored.compiled,restored.runDefinition),
+        saved.runAdmissionEvidence.modelOriginalRunWire);
+      control.checkClientCompiledRunOwner(restored.compiled,restored.prepared);
+      assert.equal(saved.revision,0);
+    } finally {journal.close();}`;
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e', code, f.path,
+    JSON.stringify({namespaceId: 'original', authorityScopeCid: cid('c'),
+      runDefinitionCid: f.value.definition.identity})],
+  {encoding: 'utf8', timeout: 30000, maxBuffer: 65536});
+  assert.equal(result.error, undefined);
+  assert.equal(result.signal, null);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, '');
+  f.reopen();
+  assert.equal(f.lookup().ref.runDefinitionCid, f.value.definition.identity);
+  assert.equal(f.lookup().physicalStartReserved, false);
 });
