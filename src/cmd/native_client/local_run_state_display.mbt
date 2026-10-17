@@ -2,8 +2,8 @@
 // Presentation only. The existing saved-State Owner has already checked the
 // original and current permission. No displayed field issues state or authority.
 priv struct LocalRunStateText {
-  text : StringBuilder
-  mut remaining : Int
+  buffer : StringBuilder
+  mut remaining_bytes : Int
 }
 
 ///|
@@ -12,11 +12,11 @@ fn LocalRunStateText::append(
   text : String,
 ) -> Unit raise ClientStop {
   let bytes = @utf8.encode(text).length()
-  if bytes > self.remaining {
+  if bytes > self.remaining_bytes {
     stop("LocalRunStateDisplayLimit")
   }
-  self.remaining -= bytes
-  self.text.write_string(text)
+  self.remaining_bytes -= bytes
+  self.buffer.write_string(text)
 }
 
 ///|
@@ -85,8 +85,8 @@ fn local_run_state_display(
       return None
     }
     let output : LocalRunStateText = {
-      text: StringBuilder(),
-      remaining: maximum,
+      buffer: StringBuilder(),
+      remaining_bytes: maximum,
     }
     output.append(
       "Run: " +
@@ -202,7 +202,7 @@ fn local_run_state_display(
         "\n",
       )
     }
-    Some(output.text.to_string())
+    Some(output.buffer.to_string())
   } catch {
     ClientStop(_) => None
   }
