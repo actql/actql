@@ -20,12 +20,18 @@ test('both actual Program schemas add only the adopted closed values alternative
     .properties.execution_material.properties.program;
   assert.equal(machineCid(original), vectors.previous_program_grammar_cid);
   assert.deepEqual(create(original), vectors.previous_create_body);
+  // The complete historical Program pin retains its original type grammar.
+  // Later independently adopted type constraints must not rewrite that vector.
+  const historical = structuredClone(original);
+  create(historical).properties.values = createValuesSchema();
+  create(historical).dependentRequired = {values: ['from']};
+  assert.equal(machineCid(historical), vectors.program_grammar_cid);
+  assert.deepEqual(withoutCreateValuesSchema(historical), original);
   for (const program of parameterPrograms(protocol)) {
-    assert.equal(machineCid(program), vectors.program_grammar_cid);
     assert.equal(machineCid(create(program)), vectors.create_body_cid);
     assert.deepEqual(create(program), vectors.create_body);
-    assert.deepEqual(withoutCreateValuesSchema(program), original,
-      'No unrelated field/legacy alternative or identity changed');
+    assert.deepEqual(create(withoutCreateValuesSchema(program)), create(original),
+      'Every legacy create field and alternative remains exact under the current type grammar');
     assert.deepEqual(create(program).properties.values, createValuesSchema());
     assert.equal(Object.hasOwn(create(program).properties.values, 'minProperties'), false,
       'Mapping requirements own empty-map admission');
