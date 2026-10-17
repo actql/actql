@@ -7,6 +7,7 @@ import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import test from 'node:test';
 import {inspect} from 'node:util';
+import {checked} from '../host-common/runtime-result.mjs';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {canonicalJson} from './local-account-config.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
@@ -16,14 +17,16 @@ import {effectHost} from './fixtures/installed-row-effect.fixture.mjs';
 const repo = new URL('../../', import.meta.url);
 const cid = value => 'sha256:' + createHash('sha256').update(
   typeof value === 'string' || Buffer.isBuffer(value) ? value : canonicalJson(value)).digest('hex');
-const program = mapping => ({version: 'actql/0.1', id: 'original-generic-upsert', stages: [{
-  id: 'source', inputs: {}, steps: [{values: {schema: {
-    id: {type: 'string', nullable: false}, value: {type: 'string', nullable: false}},
-  rows: [{id: 'original-id', value: 'original before'}]}, as: 'selected'}],
-  results: {rows: {from: 'selected', fields: ['id', 'value']}},
-  effects: {save: {upsert: {target: mapping.target_ref, mapping: mapping.mapping_ref,
-    from: {result: 'rows'}, key: 'id', set: {id: {field: 'id'}, value: {field: 'value'}}}}}}],
-results: {answer: {from: {stage: 'source', result: 'rows'}}}});
+const originalRows = [{id: 'original-id', value: 'original before'}];
+const program = (mapping, {kind = 'upsert', rows = originalRows} = {}) => ({
+  version: 'actql/0.1', id: 'original-generic-upsert', stages: [{
+    id: 'source', inputs: {}, steps: [{values: {schema: {
+      id: {type: 'string', nullable: false}, value: {type: 'string', nullable: false}}, rows}, as: 'selected'}],
+    results: {rows: {from: 'selected', fields: ['id', 'value']}},
+    effects: {save: {[kind]: {target: mapping.target_ref, mapping: mapping.mapping_ref,
+      from: {result: 'rows'}, [kind === 'upsert' ? 'key' : 'id']: 'id',
+      ...(kind === 'delete' ? {} : {set: {id: {field: 'id'}, value: {field: 'value'}}})}}},
+  }], results: {answer: {from: {stage: 'source', result: 'rows'}}}});
 
 async function fixture(t, {kind = 'upsert', observation = 'absent', targetSubstitution = false} = {}) {
   const parent = new URL('../../_build/generic-row-upsert-fixtures/', import.meta.url);
@@ -55,7 +58,7 @@ async function fixture(t, {kind = 'upsert', observation = 'absent', targetSubsti
     required_permissions: [], minimum_approval: 'required', conversions: [],
     row_mapping: {id: {field: 'id', null_behavior: 'reject'}, value: {field: 'value', null_behavior: 'reject'}},
     permission_rules: [{effect_kind: kind, permissions: ['fixture:upsert'],
-      selector_class: kind === 'upsert' ? 'key' : 'id', write_fields: ['id', 'value']}]};
+      selector_class: kind === 'upsert' ? 'key' : 'id', write_fields: kind === 'delete' ? [] : ['id', 'value']}]};
   const mapping = {...preimage, mapping_contract_cid: cid(preimage)};
   const {evidence_bundle_cid: _, ...base} = JSON.parse(await readFile(new URL('spec/local-check-environment.json', repo)));
   const environment = {...base, connector_manifest: manifest,
@@ -90,10 +93,10 @@ async function fixture(t, {kind = 'upsert', observation = 'absent', targetSubsti
       kinds: Object.freeze([kind]), targetRead: Object.freeze({operation: 'fixture:records:observe'}),
       writeOperation: () => 'fixture:records:upsert',
       prepareRequest({value, selector}) {
-        const request = Object.freeze({target: selector, value: structuredClone(value)});
+        const request = Object.freeze({target: selector, ...(kind === 'delete' ? {} : {value: structuredClone(value)})});
         return {request, requestCid: requestCid(request)};
       },
-      requestFacts: request => ({target: request.target, value: request.value}),
+      requestFacts: request => ({target: request.target, ...(kind === 'delete' ? {} : {value: request.value})}),
       recheckRequests() {},
       async observeTargets({entries, authorizationForRow}) {
         const observations = [];
@@ -101,9 +104,10 @@ async function fixture(t, {kind = 'upsert', observation = 'absent', targetSubsti
           const grant = await authorizationForRow(index);
           assert.equal(grant.scope.operation, 'fixture:records:observe');
           state.grants++; state.observations++;
-          observations.push({identity: targetSubstitution ? 'foreign-id' : entry.target,
-            ...(state.observation === 'absent' ? {state: 'absent'} :
-              {versionCid: state.version, before: {id: 'original-id', value: 'original before'}})});
+          const original = typeof state.observation === 'function' ? state.observation(entry, index)
+            : {identity: entry.target, ...(state.observation === 'absent' ? {state: 'absent'} :
+              {versionCid: state.version, before: {id: 'original-id', value: 'original before'}})};
+          observations.push(targetSubstitution ? {...original, identity: 'foreign-id'} : original);
         }
         return observations;
       },
@@ -145,4 +149,82 @@ test('actual Common captures original explicit UPSERT absence without a syntheti
   const current = await stage.apply.refreshPreflight({preflight: stage.apply.preflight});
   assert.deepEqual(current.guardVersions, []);
   assert.equal(f.state.observations, 2); assert.equal(f.state.sends, 0);
+});
+
+
+test('actual present-side UPSERT retains its original version; same presence with a new version is stale', async t => {
+  const f = await fixture(t, {observation: 'present'});
+  await f.host.run(program(f.mapping), 'original-upsert-present');
+  const stage = f.host.outcomes[0].stage;
+  const row = JSON.parse(f.host.control.effectComputationPreviewWire(stage.preview)).effects[0].changes[0];
+  assert.deepEqual(row.before, {state: 'present', value: {id: 'original-id', value: 'original before'}});
+  assert.deepEqual(row.target_guard, {state: 'version', version_cid: f.state.version});
+  const current = await stage.apply.refreshPreflight({preflight: stage.apply.preflight});
+  assert.deepEqual(current.observedRows, [row.row_preview_cid]);
+  assert.deepEqual(current.guardVersions, [f.state.version]);
+  checked(moon.clientProgramCheckEffectPreviewTargetGuards(stage.apply.capturedInputs,
+    current.observedRows, current.guardVersions, 100, 10000));
+  f.state.version = cid('changed original version');
+  const changed = await stage.apply.refreshPreflight({preflight: stage.apply.preflight});
+  assert.throws(() => checked(moon.clientProgramCheckEffectPreviewTargetGuards(stage.apply.capturedInputs,
+    changed.observedRows, changed.guardVersions, 100, 10000)), {code: 'MoonBitHostFailure'});
+  assert.equal(f.state.sends, 0);
+});
+
+test('apply refresh refuses switching the sealed absent/present branch before any send', async t => {
+  for (const original of ['absent', 'present']) {
+    const f = await fixture(t, {observation: original});
+    await f.host.run(program(f.mapping), 'original-upsert-presence');
+    const stage = f.host.outcomes[0].stage;
+    f.state.observation = original === 'absent' ? 'present' : 'absent';
+    await assert.rejects(stage.apply.refreshPreflight({preflight: stage.apply.preflight}),
+      {code: 'InstalledRowEffectTargetPresenceChanged'});
+    assert.equal(f.state.sends, 0);
+  }
+});
+
+test('UPDATE and DELETE still require original present before-data and a version', async t => {
+  for (const kind of ['update', 'delete']) {
+    const f = await fixture(t, {kind});
+    await assert.rejects(f.host.run(program(f.mapping, {kind}), 'original-guarded-absence'),
+      {code: 'ForeignInstalledRowEffectObservation'});
+    assert.equal(f.state.observations, 1); assert.equal(f.state.sends, 0);
+  }
+});
+
+test('missing/unknown presence, placeholder values and contradictory version data cannot author absence', async t => {
+  const invalid = [
+    entry => ({identity: entry.target, before: {}}),
+    entry => ({identity: entry.target, state: 'unknown'}),
+    entry => ({identity: entry.target, state: 'absent', before: {}}),
+    entry => ({identity: entry.target, state: 'absent', before: null}),
+    entry => ({identity: entry.target, state: 'absent', versionCid: cid('invented absent version')}),
+    entry => ({identity: entry.target, state: 'present', versionCid: cid('version')}),
+    () => ({identity: 'foreign-target', state: 'absent'}),
+  ];
+  for (const observation of invalid) {
+    const f = await fixture(t, {observation});
+    await assert.rejects(f.host.run(program(f.mapping), 'original-upsert-invalid'),
+      {code: 'ForeignInstalledRowEffectObservation'});
+    assert.equal(f.state.sends, 0); assert.equal(f.host.outcomes.length, 0);
+  }
+});
+
+test('mixed original presence binds only actual version rows in sealed canonical row order', async t => {
+  const rows = [{id: 'b-key', value: 'b'}, {id: 'a-key', value: 'a'}];
+  const f = await fixture(t, {observation: entry => ({identity: entry.target,
+    ...(entry.target === 'b-key' ? {state: 'absent'} :
+      {state: 'present', versionCid: cid('a version'), before: {id: 'a-key', value: 'original a'}})})});
+  await f.host.run(program(f.mapping, {rows}), 'original-upsert-mixed');
+  const stage = f.host.outcomes[0].stage;
+  const member = JSON.parse(f.host.control.effectComputationPreviewWire(stage.preview)).effects[0];
+  assert.equal(member.changes.length, 2);
+  assert.deepEqual(member.changes.find(row => row.target_row_identity === 'b-key').before, {state: 'absent'});
+  const present = member.changes.find(row => row.target_row_identity === 'a-key');
+  const current = await stage.apply.refreshPreflight({preflight: stage.apply.preflight});
+  assert.deepEqual(current.observedRows, [present.row_preview_cid]);
+  assert.deepEqual(current.guardVersions, [cid('a version')]);
+  checked(moon.clientProgramCheckEffectPreviewTargetGuards(stage.apply.capturedInputs,
+    current.observedRows, current.guardVersions, 100, 10000));
+  assert.equal(f.state.sends, 0);
 });
