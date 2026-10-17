@@ -1,7 +1,7 @@
 ///|
 // Copy of the existing independently authored STORE pair preimage. The test
 // supplies an explicit Core capacity recipe, not a normal physical profile.
-fn published_store_capture_fixture(
+fn published_store_capture_with_completion(
   input_key? : Bool = false,
   rows? : String,
 ) -> (
@@ -81,6 +81,22 @@ fn published_store_capture_fixture(
 }
 
 ///|
+fn published_store_capture_fixture(
+  input_key? : Bool = false,
+) -> (
+  @publication_host.PreparedClientEffectComputation,
+  @strategy.CapturedEffectRunDAG,
+  @strategy.CapturedEffectInputs,
+  @local_driver.LocalManagedDispatchOperations[Int],
+  Ref[Bool],
+) raise {
+  let (prepared, captured, inputs, operations, available, _) = published_store_capture_with_completion(
+    input_key~,
+  )
+  (prepared, captured, inputs, operations, available)
+}
+
+///|
 fn published_store_capture_reference(
   live : Ref[Bool],
 ) -> @admitted.CheckedValue {
@@ -115,7 +131,7 @@ fn published_store_capture_reference(
 
 ///|
 test "explicit Command input key refuses original captured proposal until whole-input proof is available" {
-  let (_, captured, inputs, operations, available, _) = published_store_capture_fixture(
+  let (_, captured, inputs, operations, available) = published_store_capture_fixture(
     input_key=true,
   )
   let pair = @strategy.captured_effect_published_store_binding(inputs, 0, 100)
@@ -156,7 +172,7 @@ test "explicit Command input key refuses original captured proposal until whole-
 
 ///|
 test "published STORE captured proposal keeps one original Run and target across rows and retirement" {
-  let (_, captured, inputs, operations, available, _) = published_store_capture_fixture()
+  let (_, captured, inputs, operations, available) = published_store_capture_fixture()
   let pair = @strategy.captured_effect_published_store_binding(inputs, 0, 100)
     .unwrap()
     .unwrap()
@@ -257,14 +273,13 @@ test "published STORE captured proposal keeps one original Run and target across
 
 ///|
 test "published STORE captured proposal rejects an equal-definition foreign Run and pair" {
-  let (prepared, captured, inputs, operations, available, _) = published_store_capture_fixture()
+  let (prepared, captured, inputs, operations, available) = published_store_capture_fixture()
   let (
     foreign_prepared,
     foreign,
     foreign_inputs,
     foreign_operations,
     foreign_available,
-    _,
   ) = published_store_capture_fixture()
   assert_eq(
     @publication_host.prepared_client_effect_computation_definition_cid(

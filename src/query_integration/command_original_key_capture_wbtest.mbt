@@ -80,7 +80,7 @@ fn command_key_close(
 
 ///|
 test "Command key proof requires original managed export completion cleanup and same captured Run" {
-  let (_, captured, inputs, operations, available, completed) = published_store_capture_fixture(
+  let (_, captured, inputs, operations, available, completed) = published_store_capture_with_completion(
     input_key=true,
   )
   let exported = command_key_managed_export(inputs, operations, completed)
@@ -140,7 +140,7 @@ test "Command key proof requires original managed export completion cleanup and 
   ).unwrap()
   assert_eq(changes, "{\"id\":\"one\",\"value\":\"original\"}")
   @strategy.finish_captured_effect_proposal_plan(proposal, 1).unwrap()
-  let (_, foreign, foreign_inputs, foreign_operations, foreign_available, _) = published_store_capture_fixture(
+  let (_, foreign, foreign_inputs, foreign_operations, foreign_available, _) = published_store_capture_with_completion(
     input_key=true,
   )
   assert_true(
@@ -203,7 +203,7 @@ test "Command key proof requires original managed export completion cleanup and 
 
 ///|
 test "Command key proof rejects the final duplicate from actual captured managed rows" {
-  let (_, captured, inputs, operations, available, completed) = published_store_capture_fixture(
+  let (_, captured, inputs, operations, available, completed) = published_store_capture_with_completion(
     input_key=true,
     rows="[{\"id\":\"one\",\"value\":\"a\"},{\"id\":\"two\",\"value\":\"b\"},{\"id\":\"one\",\"value\":\"c\"}]",
   )
@@ -256,7 +256,7 @@ test "Command key proof rejects the final duplicate from actual captured managed
 
 ///|
 test "Command key cleanup cancels partial captured work without releasing its original Result" {
-  let (_, captured, inputs, operations, available, completed) = published_store_capture_fixture(
+  let (_, captured, inputs, operations, available, completed) = published_store_capture_with_completion(
     input_key=true,
   )
   let exported = command_key_managed_export(inputs, operations, completed)
