@@ -76,9 +76,7 @@ test "byte workspace refuses invalid and short capacity without consuming attemp
   assert_true(
     borrow_shared_capacity(foreign_capacity, allocation) is Err(ForeignOwner),
   )
-  assert_true(
-    allocate_shared_capacity(capacity, 1L) is Err(RetentionLimit),
-  )
+  assert_true(allocate_shared_capacity(capacity, 1L) is Err(RetentionLimit))
   assert_eq(ledger_usage(ledger).attempts, 0)
   assert_eq(ledger_usage(ledger).holdings, 0)
   assert_eq(ledger_usage(ledger).transferred_bytes, 0L)
