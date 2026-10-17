@@ -127,6 +127,8 @@ pub fn notion_query_row_property_count(OriginalNotionQueryRow) -> Int
 
 pub fn notion_read_page_rows_wire(NotionDataSourceReadContracts, OriginalNotionQueryPage, Array[NotionReadRow], @value_admission.Limits, Int, Int, Int, Int) -> Result[String, NotionReadRowIssue]
 
+pub fn notion_read_row_matches_observed_page(NotionReadRow, NotionDataSourceReadContracts, OriginalNotionPage) -> Bool
+
 pub fn notion_read_row_pending_wire(NotionReadRow, Int, Int, Int) -> Result[String, NotionReadRowIssue]
 
 pub fn notion_read_row_wire(NotionReadRow, Int, Int, Int) -> Result[String, NotionReadRowIssue]
@@ -173,9 +175,13 @@ pub fn select_notion_read_source(NotionDatabaseReadDeclaration, NotionDatabaseCa
 
 pub fn start_notion_column_property_item_request(NotionDataSourceReadContracts, OriginalNotionQueryRow, Int, NotionPropertyItemLimits) -> Result[NotionPropertyItemRequest, NotionPropertyItemIssue]
 
+pub fn start_notion_observed_page_read_row(NotionDataSourceReadContracts, OriginalNotionPage, Int, Int, NotionReadRowLimits) -> Result[NotionReadRow, NotionReadRowIssue]
+
 pub fn start_notion_property_item_request(OriginalNotionQueryRow, Int, NotionPropertyItemLimits) -> Result[NotionPropertyItemRequest, NotionPropertyItemIssue]
 
 pub fn start_notion_read_row(NotionDataSourceReadContracts, OriginalNotionQueryPage, Int, NotionReadRowLimits) -> Result[NotionReadRow, NotionReadRowIssue]
+
+pub fn start_notion_read_row_property_item_request(NotionReadRow, Int, NotionPropertyItemLimits) -> Result[NotionPropertyItemRequest, NotionPropertyItemIssue]
 
 pub fn with_notion_source_system_contracts(NotionDataSourceReadContracts, NotionReadContractLimits) -> Result[NotionDataSourceReadContracts, NotionReadContractIssue]
 
@@ -395,6 +401,7 @@ pub(all) enum NotionReadRowIssue {
   Property(NotionPropertyItemIssue)
   InvalidValue
   InvalidSystemField(String)
+  Observation(NotionQueryIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct NotionReadRowLimits {
