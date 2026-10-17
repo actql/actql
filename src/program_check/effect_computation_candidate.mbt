@@ -115,6 +115,15 @@ pub fn close_effect_computation_static(
   mappings : @environment.MappingContractShapes,
   limits : @results.EffectStaticCandidateLimits,
 ) -> Result[EffectProgramStaticCandidate, @results.EffectStaticCandidateIssue] {
+  let count = @context.program_identity_stage_count(candidate.checked.identity)
+  if count > limits.max_work {
+    return Err(@results.WorkLimit)
+  }
+  let parameter_values = Array::makei(count, stage => {
+    @context.stage_identity_parameter_values(
+      @context.program_identity_stage_at(candidate.checked.identity, stage).unwrap(),
+    )
+  })
   let effects = match
     @results.prepare_effect_static_candidate(
       candidate.headers,
@@ -123,6 +132,7 @@ pub fn close_effect_computation_static(
       mappings,
       checked_catalog_references(candidate.checked),
       limits,
+      parameter_values~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

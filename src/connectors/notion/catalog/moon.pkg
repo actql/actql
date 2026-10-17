@@ -7,8 +7,5 @@ import {
   "actql/actql/value_contract" @contract,
   "actql/actql/value_admission" @admitted,
   "actql/actql/sha256" @sha,
-}
-
-import {
   "moonbitlang/core/encoding/utf8",
-} for "wbtest"
+}

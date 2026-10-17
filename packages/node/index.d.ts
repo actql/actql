@@ -44,6 +44,8 @@ export type EmbeddedLocalOptions = Readonly<{
   token?: never;
   durability?: Durability;
   consentRefs?: readonly string[];
+  /** Original project profile override; unavailable physical suppliers refuse before Host I/O. */
+  profile?: string;
   installation?: EmbeddedHostInstallation;
 }>;
 

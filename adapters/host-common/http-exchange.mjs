@@ -46,6 +46,7 @@ export function checkHttpRequestMethodBody(method, body,
 // never declares them as observed response headers.
 const reservedRequestHeaders = new Set([
   'authorization', 'proxy-authorization', 'cookie', 'set-cookie', 'host',
+  'x-cybozu-api-token', 'x-cybozu-authorization',
   'content-length', 'content-type', 'transfer-encoding', 'connection',
   'upgrade', 'keep-alive', 'te', 'trailer', 'expect', 'proxy-connection',
   'forwarded', 'x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto',

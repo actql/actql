@@ -30109,7 +30109,7 @@
     {
       "module": "adapters/host-node/effect-input-export.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e4b995cad2b3719d4ca641cfd4f61aef12cbe6285709ab0c301361238f1b7046",
+      "sha256": "149e6e2e2cf3ec205c0aeab74ff63e4b760d95e035ac301d2e9b21aa65f5fb70",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -30197,7 +30197,9 @@
           "parameters": [
             "options",
             "memberCount",
-            "maxWork"
+            "maxWork",
+            "hasCommandWorkspace",
+            "hasPublishedTarget"
           ],
           "async": true
         },
@@ -30219,6 +30221,13 @@
         },
         {
           "name": "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet#2",
+          "parameters": [
+            "previous"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet#3",
           "parameters": [
             "entry"
           ],
@@ -30375,6 +30384,9 @@
             "proposalMemberIndexes",
             "proposalLimits",
             "onOriginalArtifact",
+            "commandWorkspace",
+            "onCommandKey",
+            "publishedTarget",
             "manifestSet",
             "local",
             "duplicateManifestMember"
@@ -30477,6 +30489,11 @@
           "async": true
         },
         {
+          "name": "preparePinnedEffectSourcePayloadOwned/summary/init:prepareProposal/init:prepareProposal",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "preparePinnedEffectSourcePayloadOwned/summary/summary",
           "parameters": [
             "index",
@@ -30499,6 +30516,8 @@
             "maxMembers",
             "maxGroupingWork",
             "memberSourceBindings",
+            "commandWorkspaces",
+            "publishedTargets",
             "options"
           ],
           "async": true
@@ -30651,6 +30670,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "inputsOutputs": [
@@ -30661,6 +30684,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "identity": [
@@ -30671,6 +30698,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "ownership": [
@@ -30681,6 +30712,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "synchronization": [
@@ -30691,6 +30726,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "failure": [
@@ -30701,6 +30740,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "cancellation": [
@@ -30711,6 +30754,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "resources": [
@@ -30721,6 +30768,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "extension": [
@@ -30731,6 +30782,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "verification": [
@@ -30745,6 +30800,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "adapters/host-node/effect-command-target-callers.test.mjs",
+                "anchor": "original target refusal happens before physical rows"
               }
             ]
           }
@@ -31323,6 +31386,7 @@
             "prepareDependentEffectSourceSet/orderedUnits/orderedUnits",
             "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet",
             "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet#2",
+            "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet#3",
             "prepareDependentEffectSourceSet/result/result",
             "prepareDependentEffectSourceSet/result/result#2",
             "prepareDependentEffectSourceSet/spend/spend",
@@ -31338,6 +31402,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "inputsOutputs": [
@@ -31348,6 +31420,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "identity": [
@@ -31358,6 +31438,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "ownership": [
@@ -31368,6 +31456,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "synchronization": [
@@ -31378,6 +31474,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "failure": [
@@ -31388,6 +31492,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "cancellation": [
@@ -31398,6 +31510,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "resources": [
@@ -31408,6 +31528,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "extension": [
@@ -31418,6 +31546,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "verification": [
@@ -31432,6 +31568,26 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "ordinary Source set finishes the original funded whole key before proposing any row"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "original completed key reaches actual Preview import and retirement revokes its payload proof"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "adapters/host-node/effect-command-target-callers.test.mjs",
+                "anchor": "original target refusal happens before physical rows"
               }
             ]
           }
@@ -31795,7 +31951,6 @@
             "preparePinnedEffectSourcePayloadOwned/init:retry/init:retry",
             "preparePinnedEffectSourcePayloadOwned/init:retry/init:retry/init:retry",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
-            "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#10",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#2",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#3",
@@ -31805,8 +31960,10 @@
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#7",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#8",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#9",
+            "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
             "preparePinnedEffectSourcePayloadOwned/retainText/retainText",
             "preparePinnedEffectSourcePayloadOwned/summary/init:onChunk/init:onChunk",
+            "preparePinnedEffectSourcePayloadOwned/summary/init:prepareProposal/init:prepareProposal",
             "preparePinnedEffectSourcePayloadOwned/summary/summary",
             "preparePinnedEffectSourcePayloadOwned/summary/summary#2"
           ],
@@ -31824,6 +31981,14 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "inputsOutputs": [
@@ -31838,6 +32003,14 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "identity": [
@@ -31852,6 +32025,14 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "ownership": [
@@ -31866,6 +32047,14 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "synchronization": [
@@ -31880,6 +32069,14 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "failure": [
@@ -31894,6 +32091,14 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "cancellation": [
@@ -31908,6 +32113,14 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "resources": [
@@ -31922,6 +32135,14 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "extension": [
@@ -31936,6 +32157,14 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "verification": [
@@ -31954,6 +32183,26 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Original Content preparation projection"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "ordinary Source set finishes the original funded whole key before proposing any row"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "original completed key reaches actual Preview import and retirement revokes its payload proof"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "adapters/host-node/effect-command-target-callers.test.mjs",
+                "anchor": "original target refusal happens before physical rows"
               }
             ]
           }
@@ -31983,6 +32232,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "inputsOutputs": [
@@ -31993,6 +32250,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "identity": [
@@ -32003,6 +32268,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "ownership": [
@@ -32013,6 +32286,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "synchronization": [
@@ -32023,6 +32304,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "failure": [
@@ -32033,6 +32322,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "cancellation": [
@@ -32043,6 +32340,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "resources": [
@@ -32053,6 +32358,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "extension": [
@@ -32063,6 +32376,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "verification": [
@@ -32077,6 +32398,26 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "ordinary Source set finishes the original funded whole key before proposing any row"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "original completed key reaches actual Preview import and retirement revokes its payload proof"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "adapters/host-node/effect-command-target-callers.test.mjs",
+                "anchor": "original target refusal happens before physical rows"
               }
             ]
           }
@@ -32543,6 +32884,7 @@
         "../host-common/completed-run-publication.mjs",
         "../host-common/effect-preparation-result.mjs",
         "../host-common/runtime-result.mjs",
+        "./effect-command-key.mjs",
         "node:crypto",
         "node:timers/promises"
       ],
@@ -32552,7 +32894,7 @@
     {
       "module": "adapters/host-node/effect-plan-verify.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "33b6b728bc25406b5f1dbef6c697987bca5ba3c1f1f24181fd13e06e3409cc29",
+      "sha256": "7af76add4483436d900afe0e152f802ea4a8ce71496473adbf3517292117340a",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -32570,6 +32912,8 @@
             "planLimits",
             "onChunk",
             "signal",
+            "inputKey",
+            "publishedTarget",
             "advanceQuantum"
           ],
           "async": true
@@ -32609,6 +32953,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "inputsOutputs": [
@@ -32619,6 +32967,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "identity": [
@@ -32629,6 +32981,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "ownership": [
@@ -32639,6 +32995,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "synchronization": [
@@ -32649,6 +33009,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "failure": [
@@ -32659,6 +33023,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "cancellation": [
@@ -32669,6 +33037,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "resources": [
@@ -32679,6 +33051,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "extension": [
@@ -32689,6 +33065,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "verification": [
@@ -32703,6 +33083,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "adapters/host-node/effect-command-target-callers.test.mjs",
+                "anchor": "original target refusal happens before physical rows"
               }
             ]
           }
@@ -32726,6 +33114,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "inputsOutputs": [
@@ -32736,6 +33132,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "identity": [
@@ -32746,6 +33150,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "ownership": [
@@ -32756,6 +33168,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "synchronization": [
@@ -32766,6 +33186,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "failure": [
@@ -32776,6 +33204,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "cancellation": [
@@ -32786,6 +33222,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "resources": [
@@ -32796,6 +33240,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "extension": [
@@ -32806,6 +33258,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "verification": [
@@ -32820,6 +33280,26 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "ordinary Source set finishes the original funded whole key before proposing any row"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "original completed key reaches actual Preview import and retirement revokes its payload proof"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "adapters/host-node/effect-command-target-callers.test.mjs",
+                "anchor": "original target refusal happens before physical rows"
               }
             ]
           }
@@ -35111,7 +35591,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "b21dd346c3c71dba8805e60a3e9fdd91f20e0a893969bb34922e30718bcaab1d",
+      "sha256": "e842a937bf3b333ebef98e6ca9e6dc8cd390c8267855bb98ad685b8bb768befd",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -35159,7 +35639,9 @@
           "name": "embeddedInstallationIdentity",
           "parameters": [
             "root",
-            "installation"
+            "installation",
+            "project",
+            "moon"
           ],
           "async": true
         },
@@ -35252,6 +35734,11 @@
         },
         {
           "name": "openInstalledHost/assertNewModelRuntime",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/assertProjectRuntime",
           "parameters": [],
           "async": false
         },
@@ -37395,6 +37882,22 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "### Original short-query continuation"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Project Task Host assembly"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original project profile choice"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "pub fn select_client_project_profile("
               }
             ],
             "inputsOutputs": [
@@ -37409,6 +37912,22 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"readOnly\": {\"const\": true}"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const bounds = snapshotLimits(limits);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "export function selectInstalledProjectProfile(moon,project,requested,maxWork){"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "pub fn client_project_profile_matches("
               }
             ],
             "identity": [
@@ -37423,6 +37942,30 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_cid("
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const original = installedProjectOriginalsForRuntime(project, moon);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
+              },
+              {
+                "path": "src/run_publication_host/client_project_model_task_selection.mbt",
+                "anchor": "pub fn client_project_model_task_selection_for("
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "if(receiver!==view||runtime!==moon)fail('ForeignInstalledProjectProfile');"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "physical_equal(original, candidate)"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
               }
             ],
             "ownership": [
@@ -37437,6 +37980,30 @@
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "assertSubmittedIntent(prepared, intent)"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const retained = Object.freeze(tasks);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "projectTasks = undefined;"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "original=configuration=selection=project=requested=ports=undefined;"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "selection.configuration = None"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "projectProfile?.retire(projectRuntime);"
               }
             ],
             "synchronization": [
@@ -37451,6 +38018,26 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const call = (name, ...args) => Reflect.apply(callbacks[name], moon, args);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "originalsForRuntime(runtime);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "const call=(name,...args)=>Reflect.apply(ports[name],moon,args);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const {installation: suppliedInstallation, profile: requestedProfile,"
               }
             ],
             "failure": [
@@ -37465,6 +38052,22 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "throw clientOperationError('InstalledProjectProfileUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "anchor": "test('actual profile rejects invalid choices and retains nominal retirement without physical ACK'"
               }
             ],
             "cancellation": [
@@ -37479,6 +38082,22 @@
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Unknown or pending child cleanup retains responsibility."
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Neither its completion nor dropping aliases proves GC, physical"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// Host, however, keeps this same view until its existing shutdown finishes."
               }
             ],
             "resources": [
@@ -37493,6 +38112,30 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "max_bytes > 1048576"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The initial Local reader selection is explicit:"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Projection overlaps the old Environment, sorted member references/CIDs, hash"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const tasks = [];"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The installation envelope includes the Common selection's four reference"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "it does not add a profile field to the public connection wire."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "requestedProfile.length > 65536"
               }
             ],
             "extension": [
@@ -37507,6 +38150,22 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "src/check_environment/public_model_task_environment.mbt",
+                "anchor": "pub fn project_public_model_task_environment("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "This connection supplies static checked materials, not execution dependencies,"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "pub fn retire_client_project_profile("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "An unavailable"
               }
             ],
             "verification": [
@@ -37529,6 +38188,34 @@
               {
                 "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project rejects copied project and foreign runtime before file acquisition'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual retained project detects replacement of the selected installation provider'"
+              },
+              {
+                "path": "adapters/host-node/project-model-task-host.actual.test.mjs",
+                "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile_wbtest.mbt",
+                "anchor": "test \"project profile refuses copied selection foreign equal project and changed choice\""
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "anchor": "test('actual absent project profile issues no mock record or answer original'"
+              },
+              {
+                "path": "adapters/host-node/project-profile-host.actual.test.mjs",
+                "anchor": "for(const scenario of ['explicit-mock','default-mock','early-root-refusal'])"
+              },
+              {
+                "path": "packages/node/project-profile.typecheck.mts",
+                "anchor": "const selected={mode:"
               }
             ]
           }
@@ -37554,6 +38241,14 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "### Original short-query continuation"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Project Task Host assembly"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
               }
             ],
             "inputsOutputs": [
@@ -37568,6 +38263,14 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"readOnly\": {\"const\": true}"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const bounds = snapshotLimits(limits);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
               }
             ],
             "identity": [
@@ -37582,6 +38285,18 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_cid("
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const original = installedProjectOriginalsForRuntime(project, moon);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
+              },
+              {
+                "path": "src/run_publication_host/client_project_model_task_selection.mbt",
+                "anchor": "pub fn client_project_model_task_selection_for("
               }
             ],
             "ownership": [
@@ -37596,6 +38311,18 @@
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "assertSubmittedIntent(prepared, intent)"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const retained = Object.freeze(tasks);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "projectTasks = undefined;"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
               }
             ],
             "synchronization": [
@@ -37610,6 +38337,18 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const call = (name, ...args) => Reflect.apply(callbacks[name], moon, args);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "originalsForRuntime(runtime);"
               }
             ],
             "failure": [
@@ -37624,6 +38363,14 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
               }
             ],
             "cancellation": [
@@ -37638,6 +38385,14 @@
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Unknown or pending child cleanup retains responsibility."
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
               }
             ],
             "resources": [
@@ -37652,6 +38407,18 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "max_bytes > 1048576"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The initial Local reader selection is explicit:"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Projection overlaps the old Environment, sorted member references/CIDs, hash"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const tasks = [];"
               }
             ],
             "extension": [
@@ -37666,6 +38433,14 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "src/check_environment/public_model_task_environment.mbt",
+                "anchor": "pub fn project_public_model_task_environment("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "This connection supplies static checked materials, not execution dependencies,"
               }
             ],
             "verification": [
@@ -37688,6 +38463,18 @@
               {
                 "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project rejects copied project and foreign runtime before file acquisition'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual retained project detects replacement of the selected installation provider'"
+              },
+              {
+                "path": "adapters/host-node/project-model-task-host.actual.test.mjs",
+                "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])"
               }
             ]
           }
@@ -38216,6 +39003,22 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "### Original short-query continuation"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Project Task Host assembly"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original project profile choice"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "pub fn select_client_project_profile("
               }
             ],
             "inputsOutputs": [
@@ -38234,6 +39037,22 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"readOnly\": {\"const\": true}"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const bounds = snapshotLimits(limits);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "export function selectInstalledProjectProfile(moon,project,requested,maxWork){"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "pub fn client_project_profile_matches("
               }
             ],
             "identity": [
@@ -38252,6 +39071,30 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_cid("
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const original = installedProjectOriginalsForRuntime(project, moon);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
+              },
+              {
+                "path": "src/run_publication_host/client_project_model_task_selection.mbt",
+                "anchor": "pub fn client_project_model_task_selection_for("
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "if(receiver!==view||runtime!==moon)fail('ForeignInstalledProjectProfile');"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "physical_equal(original, candidate)"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
               }
             ],
             "ownership": [
@@ -38270,6 +39113,30 @@
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "assertSubmittedIntent(prepared, intent)"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const retained = Object.freeze(tasks);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "projectTasks = undefined;"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "original=configuration=selection=project=requested=ports=undefined;"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "selection.configuration = None"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "projectProfile?.retire(projectRuntime);"
               }
             ],
             "synchronization": [
@@ -38288,6 +39155,26 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const call = (name, ...args) => Reflect.apply(callbacks[name], moon, args);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "originalsForRuntime(runtime);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "const call=(name,...args)=>Reflect.apply(ports[name],moon,args);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const {installation: suppliedInstallation, profile: requestedProfile,"
               }
             ],
             "failure": [
@@ -38306,6 +39193,22 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "throw clientOperationError('InstalledProjectProfileUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "anchor": "test('actual profile rejects invalid choices and retains nominal retirement without physical ACK'"
               }
             ],
             "cancellation": [
@@ -38324,6 +39227,22 @@
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Unknown or pending child cleanup retains responsibility."
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Neither its completion nor dropping aliases proves GC, physical"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// Host, however, keeps this same view until its existing shutdown finishes."
               }
             ],
             "resources": [
@@ -38346,6 +39265,30 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "max_bytes > 1048576"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The initial Local reader selection is explicit:"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Projection overlaps the old Environment, sorted member references/CIDs, hash"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const tasks = [];"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The installation envelope includes the Common selection's four reference"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "it does not add a profile field to the public connection wire."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "requestedProfile.length > 65536"
               }
             ],
             "extension": [
@@ -38364,6 +39307,22 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "src/check_environment/public_model_task_environment.mbt",
+                "anchor": "pub fn project_public_model_task_environment("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "This connection supplies static checked materials, not execution dependencies,"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "pub fn retire_client_project_profile("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "An unavailable"
               }
             ],
             "verification": [
@@ -38394,6 +39353,34 @@
               {
                 "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project rejects copied project and foreign runtime before file acquisition'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual retained project detects replacement of the selected installation provider'"
+              },
+              {
+                "path": "adapters/host-node/project-model-task-host.actual.test.mjs",
+                "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile_wbtest.mbt",
+                "anchor": "test \"project profile refuses copied selection foreign equal project and changed choice\""
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "anchor": "test('actual absent project profile issues no mock record or answer original'"
+              },
+              {
+                "path": "adapters/host-node/project-profile-host.actual.test.mjs",
+                "anchor": "for(const scenario of ['explicit-mock','default-mock','early-root-refusal'])"
+              },
+              {
+                "path": "packages/node/project-profile.typecheck.mts",
+                "anchor": "const selected={mode:"
               }
             ]
           }
@@ -39820,7 +40807,217 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openInstalledHost/assertProjectRuntime"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Project Task Host assembly"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const bounds = snapshotLimits(limits);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const original = installedProjectOriginalsForRuntime(project, moon);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
+              },
+              {
+                "path": "src/run_publication_host/client_project_model_task_selection.mbt",
+                "anchor": "pub fn client_project_model_task_selection_for("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const retained = Object.freeze(tasks);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "projectTasks = undefined;"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const call = (name, ...args) => Reflect.apply(callbacks[name], moon, args);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "originalsForRuntime(runtime);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Unknown or pending child cleanup retains responsibility."
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The initial Local reader selection is explicit:"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Projection overlaps the old Environment, sorted member references/CIDs, hash"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const tasks = [];"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/check_environment/public_model_task_environment.mbt",
+                "anchor": "pub fn project_public_model_task_environment("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "This connection supplies static checked materials, not execution dependencies,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project rejects copied project and foreign runtime before file acquisition'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual retained project detects replacement of the selected installation provider'"
+              },
+              {
+                "path": "adapters/host-node/project-model-task-host.actual.test.mjs",
+                "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])"
+              }
+            ]
+          }
         }
+      ],
+      "imports": [
+        "../../packages/client-wire/index.mjs",
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/authorization-gate.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/completed-run-publication.mjs",
+        "../host-common/diagnostic-observer.mjs",
+        "../host-common/effect-preparation-result.mjs",
+        "../host-common/observation.mjs",
+        "../host-common/run-state-access.mjs",
+        "../host-common/run-state-observation.mjs",
+        "../host-common/runtime-core.mjs",
+        "../host-common/runtime-result.mjs",
+        "../local-node/retained-store.mjs",
+        "../store-local/files.mjs",
+        "../store-local/publication-store.mjs",
+        "./acquired-effect-computation.mjs",
+        "./acquired-effect-continuation.mjs",
+        "./acquired-effect-sources.mjs",
+        "./captured-duckdb-source.mjs",
+        "./client-check.mjs",
+        "./client-checkpoints.mjs",
+        "./client-dispatch-owner.mjs",
+        "./client-effect-observations.mjs",
+        "./client-effect-run.mjs",
+        "./client-http.mjs",
+        "./client-interactive-plan.mjs",
+        "./client-owner-cursor.mjs",
+        "./client-owner-observations.mjs",
+        "./client-program-preparation.mjs",
+        "./client-request-journal.mjs",
+        "./client-request-lookup.mjs",
+        "./client-run-attach.mjs",
+        "./client-run-inspect.mjs",
+        "./client-run-plan.mjs",
+        "./client-run-start.mjs",
+        "./client-submission.mjs",
+        "./effect-run-recovery.mjs",
+        "./effect-target-read-continuation.mjs",
+        "./effect-target-read-inventory.mjs",
+        "./embedded-local-lifecycle.mjs",
+        "./entry.mjs",
+        "./host-root-format.mjs",
+        "./in-process-client.mjs",
+        "./infer-evaluation-evidence.mjs",
+        "./infer-trusted-runtime-view.mjs",
+        "./installed-calendar.mjs",
+        "./installed-check-environment.mjs",
+        "./installed-connectors.mjs",
+        "./installed-content-run.mjs",
+        "./installed-effect-inventory.mjs",
+        "./installed-effect-site.mjs",
+        "./installed-effect.mjs",
+        "./installed-host-cleanup.mjs",
+        "./installed-host-policy.mjs",
+        "./installed-infer-run.mjs",
+        "./installed-model-continuation.mjs",
+        "./installed-model-originals.mjs",
+        "./installed-model.mjs",
+        "./installed-project-configuration.mjs",
+        "./installed-project-model-tasks.mjs",
+        "./installed-project-profile.mjs",
+        "./installed-row-effect.mjs",
+        "./installed-source.mjs",
+        "./installed-update-originals.mjs",
+        "./local-account-config.mjs",
+        "./local-continuation-evidence.mjs",
+        "./local-values-plan.mjs",
+        "./ordinary-source-binding.mjs",
+        "./result-access.mjs",
+        "./source-alias-publication.mjs",
+        "./update-target-original-shape.mjs",
+        "node:crypto",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "node:url"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [
+        "runtime-dependent module dependency requires original owner/artifact mapping"
       ]
     },
     {
@@ -48234,7 +49431,7 @@
     {
       "module": "adapters/host-node/installed-model.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "b7c50f80a10888ac32c06f175efdc196121d0f3c39dfac0ab7692e877e72f319",
+      "sha256": "ede7ac0cedd26883b63a499a088aac58f6a780063426cf5189a06f290891ae32",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -48335,6 +49532,29 @@
           "async": false
         },
         {
+          "name": "installModelProviders/resolveTaskDefaults",
+          "parameters": [
+            "selectedModel",
+            "taskMaxOutputTokens",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/resolveTaskDefaults/resolveTaskDefaults",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/resolveTaskDefaults/resolveTaskDefaults#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "readInstalledModelDependencies",
           "parameters": [
             "moon",
@@ -48378,6 +49598,31 @@
           "name": "readInstalledModelExecution/entry/entry",
           "parameters": [
             "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainAdmittedProviderBinding",
+          "parameters": [
+            "moon",
+            "providerId",
+            "originals",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainModelDefaultsLimits",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainModelDefaultsLimits/retainModelDefaultsLimits",
+          "parameters": [
+            "key",
+            "index"
           ],
           "async": false
         },
@@ -48654,7 +49899,8 @@
         },
         {
           "operations": [
-            "admitInstalledModelProviderBinding"
+            "admitInstalledModelProviderBinding",
+            "retainAdmittedProviderBinding"
           ],
           "exports": [
             "admitInstalledModelProviderBinding"
@@ -48668,6 +49914,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The retained private Node registration can resolve candidate Task defaults only"
               }
             ],
             "inputsOutputs": [
@@ -48678,6 +49928,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "pub fn read_client_model_provider_defaults("
               }
             ],
             "identity": [
@@ -48688,6 +49942,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "if (this !== retained)"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "pub fn client_model_provider_defaults_generation("
               }
             ],
             "ownership": [
@@ -48698,6 +49960,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "struct ClientModelProviderDefaults"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "let defaultsOriginal, defaultsBounds, defaultsReadFailure;"
               }
             ],
             "synchronization": [
@@ -48708,6 +49978,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "assertNewTrustedRuntime();"
               }
             ],
             "failure": [
@@ -48718,6 +49992,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "pub(all) enum ClientModelProviderDefaultsIssue"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "if (defaultsReadFailure !== undefined) throw defaultsReadFailure.cause;"
               }
             ],
             "cancellation": [
@@ -48728,6 +50010,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "new-Host predicate without cancelling an already borrowed Run on Host closing."
               }
             ],
             "resources": [
@@ -48738,6 +50024,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Reader ceilings are explicitly supplied, closed, finite DATA and snapshotted"
               }
             ],
             "extension": [
@@ -48748,6 +50038,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "no Task/Environment, restored Run, authority, resource loan, send or cleanup ACK."
               }
             ],
             "verification": [
@@ -48762,6 +50056,18 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/installed-model-defaults.test.mjs",
+                "anchor": "test('installed defaults reject copied or other-installation receivers before Core work'"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults_wbtest.mbt",
+                "anchor": "test \"installed defaults refuse an equal separately admitted profile for the selected generation\""
+              },
+              {
+                "path": "adapters/host-node/installed-model-defaults.actual.test.mjs",
+                "anchor": "test('actual Common failed profile read cannot replace original reader bounds or discard its refusal'"
               }
             ]
           }
@@ -49001,7 +50307,10 @@
             "installModelProviders/installModelProviders",
             "installModelProviders/installModelProviders#2",
             "installModelProviders/installModelProviders#3",
-            "installModelProviders/requireEagerSdkStartup/requireEagerSdkStartup"
+            "installModelProviders/requireEagerSdkStartup/requireEagerSdkStartup",
+            "installModelProviders/resolveTaskDefaults",
+            "installModelProviders/resolveTaskDefaults/resolveTaskDefaults",
+            "installModelProviders/resolveTaskDefaults/resolveTaskDefaults#2"
           ],
           "exports": [
             "installModelProviders"
@@ -49015,6 +50324,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The retained private Node registration can resolve candidate Task defaults only"
               }
             ],
             "inputsOutputs": [
@@ -49025,6 +50338,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "pub fn read_client_model_provider_defaults("
               }
             ],
             "identity": [
@@ -49035,6 +50352,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "if (this !== retained)"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "pub fn client_model_provider_defaults_generation("
               }
             ],
             "ownership": [
@@ -49045,6 +50370,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "struct ClientModelProviderDefaults"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "let defaultsOriginal, defaultsBounds, defaultsReadFailure;"
               }
             ],
             "synchronization": [
@@ -49055,6 +50388,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "assertNewTrustedRuntime();"
               }
             ],
             "failure": [
@@ -49065,6 +50402,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "pub(all) enum ClientModelProviderDefaultsIssue"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "if (defaultsReadFailure !== undefined) throw defaultsReadFailure.cause;"
               }
             ],
             "cancellation": [
@@ -49075,6 +50420,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "new-Host predicate without cancelling an already borrowed Run on Host closing."
               }
             ],
             "resources": [
@@ -49085,6 +50434,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Reader ceilings are explicitly supplied, closed, finite DATA and snapshotted"
               }
             ],
             "extension": [
@@ -49095,6 +50448,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "no Task/Environment, restored Run, authority, resource loan, send or cleanup ACK."
               }
             ],
             "verification": [
@@ -49109,6 +50466,18 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/installed-model-defaults.test.mjs",
+                "anchor": "test('installed defaults reject copied or other-installation receivers before Core work'"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults_wbtest.mbt",
+                "anchor": "test \"installed defaults refuse an equal separately admitted profile for the selected generation\""
+              },
+              {
+                "path": "adapters/host-node/installed-model-defaults.actual.test.mjs",
+                "anchor": "test('actual Common failed profile read cannot replace original reader bounds or discard its refusal'"
               }
             ]
           }
@@ -49572,13 +50941,111 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "retainModelDefaultsLimits",
+            "retainModelDefaultsLimits/retainModelDefaultsLimits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The retained private Node registration can resolve candidate Task defaults only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "pub fn read_client_model_provider_defaults("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "if (this !== retained)"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "pub fn client_model_provider_defaults_generation("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "struct ClientModelProviderDefaults"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "let defaultsOriginal, defaultsBounds, defaultsReadFailure;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "assertNewTrustedRuntime();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "pub(all) enum ClientModelProviderDefaultsIssue"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "if (defaultsReadFailure !== undefined) throw defaultsReadFailure.cause;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "new-Host predicate without cancelling an already borrowed Run on Host closing."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Reader ceilings are explicitly supplied, closed, finite DATA and snapshotted"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "no Task/Environment, restored Run, authority, resource loan, send or cleanup ACK."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-model-defaults.test.mjs",
+                "anchor": "test('installed defaults reject copied or other-installation receivers before Core work'"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults_wbtest.mbt",
+                "anchor": "test \"installed defaults refuse an equal separately admitted profile for the selected generation\""
+              },
+              {
+                "path": "adapters/host-node/installed-model-defaults.actual.test.mjs",
+                "anchor": "test('actual Common failed profile read cannot replace original reader bounds or discard its refusal'"
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./infer-original-installation.mjs",
+        "./infer-raw-selection.mjs",
+        "./installed-check-environment.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e3343b912004c6510990c318b4380ab52184077101525ad560bbed1f4cabbe30",
+      "sha256": "114bb4e8724bee0c6a1e8686115b6cd00a1408b648b9e9d282048065ee2b9f25",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -50224,6 +51691,11 @@
           "async": true
         },
         {
+          "name": "createRowEffectStage/captureStage/releaseInputs/releaseInputs/releaseInputs",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/captureStage/route/route",
           "parameters": [
             "member"
@@ -50234,6 +51706,14 @@
           "name": "createRowEffectStage/captureStage/rows/rows",
           "parameters": [
             "proposal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/sourceSet/init:onCommandKey/init:onCommandKey",
+          "parameters": [
+            "memberIndex",
+            "key"
           ],
           "async": false
         },
@@ -52088,13 +53568,13 @@
           "operations": [
             "createRowEffectStage",
             "createRowEffectStage/adapter/adapter",
-            "createRowEffectStage/adapter/adapter/adapter",
-            "createRowEffectStage/adapter/adapter/adapter/adapter",
-            "createRowEffectStage/adapter/adapter/adapter#2",
             "createRowEffectStage/adapter/adapter#2",
             "createRowEffectStage/adapter/adapter#3",
             "createRowEffectStage/adapter/adapter#4",
             "createRowEffectStage/adapter/adapter#5",
+            "createRowEffectStage/adapter/adapter/adapter",
+            "createRowEffectStage/adapter/adapter/adapter#2",
+            "createRowEffectStage/adapter/adapter/adapter/adapter",
             "createRowEffectStage/admitCapability/admitCapability",
             "createRowEffectStage/admitRow/admitRow",
             "createRowEffectStage/assertPrepared/assertPrepared",
@@ -52114,14 +53594,14 @@
             "createRowEffectStage/captureStage",
             "createRowEffectStage/captureStage/capabilities/capabilities",
             "createRowEffectStage/captureStage/captureStage",
-            "createRowEffectStage/captureStage/captureStage/captureStage",
-            "createRowEffectStage/captureStage/captureStage/captureStage#2",
             "createRowEffectStage/captureStage/captureStage#2",
             "createRowEffectStage/captureStage/captureStage#3",
             "createRowEffectStage/captureStage/captureStage#4",
             "createRowEffectStage/captureStage/captureStage#5",
             "createRowEffectStage/captureStage/captureStage#6",
             "createRowEffectStage/captureStage/captureStage#7",
+            "createRowEffectStage/captureStage/captureStage/captureStage",
+            "createRowEffectStage/captureStage/captureStage/captureStage#2",
             "createRowEffectStage/captureStage/childrenPending/childrenPending",
             "createRowEffectStage/captureStage/childrenPending/childrenPending/childrenPending",
             "createRowEffectStage/captureStage/claims/claims",
@@ -52138,8 +53618,10 @@
             "createRowEffectStage/captureStage/preparedRequest/preparedRequest",
             "createRowEffectStage/captureStage/proposals/proposals",
             "createRowEffectStage/captureStage/releaseInputs/releaseInputs",
+            "createRowEffectStage/captureStage/releaseInputs/releaseInputs/releaseInputs",
             "createRowEffectStage/captureStage/route/route",
             "createRowEffectStage/captureStage/rows/rows",
+            "createRowEffectStage/captureStage/sourceSet/init:onCommandKey/init:onCommandKey",
             "createRowEffectStage/captureStage/sourceSet/init:onProposalRow/init:onProposalRow",
             "createRowEffectStage/captureStage/sourceSet/sourceSet",
             "createRowEffectStage/captureStage/verified/verified",
@@ -52191,13 +53673,13 @@
             "createRowEffectStage/prepareRecovered/ledgerOwner/init:close/init:close",
             "createRowEffectStage/prepareRecovered/ledgerOwner/ledgerOwner",
             "createRowEffectStage/prepareRecovered/prepareRecovered",
-            "createRowEffectStage/prepareRecovered/prepareRecovered/prepareRecovered",
             "createRowEffectStage/prepareRecovered/prepareRecovered#2",
             "createRowEffectStage/prepareRecovered/prepareRecovered#3",
             "createRowEffectStage/prepareRecovered/prepareRecovered#4",
             "createRowEffectStage/prepareRecovered/prepareRecovered#5",
             "createRowEffectStage/prepareRecovered/prepareRecovered#6",
             "createRowEffectStage/prepareRecovered/prepareRecovered#7",
+            "createRowEffectStage/prepareRecovered/prepareRecovered/prepareRecovered",
             "createRowEffectStage/prepareRecovered/previewRows/previewRows",
             "createRowEffectStage/prepareRecovered/reconcileStoredResponses/reconcileStoredResponses",
             "createRowEffectStage/prepareRecovered/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery",
@@ -52253,6 +53735,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Owned guarded request preparation"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "inputsOutputs": [
@@ -52275,6 +53761,10 @@
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "rowIndex, authorizationForRow, assertCurrent})` (command or guarded write)"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "identity": [
@@ -52297,6 +53787,10 @@
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "fail('ForeignInstalledRowEffectRequest')"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "ownership": [
@@ -52323,6 +53817,10 @@
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
                 "anchor": "children.push({prepared: Object.freeze"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "synchronization": [
@@ -52349,6 +53847,10 @@
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "authorizationForRow: () => reads[index].authorizationForRow(rowIndex)"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "failure": [
@@ -52371,6 +53873,14 @@
               {
                 "path": "adapters/host-node/installed-row-json.test.mjs",
                 "anchor": "guarded request child preparation failure retains its original cleanup and sends nothing"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The ordinary caller uses its existing finite Host `maxWork`"
               }
             ],
             "cancellation": [
@@ -52393,6 +53903,10 @@
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
                 "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "resources": [
@@ -52419,6 +53933,14 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Children, pending prepare/read/close state, request/before aliases and callback"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The ordinary caller uses its existing finite Host `maxWork`"
               }
             ],
             "extension": [
@@ -52441,6 +53963,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Pure synchronous preparation and the existing Command child path are unchanged"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "verification": [
@@ -52479,6 +54005,26 @@
               {
                 "path": "adapters/host-node/installed-row-json.test.mjs",
                 "anchor": "the child cannot substitute another row index into its read use"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "ordinary Source set finishes the original funded whole key before proposing any row"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "original completed key reaches actual Preview import and retirement revokes its payload proof"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "The ordinary caller uses its existing finite Host `maxWork`"
+              },
+              {
+                "path": "adapters/host-node/command-original-grouping-budget.test.mjs",
+                "anchor": "ordinary capture uses finite Host grouping work"
               }
             ]
           }
@@ -54209,6 +55755,7 @@
         "../host-common/effect-preparation-result.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
+        "./effect-command-key.mjs",
         "./effect-input-export.mjs",
         "./effect-ledger.mjs",
         "./effect-physical-dispatch.mjs",

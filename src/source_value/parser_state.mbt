@@ -80,6 +80,7 @@ fn Parser::normalize_key(self : Parser) -> Bool {
   match (path[4], path[5]) {
     (Key("update"), Key("set"))
     | (Key("upsert"), Key("set"))
+    | (Key("create"), Key("values"))
     | (Key("command"), Key("input")) => false
     _ => true
   }

@@ -12,7 +12,7 @@ import {runCapturedEffectComputation} from '../entry.mjs';
 export {moon};
 const cid = digit => `sha256:${digit.repeat(64)}`;
 
-function publicationEvidence(prepared) {
+export function publicationEvidence(prepared) {
   const bounds = [100000,10000,64];
   const evidence = (kind, body) => checked(moon.strategyRunEvidenceSeal(
     kind, JSON.stringify(body), ...bounds));

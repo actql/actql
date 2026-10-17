@@ -29,7 +29,8 @@ test('request headers are lowercase, non-secret, bounded and unique', () => {
   assert.ok(Object.isFrozen(owned) && Object.isFrozen(owned[0]));
   assert.deepEqual(ownRequestHeaders(), []);
   for (const reserved of ['authorization', 'cookie', 'host', 'content-type',
-    'content-length', 'transfer-encoding', 'x-forwarded-for']) {
+    'content-length', 'transfer-encoding', 'x-forwarded-for',
+    'x-cybozu-api-token', 'x-cybozu-authorization']) {
     assert.throws(() => ownRequestHeaders([[reserved, 'x']]),
       {code: 'ReservedHttpRequestHeader'});
   }

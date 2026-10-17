@@ -8,6 +8,7 @@ pub(all) enum ClientSourcePreparationIssue {
   Limit
   UnsupportedCarrier
   CommandTargetOriginalsUnavailable
+  RecordTargetOriginalsUnavailable
   Declarations
   Alias(@source_frontend.AliasIssue)
   Frontend(@source_frontend.Issue)
@@ -21,8 +22,9 @@ fn client_source_preparation_issue_code(
   match issue {
     Publication | Alias(_) => "source_rejected"
     Limit => "source_limit"
-    UnsupportedCarrier | CommandTargetOriginalsUnavailable =>
-      "source_unsupported"
+    UnsupportedCarrier
+    | CommandTargetOriginalsUnavailable
+    | RecordTargetOriginalsUnavailable => "source_unsupported"
     Declarations => "source_declarations"
     ArrayProfile(BudgetExceeded) => "source_limit"
     ArrayProfile(UnsupportedNestedArray(_, _, _))
@@ -298,6 +300,14 @@ pub fn client_program_prepare_source_computation_with_parameters(
       if lowered.command_selection is Some(_) {
         return SourcePure(
           Rejected(SourcePreparation(CommandTargetOriginalsUnavailable)),
+        )
+      }
+      if lowered.keyed_effect_kind is Some(Upsert | Delete) ||
+        lowered.insert_effect {
+        // This Source caller has not connected original record capture yet.
+        // Keep its explicit refusal distinct from canonical DELETE selection.
+        return SourcePure(
+          Rejected(SourcePreparation(RecordTargetOriginalsUnavailable)),
         )
       }
       let value = match

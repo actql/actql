@@ -465,6 +465,17 @@ fn compile_query_script_with_source(
         )
       None => None
     }
+    let insert_target = match @query.terminal_insert_effect(root) {
+      Some(clause) =>
+        Some(
+          resolve_insert_effect_target(
+            clause,
+            update_targets,
+            limits.max_expression_work,
+          ),
+        )
+      None => None
+    }
     // Complete authoritative target selection before the existing Relation
     // lowerer resolves ID/SET or builds a private UPDATE capture.
     let update_target = match @query.terminal_effect(root) {
@@ -624,6 +635,7 @@ fn compile_query_script_with_source(
         // Leave the original direct-field/literal explicit Result spelling
         // unchanged. New computed and cross-Stage forms use a private branch.
         if clause.result is None ||
+          clause.id_expression is Some(_) ||
           !clause.set.all(pair => update_direct_value(pair.1)) ||
           !earlier.is_empty() {
           let (producer, fields) = if selected.get(0) is Some(selected) {
@@ -690,6 +702,21 @@ fn compile_query_script_with_source(
         retained.push(capture)
         stage_steps.append(body.map(entries => construction.object(entries)))
       }
+      if @query.terminal_insert_effect(current) is Some(clause) &&
+        !retained.any(result => result.insert is Some(_)) {
+        let (capture, body) = lower_insert_capture(
+          construction,
+          clause,
+          result.name,
+          result.visible_fields.map(field => (field, field)),
+          [],
+          result.visible_fields,
+          limits.max_expression_work,
+          reserved_bindings=reserved,
+        )
+        retained.push(capture)
+        stage_steps.append(body.map(entries => construction.object(entries)))
+      }
       if @query.terminal_short_command_effect(current) is Some(clause) &&
         !retained.any(result => result.command is Some(_)) {
         let (capture, body) = lower_short_command_capture(
@@ -730,9 +757,11 @@ fn compile_query_script_with_source(
               retained,
               keep_default=!prior_results.is_empty() &&
                 store_target is None &&
+                insert_target is None &&
                 command_target is None,
               implicit_primary=table_effect is None &&
                 store_target is None &&
+                insert_target is None &&
                 command_target is None,
             )
           },
@@ -801,6 +830,20 @@ fn compile_query_script_with_source(
               construction,
               clause,
               store_target.unwrap(),
+              stage_context.stage_result,
+              retained,
+            ),
+          ),
+        )
+      }
+      if @query.terminal_insert_effect(current) is Some(clause) {
+        stage_entries.push(
+          (
+            "effects",
+            lower_insert_effect(
+              construction,
+              clause,
+              insert_target.unwrap(),
               stage_context.stage_result,
               retained,
             ),

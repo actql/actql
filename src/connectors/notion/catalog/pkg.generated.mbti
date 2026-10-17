@@ -2,10 +2,63 @@
 package "actql/actql/connectors/notion/catalog"
 
 import {
+  "actql/actql/decode_core",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn notion_data_source_database(NotionDataSourceCatalog) -> NotionDatabaseCatalog
+
+pub fn notion_data_source_matches_database(NotionDataSourceCatalog, NotionDatabaseCatalog) -> Bool
+
+pub fn notion_data_source_metadata_wire(NotionDataSourceCatalog, Int, Int, Int) -> Result[String, NotionDatabaseIssue]
+
+pub fn notion_data_source_original(NotionDataSourceCatalog) -> @decode_core.Cursor
+
+pub fn notion_data_source_property_at(NotionDataSourceCatalog, Int) -> NotionPropertyMetadata?
+
+pub fn notion_data_source_property_count(NotionDataSourceCatalog) -> Int
+
+pub fn notion_data_source_selected_index(NotionDataSourceCatalog) -> Int
+
+pub fn notion_database_metadata_wire(NotionDatabaseCatalog, Int, Int, Int) -> Result[String, NotionDatabaseIssue]
+
+pub fn notion_database_original(NotionDatabaseCatalog) -> @decode_core.Cursor
+
+pub fn notion_database_source_at(NotionDatabaseCatalog, Int) -> (String, String)?
+
+pub fn notion_database_source_count(NotionDatabaseCatalog) -> Int
+
+pub fn notion_property_definition(NotionPropertyMetadata) -> @decode_core.Cursor
+
+pub fn notion_query_page_matches_source(OriginalNotionQueryPage, NotionDataSourceCatalog) -> Bool
+
+pub fn notion_query_page_metadata_wire(OriginalNotionQueryPage, Int, Int, Int) -> Result[String, NotionQueryIssue]
+
+pub fn notion_query_page_original(OriginalNotionQueryPage) -> @decode_core.Cursor
+
+pub fn notion_query_page_original_json(OriginalNotionQueryPage, Int) -> Result[String, NotionQueryIssue]
+
+pub fn notion_query_page_row_at(OriginalNotionQueryPage, Int) -> OriginalNotionQueryRow?
+
+pub fn notion_query_page_row_count(OriginalNotionQueryPage) -> Int
+
+pub fn notion_query_page_source(OriginalNotionQueryPage) -> NotionDataSourceCatalog
+
+pub fn notion_query_property_original(OriginalNotionProperty) -> @decode_core.Cursor
+
+pub fn notion_query_property_value(OriginalNotionProperty) -> @decode_core.Cursor
+
+pub fn notion_query_property_value_json(OriginalNotionProperty, Int) -> Result[String, NotionQueryIssue]
+
+pub fn notion_query_row_matches_source(OriginalNotionQueryRow, NotionDataSourceCatalog) -> Bool
+
+pub fn notion_query_row_original(OriginalNotionQueryRow) -> @decode_core.Cursor
+
+pub fn notion_query_row_property_at(OriginalNotionQueryRow, Int) -> OriginalNotionProperty?
+
+pub fn notion_query_row_property_count(OriginalNotionQueryRow) -> Int
+
 pub fn notion_user_list_column_names() -> Array[String]
 
 pub fn notion_user_list_ids(NotionUserListPage) -> Array[String]
@@ -18,11 +71,76 @@ pub fn notion_user_list_rows_wire(NotionUserListPage, Array[String], Int, Int, I
 
 pub fn notion_user_list_schema_wire(Int, Int, Int) -> Result[String, NotionUserListIssue]
 
+pub fn project_notion_data_source(NotionDatabaseCatalog, Int, Bytes, NotionDatabaseLimits) -> Result[NotionDataSourceCatalog, NotionDatabaseIssue]
+
+pub fn project_notion_database(Bytes, NotionDatabaseLimits) -> Result[NotionDatabaseCatalog, NotionDatabaseIssue]
+
+pub fn project_notion_query_page(NotionDataSourceCatalog, Bytes, NotionQueryLimits) -> Result[OriginalNotionQueryPage, NotionQueryIssue]
+
 pub fn project_notion_user_list(Bytes, NotionUserListLimits) -> Result[NotionUserListPage, NotionUserListIssue]
 
 // Errors
 
 // Types and methods
+pub struct NotionDataSourceCatalog {
+  id : String
+  response_sha256 : String
+  // private fields
+}
+
+pub struct NotionDatabaseCatalog {
+  id : String
+  response_sha256 : String
+  // private fields
+}
+
+pub(all) enum NotionDatabaseIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+  InvalidIdentity
+  DuplicateIdentity
+  InvalidSelection
+  ForeignDatabase
+  InvalidProperty(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct NotionDatabaseLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_data_sources : Int
+  max_properties : Int
+  max_identity_bytes : Int
+  max_name_bytes : Int
+}
+
+pub struct NotionPropertyMetadata {
+  id : String
+  name : String
+  kind : String
+  // private fields
+}
+
+pub(all) enum NotionQueryIssue {
+  InvalidLimits
+  BudgetExceeded
+  Metadata(NotionDatabaseIssue)
+  InvalidResponse
+  InvalidCursor
+  DuplicatePage(String)
+  ForeignSource(String)
+  SchemaChanged(String)
+  InvalidProperty(String)
+  UnsupportedEntry(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct NotionQueryLimits {
+  metadata : NotionDatabaseLimits
+  max_rows : Int
+  max_cursor_bytes : Int
+}
+
 pub(all) enum NotionUserListIssue {
   InvalidLimits
   BudgetExceeded
@@ -47,6 +165,22 @@ pub(all) struct NotionUserListLimits {
 pub struct NotionUserListPage {
   response_sha256 : String
   next_cursor : String?
+  // private fields
+}
+
+pub struct OriginalNotionProperty {
+  metadata : NotionPropertyMetadata
+  // private fields
+}
+
+pub struct OriginalNotionQueryPage {
+  response_sha256 : String
+  next_cursor : String?
+  // private fields
+}
+
+pub struct OriginalNotionQueryRow {
+  id : String
   // private fields
 }
 

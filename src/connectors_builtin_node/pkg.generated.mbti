@@ -212,6 +212,8 @@ pub fn client_program_author_effect_preview(String, String, String, @logical_req
 
 pub fn client_program_begin_effect_command_key_workspace(ClientEffectCommandWorkspace, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.PublicationOutputExportLimits, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int]) -> Result[ClientEffectManagedInputImport, ClientEffectCommandWorkspaceIssue]
 
+pub fn client_program_begin_effect_local_command_key_workspace(ClientEffectCommandWorkspace, @physical_strategy.CapturedEffectInputs, Int, Int, @run_publication_host.PublicationOutputExportLimits, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int]) -> Result[ClientEffectManagedInputImport, ClientEffectCommandWorkspaceIssue]
+
 pub fn client_program_begin_infer_original_model_invalidation(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin]) -> Result[@physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin], @client_infer_host.Issue]
 
 pub fn client_program_begin_infer_original_read_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelQuantityCapacity?, Int64, Int64, Int, Int, Int) -> Result[@run_publication_host.ClientModelReadScope, @client_infer_host.Issue]
@@ -1136,6 +1138,12 @@ pub fn client_program_installed_infer_plan_graph(@run_publication_host.PreparedC
 
 pub fn client_program_installed_listing_row_capture_capacity(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?) -> @client_local_host.ClientInstalledCaptureCapacity?
 
+pub fn client_program_installed_model_defaults_binding(@run_publication_host.ClientModelProviderDefaults) -> @run_publication.RunEvidenceValue
+
+pub fn client_program_installed_model_defaults_generation(@run_publication_host.ClientModelProviderDefaults, @check_environment.ResolvedModelProviderDefaults) -> @check_environment.ModelGeneration?
+
+pub fn client_program_installed_model_defaults_usage(@run_publication_host.ClientModelProviderDefaults) -> (Int, Int, Int)
+
 pub fn client_program_installed_pending_duckdb_capture_capacity(@client_local_host.ClientDuckDBCaptureCapacity) -> @client_local_host.ClientInstalledCaptureCapacity
 
 pub fn client_program_installed_provider_row_capture_capacity(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?) -> @client_local_host.ClientInstalledCaptureCapacity?
@@ -1416,6 +1424,46 @@ pub fn client_program_keyed_row_start_accounted(@client_row_source_host.RowKeyed
 
 pub fn client_program_keyed_row_target(@client_row_source_host.RowKeyedAcquisition) -> Result[Array[String], @client_row_source_host.RowHostIssue]
 
+pub fn client_program_kintone_accept_read_page(@actql/actql/connectors/kintone/host.RecordRead, Bytes) -> Result[Int, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_bind_read_cleanup(@actql/actql/connectors/kintone/host.RecordRead, () -> Bool) -> Result[Unit, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_borrow_read(@actql/actql/connectors/kintone/host.PreparedRecordRead, @client_row_source_host.RowRun, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, Int) -> Result[@actql/actql/connectors/kintone/host.RecordRead, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_declaration_limits(Int, Int, Int, Int, Int) -> @client_row_source_host.RowDeclarationLimits
+
+pub fn client_program_kintone_declare_records(@actql/actql/connectors/kintone/catalog.FormFieldCatalog, @actql/actql/connectors/kintone/catalog.AppNumberSettings?, Array[String], String, String, String, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @client_row_source_host.RowDeclarationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordDeclaration, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_form_limits(Int, Int, Int, Int, Int) -> @actql/actql/connectors/kintone/catalog.FormFieldLimits
+
+pub fn client_program_kintone_form_request_body(@actql/actql/connectors/kintone/host.PreparedRecordRead, Int) -> Result[String, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_page_limits(Int, Int, Int, Int, Int, Int, Int) -> @actql/actql/connectors/kintone/catalog.RecordPageLimits
+
+pub fn client_program_kintone_page_next_cursor(@actql/actql/connectors/kintone/host.RecordRead, Array[String], Int) -> Result[Array[String], @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_page_request_body(@actql/actql/connectors/kintone/host.PreparedRecordRead, Array[String], Int, Int) -> Result[String, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_prepare_read(@actql/actql/connectors/kintone/host.RecordDeclaration, @query_planning.QueryRequirement, String, String) -> Result[@actql/actql/connectors/kintone/host.PreparedRecordRead, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_project_form(Bytes, String, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> Result[@actql/actql/connectors/kintone/catalog.FormFieldCatalog, @actql/actql/connectors/kintone/catalog.FormFieldIssue]
+
+pub fn client_program_kintone_read_acquisition(@actql/actql/connectors/kintone/host.PreparedRecordRead) -> @client_row_source_host.RowAcquisition
+
+pub fn client_program_kintone_read_app(@actql/actql/connectors/kintone/host.PreparedRecordRead) -> String
+
+pub fn client_program_kintone_read_fields(@actql/actql/connectors/kintone/host.PreparedRecordRead) -> Array[String]
+
+pub fn client_program_kintone_read_page_ids(@actql/actql/connectors/kintone/host.RecordRead) -> Result[Array[String], @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_recheck_read_form(@actql/actql/connectors/kintone/host.RecordRead, Bytes, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> Result[Unit, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_record_declaration(@actql/actql/connectors/kintone/host.RecordDeclaration) -> @client_row_source_host.RowDeclaration
+
+pub fn client_program_kintone_retire_read(@actql/actql/connectors/kintone/host.RecordRead) -> Result[Unit, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_value_limits(Int, Int, Int, Int, Int) -> @actql/actql/connectors/kintone/catalog.RecordValueLimits
+
 pub fn client_program_local_aoa_steps(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientTaskAoAStepsIssue]
 
 pub fn client_program_local_effect_host_run(ClientLocalEffectHost) -> @physical_strategy.CapturedEffectRunDAG
@@ -1570,6 +1618,10 @@ pub fn client_program_native_decision_request_matches(@model_execution.NativeDec
 
 pub fn client_program_native_decision_request_wires(@model_execution.NativeDecisionRequest) -> (String, String)?
 
+pub fn client_program_normalize_project_model_task(@run_publication_host.ClientProjectModelTaskSelection, @run_publication_host.ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration, @run_publication_host.ClientModelProviderDefaults, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@check_environment.NormalizedPublicModelTask, @check_environment.ModelTaskIssue]
+
+pub fn client_program_normalized_public_model_task_materials(@check_environment.NormalizedPublicModelTask) -> (String, String, String, String)
+
 pub fn client_program_observe_infer_raw_capture(@model_execution.ModelPhysicalCall, @run_publication_host.ClientModelRawCaptureRegistration, String, Int, Int, Bool, String) -> Result[@model_execution.ModelRawCaptureSave, @model_execution.ModelRawCaptureSaveIssue]
 
 pub fn client_program_open_captured_composed_infer_host(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, String, String, String?, String?, Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
@@ -1712,9 +1764,13 @@ pub fn client_program_private_continuation_retention_shape(Bytes, String, Int, I
 
 pub fn client_program_project_http_chat_request(@model_execution.AdmittedModelProvider, @model_execution.ModelRequest, String, Int, Int, Int, Int, Int) -> Result[(String, String, String, String, String), @model_execution.OpenAIChatProjectionIssue]
 
+pub fn client_program_project_model_task_selection_for(@run_publication_host.ClientProjectModelTaskSelection, @run_publication_host.ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration) -> (String, String?, String)?
+
 pub fn client_program_project_native_decision_answers(@model_execution.NativeDecisionRequest, @model_execution.AdmittedModelProvider, @model_execution.ModelRequest, @decode_core.Cursor, Int, Int, Int, Int) -> Result[(String, Int), @model_execution.NativeDecisionAnswerIssue]
 
 pub fn client_program_project_openai_chat_request(@model_execution.AdmittedModelProvider, @model_execution.ModelRequest, Int, Int, Int, Int, Int) -> Result[(String, String, String, String, String, String, String), @model_execution.OpenAIChatProjectionIssue]
+
+pub fn client_program_project_public_model_task_environment(String, String, Array[@check_environment.NormalizedPublicModelTask], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[(String, String, Int), @check_environment.ModelTaskIssue]
 
 pub fn client_program_publication_bytes_binding_json(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[String, @run_publication_host.ClientPublicationBindingIssue]
 
@@ -1762,9 +1818,13 @@ pub fn client_program_read_infer_model_execution(@run_publication_host.PreparedC
 
 pub fn client_program_read_infer_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Int, Int) -> Result[@model_execution.ModelSlotReplayRead, @model_execution.ModelExecutionIssue]
 
+pub fn client_program_read_installed_model_defaults(String, String, String, String, Int, Int, Int, Int, Int) -> Result[@run_publication_host.ClientModelProviderDefaults, @run_publication_host.ClientModelProviderDefaultsIssue]
+
 pub fn client_program_read_model_original_resource_document(String, Int, Int, Int) -> Result[@run_publication.ModelOriginalResourceDocument, @run_publication.PublicationContractIssue]
 
 pub fn client_program_read_model_response_profile(String, String, Int, Int, Int, Int, Int) -> Result[@check_environment.ModelResponseProfile, @check_environment.ModelTaskIssue]
+
+pub fn client_program_read_public_model_task(String, String, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@check_environment.PublicModelTaskDeclaration, @check_environment.ModelTaskIssue]
 
 pub fn client_program_read_reconciled_infer_raw_usage(@model_execution.ModelPhysicalCall, @model_execution.ModelPhysicalChatResponse, Int) -> Result[(Bool, Int64), @model_execution.ModelExecutionIssue]
 
@@ -1847,6 +1907,8 @@ pub fn client_program_reserve_captured_content_workspace(@physical_resources.Led
 pub fn client_program_reserve_infer_evidence_copy(Int) -> Result[(@physical_resources.Ledger, @physical_resources.Reservation), @physical_resources.LedgerIssue]
 
 pub fn client_program_reserve_original_infer_publication_capacity(@client_infer_host.Execution, Int64, Int64) -> Result[@model_execution.OriginalModelPublicationCapacity, @client_infer_host.Issue]
+
+pub fn client_program_resolve_installed_model_defaults(@run_publication_host.ClientModelProviderDefaults, String?, Int64?, Int) -> Result[@check_environment.ResolvedModelProviderDefaults, @check_environment.ModelProviderDefaultsResolutionIssue]
 
 pub fn client_program_resource_reference_issuer((String, String) -> Bool, (String) -> Bool) -> @value_admission.ReferenceIssuer
 
@@ -2029,6 +2091,8 @@ pub fn client_program_salesforce_site(String, String, String, String, String, St
 pub fn client_program_salesforce_source_target(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @query_planning.QueryRequirement) -> Result[Array[String], @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
 pub fn client_program_select_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String, @client_local_host.ClientDuckDBAcquisitionEstimate, @client_local_host.ClientDuckDBAcquisitionEstimate, Array[String]) -> Result[@client_local_host.ClientDuckDBAcquisitionSelection, @client_local_host.ClientDuckDBAcquisitionIssue]
+
+pub fn client_program_select_project_model_task(@run_publication_host.ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration, Int) -> Result[@run_publication_host.ClientProjectModelTaskSelection, @run_publication_host.ClientProjectModelTaskSelectionIssue]
 
 pub fn client_program_select_single_keyed_acquisition(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientKeyedAcquisition?, @run_publication_host.ClientKeyedAcquisitionIssue]
 
@@ -2393,6 +2457,22 @@ pub fn client_project_model_registry_task_count(@run_publication_host.ClientProj
 pub fn client_project_model_registry_task_file(@run_publication_host.ClientProjectModelRegistry, Int) -> String?
 
 pub fn client_project_model_registry_task_name(@run_publication_host.ClientProjectModelRegistry, Int) -> String?
+
+pub fn client_project_profile_matches(@run_publication_host.ClientProjectProfileSelection, @run_publication_host.ClientProjectConfiguration?, String?) -> Bool
+
+pub fn client_project_profile_mock_answer_count(@run_publication_host.ClientProjectProfileSelection) -> Result[Int, @run_publication_host.ClientProjectProfileIssue]
+
+pub fn client_project_profile_mock_answer_file(@run_publication_host.ClientProjectProfileSelection, Int) -> Result[String?, @run_publication_host.ClientProjectProfileIssue]
+
+pub fn client_project_profile_mock_answer_task(@run_publication_host.ClientProjectProfileSelection, Int) -> Result[String?, @run_publication_host.ClientProjectProfileIssue]
+
+pub fn client_project_profile_mock_data_file(@run_publication_host.ClientProjectProfileSelection) -> Result[String?, @run_publication_host.ClientProjectProfileIssue]
+
+pub fn client_project_profile_retire(@run_publication_host.ClientProjectProfileSelection) -> Result[Unit, @run_publication_host.ClientProjectProfileIssue]
+
+pub fn client_project_profile_select(@run_publication_host.ClientProjectConfiguration?, String?, Int) -> Result[@run_publication_host.ClientProjectProfileSelection, @run_publication_host.ClientProjectProfileIssue]
+
+pub fn client_project_profile_selected_name(@run_publication_host.ClientProjectProfileSelection) -> Result[String?, @run_publication_host.ClientProjectProfileIssue]
 
 pub fn client_request_admit_record(String, String, String, String, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 
@@ -4187,6 +4267,7 @@ pub(all) enum ClientSourcePreparationIssue {
   Limit
   UnsupportedCarrier
   CommandTargetOriginalsUnavailable
+  RecordTargetOriginalsUnavailable
   Declarations
   Alias(@source_frontend.AliasIssue)
   Frontend(@source_frontend.Issue)

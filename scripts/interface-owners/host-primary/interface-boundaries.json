@@ -2071,7 +2071,7 @@
     },
     {
       "module": "adapters/host-node/effect-input-export.mjs",
-      "sha256": "e4b995cad2b3719d4ca641cfd4f61aef12cbe6285709ab0c301361238f1b7046",
+      "sha256": "149e6e2e2cf3ec205c0aeab74ff63e4b760d95e035ac301d2e9b21aa65f5fb70",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -2157,7 +2157,9 @@
           "parameters": [
             "options",
             "memberCount",
-            "maxWork"
+            "maxWork",
+            "hasCommandWorkspace",
+            "hasPublishedTarget"
           ],
           "async": true
         },
@@ -2179,6 +2181,13 @@
         },
         {
           "name": "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet#2",
+          "parameters": [
+            "previous"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet#3",
           "parameters": [
             "entry"
           ],
@@ -2335,6 +2344,9 @@
             "proposalMemberIndexes",
             "proposalLimits",
             "onOriginalArtifact",
+            "commandWorkspace",
+            "onCommandKey",
+            "publishedTarget",
             "manifestSet",
             "local",
             "duplicateManifestMember"
@@ -2437,6 +2449,11 @@
           "async": true
         },
         {
+          "name": "preparePinnedEffectSourcePayloadOwned/summary/init:prepareProposal/init:prepareProposal",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "preparePinnedEffectSourcePayloadOwned/summary/summary",
           "parameters": [
             "index",
@@ -2459,6 +2476,8 @@
             "maxMembers",
             "maxGroupingWork",
             "memberSourceBindings",
+            "commandWorkspaces",
+            "publishedTargets",
             "options"
           ],
           "async": true
@@ -2614,6 +2633,7 @@
             "prepareDependentEffectSourceSet/orderedUnits/orderedUnits",
             "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet",
             "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet#2",
+            "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet#3",
             "prepareDependentEffectSourceSet/result/result",
             "prepareDependentEffectSourceSet/result/result#2",
             "prepareDependentEffectSourceSet/spend/spend",
@@ -2626,8 +2646,8 @@
             "preparePinnedEffectSourceHoldings/holdings/holdings",
             "preparePinnedEffectSourceHoldings/init:commit/init:commit",
             "preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit",
-            "preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit/init:commit",
             "preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit#2",
+            "preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit/init:commit",
             "preparePinnedEffectSourceHoldings/inventory/inventory",
             "preparePinnedEffectSourceHoldings/memberPayloads/memberPayloads",
             "preparePinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings",
@@ -2636,7 +2656,6 @@
             "preparePinnedEffectSourcePayloadOwned/init:retry/init:retry",
             "preparePinnedEffectSourcePayloadOwned/init:retry/init:retry/init:retry",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
-            "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#10",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#2",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#3",
@@ -2646,8 +2665,10 @@
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#7",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#8",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#9",
+            "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
             "preparePinnedEffectSourcePayloadOwned/retainText/retainText",
             "preparePinnedEffectSourcePayloadOwned/summary/init:onChunk/init:onChunk",
+            "preparePinnedEffectSourcePayloadOwned/summary/init:prepareProposal/init:prepareProposal",
             "preparePinnedEffectSourcePayloadOwned/summary/summary",
             "preparePinnedEffectSourcePayloadOwned/summary/summary#2",
             "preparePinnedEffectSourceSet",
@@ -2692,6 +2713,14 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "inputsOutputs": [
@@ -2710,6 +2739,14 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "identity": [
@@ -2724,6 +2761,14 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "ownership": [
@@ -2738,6 +2783,14 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "synchronization": [
@@ -2752,6 +2805,14 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "failure": [
@@ -2766,6 +2827,14 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "cancellation": [
@@ -2780,6 +2849,14 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "resources": [
@@ -2798,6 +2875,14 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "extension": [
@@ -2812,6 +2897,14 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "verification": [
@@ -2834,6 +2927,26 @@
               {
                 "path": "src/query_integration/command_key_export_retirement_wbtest.mbt",
                 "anchor": "test \""
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "ordinary Source set finishes the original funded whole key before proposing any row"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "original completed key reaches actual Preview import and retirement revokes its payload proof"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "adapters/host-node/effect-command-target-callers.test.mjs",
+                "anchor": "original target refusal happens before physical rows"
               }
             ]
           }
@@ -2844,6 +2957,7 @@
         "../host-common/completed-run-publication.mjs",
         "../host-common/effect-preparation-result.mjs",
         "../host-common/runtime-result.mjs",
+        "./effect-command-key.mjs",
         "node:crypto",
         "node:timers/promises"
       ],
@@ -2852,7 +2966,7 @@
     },
     {
       "module": "adapters/host-node/effect-plan-verify.mjs",
-      "sha256": "33b6b728bc25406b5f1dbef6c697987bca5ba3c1f1f24181fd13e06e3409cc29",
+      "sha256": "7af76add4483436d900afe0e152f802ea4a8ce71496473adbf3517292117340a",
       "exports": [
         "verifyPinnedEffectPlan"
       ],
@@ -2868,6 +2982,8 @@
             "planLimits",
             "onChunk",
             "signal",
+            "inputKey",
+            "publishedTarget",
             "advanceQuantum"
           ],
           "async": true
@@ -2916,6 +3032,14 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "inputsOutputs": [
@@ -2930,6 +3054,14 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "identity": [
@@ -2940,6 +3072,14 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "ownership": [
@@ -2950,6 +3090,14 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "synchronization": [
@@ -2960,6 +3108,14 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "failure": [
@@ -2970,6 +3126,14 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "cancellation": [
@@ -2980,6 +3144,14 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "resources": [
@@ -2990,6 +3162,14 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "extension": [
@@ -3000,6 +3180,14 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
               }
             ],
             "verification": [
@@ -3014,6 +3202,26 @@
               {
                 "path": "src/query_integration/command_key_export_retirement_wbtest.mbt",
                 "anchor": "test \""
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "ordinary Source set finishes the original funded whole key before proposing any row"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "original completed key reaches actual Preview import and retirement revokes its payload proof"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Original target and key callers"
+              },
+              {
+                "path": "adapters/host-node/effect-command-target-callers.test.mjs",
+                "anchor": "original target refusal happens before physical rows"
               }
             ]
           }
@@ -3498,7 +3706,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "b21dd346c3c71dba8805e60a3e9fdd91f20e0a893969bb34922e30718bcaab1d",
+      "sha256": "e842a937bf3b333ebef98e6ca9e6dc8cd390c8267855bb98ad685b8bb768befd",
       "exports": [
         "connectEmbeddedLocal",
         "openInstalledRemoteHttpHost",
@@ -3544,7 +3752,9 @@
           "name": "embeddedInstallationIdentity",
           "parameters": [
             "root",
-            "installation"
+            "installation",
+            "project",
+            "moon"
           ],
           "async": true
         },
@@ -3637,6 +3847,11 @@
         },
         {
           "name": "openInstalledHost/assertNewModelRuntime",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/assertProjectRuntime",
           "parameters": [],
           "async": false
         },
@@ -5382,6 +5597,22 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "### Original short-query continuation"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Project Task Host assembly"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original project profile choice"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "pub fn select_client_project_profile("
               }
             ],
             "inputsOutputs": [
@@ -5404,6 +5635,22 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"readOnly\": {\"const\": true}"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const bounds = snapshotLimits(limits);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "export function selectInstalledProjectProfile(moon,project,requested,maxWork){"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "pub fn client_project_profile_matches("
               }
             ],
             "identity": [
@@ -5422,6 +5669,30 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_cid("
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const original = installedProjectOriginalsForRuntime(project, moon);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
+              },
+              {
+                "path": "src/run_publication_host/client_project_model_task_selection.mbt",
+                "anchor": "pub fn client_project_model_task_selection_for("
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "if(receiver!==view||runtime!==moon)fail('ForeignInstalledProjectProfile');"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "physical_equal(original, candidate)"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
               }
             ],
             "ownership": [
@@ -5440,6 +5711,30 @@
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "assertSubmittedIntent(prepared, intent)"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const retained = Object.freeze(tasks);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "projectTasks = undefined;"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "original=configuration=selection=project=requested=ports=undefined;"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "selection.configuration = None"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "projectProfile?.retire(projectRuntime);"
               }
             ],
             "synchronization": [
@@ -5462,6 +5757,26 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const call = (name, ...args) => Reflect.apply(callbacks[name], moon, args);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "originalsForRuntime(runtime);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "const call=(name,...args)=>Reflect.apply(ports[name],moon,args);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const {installation: suppliedInstallation, profile: requestedProfile,"
               }
             ],
             "failure": [
@@ -5480,6 +5795,22 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "throw clientOperationError('InstalledProjectProfileUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "anchor": "test('actual profile rejects invalid choices and retains nominal retirement without physical ACK'"
               }
             ],
             "cancellation": [
@@ -5498,6 +5829,22 @@
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Unknown or pending child cleanup retains responsibility."
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Neither its completion nor dropping aliases proves GC, physical"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// Host, however, keeps this same view until its existing shutdown finishes."
               }
             ],
             "resources": [
@@ -5524,6 +5871,30 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "max_bytes > 1048576"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The initial Local reader selection is explicit:"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Projection overlaps the old Environment, sorted member references/CIDs, hash"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const tasks = [];"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The installation envelope includes the Common selection's four reference"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "it does not add a profile field to the public connection wire."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "requestedProfile.length > 65536"
               }
             ],
             "extension": [
@@ -5542,6 +5913,22 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "src/check_environment/public_model_task_environment.mbt",
+                "anchor": "pub fn project_public_model_task_environment("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "This connection supplies static checked materials, not execution dependencies,"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "pub fn retire_client_project_profile("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "An unavailable"
               }
             ],
             "verification": [
@@ -5576,6 +5963,34 @@
               {
                 "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project rejects copied project and foreign runtime before file acquisition'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual retained project detects replacement of the selected installation provider'"
+              },
+              {
+                "path": "adapters/host-node/project-model-task-host.actual.test.mjs",
+                "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile_wbtest.mbt",
+                "anchor": "test \"project profile refuses copied selection foreign equal project and changed choice\""
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "anchor": "test('actual absent project profile issues no mock record or answer original'"
+              },
+              {
+                "path": "adapters/host-node/project-profile-host.actual.test.mjs",
+                "anchor": "for(const scenario of ['explicit-mock','default-mock','early-root-refusal'])"
+              },
+              {
+                "path": "packages/node/project-profile.typecheck.mts",
+                "anchor": "const selected={mode:"
               }
             ]
           }
@@ -5697,7 +6112,217 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openInstalledHost/assertProjectRuntime"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Project Task Host assembly"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const bounds = snapshotLimits(limits);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const original = installedProjectOriginalsForRuntime(project, moon);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
+              },
+              {
+                "path": "src/run_publication_host/client_project_model_task_selection.mbt",
+                "anchor": "pub fn client_project_model_task_selection_for("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const retained = Object.freeze(tasks);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "projectTasks = undefined;"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const call = (name, ...args) => Reflect.apply(callbacks[name], moon, args);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "originalsForRuntime(runtime);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Unknown or pending child cleanup retains responsibility."
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The initial Local reader selection is explicit:"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Projection overlaps the old Environment, sorted member references/CIDs, hash"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const tasks = [];"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/check_environment/public_model_task_environment.mbt",
+                "anchor": "pub fn project_public_model_task_environment("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "This connection supplies static checked materials, not execution dependencies,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project rejects copied project and foreign runtime before file acquisition'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual retained project detects replacement of the selected installation provider'"
+              },
+              {
+                "path": "adapters/host-node/project-model-task-host.actual.test.mjs",
+                "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])"
+              }
+            ]
+          }
         }
+      ],
+      "imports": [
+        "../../packages/client-wire/index.mjs",
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/authorization-gate.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/completed-run-publication.mjs",
+        "../host-common/diagnostic-observer.mjs",
+        "../host-common/effect-preparation-result.mjs",
+        "../host-common/observation.mjs",
+        "../host-common/run-state-access.mjs",
+        "../host-common/run-state-observation.mjs",
+        "../host-common/runtime-core.mjs",
+        "../host-common/runtime-result.mjs",
+        "../local-node/retained-store.mjs",
+        "../store-local/files.mjs",
+        "../store-local/publication-store.mjs",
+        "./acquired-effect-computation.mjs",
+        "./acquired-effect-continuation.mjs",
+        "./acquired-effect-sources.mjs",
+        "./captured-duckdb-source.mjs",
+        "./client-check.mjs",
+        "./client-checkpoints.mjs",
+        "./client-dispatch-owner.mjs",
+        "./client-effect-observations.mjs",
+        "./client-effect-run.mjs",
+        "./client-http.mjs",
+        "./client-interactive-plan.mjs",
+        "./client-owner-cursor.mjs",
+        "./client-owner-observations.mjs",
+        "./client-program-preparation.mjs",
+        "./client-request-journal.mjs",
+        "./client-request-lookup.mjs",
+        "./client-run-attach.mjs",
+        "./client-run-inspect.mjs",
+        "./client-run-plan.mjs",
+        "./client-run-start.mjs",
+        "./client-submission.mjs",
+        "./effect-run-recovery.mjs",
+        "./effect-target-read-continuation.mjs",
+        "./effect-target-read-inventory.mjs",
+        "./embedded-local-lifecycle.mjs",
+        "./entry.mjs",
+        "./host-root-format.mjs",
+        "./in-process-client.mjs",
+        "./infer-evaluation-evidence.mjs",
+        "./infer-trusted-runtime-view.mjs",
+        "./installed-calendar.mjs",
+        "./installed-check-environment.mjs",
+        "./installed-connectors.mjs",
+        "./installed-content-run.mjs",
+        "./installed-effect-inventory.mjs",
+        "./installed-effect-site.mjs",
+        "./installed-effect.mjs",
+        "./installed-host-cleanup.mjs",
+        "./installed-host-policy.mjs",
+        "./installed-infer-run.mjs",
+        "./installed-model-continuation.mjs",
+        "./installed-model-originals.mjs",
+        "./installed-model.mjs",
+        "./installed-project-configuration.mjs",
+        "./installed-project-model-tasks.mjs",
+        "./installed-project-profile.mjs",
+        "./installed-row-effect.mjs",
+        "./installed-source.mjs",
+        "./installed-update-originals.mjs",
+        "./local-account-config.mjs",
+        "./local-continuation-evidence.mjs",
+        "./local-values-plan.mjs",
+        "./ordinary-source-binding.mjs",
+        "./result-access.mjs",
+        "./source-alias-publication.mjs",
+        "./update-target-original-shape.mjs",
+        "node:crypto",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "node:url"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [
+        "runtime-dependent module dependency requires original owner/artifact mapping"
       ]
     },
     {

@@ -6,6 +6,7 @@ import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 import {parameterPrograms} from './parameter-schema.mjs';
 import {publishedCommandTargetSchema,publishedCommandTargetSchemas} from './published-command-target.mjs';
+import {withoutCreateValuesSchema} from './create-values.mjs';
 const read=p=>JSON.parse(readFileSync(p,'utf8'));
 const protocol=read('spec/contracts/actql-protocol-schemas.json');
 const vectors=read('portability/corpus/published-command-selectors.json');
@@ -16,15 +17,19 @@ test('canonical Command selector changes only the declared target alternative in
   const prior=read(vectors.previous_program_file);
   assert.equal(machineCid(prior),vectors.previous_program_cid);
   assert.deepEqual(prior,JSON.parse(execFileSync('git',['show',vectors.previous_source+':spec/contracts/actql-protocol-schemas.json'],{encoding:'utf8',maxBuffer:16*1024*1024})).artifact_schemas.executable_plan.properties.execution_material.properties.program);
+  const historical=structuredClone(prior);
+  command(historical).properties.target.oneOf.push(publishedCommandTargetSchema());
+  assert.equal(machineCid(historical),vectors.program_cid,
+    'The target-only preimage retains its original complete type grammar');
   for(const program of parameterPrograms(protocol)) {
-    const restored=structuredClone(program);
+    const restored=withoutCreateValuesSchema(program);
     // Input-key correspondence has its own retained full-schema/vector gate.
     // The original target-only identity remains unchanged, not re-authored.
     delete command(restored).properties.input_key;
-    assert.equal(machineCid(restored),vectors.program_cid);
+    assert.deepEqual(command(restored),command(historical));
     assert.deepEqual(command(restored).properties.target.oneOf[2],publishedCommandTargetSchema());
     command(restored).properties.target.oneOf.pop();
-    assert.deepEqual(restored,prior,'No unrelated Program fields or old targets changed');
+    assert.deepEqual(command(restored),command(prior),'No unrelated Command fields or old targets changed');
   }
 });
 

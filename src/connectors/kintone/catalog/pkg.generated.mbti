@@ -3,10 +3,24 @@ package "actql/actql/connectors/kintone/catalog"
 
 import {
   "actql/actql/decode_core",
+  "actql/actql/value_admission",
+  "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn admit_record_number_value(OriginalRecordField, @value_contract.Contract, RecordValueLimits) -> Result[@value_admission.CheckedValue, RecordValueIssue]
+
+pub fn admit_record_page_contracts(OriginalRecordPage, AppNumberSettings?, Array[String], Array[@value_contract.Contract], RecordValueLimits, Int) -> Result[Array[Array[@value_admission.CheckedValue]], RecordValueIssue]
+
+pub fn checked_record_columns(CheckedRecordPage) -> Array[String]
+
+pub fn checked_record_original(CheckedRecordPage) -> OriginalRecordPage
+
+pub fn checked_record_rows(CheckedRecordPage) -> Array[Array[@value_admission.CheckedValue]]
+
+pub fn checked_record_settings(CheckedRecordPage) -> AppNumberSettings?
+
 pub fn form_field_definition_matches(FormFieldCatalog, FormFieldCatalog, Array[String]) -> Bool
 
 pub fn form_field_named(FormFieldCatalog, Array[String]) -> FormFieldMetadata?
@@ -23,19 +37,40 @@ pub fn original_record_value(OriginalRecordField) -> @decode_core.Cursor
 
 pub fn original_table_fields(OriginalTableRow) -> Array[OriginalRecordField]
 
+pub fn project_checked_record_page(OriginalRecordPage, AppNumberSettings?, RecordValueLimits) -> Result[CheckedRecordPage, RecordValueIssue]
+
 pub fn project_form_fields(Bytes, String, FormFieldLimits) -> Result[FormFieldCatalog, FormFieldIssue]
 
+pub fn project_number_settings(Bytes, String, NumberSettingsLimits) -> Result[AppNumberSettings, NumberSettingsIssue]
+
 pub fn project_record_page(Bytes, FormFieldCatalog, Array[String], RecordPageLimits) -> Result[OriginalRecordPage, RecordPageIssue]
+
+pub fn record_page_columns(OriginalRecordPage) -> Array[String]
 
 pub fn record_page_records(OriginalRecordPage) -> Array[OriginalRecord]
 
 pub fn record_page_uses_catalog(OriginalRecordPage, FormFieldCatalog) -> Bool
+
+pub fn record_schema_wire(FormFieldCatalog, AppNumberSettings?, Array[String], RecordValueLimits, Int) -> Result[String, RecordValueIssue]
 
 pub fn require_form_unique_key(FormFieldCatalog, String) -> Result[FormFieldMetadata, FormFieldIssue]
 
 // Errors
 
 // Types and methods
+pub struct AppNumberSettings {
+  app_id : String
+  revision : String
+  digits : Int
+  decimal_places : Int
+  rounding_mode : String
+  response_sha256 : String
+}
+
+pub struct CheckedRecordPage {
+  // private fields
+}
+
 pub struct FormFieldCatalog {
   app_id : String
   revision : String
@@ -69,6 +104,18 @@ pub struct FormFieldMetadata {
   calculation_format : String?
   // private fields
 } derive(Eq)
+
+pub(all) enum NumberSettingsIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+} derive(Eq, @debug.Debug)
+
+pub(all) struct NumberSettingsLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
 
 pub struct OriginalRecord {
   record_id : String
@@ -114,6 +161,25 @@ pub(all) struct RecordPageLimits {
   max_columns : Int
   max_cells : Int
   max_table_rows : Int
+}
+
+pub(all) enum RecordValueIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignSettings
+  FieldUnavailable(String)
+  UnrepresentableField(String)
+  InvalidValue(String)
+  DecimalValue(String, @value_admission.DecimalTextIssue)
+  ValueAdmission(String, @value_admission.Issue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RecordValueLimits {
+  max_columns : Int
+  max_name_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_text_bytes : Int
 }
 
 // Type aliases

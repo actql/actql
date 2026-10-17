@@ -92,7 +92,7 @@ export type HostInstallation = Readonly<{
 }>;
 export declare function connect(options: Readonly<{
   mode: 'local'; owner?: 'local'; runtime?: 'embedded'; durability?: 'volatile' | 'durable';
-  consentRefs?: readonly string[]; installation?: HostInstallation;
+  consentRefs?: readonly string[]; profile?: string; installation?: HostInstallation;
 }>): Promise<Client>;
 export declare function publishSource(options?: Pick<HostInstallation,
   'directory' | 'sourceProfilePath' | 'resolveSourceSecret' | 'connectorTable'> & {signal?: AbortSignal}): Promise<unknown>;

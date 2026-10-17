@@ -11,7 +11,9 @@ fn lower_update_effect(
 ) -> @builder.Node raise Abort {
   // One terminal UPDATE has one stable Program-local identity. An authored
   // empty name is invalid, rather than an instruction to choose the default.
-  let name = clause.name.map(part => part.value).unwrap_or("aql_update_effect")
+  let name = clause.name
+    .map(part => part.value)
+    .unwrap_or("aql_" + keyed_effect_operation(clause.kind) + "_effect")
   guard name != "" else { raise Abort(UnsupportedEffect) }
   let captures = retained.filter(result => result.update is Some(_))
   if captures.length() == 1 {
@@ -75,22 +77,27 @@ fn update_effect_node(
   id : String,
   assignments : Array[(String, @builder.Node)],
 ) -> @builder.Node raise Abort {
-  let name = clause.name.map(part => part.value).unwrap_or("aql_update_effect")
+  let name = clause.name
+    .map(part => part.value)
+    .unwrap_or("aql_" + keyed_effect_operation(clause.kind) + "_effect")
   guard name != "" else { raise Abort(UnsupportedEffect) }
+  if clause.kind == Delete && !assignments.is_empty() {
+    raise Abort(InvalidQuery)
+  }
+  let fields = [
+    ("target", construction.text(target.0)),
+    ("mapping", construction.text(target.1)),
+    ("from", construction.object([("result", construction.text(port))])),
+    (if clause.kind == Upsert { "key" } else { "id" }, construction.text(id)),
+  ]
+  if clause.kind != Delete {
+    fields.push(("set", construction.object(assignments)))
+  }
   construction.object([
     (
       name,
       construction.object([
-        (
-          "update",
-          construction.object([
-            ("target", construction.text(target.0)),
-            ("mapping", construction.text(target.1)),
-            ("from", construction.object([("result", construction.text(port))])),
-            ("id", construction.text(id)),
-            ("set", construction.object(assignments)),
-          ]),
-        ),
+        (keyed_effect_operation(clause.kind), construction.object(fields)),
       ]),
     ),
   ])
@@ -133,12 +140,46 @@ fn lower_update_capture(
   let resolve = path => {
     pipe_expression_slot(path, expression_visible, ranges, value_ranges~)
   }
-  guard pipe_slot([clause.id], visible, ranges) is Some(id) else {
-    raise Abort(UnknownColumn)
-  }
-  let fields = [id]
   let reserved = physical.copy()
   let derives : Array[(String, @builder.Node)] = []
+  let id = match clause.id_expression {
+    None =>
+      match pipe_slot([clause.id], visible, ranges) {
+        Some(value) => value
+        None => raise Abort(UnknownColumn)
+      }
+    Some(expression) => {
+      guard @query.expression_node(
+          expression,
+          @query.expression_root(expression),
+        ).unwrap().kind
+        is Reference(path) else {
+        raise Abort(InvalidQuery)
+      }
+      match resolve(path) {
+        Some(slot) => slot
+        None => {
+          let slot = pipe_physical_name(reserved, "aql_update_id_")
+          reserved.push(slot)
+          derives.push(
+            (
+              slot,
+              append_pipe_expression(
+                construction,
+                expression,
+                expression_visible,
+                ranges,
+                max_work,
+                value_ranges~,
+              ),
+            ),
+          )
+          slot
+        }
+      }
+    }
+  }
+  let fields = [id]
   let assignments : Array[(String, @builder.Node)] = []
   for (field, expression) in clause.set {
     if assignments.any(entry => {
@@ -215,6 +256,7 @@ fn lower_update_capture(
       carrier_complete: false,
       update: Some((id, assignments)),
       store: false,
+      insert: None,
       command: None,
     },
     body,
@@ -281,8 +323,9 @@ fn resolve_update_effect_target(
         raise Abort(UpdateTargetBinding(UnresolvedTarget))
       }
       match
-        resolve_update_target_binding(
+        resolve_keyed_effect_target_binding(
           publication,
+          clause.kind,
           name,
           clause.mapping,
           max_work,

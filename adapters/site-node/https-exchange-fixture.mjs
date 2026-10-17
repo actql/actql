@@ -33,7 +33,7 @@ export async function fixtureCertificates(root) {
 }
 
 const credentialHeaders = new Set(['authorization', 'proxy-authorization',
-  'cookie']);
+  'cookie', 'x-cybozu-api-token', 'x-cybozu-authorization']);
 
 function matches({method, pathname, bodyIncludes}, exchange) {
   return (method === undefined || method === exchange.method) &&
@@ -79,7 +79,9 @@ export async function openHttpsExchangeFixture(t, {routes = [],
         method: request.method, path: request.url, pathname: url.pathname,
         query: Object.freeze(Object.fromEntries(url.searchParams)),
         headers: Object.freeze(headers),
-        authorized: typeof request.headers.authorization === 'string',
+        authorized: ['authorization', 'x-cybozu-api-token',
+          'x-cybozu-authorization'].some(name =>
+          typeof request.headers[name] === 'string'),
         body: Buffer.concat(chunks).toString('utf8'),
       });
       seen.push(exchange);
