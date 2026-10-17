@@ -302,8 +302,11 @@ The additive private-Root custody entrance returns the existing
 `NativeRootOpenFailure`, retaining its constructor refusal independently of any
 cleanup diagnostic. Its `retry_cleanup` acts only on that same rejected Root;
 a missing descriptor or confirmed close clears that reference, while an
-unconfirmed close keeps it. The legacy private-Root entrance and its successful
-privacy/containment checks remain unchanged. The failure object issues neither
+unconfirmed close keeps it. The successful privacy/containment predicates remain unchanged. The custody
+constructor uses the existing observed namespace walk even before it has a
+final Root descriptor. Private-current observations use that same walk and
+cannot resume after an unconfirmed temporary close. The first namespace close
+failure remains original even if cleanup encounters another one. The failure object issues neither
 a usable Root nor Host adoption, and cleanup cannot retry acquisition.
 
 ## Direct Local credential grant/use scope

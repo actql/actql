@@ -814,26 +814,26 @@ static int actql_open_contained_directory(char *text) {
   return current;
 }
 
+static bool actql_package_namespace_close(actql_native_filesystem_root *, int);
+static int actql_package_namespace_walk(actql_native_filesystem_root *);
+
 static bool actql_private_root_namespace(
   actql_native_filesystem_root *root,
   const struct stat *original
 ) {
-  if (root->custody_path == NULL) return false;
-  char *copy = strdup(root->custody_path);
-  if (copy == NULL) return false;
-  int descriptor = actql_open_contained_directory(copy);
-  free(copy);
+  if (root->namespace_cleanup_unconfirmed) return false;
+  int descriptor = actql_package_namespace_walk(root);
   if (descriptor < 0) return false;
   struct stat current;
   bool matches = fstat(descriptor, &current) == 0 &&
     current.st_dev == original->st_dev && current.st_ino == original->st_ino &&
     current.st_nlink > 0 && current.st_uid == geteuid() &&
     (current.st_mode & 0777) == 0700;
-  return close(descriptor) == 0 && matches;
+  return actql_package_namespace_close(root, descriptor) && matches;
 }
 
-// Additive package namespace observation. Unlike the legacy private-mode walk,
-// every temporary close is observed and an Unknown stays on the same Root.
+// Existing observed namespace walk, shared by package and private-current
+// observations. Every temporary close retains Unknown on the same Root.
 static bool actql_package_namespace_close(
   actql_native_filesystem_root *root, int descriptor
 ) {
@@ -843,9 +843,11 @@ static bool actql_package_namespace_close(
     result = -1; error_number = EIO;
   }
   if (result == 0) return true;
-  root->namespace_cleanup_unconfirmed = true;
-  actql_replace_bounded_errno_error(&root->namespace_cleanup_error,
-    root->diagnostic_ceiling, "close package namespace observation", error_number);
+  if (!root->namespace_cleanup_unconfirmed) {
+    root->namespace_cleanup_unconfirmed = true;
+    actql_replace_bounded_errno_error(&root->namespace_cleanup_error,
+      root->diagnostic_ceiling, "close package namespace observation", error_number);
+  }
   actql_replace_bounded_error(&root->error, root->diagnostic_ceiling,
     root->namespace_cleanup_error);
   return false;
@@ -1052,6 +1054,11 @@ int32_t actql_native_filesystem_private_root_identity(
   actql_native_filesystem_root *root
 ) {
   if (root == NULL || root->fd < 0) return 0;
+  if (root->namespace_cleanup_unconfirmed) {
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling,
+      root->namespace_cleanup_error);
+    return 0;
+  }
   root->result_device = 0;
   root->result_inode = 0;
   struct stat status;
@@ -1060,9 +1067,14 @@ int32_t actql_native_filesystem_private_root_identity(
     return 0;
   }
   if (!S_ISDIR(status.st_mode) || status.st_nlink == 0 || status.st_uid != geteuid() ||
-      (status.st_mode & 0777) != 0700 || !actql_private_root_acl(root->fd) ||
-      !actql_private_root_namespace(root, &status)) {
+      (status.st_mode & 0777) != 0700 || !actql_private_root_acl(root->fd)) {
     actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "Host root is not user-owned and private");
+    return 0;
+  }
+  if (!actql_private_root_namespace(root, &status)) {
+    if (!root->namespace_cleanup_unconfirmed)
+      actql_replace_bounded_error(&root->error, root->diagnostic_ceiling,
+        "Host root is not user-owned and private");
     return 0;
   }
   root->result_device = (uint64_t)status.st_dev;
@@ -1120,6 +1132,47 @@ void *actql_native_filesystem_open_private_root_with_diagnostics(
     // An unconfirmed consumed fd must never be closed again by its number.
     actql_native_filesystem_root_close(root);
   }
+  return root;
+}
+
+// Custody entrance uses the same Root, privacy predicate and existing observed
+// walk. Early path/namespace close Unknown cannot become a no-FD cleanup ACK.
+void *actql_native_filesystem_open_private_root_with_custody_diagnostics(
+  moonbit_bytes_t path, int32_t length, int32_t diagnostic_ceiling
+) {
+  actql_native_filesystem_root *root = moonbit_make_external_object(
+    actql_native_filesystem_root_finalize, sizeof(actql_native_filesystem_root));
+  memset(root, 0, sizeof(*root)); root->fd = -1; root->close_result = 1;
+  root->diagnostic_ceiling = diagnostic_ceiling;
+  if (diagnostic_ceiling < 0) return root;
+  if (length <= 1 || length > 4096) {
+    actql_replace_bounded_error(&root->error, diagnostic_ceiling, "invalid private Host root path");
+    return root;
+  }
+  char *text = actql_copy_text(path, length);
+  if (text == NULL) {
+    actql_replace_bounded_error(&root->error, diagnostic_ceiling, "root path allocation failed");
+    return root;
+  }
+  if (text[0] != '/' || text[length - 1] == '/' || (int32_t)strlen(text) != length) {
+    free(text);
+    actql_replace_bounded_error(&root->error, diagnostic_ceiling, "invalid private Host root path");
+    return root;
+  }
+  root->custody_path = text;
+  int descriptor = actql_package_namespace_walk(root), open_error = errno;
+  if (descriptor < 0) {
+    if (root->namespace_cleanup_unconfirmed) {
+      root->close_result = -1;
+      actql_replace_bounded_error(&root->close_error, diagnostic_ceiling,
+        root->namespace_cleanup_error);
+    } else actql_replace_bounded_errno_error(&root->error, diagnostic_ceiling,
+      "open private Host root", open_error);
+    return root;
+  }
+  root->fd = descriptor; root->close_result = 0;
+  if (!actql_native_filesystem_private_root_identity(root))
+    actql_native_filesystem_root_close(root);
   return root;
 }
 

@@ -49,6 +49,14 @@ extern "C" fn open_private_root_ffi(
 ) -> Root = "actql_native_filesystem_open_private_root_with_diagnostics"
 
 ///|
+#borrow(path)
+extern "C" fn open_private_root_with_custody_ffi(
+  path : Bytes,
+  length : Int,
+  diagnostic_ceiling : Int,
+) -> Root = "actql_native_filesystem_open_private_root_with_custody_diagnostics"
+
+///|
 #borrow(root)
 extern "C" fn private_root_identity_ffi(root : Root) -> Bool = "actql_native_filesystem_private_root_identity"
 
@@ -364,7 +372,7 @@ pub fn open_private_root_with_custody(
     return Err({ original_issue: InvalidLimit, root: None, })
   }
   let encoded = @utf8.encode(path)
-  let root = open_private_root_ffi(
+  let root = open_private_root_with_custody_ffi(
     encoded,
     encoded.length(),
     diagnostic_ceiling.unwrap_or(0),
