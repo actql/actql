@@ -4426,7 +4426,7 @@
     {
       "module": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "21d1164da74903e0dc7e63bb811cd9fdf1e799833f5fc7359fdea92c261c776e",
+      "sha256": "aad351e41024d6445f90e4d4104a4fc9edb36561a3c0f05561160dfbb546bdf8",
       "role": "connector-semantics",
       "owner": "Installed GCS Resource/Source wiring; Common acquisition/ReferenceIssuer/authorization remain authoritative",
       "exports": [
@@ -4933,6 +4933,8 @@
         "../../../../packages/sdk/host-port.mjs",
         "../../../host-node/installed-host-cleanup.mjs",
         "../../../host-node/installed-row-source.mjs",
+        "../../../host-node/source-profile-json.mjs",
+        "../site/gcs-credential-site.mjs",
         "../site/gcs-file-listing.mjs",
         "../site/gcs-keyed-content.mjs",
         "../site/gcs-object-listing.mjs",
@@ -4940,7 +4942,6 @@
         "./gcs-source-declaration.mjs",
         "./gcs-upload-declaration.mjs",
         "node:crypto",
-        "node:fs/promises",
         "node:path"
       ],
       "compilerFields": [],
