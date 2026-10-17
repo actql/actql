@@ -319,3 +319,64 @@ test "Notion read snapshot closed body and recomputed schema refuse malformed or
     )
   }
 }
+
+///|
+test "Notion saved read snapshot retains exact enum extents Decimal and nullable contracts through checked rows" {
+  let declaration = read_notion_database_read_declaration(
+    @utf8.encode(
+      (
+        #|{"id":"db","data_source_id":"s2","read_contracts":{"t%3Ax":[{"column":"title","projection":"value","contract":{"type":"string","nullable":false,"enum":["é😀","é😀","not-used"],"max_codepoints":8,"max_utf8_bytes":32}}],"n":[{"column":"amount","projection":"value","contract":{"type":"decimal","nullable":true,"precision":20,"scale":2}}]}}
+      ),
+    ),
+    read_test_limits(),
+  ).unwrap()
+  let source = query_test_source()
+  let selected = select_notion_read_source(
+    declaration,
+    source.database,
+    read_test_limits().max_work,
+  ).unwrap()
+  let original = bind_notion_selected_read_contracts(
+    selected,
+    source,
+    read_test_limits(),
+  ).unwrap()
+  let saved = capture_notion_database_read_snapshot(
+    selected,
+    source,
+    original,
+    snapshot_test_limits(),
+  ).unwrap()
+  let restored = read_notion_database_read_snapshot(
+    @utf8.encode(saved.wire),
+    saved.source_cid,
+    read_test_limits(),
+    snapshot_test_limits(),
+  ).unwrap()
+  let binding = notion_database_read_snapshot_contracts(restored).unwrap()
+  assert_true(@contract.type_equal(original.schema, binding.schema, 10000))
+  let text = notion_data_source_read_column_at(binding, 0).unwrap().contract
+  guard text.shape is @contract.Text(bounds) else {
+    fail("Expected original checked Text")
+  }
+  assert_eq(@contract.text_enumerant_count(bounds), Some(3))
+  assert_eq(@contract.text_enumerant_at(bounds, 0), Some("é😀"))
+  assert_eq(@contract.text_enumerant_at(bounds, 1), Some("é😀"))
+  assert_eq(@contract.text_enumerant_at(bounds, 2), Some("not-used"))
+  assert_eq(bounds.max_codepoints, Some(8L))
+  assert_eq(bounds.max_utf8_bytes, Some(32L))
+  let decimal = notion_data_source_read_column_at(binding, 1).unwrap().contract
+  assert_true(decimal.shape is @contract.Decimal(precision=20, scale=2))
+  assert_true(decimal.nullable)
+  let page = project_notion_query_page(
+    binding.source,
+    @utf8.encode(query_test_page(query_test_row("page"), "null", "false")),
+    query_test_limits(),
+  ).unwrap()
+  let row = start_notion_read_row(binding, page, 0, row_test_limits()).unwrap()
+  complete_notion_read_row_property(row, 0, row_test_title(binding, page)).unwrap()
+  assert_eq(
+    notion_read_row_wire(row, 8192, 256, 16),
+    Ok("{\"amount\":\"9007199254740993.25\",\"title\":\"é😀\"}"),
+  )
+}
