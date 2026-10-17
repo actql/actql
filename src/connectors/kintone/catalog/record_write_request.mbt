@@ -392,3 +392,23 @@ pub fn record_update_acknowledgement_records(
 ) -> Array[(String, String)] {
   response.records.copy()
 }
+
+///|
+pub fn record_create_request_app_id(request : RecordCreateRequest) -> String {
+  request.catalog.app_id
+}
+
+///|
+pub fn record_create_request_count(request : RecordCreateRequest) -> Int {
+  request.records.length()
+}
+
+///|
+pub fn record_update_request_app_id(request : RecordUpdateRequest) -> String {
+  request.records[0].0.page.app_id
+}
+
+///|
+pub fn record_update_request_count(request : RecordUpdateRequest) -> Int {
+  request.records.length()
+}

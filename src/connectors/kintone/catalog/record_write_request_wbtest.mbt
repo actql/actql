@@ -41,6 +41,8 @@ test "create requests embed exact checked values and retain their original Form 
   )
   assert_true(physical_equal(record_create_request_values(request)[0], first))
   assert_true(physical_equal(request.catalog, catalog))
+  assert_eq(record_create_request_app_id(request), "12")
+  assert_eq(record_create_request_count(request), 2)
   inputs.clear()
   record_create_request_values(request).clear()
   assert_eq(record_create_request_values(request).length(), 2)
@@ -80,6 +82,8 @@ test "updates retain each original target value pair and required wide revision 
   assert_true(physical_equal(originals[0].0, targets[1]))
   assert_true(physical_equal(originals[0].1, second))
   assert_true(physical_equal(originals[1].0, targets[0]))
+  assert_eq(record_update_request_app_id(request), "12")
+  assert_eq(record_update_request_count(request), 2)
   pairs.clear()
   originals.clear()
   assert_eq(record_update_request_values(request).length(), 2)
@@ -423,4 +427,55 @@ test "non-success malformed lost and over-budget responses cannot become write o
       is Err(_),
     )
   }
+}
+
+///|
+test "write response limits include every identity and duplicate or original-ID comparison" {
+  let catalog = record_test_catalog()
+  let values = request_values(catalog, "x")
+  let targets = request_targets(catalog)
+  let create = prepare_record_create_request(
+    catalog,
+    [values, values],
+    mutation_limits(),
+  ).unwrap()
+  let update = prepare_record_update_request(
+    [(targets[0], values), (targets[1], values)],
+    mutation_limits(),
+  ).unwrap()
+  let created = b"{\"ids\":[\"7\",\"8\"],\"revisions\":[\"1\",\"1\"]}"
+  let updated = b"{\"records\":[{\"id\":\"9007199254740992\",\"revision\":\"9\"},{\"id\":\"9007199254740994\",\"revision\":\"9\"}]}"
+  for
+    short in [
+      { ..mutation_limits(), max_records: 1, },
+      { ..mutation_limits(), max_identity_bytes: 3, },
+      { ..mutation_limits(), max_comparison_work: 1, },
+    ] {
+    assert_true(
+      project_record_create_acknowledgement(create, 200, created, short)
+      is Err(BudgetExceeded),
+    )
+    assert_true(
+      project_record_update_acknowledgement(update, 200, updated, short)
+      is Err(BudgetExceeded),
+    )
+  }
+  // Duplicate validation uses 32 units. Exact original-ID correlation needs
+  // another 96; a separately reset comparison counter would wrongly accept.
+  assert_true(
+    project_record_update_acknowledgement(update, 200, updated, {
+      ..mutation_limits(),
+      max_comparison_work: 96,
+    })
+    is Err(BudgetExceeded),
+  )
+  assert_true(
+    project_record_update_acknowledgement(
+      update,
+      200,
+      b"{\"records\":[{\"id\":\"9007199254740992\",\"revision\":\"9\"},{\"id\":\"9007199254740992\",\"revision\":\"9\"}]}",
+      mutation_limits(),
+    )
+    is Err(UncorrelatedResult),
+  )
 }
