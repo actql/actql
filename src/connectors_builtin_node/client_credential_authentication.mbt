@@ -10,7 +10,7 @@ pub fn strategy_credential_authentication_request(
   parent : @credential.RemoteCredentialUse,
   grant : @credential.RemoteCredentialGrant,
   material : OriginalCredentialAuthenticationMaterial,
-  method : String,
+  http_method : String,
   path : String,
   media_type : String,
   body : Bytes,
@@ -21,7 +21,7 @@ pub fn strategy_credential_authentication_request(
 ] raise NodeHostFailure {
   match
     @credential.prepare_credential_authentication_request(
-      parent, grant, material, method, path, media_type, body, max_body_bytes,
+      parent, grant, material, http_method, path, media_type, body, max_body_bytes,
       deadline_unix_ms,
     ) {
     Ok(value) => value
@@ -38,7 +38,7 @@ pub fn strategy_credential_authentication_use_bind(
   parent : @credential.RemoteCredentialUse,
   credential_use : @credential.RemoteCredentialUse,
   material : OriginalCredentialAuthenticationMaterial,
-  method : String,
+  http_method : String,
   path : String,
   media_type : String,
   body : Bytes,
@@ -48,7 +48,7 @@ pub fn strategy_credential_authentication_use_bind(
 ] raise NodeHostFailure {
   match
     @credential.bind_credential_authentication_use(
-      request, parent, credential_use, material, method, path, media_type, body,
+      request, parent, credential_use, material, http_method, path, media_type, body,
       trusted_now_ms,
     ) {
     Ok(value) => value
@@ -68,7 +68,7 @@ pub fn strategy_credential_authentication_operation_check(
   parent : @credential.RemoteCredentialUse,
   credential_use : @credential.RemoteCredentialUse,
   material : OriginalCredentialAuthenticationMaterial,
-  method : String,
+  http_method : String,
   path : String,
   media_type : String,
   body : Bytes,
@@ -76,7 +76,7 @@ pub fn strategy_credential_authentication_operation_check(
 ) -> Unit raise NodeHostFailure {
   match
     @credential.check_credential_authentication_operation(
-      operation, request, parent, credential_use, material, method, path,
+      operation, request, parent, credential_use, material, http_method, path,
       media_type, body, trusted_now_ms,
     ) {
     Ok(_) => ()

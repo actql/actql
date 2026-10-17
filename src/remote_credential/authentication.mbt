@@ -41,11 +41,11 @@ fn authentication_parent_scope_matches(
 
 ///|
 fn authentication_request_shape(
-  method : String,
+  http_method : String,
   path : String,
   media_type : String,
 ) -> Bool {
-  method == "POST" &&
+  http_method == "POST" &&
   path == "/token" &&
   media_type == "application/x-www-form-urlencoded"
 }
@@ -61,7 +61,7 @@ pub fn[Material] prepare_credential_authentication_request(
   parent : RemoteCredentialUse,
   grant : RemoteCredentialGrant,
   material : Material,
-  method : String,
+  http_method : String,
   path : String,
   media_type : String,
   body : Bytes,
@@ -77,7 +77,7 @@ pub fn[Material] prepare_credential_authentication_request(
     return Err(CredentialGrantIdentityMismatch)
   }
   if grant.resource_origin != "https://oauth2.googleapis.com" ||
-    !authentication_request_shape(method, path, media_type) ||
+    !authentication_request_shape(http_method, path, media_type) ||
     max_body_bytes <= 0 ||
     body.length() <= 0 ||
     body.length() > max_body_bytes ||
@@ -101,7 +101,7 @@ fn[Material] authentication_request_matches(
   parent : RemoteCredentialUse,
   credential_use : RemoteCredentialUse,
   material : Material,
-  method : String,
+  http_method : String,
   path : String,
   media_type : String,
   body : Bytes,
@@ -110,7 +110,7 @@ fn[Material] authentication_request_matches(
   if !physical_equal(request.parent, parent) ||
     !physical_equal(request.grant, credential_use.grant) ||
     !physical_equal(request.material, material) ||
-    !authentication_request_shape(method, path, media_type) ||
+    !authentication_request_shape(http_method, path, media_type) ||
     body.length() != request.body_bytes {
     return Err(CredentialGrantIdentityMismatch)
   }
@@ -133,7 +133,7 @@ pub fn[Material] bind_credential_authentication_use(
   parent : RemoteCredentialUse,
   credential_use : RemoteCredentialUse,
   material : Material,
-  method : String,
+  http_method : String,
   path : String,
   media_type : String,
   body : Bytes,
@@ -141,7 +141,7 @@ pub fn[Material] bind_credential_authentication_use(
 ) -> Result[CredentialAuthenticationOperation[Material], RemoteCredentialIssue] {
   match
     authentication_request_matches(
-      request, parent, credential_use, material, method, path, media_type, body,
+      request, parent, credential_use, material, http_method, path, media_type, body,
       trusted_now_ms,
     ) {
     Err(issue) => Err(issue)
@@ -159,7 +159,7 @@ pub fn[Material] check_credential_authentication_operation(
   parent : RemoteCredentialUse,
   credential_use : RemoteCredentialUse,
   material : Material,
-  method : String,
+  http_method : String,
   path : String,
   media_type : String,
   body : Bytes,
@@ -170,7 +170,7 @@ pub fn[Material] check_credential_authentication_operation(
     return Err(CredentialGrantIdentityMismatch)
   }
   authentication_request_matches(
-    request, parent, credential_use, material, method, path, media_type, body,
+    request, parent, credential_use, material, http_method, path, media_type, body,
     trusted_now_ms,
   )
 }

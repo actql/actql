@@ -1,9 +1,4 @@
 ///|
-struct AuthenticationTestMaterial {
-  generation : Int
-}
-
-///|
 fn authentication_grant() -> RemoteCredentialGrant {
   prepare_grant(
     "credential-authority-a", "principal-a", "namespace-a", "production",
@@ -28,7 +23,7 @@ fn authentication_use(grant : RemoteCredentialGrant) -> RemoteCredentialUse {
 test "authentication binds separate grants and exact original uses and material" {
   let parent = authentication_use(credential_grant())
   let grant = authentication_grant()
-  let material = { generation: 1 }
+  let material = [1]
   let body = b"bounded-private-form"
   let request = prepare_credential_authentication_request(
     parent, grant, material, "POST", "/token",
@@ -75,7 +70,7 @@ test "authentication binds separate grants and exact original uses and material"
   for (candidate_parent, candidate_use, candidate_material) in [
     (copied_parent, credential_use, material),
     (parent, copied_use, material),
-    (parent, credential_use, { generation: 1 }),
+    (parent, credential_use, [1]),
   ] {
     assert_true(
       check_credential_authentication_operation(
@@ -101,7 +96,7 @@ test "authentication binds separate grants and exact original uses and material"
 test "authentication rejects every foreign parent scope and grant retarget" {
   let parent = authentication_use(credential_grant())
   let grant = authentication_grant()
-  let material = { generation: 1 }
+  let material = [1]
   for foreign in [
     { ..grant, issuer_authority: "foreign", },
     { ..grant, principal: "foreign", },
@@ -134,8 +129,8 @@ test "authentication rejects every foreign parent scope and grant retarget" {
 test "authentication bounds actual bytes before hashing and rejects request substitution" {
   let parent = authentication_use(credential_grant())
   let grant = authentication_grant()
-  let material = { generation: 1 }
-  for (method, path, media, body, maximum, deadline) in [
+  let material = [1]
+  for (http_method, path, media, body, maximum, deadline) in [
     ("GET", "/token", "application/x-www-form-urlencoded", b"body", 4, 100L),
     ("POST", "/other", "application/x-www-form-urlencoded", b"body", 4, 100L),
     ("POST", "/token", "application/json", b"body", 4, 100L),
@@ -147,7 +142,7 @@ test "authentication bounds actual bytes before hashing and rejects request subs
   ] {
     assert_true(
       prepare_credential_authentication_request(
-        parent, grant, material, method, path, media, body, maximum, deadline,
+        parent, grant, material, http_method, path, media, body, maximum, deadline,
       )
       is Err(InvalidCredentialGrant),
     )
