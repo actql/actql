@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {spawn} from 'node:child_process';
-import {writeFile} from 'node:fs/promises';
+import {appendFile,writeFile} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
 import {openPythonPublicHost as publicHost} from './fixtures/python-public-host.mjs';
 
@@ -12,7 +12,8 @@ async function python(args,cwd) {
   let stdout='',stderr='';
   child.stdout.on('data',value=>{stdout+=value;});child.stderr.on('data',value=>{stderr+=value;});
   await new Promise((resolve,reject)=>{child.once('error',reject);child.once('close',(code,signal)=>{
-    if(code!==0)reject(new Error(`Python public consumer failed: code=${code}; signal=${signal}\n${stderr}`));else resolve();});});
+    appendFile(join(cwd,'python-processes.jsonl'),JSON.stringify({pid:child.pid,code,signal})+'\n',{mode:0o600}).then(()=>{
+    if(code!==0)reject(new Error(`Python public consumer failed: code=${code}; signal=${signal}\n${stderr}`));else resolve();},reject);});});
   return JSON.parse(stdout);
 }
 

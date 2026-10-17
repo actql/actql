@@ -50018,6 +50018,134 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/host-node/installed-project-configuration.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "33221285ec436b4a95635d98e4369d7880621c44041a1578a02a7892d692ad4f",
+      "exports": [
+        "admitInstalledProjectConfiguration"
+      ],
+      "operations": [
+        {
+          "name": "admitInstalledProjectConfiguration",
+          "parameters": [
+            "moon",
+            "configurationWire",
+            "modelRegistryWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitInstalledProjectConfiguration/init:originalsForRuntime/init:originalsForRuntime",
+          "parameters": [
+            "runtime"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "existing Common project admission and installed Host material lifetime",
+      "rationale": "Private same-runtime capture of admitted declaration DATA only. Common owns parsing and meaning; original Host owns physical selection/currentness/funding. No Environment/Model/Run/authority or cleanup grant.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admitInstalledProjectConfiguration",
+            "admitInstalledProjectConfiguration/init:originalsForRuntime/init:originalsForRuntime",
+            "fail/fail"
+          ],
+          "exports": [
+            "admitInstalledProjectConfiguration"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Project declarations and installed originals"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "if (typeof configurationWire !== 'string' ||"
+              },
+              {
+                "path": "src/run_publication_host/client_project_model_registry.mbt",
+                "anchor": "pub fn admit_client_project_model_registry("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "const original = Object.freeze({configuration, modelRegistry,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "const configuration = checked(Reflect.apply(admitConfiguration, moon,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "if (modelRegistryWire === undefined) fail('InstalledProjectRegistryUnavailable');"
+              },
+              {
+                "path": "adapters/host-common/runtime-result.mjs",
+                "anchor": "throw Object.assign(new Error('InvalidHostRuntimeResult')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "// caller's existing installation Owner; this operation performs no I/O."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Its record, callback and original runtime/handle/String references remain part"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors_builtin_node/client_project_configuration_bridge.mbt",
+                "anchor": "#export_name(\"clientProjectConfigurationAdmit\")"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-project-configuration.test.mjs",
+                "anchor": "test('Common rejection and abnormal return are not a successful original pair'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.actual.test.mjs",
+                "anchor": "test('actual Common retains the original project registry pair and all selected locators'"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "generated": [],

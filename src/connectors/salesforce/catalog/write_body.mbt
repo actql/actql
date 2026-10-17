@@ -118,8 +118,8 @@ fn emit_write_cell(
         @encode.number_value(writer, value.to_double())
       })
     }
-    "double" => {
-      guard double_decimal(field) is Some((precision, scale)) else {
+    "double" | "currency" | "percent" => {
+      guard described_decimal(field) is Some((precision, scale)) else {
         return Err(InvalidValue(field.name))
       }
       match observed_source {

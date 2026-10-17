@@ -1,12 +1,13 @@
 """Public wheel consumers. This file imports no repository implementation."""
 import asyncio
+from dataclasses import asdict, is_dataclass
 import json
 import inspect
 import os
 from pathlib import Path
 import ssl
 import sys
-from actql_sdk import (AsyncClient, Client, ClientError, Observation, get_check_input,
+from actql_sdk import (AsyncClient, Client, ClientError, Observation, CheckObservation, get_check_input,
                         get_submission_check_observation, resolve_check_location, resolve_check_text_range,
                         explain_check_reason)
 
@@ -20,9 +21,27 @@ def retain_original(reference, run):
         json.dump({'submission': dict(reference, epoch=dict(reference['epoch'])), 'run': dict(run.ref)}, output)
 
 
+def verify_check_attributes(check):
+    assert isinstance(check, CheckObservation) and is_dataclass(check)
+    assert check.outcome == check['outcome']
+    report = check.report
+    assert report is not None and is_dataclass(report)
+    assert report.verdict == check['report']['verdict']
+    assert report.to_dict() == check.to_dict()['report']
+    for reason, raw in zip(report.reasons, check.to_dict()['report']['reasons'], strict=True):
+        assert is_dataclass(reason) and reason.code == raw['code']
+        assert reason.to_dict() == raw
+        if reason.location is not None:
+            assert resolve_check_location(check, reason.location) is not None
+    detached = asdict(check)
+    detached['report']['context_ref'] = 'detached-only'
+    assert check.report.context_ref != 'detached-only'
+
+
 def verify_diagnostic(error):
     assert error.code == 'SubmissionNotAccepted', error.code
     check = get_submission_check_observation(error)
+    verify_check_attributes(check)
     assert check['outcome'] == 'completed'
     assert check['report']['verdict'] == 'invalid'
     assert get_check_input(check, 'source')['text'] == 'SELECT ('
@@ -54,6 +73,7 @@ def structured_checks(client):
             else:
                 program['stages'][0]['steps'] = None
             checked = yield client.check(program, kind='program', scope=scope)
+            verify_check_attributes(checked)
             assert checked['report']['verdict'] == 'invalid'
             reason = checked['report']['reasons'][0]
             assert reason['code'] == 'program_structure_invalid'
@@ -71,6 +91,7 @@ def structured_checks(client):
         pending = client.check(program, kind='program', scope='bound_input', parameters=parameters)
         parameters['payload'][key] = 23
         checked = yield pending
+        verify_check_attributes(checked)
         assert checked['report']['verdict'] == 'invalid'
         reason = checked['report']['reasons'][0]
         assert dict(reason['facts']) == {'parameter': 'payload', 'expected_type': 'number', 'actual_type': actual}
@@ -82,6 +103,7 @@ def structured_checks(client):
         assert 'private-leaf' not in json.dumps(checked.to_dict(), ensure_ascii=False)
         assert 'private-leaf' not in json.dumps(dict(explain_check_reason(reason)))
     absent = yield client.check(program, kind='program', scope='bound_input', parameters={})
+    verify_check_attributes(absent)
     assert absent['report']['verdict'] == 'undetermined'
     assert absent['report']['requirements'][0]['location']['pointer'] == '/params/payload'
     assert 'payload' not in get_check_input(absent, 'parameters')['value']

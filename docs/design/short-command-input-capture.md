@@ -80,3 +80,33 @@ not a numerical byte-capacity supplier. Retiring this private workspace neither
 retires the Result reader nor releases its physical raw/Artifact custody,
 permits dispatch or confirms cleanup. Existing current authorization, original
 installed issuer, approved Preview and saved-material checks remain necessary.
+
+The Host's managed re-admission bridge is a temporary view of the original
+immutable captured Result. After the entire key traversal completes and its
+private workspace retires, the same captured owner can retain the checked
+correspondence once, before that bridge closes. The transfer requires the exact
+original export, member, Command and local Result occurrence. It drops the
+derived export, field and traversal-session references; it cannot transfer
+partial work or revive a closed bridge. Subsequent proposal and private Preview
+payload verification keep the original capture's pins and current checks. An
+untransferred validation still requires its derived view to remain available.
+
+The private Node receiver starts only from that existing managed completion,
+retained material and exact local Result export. Its explicit-key proposal and
+Preview import entries require already completed original correspondence; they
+do not automatically begin key work at the ordinary Host entrance. Whole-key
+work and incremental private cleanup must precede proposal or payload rows.
+Abortion and refusal retain the same private cleanup callback until its
+workspace is retired. Import cancellation, promise completion and private
+cleanup do not acknowledge physical reader retirement. The retained capture
+references, import controls, key owners, callbacks and promise handlers overlap
+the existing holding inventory.
+
+Normal key preparation remains unavailable until the existing capacity owner
+supplies the exact key-phase allocation for that captured Run and scope. A
+structural entry ceiling, an unrelated Content reservation, or a same-Ledger
+borrow predicate cannot establish allocation adequacy. The original allocation
+and borrow must enter child custody before callbacks, survive current refusal,
+and remain held until the actual tuple/map/alias workspace retires. Component
+diagnostics using explicit structural fixtures do not establish that normal
+supplier or change the ordinary missing-key refusal.

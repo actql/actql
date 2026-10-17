@@ -18,6 +18,18 @@ the existing task/environment and physical registration Owners. A later
 registry with the same task name cannot replace a retained original. Nonempty
 project declarations cannot fall back to the source-free/no-model profile.
 
+The private Node assembly captures the two already admitted declaration handles
+with the exact runtime that read them and retains the original supplied text.
+Its runtime check does not establish file selection or physical identity. A
+selected registry must be supplied, and an unselected registry cannot be grafted
+onto a plain project. The capture has no constructor for caller-created Core
+handles, does not parse JSON itself and does not issue new permission.
+Its record, callback and original runtime/handle/String references remain part
+of the existing Host metadata lifetime; capturing or garbage-collecting them
+does not acknowledge physical cleanup or prove a funded envelope. Filesystem
+acquisition, generation/current checks, saved-material admission and the
+complete startup reservation are independently required before public use.
+
 ## Exclusive invocation mode
 
 The existing ModelProvider Owner distinguishes a synchronous fixture callback
