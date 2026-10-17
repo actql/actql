@@ -677,6 +677,43 @@ a generic environment map. Redirects are reauthorized and do not receive a
 credential unless the target is admitted. A durable use claim is not refunded
 when a crash makes pre-send use uncertain.
 
+### Original installation metadata preparation
+
+Some declared Sources need an explicitly selected metadata observation before
+their final relational schema exists. This is not a business Program Run and
+cannot borrow a query grant or a fictitious future Run allocation. The existing
+Host installation/acquisition and Credential Owners retain the actual trusted
+publication request, actor/Account, Site/profile generation, runtime/Connector,
+credential material, resolver and dependent metadata occurrence. A pure subject
+constructor, a named connection or an equal public CID cannot recreate them.
+
+The [closed preparation alternative](../spec/protocols/contracts.md#installation-metadata-preparation)
+records only actual supplied subject DATA. In particular,
+`declaration_source_cid` identifies the exact retained declaration UTF-8 source
+bytes, not a semantic Contract or authority. Missing adoption, authority or
+credential originals are not filled by hashing current configuration under
+new names. Actual opaque Host/request/Site/credential references and current
+checks remain separate. The old Run and Native Local preparation alternatives
+keep their existing strict scope and bytes.
+
+Database and dependent schema retrieval have separate original grants/uses.
+The dependent target is selected by Common from the actual declaration and
+database observation, not by name, first position, compatible schema or a
+predicted string. Each operation retains the exact occurrence, GET path,
+origin and empty body, plus current Account/issuer/material/egress and a
+confirmed same-journal use claim before I/O. The physical Site privately
+retains its actual namespace/environment and original control/journal/resolver;
+subject DATA is not their replacement. Query/property reads still use their
+own actual Run-bound authority.
+
+The original acquisition/resource supplier covers all simultaneous request,
+response, source snapshot, decode/contract-construction, observation, callback
+and cleanup holding. Parser bounds are not funding. Missing real authority,
+context or funding remains Unavailable. Publication and Run adoption retain
+the observed originals and generation correspondence; restore does not
+rediscover schema or renew authority. Cold grant/use admission restores DATA
+only, never a live request or permission to resend an Unknown operation.
+
 ### Original authentication dependencies
 
 A registered Google service-account dependency uses a separate existing

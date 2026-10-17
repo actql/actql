@@ -31,6 +31,40 @@ source, toolchain, actual counts and mutation results retain their individual
 qualifications. No new compiled runtime, installed public product acceptance,
 Provider service operation, or numerical profile is established by this index.
 
+## Installation metadata DATA alternative
+
+The existing field generator separately reads
+`InstallationPreparationSubjectFields` and
+`InstallationPreparationCredentialScope` from `src/remote_credential`. It emits
+`installation-preparation-fields.generated.mjs`: eleven original subject keys
+and six per-use request keys. The opaque subject is not flattened into a CID
+or primitive constructor. A new Common field, omitted output or unsupported
+field shape fails freshness; the ordinary interface check runs this check too.
+The old thirteen Run invocation fields remain byte-identical.
+
+| Attribute | Existing authority and executable reference |
+| --- | --- |
+| Responsibility | `src/remote_credential/installation_preparation_subject.mbt`; `installation_preparation_grant.mbt`: closed DATA only |
+| Inputs/outputs | `InstallationPreparationSubjectFields`; `InstallationPreparationCredentialScope`; generated subject/request keys |
+| Identity | `InstallationPreparationSubject::cid`; `InstallationPreparationCredentialGrant::cid`; exact original declaration source bytes remain distinct from semantic Contracts |
+| Ownership | `installation_preparation_scope_matches`: same opaque original subject; the actual Host/Site/credential and physical journal remain separate |
+| Synchronization | Pure DATA construction and admission perform no asynchronous action or current permission check |
+| Failure | Existing `RemoteCredentialIssue`; closed/canonical body, original subject and exact per-use mismatch refusal |
+| Cancellation | No I/O is started here; this projection cannot acknowledge cancellation or pending physical cleanup |
+| Resources | Explicit input/field/writer/decoder bounds and retained originals; these bounds do not supply funding |
+| Extension | `generate-credential-scope-binding.mjs`: `checkInstallationPreparationBinding`; normal `interfaceGenerationFreshness` |
+| Verification | `installation_preparation_wbtest.mbt`; `installation-metadata-credential-contract.test.mjs`; `installation-preparation-binding.test.mjs` |
+
+The UTF-16 input lower-bound check precedes UTF-8 encoding. Subject/Grant/Use
+readers retain their independent 8192/16384/4096 UTF-8 input limits; admitted
+field bounds permit complete multibyte values, not a smaller ASCII-only route.
+Their source snapshot, encode/decode/hash workspace, canonical wire and
+original subject/grant/use references can overlap. Physical supplier and
+cleanup custody must cover that actual lifetime before an operational caller
+is connected. Cold DATA admission does not supply that operational original,
+claim an ordinal or permit retry. Node bridge, actual Host request, current
+Account/issuer and metadata resource supplier remain separate connections.
+
 
 ## Same-acquisition private credential binding
 
