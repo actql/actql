@@ -172,10 +172,9 @@ pub fn prepare_notion_property_write(
     @encode.begin_object(writer)
     @encode.key(writer, kind)
     match value.value {
+      // status:null may reset a default; this codec has no default original.
       @admitted.Null =>
-        if !["number", "url", "email", "phone_number", "select", "status"].contains(
-            kind,
-          ) {
+        if !["number", "url", "email", "phone_number", "select"].contains(kind) {
           Err(InvalidValue(property.id))
         } else {
           @encode.null_value(writer)
@@ -252,7 +251,9 @@ pub fn prepare_notion_property_write(
       }
       @admitted.Array(values) if kind == "people" || kind == "relation" => {
         let count = @admitted.element_count(values)
-        if count > limits.max_items || count > 100 || count > remaining {
+        if count > limits.max_items ||
+          (kind == "relation" && count > 100) ||
+          count > remaining {
           Err(BudgetExceeded)
         } else {
           remaining -= count

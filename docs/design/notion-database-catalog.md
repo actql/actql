@@ -30,7 +30,10 @@ boundaries, retaining the full original text and the vendor's per-object and
 array bounds. Empty text remains an empty rich-text array. URL/email/phone null
 is distinct from empty Text and false. Select/status selects only an exact
 existing label's original option id, checking and charging unselected options
-too; it cannot implicitly create options. People/relation arrays carry original
+too; it cannot implicitly create options. A null status write is refused here
+because the vendor can replace it with its default option. That operation needs
+the actual default original, rather than claiming a null value was preserved.
+People/relation arrays carry original
 checked identifier text, never manufactured ResourceRefs or permissions.
 Computed and audit properties refuse encoding. Temporal range and Content/file
 writes require their own original typed physical projection; their absence is
