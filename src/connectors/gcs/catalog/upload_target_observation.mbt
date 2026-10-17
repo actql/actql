@@ -9,9 +9,8 @@ pub fn admit_object_upload_target_observation(
   body : Bytes,
   headers : Array[(String, String)],
 ) -> Result[ObjectUploadObservation, ObjectUploadIssue] {
-  let (generation, metageneration) = match object_target_header_versions(
-    binding.limits.metadata, headers,
-  ) {
+  let (generation, metageneration) = match
+    object_target_header_versions(binding.limits.metadata, headers) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

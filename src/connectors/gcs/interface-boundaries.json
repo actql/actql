@@ -4,7 +4,7 @@
     {
       "module": "src/connectors/gcs/catalog/object_target_observation.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "10f42e44baa009474fa62d1a5de6b66190ff4ae569a151750e3e304ad93b9f0e",
+      "sha256": "8e31a152255d2ef7d0ca99a1ec33f7dd9441576fbba1e03195ae2e69a83537e8",
       "role": "connector-semantics",
       "owner": "Existing portable GCS metadata/request Owner; before-observation interpretation only, not authority or custody",
       "exports": [],
@@ -15,7 +15,7 @@
         },
         {
           "name": "object_mutation_metadata_max_bytes",
-          "declaration": "object_mutation_metadata_max_bytes ( binding : ObjectMutationBinding ) - > Int"
+          "declaration": "object_mutation_metadata_max_bytes ( binding : ObjectMutationBinding , ) - > Int"
         },
         {
           "name": "object_mutation_metadata_path",
@@ -128,7 +128,7 @@
     {
       "module": "src/connectors/gcs/catalog/target_headers.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "0c3f2ad5ee5038991f9a8f2defa775ea129ccbbfcf4113f2d67e69eec5276d11",
+      "sha256": "c7c9dbbd6de22ba8b3674c889017519dc8a9579cd1b5ed517deb3567b90e1a75",
       "role": "connector-semantics",
       "owner": "Existing portable GCS metadata/request Owner; before-observation interpretation only, not authority or custody",
       "exports": [],
