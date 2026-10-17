@@ -88,7 +88,7 @@ fn command_key_preview(
   inputs : @strategy.CapturedEffectInputs,
   template : @publication.RunEvidenceValue,
   selector : String,
-) -> @strategy.CapturedEffectPreviewInputs {
+) -> @strategy.CapturedEffectPreviewInputs raise {
   let owner = @strategy.captured_effect_run_owner(captured)
   let definition = @publication_host.prepared_client_effect_computation_definition_cid(
     prepared,
@@ -135,9 +135,19 @@ fn command_key_preview(
       new=native_publication_cid("command-key-preview-placeholder"),
     )
     .replace(old="@SELECTOR@", new=selector)
-  let (_, preview) = @publication.author_effect_preview_semantic_wire(
-    raw, run, authoring, 65536, 4096, 32,
-  ).unwrap()
+  let canonical = match
+    @publication.canonical_effect_preview_draft_wire(raw, 65536, 4096, 32) {
+    Ok(value) => value
+    Err(issue) => fail("Command key Preview shape: " + @debug.to_string(issue))
+  }
+  let (_, preview) = match
+    @publication.author_effect_preview_semantic_wire(
+      canonical, run, authoring, 65536, 4096, 32,
+    ) {
+    Ok(value) => value
+    Err(issue) =>
+      fail("Command key Preview identity: " + @debug.to_string(issue))
+  }
   let bound = @effect_binding.bind_effect_program_run_preview(
     owner,
     invocation,
