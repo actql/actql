@@ -272,3 +272,31 @@ test "geolocation component writes recheck their original parent association" {
     is Err(SchemaChanged("Location__Latitude__s")),
   )
 }
+
+///|
+test "geolocation value refusals keep the original selected field and object type" {
+  let (observation, binding) = declared_observation(geolocation_describe())
+  let plan = prepare_read_projection(
+    observation,
+    binding,
+    "Record__c",
+    ["Location__c"],
+    256,
+  ).unwrap()
+  let failure = project_query_page(
+    @utf8.encode(
+      (
+        #|{"totalSize":1,"done":true,"records":[{"Location__c":{"latitude":1000,"longitude":1}}]}
+      ),
+    ),
+    plan,
+    "v62.0",
+    query_test_limits(),
+  )
+  guard failure is Err(issue) else { abort("expected original value refusal") }
+  let violation = query_page_value_violation(issue, plan).unwrap()
+  assert_eq(violation.resource, "Record__c")
+  assert_eq(violation.field, "Location__c")
+  assert_eq(violation.expected_type, "object")
+  assert_eq(violation.kind, "range")
+}

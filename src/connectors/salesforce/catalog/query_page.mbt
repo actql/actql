@@ -265,9 +265,9 @@ fn admit_geolocation_cell(
       let text = match json_number_decimal(lexeme, precision, scale) {
         Ok(text) => text
         Err(DecimalRange) =>
-          return Err(ValueOutOfRange(field.name + "." + name))
+          return Err(ValueOutOfRange(field.name))
         Err(DecimalScale) =>
-          return Err(ValueBeyondScale(field.name + "." + name))
+          return Err(ValueBeyondScale(field.name))
         Err(DecimalFormat) => return Err(InvalidResponse)
       }
       @source.String(text)
@@ -592,9 +592,16 @@ pub fn query_page_value_violation(
       }
     _ => return None
   }
-  guard plan.fields.search_by(value => value.name == field) is Some(index) &&
-    read_value_type(plan.fields[index].native_type) is Some(expected_type) else {
+  guard plan.fields.search_by(value => value.name == field) is Some(index) else {
     return None
+  }
+  let expected_type = if plan.fields[index].native_type == "location" {
+    "object"
+  } else {
+    guard read_value_type(plan.fields[index].native_type) is Some(value) else {
+      return None
+    }
+    value
   }
   Some({ resource: plan.resource, field, expected_type, kind, })
 }
