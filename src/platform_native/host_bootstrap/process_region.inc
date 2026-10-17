@@ -8,6 +8,7 @@ typedef struct {
     int descriptor;
     int child;
     int status;
+    bool unborrowed_cleanup;
     bool unmapped;
     bool close_unknown;
     bool closed;
@@ -108,12 +109,28 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_retire_stopped_process_region(
             record->domain->read_active != 0 || record->domain->read_prepare_scope)
             return ACTQL_OWNED_BUSY;
 #endif
-        if (actql_native_owned_domain_has_child(record->domain->lease,
-                (int64_t)getpid(), child) != ACTQL_OWNED_OK)
-            return ACTQL_OWNED_INVALID;
-        record->child = child;
-        int status = actql_native_owned_unmap_stopped_child_domain(
-            &record->view->view, &record->domain->lease);
+        if (record->child == 0) {
+            /* A stopped startup may never have entered the original borrow.
+             * The typed stop still precedes cleanup. Such a domain follows
+             * ordinary allocation-level close, never whole-region bypass. */
+            if (actql_native_owned_domain_unborrowed(record->domain->lease,
+                    &record->view->view) == ACTQL_OWNED_OK)
+                record->unborrowed_cleanup = true;
+            else if (actql_native_owned_domain_has_child(record->domain->lease,
+                    (int64_t)getpid(), child) != ACTQL_OWNED_OK)
+                return ACTQL_OWNED_INVALID;
+            record->child = child;
+        }
+        int status;
+        if (record->unborrowed_cleanup) {
+            status = actql_native_owned_close_extent_domain(
+                &record->view->view, &record->domain->lease);
+            if (status == ACTQL_OWNED_OK)
+                status = actql_native_owned_close_extent_view(&record->view->view);
+        } else {
+            status = actql_native_owned_unmap_stopped_child_domain(
+                &record->view->view, &record->domain->lease);
+        }
         if (status != ACTQL_OWNED_OK) return status;
         record->unmapped = true;
     }
