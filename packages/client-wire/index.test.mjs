@@ -78,11 +78,12 @@ test('Host request preparation owns each submission request with its existing sn
   const epoch = {version:'actql-submission-epoch/0.1',
     authorityScopeCid:ref.authorityScopeCid, epochNonce:'c'.repeat(64),
     notBefore:1800000000000, expiresAt:1800000001000, authenticator:'d'.repeat(64)};
-  for (const operation of ['submit-intent', 'restart-intent', 'lookup-submission']) {
+  for (const operation of ['submit-intent', 'submit-named-intent', 'restart-intent', 'lookup-submission']) {
     const selected = {...connection, workspaceId:'workspace-A'};
     const submissionRef = {epoch:{...epoch}, nonce:'current-submission'};
     const attemptRef = {operation:'submit', attemptId:'original-submission-attempt'};
     const body = {connection:selected, submissionRef,
+      ...(operation === 'submit-named-intent' ? {requestName: 'original-public-name'} : {}),
       ...(operation === 'lookup-submission' ? {} : {
         intentCid:`sha256:${'f'.repeat(64)}`, kind:'program', input:{}, parameters:{n:1}, attemptRef}),
       ...(operation === 'restart-intent' ? {unresolvedHistory:{
@@ -113,7 +114,7 @@ test('Host request preparation owns each submission request with its existing sn
 test('public wire accepts the exact connected request shapes', () => {
   // Run, request, submission-intent, read-only Plan, check and discovery.
   assert.deepEqual([...clientHostOperations].sort(), [
-    'connect', 'submit', 'submit-intent', 'restart-intent', 'lookup-submission',
+    'connect', 'submit', 'submit-intent', 'submit-named-intent', 'restart-intent', 'lookup-submission',
     'check', 'plan', 'inspect-run', 'run-plan', 'attach', 'lookup-request', 'status', 'wait', 'cancel',
     'lookup-cancellation', 'reconcile', 'read', 'result-describe',
     'delivery-attempt', 'checkpoints', 'checkpoint-review', 'resolve',
@@ -147,6 +148,9 @@ test('public wire accepts the exact connected request shapes', () => {
     kind: 'program', input: {}, parameters: null,
     attemptRef: {operation: 'submit', attemptId: 'original-submission-attempt'}};
   assert.equal(validClientBody('submit-intent', submitted), true);
+  assert.equal(validClientBody('submit-named-intent', {...submitted, requestName: 'original-public-name'}), true);
+  assert.equal(validClientBody('submit-named-intent', submitted), false);
+  assert.equal(validClientBody('submit-intent', {...submitted, requestName: 'original-public-name'}), false);
   const fresh = {...submissionRef, epoch: {...submissionRef.epoch,
     epochNonce: 'e'.repeat(64), notBefore: 1800000001000, expiresAt: 1800000002000}, nonce: 'fresh'};
   const restarted = {...submitted, submissionRef: fresh, unresolvedHistory: {

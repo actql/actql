@@ -6,7 +6,7 @@
     {
       "module": "packages/client-wire/client-host.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "5620a5b0d0eac78f8b60e22377cadb51cc747c37f03e6bcc8ed2fe6f56d373c0",
+      "sha256": "999cca87c61ec1379302048a5f80c61973d0ebb2dbdbdfa2cfde373c01dcf2d2",
       "exports": [
         "ClientHostOperation",
         "WireAdmissionShape",
@@ -24,6 +24,7 @@
         "WireLookupFoundShape",
         "WireLookupNotFoundShape",
         "WireLookupUnknownShape",
+        "WireNamedSubmissionAttemptShape",
         "WireOperationAttemptRefShape",
         "WireOwnerCursorShape",
         "WireOwnerObservationsShape",
@@ -41,6 +42,7 @@
         "WireSubmissionAttemptShape",
         "WireSubmissionEpochShape",
         "WireSubmissionLookupShape",
+        "WireSubmissionNameShape",
         "WireSubmissionOutcomeShape",
         "WireSubmissionRefShape",
         "WireSubmissionRestartShape",
@@ -209,13 +211,126 @@
               }
             ]
           }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "WireNamedSubmissionAttemptShape",
+            "WireSubmissionNameShape"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "## Scoped durable submission names"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"submit-named-intent\": ["
+              },
+              {
+                "path": "packages/client-wire/index.d.ts",
+                "anchor": "export declare function validNamedSubmissionAttempt("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "original workspace, actor and authority"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "a newly supplied connection epoch is not its"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "The physical index belongs to this same Journal and transaction owner."
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "resolveOrBindSubmittedName(name, intent, {namespaceId, actorId, authorityScopeCid,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Only the first confirmed insertion can enter preparation."
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission({"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named unresolved and refused replies remain distinct from committed original admission'"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Missing retained outcome, formal retirement,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Names are not"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Run/Effect reconciliation, current authorization and resource rules remain separate."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Names have finite admission capacity under the existing Journal limit."
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "rejectSubmission('ClientSubmissionNameCapacity', 'refused', 'admission_capacity');"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named packet identities pin new projections without changing old submission bodies'"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "The old explicit-epoch submission response still requires its original exact"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named observations correlate the original reference without weakening explicit epochs'"
+              },
+              {
+                "path": "adapters/host-node/client-named-submission-host.integration.test.mjs",
+                "anchor": "actual Host named submission survives a new process"
+              },
+              {
+                "path": "packages/client-wire/named-submission.typecheck.mts",
+                "anchor": "const retained: WireNamedSubmissionAttempt = value;"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "packages/client-wire/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "8b20350f6da0fa3346648df2f29d552446d629252347cd72db2243e0876e0d69",
+      "sha256": "4c3959c0f8c23fd91df349a8d4d465ea254376cd70224b07a490dedcbfeb1389",
       "exports": [
         "*:./interactive-control.generated.js",
         "ClientHostOperation",
@@ -240,6 +355,7 @@
         "WireDeliveryRecord",
         "WireHeldRequest",
         "WireHostReleaseReceipt",
+        "WireNamedSubmissionAttempt",
         "WireOperationAttemptRef",
         "WireOwnerCursor",
         "WireOwnerObservations",
@@ -257,6 +373,7 @@
         "WireSubmissionAttempt",
         "WireSubmissionEpoch",
         "WireSubmissionLookup",
+        "WireSubmissionName",
         "WireSubmissionOutcome",
         "WireSubmissionRef",
         "WireSubmissionRestart",
@@ -293,6 +410,7 @@
         "validClientProfile",
         "validDeliveryAttemptLookup",
         "validHeldRequest",
+        "validNamedSubmissionAttempt",
         "validOperationAttemptRef",
         "validOwnerCursor",
         "validOwnerObservations",
@@ -312,6 +430,7 @@
         "validSubmissionAttempt",
         "validSubmissionEpoch",
         "validSubmissionLookup",
+        "validSubmissionName",
         "validSubmissionOutcome",
         "validSubmissionRef",
         "validSubmissionRestart",
@@ -476,6 +595,18 @@
           "result": "value is WireHeldRequest"
         },
         {
+          "name": "validNamedSubmissionAttempt",
+          "parameters": [
+            "value: unknown",
+            "selected: WireConnection",
+            "name: WireSubmissionName",
+            "candidate: WireSubmissionRef",
+            "intentCid: string",
+            "attemptRef: WireOperationAttemptRef"
+          ],
+          "result": "value is WireNamedSubmissionAttempt"
+        },
+        {
           "name": "validOperationAttemptRef",
           "parameters": [
             "value: unknown"
@@ -627,6 +758,13 @@
             "expected: WireSubmissionRef"
           ],
           "result": "value is WireSubmissionLookup"
+        },
+        {
+          "name": "validSubmissionName",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "value is WireSubmissionName"
         },
         {
           "name": "validSubmissionOutcome",
@@ -5184,13 +5322,131 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "validNamedSubmissionAttempt",
+            "validSubmissionName"
+          ],
+          "exports": [
+            "WireNamedSubmissionAttempt",
+            "WireSubmissionName",
+            "validNamedSubmissionAttempt",
+            "validSubmissionName"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "## Scoped durable submission names"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"submit-named-intent\": ["
+              },
+              {
+                "path": "packages/client-wire/index.d.ts",
+                "anchor": "export declare function validNamedSubmissionAttempt("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "original workspace, actor and authority"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "a newly supplied connection epoch is not its"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "The physical index belongs to this same Journal and transaction owner."
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "resolveOrBindSubmittedName(name, intent, {namespaceId, actorId, authorityScopeCid,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Only the first confirmed insertion can enter preparation."
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission({"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named unresolved and refused replies remain distinct from committed original admission'"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Missing retained outcome, formal retirement,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Names are not"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Run/Effect reconciliation, current authorization and resource rules remain separate."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Names have finite admission capacity under the existing Journal limit."
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "rejectSubmission('ClientSubmissionNameCapacity', 'refused', 'admission_capacity');"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named packet identities pin new projections without changing old submission bodies'"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "The old explicit-epoch submission response still requires its original exact"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named observations correlate the original reference without weakening explicit epochs'"
+              },
+              {
+                "path": "adapters/host-node/client-named-submission-host.integration.test.mjs",
+                "anchor": "actual Host named submission survives a new process"
+              },
+              {
+                "path": "packages/client-wire/named-submission.typecheck.mts",
+                "anchor": "const retained: WireNamedSubmissionAttempt = value;"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "packages/client-wire/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7059fb5c617a735ef1ccd3ffcd3214ccb80c9baeeefe0f53347c3824b4753402",
+      "sha256": "31e92feb4ed62c0413f87ec04f6cf4ffba0995cffdfa41c7a95d3fd59fa8594e",
       "exports": [
         "*:./interactive-control.generated.js",
         "checkOutcomeProtocol",
@@ -5223,6 +5479,7 @@
         "validClientProfile",
         "validDeliveryAttemptLookup",
         "validHeldRequest",
+        "validNamedSubmissionAttempt",
         "validOperationAttemptRef",
         "validOwnerCursor",
         "validOwnerObservations",
@@ -5242,6 +5499,7 @@
         "validSubmissionAttempt",
         "validSubmissionEpoch",
         "validSubmissionLookup",
+        "validSubmissionName",
         "validSubmissionOutcome",
         "validSubmissionRef",
         "validSubmissionRestart",
@@ -5562,6 +5820,18 @@
           "async": false
         },
         {
+          "name": "validNamedSubmissionAttempt",
+          "parameters": [
+            "value",
+            "selected",
+            "name",
+            "candidate",
+            "intentCid",
+            "attemptRef"
+          ],
+          "async": false
+        },
+        {
           "name": "validOperationAttemptRef/validOperationAttemptRef",
           "parameters": [
             "value"
@@ -5760,6 +6030,13 @@
             "value",
             "selected",
             "expected"
+          ],
+          "async": false
+        },
+        {
+          "name": "validSubmissionName",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -11413,6 +11690,122 @@
               {
                 "path": "packages/client-wire/README.md",
                 "anchor": "| verification |"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "validNamedSubmissionAttempt",
+            "validSubmissionName"
+          ],
+          "exports": [
+            "validNamedSubmissionAttempt",
+            "validSubmissionName"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "## Scoped durable submission names"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"submit-named-intent\": ["
+              },
+              {
+                "path": "packages/client-wire/index.d.ts",
+                "anchor": "export declare function validNamedSubmissionAttempt("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "original workspace, actor and authority"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "a newly supplied connection epoch is not its"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "The physical index belongs to this same Journal and transaction owner."
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "resolveOrBindSubmittedName(name, intent, {namespaceId, actorId, authorityScopeCid,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Only the first confirmed insertion can enter preparation."
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission({"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named unresolved and refused replies remain distinct from committed original admission'"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Missing retained outcome, formal retirement,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Names are not"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Run/Effect reconciliation, current authorization and resource rules remain separate."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Names have finite admission capacity under the existing Journal limit."
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "rejectSubmission('ClientSubmissionNameCapacity', 'refused', 'admission_capacity');"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named packet identities pin new projections without changing old submission bodies'"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "The old explicit-epoch submission response still requires its original exact"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named observations correlate the original reference without weakening explicit epochs'"
+              },
+              {
+                "path": "adapters/host-node/client-named-submission-host.integration.test.mjs",
+                "anchor": "actual Host named submission survives a new process"
+              },
+              {
+                "path": "packages/client-wire/named-submission.typecheck.mts",
+                "anchor": "const retained: WireNamedSubmissionAttempt = value;"
               }
             ]
           }

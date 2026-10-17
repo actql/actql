@@ -34842,7 +34842,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "300259c200b5ae36a4b7bce3f16d520e577b8627cefbda9d8af39ad3d48a7ac4",
+      "sha256": "b21dd346c3c71dba8805e60a3e9fdd91f20e0a893969bb34922e30718bcaab1d",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -35367,11 +35367,6 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "openInstalledHost/init:stopModelRuntime/init:stopModelRuntime",
           "parameters": [],
           "async": false
@@ -35513,11 +35508,6 @@
         },
         {
           "name": "openInstalledHost/openInstalledHost#11",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/openInstalledHost#12",
           "parameters": [],
           "async": false
         },
@@ -37804,7 +37794,6 @@
             "openInstalledHost/hostOperations/hostOperations#2",
             "openInstalledHost/hostOperations/hostOperations#3",
             "openInstalledHost/ingress/ingress",
-            "openInstalledHost/init:retry/init:retry",
             "openInstalledHost/init:stopModelRuntime/init:stopModelRuntime",
             "openInstalledHost/inspectAcquisition/inspectAcquisition",
             "openInstalledHost/inspectAcquisition/inspectAcquisition/inspectAcquisition",
@@ -39407,7 +39396,6 @@
             "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
             "openInstalledHost/executeEffectComputation/executeEffectComputation/init:assertUpdateSelectionCurrent/init:assertUpdateSelectionCurrent",
             "openInstalledHost/openEffectTargetReads/openEffectTargetReads/assertCurrent/assertCurrent",
-            "openInstalledHost/openInstalledHost#12",
             "openInstalledHost/prepareCapturedSubmission/prepareCapturedSubmission",
             "openInstalledHost/prepareInferSelection/prepareInferSelection/prepareInferSelection",
             "openInstalledHost/prepareInferSelection/prepareInferSelection/prepareInferSelection#2",

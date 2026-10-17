@@ -378,8 +378,15 @@ fn execute_native_local_adoption(
     }
     if operation == "start" || operation == "aql" {
       local_submission_start(
-        host, settings, crypto, sqlite, check_environment, input_root, operation,
+        host,
+        settings,
+        crypto,
+        sqlite,
+        check_environment,
+        input_root,
+        operation,
         child,
+        public_run=matches.subcommand is Some(("run", _)),
       )
     } else if operation == "upgrade-policy" ||
       operation == "lookup-policy-upgrade" {
@@ -412,6 +419,8 @@ fn execute_native_local_adoption(
       local_delivery_attempt_lookup(
         host, settings, crypto, sqlite, input_root, child,
       )
+    } else if operation == "result" {
+      local_public_result(host, settings, crypto, sqlite, child)
     } else if operation == "read" {
       local_result_stream(host, settings, crypto, sqlite, input_root, child)
     } else if operation == "new-submission" {
