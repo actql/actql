@@ -33,6 +33,15 @@ int actql_native_owned_capacity_bytes(actql_owned_capacity *lease, uint64_t *out
 /* Opaque observations of the same provider, not capacity grants. Output slots
  * must be empty. Rounding cannot exceed the original region's finite bounds. */
 int actql_native_owned_control_bytes(actql_owned_capacity *lease, uint64_t *out);
+/* Read-only current-original census. Exactly16 initially-zero uint64 slots:
+ * capacity/page/control/occupied/peak bytes; generic/slab/large bytes;
+ * slab metadata/live-slot/free-slot bytes; pending-retirement bytes;
+ * generic/large/slab extent counts and live slab-slot count.
+ * Slab details are contained in slab bytes, never additional charges. Pending
+ * extents stay occupied; their payload is not read. Values issue no grant,
+ * availability, exportable alias or cleanup acknowledgement. */
+int actql_native_owned_inventory(actql_owned_capacity *lease, uint64_t *out,
+                                  size_t count);
 int actql_native_owned_rounded_bytes(actql_owned_capacity *lease, size_t bytes,
                                     uint64_t *out);
 /* Exact existing domain transfer, with its original immutable material kept

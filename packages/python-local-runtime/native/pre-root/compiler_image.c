@@ -65,6 +65,28 @@ static void describe_compiler_error(struct compilation *call) {
     (void)write(STDERR_FILENO, "\n", 1);
 }
 
+/* One locked physical census from the same provider. These fixed private
+ * diagnostics are not the successful compiler protocol and grant no credit.
+ * Stack/process allocations outside the original mapping remain separate. */
+static void describe_inventory(actql_owned_capacity *owner, const char *phase) {
+    uint64_t values[16] = {0};
+    int status = actql_native_owned_inventory(owner, values, 16);
+    char output[1024];
+    int length = snprintf(output, sizeof(output),
+        "actql compiler inventory %s status=%d [", phase, status);
+    if (length <= 0 || (size_t)length >= sizeof(output)) return;
+    size_t used = (size_t)length;
+    for (size_t i = 0; i < 16; i++) {
+        length = snprintf(output + used, sizeof(output) - used,
+            "%s%" PRIu64, i == 0 ? "" : ",", values[i]);
+        if (length <= 0 || (size_t)length >= sizeof(output) - used) return;
+        used += (size_t)length;
+    }
+    if (used + 2 > sizeof(output)) return;
+    output[used++] = ']'; output[used++] = '\n';
+    (void)write(STDERR_FILENO, output, used);
+}
+
 static int close_descriptor(int *slot, bool *pending) {
     if (*slot < 0) return 0;
     if (*pending) return -1;
@@ -119,6 +141,7 @@ static int close_compilation(struct compilation *call) {
 static int compile_original(struct compilation *call, const char *module_path,
                             const char *output_path, size_t *image_bytes) {
     if (actql_native_owned_current() != call->owner) return 1;
+    describe_inventory(call->owner, "before-module-capture");
     COMPILER_PHASE("module capture");
     call->module_fd = open(module_path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
     if (call->module_fd < 0) return 2;
@@ -142,6 +165,7 @@ static int compile_original(struct compilation *call, const char *module_path,
     /* Exact source/module bytes and original scope precede the first Config.
      * No alternate module, JIT fallback, Store or instance is constructed. */
     call->config_attempted = true;
+    describe_inventory(call->owner, "before-Config");
     COMPILER_PHASE("Config");
     call->config = wasm_config_new();
     if (call->config == NULL) return 7;
@@ -155,18 +179,22 @@ static int compile_original(struct compilation *call, const char *module_path,
     wasm_config_t *consumed = call->config;
     call->config = NULL;
     call->engine_attempted = true;
+    describe_inventory(call->owner, "before-Engine");
     COMPILER_PHASE("Engine");
     call->engine = wasm_engine_new_with_config(consumed);
+    describe_inventory(call->owner, "after-Engine");
     if (call->engine == NULL) return 10;
     call->module_attempted = true;
     COMPILER_PHASE("Module compilation");
     call->error = wasmtime_module_new(call->engine, call->module_bytes,
         (size_t)original.st_size, &call->module);
+    describe_inventory(call->owner, "after-Module");
     if (call->error != NULL || call->module == NULL) return 11;
     COMPILER_PHASE("module ABI");
     if (actql_compiler_check_module_abi(call->module) != ACTQL_COMPILER_ABI_MATCH) return 12;
     COMPILER_PHASE("serialization");
     call->error = wasmtime_module_serialize(call->module, &call->image);
+    describe_inventory(call->owner, "after-serialization");
     if (call->error != NULL || call->image.data == NULL || call->image.size == 0 ||
         call->image.size > ACTQL_COMPILER_IMAGE_MAX_BYTES ||
         actql_native_owned_contains_live_span(call->owner, call->image.data,
@@ -242,6 +270,7 @@ int main(int argc, char **argv) {
     if (result != 0) describe_compiler_error(&call);
     COMPILER_PHASE("compiler handle cleanup");
     int handles = close_compilation(&call);
+    describe_inventory(original, "after-compiler-handle-cleanup");
     COMPILER_PHASE("original scope leave");
     int leave = actql_native_domain_borrow_leave(record);
     COMPILER_PHASE("original holding close");
