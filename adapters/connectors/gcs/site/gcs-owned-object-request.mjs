@@ -1,6 +1,7 @@
 // Physical projections borrow their original provider handles. DTO equality,
 // a copied marker, or a successful projection is not a permission or receipt.
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {runtimePair} from '../../../host-common/compiler-binding.generated.mjs';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {invokeScopedCredentialOperation} from
   '../../../host-common/owned-invocation-context.mjs';
@@ -10,6 +11,11 @@ const wire = value => canonicalJson(value, {dataKeys: true});
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 const integer = (value, minimum = 1) => Number.isSafeInteger(value) &&
   value >= minimum && value <= 2147483647;
+const viewLength = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(Uint8Array.prototype),
+  'byteLength').get;
+const viewBacking = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(Uint8Array.prototype),
+  'buffer').get;
+const bufferLength = Object.getOwnPropertyDescriptor(ArrayBuffer.prototype, 'byteLength').get;
 const freeze = value => {
   if (value !== null && typeof value === 'object') {
     for (const child of Object.values(value)) freeze(child);
@@ -82,6 +88,56 @@ export function prepareOwnedGcsMetadataPatch({moon, binding, original, value,
 export function prepareOwnedGcsObjectDelete({moon, binding, original, maxProjectionBytes}) {
   const handle = gcsOwnedResult(moon, moon.gcsObjectPrepareDelete(binding, original));
   return projectOwnedGcsObjectRequest(moon, binding, handle, maxProjectionBytes);
+}
+
+// Retain the same raw response before this DATA interpretation. Port fields
+// are observations, not Account authority or a physical-response cleanup ACK.
+export function admitGcsObjectTargetObservation(moon, binding, name, response) {
+  const observation = response?.observation;
+  if (typeof moon?.gcsObjectTargetObservation !== 'function') {
+    fail('GcsObjectTargetObservationUnavailable');
+  }
+  if (typeof name !== 'string' || observation?.accepted !== true ||
+      !/^sha256:[0-9a-f]{64}$/u.test(observation.useCid ?? '') ||
+      !integer(observation.statusCode, 100) || observation.statusCode > 599 ||
+      !Array.isArray(response?.headers) || response.headers.length > 3 ||
+      response.headers.some(pair => !Array.isArray(pair) || pair.length !== 2 ||
+        typeof pair[0] !== 'string' || typeof pair[1] !== 'string')) {
+    fail('GcsInvalidObjectTargetReadObservation');
+  }
+  const body = observation.body;
+  try {
+    if (!(body instanceof Uint8Array) || viewLength.call(body) > 2147483647) {
+      fail('GcsInvalidObjectTargetReadObservation');
+    }
+    bufferLength.call(viewBacking.call(body));
+  } catch { fail('GcsInvalidObjectTargetReadObservation'); }
+  return gcsOwnedResult(moon, moon.gcsObjectTargetObservation(binding, name,
+    observation.statusCode, body, response.headers.map(([key, value]) => runtimePair(key, value))));
+}
+
+// The existing Effect/capture Owner supplies funding and the original read
+// approval before this call, retains the response before interpretation, and
+// keeps cleanup pending through the final physical borrower. No local retry.
+export async function readGcsObjectTarget({moon, binding, name, authorization,
+  credential, callResource, maxRequestBytes, signal}) {
+  if (typeof name !== 'string' || !integer(maxRequestBytes)) fail('GcsInvalidObjectTargetRead');
+  if (typeof moon?.gcsObjectMetadataPath !== 'function' ||
+      typeof moon?.gcsObjectMetadataMaxBytes !== 'function') fail('GcsObjectTargetReadUnavailable');
+  const path = gcsOwnedResult(moon, moon.gcsObjectMetadataPath(binding, name));
+  const maxResponseBytes = moon.gcsObjectMetadataMaxBytes(binding);
+  if (!integer(maxResponseBytes)) fail('GcsInvalidObjectTargetRead');
+  if (authorization?.scope?.resourceOrigin !== 'https://storage.googleapis.com' ||
+      authorization?.scope?.operation !== 'gcs:file:read') fail('ForeignGcsObjectTargetReadAuthorization');
+  signal?.throwIfAborted();
+  const response = await invokeScopedCredentialOperation({authorization, credential,
+    callResource, operation: 'gcs:file:read', method: 'GET', path,
+    headers: [['accept', 'application/json'], ['accept-encoding', 'identity']],
+    responseHeaders: ['content-encoding', 'x-goog-generation', 'x-goog-metageneration'],
+    maxRequestBytes, maxResponseBytes, signal});
+  return Object.freeze({observation: Object.freeze({useCid: response.useCid,
+    accepted: response.accepted, statusCode: response.statusCode, body: response.body}),
+    headers: response.headers});
 }
 
 function originalRequest(request, binding) {

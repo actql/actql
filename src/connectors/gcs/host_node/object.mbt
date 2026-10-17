@@ -5,12 +5,20 @@
 pub enum GcsFailure {
   Metadata(@catalog.ObjectMetadataIssue)
   Request(@catalog.ObjectRequestIssue)
+  TargetRead(@catalog.ObjectTargetReadIssue)
 }
 
 ///|
 #export_name("gcsObjectFailureCode")
 pub fn gcs_object_failure_code(issue : GcsFailure) -> String {
   match issue {
+    TargetRead(issue) =>
+      match issue {
+        InvalidName => "GcsInvalidObjectTargetName"
+        InvalidResponse => "GcsInvalidObjectTargetObservation"
+        CapacityExceeded => "GcsObjectTargetCapacityExceeded"
+        Metadata(issue) => gcs_object_failure_code(Metadata(issue))
+      }
     Metadata(issue) =>
       match issue {
         InvalidLimits => "GcsMetadataInvalidLimits"
@@ -28,6 +36,39 @@ pub fn gcs_object_failure_code(issue : GcsFailure) -> String {
         CapacityExceeded => "GcsObjectRequestCapacityExceeded"
       }
   }
+}
+
+///|
+#export_name("gcsObjectMetadataPath")
+pub fn gcs_object_metadata_path(
+  binding : @catalog.ObjectMutationBinding,
+  name : String,
+) -> Result[String, GcsFailure] {
+  @catalog.object_mutation_metadata_path(binding, name).map_err(issue => {
+    TargetRead(issue)
+  })
+}
+
+///|
+#export_name("gcsObjectMetadataMaxBytes")
+pub fn gcs_object_metadata_max_bytes(
+  binding : @catalog.ObjectMutationBinding,
+) -> Int {
+  @catalog.object_mutation_metadata_max_bytes(binding)
+}
+
+///|
+#export_name("gcsObjectTargetObservation")
+pub fn gcs_object_target_observation(
+  binding : @catalog.ObjectMutationBinding,
+  name : String,
+  status : Int,
+  body : Bytes,
+  headers : Array[(String, String)],
+) -> Result[@catalog.ObjectMetadata, GcsFailure] {
+  @catalog.admit_object_mutation_target_observation(
+    binding, name, status, body, headers,
+  ).map_err(issue => TargetRead(issue))
 }
 
 ///|

@@ -9,30 +9,11 @@ pub fn admit_object_upload_target_observation(
   body : Bytes,
   headers : Array[(String, String)],
 ) -> Result[ObjectUploadObservation, ObjectUploadIssue] {
-  if headers.length() > 3 {
-    return Err(CapacityExceeded)
-  }
-  let mut encoding : String? = None
-  let mut generation : String? = None
-  let mut metageneration : String? = None
-  let mut header_bytes = 0
-  for (key, value) in headers {
-    let maximum = binding.limits.metadata.max_bytes
-    let remaining = maximum - header_bytes
-    match @scalar.admit_utf8_length(value, remaining) {
-      Err(_) => return Err(CapacityExceeded)
-      Ok(length) => header_bytes += length
-    }
-    match key {
-      "content-encoding" if encoding is None => encoding = Some(value)
-      "x-goog-generation" if generation is None => generation = Some(value)
-      "x-goog-metageneration" if metageneration is None =>
-        metageneration = Some(value)
-      _ => return Err(InvalidInput)
-    }
-  }
-  if encoding is Some(value) && value != "identity" {
-    return Err(InvalidInput)
+  let (generation, metageneration) = match object_target_header_versions(
+    binding.limits.metadata, headers,
+  ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   let observed = match
     admit_object_upload_observation(binding, name, status, body) {
