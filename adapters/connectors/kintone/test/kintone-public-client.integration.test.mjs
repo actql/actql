@@ -14,6 +14,7 @@ import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from '../../../host-n
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {connect} from '../../../../packages/sdk/index.mjs';
 import {installedKintoneFixture} from './installed-kintone.fixture.mjs';
+import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 
 const executeFile = promisify(execFile);
 const source = 'SELECT `$id`, Subject, Tags, RecordNumber FROM kintone.inquiries |> RESULT records';
@@ -99,6 +100,17 @@ for (const entrance of ['Local', 'HTTPS']) test(
   `public ${entrance} kintone preserves full values through Named Result and original Run lookup`, async t => {
     const f = await fixture(t, entrance);
     const report = await f.client.check(source, {kind: 'text', scope: 'bound_input', format: 'sql'});
+    if (report.report?.verdict !== 'verified') {
+      const declared = await f.load(), data = JSON.parse(declared.environmentWire);
+      const environment = common.clientProgramCheckEnvironment(declared.environmentWire,
+        data.evidence_bundle_cid, false, false, true, false, false, false, false);
+      const outcome = common.clientProgramPrepareSourceComputationWithParameters(source, 'sql',
+        environment, JSON.stringify({environmentCid: common.clientProgramCheckingEnvironmentCid(environment),
+          aliases: declared.queryAliases}), undefined, undefined, false, []);
+      t.diagnostic(inspect({originalPreparationIssue: common.clientProgramPreparationIssue(
+        common.clientProgramSourceComputationPure(outcome))}, {depth: 12}));
+      await declared.close();
+    }
     assert.equal(report.report?.verdict, 'verified', inspect(report, {depth: 8}));
     assert.deepEqual(report.report.runnable, {verdict: 'yes', reasons: []});
     assert.equal(f.tls.seen().length, 0); assert.equal(f.state.resolutions, 0);
