@@ -1,0 +1,92 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/bigquery/catalog"
+
+import {
+  "actql/actql/client_row_source_host",
+  "actql/actql/value_contract",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn column_children(ColumnDescription) -> Array[ColumnDescription]
+
+pub fn column_constraints(ColumnDescription) -> (Int64?, Int64?, Int64?, String?)
+
+pub fn column_contract(ColumnDescription) -> @value_contract.Contract?
+
+pub fn column_mode(ColumnDescription) -> String
+
+pub fn column_name(ColumnDescription) -> String
+
+pub fn column_type(ColumnDescription) -> String
+
+pub fn description_column(TableDescription, Int) -> ColumnDescription?
+
+pub fn description_column_count(TableDescription) -> Int
+
+pub fn description_declared_key(TableDescription) -> Array[String]
+
+pub fn description_matches_target(TableDescription, TableTarget) -> Bool
+
+pub fn description_original(TableDescription) -> (String, String, String)
+
+pub fn generate_read_declaration(ReadProjection, String, String, String, @client_row_source_host.RowDeclarationLimits) -> Result[@client_row_source_host.RowDeclaration, @client_row_source_host.RowHostIssue]
+
+pub fn prepare_read_projection(TableDescription, Array[String], DescriptionLimits) -> Result[ReadProjection, DescriptionIssue]
+
+pub fn project_table_description(TableTarget, Bytes, DescriptionLimits) -> Result[TableDescription, DescriptionIssue]
+
+pub fn read_projection_fields(ReadProjection) -> Array[String]
+
+pub fn read_projection_matches_description(ReadProjection, TableDescription) -> Bool
+
+pub fn read_projection_schema(ReadProjection) -> (String, String)
+
+pub fn table_target(String, String, String, Int) -> Result[TableTarget, DescriptionIssue]
+
+// Errors
+
+// Types and methods
+pub struct ColumnDescription {
+  // private fields
+}
+
+pub(all) enum DescriptionIssue {
+  InvalidLimits
+  DescriptionLimit
+  InvalidTarget
+  InvalidResponse
+  ForeignTarget
+  InvalidColumn(String)
+  DuplicateColumn(String)
+  InvalidDeclaredKey
+  InvalidSelection
+  UnknownColumn(String)
+  UnsupportedColumn(String, String)
+  InvalidContract(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct DescriptionLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_fields : Int
+  max_name_bytes : Int
+  max_schema_bytes : Int
+}
+
+pub struct ReadProjection {
+  // private fields
+}
+
+pub struct TableDescription {
+  // private fields
+}
+
+pub struct TableTarget {
+  // private fields
+}
+
+// Type aliases
+
+// Traits

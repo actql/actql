@@ -241,8 +241,10 @@ fn describe_column(
     native_type,
   )
   if (!numeric && (precision is Some(_) || scale is Some(_))) ||
-    (max_length is Some(_) &&
-      (max_length == Some(0L) || !["STRING", "BYTES"].contains(native_type))) {
+    (
+      max_length is Some(_) &&
+      (max_length == Some(0L) || !["STRING", "BYTES"].contains(native_type))
+    ) {
     return Err(InvalidColumn(name))
   }
   let collation = match @decode.lookup(object, "collation") {
@@ -317,14 +319,27 @@ fn describe_column(
   }
   let contract = if mode == "REPEATED" {
     match base {
-      Some(value) => @contract.array_contract(
-        @contract.with_nullability(value, false), nullable=false)
+      Some(value) =>
+        @contract.array_contract(
+          @contract.with_nullability(value, false),
+          nullable=false,
+        )
       None => None
     }
   } else {
     base
   }
-  Ok({ name, native_type, mode, precision, scale, max_length, collation, children, contract, })
+  Ok({
+    name,
+    native_type,
+    mode,
+    precision,
+    scale,
+    max_length,
+    collation,
+    children,
+    contract,
+  })
 }
 
 ///|
@@ -416,7 +431,7 @@ pub fn project_table_description(
     @decode.lookup(schema, "fields") is Some(fields) else {
     return Err(InvalidResponse)
   }
-  let budget = { fields: limits.max_fields, names: limits.max_name_bytes }
+  let budget = { fields: limits.max_fields, names: limits.max_name_bytes, }
   for name in [target.project, target.dataset, target.table, etag, native_type] {
     guard name_size(name, budget.names) is Some(size) else {
       return Err(DescriptionLimit)
@@ -442,40 +457,66 @@ pub fn project_table_description(
 }
 
 ///|
-pub fn description_matches_target(value : TableDescription, target : TableTarget) -> Bool {
+pub fn description_matches_target(
+  value : TableDescription,
+  target : TableTarget,
+) -> Bool {
   physical_equal(value.target, target)
 }
 
 ///|
-pub fn description_column_count(value : TableDescription) -> Int { value.columns.length() }
+pub fn description_column_count(value : TableDescription) -> Int {
+  value.columns.length()
+}
 
 ///|
-pub fn description_column(value : TableDescription, index : Int) -> ColumnDescription? { value.columns.get(index) }
+pub fn description_column(
+  value : TableDescription,
+  index : Int,
+) -> ColumnDescription? {
+  value.columns.get(index)
+}
 
 ///|
-pub fn description_declared_key(value : TableDescription) -> Array[String] { value.declared_key.copy() }
+pub fn description_declared_key(value : TableDescription) -> Array[String] {
+  value.declared_key.copy()
+}
 
 ///|
-pub fn description_original(value : TableDescription) -> (String, String, String) {
+pub fn description_original(
+  value : TableDescription,
+) -> (String, String, String) {
   (value.etag, value.native_type, value.response_sha256)
 }
 
 ///|
-pub fn column_name(value : ColumnDescription) -> String { value.name }
+pub fn column_name(value : ColumnDescription) -> String {
+  value.name
+}
 
 ///|
-pub fn column_type(value : ColumnDescription) -> String { value.native_type }
+pub fn column_type(value : ColumnDescription) -> String {
+  value.native_type
+}
 
 ///|
-pub fn column_mode(value : ColumnDescription) -> String { value.mode }
+pub fn column_mode(value : ColumnDescription) -> String {
+  value.mode
+}
 
 ///|
-pub fn column_constraints(value : ColumnDescription) -> (Int64?, Int64?, Int64?, String?) {
+pub fn column_constraints(
+  value : ColumnDescription,
+) -> (Int64?, Int64?, Int64?, String?) {
   (value.precision, value.scale, value.max_length, value.collation)
 }
 
 ///|
-pub fn column_children(value : ColumnDescription) -> Array[ColumnDescription] { value.children.copy() }
+pub fn column_children(value : ColumnDescription) -> Array[ColumnDescription] {
+  value.children.copy()
+}
 
 ///|
-pub fn column_contract(value : ColumnDescription) -> @contract.Contract? { value.contract }
+pub fn column_contract(value : ColumnDescription) -> @contract.Contract? {
+  value.contract
+}
