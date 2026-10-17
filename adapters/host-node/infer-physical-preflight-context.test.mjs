@@ -12,7 +12,8 @@ const {openNodeInferOperation} = await import(process.env.ACTQL_PREFLIGHT_CONTEX
 // Actual Node driver and pinned SDK preparation, with explicit Core ports.
 // These ports cannot prove Common admission, funding, Store ACK or public I/O.
 function fixture({preflight, notification = createInferIoNotification(), signal,
-  bindingIssue, omitNotification = false, poll = () => false, cleanup = () => true} = {}) {
+  bindingIssue, omitNotification = false, poll = () => false, cleanup = () => true,
+  rawCaptureBinder} = {}) {
   const active = {}, request = {}, output = Object.freeze([{answer: 7}]);
   let bound, invoked = false, requested = false, stopped = false;
   let advances = 0, starts = 0, cleanups = 0, progress = 0;
@@ -39,6 +40,7 @@ function fixture({preflight, notification = createInferIoNotification(), signal,
   const open = () => openNodeInferOperation({moon, preparedProgram: {}, step: 0,
     graph: {}, registry: '', values: '', fragment: '', ordered: '', provider: {}, signal,
     physicalPreflight: preflight, ioNotification: omitNotification ? undefined : notification,
+    rawCaptureBinder,
     quantityCapacity: {limits: {tokens: 1n, costUnits: 0n, durationMs: 1n},
       perAttempt: {tokens: 1n, costUnits: 0n, durationMs: 1n}},
     observeProgress() { progress++; }});
@@ -87,6 +89,123 @@ test('shared physical preflight retains a distinct raw binder for each original 
   await first.close(); await second.close();
   assert.throws(() => ports[1].retainBinder(() => {}), /InferRawCaptureBinderUnavailable/u);
   assert.equal(ports.length, 2, 'retired setter cannot reopen or prepare another physical port');
+});
+
+test('one original operation binds every prepared request to its same raw registration', async () => {
+  const ports = [];
+  const f = fixture({preflight(request, context, retainBinder) {
+    const port = {request, context, registrations: []};
+    ports.push(port);
+    retainBinder((registration, persistence) => {
+      port.registrations.push([registration, persistence]);
+    });
+    return port;
+  }, poll: () => true});
+  const original = f.open(), secondRequest = {};
+  try {
+    assert.equal(f.bound()(f.request), ports[0]);
+    assert.equal(f.bound()(secondRequest), ports[1]);
+    assert.notEqual(ports[0].request, ports[1].request);
+    assert.equal(ports[0].context, f.notification);
+    assert.equal(ports[1].context, f.notification);
+    const registration = {};
+    original.bindModelRawCapture(registration);
+    assert.deepEqual(ports.map(port => port.registrations),
+      [[[registration, undefined]], [[registration, undefined]]]);
+    assert.throws(() => original.bindModelRawCapture(registration),
+      /InferRawCaptureBindingUnavailable/u);
+  } finally { await original.close(); }
+  assert.equal(original.cleanupPending(), false);
+  assert.equal(ports.length, 2, 'cleanup never prepares or dispatches another request');
+});
+
+for (const count of [4, 24]) {
+  test(`same execution binds all ${count} original raw callbacks without limiting the inventory to active slots`, async () => {
+    const requests = Array.from({length: count}, () => ({})), observed = [];
+    const registration = {};
+    const f = fixture({preflight(request, _context, retainBinder) {
+      retainBinder(actual => {
+        assert.equal(actual, registration);
+        observed.push(request);
+      });
+    }, poll: () => true});
+    const original = f.open();
+    try {
+      for (const request of requests) f.bound()(request);
+      original.bindModelRawCapture(registration);
+      assert.deepEqual(observed, requests);
+      assert.equal(new Set(observed).size, count);
+      assert.throws(() => original.bindModelRawCapture(registration),
+        /InferRawCaptureBindingUnavailable/u);
+    } finally { await original.close(); }
+    assert.equal(f.counts().starts, 1);
+    assert.equal(observed.length, count);
+  });
+}
+
+test('legacy direct raw binding cannot mix with deferred preflight callbacks', async () => {
+  let direct = 0, deferred = 0;
+  const f = fixture({rawCaptureBinder() {direct++;},
+    preflight(_request, _context, retainBinder) {
+      retainBinder(() => {deferred++;});
+    }, poll: () => true});
+  const original = f.open();
+  try {
+    assert.throws(() => f.bound()(f.request), /InferRawCaptureBinderUnavailable/u);
+    original.bindModelRawCapture({});
+    assert.equal(direct, 1); assert.equal(deferred, 0);
+  } finally { await original.close(); }
+});
+
+test('each original preflight can retain only its synchronous raw callback', async () => {
+  const setters = [], callbacks = [];
+  const f = fixture({preflight(_request, _context, retainBinder) {
+    setters.push(retainBinder);
+    if (setters.length === 1) {
+      retainBinder(value => {callbacks.push(value);});
+      assert.throws(() => retainBinder(() => assert.fail('replacement')),
+        /InferRawCaptureBinderUnavailable/u);
+    }
+  }, poll: () => true});
+  const original = f.open();
+  try {
+    f.bound()(f.request); f.bound()({});
+    assert.notEqual(setters[0], setters[1]);
+    assert.throws(() => setters[1](() => assert.fail('late callback')),
+      /InferRawCaptureBinderUnavailable/u);
+    const registration = {};
+    original.bindModelRawCapture(registration);
+    assert.deepEqual(callbacks, [registration]);
+  } finally { await original.close(); }
+  for (const retain of setters) {
+    assert.throws(() => retain(() => {}), /InferRawCaptureBinderUnavailable/u);
+  }
+});
+
+test('partial raw binding failure never retries children or acknowledges their cleanup', async () => {
+  const calls = [], failure = new Error('OriginalSecondRawBinderFailure');
+  let clean = false;
+  const f = fixture({preflight(_request, _context, retainBinder) {
+    const index = calls.length;
+    calls.push({index, bound: 0});
+    retainBinder(() => {
+      calls[index].bound++;
+      if (index === 1) throw failure;
+    });
+  }, poll: () => true, cleanup: () => clean});
+  const original = f.open();
+  for (const request of [f.request, {}, {}]) f.bound()(request);
+  assert.throws(() => original.bindModelRawCapture({}), error => error === failure);
+  assert.deepEqual(calls.map(call => call.bound), [1, 1, 0]);
+  assert.throws(() => original.bindModelRawCapture({}), /InferRawCaptureBindingUnavailable/u);
+  await assert.rejects(original.close(), {code: 'ClientDispatchCleanupPending'});
+  assert.equal(original.cleanupPending(), true);
+  assert.equal(f.notification.notify(), true, 'original wake remains until Core cleanup');
+  clean = true;
+  assert.equal(original.cleanup(), true);
+  assert.equal(f.notification.notify(), false);
+  assert.deepEqual(calls.map(call => call.bound), [1, 1, 0]);
+  assert.equal(f.counts().starts, 1, 'a failed fanout never creates another execution');
 });
 
 test('invalid raw binder does not replace the original pending preflight responsibility', async () => {

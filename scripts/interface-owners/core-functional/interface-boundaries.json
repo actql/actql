@@ -164,7 +164,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "1bdf79563e3d826e228767407f0565f97d19f7fe8c5bdcf419131a308e89c2a8",
+      "sha256": "7a00ae0f6227aae3587ea81c33da722ef0dc9dc5e0be551bbbcc9adc10e104d3",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -2184,6 +2184,15 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:checkedClientCompiledInferOriginal/init:checkedClientCompiledInferOriginal",
+          "parameters": [
+            "compiled",
+            "checkedProgram",
+            "definition"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:checkedClientEffectInferInvocation/init:checkedClientEffectInferInvocation",
           "parameters": [
             "checkedEffect",
@@ -2302,6 +2311,14 @@
             "preview",
             "wire",
             "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner",
+          "parameters": [
+            "restored",
+            "checkedProgram"
           ],
           "async": false
         },
@@ -7524,6 +7541,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "### Original authentication dependencies"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
               }
             ],
             "inputsOutputs": [
@@ -7542,6 +7563,14 @@
               {
                 "path": "src/remote_credential/authentication.mbt",
                 "anchor": "pub fn[Material] prepare_credential_authentication_request("
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "originalInputs(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {"
               }
             ],
             "identity": [
@@ -7560,6 +7589,14 @@
               {
                 "path": "src/remote_credential/authentication.mbt",
                 "anchor": "!physical_equal(request.parent, parent)"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
               }
             ],
             "ownership": [
@@ -7578,6 +7615,14 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The installed\nCredential supplier must admit the real material"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const owned = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
               }
             ],
             "synchronization": [
@@ -7596,6 +7641,14 @@
               {
                 "path": "src/remote_credential/authentication.mbt",
                 "anchor": "after\n/// awaits."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
               }
             ],
             "failure": [
@@ -7614,6 +7667,14 @@
               {
                 "path": "adapters/host-common/remote-credential-control.test.mjs",
                 "anchor": "actual authentication bridge rejects equal-data original substitution"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
               }
             ],
             "cancellation": [
@@ -7632,6 +7693,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "An uncertain auth\nresponse retains the original use"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
               }
             ],
             "resources": [
@@ -7654,6 +7719,14 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The pair adds two retained records"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
               }
             ],
             "extension": [
@@ -7672,6 +7745,14 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "Canonical grant/use bodies and their initial identities are\nunchanged."
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
               }
             ],
             "verification": [
@@ -7698,6 +7779,18 @@
               {
                 "path": "src/remote_credential/authentication_wbtest.mbt",
                 "anchor": "authentication rejects every foreign parent scope and grant retarget"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -8367,6 +8460,111 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "publicationControl/init:checkedClientCompiledInferOriginal/init:checkedClientCompiledInferOriginal",
+            "publicationControl/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "originalInputs(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const owned = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -8849,7 +9047,7 @@
     },
     {
       "module": "adapters/host-node/infer-operation.mjs",
-      "sha256": "50c914fc3e7f45a7a2368752a3b72805220b0f6d7e1546dd8773013bc9da77c1",
+      "sha256": "e0e3ac03830b1615420f3960a63677883f538d4f2c41e177ed34f0c4653d0bc2",
       "role": "physical-io",
       "exports": [
         "openNodeComposedInferProvider",
@@ -9738,6 +9936,23 @@
           "async": false
         },
         {
+          "name": "prepareWithOriginalRawSetter",
+          "parameters": [
+            "prepare",
+            "request",
+            "notification",
+            "retain"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareWithOriginalRawSetter/set/set",
+          "parameters": [
+            "callback"
+          ],
+          "async": false
+        },
+        {
           "name": "selectOriginalInferMetadataAcquisition",
           "parameters": [
             "handle",
@@ -9943,6 +10158,8 @@
             "openNodeInferOperation/stop",
             "openNodeInferOperation/stop/stop",
             "pending/pending",
+            "prepareWithOriginalRawSetter",
+            "prepareWithOriginalRawSetter/set/set",
             "selectOriginalInferMetadataAcquisition",
             "selectOriginalInferResourceCodecAcquisition",
             "selectOriginalInferStoreBootstrapAcquisition",
@@ -10070,7 +10287,17 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./infer-io-notification.mjs",
+        "./infer-original-installation.mjs",
+        "./infer-raw-capture.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",

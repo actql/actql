@@ -455,3 +455,99 @@ No installed write support or numerical profile is issued by these codecs.
   fixture response units and same-source workspace packages are explicit test
   preparation; they are not normal Effect funding, pristine installed or live
   service acceptance. Full approved Preview/apply/recovery remains required.
+
+### Original writable-field evidence
+
+The original Form retains each Text calculation expression and each Lookup's
+mapping destinations alongside its existing readable metadata. Native
+`SINGLE_LINE_TEXT` alone is not a manual-write proof: an explicitly empty
+original expression is required. A nonempty expression, missing expression or
+non-string expression cannot issue intended writable values. Calculated Text
+continues to be readable with its original value and field code.
+
+The [provider's update limitations](https://kintone.dev/en/docs/kintone/rest-api/records/update-records/)
+exclude Lookup mapping destinations and ignore automatically calculated Text
+writes. The [original Form Fields response](https://kintone.dev/en/docs/kintone/rest-api/apps/form/get-form-fields/)
+provides the expression and exact destination field codes. A Lookup input is
+not itself a mapping destination. Both documented empty mapping representations
+(an empty array or empty string) retain independent writable fields. A hidden,
+missing or malformed mapping observation cannot establish the absence of
+copied destinations: write preparation remains unavailable under that Form,
+while its existing readable fields remain available. No second lookup, other
+App, display label or Unicode normalization repairs missing evidence.
+
+Existing Form rechecks compare these retained facts too, even when the original
+revision string is unchanged. Exact original response bytes/digests and record
+identities remain unchanged; the extra private projections do not mint a new
+CID, permission, current grant or acknowledgement. They remain within the
+original byte/node/depth bounds. Destination arrays, retained expression strings
+and bounded field/destination comparisons overlap the existing Catalog and
+writer lifetimes; these bounds do not supply whole-phase funding. This is a
+finite physical write profile, not a restriction on readable fields or a claim
+that the full Connector's remaining carriers and actual installed writes are
+complete.
+
+### Typed original Relation write Mappings
+
+The existing Row Source Owner can project CREATE or ID-selected UPDATE Mapping
+DATA directly from the original RowDeclaration's selected View and retained
+carrier Contract. It checks the original View/CID/schema/manifest correspondence
+using the same bounded reader as DELETE. The complete closed target schema is
+preserved, including Array item contracts, Decimal precision/scale, nullability
+and non-written fields. It is not reconstructed from scalar type names.
+Existing scalar/collection CREATE and DELETE bodies and identities are unchanged.
+
+The connector must separately supply its positively observed writable/required
+field facts and original operation permission. A readable field, an original
+schema or a Mapping permission rule is not a provider write grant. The closed
+operation choice binds CREATE/none versus UPDATE/id, exact writable fields,
+required CREATE fields, source-field references and null/omit choices into the
+existing Mapping preimage. It issues no UPSERT absence decision, claim, Preview,
+current authorization or physical acknowledgement. UPDATE has no CREATE-required
+field list. Original provider validation and actual required-value checks remain
+with their existing caller.
+
+The reader retains its original decoded/JSON/View/Contract material while
+selected field/name arrays, canonical target schema, Mapping writer/preimages
+and hashes overlap. Positive original caller bounds apply before output and
+bound this metadata work; they do not reserve or retire its simultaneous
+holding. Conditional presence that cannot be represented by the existing closed
+object Mapping schema refuses this physical projection, without restricting
+readable Relation schemas. This pure Owner projection is a necessary consuming
+connection, not completion of kintone's original Form/writable/request binding,
+sealed approval/apply/recovery, response funding, numeric history or installed
+write acceptance. A Decimal in an independently declared test schema is not
+proof of a kintone historical Number envelope.
+
+The kintone UPDATE projection consumes this same Row Source API and retains the
+original RecordDeclaration beside its Mapping. Every requested writable field
+must first have the same original Catalog's write-carrier evidence; computed,
+copied, unsupported and identity fields cannot borrow readable support. Its
+request comparison requires the same physical Form, the complete declared
+before-field selection, original target API-ID/revision material and exact
+written fields, permitting only the Mapping's explicit omission choices. Equal
+Form bytes, Record Number, a partial page or an unrelated checked value document
+cannot reconstruct this custody. The checks remain DATA correspondence, not a
+current read/write decision, sealed Preview or applied Effect.
+
+CREATE's connector-specific required/default-field observation and its same
+request custody are a following necessary connection; the common CREATE
+projection does not invent that original vendor evidence. No new bridge or
+runtime capability is advertised by the pure Mapping API alone.
+
+The UPDATE wrapper snapshots its before-field inventory through the same Row
+Owner's bounded projection of the immutable Mapping body. It does not reread
+escaped declaration field arrays after preparation. Written/omittable fields
+are privately copied before exposing the Mapping. Altering those metadata
+arrays cannot weaken complete-before or exact-write correspondence. This
+additional bounded Mapping Source/Decode/JSON/Contract pass overlaps the
+retained body, temporary name projection and three private name arrays; it is
+not a reservation, new parser Owner or acknowledgement of retirement.
+The DELETE correspondence wrapper also snapshots its complete before-field
+selection from the immutable Mapping body when prepared. Escaped declaration
+arrays cannot weaken that selection before or after wrapper construction. The
+original Form membership, API ID/revision, canonical DELETE Mapping bytes and
+physical claim/approval/response/cleanup duties remain unchanged. This private
+name-array retention and its bounded Mapping-body Decode/Contract projection
+overlap the original declaration, Mapping and checked request; they are not a
+numerical reservation or a release acknowledgement.

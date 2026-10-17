@@ -15,7 +15,12 @@ import {KINTONE_FORM_READ_OPERATION} from '../site/kintone-record-read.mjs';
 import {KINTONE_TARGET_READ_OPERATION} from '../site/kintone-record-delete.mjs';
 import {sendRawKintoneWrite, KINTONE_RECORD_CREATE_OPERATION, KINTONE_RECORD_UPDATE_OPERATION} from '../site/kintone-record-write.mjs';
 import {accountedKintoneResponses} from './kintone-accounted-response.fixture.mjs';
-import {originalForm, record} from './installed-kintone.fixture.mjs';
+import {originalForm as readForm, record} from './installed-kintone.fixture.mjs';
+
+// A manual Text setting is original write evidence, not a default inferred
+// from the readable field type. Keep the shared read-only fixture unchanged.
+const originalForm = {...readForm, properties: {...readForm.properties,
+  Subject: {...readForm.properties.Subject, expression: ''}}};
 
 const repo = new URL('../../../../', import.meta.url);
 const read = name => readFile(new URL(name, repo), 'utf8');

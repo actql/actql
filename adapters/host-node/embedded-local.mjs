@@ -113,7 +113,7 @@ import {canonicalJson, contentCid, createLocalAuthorizationGate,
 import {localContractLimits, localOutputLimits,
   sourceFreeValuesPlan, sourceFreeValuesAdmissionEvidence, sourceFreePlanOriginal, sourceFreeTaskPlan,
   sourceFreeEffectPublicationPlan, acquiredEffectPublicationAdmission,
-  acquiredTaskRunAdmission, inferTaskRunAdmission, serializationTaskRunAdmission,
+  acquiredTaskRunAdmission, inferTaskRunAdmission, restoreInferTaskRunAdmission, serializationTaskRunAdmission,
   selectInstalledSerializationGraph} from
   './local-values-plan.mjs';
 import {installNodeContentRun} from './installed-content-run.mjs';
@@ -778,6 +778,9 @@ async function openInstalledHost(originalInstallation) {
   const prepareSubmit = installNodeClientProgramPreparation({moon,
     environment, sourcePublication, valuesMaxRows, check,
     verifyRequestValuePolicy, restoreEffectOriginal: updateTargetOriginals.restorePrepared,
+    restoreInferOriginal: (original, definition, request, evidence) =>
+      control.admitStoredClientInferRunOriginal(original, definition, request, evidence,
+        [false, true, true, true, true, calendarArtifact !== undefined, false], localContractLimits),
     allowEffects: effectInstallation !== undefined});
   const prepareCapturedSubmission = async (submission, ref) => {
     const retained = ref === undefined ? undefined : journal.lookupRunDefinition(ref, moon, control);
@@ -1095,6 +1098,9 @@ async function openInstalledHost(originalInstallation) {
     // The Effect compiler retains this exact graph for the saved admission.
     // Current account/egress callbacks are checked again by physical dispatch.
     if (retain && occurrence !== undefined && inferSelections.has(preparedProgram)) return;
+    const restoredRun = prepareSubmit.originalInferRun(preparedProgram);
+    const restoredInfer = restoredRun === undefined ? undefined
+      : control.checkedClientCompiledInferOriginal(restoredRun.compiled, preparedProgram, restoredRun.runDefinition);
     const originalCompilation = updateTargetOriginals?.compilationFor(preparedProgram);
     let originalInfer;
     if (originalCompilation !== undefined) {
@@ -1125,7 +1131,8 @@ async function openInstalledHost(originalInstallation) {
     if (selectedStep !== undefined) {
       let execution;
       try {
-        if (originalInfer === undefined) {
+        if (restoredInfer !== undefined) execution = restoredInfer.execution;
+        else if (originalInfer === undefined) {
           ({execution} = readInstalledModelExecution(moon, preparedProgram,
             modelInstallation, occurrence));
         } else execution = runtimeField(originalInfer, 2);
@@ -1244,7 +1251,8 @@ async function openInstalledHost(originalInstallation) {
           }
         }
         admissionBoundary = 'plan_graph';
-        const graph = originalInfer !== undefined ? runtimeField(originalInfer, 0)
+        const graph = restoredInfer !== undefined ? restoredInfer.graph
+          : originalInfer !== undefined ? runtimeField(originalInfer, 0)
           : effectGraph !== undefined ? effectGraph : serializationGraph !== undefined
           ? control.prepareCheckedClientSerializedInferGraph(occurrence, serializationGraph, execution)
           : checked(occurrence === undefined
@@ -1548,6 +1556,10 @@ async function openInstalledHost(originalInstallation) {
   const planFor = ({preparedProgram, requestId},
     retainedDefinitionWire) => {
     prepareSubmit.assertOwned(preparedProgram);
+    const restored = prepareSubmit.originalInferRun(preparedProgram);
+    if (restored !== undefined) {
+      return restoreInferTaskRunAdmission({control, preparedProgram, restored});
+    }
     const common = {moon, control, preparedProgram,
       authorityScopeCid, namespaceId, requestId, storeAuthorityCid, now,
       ...(retainedDefinitionWire === undefined ? {} :
@@ -1588,16 +1600,29 @@ async function openInstalledHost(originalInstallation) {
       resultNames, sourceInventory: sourceInventory(held.preparedSources, held.preparedSource, held.keyedSource),
       issueDefinition: () => {
         held.plan = planFor(submission);
-        if (held.plan.kind === 'infer') return {
-          runDefinition: held.plan.runDefinition,
-          runAdmissionEvidence: {
-            prepared: held.plan.preparedEvidence.wire,
-            authorization: held.plan.authorization.wire,
-            modelOriginalRunWire: originalModelRunWire(held.plan.compiled,
-              held.plan.runDefinition),
-            ...(held.preparedSources?.length === 2 || held.keyedSource !== undefined ? {
-              sourceInventory: sourceInventory(held.preparedSources, held.preparedSource, held.keyedSource)} : {}),
-          }};
+        if (held.plan.kind === 'infer') {
+          // The existing codec currently represents one ordinary installed
+          // graph. Other live profiles keep their existing admission path;
+          // absence of this original is never cold reconstruction authority.
+          const originalInferRun = Array.isArray(held.plan.inferGraph) ||
+            held.plan.serializationGraph !== undefined ? undefined : (() => {
+              const inputs = prepareSubmit.originalInputs(submission.preparedProgram);
+              return control.captureOriginalClientInferRun(held.plan.compiled,
+                submission.preparedProgram, held.plan.runDefinition, requested,
+                inputs.environment, inputs.parameters);
+            })();
+          return {
+            runDefinition: held.plan.runDefinition,
+            ...(originalInferRun === undefined ? {} : {originalInferRun}),
+            runAdmissionEvidence: {
+              prepared: held.plan.preparedEvidence.wire,
+              authorization: held.plan.authorization.wire,
+              modelOriginalRunWire: originalModelRunWire(held.plan.compiled,
+                held.plan.runDefinition),
+              ...(held.preparedSources?.length === 2 || held.keyedSource !== undefined ? {
+                sourceInventory: sourceInventory(held.preparedSources, held.preparedSource, held.keyedSource)} : {}),
+            }};
+        }
         if (held.plan.kind === 'serialization') return {
           runDefinition: held.plan.runDefinition,
           runAdmissionEvidence: {prepared: held.plan.preparedEvidence.wire,
@@ -2957,11 +2982,18 @@ async function openInstalledHost(originalInstallation) {
           };
           const runRestoredModel = async () => {
             assertCurrent();
-            const current = journal.lookupRunDefinition(ref, moon, control);
+            const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);
+            if (current === undefined || current.ref.runDefinitionCid !== ref.runDefinitionCid) {
+              throw new Error('ModelResumeRunDefinitionMissing');
+            }
             const submission = JSON.parse(canonicalValueJson(token.snapshot.submission));
             if (submission.requestId !== current.requestId ||
                 !hostConnection(submission)) throw new Error('ModelResumeSubmissionMismatch');
-            submission.preparedProgram = await prepareCapturedSubmission(submission, ref);
+            const inferOriginal = current.runAdmissionEvidence?.inferRunOriginal;
+            submission.preparedProgram = inferOriginal === undefined
+              ? await prepareCapturedSubmission(submission, ref)
+              : prepareSubmit.restoreInferOriginal(inferOriginal, current.runDefinition,
+                current.requestIdentity, current.runAdmissionEvidence);
             const requested = requestOf(submission);
             const admitted = journal.resolveDefinition(requested.requested,
               {namespaceId}, moon, control);
@@ -2987,6 +3019,7 @@ async function openInstalledHost(originalInstallation) {
               return executeEffectComputation(facts, undefined, undefined, modelResume);
             }
             if (parentCheckpoint !== undefined) throw new Error('ModelReadParentRunMismatch');
+            if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');
             const plan = planFor(submission, current.runDefinition.wire);
             if (originalModelRunWire(plan.compiled, plan.runDefinition) !== record.originals.originalRunWire) {
               throw new Error('ModelResumeOriginalAdmissionChanged');

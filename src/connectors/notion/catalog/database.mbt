@@ -30,6 +30,7 @@ pub struct NotionDatabaseCatalog {
   response_sha256 : String
   priv original : @decode.Cursor
   priv sources : Array[(String, String)]
+  priv raw : Bytes
 }
 
 ///|
@@ -52,6 +53,7 @@ pub struct NotionDataSourceCatalog {
   priv source_index : Int
   priv original : @decode.Cursor
   priv properties : Array[NotionPropertyMetadata]
+  priv raw : Bytes
 }
 
 ///|
@@ -136,7 +138,16 @@ pub fn project_notion_database(
   bytes : Bytes,
   limits : NotionDatabaseLimits,
 ) -> Result[NotionDatabaseCatalog, NotionDatabaseIssue] {
-  let original = match database_cursor(bytes, limits) {
+  if !database_limits_valid(limits) {
+    return Err(InvalidLimits)
+  }
+  if bytes.length() > limits.max_bytes {
+    return Err(BudgetExceeded)
+  }
+  // Retain the exact provider response independently of a mutable caller
+  // Buffer. Decoded values/spans or an equal hash cannot recreate these bytes.
+  let raw = Bytes::makei(bytes.length(), index => bytes[index])
+  let original = match database_cursor(raw, limits) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -178,7 +189,7 @@ pub fn project_notion_database(
     seen[source_id] = true
     selected.push((source_id, name))
   }
-  Ok({ id, response_sha256: @sha.hex(bytes), original, sources: selected, })
+  Ok({ id, response_sha256: @sha.hex(raw), original, sources: selected, raw, })
 }
 
 ///|
@@ -220,7 +231,13 @@ pub fn project_notion_data_source(
   guard notion_database_source_at(database, source_index) is Some((selected, _)) else {
     return Err(InvalidSelection)
   }
-  let original = match database_cursor(bytes, limits) {
+  if bytes.length() > limits.max_bytes {
+    return Err(BudgetExceeded)
+  }
+  // Retain the exact provider response independently of a mutable caller
+  // Buffer. Decoded values/spans or an equal hash cannot recreate these bytes.
+  let raw = Bytes::makei(bytes.length(), index => bytes[index])
+  let original = match database_cursor(raw, limits) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -298,11 +315,12 @@ pub fn project_notion_data_source(
   }
   Ok({
     id,
-    response_sha256: @sha.hex(bytes),
+    response_sha256: @sha.hex(raw),
     database,
     source_index,
     original,
     properties: fields,
+    raw,
   })
 }
 

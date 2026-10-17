@@ -67,6 +67,12 @@ export function checkWorkersArtifact(metafile, source, allowedModules) {
 // ABI values; it adds no Owner, I/O or authority.
 // The generated strategy action table is also dependency-free. It translates
 // existing Owner codes to names and rejects unknown codes without taking action.
+// Runtime Core imports the original LocalSigning and installation-preparation
+// metadata views. They retain opaque values in WeakMaps and call only their
+// captured Common callbacks through the already reviewed Result binding. The
+// preparation field declaration is a generated, dependency-free closed vector.
+// None supplies a physical key, permission, claim, signing port or I/O. This is
+// an exact source-closure allowance, not permission for adjacent Host modules.
 export const conformanceModules = [
   '_build/workers/modules/bridge.mjs',
   '_build/workers/modules/fixture.mjs',
@@ -97,6 +103,9 @@ export const conformanceModules = [
   'adapters/host-common/run-publication-preflight.mjs',
   'adapters/host-common/publication-action.mjs',
   'adapters/host-common/runtime-core.mjs',
+  'adapters/host-common/local-signing-metadata.mjs',
+  'adapters/host-common/installation-preparation-metadata.mjs',
+  'adapters/host-common/installation-preparation-fields.generated.mjs',
   'adapters/host-common/compiler-binding.generated.mjs',
   'adapters/host-common/strategy-actions.mjs',
   'packages/client-wire/index.mjs',
@@ -141,6 +150,9 @@ export const hostModules = [
   'adapters/host-common/run-publication-preflight.mjs',
   'adapters/host-common/publication-action.mjs',
   'adapters/host-common/runtime-core.mjs',
+  'adapters/host-common/local-signing-metadata.mjs',
+  'adapters/host-common/installation-preparation-metadata.mjs',
+  'adapters/host-common/installation-preparation-fields.generated.mjs',
   'adapters/host-common/compiler-binding.generated.mjs',
   'adapters/host-common/strategy-actions.mjs',
   'packages/client-wire/index.mjs',
