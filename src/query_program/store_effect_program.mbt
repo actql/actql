@@ -124,6 +124,7 @@ fn lower_store_capture(
       carrier_complete: false,
       update: None,
       store: true,
+      short_command: None,
     },
     body,
   )

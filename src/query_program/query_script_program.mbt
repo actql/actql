@@ -415,7 +415,8 @@ fn compile_query_script_with_source(
     }
   }
   if @query.terminal_short_command_effect(@query.script_query(script))
-    is Some(_) {
+    is Some(_) &&
+    command_targets is None {
     return Err(UnsupportedEffect)
   }
   let document = @query.script_document(script)
@@ -456,6 +457,17 @@ fn compile_query_script_with_source(
       carrier_work: limits.max_expression_work,
     }
     let root = @query.script_query(script)
+    let command_target = match @query.terminal_short_command_effect(root) {
+      Some(clause) =>
+        Some(
+          resolve_short_command_effect_target(
+            clause,
+            command_targets,
+            limits.max_expression_work,
+          ),
+        )
+      None => None
+    }
     // Resolve the original target inventory before examining SET values.
     let store_target = match @query.terminal_store_effect(root) {
       Some(clause) =>
@@ -682,6 +694,21 @@ fn compile_query_script_with_source(
         retained.push(capture)
         stage_steps.append(body.map(entries => construction.object(entries)))
       }
+      if @query.terminal_short_command_effect(current) is Some(clause) &&
+        !retained.any(result => result.short_command is Some(_)) {
+        let (capture, body) = lower_short_command_capture(
+          construction,
+          clause,
+          result.name,
+          result.visible_fields.map(field => (field, field)),
+          [],
+          result.visible_fields,
+          limits.max_expression_work,
+          reserved_bindings=reserved,
+        )
+        retained.push(capture)
+        stage_steps.append(body.map(entries => construction.object(entries)))
+      }
       let table_effect = @query.terminal_table_effect(current)
       let stage_entries = [
         ("id", construction.text(stage_context.stage_id)),
@@ -780,19 +807,36 @@ fn compile_query_script_with_source(
           ),
         )
       }
+      let commands : Array[(String, @builder.Node)] = []
+      if @query.terminal_short_command_effect(current) is Some(clause) {
+        commands.push(
+          lower_short_command_effect(
+            construction,
+            clause,
+            command_target.unwrap(),
+            stage_context.stage_result,
+            retained,
+          ),
+        )
+      }
       if split is None && @query.terminal_command_effect_count(current) > 0 {
-        let commands : Array[(String, @builder.Node)] = []
         for index in 0..<@query.terminal_command_effect_count(current) {
-          commands.push(
-            lower_command_effect(
-              construction,
-              @query.terminal_command_effect_at(current, index).unwrap(),
-              stage_context.stage_result,
-              retained,
-              limits.max_expression_work,
-            ),
+          let command = lower_command_effect(
+            construction,
+            @query.terminal_command_effect_at(current, index).unwrap(),
+            stage_context.stage_result,
+            retained,
+            limits.max_expression_work,
           )
+          if commands.any(entry => {
+              ascii_upper(entry.0) == ascii_upper(command.0)
+            }) {
+            raise Abort(DuplicateOutput)
+          }
+          commands.push(command)
         }
+      }
+      if !commands.is_empty() {
         stage_entries.push(("effects", construction.object(commands)))
       }
       stages.push(construction.object(stage_entries))
@@ -813,7 +857,9 @@ fn compile_query_script_with_source(
         exports.push((name, (stage_context.stage_id, port)))
       }
       for result in retained {
-        if result.update is None && !result.store {
+        if result.update is None &&
+          !result.store &&
+          result.short_command is None {
           prior_results.push(
             (
               stage_context.stage_id,

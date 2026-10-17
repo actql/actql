@@ -99,6 +99,7 @@ pub(all) enum Issue {
   TableWriteBinding(TableWriteBindingIssue)
   UpdateTargetBinding(UpdateTargetIssue)
   StoreTargetBinding(StoreTargetIssue)
+  CommandTargetBinding(CommandTargetPublicationIssue)
   Construction(@builder.Issue)
   Expression(@expression.Diagnostic)
   // Retain the common checker's cause and authored cursor from scope probes.
@@ -199,6 +200,7 @@ priv struct RetainedResult {
   // Frontend construction metadata for a closed, unexported UPDATE input.
   update : (String, Array[(String, @builder.Node)])?
   store : Bool
+  short_command : ShortCommandCapture?
 }
 
 ///|
@@ -217,7 +219,9 @@ fn retained_result_exports(
   keep_default? : Bool = false,
   implicit_primary? : Bool = true,
 ) -> Array[(String, String)]? raise Abort {
-  let public = retained.filter(result => result.update is None && !result.store)
+  let public = retained.filter(result => {
+    result.update is None && !result.store && result.short_command is None
+  })
   if public.is_empty() {
     return if retained.is_empty() {
       None
@@ -261,13 +265,24 @@ fn retained_stage_results(
   let definitions = if (
       !implicit_primary &&
       !retained.any(result => {
-        result.update is None && !result.store && result.terminal
+        result.update is None &&
+        !result.store &&
+        result.short_command is None &&
+        result.terminal
       })
     ) ||
     (
       !keep_default &&
-      retained.any(result => result.update is Some(_) || result.store) &&
-      retained.all(result => result.update is Some(_) || result.store)
+      retained.any(result => {
+        result.update is Some(_) ||
+        result.store ||
+        result.short_command is Some(_)
+      }) &&
+      retained.all(result => {
+        result.update is Some(_) ||
+        result.store ||
+        result.short_command is Some(_)
+      })
     ) {
     []
   } else {
@@ -3096,6 +3111,7 @@ fn compile_steps(
           carrier_complete: !needs_view,
           update: None,
           store: false,
+          short_command: None,
         })
         if terminal_result {
           output = pipe_visible.map(pair => pair.0)
@@ -7037,6 +7053,50 @@ fn compile_steps(
     retained.push(capture)
     effect_capture_steps.append(body)
   }
+  if @query.terminal_short_command_effect(query) is Some(clause) &&
+    @query.set_part_count(query) == 0 &&
+    retained is Some(retained) {
+    let names = reserved_bindings +
+      nearest_inputs.map(input => input.name) +
+      [input.name, final_alias] +
+      retained.map(result => result.from)
+    let producer = pipe_physical_name(names, "aql_command_input_")
+    reserved_bindings.push(producer)
+    let checkpoint : Array[(String, @builder.Node)] = []
+    if first || terminal_result {
+      checkpoint.push(("from", construction.text(input_from)))
+    }
+    checkpoint.push(
+      (
+        "select",
+        construction.array(active_fields.map(field => construction.text(field))),
+      ),
+    )
+    checkpoint.push(("as", construction.text(producer)))
+    step_entries.push(checkpoint)
+    input_from = producer
+    first = true
+    let (capture, body) = lower_short_command_capture(
+      construction,
+      clause,
+      producer,
+      pipe_visible,
+      pipe_ranges,
+      active_fields,
+      max_work,
+      reserved_bindings~,
+      expression_columns=Some(
+        unnest_expression_columns(
+          pipe_visible, value_table_receivers, scalar_value_table_ranges, pipe_columns,
+        ),
+      ),
+      value_ranges=value_range_names(
+        value_table_receivers, scalar_value_table_ranges,
+      ),
+    )
+    retained.push(capture)
+    effect_capture_steps.append(body)
+  }
   let retained_scope = match preserved_scope {
     Some(scopes) => Some(scopes)
     None => if pipe_value_table { value_table_scope } else { None }
@@ -7195,13 +7255,15 @@ pub fn compile_with_source(
 ) -> Result[(@program.Program, @builder.Source), Issue] {
   // A parsed operation must never disappear into a pure Relation. The
   // published Command target/key owner is required before this can lower.
-  if @query.terminal_short_command_effect(query) is Some(_) {
+  if @query.terminal_short_command_effect(query) is Some(_) &&
+    command_targets is None {
     return Err(UnsupportedEffect)
   }
   // Binding and primary scopes must be installed before inspecting a JOIN
   // input. The standalone probe sees only Context inputs, not authored WITH
   // producers or transformed range inputs.
-  if @query.terminal_store_effect(query) is Some(_) ||
+  if @query.terminal_short_command_effect(query) is Some(_) ||
+    @query.terminal_store_effect(query) is Some(_) ||
     @query.terminal_command_effect_count(query) > 0 ||
     @query.terminal_effect(query) is Some(_) ||
     @query.terminal_table_effect(query) is Some(_) ||
