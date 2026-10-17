@@ -39,7 +39,9 @@ async function fixture(t, options = {}) {
   const journals = [];
   t.after(async () => {
     for (const journal of journals.reverse()) journal.close();
-    await rm(root, {recursive: true, force: true});
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      console.error(`Original Credential Journal scratch retained: ${root}`);
+    } else await rm(root, {recursive: true, force: true});
   });
   const keys = generateKeyPairSync('ed25519');
   const credentialAuthorities = new Map([
