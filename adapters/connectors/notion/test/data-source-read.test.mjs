@@ -12,12 +12,12 @@ const properties={
   amount:{id:'n',name:'amount',type:'number',number:{format:'number'}},
   enabled:{id:'b',name:'enabled',type:'checkbox',checkbox:{}},
 };
-function originals(){
+function originals(scalarOnly=false){
   const database=checked(provider.notionProjectDatabase(Buffer.from(JSON.stringify({object:'database',id:'db',data_sources:[{id:'s',name:'tasks'}]})),...metadata));
-  const source=checked(provider.notionProjectDataSource(database,0,Buffer.from(JSON.stringify({object:'data_source',id:'s',parent:{type:'database_id',database_id:'db'},properties})),...metadata));
+  const source=checked(provider.notionProjectDataSource(database,0,Buffer.from(JSON.stringify({object:'data_source',id:'s',parent:{type:'database_id',database_id:'db'},properties:scalarOnly?{amount:properties.amount,enabled:properties.enabled}:properties})),...metadata));
   const declaration=checked(provider.notionReadDatabaseDeclaration(Buffer.from(JSON.stringify({id:'db',read_contracts:{
     n:[{column:'amount',projection:'value',contract:{type:'decimal',nullable:false,precision:20,scale:2}}],
-    't%3Ax':[{column:'title',projection:'value',contract:{type:'string',nullable:false,enum:['ab','cd']}}],
+    ...(scalarOnly?{}:{'t%3Ax':[{column:'title',projection:'value',contract:{type:'string',nullable:false,enum:['ab','cd']}}]}),
   }})),...declarationBounds));
   const readContracts=checked(provider.notionBindDataSourceReadContracts(declaration,source,...declarationBounds));
   return{source,declaration,readContracts};
@@ -240,17 +240,20 @@ test('actual Notion dependent property selection is exclusive and absent pending
   for(const propertyAuthorizationFor of [null,false,{}])assert.throws(()=>f.create({
     propertyAuthorization:undefined,propertyAuthorizationFor}),{code:'InvalidNotionDataSourceRead'});
   assert.equal(f.state.requests.length,0);
-  // Change only this fixture's title span, preserving its original exact
-  // Decimal token instead of parsing/re-encoding the entire vendor body.
-  f.state.respond=()=>queryPage(['page1']).replace('"rich_text":[],"has_more":true',
-    '"rich_text":[{"type":"text","text":{"content":"ab"},"plain_text":"ab"}],"has_more":false');
+  // An original scalar-only schema has no property-item completion. Keep
+  // Common's conservative full-text completion policy and exact Decimal body.
+  const selected=originals(true);
+  const title='"title":'+JSON.stringify({id:'t%3Ax',type:'rich_text',rich_text:[],has_more:true})+',';
+  f.state.respond=()=>queryPage(['page1']).replace(title,'');
   let calls=0;
-  const reader=f.create({propertyAuthorization:undefined,propertyAuthorizationFor:()=>{
+  const reader=f.create({...selected,propertyAuthorization:undefined,propertyAuthorizationFor:()=>{
     calls++;throw new Error('NoPendingProperty');
+  },consumePage:(page,{charge,readContracts})=>{
+    assert.equal(readContracts,selected.readContracts);f.options.consumeObservation(charge);f.rows.push(...page);
   }});
   const result=await reader.read();assert.equal(calls,0);assert.equal(result.rowCount,1);
   assert.equal(f.state.requests.length,1);assert.equal(result.observations.length,1);
-  assert.deepEqual(f.rows,[{amount:'9007199254740993.25',enabled:true,title:'ab'}]);
+  assert.deepEqual(f.rows,[{amount:'9007199254740993.25',enabled:true}]);
 });
 
 test('actual Notion lazy property selection refuses query and foreign original grants without fallback',async t=>{
@@ -280,7 +283,9 @@ test('actual Notion current denial or stop after the awaited property selection 
       }});
     let failure;
     await assert.rejects(reader.read(),error=>{
-      failure=error;return stop?error.cause===reason:error.cause.code==='NotionPropertyDenied';
+      failure=error;const expected=stop?error.cause===reason:error.cause.code==='NotionPropertyDenied';
+      if(!expected)t.diagnostic(JSON.stringify({stop,causeCode:error.cause?.code,causeMessage:error.cause?.message}));
+      return expected;
     });
     assert.equal(f.state.requests.length,1);assert.equal(failure.children.length,0);
     assert.equal(failure.responseCharges[0],f.state.charges[0]);assert.deepEqual(f.rows,[]);
