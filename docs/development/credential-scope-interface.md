@@ -146,3 +146,19 @@ close retains the same journal and cleanup responsibility. Salesforce's
 existing compatibility entry skips a confirmed close; the generic entry keeps
 its original idempotent journal-close invocation. Neither a cancellation,
 closed Site nor thrown diagnostic is a physical release acknowledgement.
+
+### Credential Site failure handoff
+
+The installed Host lifecycle module owns the synchronous Credential Site
+failure handoff used by Salesforce's compatibility entries. It keeps the
+original Site, primary failure and earlier cleanup handle; an unavailable
+observation remains pending. The Site's independent journal release may proceed
+while that earlier owner remains pending. This is the existing Site protocol,
+not the ordered Host initialization protocol that gates downstream resources.
+A completed Site or earlier owner is not closed again by this handoff.
+
+The compatibility entry supplies its original fallback diagnostic code. It
+neither retries provider work nor changes Checkpoint/current authority. The
+same original aliases, error snapshots and retry closure remain with the
+returned failure; relocation does not supply a reservation, numerical profile
+or whole-Host funding proof.
