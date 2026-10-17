@@ -123,6 +123,9 @@ test "installation grant exact independent preimage keeps old Run reader closed"
     grant.cid(),
     "sha256:55de793a54db8e911d2f767984c4bd6d254c37a2808c4a01e3c36b512fec1c1b",
   )
+  assert_eq(grant.issuer_authority(), "issuer")
+  assert_eq(grant.expires_unix_ms(), 100L)
+  assert_eq(grant.max_uses(), 1)
   assert_true(physical_equal(grant.scope().subject, scope.subject))
   assert_true(admit_grant_json(body, grant.cid()) is Err(_))
   assert_true(
@@ -155,6 +158,21 @@ test "installation grant exact independent preimage keeps old Run reader closed"
       is Err(_),
     )
   }
+}
+
+///|
+test "installation scope admission preserves original subject without granting an operation" {
+  let scope = installation_scope()
+  let admitted = admit_installation_preparation_credential_scope(scope).unwrap()
+  assert_true(physical_equal(admitted.subject, scope.subject))
+  assert_eq(admitted, scope)
+  assert_true(
+    admit_installation_preparation_credential_scope({
+      ..scope,
+      request_method: "POST",
+    })
+    is Err(InvalidCredentialGrant),
+  )
 }
 
 ///|
