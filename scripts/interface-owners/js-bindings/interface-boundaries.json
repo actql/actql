@@ -43615,7 +43615,7 @@
     {
       "module": "adapters/host-node/infer-operation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "50c914fc3e7f45a7a2368752a3b72805220b0f6d7e1546dd8773013bc9da77c1",
+      "sha256": "e0e3ac03830b1615420f3960a63677883f538d4f2c41e177ed34f0c4653d0bc2",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -44502,6 +44502,23 @@
         {
           "name": "pending/pending",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareWithOriginalRawSetter",
+          "parameters": [
+            "prepare",
+            "request",
+            "notification",
+            "retain"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareWithOriginalRawSetter/set/set",
+          "parameters": [
+            "callback"
+          ],
           "async": false
         },
         {
@@ -45489,6 +45506,119 @@
         },
         {
           "operations": [
+            "prepareWithOriginalRawSetter",
+            "prepareWithOriginalRawSetter/set/set"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "prepareWithOriginalRawSetter"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "prepareWithOriginalRawSetter"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "prepareWithOriginalRawSetter"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "prepareWithOriginalRawSetter"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "prepareWithOriginalRawSetter"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "prepareWithOriginalRawSetter"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "prepareWithOriginalRawSetter"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "prepareWithOriginalRawSetter"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "prepareWithOriginalRawSetter"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "prepareWithOriginalRawSetter"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "selectOriginalInferMetadataAcquisition"
           ],
           "exports": [
@@ -46062,7 +46192,17 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./infer-io-notification.mjs",
+        "./infer-original-installation.mjs",
+        "./infer-raw-capture.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",
