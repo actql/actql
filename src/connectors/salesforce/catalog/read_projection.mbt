@@ -38,7 +38,7 @@ pub(all) enum ExactIntComparison {
 } derive(Eq, Debug)
 
 ///|
-/// Only wire forms that have an exact, lossless ActQL scalar admission are
+/// Only wire forms with an exact, lossless ActQL value admission are
 /// enabled. A `datetime` is admitted after its one documented UTC spelling
 /// (`+0000`) is written with `Z`, and Number, Currency and Percent as `decimal(P,S)`
 /// from its reply's original number text. `time` is not admitted here.
