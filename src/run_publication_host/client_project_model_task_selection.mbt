@@ -121,5 +121,5 @@ pub fn resolve_client_project_model_task_defaults(
     selection.model,
     tokens,
     max_work,
-  ).map_err(InvalidDefaults)
+  ).map_err(ClientProjectModelTaskSelectionIssue::InvalidDefaults)
 }
