@@ -1776,6 +1776,7 @@ int32_t actql_native_filesystem_writer_seal(
   moonbit_bytes_t name,
   int32_t length
 ) {
+  if (writer != NULL && writer->close_result < 0) return -1;
   if (writer == NULL || !writer->ready || writer->cancelled ||
       writer->cleanup_requested) {
     return 3;
