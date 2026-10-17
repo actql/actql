@@ -868,61 +868,61 @@
             "responsibility": [
               {
                 "path": "docs/design/kintone-record-mutations.md",
-                "anchor": "- Responsibility:"
+                "anchor": "- Responsibility: existing RowDeclaration/Mapping and vendor Catalog Owners"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/kintone-record-mutations.md",
-                "anchor": "- Inputs and outputs:"
+                "anchor": "- Inputs and outputs: original declaration, selected resource/primary field,"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/kintone-record-mutations.md",
-                "anchor": "- Identity:"
+                "anchor": "- Identity: original View output reference, carrier-schema CID and manifest"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/kintone-record-mutations.md",
-                "anchor": "- Ownership:"
+                "anchor": "- Ownership: `RecordDeleteMapping` retains its original declaration/Form and"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/kintone-record-mutations.md",
-                "anchor": "- Synchronization:"
+                "anchor": "- Synchronization: this synchronous projection and nominal matching confer no"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/kintone-record-mutations.md",
-                "anchor": "- Failure:"
+                "anchor": "- Failure: foreign/mutated original members, absent/nullable primary fields,"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/kintone-record-mutations.md",
-                "anchor": "- Cancellation:"
+                "anchor": "- Cancellation: metadata completion is not transport stop or cleanup ACK;"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/kintone-record-mutations.md",
-                "anchor": "- Resources:"
+                "anchor": "- Resources: original declaration strings, selected View, retained Form/page,"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/kintone-record-mutations.md",
-                "anchor": "- Extension:"
+                "anchor": "- Extension: the existing typed Node/RelA bridge forwards the same opaque"
               }
             ],
             "verification": [
               {
                 "path": "docs/design/kintone-record-mutations.md",
-                "anchor": "- Verification:"
+                "anchor": "- Verification: strict Common and vendor whitebox counters cover original"
               },
               {
                 "path": "src/client_row_source_host/delete_mapping_wbtest.mbt",
