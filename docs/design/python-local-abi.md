@@ -59,6 +59,37 @@ record; repeated transfers do not accumulate released descriptors.
 Closing this Host bridge is separate from closing a Client connection and
 cannot decide Run cancellation.
 
+### Child-process lifetime of native allocations
+
+A joined native thread has stopped using its thread-local payload; it has not
+retired its process. Rust and platform runtimes may retain process-static
+allocations after every handler thread has joined. Such an allocation remains
+in its original physical holding. Allocation-level `try_close` and domain
+borrow return continue to refuse while it remains live. Engine close, thread
+join, a cancellation request and observation of an absent PID cannot turn that
+retained responsibility into a released holding.
+
+An exclusively owned child region has a distinct physical retirement boundary.
+Before child startup, the existing process Owner retains the original child,
+channel, region, lease and backing correspondence. Its scoped stop observation
+must confirm that the original execution and IPC users have stopped. The
+original mapping and descriptor cleanup must then actually complete before
+that region's borrower can be discharged. This does not individually free a
+process-static allocation, reset its allocator header, make unused quota
+available, or authorize another child to adopt the region.
+
+Failed or uncertain stop, unmap, descriptor close or acknowledgment retains the
+same original responsibility and partial-cleanup carrier. A completed physical
+cleanup step is retained and is not blindly repeated after a later failure.
+Foreign child, region or lease observations cannot retire the original region.
+The process Owner's stop pin remains held through physical cleanup; an exit
+code or PID alone is not a substitute for that original scoped observation.
+
+Physical region retirement is separate from conservative quota reconciliation,
+Common borrow settlement and the Run's remote or business outcome. It does not
+prove that an external operation was never sent, acknowledge a commit, permit
+automatic resend, or supply missing ordinary runtime funding.
+
 The private payload-request projection borrows one original completed Result
 publication and its exact physical input. The input contains only the Store
 authority CID, material generation CID and payload byte ceiling. The existing
