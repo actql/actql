@@ -17,6 +17,9 @@ extern "C" fn selected_test_descriptor_ffi(
 extern "C" fn selected_test_no_cloexec_ffi(descriptor : Int) -> Int = "actql_executor_slot_test_selected_without_cloexec"
 
 ///|
+extern "C" fn selected_test_private_source_ffi(descriptor : Int) -> Int = "actql_executor_slot_test_selected_private_source"
+
+///|
 #borrow(record)
 extern "C" fn selected_test_thread_ffi(
   record : NativeScopedChildDescriptor,
@@ -230,7 +233,11 @@ test "selected environment refuses unknown duplicate NUL and over-limit inputs b
 ///|
 test "changed original source descriptor refuses launch without closing its independent replacement" {
   let (slot, holder, _, borrowed) = duplex_test_prepare("selected-source-reuse")
-  let source = selected_test_backing("source-reuse", "original-only")
+  let original = selected_test_backing("source-reuse", "original-only")
+  // The existing reuse fixture accepts private descriptor numbers only. Keep
+  // the normal low-FD backing case in the other actual launch vectors.
+  let source = selected_test_private_source_ffi(original)
+  assert_true(source >= 10)
   scoped_test_ok(
     holder.prepare_duplex_child("/usr/bin/env", [], source, []),
     "selected.reuse.prepare",
@@ -252,6 +259,7 @@ test "changed original source descriptor refuses launch without closing its inde
   assert_eq(duplex_test_read_ffi(independent_reader), payload)
   assert_eq(slot_close_ffi(source), 0)
   assert_eq(slot_close_ffi(independent_reader), 0)
+  assert_eq(slot_close_ffi(original), 0)
   assert_true(slot.close())
 }
 

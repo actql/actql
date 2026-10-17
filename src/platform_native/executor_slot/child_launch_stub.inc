@@ -215,6 +215,11 @@ int32_t actql_executor_slot_test_selected_without_cloexec(int32_t descriptor) {
   return flags < 0 ? -1 : fcntl(descriptor, F_SETFD, flags & ~FD_CLOEXEC);
 }
 
+int32_t actql_executor_slot_test_selected_private_source(int32_t descriptor) {
+  return fcntl(descriptor, F_DUPFD_CLOEXEC,
+    ACTQL_EXECUTOR_SLOT_FIRST_PRIVATE_FD);
+}
+
 typedef struct { actql_executor_selected_child *record; int status; }
   actql_executor_selected_thread_probe;
 
