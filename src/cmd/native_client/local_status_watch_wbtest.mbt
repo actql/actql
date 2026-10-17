@@ -11,11 +11,11 @@ priv struct LocalStatusWatchProbe {
 ///|
 // Callback loop probes are component evidence only, not a saved Host/Store.
 fn local_status_watch_probe(wires : Array[String]) -> LocalStatusWatchProbe {
-  let reads = Ref::new(0)
+  let reads = Ref(0)
   let emitted = []
-  let current = Ref::new(true)
-  let interrupted = Ref::new(false)
-  let clock = Ref::new(0L)
+  let current = Ref(true)
+  let interrupted = Ref(false)
+  let clock = Ref(0L)
   {
     reads,
     emitted,
@@ -136,10 +136,10 @@ test "status watch validates the original selector and options before project IO
 ///|
 test "watch emits only original revision changes then returns the stable original" {
   let running = run_display_minimal
-  let timestamp_only = running.replace("00:00:00.000Z", "00:00:01.000Z")
+  let timestamp_only = running.replace(old="00:00:00.000Z", new="00:00:01.000Z")
   let succeeded = running
-    .replace("\"running\"", "\"succeeded\"")
-    .replace("\"revision\":7", "\"revision\":8")
+    .replace(old="\"running\"", new="\"succeeded\"")
+    .replace(old="\"revision\":7", new="\"revision\":8")
   let probe = local_status_watch_probe([running, timestamp_only, succeeded])
   assert_eq(
     local_status_watch_loop(local_watch_test_options, probe.operations),
@@ -201,7 +201,7 @@ test "watch refuses post-read current loss missing revision foreign Run and regr
   )
   assert_eq(probe.emitted, [])
   let missing = local_status_watch_probe([
-    run_display_minimal.replace("\"revision\":7,", ""),
+    run_display_minimal.replace(old="\"revision\":7,", new=""),
   ])
   assert_eq(
     local_status_watch_issue(local_watch_test_options, missing.operations),
@@ -209,7 +209,7 @@ test "watch refuses post-read current loss missing revision foreign Run and regr
   )
   let foreign = local_status_watch_probe([
     run_display_minimal,
-    run_display_minimal.replace("original-run", "another-run"),
+    run_display_minimal.replace(old="original-run", new="another-run"),
   ])
   assert_eq(
     local_status_watch_issue(local_watch_test_options, foreign.operations),
@@ -217,7 +217,7 @@ test "watch refuses post-read current loss missing revision foreign Run and regr
   )
   let backwards = local_status_watch_probe([
     run_display_minimal,
-    run_display_minimal.replace("\"revision\":7", "\"revision\":6"),
+    run_display_minimal.replace(old="\"revision\":7", new="\"revision\":6"),
   ])
   assert_eq(
     local_status_watch_issue(local_watch_test_options, backwards.operations),

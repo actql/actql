@@ -161,7 +161,7 @@ fn local_status_watch_loop(
     }
     // Reuse the full public-state validator and original stable-state rule.
     // Missing legacy state/revision never becomes a fresh counter or progress.
-    let ready = @publication.run_wait_ready(wire, None, 65536, 8192, 64).unwrap_or_else(_ => {
+    let ready = @publication.run_wait_ready(wire, None, 65536, 8192, 64).unwrap_or_else(() => {
         stop("LocalOriginalRunStateUnavailable")
       },
     )
