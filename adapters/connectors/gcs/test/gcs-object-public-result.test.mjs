@@ -12,6 +12,7 @@ import {inspect} from 'node:util';
 import * as moon from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as provider from '../../../../_build/js/release/build/connectors/gcs/host_node/host_node.js';
 import {createOwnedScratch} from '../../../../scripts/owned-scratch.mjs';
+import {checked} from '../../../host-common/runtime-result.mjs';
 import {connectEmbeddedLocal} from '../../../host-node/embedded-local.mjs';
 import {createInstalledConnectorTable} from '../../../host-node/installed-connectors.mjs';
 import {createInstalledRowSource, installRowSourceAuthorization, rowSourceCheckEnvironment}
@@ -155,6 +156,11 @@ test('public GCS Named Result preserves exact Decimal and JSON contracts across 
     'json', checkedEnvironment, undefined);
   assert.ok(moon.clientProgramPreparationReady(preparation),
     inspect(moon.clientProgramPreparationIssue(preparation), {depth: 5, maxArrayLength: 3}));
+  try { checked(moon.clientProgramCompileLocalTasks(moon.clientProgramPreparationReady(preparation))); }
+  catch (error) {
+    t.diagnostic(inspect(error, {depth: 8, maxArrayLength: 3, maxStringLength: 200}).slice(0, 4000));
+    throw error;
+  }
   const run = await client.startSource(JSON.stringify(program), {format: 'json',
     submissionRef: client.newSubmission({nonce: 'gcs-public-original'})}).catch(error => {
     // All observed values belong to this nonsecret fresh fixture. Retain the
