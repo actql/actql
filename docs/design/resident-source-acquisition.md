@@ -1,5 +1,24 @@
 # Resident Source acquisition
 
+## Selected installed runtime verification
+
+Source and Effect installation bind their Site to the exact selected runtime
+byte digest. Each installation rereads its original runtime file: an ESM module
+namespace, path, timestamp or previously observed CID is not immutable artifact
+custody and cannot replace that read. The shared configuration-file custody
+keeps the original open handle through both reading and close; a pending close
+refuses installation and retains the same retry without reopening or rehashing.
+
+Runtime hashing updates SHA256 incrementally with one reusable 64 KiB input
+Buffer. It preserves the full byte preimage, including partial reads and binary
+bytes, without accumulating a full runtime Buffer. That local workspace choice
+is neither a file-size/work ceiling nor a numerical funding or whole-RSS claim.
+The digest does not replace original module/runtime correspondence, current
+configuration, credential authorization or installation admission. Configuration
+JSON/text readers retain their original bounds, codecs and failure behavior;
+streaming hashing does not turn those materialized configuration values into a
+shared cache or change their identity.
+
 The resident Site executes a checked acquisition task with the existing native
 DuckDB acquisition owner and the standard remote runtime. Its initial installed
 profile supports one read-only Source, one checked task and one named Result.
