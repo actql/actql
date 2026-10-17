@@ -347,6 +347,7 @@ test('dependent private key phases require the original Local receiver before St
 test('a dependent Table cannot substitute the Local Result key receiver', async () => {
   const {options, events} = fixture();
   options.localEvidenceContext.acquiredEvidence = {};
+  options.localEvidenceContext.retentionDependencies = [];
   options.moon.clientProgramBeginEffectLocalCommandKeyWorkspace = () => assert.fail('LocalBeginMustNotRun');
   options.moon.clientProgramEffectLocalResultMatchesMember = () => false;
   options.moon.clientProgramEffectTableInputAt = () => Object.freeze({});
@@ -366,6 +367,9 @@ test('dependent same-view members retain separate original key phases and one lo
   const begun = [], completed = [], proposed = [], retained = [];
   Object.assign(options.moon, {
     clientProgramEffectLocalStaticBodies: () => ok([]),
+    clientProgramEffectTableInputAt: () => undefined,
+    clientProgramEffectInputExportNextCanonicalRow: () => ok(undefined),
+    clientProgramEffectInputExportFinish: stream => ok({_0: stream, _1: '[]'}),
     clientProgramBeginEffectLocalCommandKeyWorkspace(scope, inputs, member, index) {
       assert.equal(scope, phases[member]);
       assert.equal(inputs, options.inputs);
