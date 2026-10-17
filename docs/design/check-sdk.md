@@ -660,6 +660,21 @@ custody, current disclosure, context and source revisions remain Host obligation
 and no Run, Source acquisition, Model invocation, Preview or dispatch is performed
 by this projection. The separately bounded publication DATA reader is not proof
 of installation membership or current authorization.
+
+For an original structured JSON or YAML Program, the portable Host may select
+the existing source syntax explicitly through
+`client_program_check_program_with_format`. The original JSON convenience entry
+and Node facade retain their signatures and behavior. Both syntaxes enter the
+same Program parser, declaration/binding checks, Source inventory and static
+Effect closure; YAML is never rewritten as JSON before checking. Parameters
+remain a separately admitted JSON body. The Host binds the selected format,
+original source bytes and revisions into that same current reporting context.
+YAML diagnostic pointers borrow the original admitted Program and key spans;
+the existing scalar parser recovers plain or quoted key spelling, and the
+Canonical Value Owner confirms its correspondence to the admitted key. A missing
+node can locate its existing parent, but never a synthesized value or position.
+This syntax selection adds no wire field, schema/CID domain, Run or permission.
+
 Coordinated publication does not imply that consumers in other environments have
 updated. A closed-schema mismatch fails validation in that consumer, including
 responses with no diagnostic reasons, rather than returning an empty success.
@@ -1969,6 +1984,14 @@ can expose the original problem again. Check completion is never submission
 acceptance or execution success. Direct Program preparation classifications
 require their own disclosure connection and are not covered by this Source
 projection.
+
+The private Node preparation bridge may project an original typed
+`DecodedResponseLimit` rejection as bounded diagnostic DATA containing its
+stage index and logical join-step index. It reads the same rejected preparation;
+it does not recheck a Program, interpret compiler-generated constructor names,
+or turn a private rejection into a public input violation. Unrelated refusals
+and successful preparations have no such diagnostic. These coordinates are
+neither an acquisition ordinal nor capacity, authority or execution evidence.
 
 This connection uses the request journal's existing bounded intent custody.
 It adds no stored field, public input hash, retention period or input retrieval
