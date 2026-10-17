@@ -646,6 +646,10 @@ fn check_source_findings(
       // SQL spelling, target provider and public Result count are irrelevant.
       if scope == BoundInput &&
         @checked.diagnostic_cause(diagnostic) is Source(UnsupportedEffects(_)) {
+        if lowered.command_selection is Some(_) {
+          findings.push(Limit("implementation_limit"))
+          return Report
+        }
         match
           @host.prepare_parsed_client_effect_computation(
             program,

@@ -17,6 +17,7 @@ test('Slack actual Node exports preserve profile values identity and explicit cu
   assert.deepEqual(rows(page),[{id:'U1',name:'original',real_name:'観測 é',display_name:'',
     email:'a@example.test',tz:'Asia/Tokyo',is_bot:false,deleted:true}]);
   assert.deepEqual(JSON.parse(provider.slackUserListMetadataJson(page)),{rowCount:1,nextCursor:'a+/= é'});
+  assert.deepEqual(provider.slackUserListIds(page),['U1']);
   assert.deepEqual(JSON.parse(provider.slackUserListRelationFactsWire()),{relation_keys:{candidate_keys:[['id']]}});
   const schema=JSON.parse(checked(provider.slackUserListSchemaWire(2048,100,8)));
   assert.deepEqual(schema.id,{type:'string',nullable:false});

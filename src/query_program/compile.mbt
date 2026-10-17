@@ -197,10 +197,11 @@ priv struct RetainedResult {
   fields : Array[String]
   terminal : Bool
   carrier_complete : Bool
-  // Frontend construction metadata for a closed, unexported UPDATE input.
+  // Frontend construction metadata for closed private Effect inputs, not
+  // captured-value receipts, key proofs or execution authority.
   update : (String, Array[(String, @builder.Node)])?
   store : Bool
-  short_command : ShortCommandCapture?
+  command : (String, String?, Array[(String, @builder.Node)])?
 }
 
 ///|
@@ -220,7 +221,7 @@ fn retained_result_exports(
   implicit_primary? : Bool = true,
 ) -> Array[(String, String)]? raise Abort {
   let public = retained.filter(result => {
-    result.update is None && !result.store && result.short_command is None
+    result.update is None && !result.store && result.command is None
   })
   if public.is_empty() {
     return if retained.is_empty() {
@@ -267,21 +268,17 @@ fn retained_stage_results(
       !retained.any(result => {
         result.update is None &&
         !result.store &&
-        result.short_command is None &&
+        result.command is None &&
         result.terminal
       })
     ) ||
     (
       !keep_default &&
       retained.any(result => {
-        result.update is Some(_) ||
-        result.store ||
-        result.short_command is Some(_)
+        result.update is Some(_) || result.store || result.command is Some(_)
       }) &&
       retained.all(result => {
-        result.update is Some(_) ||
-        result.store ||
-        result.short_command is Some(_)
+        result.update is Some(_) || result.store || result.command is Some(_)
       })
     ) {
     []
@@ -3111,7 +3108,7 @@ fn compile_steps(
           carrier_complete: !needs_view,
           update: None,
           store: false,
-          short_command: None,
+          command: None,
         })
         if terminal_result {
           output = pipe_visible.map(pair => pair.0)
@@ -7253,12 +7250,8 @@ pub fn compile_with_source(
   store_targets? : StoreTargetPublication? = None,
   command_targets? : CommandTargetPublication? = None,
 ) -> Result[(@program.Program, @builder.Source), Issue] {
-  // A parsed operation must never disappear into a pure Relation. The
-  // published Command target/key owner is required before this can lower.
-  if @query.terminal_short_command_effect(query) is Some(_) &&
-    command_targets is None {
-    return Err(UnsupportedEffect)
-  }
+  // Terminal operations use the ordinary script compiler's original target
+  // selection and private Result capture; none may disappear into a pure query.
   // Binding and primary scopes must be installed before inspecting a JOIN
   // input. The standalone probe sees only Context inputs, not authored WITH
   // producers or transformed range inputs.

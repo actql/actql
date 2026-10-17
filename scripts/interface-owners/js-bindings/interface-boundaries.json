@@ -45803,7 +45803,7 @@
     {
       "module": "adapters/host-node/installed-keyed-content-capture.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "0cc651f48b43c9e29685e7d7d4d9ce5e4425443c2747aef49890314d92b885ca",
+      "sha256": "85d76f963dd1704a7bb1323f883aaba2bb78ff3d01400bb048812eb5bb0802c9",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -45942,6 +45942,13 @@
           "async": false
         },
         {
+          "name": "installRunKeyedContentCapture/issuedForContent/issuedForContent",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
           "name": "installRunKeyedContentCapture/live/live",
           "parameters": [],
           "async": false
@@ -46014,6 +46021,11 @@
           "parameters": [
             "entry"
           ],
+          "async": false
+        },
+        {
+          "name": "installRunKeyedContentCapture/selectionCurrent/selectionCurrent",
+          "parameters": [],
           "async": false
         }
       ],
@@ -46151,6 +46163,7 @@
             "installRunKeyedContentCapture/installRunKeyedContentCapture#3",
             "installRunKeyedContentCapture/installRunKeyedContentCapture#4",
             "installRunKeyedContentCapture/installRunKeyedContentCapture#5",
+            "installRunKeyedContentCapture/issuedForContent/issuedForContent",
             "installRunKeyedContentCapture/live/live",
             "installRunKeyedContentCapture/recover/recover",
             "installRunKeyedContentCapture/recover/recover/recover",
@@ -46162,7 +46175,8 @@
             "installRunKeyedContentCapture/recoverInventory/recoverInventory/recoverInventory#2",
             "installRunKeyedContentCapture/referenceIssuer/referenceIssuer",
             "installRunKeyedContentCapture/releaseCurrent/releaseCurrent",
-            "installRunKeyedContentCapture/remember/remember"
+            "installRunKeyedContentCapture/remember/remember",
+            "installRunKeyedContentCapture/selectionCurrent/selectionCurrent"
           ],
           "exports": [
             "installRunKeyedContentCapture"

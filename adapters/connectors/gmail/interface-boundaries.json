@@ -1,0 +1,1255 @@
+{
+  "qualification": "Existing Owner source/reference projection only; not normal funding, retirement, installation, authentication or live Gmail acceptance",
+  "source": "943f0455a425bb638bcb49d7dc1b465c3f882e1d",
+  "declarations": [
+    {
+      "module": "adapters/connectors/gmail/site/gmail-label-list-read.mjs",
+      "sha256": "49b3ff03ca099043076735684958f376a5f82c4ba8d950d70113e7b2315ba34a",
+      "exports": [
+        "GMAIL_LABEL_LIST_OPERATION",
+        "GmailLabelListReadFailure",
+        "createGmailLabelListReader",
+        "readGmailLabelList"
+      ],
+      "operations": [
+        {
+          "name": "createGmailLabelListReader",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createGmailLabelListReader/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createGmailLabelListReader/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createGmailLabelListReader/handle/init:read/init:read/result/result",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "createGmailLabelListReader/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "executeRead",
+          "parameters": [
+            "provider",
+            "context",
+            "selected",
+            "path",
+            "signal",
+            "received"
+          ],
+          "async": true
+        },
+        {
+          "name": "executeRead/response/response",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "executeRead/verify/verify",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "GmailLabelListReadFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause",
+            "observations"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReader",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead",
+          "parameters": [
+            "moon",
+            "mailbox",
+            "names",
+            "initialAuthorization",
+            "credential",
+            "authorizationFor",
+            "limits",
+            "current",
+            "chargeResponse",
+            "consumePage",
+            "signal",
+            "callResource"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/component/component",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/prepareRead",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/prepareRead#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/prepareRead#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/prepareRead#4",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "readGmailLabelList",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        }
+      ],
+      "imports": [
+        "../../../host-common/http-exchange.mjs",
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Gmail Catalog/physical caller; Account, Credential/Site, Common RowRun and Ledger retain original authority, accounting, capture and cleanup",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createGmailLabelListReader",
+            "createGmailLabelListReader/handle/init:observe/init:observe",
+            "createGmailLabelListReader/handle/init:read/init:read",
+            "createGmailLabelListReader/handle/init:read/init:read/result/result",
+            "createGmailLabelListReader/handle/init:requestStop/init:requestStop",
+            "executeRead",
+            "executeRead/response/response",
+            "executeRead/verify/verify",
+            "fail/fail",
+            "GmailLabelListReadFailure/constructor:constructor/constructor:constructor",
+            "originalReader",
+            "positive/positive",
+            "prepareRead",
+            "prepareRead/component/component",
+            "prepareRead/prepareRead",
+            "prepareRead/prepareRead#2",
+            "prepareRead/prepareRead#3",
+            "prepareRead/prepareRead#4",
+            "prepareRead/provider/provider",
+            "readGmailLabelList"
+          ],
+          "exports": [
+            "GMAIL_LABEL_LIST_OPERATION",
+            "GmailLabelListReadFailure",
+            "createGmailLabelListReader",
+            "readGmailLabelList"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mjs",
+                "anchor": "invocationBindingsMatch(authorization.scope, context.scope)"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The original Site"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "## Original authentication dependency"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Original response"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Limits on wire bytes, rows, nodes, names and strings"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The original signing key, assertion preparation, private form/response/token,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "These private Catalog/transport boundaries do not by themselves register"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gmail/catalog/labels_wbtest.mbt",
+                "anchor": "test \"Gmail label keys and every declared cell"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/gmail-label-list-read.test.mjs",
+                "anchor": "test('Gmail labels actual SQL and AQL prepare"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/gmail-authentication.test.mjs",
+                "anchor": "test('Gmail SQL and AQL capture consume the original authenticated parent use"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/gmail-authentication.test.mjs",
+                "anchor": "test('Gmail lost auth response retains its original Unknown"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/gmail-authentication.test.mjs",
+                "anchor": "test('Gmail lost authenticated label reply keeps the original API Unknown"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mjs",
+                "anchor": "function prepareRead("
+              },
+              {
+                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mjs",
+                "anchor": "async function executeRead("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mjs",
+                "anchor": "const readers = new WeakMap();"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Escaped"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mjs",
+                "anchor": "currentBeforeSend: verify"
+              },
+              {
+                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mjs",
+                "anchor": "await context.callbacks.consumePage"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mjs",
+                "anchor": "throw new GmailLabelListReadFailure(cause, observations);"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/gmail-label-list-read.test.mjs",
+                "anchor": "test('Gmail lost GET reply"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mjs",
+                "anchor": "requestStop(reason)"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/gmail/catalog/labels.mbt",
+      "sha256": "dffcc660c52e885b6435e7e00fea39e83f159cc939c7b89f1080702c0cb53d8b",
+      "exports": [],
+      "operations": [
+        {
+          "name": "gmail_label_list_column_names",
+          "declaration": "gmail_label_list_column_names ( ) - > Array [ String ]"
+        },
+        {
+          "name": "gmail_label_list_columns",
+          "declaration": "gmail_label_list_columns ( ) - > Array [ ( String , String ) ]"
+        },
+        {
+          "name": "gmail_label_list_facts_wire",
+          "declaration": "gmail_label_list_facts_wire ( ) - > String"
+        },
+        {
+          "name": "gmail_label_list_ids",
+          "declaration": "gmail_label_list_ids ( page : GmailLabelListPage ) - > Array [ String ]"
+        },
+        {
+          "name": "gmail_label_list_limits_valid",
+          "declaration": "gmail_label_list_limits_valid ( limits : GmailLabelListLimits ) - > Bool"
+        },
+        {
+          "name": "gmail_label_list_row_count",
+          "declaration": "gmail_label_list_row_count ( page : GmailLabelListPage ) - > Int"
+        },
+        {
+          "name": "gmail_label_list_rows_wire",
+          "declaration": "gmail_label_list_rows_wire ( page : GmailLabelListPage , names : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , GmailLabelListIssue ]"
+        },
+        {
+          "name": "gmail_label_list_schema_wire",
+          "declaration": "gmail_label_list_schema_wire ( max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , GmailLabelListIssue ]"
+        },
+        {
+          "name": "project_gmail_label_list",
+          "declaration": "project_gmail_label_list ( bytes : Bytes , limits : GmailLabelListLimits , ) - > Result [ GmailLabelListPage , GmailLabelListIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Gmail Catalog/physical caller; Account, Credential/Site, Common RowRun and Ledger retain original authority, accounting, capture and cleanup",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "gmail_label_list_column_names",
+            "gmail_label_list_columns",
+            "gmail_label_list_facts_wire",
+            "gmail_label_list_ids",
+            "gmail_label_list_limits_valid",
+            "gmail_label_list_row_count",
+            "gmail_label_list_rows_wire",
+            "gmail_label_list_schema_wire",
+            "project_gmail_label_list"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Neither a label name/type nor successful label"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Original response"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Limits on wire bytes, rows, nodes, names and strings"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "These private Catalog/transport boundaries do not by themselves register"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gmail/catalog/labels_wbtest.mbt",
+                "anchor": "test \"Gmail label keys and every declared cell"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/gmail-label-list-read.test.mjs",
+                "anchor": "test('Gmail labels actual SQL and AQL prepare"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gmail/catalog/labels.mbt",
+                "anchor": "pub fn project_gmail_label_list("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gmail/catalog/labels.mbt",
+                "anchor": "pub struct GmailLabelListPage"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "A returned result or failure retains the exact original Credential"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Bounded synchronous Catalog projection and thin typed bridge perform no I/O, authorization, claim or capture. The physical caller and existing Common owners preserve original invocation and current checks."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gmail/catalog/labels.mbt",
+                "anchor": "pub(all) enum GmailLabelListIssue"
+              },
+              {
+                "path": "src/connectors/gmail/catalog/labels_wbtest.mbt",
+                "anchor": "test \"Gmail label list rejects foreign error and continuation envelopes"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "No asynchronous request is started by these bounded pure functions or generated API declarations. The original caller retains cancellation, raw custody, Unknown and cleanup."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/gmail/catalog/pkg.generated.mbti",
+      "sha256": "b2cb79f6fcff8e685c825e96af34a91c34d0ada8cb3a8423cc21986cbf5de2b3",
+      "exports": [
+        "pub fn gmail_label_list_column_names() -> Array[String]",
+        "pub fn gmail_label_list_facts_wire() -> String",
+        "pub fn gmail_label_list_ids(GmailLabelListPage) -> Array[String]",
+        "pub fn gmail_label_list_row_count(GmailLabelListPage) -> Int",
+        "pub fn gmail_label_list_rows_wire(GmailLabelListPage, Array[String], Int, Int, Int) -> Result[String, GmailLabelListIssue]",
+        "pub fn gmail_label_list_schema_wire(Int, Int, Int) -> Result[String, GmailLabelListIssue]",
+        "pub fn project_gmail_label_list(Bytes, GmailLabelListLimits) -> Result[GmailLabelListPage, GmailLabelListIssue]",
+        "pub struct GmailLabelListPage {"
+      ],
+      "operations": [
+        {
+          "name": "gmail_label_list_column_names",
+          "declaration": "pub fn gmail_label_list_column_names() -> Array[String]"
+        },
+        {
+          "name": "gmail_label_list_facts_wire",
+          "declaration": "pub fn gmail_label_list_facts_wire() -> String"
+        },
+        {
+          "name": "gmail_label_list_ids",
+          "declaration": "pub fn gmail_label_list_ids(GmailLabelListPage) -> Array[String]"
+        },
+        {
+          "name": "gmail_label_list_row_count",
+          "declaration": "pub fn gmail_label_list_row_count(GmailLabelListPage) -> Int"
+        },
+        {
+          "name": "gmail_label_list_rows_wire",
+          "declaration": "pub fn gmail_label_list_rows_wire(GmailLabelListPage, Array[String], Int, Int, Int) -> Result[String, GmailLabelListIssue]"
+        },
+        {
+          "name": "gmail_label_list_schema_wire",
+          "declaration": "pub fn gmail_label_list_schema_wire(Int, Int, Int) -> Result[String, GmailLabelListIssue]"
+        },
+        {
+          "name": "project_gmail_label_list",
+          "declaration": "pub fn project_gmail_label_list(Bytes, GmailLabelListLimits) -> Result[GmailLabelListPage, GmailLabelListIssue]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Gmail Catalog/physical caller; Account, Credential/Site, Common RowRun and Ledger retain original authority, accounting, capture and cleanup",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "gmail_label_list_column_names",
+            "gmail_label_list_facts_wire",
+            "gmail_label_list_ids",
+            "gmail_label_list_row_count",
+            "gmail_label_list_rows_wire",
+            "gmail_label_list_schema_wire",
+            "project_gmail_label_list"
+          ],
+          "exports": [
+            "pub fn gmail_label_list_column_names() -> Array[String]",
+            "pub fn gmail_label_list_facts_wire() -> String",
+            "pub fn gmail_label_list_ids(GmailLabelListPage) -> Array[String]",
+            "pub fn gmail_label_list_row_count(GmailLabelListPage) -> Int",
+            "pub fn gmail_label_list_rows_wire(GmailLabelListPage, Array[String], Int, Int, Int) -> Result[String, GmailLabelListIssue]",
+            "pub fn gmail_label_list_schema_wire(Int, Int, Int) -> Result[String, GmailLabelListIssue]",
+            "pub fn project_gmail_label_list(Bytes, GmailLabelListLimits) -> Result[GmailLabelListPage, GmailLabelListIssue]",
+            "pub struct GmailLabelListPage {"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Neither a label name/type nor successful label"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Original response"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Limits on wire bytes, rows, nodes, names and strings"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "These private Catalog/transport boundaries do not by themselves register"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gmail/catalog/labels_wbtest.mbt",
+                "anchor": "test \"Gmail label keys and every declared cell"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/gmail-label-list-read.test.mjs",
+                "anchor": "test('Gmail labels actual SQL and AQL prepare"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gmail/catalog/labels.mbt",
+                "anchor": "pub fn project_gmail_label_list("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gmail/catalog/labels.mbt",
+                "anchor": "pub struct GmailLabelListPage"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "A returned result or failure retains the exact original Credential"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Bounded synchronous Catalog projection and thin typed bridge perform no I/O, authorization, claim or capture. The physical caller and existing Common owners preserve original invocation and current checks."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gmail/catalog/labels.mbt",
+                "anchor": "pub(all) enum GmailLabelListIssue"
+              },
+              {
+                "path": "src/connectors/gmail/catalog/labels_wbtest.mbt",
+                "anchor": "test \"Gmail label list rejects foreign error and continuation envelopes"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "No asynchronous request is started by these bounded pure functions or generated API declarations. The original caller retains cancellation, raw custody, Unknown and cleanup."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/gmail/host_node/labels_bridge.mbt",
+      "sha256": "2247c432b7133c46dfe871e1ecb7e3b40b34b5cd9db9f0d984c721b51c399174",
+      "exports": [],
+      "operations": [
+        {
+          "name": "gmail_label_list_column_names",
+          "declaration": "gmail_label_list_column_names ( ) - > Array [ String ]"
+        },
+        {
+          "name": "gmail_label_list_metadata_json",
+          "declaration": "gmail_label_list_metadata_json ( page : @ catalog . GmailLabelListPage , ) - > String"
+        },
+        {
+          "name": "gmail_label_list_relation_facts_wire",
+          "declaration": "gmail_label_list_relation_facts_wire ( ) - > String"
+        },
+        {
+          "name": "gmail_label_list_rows_wire",
+          "declaration": "gmail_label_list_rows_wire ( page : @ catalog . GmailLabelListPage , names : Array [ String ] , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ catalog . GmailLabelListIssue ]"
+        },
+        {
+          "name": "gmail_label_list_schema_wire",
+          "declaration": "gmail_label_list_schema_wire ( max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ catalog . GmailLabelListIssue ]"
+        },
+        {
+          "name": "gmail_project_label_list",
+          "declaration": "gmail_project_label_list ( body : Bytes , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_value_nodes : Int , max_value_text_bytes : Int , ) - > Result [ @ catalog . GmailLabelListPage , @ catalog . GmailLabelListIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Gmail Catalog/physical caller; Account, Credential/Site, Common RowRun and Ledger retain original authority, accounting, capture and cleanup",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "gmail_label_list_column_names",
+            "gmail_label_list_metadata_json",
+            "gmail_label_list_relation_facts_wire",
+            "gmail_label_list_rows_wire",
+            "gmail_label_list_schema_wire",
+            "gmail_project_label_list"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Neither a label name/type nor successful label"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Original response"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Limits on wire bytes, rows, nodes, names and strings"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "These private Catalog/transport boundaries do not by themselves register"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gmail/catalog/labels_wbtest.mbt",
+                "anchor": "test \"Gmail label keys and every declared cell"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/gmail-label-list-read.test.mjs",
+                "anchor": "test('Gmail labels actual SQL and AQL prepare"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gmail/host_node/labels_bridge.mbt",
+                "anchor": "pub fn gmail_project_label_list("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gmail/catalog/labels.mbt",
+                "anchor": "pub struct GmailLabelListPage"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "A returned result or failure retains the exact original Credential"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Bounded synchronous Catalog projection and thin typed bridge perform no I/O, authorization, claim or capture. The physical caller and existing Common owners preserve original invocation and current checks."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gmail/catalog/labels.mbt",
+                "anchor": "pub(all) enum GmailLabelListIssue"
+              },
+              {
+                "path": "src/connectors/gmail/catalog/labels_wbtest.mbt",
+                "anchor": "test \"Gmail label list rejects foreign error and continuation envelopes"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "No asynchronous request is started by these bounded pure functions or generated API declarations. The original caller retains cancellation, raw custody, Unknown and cleanup."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/gmail/host_node/pkg.generated.mbti",
+      "sha256": "122258a8c5f4e76a87f0d8030cb434f188fe6ec45578c5a3b199ef7ab60f190a",
+      "exports": [
+        "pub fn gmail_label_list_column_names() -> Array[String]",
+        "pub fn gmail_label_list_metadata_json(@catalog.GmailLabelListPage) -> String",
+        "pub fn gmail_label_list_relation_facts_wire() -> String",
+        "pub fn gmail_label_list_rows_wire(@catalog.GmailLabelListPage, Array[String], Int, Int, Int) -> Result[String, @catalog.GmailLabelListIssue]",
+        "pub fn gmail_label_list_schema_wire(Int, Int, Int) -> Result[String, @catalog.GmailLabelListIssue]",
+        "pub fn gmail_project_label_list(Bytes, Int, Int, Int, Int, Int, Int) -> Result[@catalog.GmailLabelListPage, @catalog.GmailLabelListIssue]"
+      ],
+      "operations": [
+        {
+          "name": "gmail_label_list_column_names",
+          "declaration": "pub fn gmail_label_list_column_names() -> Array[String]"
+        },
+        {
+          "name": "gmail_label_list_metadata_json",
+          "declaration": "pub fn gmail_label_list_metadata_json(@catalog.GmailLabelListPage) -> String"
+        },
+        {
+          "name": "gmail_label_list_relation_facts_wire",
+          "declaration": "pub fn gmail_label_list_relation_facts_wire() -> String"
+        },
+        {
+          "name": "gmail_label_list_rows_wire",
+          "declaration": "pub fn gmail_label_list_rows_wire(@catalog.GmailLabelListPage, Array[String], Int, Int, Int) -> Result[String, @catalog.GmailLabelListIssue]"
+        },
+        {
+          "name": "gmail_label_list_schema_wire",
+          "declaration": "pub fn gmail_label_list_schema_wire(Int, Int, Int) -> Result[String, @catalog.GmailLabelListIssue]"
+        },
+        {
+          "name": "gmail_project_label_list",
+          "declaration": "pub fn gmail_project_label_list(Bytes, Int, Int, Int, Int, Int, Int) -> Result[@catalog.GmailLabelListPage, @catalog.GmailLabelListIssue]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Gmail Catalog/physical caller; Account, Credential/Site, Common RowRun and Ledger retain original authority, accounting, capture and cleanup",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "gmail_label_list_column_names",
+            "gmail_label_list_metadata_json",
+            "gmail_label_list_relation_facts_wire",
+            "gmail_label_list_rows_wire",
+            "gmail_label_list_schema_wire",
+            "gmail_project_label_list"
+          ],
+          "exports": [
+            "pub fn gmail_label_list_column_names() -> Array[String]",
+            "pub fn gmail_label_list_metadata_json(@catalog.GmailLabelListPage) -> String",
+            "pub fn gmail_label_list_relation_facts_wire() -> String",
+            "pub fn gmail_label_list_rows_wire(@catalog.GmailLabelListPage, Array[String], Int, Int, Int) -> Result[String, @catalog.GmailLabelListIssue]",
+            "pub fn gmail_label_list_schema_wire(Int, Int, Int) -> Result[String, @catalog.GmailLabelListIssue]",
+            "pub fn gmail_project_label_list(Bytes, Int, Int, Int, Int, Int, Int) -> Result[@catalog.GmailLabelListPage, @catalog.GmailLabelListIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Neither a label name/type nor successful label"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Original response"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Limits on wire bytes, rows, nodes, names and strings"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "These private Catalog/transport boundaries do not by themselves register"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/gmail/catalog/labels_wbtest.mbt",
+                "anchor": "test \"Gmail label keys and every declared cell"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/gmail-label-list-read.test.mjs",
+                "anchor": "test('Gmail labels actual SQL and AQL prepare"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gmail/host_node/labels_bridge.mbt",
+                "anchor": "pub fn gmail_project_label_list("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/gmail/catalog/labels.mbt",
+                "anchor": "pub struct GmailLabelListPage"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "A returned result or failure retains the exact original Credential"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Bounded synchronous Catalog projection and thin typed bridge perform no I/O, authorization, claim or capture. The physical caller and existing Common owners preserve original invocation and current checks."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gmail/catalog/labels.mbt",
+                "anchor": "pub(all) enum GmailLabelListIssue"
+              },
+              {
+                "path": "src/connectors/gmail/catalog/labels_wbtest.mbt",
+                "anchor": "test \"Gmail label list rejects foreign error and continuation envelopes"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "No asynchronous request is started by these bounded pure functions or generated API declarations. The original caller retains cancellation, raw custody, Unknown and cleanup."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+      "sha256": "4b16e87a182563e9e29cf15fa2269d36e613b543d49ab0160a3646d4f8d285ed",
+      "exports": [
+        "INSTALLED_GMAIL_SITE_VERSION",
+        "INSTALLED_GMAIL_SOURCE_VERSION",
+        "checkInstalledGmailSourceProfile",
+        "installedGmailSourceIdentityParts",
+        "loadInstalledGmailSource"
+      ],
+      "operations": [
+        {
+          "name": "absolute/absolute",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledGmailSourceProfile",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledGmailSourceProfile/checkInstalledGmailSourceProfile",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkSite",
+          "parameters": [
+            "site"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkSite/checkSite",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "closed/closed",
+          "parameters": [
+            "value",
+            "keys"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedGmailSourceIdentityParts",
+          "parameters": [
+            "profile",
+            "providerProfile"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledGmailSource",
+          "parameters": [
+            "profile",
+            "root",
+            "principalId",
+            "moon",
+            "provider",
+            "baseEnvironmentWire",
+            "runtimeBundleCid",
+            "resolveSecret",
+            "readerCapacity"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledGmailSource/admitsApprovalTarget/admitsApprovalTarget",
+          "parameters": [
+            "value",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGmailSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGmailSource/init:readPages/init:readPages",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGmailSource/target/target",
+          "parameters": [
+            "selected",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReaderFactory",
+          "parameters": [
+            "provider",
+            "site",
+            "installed",
+            "capacity"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare/closeTransport/closeTransport",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read",
+          "parameters": [
+            "index"
+          ],
+          "async": true
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "originalReaderFactory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInputs",
+          "parameters": [
+            "profile"
+          ],
+          "async": true
+        },
+        {
+          "name": "sha/sha",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-row-source.mjs",
+        "../../../host-node/source-profile-json.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "../site/gmail-label-list-read.mjs",
+        "node:crypto",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Gmail installed Source adapter; Common/Account/Site/RowRun retain original selection, permission, capture, reservation and cleanup",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "absolute/absolute",
+            "checkInstalledGmailSourceProfile",
+            "checkInstalledGmailSourceProfile/checkInstalledGmailSourceProfile",
+            "checkSite",
+            "checkSite/checkSite",
+            "cid/cid",
+            "closed/closed",
+            "fail/fail",
+            "installedGmailSourceIdentityParts",
+            "loadInstalledGmailSource",
+            "loadInstalledGmailSource/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledGmailSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledGmailSource/init:readPages/init:readPages",
+            "loadInstalledGmailSource/target/target",
+            "originalReaderFactory",
+            "originalReaderFactory/init:prepare/init:prepare",
+            "originalReaderFactory/init:prepare/init:prepare/closeTransport/closeTransport",
+            "originalReaderFactory/init:prepare/init:prepare/handle/init:observe/init:observe",
+            "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read",
+            "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read",
+            "originalReaderFactory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
+            "originalReaderFactory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
+            "positive/positive",
+            "readInputs",
+            "sha/sha",
+            "text/text"
+          ],
+          "exports": [
+            "INSTALLED_GMAIL_SITE_VERSION",
+            "INSTALLED_GMAIL_SOURCE_VERSION",
+            "checkInstalledGmailSourceProfile",
+            "installedGmailSourceIdentityParts",
+            "loadInstalledGmailSource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "## Installed label preparation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "export function checkInstalledGmailSourceProfile(profile)"
+              },
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "export async function loadInstalledGmailSource("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "mailboxBytesCid:sha(Buffer.from(installed.mailbox))"
+              },
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "const admitsApprovalTarget="
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "Their ordinary identity parts retain a digest of the exact mailbox bytes"
+              },
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "connectorRegistration:registration,connectorRevision:revision,contextCid:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "function originalReaderFactory("
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The wrapper retains its child, original binding"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "const original=await options.authorizationFor(0);"
+              },
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "current:async operation=>"
+              },
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "const result=await child.read();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "fail('GmailReaderCapacityUnavailable')"
+              },
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "originalFailure=cause;throw cause;"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/installed-gmail-source.test.mjs",
+                "anchor": "test('installed Gmail lost original reply"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "signal.throwIfAborted();"
+              },
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "stop.abort(reason);child?.requestStop(reason);closeTransport();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "const limitKeys="
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "neither a public profile amount nor transfer/page ceilings issue this declaration."
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The wrapper retains its child, original binding"
+              },
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "const pem=await readBoundedConfigurationText"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "No factory-local ledger, cleanup acknowledgement or token-based"
+              },
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "readPages(){fail('InstalledGmailLegacyReaderUnavailable');}"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/gmail/test/installed-gmail-source.test.mjs",
+                "anchor": "test('installed Gmail actual text Source"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/installed-gmail-source.test.mjs",
+                "anchor": "test('ordinary installed Gmail entrance"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/installed-gmail-source.test.mjs",
+                "anchor": "test('installed Gmail copied preparation"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/installed-gmail-source.test.mjs",
+                "anchor": "test('installed Gmail lost original reply"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/installed-gmail-source.test.mjs",
+                "anchor": "test('installed Gmail optional TLS authority"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/installed-gmail-source.test.mjs",
+                "anchor": "test('installed Gmail binding retains original connector identity"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

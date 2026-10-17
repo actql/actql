@@ -215,7 +215,7 @@ fn lower_update_capture(
       carrier_complete: false,
       update: Some((id, assignments)),
       store: false,
-      short_command: None,
+      command: None,
     },
     body,
   )
