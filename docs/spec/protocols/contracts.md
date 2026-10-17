@@ -1979,7 +1979,7 @@ For a published-STORE Command, the original header, StoreCommand pair and
 Catalog MUST agree with the saved Program and Check Environment; field-target
 Commands and canonical relation STORE do not enter this selection domain.
 
-<!-- requirement-block: compilation-identities.effect-target-selection-mixed-purpose -->
+<!-- requirement-block: compilation-identities.effect-target-selection-mixed-purpose compilation-identities.effect-target-selection-header-purpose compilation-identities.effect-target-selection-purpose-not-cid compilation-identities.effect-target-selection-delete-support -->
 Valid UPDATE, DELETE and published-STORE occurrences MAY coexist in the same
 array, but one occurrence's selection MUST NOT substitute for another purpose
 or original occurrence. The eight fields have no kind discriminator: required
