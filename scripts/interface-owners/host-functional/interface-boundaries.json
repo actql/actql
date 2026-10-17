@@ -28197,7 +28197,7 @@
     {
       "module": "adapters/host-node/installed-content-family.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3e1deacf2cacb426c40becb081cd62092c59c1cc0a5713fcb3e9cd4bf8c00d51",
+      "sha256": "5ce0d5f06c914dd904e545cfa617b7bfcd1c8ac93d11310c91b10b54de251e95",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -28274,6 +28274,13 @@
           "async": false
         },
         {
+          "name": "installEffectContentFamily/init:handlePause/init:handlePause/operation/operation/content/content#2",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "installEffectContentFamily/init:handlePause/init:handlePause/operation/operation/init:retainHoldings/init:retainHoldings",
           "parameters": [
             "_holdings",
@@ -28308,6 +28315,28 @@
         },
         {
           "name": "installEffectContentFamily/installEffectContentFamily#3",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "installEffectContentFamily/installEffectContentFamily#4",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "installEffectContentFamily/installEffectContentFamily#5",
+          "parameters": [
+            "original",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "installEffectContentFamily/installEffectContentFamily#6",
           "parameters": [],
           "async": false
         },
@@ -28342,6 +28371,18 @@
           "name": "installEffectContentFamily/releaseTemporary/releaseTemporary",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "installEffectContentFamily/selectedForContent/selectedForContent",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "installEffectContentFamily/selectedForContent/selectedForContent/current/current",
+          "parameters": [],
+          "async": false
         }
       ],
       "contracts": [
@@ -28356,18 +28397,24 @@
             "installEffectContentFamily/init:handlePause/init:handlePause",
             "installEffectContentFamily/init:handlePause/init:handlePause/operation/operation",
             "installEffectContentFamily/init:handlePause/init:handlePause/operation/operation/content/content",
+            "installEffectContentFamily/init:handlePause/init:handlePause/operation/operation/content/content#2",
             "installEffectContentFamily/init:handlePause/init:handlePause/operation/operation/init:retainHoldings/init:retainHoldings",
             "installEffectContentFamily/init:handlePause/init:handlePause/operation/operation/operation",
             "installEffectContentFamily/init:prepareLedger/init:prepareLedger",
             "installEffectContentFamily/installEffectContentFamily",
             "installEffectContentFamily/installEffectContentFamily#2",
             "installEffectContentFamily/installEffectContentFamily#3",
+            "installEffectContentFamily/installEffectContentFamily#4",
+            "installEffectContentFamily/installEffectContentFamily#5",
+            "installEffectContentFamily/installEffectContentFamily#6",
             "installEffectContentFamily/live/live",
             "installEffectContentFamily/port/init:cancel/init:cancel",
             "installEffectContentFamily/port/port",
             "installEffectContentFamily/port/port#2",
             "installEffectContentFamily/provider/provider",
-            "installEffectContentFamily/releaseTemporary/releaseTemporary"
+            "installEffectContentFamily/releaseTemporary/releaseTemporary",
+            "installEffectContentFamily/selectedForContent/selectedForContent",
+            "installEffectContentFamily/selectedForContent/selectedForContent/current/current"
           ],
           "exports": [
             "installEffectContentFamily"
@@ -28385,6 +28432,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/execution-completion-storage.md",
+                "anchor": "## Generated Content original storage correspondence"
               }
             ],
             "inputsOutputs": [
@@ -28399,6 +28450,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Content generation evidence"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "storageForContent: binding => selectedForContent(binding)"
               }
             ],
             "identity": [
@@ -28413,6 +28468,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "moon.clientProgramEffectCommandContentMatchesIssued(binding, original.issued)"
               }
             ],
             "ownership": [
@@ -28427,6 +28486,10 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "# Completion and physical Relation storage"
+              },
+              {
+                "path": "docs/design/execution-completion-storage.md",
+                "anchor": "The installed serialization family keeps the exact candidate, issued checked"
               }
             ],
             "synchronization": [
@@ -28441,6 +28504,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "if (!current() || !live() || !current()) return undefined;"
               }
             ],
             "failure": [
@@ -28455,6 +28522,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/execution-completion-storage.md",
+                "anchor": "Legacy restoration without this original receiver cannot"
               }
             ],
             "cancellation": [
@@ -28469,6 +28540,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Content generation evidence"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "const current = () => durable && !cancelled && flight === undefined &&"
               }
             ],
             "resources": [
@@ -28483,6 +28558,10 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "# Completion and physical Relation storage"
+              },
+              {
+                "path": "docs/design/execution-completion-storage.md",
+                "anchor": "The additional family reference and restored-result field keep candidate,"
               }
             ],
             "extension": [
@@ -28497,6 +28576,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Content generation evidence"
+              },
+              {
+                "path": "docs/design/execution-completion-storage.md",
+                "anchor": "read grant nor a consumer-phase capacity/allocation, physical loan or dispatch"
               }
             ],
             "verification": [
@@ -28507,17 +28590,30 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/generated-content-original-selection.integration.test.mjs",
+                "anchor": "test('generated family refuses an equal-wire Content from another issuance'"
+              },
+              {
+                "path": "adapters/host-node/generated-content-original-selection.integration.test.mjs",
+                "anchor": "test('generated family refences cancellation begun during the original matcher callback'"
               }
             ]
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "./generated-content-holding.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-content-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "17c46cddb699addb2c1f8f95fa78ab6de90ac3ffaf54b5e2d2defe7a7c64b65d",
+      "sha256": "88b9b16486d2225d8b4378111f07ff010844cdd6c5ad9d2d673accbba4f1553b",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -28656,6 +28752,13 @@
         {
           "name": "installNodeContentRun/installNodeContentRun/content/content",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun/content/content#2",
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -28858,6 +28961,7 @@
             "installNodeContentRun/installNodeContentRun",
             "installNodeContentRun/installNodeContentRun/closed/closed",
             "installNodeContentRun/installNodeContentRun/content/content",
+            "installNodeContentRun/installNodeContentRun/content/content#2",
             "installNodeContentRun/installNodeContentRun/currentBinding/currentBinding",
             "installNodeContentRun/installNodeContentRun/init:cleanup/init:cleanup",
             "installNodeContentRun/installNodeContentRun/init:close/init:close",
@@ -28899,6 +29003,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/execution-completion-storage.md",
+                "anchor": "## Generated Content original storage correspondence"
               }
             ],
             "inputsOutputs": [
@@ -28913,6 +29021,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Content generation evidence"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "storageForContent: binding => selectedForContent(binding)"
               }
             ],
             "identity": [
@@ -28927,6 +29039,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "moon.clientProgramEffectCommandContentMatchesIssued(binding, original.issued)"
               }
             ],
             "ownership": [
@@ -28941,6 +29057,10 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "# Completion and physical Relation storage"
+              },
+              {
+                "path": "docs/design/execution-completion-storage.md",
+                "anchor": "The installed serialization family keeps the exact candidate, issued checked"
               }
             ],
             "synchronization": [
@@ -28955,6 +29075,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "if (!current() || !live() || !current()) return undefined;"
               }
             ],
             "failure": [
@@ -28969,6 +29093,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/execution-completion-storage.md",
+                "anchor": "Legacy restoration without this original receiver cannot"
               }
             ],
             "cancellation": [
@@ -28983,6 +29111,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Content generation evidence"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "const current = () => durable && !cancelled && flight === undefined &&"
               }
             ],
             "resources": [
@@ -28997,6 +29129,10 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "# Completion and physical Relation storage"
+              },
+              {
+                "path": "docs/design/execution-completion-storage.md",
+                "anchor": "The additional family reference and restored-result field keep candidate,"
               }
             ],
             "extension": [
@@ -29011,6 +29147,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Content generation evidence"
+              },
+              {
+                "path": "docs/design/execution-completion-storage.md",
+                "anchor": "read grant nor a consumer-phase capacity/allocation, physical loan or dispatch"
               }
             ],
             "verification": [
@@ -29021,12 +29161,34 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/generated-content-original-selection.integration.test.mjs",
+                "anchor": "test('generated family refuses an equal-wire Content from another issuance'"
+              },
+              {
+                "path": "adapters/host-node/generated-content-original-selection.integration.test.mjs",
+                "anchor": "test('generated family refences cancellation begun during the original matcher callback'"
               }
             ]
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/completed-run-publication.mjs",
+        "../host-common/runtime-result.mjs",
+        "./generated-content-holding.mjs",
+        "./generated-content-write.mjs",
+        "./installed-content-family.mjs",
+        "./installed-keyed-content-capture.mjs",
+        "./local-account-config.mjs",
+        "./local-values-plan.mjs",
+        "./serialization-result-publication.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-duckdb-source.mjs",

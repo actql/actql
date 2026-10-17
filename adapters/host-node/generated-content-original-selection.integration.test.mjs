@@ -3,6 +3,7 @@
 // SERIALIZE Effect preparation, selected physical allocation or installed loan.
 import assert from 'node:assert/strict';
 import {createHash, generateKeyPairSync} from 'node:crypto';
+import {writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import test from 'node:test';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -15,7 +16,7 @@ import {installEffectContentFamily} from './installed-content-family.mjs';
 const cid = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
 
 async function fixture(t, {restored = false, omitRestoredOriginal = false, afterMatch,
-  failCompletion, maxObjectBytes = 10000} = {}) {
+  failCompletion, maxObjectBytes = 10000, retainCustody = false} = {}) {
   const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
     prefix: 'generated-original-selection-', label: 'Generated Content original selection'});
   const generatedCleanups = [];
@@ -26,7 +27,7 @@ async function fixture(t, {restored = false, omitRestoredOriginal = false, after
   t.after(async () => {
     // Drain this same family's temporary duties before the fixture Store closes.
     if (owner !== undefined) assert.equal(await owner.cleanup(), true);
-    if (holdingCid !== undefined) await generated.store.retirePhysicalHolding(holdingCid);
+    if (!retainCustody && holdingCid !== undefined) await generated.store.retirePhysicalHolding(holdingCid);
     for (const close of generatedCleanups) await close();
   });
   await generated.store.commitPhysicalHolding(generated.holding, [generated.physical.prepared]);
@@ -100,13 +101,20 @@ async function fixture(t, {restored = false, omitRestoredOriginal = false, after
     await owner.handlePause({status: 'settling', slot: 0});
     await owner.handlePause({status: 'settling', slot: 1});
   };
-  return {scratch, generated, owner, generate, issued: () => issued, holdingCid, generation};
+  return {scratch, generated, owner, generate, issued: () => issued, holdingCid, generation, retainCustody};
 }
 
 async function withConsumer(t, f, issued, inspect, expectedStatus = 'waiting_checkpoint') {
   let failure;
+  const keys = generateKeyPairSync('ed25519');
+  if (f.retainCustody) {
+    // Preserve this fresh counter's original synthetic signer with its Run/DB
+    // and Content holdings. No secret is logged and no old state is touched.
+    await writeFile(join(f.scratch.path, 'original-test-signing-key.pem'),
+      keys.privateKey.export({type: 'pkcs8', format: 'pem'}), {mode: 0o600});
+  }
   const host = await openContentCommandHost({scratch: f.scratch, generated: f.generated,
-    originalContentValue: issued, keys: generateKeyPairSync('ed25519'), entrance: 'Local',
+    originalContentValue: issued, keys, entrance: 'Local',
     onPrepareContent({originalContent}) {
       try { inspect(originalContent('content')); } catch (error) { failure = error; throw error; }
     }});
@@ -176,14 +184,15 @@ test('restored family without the original holding receiver does not reconstruct
 });
 
 test('generated family refences cancellation begun during the original matcher callback', async t => {
-  const f = await fixture(t, {afterMatch({result, port}) { if (result) port.cancel(); }});
+  const f = await fixture(t, {retainCustody: true,
+    afterMatch({result, port}) { if (result) port.cancel(); }});
   await f.generate();
   await withConsumer(t, f, f.issued(), view => {
     assert.equal(f.owner.storageForContent(view.binding), undefined);
     assert.equal(f.owner.issuedForContent(view.binding), undefined);
   }, 'needs_reconciliation');
   assert.equal(f.generated.store.status().storedBytes, 3, 'cancel is not physical holding retirement');
-  f.scratch.passed();
+  t.diagnostic(`Fresh needs-reconciliation Run/DB/key/holding retained: ${f.scratch.path}`);
 });
 
 test('failed generation retains its original cleanup and exports no durable stored binding', async t => {
