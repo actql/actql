@@ -49,9 +49,13 @@ pub fn original_table_fields(OriginalTableRow) -> Array[OriginalRecordField]
 
 pub fn prepare_original_record_target(OriginalRecordPage, Int, Int) -> Result[OriginalRecordTarget, RecordMutationIssue]
 
+pub fn prepare_record_create_request(FormFieldCatalog, Array[RecordWriteValues], RecordMutationLimits) -> Result[RecordCreateRequest, RecordMutationIssue]
+
 pub fn prepare_record_delete_request(Array[OriginalRecordTarget], RecordMutationLimits) -> Result[RecordDeleteRequest, RecordMutationIssue]
 
 pub fn prepare_record_text_key_lookup(FormFieldCatalog, String, String, Array[String], RecordLookupLimits) -> Result[RecordLookupRequest, RecordLookupIssue]
+
+pub fn prepare_record_update_request(Array[(OriginalRecordTarget, RecordWriteValues)], RecordMutationLimits) -> Result[RecordUpdateRequest, RecordMutationIssue]
 
 pub fn prepare_record_write_values(FormFieldCatalog, Array[(String, @value_admission.CheckedValue)], RecordWriteLimits) -> Result[RecordWriteValues, RecordWriteIssue]
 
@@ -61,17 +65,33 @@ pub fn project_form_fields(Bytes, String, FormFieldLimits) -> Result[FormFieldCa
 
 pub fn project_number_settings(Bytes, String, NumberSettingsLimits) -> Result[AppNumberSettings, NumberSettingsIssue]
 
+pub fn project_record_create_acknowledgement(RecordCreateRequest, Int, Bytes, RecordMutationLimits) -> Result[RecordCreateAcknowledgement, RecordMutationIssue]
+
 pub fn project_record_delete_acknowledgement(RecordDeleteRequest, Int, Bytes, Int, Int, Int) -> Result[RecordDeleteAcknowledgement, RecordMutationIssue]
 
 pub fn project_record_key_lookup(RecordLookupRequest, Int, Bytes, RecordPageLimits) -> Result[RecordLookupObservation, RecordLookupIssue]
 
 pub fn project_record_page(Bytes, FormFieldCatalog, Array[String], RecordPageLimits) -> Result[OriginalRecordPage, RecordPageIssue]
 
+pub fn project_record_update_acknowledgement(RecordUpdateRequest, Int, Bytes, RecordMutationLimits) -> Result[RecordUpdateAcknowledgement, RecordMutationIssue]
+
 pub fn recheck_record_delete_form(RecordDeleteRequest, Bytes, FormFieldLimits) -> Result[Unit, RecordMutationIssue]
 
 pub fn recheck_record_delete_records(RecordDeleteRequest, Bytes, RecordPageLimits, Int, Int) -> Result[Unit, RecordMutationIssue]
 
 pub fn recheck_record_lookup_form(RecordLookupRequest, Bytes, FormFieldLimits) -> Result[Unit, RecordLookupIssue]
+
+pub fn record_create_acknowledgement_records(RecordCreateAcknowledgement) -> Array[(String, String)]
+
+pub fn record_create_acknowledgement_request(RecordCreateAcknowledgement) -> RecordCreateRequest
+
+pub fn record_create_request_app_id(RecordCreateRequest) -> String
+
+pub fn record_create_request_body(RecordCreateRequest) -> String
+
+pub fn record_create_request_count(RecordCreateRequest) -> Int
+
+pub fn record_create_request_values(RecordCreateRequest) -> Array[RecordWriteValues]
 
 pub fn record_delete_acknowledgement_request(RecordDeleteAcknowledgement) -> RecordDeleteRequest
 
@@ -102,6 +122,18 @@ pub fn record_page_records(OriginalRecordPage) -> Array[OriginalRecord]
 pub fn record_page_uses_catalog(OriginalRecordPage, FormFieldCatalog) -> Bool
 
 pub fn record_schema_wire(FormFieldCatalog, AppNumberSettings?, Array[String], RecordValueLimits, Int) -> Result[String, RecordValueIssue]
+
+pub fn record_update_acknowledgement_records(RecordUpdateAcknowledgement) -> Array[(String, String)]
+
+pub fn record_update_acknowledgement_request(RecordUpdateAcknowledgement) -> RecordUpdateRequest
+
+pub fn record_update_request_app_id(RecordUpdateRequest) -> String
+
+pub fn record_update_request_body(RecordUpdateRequest) -> String
+
+pub fn record_update_request_count(RecordUpdateRequest) -> Int
+
+pub fn record_update_request_values(RecordUpdateRequest) -> Array[(OriginalRecordTarget, RecordWriteValues)]
 
 pub fn record_write_values_body(RecordWriteValues) -> String
 
@@ -201,6 +233,15 @@ pub struct OriginalTableRow {
   // private fields
 }
 
+pub struct RecordCreateAcknowledgement {
+  response_sha256 : String
+  // private fields
+}
+
+pub struct RecordCreateRequest {
+  // private fields
+}
+
 pub struct RecordDeleteAcknowledgement {
   response_sha256 : String
   // private fields
@@ -287,6 +328,15 @@ pub(all) struct RecordPageLimits {
   max_columns : Int
   max_cells : Int
   max_table_rows : Int
+}
+
+pub struct RecordUpdateAcknowledgement {
+  response_sha256 : String
+  // private fields
+}
+
+pub struct RecordUpdateRequest {
+  // private fields
 }
 
 pub(all) enum RecordValueIssue {
