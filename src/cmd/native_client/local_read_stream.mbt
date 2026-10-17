@@ -70,6 +70,41 @@ fn local_result_stream(
   let selected = local_original_run_selection(
     host, input_root, child, scope, current,
   )
+  local_selected_result_stream(
+    host~,
+    settings~,
+    crypto~,
+    sqlite~,
+    file~,
+    scope~,
+    selected~,
+    purpose~,
+    result_name~,
+    format~,
+    attempt_id~,
+    max_output~,
+    current~,
+  )
+}
+
+///|
+// Keep the original selected Run and current callback together; callers do not
+// replace the admission, delivery history or exact-handle cleanup below.
+fn local_selected_result_stream(
+  host~ : @local_host.NativeLocalHostConnection,
+  settings~ : LocalHostSettings,
+  crypto~ : @local_crypto.Library,
+  sqlite~ : @local_sqlite.Library,
+  file~ : String,
+  scope~ : String,
+  selected~ : LocalOriginalRunSelection,
+  purpose~ : String,
+  result_name~ : String,
+  format~ : String,
+  attempt_id~ : String,
+  max_output~ : Int,
+  current~ : () -> Bool,
+) -> String raise ClientStop {
   let binding_result = match local_run_policy_binding(host, settings, crypto) {
     None =>
       host.bind_result_read_policy(
