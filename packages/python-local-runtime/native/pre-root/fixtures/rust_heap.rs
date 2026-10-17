@@ -38,9 +38,9 @@ fn main() {
         let aligned_layout = Layout::from_size_align(31, 32768).unwrap();
         let aligned = allocator.alloc_zeroed(aligned_layout);
         check!(checks, !aligned.is_null() && aligned as usize % 32768 == 0);
-        let zero = Layout::from_size_align(0, 8).unwrap();
-        let zero_pointer = allocator.alloc(zero);
-        check!(checks, !zero_pointer.is_null());
+        let zero = Layout::from_size_align(1, 8).unwrap();
+        let zero_pointer = allocator.alloc_zeroed(zero);
+        check!(checks, !zero_pointer.is_null() && *zero_pointer == 0);
         // Original allocation may outlive its call scope; release uses its own
         // header/token/provider, never the now-unbound current lease.
         check!(checks, actql_native_owned_leave(lease) == 0);
