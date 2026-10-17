@@ -6,6 +6,10 @@ import {
 }
 
 // Values
+pub fn admit_clear_range_binding(String, String, String, String, Limits) -> Result[ClearRangeBinding, RangeFailure]
+
+pub fn admit_clear_range_request(ClearRangeBinding, ClearRangeRequest) -> Result[Unit, RangeFailure]
+
 pub fn admit_range_binding(String, String, String, String, Limits) -> Result[RangeBinding, RangeFailure]
 
 pub fn admit_range_request(RangeBinding, RangeRequest) -> Result[Unit, RangeFailure]
@@ -20,6 +24,18 @@ pub fn classify_append(Int, Bytes, String, Limits) -> AppendOutcome
 
 pub fn classify_clear(Int, Bytes, String, GridRange, String, Limits) -> AppendOutcome
 
+pub fn clear_range_recovery_entry(ClearRangeBinding, String, Array[ClearRangeRequest]) -> Result[String, RangeFailure]
+
+pub fn clear_range_request_body(ClearRangeBinding, ClearRangeRequest) -> Result[String, RangeFailure]
+
+pub fn clear_range_request_identity(ClearRangeBinding, ClearRangeRequest) -> Result[String, RangeFailure]
+
+pub fn clear_range_request_json(ClearRangeBinding, ClearRangeRequest) -> Result[String, RangeFailure]
+
+pub fn clear_range_request_outcome(ClearRangeBinding, ClearRangeRequest, Int, Bytes) -> Result[AppendOutcome, RangeFailure]
+
+pub fn clear_range_target_matches(ClearRangeBinding, String) -> Bool
+
 pub fn clear_request(GridRange, Array[Column], String, Limits) -> Result[String, Issue]
 
 pub fn clear_request_identity(String, String, String, String) -> Result[String, RangeFailure]
@@ -27,6 +43,8 @@ pub fn clear_request_identity(String, String, String, String) -> Result[String, 
 pub fn excluded_blank_rows(Page) -> Int
 
 pub fn page_rows(Page) -> Array[Json]
+
+pub fn prepare_clear_range_request(ClearRangeBinding, String, String, String) -> Result[ClearRangeRequest, RangeFailure]
 
 pub fn prepare_range_request(RangeBinding, String, String) -> Result[RangeRequest, RangeFailure]
 
@@ -56,6 +74,8 @@ pub fn range_target_matches(RangeBinding, String) -> Bool
 
 pub fn read_request(GridRange, Array[Column], Limits) -> Result[String, Issue]
 
+pub fn recover_clear_range_requests(ClearRangeBinding, String, String, Limits) -> Result[Array[Array[ClearRangeRequest]], RangeFailure]
+
 pub fn recover_range_requests(RangeBinding, String, String, Limits) -> Result[Array[Array[RangeRequest]], RangeFailure]
 
 pub fn update_request(GridRange, Array[Column], Array[Array[Json]], Limits) -> Result[String, Issue]
@@ -73,6 +93,17 @@ pub(all) enum CellType {
   Number
   Boolean
 } derive(Eq, @debug.Debug)
+
+pub struct ClearRangeBinding {
+  original : RangeBinding
+}
+
+pub struct ClearRangeRequest {
+  binding : ClearRangeBinding
+  body : String
+  marker : String
+  cid : String
+}
 
 pub(all) struct Column {
   name : String
