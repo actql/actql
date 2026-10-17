@@ -179,3 +179,28 @@ its own original fixture policy, not a physical provider grant. Preparation and
 saved Run materials retain the selected original policy/configuration and Task;
 current replacements cannot rewrite the original Task identity. Existing Account,
 egress, capability, reservation, Unknown and cleanup checks remain independent.
+
+The installed project acquisition retains the exact issued project/runtime pair
+in a private membership index. A copied project object or a different runtime
+cannot supply that pair to the Task-file stage. The stage captures the original
+Common readers and their receiver before sequential file I/O, reads each named
+file with the existing bounded strict-UTF8/FD cleanup owner, and rechecks the
+same installation currentness after the awaited read and close. A file declaring
+another registered Task cannot replace the original named occurrence, including
+when two registry entries name the same path. Common owns the declaration,
+selection, applicable configuration/policy and normalized material identities;
+the adapter neither computes a Task CID nor supplies an opaque constructor.
+
+The finite Task count and per-document bounds limit acquisition and traversal;
+they are not a simultaneous retained/workspace envelope or a numerical lease.
+The existing installation must account for the project membership record,
+captured callbacks, bounds, task inventory, raw UTF8 text, checked declaration,
+selection, original Provider/default references, normalized Task/prompt material,
+the checked-material name projection and current read/decode/hash workspace.
+Previously loaded entries coexist with the next read. A pending close keeps the
+same original FD/error cleanup handle; current refusal does not acknowledge
+cleanup, substitute a Provider, or reread replacement configuration. The retained
+Task material is not by itself an installed Environment, saved Run, execution
+contract, physical supplier, permission or send admission. Those existing Host
+assembly and Run owners must consume the same originals and retain them until
+their original duties retire; recovery never regenerates them from current files.
