@@ -50,6 +50,7 @@ fn signing_original_write(file : String, body : Bytes) -> Unit {
 fn signing_original_host(
   name : String,
   existing? : Bool = false,
+  parent_path? : String? = None,
 ) -> (NativeLocalHostConnection, String) {
   let key_file = name + ".signing.json"
   let private_file = name + ".descriptor"
@@ -72,7 +73,9 @@ fn signing_original_host(
     diagnostic_ceiling=Some(64),
   ).unwrap()
   let host = begin_native_local_host_adoption(
-      @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap(),
+      parent_path.unwrap_or(
+        @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap(),
+      ),
       name + ".host",
       @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap(),
       account_file,
@@ -197,7 +200,19 @@ test "Local signing original authenticates exact role scope config and Host with
       is Err(CustodyLost),
     )
   }
-  let (foreign, _) = signing_original_host("signing-original-foreign")
+  // Adoption locks are scoped to the actual parent. Keep the original Host
+  // alive and create the foreign epoch under its own physical parent instead
+  // of competing for the original parent's live installation lock.
+  let fixture_path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  @filesystem.open_private_root(fixture_path)
+  .unwrap()
+  .create_directory("signing-original-foreign-parent")
+  .unwrap()
+  |> ignore
+  let (foreign, _) = signing_original_host(
+    "signing-original-foreign",
+    parent_path=Some(fixture_path + "/signing-original-foreign-parent"),
+  )
   assert_true(
     read_local_installation_projection(foreign, binding.file, packet)
     is Err(CustodyLost),
