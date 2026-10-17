@@ -7,7 +7,9 @@ export const ref = {namespaceId: 'workspace:test', authorityScopeCid: cid('a'),
   runDefinitionCid: cid('b')};
 export const time = '2026-10-11T00:00:00.000Z';
 export const legacyState = {version: 'actql-run-state/0.1', run_id: 'original',
-  status: 'running', updated_at: time, next_action: {kind: 'none'},
+  // State observation revision is independent of the control revision below.
+  // An initial observed revision of zero is valid and must remain zero.
+  revision: 0, status: 'running', updated_at: time, next_action: {kind: 'none'},
   result_available: false, result_availability: {},
   control: {revision: 17, cancellation_requested: false, physical_stop: 'unknown'}};
 export const running = {version: 'actql-controlled-run-state/0.1',
@@ -196,4 +198,10 @@ export const negativeVectors = [
   ...['usd', 'US', 'USDA', 'USD\n'].map(currency => ({name: 'control_money',
     value: {currency, amount_micro: '1', scope_cids: [cid('1')],
       tariff_revision_cid: cid('2'), valid_until: time}})),
+  // Retain the original missing-revision body as a rejection input. A valid
+  // control revision cannot supply this separate observation fact.
+  {name: 'controlled_run_state', value: {...running, legacy_state:
+    Object.fromEntries(Object.entries(legacyState).filter(([key]) => key !== 'revision'))}},
+  ...[null, -1, 0.5, 9007199254740992].map(revision => ({name: 'controlled_run_state',
+    value: {...running, legacy_state: {...legacyState, revision}}})),
 ];
