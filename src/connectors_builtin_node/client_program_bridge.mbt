@@ -258,6 +258,28 @@ pub fn client_program_preparation_issue_code(
 }
 
 ///|
+/// Read only the original preparation's named lookup-byte rejection. This
+/// private diagnostic is DATA, not a new check, capacity or acquisition grant.
+/// The coordinates retain the Source Owner's stage and logical join step.
+#export_name("clientProgramPreparationDecodedResponseLimitJson")
+pub fn client_program_preparation_decoded_response_limit_json(
+  outcome : ClientProgramBridgeOutcome,
+) -> String? {
+  guard outcome is Rejected(Preparation(Check(diagnostic))) else { return None }
+  guard @program_check.diagnostic_cause(diagnostic)
+    is Source(Requests(Capacity(Stage(stage, DecodedResponseLimit(step))))) else {
+    return None
+  }
+  Some(
+    "{\"stageIndex\":" +
+    stage.to_string() +
+    ",\"stepIndex\":" +
+    step.to_string() +
+    "}",
+  )
+}
+
+///|
 /// Retain the original no-Parameter convenience bridge entry for existing installed
 /// hosts. New submit paths must use the typed preparation entry above.
 #export_name("clientProgramPrepareEffectFree")
