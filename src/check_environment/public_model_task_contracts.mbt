@@ -194,7 +194,9 @@ pub fn read_public_model_task_contract(
   }
   let b = { limits, work: 0, contract_nodes: 0, contract_text: 0, }
   try {
-    let (normalized, normalized_bytes, normalized_nodes) = public_task_type_wire(root, b)
+    let (normalized, normalized_bytes, normalized_nodes) = public_task_type_wire(
+      root, b,
+    )
     // Reserve UTF-8 materialization and both complete bounded parser/admission
     // traversals before any builds its tree. These are not physical funding.
     for _ in 0..<3 {
@@ -238,7 +240,9 @@ pub fn read_public_model_task_contract(
         limits.bodies.max_depth,
       )
       let emission = @value_contract.start_checked_emission(
-        contract, writer, limits.bodies.max_nodes,
+        contract,
+        writer,
+        limits.bodies.max_nodes,
       )
       errdefer @value_contract.cancel_checked_emission(emission)
       // Existing emission advances one structural transition or at most 64
