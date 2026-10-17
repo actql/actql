@@ -39,6 +39,40 @@ fn selected_command_source_preparation(
 }
 
 ///|
+// Closed test diagnostics retain the first typed Owner boundary. They never
+// inspect original payloads or make a refusal into execution evidence.
+fn selected_command_preparation_issue(
+  issue : @publication_host.ClientEffectComputationIssue,
+) -> String {
+  match issue {
+    Syntax(_) => "Syntax"
+    Candidate(Computation(cause)) =>
+      match cause {
+        @check.LocalConstructionFailure::InvalidLimits =>
+          "Candidate.Computation.InvalidLimits"
+        Program(_) => "Candidate.Computation.Program"
+        CapacityInputs(_) => "Candidate.Computation.CapacityInputs"
+        Environment(_) => "Candidate.Computation.Environment"
+        Source(_) => "Candidate.Computation.Source"
+        Closure(_) => "Candidate.Computation.Closure"
+        Units(_) => "Candidate.Computation.Units"
+        Template(_, _) => "Candidate.Computation.Template"
+      }
+    Candidate(_) => "Candidate"
+    Mapping(_) => "Mapping"
+    Static(Results(cause)) => "Static.Results." + @debug.to_string(cause.kind)
+    Static(CommandTargets(cause)) =>
+      "Static.CommandTargets." + @debug.to_string(cause.kind)
+    Static(CommandInputs(cause)) =>
+      "Static.CommandInputs." + @debug.to_string(cause.kind)
+    Static(_) => "Static"
+    Stage(_) => "Stage"
+    Graph(cause) => "Graph." + @debug.to_string(cause)
+    TargetSelection(_) => "TargetSelection"
+  }
+}
+
+///|
 test "selected short COMMAND Source reaches the actual Host with the same original publication and input occurrence" {
   for mode in ["installation", "identifier"] {
     for format in [@frontend.Sql, @frontend.Text] {
@@ -53,14 +87,18 @@ test "selected short COMMAND Source reaches the actual Host with the same origin
         @program.effect_header_published_command_target(header) is Some(_),
       )
       assert_true(physical_equal(lowered.command_targets.unwrap(), publication))
-      let prepared = @publication_host.prepare_parsed_client_effect_computation(
+      let prepared_result = @publication_host.prepare_parsed_client_effect_computation(
         parsed,
         environment,
         None,
         [],
         @publication_host.client_standard_effect_computation_limits(),
         command_targets=lowered.command_targets,
-      ).unwrap()
+      )
+      let prepared = match prepared_result {
+        Ok(value) => value
+        Err(issue) => fail(selected_command_preparation_issue(issue))
+      }
       assert_true(
         physical_equal(
           @publication_host.prepared_client_effect_computation_source(prepared),
