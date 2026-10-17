@@ -2,7 +2,7 @@
 /// Original Journal index coordinates. These DATA issue neither a reference,
 /// HMAC authentication, current authorization nor permission to prepare work.
 pub struct ClientSubmittedNameKey {
-  namespace : String
+  namespace_id : String
   actor : String
   name : String
 } derive(Eq, Debug)
@@ -55,12 +55,12 @@ fn submitted_name_context_text(value : String) -> Bool {
 /// logical scope Owner validates it; its CID is not published or used as an
 /// index, epoch, permission, or replacement submission identity.
 pub fn prepare_client_submitted_name_key(
-  namespace : String,
+  namespace_id : String,
   actor : String,
   name : String,
   authority_scope_cid : String,
 ) -> Result[ClientSubmittedNameKey, ClientSubmittedNameIssue] {
-  if !submitted_name_context_text(namespace) ||
+  if !submitted_name_context_text(namespace_id) ||
     !submitted_name_context_text(actor) ||
     !valid_client_request_cid(authority_scope_cid) {
     return Err(InvalidContext)
@@ -71,14 +71,14 @@ pub fn prepare_client_submitted_name_key(
     is Err(_) {
     return Err(InvalidName)
   }
-  Ok({ namespace, actor, name, })
+  Ok({ namespace_id, actor, name, })
 }
 
 ///|
 pub fn client_submitted_name_key_fields(
   value : ClientSubmittedNameKey,
 ) -> (String, String, String) {
-  (value.namespace, value.actor, value.name)
+  (value.namespace_id, value.actor, value.name)
 }
 
 ///|
@@ -112,7 +112,7 @@ pub fn client_submitted_name_authentication_input(
     for
       text in [
         "scoped-submission-name",
-        value.key.namespace,
+        value.key.namespace_id,
         value.key.actor,
         value.key.name,
         value.authority_scope_cid,

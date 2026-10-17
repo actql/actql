@@ -39,6 +39,28 @@ fn named_original_binding() -> ClientSubmittedNameBinding {
 }
 
 ///|
+test "named context spelling is original DATA distinct from NFC caller name rules" {
+  let scope = "sha256:" + "b".repeat(64)
+  let composed = prepare_client_submitted_name_key("é", "actor", "name", scope).unwrap()
+  let decomposed = prepare_client_submitted_name_key(
+    "e\u{0301}", "actor", "name", scope,
+  ).unwrap()
+  assert_true(composed != decomposed)
+  assert_eq(client_submitted_name_key_fields(decomposed).0, "e\u{0301}")
+  let binding = prepare_client_submitted_name_binding(
+    decomposed,
+    scope,
+    "sha256:" + "c".repeat(64),
+    "sha256:" + "d".repeat(64),
+  ).unwrap()
+  assert_true(
+    client_submitted_name_authentication_input(binding, 8192)
+    .unwrap()
+    .has_prefix("[\"scoped-submission-name\",\"e\u{0301}\",\"actor\",\"name\","),
+  )
+}
+
+///|
 test "named metadata uses the original caller name domain without normalization" {
   let scope = "sha256:" + "b".repeat(64)
   for name in ["original-name", "x".repeat(256), "é".repeat(128)] {
@@ -187,15 +209,15 @@ test "named missing or retired originals remain unavailable" {
 }
 
 ///|
-test "named foreign namespace actor or exact name is custody loss" {
+test "named foreign namespace_id actor or exact name is custody loss" {
   for
-    (namespace, actor, name) in [
+    (namespace_id, actor, name) in [
       ("foreign", "actor", "original-name"),
       ("workspace", "foreign", "original-name"),
       ("workspace", "actor", "Original-name"),
     ] {
     let foreign = prepare_client_submitted_name_key(
-      namespace,
+      namespace_id,
       actor,
       name,
       "sha256:" + "b".repeat(64),
