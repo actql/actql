@@ -1,0 +1,20 @@
+{
+  "version": "actql-local-signing-bootstrap-policy-vectors/0.1",
+  "policy_wire": "{\"max_issue_interval_ms\":300000,\"max_uses\":1,\"version\":\"actql-local-signing-bootstrap-policy/0.1\"}",
+  "policy_cid": "sha256:8fe727ecd855e06e0bcb07262c31f9b4e2f211292c3393b5e3f4b7e5cf1501e1",
+  "initialization_intent_cid": "sha256:d7b077fa3a803302e5a5374ca5dc71ea879876760af126b7e1c0eaf16d9cf46b",
+  "issuer_identity": "local-signing/sha256:d7b077fa3a803302e5a5374ca5dc71ea879876760af126b7e1c0eaf16d9cf46b",
+  "issues": [
+    {"sampled_at": "0", "original_valid_until": null, "expires_at": "300000"},
+    {"sampled_at": "1000", "original_valid_until": "1500", "expires_at": "1500"},
+    {"sampled_at": "1000", "original_valid_until": "301000", "expires_at": "301000"},
+    {"sampled_at": "1000", "original_valid_until": "9223372036854775807", "expires_at": "301000"},
+    {"sampled_at": "9223372036854475807", "original_valid_until": null, "expires_at": "9223372036854775807"}
+  ],
+  "refused_issues": [
+    {"sampled_at": "-1", "original_valid_until": null},
+    {"sampled_at": "9223372036854475808", "original_valid_until": null},
+    {"sampled_at": "1000", "original_valid_until": "1000"},
+    {"sampled_at": "1000", "original_valid_until": "999"}
+  ]
+}

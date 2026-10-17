@@ -168,6 +168,22 @@ Submission epoch, assume a use count or create a synthetic issuer selection.
 Named selection cannot silently become the default. The machine-user identity
 comes from the actual trusted installation/current actor, not a caller label.
 
+The selected new default policy allows one physical use for an exact
+purpose-bound operation and at most 300000 milliseconds from the first durable
+issue's actual trusted sample. The existing packaged default-asset generator
+supplies a distinct closed original, not an execution profile. Retain it at
+explicit first initialization. Common formats the issuer identity as
+`local-signing/` plus that original initialization intent CID, not a later Host
+CID or a new identity domain. These DATA projections cannot authenticate the
+original installation or create an operational issuer.
+
+The first durable issue persists its actual sample and absolute expiry, capped
+by any earlier original key/authorization validity. Checked time arithmetic
+refuses invalid/uncertain/expired observations and overflow. Reopen, history,
+repeated answer and Unknown do not renew that original. A missing legacy policy
+cannot be backfilled by calling the packaged getter. Configured named signers
+do not use this default-only policy.
+
 Confine issuance to the existing original request/Submission/Run/attempt/unit,
 Checkpoint/kind, purpose, key configuration/generation, preimage and finite use.
 Current actor, Reviewer/Host-attestation purpose, Run read, Account and key/sign

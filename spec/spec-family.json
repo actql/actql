@@ -1004,6 +1004,17 @@
           "cid": "sha256:42ec6febe92ce3582a27602bc8aff0b30a9d26c9f2f212aebd158310b77b7599"
         },
         {
+          "path": "spec/contracts/actql-local-signing-bootstrap-policy.schema.json",
+          "pointer": "",
+          "cid": "sha256:85f15f3cfab03c1cc4e2ea64541027cd9cfa3218e1d430041fd8d04d2cd7cc88"
+        },
+        {
+          "path": "spec/contracts/local-signing-bootstrap-policy.json",
+          "pointer": "",
+          "cid": "sha256:8fe727ecd855e06e0bcb07262c31f9b4e2f211292c3393b5e3f4b7e5cf1501e1",
+          "version": "actql-local-signing-bootstrap-policy/0.1"
+        },
+        {
           "path": "spec/contracts/actql-protocol-schemas.json",
           "pointer": "/schemas/model_provider_defaults",
           "cid": "sha256:35258db20dca538d6889ac34789becea8c4a62858127848b1419d19a93b144e6",
@@ -2014,7 +2025,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:74fc6ab51c6fa9f3be694d6d7a9e62942a466cf66c2d642687340ff05565289a"
+          "document_cid": "sha256:e49cd7ad0b418a3b7fead6e37edf29333e8cb7e4100a169be3291a290a13edb7"
         },
         {
           "owner": "actql.protocol.artifacts",
@@ -2087,7 +2098,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:74fc6ab51c6fa9f3be694d6d7a9e62942a466cf66c2d642687340ff05565289a"
+          "document_cid": "sha256:e49cd7ad0b418a3b7fead6e37edf29333e8cb7e4100a169be3291a290a13edb7"
         }
       ]
     },
@@ -2223,7 +2234,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:74fc6ab51c6fa9f3be694d6d7a9e62942a466cf66c2d642687340ff05565289a"
+          "document_cid": "sha256:e49cd7ad0b418a3b7fead6e37edf29333e8cb7e4100a169be3291a290a13edb7"
         },
         {
           "owner": "actql.protocol.artifacts",
@@ -2410,7 +2421,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:74fc6ab51c6fa9f3be694d6d7a9e62942a466cf66c2d642687340ff05565289a"
+          "document_cid": "sha256:e49cd7ad0b418a3b7fead6e37edf29333e8cb7e4100a169be3291a290a13edb7"
         },
         {
           "owner": "actql.protocol.artifacts",

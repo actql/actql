@@ -122,6 +122,35 @@ signer label, current file hash or incoming approval is insufficient. Missing
 original initialization, installation or policy remains unavailable; an ordinary
 cold open cannot initialize or reconstruct it.
 
+For a newly and explicitly initialized default installation, the selected
+packaged policy is the closed
+`actql-local-signing-bootstrap-policy/0.1` original: `max_uses` is exactly 1
+physical use per exact purpose-bound operation, and `max_issue_interval_ms` is
+exactly 300000. Its canonical body and CID are retained/authenticated with the
+original initialization intent, same Store/key generation and Host adoption.
+This is a new explicit policy selection, not a discovered old allowance or a
+change to Submission TTL, execution funding or the grant/use wire bodies.
+
+The issuer identifier is exactly `local-signing/` followed by the original
+initialization intent CID including `sha256:`. Common computes this identifier
+from the original intent identity; this creates no new identity domain and the
+string alone is not authority. The initialization intent precedes key/issuer
+adoption, so it does not depend on its own later adoption record. The actual
+authenticated initial nonce, Store/account/configuration and key custody remain
+necessary; later Host identity, current paths or replacement initialization
+cannot substitute.
+
+At the first durable issue, the actual trusted Host samples its current clock
+once. The absolute expiry is the earlier of that sample plus 300000 milliseconds
+and any earlier original key/authorization validity bound. Checked arithmetic
+refuses negative/uncertain time, Int64 overflow or an already expired bound.
+Persist the actual sample, absolute expiry, policy and same grant/use with the
+original operation. Restoring, reading, answering again or observing Unknown
+does not resample/renew it. A prior claimed, expired or Unknown operation cannot
+be bypassed by another grant, ordinal, decision, preimage, key or initialization.
+Only absent configured signers selects this default; configured named signers
+retain their explicit original route and never fall back to this policy.
+
 The original trusted initialization/adoption must retain or durably authenticate
 the actual installation issuer identity and its explicitly selected finite
 expiry/use policy. Neither a guessed issuer label, Submission epoch lifetime,

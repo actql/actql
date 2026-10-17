@@ -2589,6 +2589,42 @@ defines the unchanged closed grant/use bodies. This private operational
 extension introduces no public signer field, new Owner, Ledger or approval
 mechanism; structural DATA admission is not operational acceptance.
 
+<a id="local-signing-bootstrap-policy"></a>
+
+## Default Local signing bootstrap policy
+
+<!-- machine-import: ../../../spec/contracts/actql-local-signing-bootstrap-policy.schema.json# sha256:85f15f3cfab03c1cc4e2ea64541027cd9cfa3218e1d430041fd8d04d2cd7cc88 -->
+<!-- machine-import: ../../../spec/contracts/local-signing-bootstrap-policy.json# sha256:8fe727ecd855e06e0bcb07262c31f9b4e2f211292c3393b5e3f4b7e5cf1501e1 -->
+
+<!-- requirement-block: local-signing-bootstrap-policy.pinned-initial-original -->
+Explicit first initialization of the default Local signer MUST retain and
+authenticate the selected closed policy original with max_uses 1 and
+max_issue_interval_ms 300000 through the existing packaged bootstrap assets,
+bound to the same original initialization intent, physical Store, original key
+generation and Host adoption, without treating these values as Submission TTL,
+execution funding or generic issue permission.
+
+<!-- requirement-block: local-signing-bootstrap-policy.original-issuer-identity -->
+The existing Common/Host Owner MUST format the issuer identity as exactly
+`local-signing/` followed by the authenticated original initialization intent CID
+including `sha256:`, retaining its nonce/Store/account/configuration binding
+without a new CID domain, later-Host identity, replacement initialization or
+authority from the identifier string alone.
+
+<!-- requirement-block: local-signing-bootstrap-policy.first-durable-issue -->
+The first durable issue MUST persist its actual trusted current sample and
+absolute expiry capped by the earlier of sample plus 300000 milliseconds or an
+applicable earlier original key/authorization bound, checking arithmetic and
+refusing negative/uncertain time, overflow and expired bounds, with the same
+original policy/grant/use/claim retained without renewal or replacement on
+restore, repeated answer, expiry or Unknown.
+
+<!-- requirement-block: local-signing-bootstrap-policy.default-only-and-no-backfill -->
+Only absent configured signers MUST select this default policy, with missing
+legacy originals unavailable, no cold initialization or backfill from a getter,
+and no configured named signer falling back to the default or changing the
+existing explicit generic Native issuer route.
+
 <a id="machine-contracts"></a>
 
 <!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/compiled_plan sha256:25094bdc116c9edae1f9ea4123e182d9d898f718941527fe466f55bd448fe7b8 -->
