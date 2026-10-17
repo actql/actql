@@ -2264,3 +2264,12 @@ provider scope and keep their original ownership through deletion; process
 retirement and any process-static runtime allocations remain with the existing
 process Owner. A C header projection or syntax check supplies none of these
 physical acknowledgments or missing normal funding.
+
+A normal child borrow return leaves the original allocator closing and its
+one-shot borrow history intact. After the same process Owner confirms typed
+stop, both never-borrowed startup and normally returned custody follow the
+existing allocation-level domain close, then view and descriptor cleanup.
+Returned metadata does not bypass live-allocation or scope checks. A retained
+original child borrow continues to use the separate stopped-region path; PID
+absence cannot select either path or clear responsibility. Failed view cleanup
+retains the same process record and its completed domain-close phase.
