@@ -511,7 +511,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.verify_only:
         checked = verify(args.core_receipt, args.source)
-        print(json.dumps({'source_sha': args.source, 'module_sha256': checked['module_sha256'],
+        print(json.dumps({'scope': 'original_module_and_recipe_only',
+            'private_runtime_prepared': False,
+            'source_sha': args.source, 'module_sha256': checked['module_sha256'],
             'engine_sha256': hashlib.sha256(checked['recipe'].engine_body).hexdigest(),
             'image_bytes_limit': checked['recipe'].image_bytes_limit,
             'native_engine_started': False, 'compiled': False, 'public_local_acceptance': False}))

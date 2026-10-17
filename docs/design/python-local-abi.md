@@ -678,6 +678,21 @@ requiring physical image execution before the image can be prepared while
 preserving the final physical gate, original recipe/library/image bindings,
 normal funding refusal and image-only installed loader.
 
+The maintainer compiler and final runtime assembly share one pinned binding
+source/two-library staging implementation. Compiler preparation takes the
+selected source-original recipe directly; it does not synthesize LocalComponents,
+an image or physical success to reach that implementation. Final assembly keeps
+its stronger component/image/physical admission. Source-only verification does
+not require or import an ordinary Wasmtime installation. The compiler imports
+only the staged private namespace after acquiring the same staged provider's
+original holding. Actual Rust/provider address correspondence precedes Config.
+The original preparation files, imported aliases and partial import exceptions
+remain attached to compiler custody. A partial import is unconfirmed cleanup;
+it cannot release the holding, replace a loaded module, infer DLL unload or retry
+with a new provider. This reuse introduces no alternate distribution, runtime
+fallback, capacity declaration or normal funding profile.
+
+
 The installed Host requires explicit trusted Host resource limits when opening the
 instance. The existing Ledger reserves the fixed 16 MiB linear-memory allowance
 and the configured transfer pool. Physical workspace loans reserve against

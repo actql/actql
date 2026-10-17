@@ -181,3 +181,46 @@ class CompilerPrivateRuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'fresh absolute'):
             self.prepare()
         self.assertEqual(compiler._runtime_files(self.destination, prepared.recipe), before)
+
+    def test_cli_composition_acquires_only_the_owned_staged_provider(self):
+        original = {**self.original, 'module_sha256': 'b' * 64}
+        selected = SimpleNamespace(capacity_bytes=123)
+        self.holding._capacity_bytes = lambda: 123
+        def acquire(checked, declaration):
+            self.assertIs(declaration, selected)
+            self.assertEqual(checked['provider_library'], self.destination /
+                'actql_local_runtime/_wasmtime/darwin-aarch64/libactql_native_control.dylib')
+            self.assertNotEqual(checked['provider_library'].parent, self.fixture.native)
+            self.assertEqual(checked['provider_library'].read_bytes(), self.fixture.provider)
+            self.assertNotIn('actql_local_runtime', sys.modules)
+            return self.holding
+        def compile_original(receipt, source, destination, **options):
+            self.assertIs(options['_holding'], self.holding)
+            self.assertEqual(options['_runtime'].directory, self.destination)
+            self.assertEqual(options['_runtime'].source_sha, source)
+            return {'scalar_composition_only': True}
+        with patch.object(compiler, 'verify', return_value=original), \
+                patch.object(compiler, '_compiler_holding_original', return_value=selected), \
+                patch.object(compiler, '_acquire_compiler_holding', side_effect=acquire) as acquired, \
+                patch.object(compiler, 'compile_image', side_effect=compile_original) as compiled:
+            result = compiler.compile_from_original(self.root / 'receipt', original['source'],
+                self.root / 'image', bindings_source=self.root / 'fixed-source-archive',
+                native_libraries=self.fixture.native, preparation=self.destination)
+        self.assertEqual(result, {'scalar_composition_only': True})
+        acquired.assert_called_once(); compiled.assert_called_once()
+        self.holding.close.assert_not_called()  # Scalar compile double owns this test-only responsibility.
+
+    def test_partial_source_preparation_is_retained_without_acquiring(self):
+        primary = ValueError('Independent binding-source refusal')
+        with patch.object(compiler, 'verify', return_value=self.original), \
+                patch.object(compiler, '_compiler_holding_original', return_value=object()), \
+                patch.object(compiler.assembly.recipe, 'prepare_private_bindings', side_effect=primary), \
+                patch.object(compiler, '_acquire_compiler_holding', side_effect=AssertionError('Acquire')):
+            with self.assertRaises(ValueError) as caught:
+                compiler.compile_from_original(self.root / 'receipt', self.original['source'],
+                    self.root / 'image', bindings_source=self.root / 'fixed-source-archive',
+                    native_libraries=self.fixture.native, preparation=self.destination)
+        self.assertIs(caught.exception, primary)
+        self.assertTrue((self.destination / 'actql_local_runtime/__init__.py').is_file())
+        self.assertNotIn('actql_local_runtime', sys.modules)
+        self.holding.close.assert_not_called()
