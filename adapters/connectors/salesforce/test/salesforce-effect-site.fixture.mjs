@@ -92,7 +92,7 @@ export async function openSalesforceEffectSiteFixture(t, {
   // The body fields every single-record PATCH must carry exactly.
   patchFields = ['Name'],
   // A nullable, writable Number(15,2) `Amount__c` on Test_Record__c, and a
-  // Number(16,2) `Wide_Amount__c` that is not declared. Stored records and
+  // Number(16,2) `Wide_Amount__c` in the same Decimal Contract domain. Stored records and
   // target reads carry `numberValues`.
   numberFields = false,
   // The Host's logical connection id the Site declares under.

@@ -114,17 +114,13 @@ test "declaration types each field by an existing exact contract or excludes it"
   let view = declaration.views[0]
   assert_eq(view.source_ref, "connector://crm-main/Record__c#records")
   assert_eq(view.fields, [
-    "Id", "Name", "External_Key__c", "Unit_Price__c", "Count__c", "Active__c", "Observed_At__c",
-    "Due_On__c", "Read_Only__c",
+    "Id", "Name", "External_Key__c", "Amount__c", "Unit_Price__c", "Count__c", "Active__c",
+    "Observed_At__c", "Due_On__c", "Read_Only__c",
   ])
-  // A Number above precision 15 is not recovered exactly from its reply;
-  // `percent`, `currency` and `time` have no exact existing contract.
+  // The declaration admits the described Number's exact reply text domain;
+  // this does not recover values already rounded by the provider. The other
+  // native types below remain independent, unsupported declaration decisions.
   assert_eq(declaration.exclusions, [
-    {
-      resource: "Record__c",
-      field: "Amount__c",
-      reason: UnsupportedPrecision(Some(16), Some(2)),
-    },
     {
       resource: "Record__c",
       field: "Opens_At__c",
@@ -171,7 +167,7 @@ test "declaration types each field by an existing exact contract or excludes it"
   assert_true(
     catalog.contains("\"Due_On__c\":{\"nullable\":false,\"type\":\"date\"}"),
   )
-  // A Number up to precision 15 is its described decimal.
+  // Both described Number fields use their exact Decimal Contracts.
   assert_true(
     catalog.contains(
       "\"Unit_Price__c\":{\"nullable\":true,\"precision\":15,\"scale\":2,\"type\":\"decimal\"}",
@@ -179,11 +175,12 @@ test "declaration types each field by an existing exact contract or excludes it"
   )
   let json = static_declaration_json(declaration, declaration_limits()).unwrap()
   assert_true(
-    json.contains(
-      "{\"field\":\"Amount__c\",\"reason\":{\"kind\":\"unsupported_precision\",\"native_type\":\"double\",\"precision\":16,\"scale\":2},\"resource\":\"Record__c\"}",
+    catalog.contains(
+      "\"Amount__c\":{\"nullable\":true,\"precision\":16,\"scale\":2,\"type\":\"decimal\"}",
     ),
   )
-  for name in ["Amount__c", "Opens_At__c", "Rate__c", "Price__c"] {
+  assert_false(json.contains("\"kind\":\"unsupported_precision\""))
+  for name in ["Opens_At__c", "Rate__c", "Price__c"] {
     assert_false(catalog.contains("\"" + name + "\""))
   }
   assert_true(catalog.contains("\"commands\":[]"))
@@ -196,8 +193,8 @@ test "declaration lists writable fields per operation, not a Mapping" {
   let writable = declaration.writables[0]
   assert_eq(writable.target_ref, "connector://crm-main/Record__c")
   let fields = [
-    "Active__c", "Count__c", "Due_On__c", "External_Key__c", "Name", "Observed_At__c",
-    "Unit_Price__c",
+    "Active__c", "Amount__c", "Count__c", "Due_On__c", "External_Key__c", "Name",
+    "Observed_At__c", "Unit_Price__c",
   ]
   assert_eq(writable.create_fields, Some(fields))
   assert_eq(writable.update_fields, Some(fields))
@@ -345,7 +342,11 @@ test "an execution Mapping is exactly one write the provider accepts" {
   )
   assert_true(
     execution(declaration, CreatePayload(["External_Key__c", "Amount__c"]))
-    is Err(FieldNotWritable("Amount__c")),
+    is Ok(_),
+  )
+  assert_true(
+    execution(declaration, CreatePayload(["External_Key__c", "Read_Only__c"]))
+    is Err(FieldNotWritable("Read_Only__c")),
   )
   assert_true(execution(declaration, UpdateById([])) is Err(EmptyWrite))
   assert_true(

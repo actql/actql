@@ -21,6 +21,7 @@ import {connect, getSubmissionOutcome} from '../../../../packages/sdk/index.mjs'
 import {openInstalledRemoteHttpHost, publishInstalledEffect} from
   '../../../host-node/embedded-local.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
+import {splitSourceAliasProfile} from '../../../host-node/source-alias-publication.mjs';
 import {INSTALLED_SALESFORCE_SITE_VERSION} from
   '../host/installed-salesforce-site.mjs';
 import {INSTALLED_SALESFORCE_SOURCE_VERSION, loadInstalledSalesforceSource,
@@ -165,17 +166,35 @@ async function installation(t, {readable = ['Test_Record__c'],
       connectorId: 'crm-other', resources: ['Other_Record__c']}));
   }
   const hostRoot = join(root, 'state');
+  const publishAliases = async (value, path, published, namespace) => {
+    // Visible aliases are explicit trusted installation metadata projected
+    // from this same original publication, never guessed from a Program.
+    // Salesforce's summary omits carrier_schema_cid; its same canonical view
+    // body supplies the original output-schema reference instead.
+    const sourceViews = published.declared.source_views.map(text => JSON.parse(text));
+    value.queryAliases = published.declared.views.map(view => {
+      const original = sourceViews.find(body => body.contract_cid === view.view_cid);
+      assert.ok(original, 'Alias must use the same original Salesforce view');
+      return {name: `${namespace}.${view.resource}`, sourceRef: view.source_ref,
+        sourceViewContractCid: view.view_cid, schemaContractCid: original.output.schema.cid};
+    });
+    await writeFile(path, JSON.stringify(value));
+  };
   const publish = async () => {
-    const first = await publishInstalledSalesforceSource(profile, {
+    const first = await publishInstalledSalesforceSource(splitSourceAliasProfile(profile).providerProfile, {
       root: hostRoot, principalId: owner, moon: commonMoon,
       providerMoon: salesforceMoon,
       runtimeBundleCid, resolveSecret: secret});
+    // These explicit fixture names are relation paths, not connector IDs:
+    // crm-main/crm-other contain a hyphen and are not bare path identifiers.
+    await publishAliases(profile, profilePath, first, 'crm_main');
     if (secondInstallation) {
       const second = JSON.parse(await readFile(secondProfilePath, 'utf8'));
-      await publishInstalledSalesforceSource(second, {
+      const publishedSecond = await publishInstalledSalesforceSource(splitSourceAliasProfile(second).providerProfile, {
         root: hostRoot, principalId: owner, moon: commonMoon,
         providerMoon: salesforceMoon,
         runtimeBundleCid, resolveSecret: secret});
+      await publishAliases(second, secondProfilePath, publishedSecond, 'crm_other');
     }
     return first;
   };
@@ -213,6 +232,47 @@ async function installation(t, {readable = ['Test_Record__c'],
   return {org, root, profile, profilePath, sitePath, siteDocument, publish,
     open, queries, connection: `salesforce:${org.orgId}`};
 }
+
+test('published Salesforce original views explicitly supply visible query aliases for Check', async t => {
+  const setup = await installation(t, {numberFields: true});
+  const publication = await setup.publish();
+  const profile = JSON.parse(await readFile(setup.profilePath, 'utf8'));
+  assert.equal(profile.queryAliases.length, 1);
+  const [alias] = profile.queryAliases;
+  const [catalogView] = JSON.parse(publication.declared.catalog).source_views;
+  assert.equal(alias.name, 'crm_main.Test_Record__c');
+  assert.equal(alias.sourceRef, 'connector://crm-main/Test_Record__c#records');
+  assert.equal(alias.sourceViewContractCid, catalogView.contract_cid);
+  assert.match(alias.schemaContractCid, /^sha256:[0-9a-f]{64}$/u);
+  assert.equal(alias.schemaContractCid, catalogView.output.schema.cid);
+  const {client} = await setup.open();
+  const before = setup.org.seen.length;
+  const document = JSON.parse(numberProgram);
+  document.stages[0].inputs.remote.view = 'records';
+  const checked = await client.check(document, {kind: 'program', scope: 'bound_input'});
+  assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+  assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+  assert.equal(setup.org.seen.length, before);
+  assert.equal(setup.queries().length, 0);
+});
+
+test('a Salesforce publication without explicit visible aliases remains protected at Check', async t => {
+  const setup = await installation(t, {numberFields: true});
+  await setup.publish();
+  await writeFile(setup.profilePath, JSON.stringify({...setup.profile, queryAliases: []}));
+  const {client} = await setup.open();
+  const before = setup.org.seen.length;
+  const document = JSON.parse(numberProgram);
+  document.stages[0].inputs.remote.view = 'records';
+  const checked = await client.check(document, {kind: 'program', scope: 'bound_input'});
+  assert.equal(checked.report.verdict, 'undetermined');
+  assert.deepEqual(checked.report.coverage.unresolved,
+    [{boundary: 'source_resolution', reason: 'unresolved_protected'}]);
+  assert.deepEqual(checked.report.runnable,
+    {verdict: 'no', reasons: [{code: 'unresolved_protected'}]});
+  assert.equal(setup.org.seen.length, before);
+  assert.equal(setup.queries().length, 0);
+});
 
 test('public Client reads a published Salesforce source to a Named Result',
   async t => {
@@ -1947,16 +2007,61 @@ const numberProgram = JSON.stringify({version: 'actql/0.1',
   ],
   results: {records: {from: {stage: 'compute', result: 'r'}}}});
 
+test('Salesforce Number16 reaches its exact Named Result and same Run Host reopen', async t => {
+  const setup = await installation(t, {numberFields: true, storedRecords: [
+    {Id: 'a00000000000001', Name: 'record-1', External_Key__c: 'key-1',
+      Wide_Amount__c: numberText('12345678901234.56')},
+    {Id: 'a00000000000002', Name: 'record-2', External_Key__c: 'key-2', Wide_Amount__c: null},
+    {Id: 'a00000000000003', Name: 'record-3', External_Key__c: 'key-3',
+      Wide_Amount__c: numberText('-99999999999999.99')},
+  ]});
+  await setup.publish();
+  const {client, close} = await setup.open();
+  const document = JSON.parse(numberProgram.replaceAll('Amount__c', 'Wide_Amount__c'));
+  document.stages[0].inputs.remote.view = 'records';
+  const before = setup.org.seen.length;
+  const checked = await client.check(document, {kind: 'program', scope: 'bound_input'});
+  assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+  assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+  assert.equal(setup.org.seen.length, before);
+  assert.equal(setup.queries().length, 0);
+  const execution = await client.startSource(JSON.stringify(document), {format: 'json',
+    submissionRef: client.newSubmission({nonce: 'number16-original-public'})});
+  const state = await execution.wait({signal: AbortSignal.timeout(20_000)});
+  assert.equal(state.status, 'succeeded', JSON.stringify(state));
+  const result = execution.result('records');
+  assert.deepEqual((await result.describe()).columns, [
+    {name: 'Id', contract: {type: 'string', nullable: false}},
+    {name: 'Wide_Amount__c', contract: {type: 'decimal', nullable: true, precision: 16, scale: 2}},
+  ]);
+  const expected = [
+    {Id: 'a00000000000001', Wide_Amount__c: '12345678901234.56'},
+    {Id: 'a00000000000002', Wide_Amount__c: null},
+    {Id: 'a00000000000003', Wide_Amount__c: '-99999999999999.99'},
+  ];
+  assert.deepEqual(await result.all(), expected);
+  const originalRef = execution.ref, queries = setup.queries().length;
+  assert.ok(queries > 0);
+  await close();
+  const reopened = await setup.open();
+  const restored = await reopened.client.attach(originalRef);
+  assert.deepEqual(await restored.result('records').all(), expected);
+  assert.equal(setup.queries().length, queries);
+});
+
 test('Salesforce Numbers reach the Named Result as their exact declared decimals',
   async t => {
     const setup = await installation(t, {numberFields: true});
     await setup.publish();
     const {client, close} = await setup.open();
-    // A Number above precision 15 is not declared, so a Program reading it
-    // fails Check before any provider I/O.
+    // A declared Number(16,2) is the same exact Decimal Contract domain.
+    // Checking the explicit original view does not make a provider request.
     const before = setup.org.seen.length;
-    await assert.rejects(client.startSource(numberProgram.replaceAll('Amount__c',
-      'Wide_Amount__c'), {format: 'json', submissionRef: client.newSubmission({nonce: 'wide-number'})}));
+    const wide = JSON.parse(numberProgram.replaceAll('Amount__c', 'Wide_Amount__c'));
+    wide.stages[0].inputs.remote.view = 'records';
+    const checkedWide = await client.check(wide, {kind: 'program', scope: 'bound_input'});
+    assert.equal(checkedWide.report.verdict, 'verified', JSON.stringify(checkedWide.report));
+    assert.deepEqual(checkedWide.report.runnable, {verdict: 'yes', reasons: []});
     assert.equal(setup.org.seen.length, before);
     const execution = await client.startSource(numberProgram, {format: 'json',
       submissionRef: client.newSubmission({nonce: 'number-read'})});
