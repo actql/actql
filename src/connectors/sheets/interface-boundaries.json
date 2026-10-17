@@ -2,7 +2,7 @@
   {
     "module": "adapters/connectors/sheets/host/installed-sheets.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "c5e8f7e23359b83ca821f954e93ecb16da6aa26c338262b9e3fb956ca4ced712",
+    "sha256": "d57460a169093443c983f4f5a77820629795c89f5f3cb1b98655bf37c88646f4",
     "exports": [
       "SHEETS_EFFECT_VERSION",
       "SHEETS_SITE_VERSION",
@@ -380,6 +380,7 @@
       "../../../host-node/installed-row-source.mjs",
       "../../../host-node/local-account-config.mjs",
       "../site/sheets-exchange.mjs",
+      "./sheets-clear-command.mjs",
       "./sheets-range-command.mjs",
       "node:crypto",
       "node:fs/promises",
@@ -1134,21 +1135,25 @@
   {
     "module": "adapters/connectors/sheets/site/sheets-exchange.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "c5516ee987469c20377015a4a7604391265a1eab9614036235a4fb8760b411e7",
+    "sha256": "01911f782d45bec31eb7bd7a0d0d58f3ee517a81c1291791c0ff6b4523f25760",
     "exports": [
       "SHEETS_APPEND_OPERATION",
+      "SHEETS_CLEAR_OPERATION",
       "SHEETS_LIMITS",
       "SHEETS_READ_OPERATION",
       "SHEETS_UPDATE_OPERATION",
       "checkSheetsGridConfiguration",
       "checkSheetsTarget",
       "prepareSheetsAppend",
+      "prepareSheetsClear",
       "prepareSheetsUpdate",
       "projectSheetsAppend",
+      "projectSheetsClear",
       "projectSheetsUpdate",
       "readSheetsGrid",
       "readSheetsRangeTarget",
       "sendSheetsAppend",
+      "sendSheetsClear",
       "sendSheetsUpdate",
       "sheetsUpdateRequestCid"
     ],
@@ -1233,6 +1238,17 @@
         "async": false
       },
       {
+        "name": "prepareSheetsClear",
+        "parameters": [
+          "moon",
+          "binding",
+          "value",
+          "target",
+          "marker"
+        ],
+        "async": false
+      },
+      {
         "name": "prepareSheetsUpdate",
         "parameters": [
           "moon",
@@ -1244,6 +1260,15 @@
       },
       {
         "name": "projectSheetsAppend",
+        "parameters": [
+          "moon",
+          "request",
+          "observation"
+        ],
+        "async": false
+      },
+      {
+        "name": "projectSheetsClear",
         "parameters": [
           "moon",
           "request",
@@ -1312,6 +1337,17 @@
         "async": true
       },
       {
+        "name": "sendSheetsClear",
+        "parameters": [
+          "request",
+          "authorization",
+          "credential",
+          "callResource",
+          "signal"
+        ],
+        "async": true
+      },
+      {
         "name": "sendSheetsUpdate",
         "parameters": [
           "request",
@@ -1334,6 +1370,7 @@
       "../../../../packages/sdk/host-port.mjs",
       "../../../host-common/effect-preparation-result.mjs",
       "../../../host-common/owned-invocation-context.mjs",
+      "./sheets-clear-request.mjs",
       "./sheets-owned-request.mjs"
     ],
     "compilerFields": [],
@@ -1596,6 +1633,223 @@
             {
               "path": "adapters/connectors/sheets/test/sheets-range-command.test.mjs",
               "anchor": "same bytes under another permission"
+            }
+          ]
+        }
+      },
+      {
+        "operations": [
+          "prepareSheetsClear",
+          "projectSheetsClear"
+        ],
+        "exports": [
+          "prepareSheetsClear",
+          "projectSheetsClear"
+        ],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "## Original clear request"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "pub struct ClearRangeRequest"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "src/connectors/sheets/catalog/pkg.generated.mbti",
+              "anchor": "pub fn clear_"
+            },
+            {
+              "path": "src/connectors/sheets/host_node/pkg.generated.mbti",
+              "anchor": "pub fn sheets_clear_"
+            }
+          ],
+          "identity": [
+            {
+              "path": "src/connectors/sheets/catalog/clear.mbt",
+              "anchor": "pub fn clear_request_identity"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "fn clear_recovery_value"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Their physical identity checks"
+            },
+            {
+              "path": "adapters/host-node/installed-row-effect.mjs",
+              "anchor": "The identities this factory issues"
+            }
+          ],
+          "synchronization": {
+            "notApplicable": "Synchronous bounded provider projection only; no physical I/O, await, scheduler, or asynchronous callback. It transports original handles without granting authority."
+          },
+          "failure": [
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "Err(range_failure"
+            },
+            {
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "anchor": "clear restore refuses missing"
+            }
+          ],
+          "cancellation": {
+            "notApplicable": "Pure provider projection owns no running I/O or release ACK; the installed caller retains cancellation and cleanup responsibility."
+          },
+          "resources": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Clear keeps the same finite codec"
+            },
+            {
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "anchor": "SHEETS_LIMITS"
+            }
+          ],
+          "extension": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "The existing provider catalog owns extensions"
+            },
+            {
+              "path": "src/connectors/sheets/host-bundle.json",
+              "anchor": "\"installation\""
+            }
+          ],
+          "verification": [
+            {
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "anchor": "clear only settles the exact two acknowledgements"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request_wbtest.mbt",
+              "anchor": "test \""
+            },
+            {
+              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
+              "anchor": "Sheets clear Command retains original requests"
+            }
+          ]
+        }
+      },
+      {
+        "operations": [
+          "sendSheetsClear"
+        ],
+        "exports": [
+          "SHEETS_CLEAR_OPERATION",
+          "sendSheetsClear"
+        ],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "## Original clear request"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "pub struct ClearRangeRequest"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "src/connectors/sheets/catalog/pkg.generated.mbti",
+              "anchor": "pub fn clear_"
+            },
+            {
+              "path": "src/connectors/sheets/host_node/pkg.generated.mbti",
+              "anchor": "pub fn sheets_clear_"
+            }
+          ],
+          "identity": [
+            {
+              "path": "src/connectors/sheets/catalog/clear.mbt",
+              "anchor": "pub fn clear_request_identity"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "fn clear_recovery_value"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Their physical identity checks"
+            },
+            {
+              "path": "adapters/host-node/installed-row-effect.mjs",
+              "anchor": "The identities this factory issues"
+            }
+          ],
+          "synchronization": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "The clear driver uses the existing"
+            },
+            {
+              "path": "adapters/host-node/installed-row-effect.mjs",
+              "anchor": "await owned.recheckRequests"
+            }
+          ],
+          "failure": [
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "Err(range_failure"
+            },
+            {
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "anchor": "clear restore refuses missing"
+            }
+          ],
+          "cancellation": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Pure catalog operations cannot cancel I/O"
+            },
+            {
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "anchor": "signal?.throwIfAborted()"
+            }
+          ],
+          "resources": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Clear keeps the same finite codec"
+            },
+            {
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "anchor": "SHEETS_LIMITS"
+            }
+          ],
+          "extension": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "The existing provider catalog owns extensions"
+            },
+            {
+              "path": "src/connectors/sheets/host-bundle.json",
+              "anchor": "\"installation\""
+            }
+          ],
+          "verification": [
+            {
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "anchor": "clear only settles the exact two acknowledgements"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request_wbtest.mbt",
+              "anchor": "test \""
+            },
+            {
+              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
+              "anchor": "Sheets clear Command retains original requests"
             }
           ]
         }
@@ -2019,16 +2273,29 @@
   {
     "module": "src/connectors/sheets/catalog/pkg.generated.mbti",
     "responsibilityFacet": "primary",
-    "sha256": "9feda8ee944754ffc345cb73bd3a9e17cc8df1a3d6677221438720cb16848bc2",
+    "sha256": "bf37a245e85fbf55849ef0ec11b56e056fb3effec406cc2f9cf3620feac9e0de",
     "exports": [
+      "pub fn admit_clear_range_binding(String, String, String, String, Limits) -> Result[ClearRangeBinding, RangeFailure]",
+      "pub fn admit_clear_range_request(ClearRangeBinding, ClearRangeRequest) -> Result[Unit, RangeFailure]",
       "pub fn admit_range_binding(String, String, String, String, Limits) -> Result[RangeBinding, RangeFailure]",
       "pub fn admit_range_request(RangeBinding, RangeRequest) -> Result[Unit, RangeFailure]",
       "pub fn append_request(Int, Array[Column], Array[Json], Limits) -> Result[String, Issue]",
       "pub fn append_request_identity(String, String, String) -> Result[String, RangeFailure]",
       "pub fn check_target(Bytes, String, GridRange, Int, Array[Column], Limits) -> Result[Unit, Issue]",
       "pub fn classify_append(Int, Bytes, String, Limits) -> AppendOutcome",
+      "pub fn classify_clear(Int, Bytes, String, GridRange, String, Limits) -> AppendOutcome",
+      "pub fn clear_command_json(String, String, String, Limits) -> Result[String, RangeFailure]",
+      "pub fn clear_range_recovery_entry(ClearRangeBinding, String, Array[ClearRangeRequest]) -> Result[String, RangeFailure]",
+      "pub fn clear_range_request_body(ClearRangeBinding, ClearRangeRequest) -> Result[String, RangeFailure]",
+      "pub fn clear_range_request_identity(ClearRangeBinding, ClearRangeRequest) -> Result[String, RangeFailure]",
+      "pub fn clear_range_request_json(ClearRangeBinding, ClearRangeRequest) -> Result[String, RangeFailure]",
+      "pub fn clear_range_request_outcome(ClearRangeBinding, ClearRangeRequest, Int, Bytes) -> Result[AppendOutcome, RangeFailure]",
+      "pub fn clear_range_target_matches(ClearRangeBinding, String) -> Bool",
+      "pub fn clear_request(GridRange, Array[Column], String, Limits) -> Result[String, Issue]",
+      "pub fn clear_request_identity(String, String, String, String) -> Result[String, RangeFailure]",
       "pub fn excluded_blank_rows(Page) -> Int",
       "pub fn page_rows(Page) -> Array[Json]",
+      "pub fn prepare_clear_range_request(ClearRangeBinding, String, String, String) -> Result[ClearRangeRequest, RangeFailure]",
       "pub fn prepare_range_request(RangeBinding, String, String) -> Result[RangeRequest, RangeFailure]",
       "pub fn project_grid(Bytes, String, GridRange, Array[Column], Limits) -> Result[Page, Issue]",
       "pub fn range_catalog_json(String, String, Limits) -> Result[String, RangeFailure]",
@@ -2043,14 +2310,25 @@
       "pub fn range_request_json(RangeBinding, RangeRequest) -> Result[String, RangeFailure]",
       "pub fn range_target_matches(RangeBinding, String) -> Bool",
       "pub fn read_request(GridRange, Array[Column], Limits) -> Result[String, Issue]",
+      "pub fn recover_clear_range_requests(ClearRangeBinding, String, String, Limits) -> Result[Array[Array[ClearRangeRequest]], RangeFailure]",
       "pub fn recover_range_requests(RangeBinding, String, String, Limits) -> Result[Array[Array[RangeRequest]], RangeFailure]",
       "pub fn update_request(GridRange, Array[Column], Array[Array[Json]], Limits) -> Result[String, Issue]",
+      "pub struct ClearRangeBinding {",
+      "pub struct ClearRangeRequest {",
       "pub struct Page {",
       "pub struct RangeBinding {",
       "pub struct RangeFailure {",
       "pub struct RangeRequest {"
     ],
     "operations": [
+      {
+        "name": "admit_clear_range_binding",
+        "declaration": "pub fn admit_clear_range_binding(String, String, String, String, Limits) -> Result[ClearRangeBinding, RangeFailure]"
+      },
+      {
+        "name": "admit_clear_range_request",
+        "declaration": "pub fn admit_clear_range_request(ClearRangeBinding, ClearRangeRequest) -> Result[Unit, RangeFailure]"
+      },
       {
         "name": "admit_range_binding",
         "declaration": "pub fn admit_range_binding(String, String, String, String, Limits) -> Result[RangeBinding, RangeFailure]"
@@ -2076,12 +2354,56 @@
         "declaration": "pub fn classify_append(Int, Bytes, String, Limits) -> AppendOutcome"
       },
       {
+        "name": "classify_clear",
+        "declaration": "pub fn classify_clear(Int, Bytes, String, GridRange, String, Limits) -> AppendOutcome"
+      },
+      {
+        "name": "clear_command_json",
+        "declaration": "pub fn clear_command_json(String, String, String, Limits) -> Result[String, RangeFailure]"
+      },
+      {
+        "name": "clear_range_recovery_entry",
+        "declaration": "pub fn clear_range_recovery_entry(ClearRangeBinding, String, Array[ClearRangeRequest]) -> Result[String, RangeFailure]"
+      },
+      {
+        "name": "clear_range_request_body",
+        "declaration": "pub fn clear_range_request_body(ClearRangeBinding, ClearRangeRequest) -> Result[String, RangeFailure]"
+      },
+      {
+        "name": "clear_range_request_identity",
+        "declaration": "pub fn clear_range_request_identity(ClearRangeBinding, ClearRangeRequest) -> Result[String, RangeFailure]"
+      },
+      {
+        "name": "clear_range_request_json",
+        "declaration": "pub fn clear_range_request_json(ClearRangeBinding, ClearRangeRequest) -> Result[String, RangeFailure]"
+      },
+      {
+        "name": "clear_range_request_outcome",
+        "declaration": "pub fn clear_range_request_outcome(ClearRangeBinding, ClearRangeRequest, Int, Bytes) -> Result[AppendOutcome, RangeFailure]"
+      },
+      {
+        "name": "clear_range_target_matches",
+        "declaration": "pub fn clear_range_target_matches(ClearRangeBinding, String) -> Bool"
+      },
+      {
+        "name": "clear_request",
+        "declaration": "pub fn clear_request(GridRange, Array[Column], String, Limits) -> Result[String, Issue]"
+      },
+      {
+        "name": "clear_request_identity",
+        "declaration": "pub fn clear_request_identity(String, String, String, String) -> Result[String, RangeFailure]"
+      },
+      {
         "name": "excluded_blank_rows",
         "declaration": "pub fn excluded_blank_rows(Page) -> Int"
       },
       {
         "name": "page_rows",
         "declaration": "pub fn page_rows(Page) -> Array[Json]"
+      },
+      {
+        "name": "prepare_clear_range_request",
+        "declaration": "pub fn prepare_clear_range_request(ClearRangeBinding, String, String, String) -> Result[ClearRangeRequest, RangeFailure]"
       },
       {
         "name": "prepare_range_request",
@@ -2138,6 +2460,10 @@
       {
         "name": "read_request",
         "declaration": "pub fn read_request(GridRange, Array[Column], Limits) -> Result[String, Issue]"
+      },
+      {
+        "name": "recover_clear_range_requests",
+        "declaration": "pub fn recover_clear_range_requests(ClearRangeBinding, String, String, Limits) -> Result[Array[Array[ClearRangeRequest]], RangeFailure]"
       },
       {
         "name": "recover_range_requests",
@@ -2429,6 +2755,134 @@
             {
               "path": "adapters/connectors/sheets/test/sheets-request-identity.test.mjs",
               "anchor": "same-typed path/body role swap"
+            }
+          ]
+        }
+      },
+      {
+        "operations": [
+          "admit_clear_range_binding",
+          "admit_clear_range_request",
+          "classify_clear",
+          "clear_command_json",
+          "clear_range_recovery_entry",
+          "clear_range_request_body",
+          "clear_range_request_identity",
+          "clear_range_request_json",
+          "clear_range_request_outcome",
+          "clear_range_target_matches",
+          "clear_request",
+          "clear_request_identity",
+          "prepare_clear_range_request",
+          "recover_clear_range_requests"
+        ],
+        "exports": [
+          "pub fn admit_clear_range_binding(String, String, String, String, Limits) -> Result[ClearRangeBinding, RangeFailure]",
+          "pub fn admit_clear_range_request(ClearRangeBinding, ClearRangeRequest) -> Result[Unit, RangeFailure]",
+          "pub fn classify_clear(Int, Bytes, String, GridRange, String, Limits) -> AppendOutcome",
+          "pub fn clear_command_json(String, String, String, Limits) -> Result[String, RangeFailure]",
+          "pub fn clear_range_recovery_entry(ClearRangeBinding, String, Array[ClearRangeRequest]) -> Result[String, RangeFailure]",
+          "pub fn clear_range_request_body(ClearRangeBinding, ClearRangeRequest) -> Result[String, RangeFailure]",
+          "pub fn clear_range_request_identity(ClearRangeBinding, ClearRangeRequest) -> Result[String, RangeFailure]",
+          "pub fn clear_range_request_json(ClearRangeBinding, ClearRangeRequest) -> Result[String, RangeFailure]",
+          "pub fn clear_range_request_outcome(ClearRangeBinding, ClearRangeRequest, Int, Bytes) -> Result[AppendOutcome, RangeFailure]",
+          "pub fn clear_range_target_matches(ClearRangeBinding, String) -> Bool",
+          "pub fn clear_request(GridRange, Array[Column], String, Limits) -> Result[String, Issue]",
+          "pub fn clear_request_identity(String, String, String, String) -> Result[String, RangeFailure]",
+          "pub fn prepare_clear_range_request(ClearRangeBinding, String, String, String) -> Result[ClearRangeRequest, RangeFailure]",
+          "pub fn recover_clear_range_requests(ClearRangeBinding, String, String, Limits) -> Result[Array[Array[ClearRangeRequest]], RangeFailure]",
+          "pub struct ClearRangeBinding {",
+          "pub struct ClearRangeRequest {"
+        ],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "## Original clear request"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "pub struct ClearRangeRequest"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "src/connectors/sheets/catalog/pkg.generated.mbti",
+              "anchor": "pub fn clear_"
+            },
+            {
+              "path": "src/connectors/sheets/host_node/pkg.generated.mbti",
+              "anchor": "pub fn sheets_clear_"
+            }
+          ],
+          "identity": [
+            {
+              "path": "src/connectors/sheets/catalog/clear.mbt",
+              "anchor": "pub fn clear_request_identity"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "fn clear_recovery_value"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Their physical identity checks"
+            },
+            {
+              "path": "adapters/host-node/installed-row-effect.mjs",
+              "anchor": "The identities this factory issues"
+            }
+          ],
+          "synchronization": {
+            "notApplicable": "Synchronous bounded provider projection only; no physical I/O, await, scheduler, or asynchronous callback. It transports original handles without granting authority."
+          },
+          "failure": [
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "Err(range_failure"
+            },
+            {
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "anchor": "clear restore refuses missing"
+            }
+          ],
+          "cancellation": {
+            "notApplicable": "Pure provider projection owns no running I/O or release ACK; the installed caller retains cancellation and cleanup responsibility."
+          },
+          "resources": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Clear keeps the same finite codec"
+            },
+            {
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "anchor": "SHEETS_LIMITS"
+            }
+          ],
+          "extension": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "The existing provider catalog owns extensions"
+            },
+            {
+              "path": "src/connectors/sheets/host-bundle.json",
+              "anchor": "\"installation\""
+            }
+          ],
+          "verification": [
+            {
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "anchor": "clear only settles the exact two acknowledgements"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request_wbtest.mbt",
+              "anchor": "test \""
+            },
+            {
+              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
+              "anchor": "Sheets clear Command retains original requests"
             }
           ]
         }
@@ -3124,11 +3578,21 @@
   {
     "module": "src/connectors/sheets/host_node/pkg.generated.mbti",
     "responsibilityFacet": "primary",
-    "sha256": "ef226d071ea230dc742da6c5a0daab82d74573b94c29a3bd0a0ac3b3d2b0167c",
+    "sha256": "bcbb84e047d5a272259421cd30698d0410ede4d3efd40ccf902b6647e7771bfb",
     "exports": [
       "pub fn sheets_append_outcome_json(Int, Bytes, String, Int, Int, Int, Int) -> String",
       "pub fn sheets_append_request_identity(String, String, String) -> Result[String, @catalog.RangeFailure]",
       "pub fn sheets_append_request_json(String, String, Int, Int, Int, Int, Int) -> String",
+      "pub fn sheets_clear_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.ClearRangeBinding, @catalog.RangeFailure]",
+      "pub fn sheets_clear_command_json(String, String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]",
+      "pub fn sheets_clear_outcome_json(@catalog.ClearRangeBinding, @catalog.ClearRangeRequest, Int, Bytes) -> Result[String, @catalog.RangeFailure]",
+      "pub fn sheets_clear_prepare(@catalog.ClearRangeBinding, String, String, String) -> Result[@catalog.ClearRangeRequest, @catalog.RangeFailure]",
+      "pub fn sheets_clear_recover(@catalog.ClearRangeBinding, String, String, Int, Int, Int, Int) -> Result[Array[Array[@catalog.ClearRangeRequest]], @catalog.RangeFailure]",
+      "pub fn sheets_clear_recovery_entry_json(@catalog.ClearRangeBinding, String, Array[@catalog.ClearRangeRequest]) -> Result[String, @catalog.RangeFailure]",
+      "pub fn sheets_clear_request_body(@catalog.ClearRangeBinding, @catalog.ClearRangeRequest) -> Result[String, @catalog.RangeFailure]",
+      "pub fn sheets_clear_request_cid(@catalog.ClearRangeBinding, @catalog.ClearRangeRequest) -> Result[String, @catalog.RangeFailure]",
+      "pub fn sheets_clear_request_json(@catalog.ClearRangeBinding, @catalog.ClearRangeRequest) -> Result[String, @catalog.RangeFailure]",
+      "pub fn sheets_clear_target_matches(@catalog.ClearRangeBinding, String) -> Bool",
       "pub fn sheets_grid_page_json(Bytes, String, String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String",
       "pub fn sheets_grid_request_json(String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String",
       "pub fn sheets_range_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.RangeBinding, @catalog.RangeFailure]",
@@ -3158,6 +3622,46 @@
       {
         "name": "sheets_append_request_json",
         "declaration": "pub fn sheets_append_request_json(String, String, Int, Int, Int, Int, Int) -> String"
+      },
+      {
+        "name": "sheets_clear_binding",
+        "declaration": "pub fn sheets_clear_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.ClearRangeBinding, @catalog.RangeFailure]"
+      },
+      {
+        "name": "sheets_clear_command_json",
+        "declaration": "pub fn sheets_clear_command_json(String, String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]"
+      },
+      {
+        "name": "sheets_clear_outcome_json",
+        "declaration": "pub fn sheets_clear_outcome_json(@catalog.ClearRangeBinding, @catalog.ClearRangeRequest, Int, Bytes) -> Result[String, @catalog.RangeFailure]"
+      },
+      {
+        "name": "sheets_clear_prepare",
+        "declaration": "pub fn sheets_clear_prepare(@catalog.ClearRangeBinding, String, String, String) -> Result[@catalog.ClearRangeRequest, @catalog.RangeFailure]"
+      },
+      {
+        "name": "sheets_clear_recover",
+        "declaration": "pub fn sheets_clear_recover(@catalog.ClearRangeBinding, String, String, Int, Int, Int, Int) -> Result[Array[Array[@catalog.ClearRangeRequest]], @catalog.RangeFailure]"
+      },
+      {
+        "name": "sheets_clear_recovery_entry_json",
+        "declaration": "pub fn sheets_clear_recovery_entry_json(@catalog.ClearRangeBinding, String, Array[@catalog.ClearRangeRequest]) -> Result[String, @catalog.RangeFailure]"
+      },
+      {
+        "name": "sheets_clear_request_body",
+        "declaration": "pub fn sheets_clear_request_body(@catalog.ClearRangeBinding, @catalog.ClearRangeRequest) -> Result[String, @catalog.RangeFailure]"
+      },
+      {
+        "name": "sheets_clear_request_cid",
+        "declaration": "pub fn sheets_clear_request_cid(@catalog.ClearRangeBinding, @catalog.ClearRangeRequest) -> Result[String, @catalog.RangeFailure]"
+      },
+      {
+        "name": "sheets_clear_request_json",
+        "declaration": "pub fn sheets_clear_request_json(@catalog.ClearRangeBinding, @catalog.ClearRangeRequest) -> Result[String, @catalog.RangeFailure]"
+      },
+      {
+        "name": "sheets_clear_target_matches",
+        "declaration": "pub fn sheets_clear_target_matches(@catalog.ClearRangeBinding, String) -> Bool"
       },
       {
         "name": "sheets_grid_page_json",
@@ -3494,6 +3998,124 @@
             }
           ]
         }
+      },
+      {
+        "operations": [
+          "sheets_clear_binding",
+          "sheets_clear_command_json",
+          "sheets_clear_outcome_json",
+          "sheets_clear_prepare",
+          "sheets_clear_recover",
+          "sheets_clear_recovery_entry_json",
+          "sheets_clear_request_body",
+          "sheets_clear_request_cid",
+          "sheets_clear_request_json",
+          "sheets_clear_target_matches"
+        ],
+        "exports": [
+          "pub fn sheets_clear_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.ClearRangeBinding, @catalog.RangeFailure]",
+          "pub fn sheets_clear_command_json(String, String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]",
+          "pub fn sheets_clear_outcome_json(@catalog.ClearRangeBinding, @catalog.ClearRangeRequest, Int, Bytes) -> Result[String, @catalog.RangeFailure]",
+          "pub fn sheets_clear_prepare(@catalog.ClearRangeBinding, String, String, String) -> Result[@catalog.ClearRangeRequest, @catalog.RangeFailure]",
+          "pub fn sheets_clear_recover(@catalog.ClearRangeBinding, String, String, Int, Int, Int, Int) -> Result[Array[Array[@catalog.ClearRangeRequest]], @catalog.RangeFailure]",
+          "pub fn sheets_clear_recovery_entry_json(@catalog.ClearRangeBinding, String, Array[@catalog.ClearRangeRequest]) -> Result[String, @catalog.RangeFailure]",
+          "pub fn sheets_clear_request_body(@catalog.ClearRangeBinding, @catalog.ClearRangeRequest) -> Result[String, @catalog.RangeFailure]",
+          "pub fn sheets_clear_request_cid(@catalog.ClearRangeBinding, @catalog.ClearRangeRequest) -> Result[String, @catalog.RangeFailure]",
+          "pub fn sheets_clear_request_json(@catalog.ClearRangeBinding, @catalog.ClearRangeRequest) -> Result[String, @catalog.RangeFailure]",
+          "pub fn sheets_clear_target_matches(@catalog.ClearRangeBinding, String) -> Bool"
+        ],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "## Original clear request"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "pub struct ClearRangeRequest"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "src/connectors/sheets/catalog/pkg.generated.mbti",
+              "anchor": "pub fn clear_"
+            },
+            {
+              "path": "src/connectors/sheets/host_node/pkg.generated.mbti",
+              "anchor": "pub fn sheets_clear_"
+            }
+          ],
+          "identity": [
+            {
+              "path": "src/connectors/sheets/catalog/clear.mbt",
+              "anchor": "pub fn clear_request_identity"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "fn clear_recovery_value"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Their physical identity checks"
+            },
+            {
+              "path": "adapters/host-node/installed-row-effect.mjs",
+              "anchor": "The identities this factory issues"
+            }
+          ],
+          "synchronization": {
+            "notApplicable": "Synchronous bounded provider projection only; no physical I/O, await, scheduler, or asynchronous callback. It transports original handles without granting authority."
+          },
+          "failure": [
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "Err(range_failure"
+            },
+            {
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "anchor": "clear restore refuses missing"
+            }
+          ],
+          "cancellation": {
+            "notApplicable": "Pure provider projection owns no running I/O or release ACK; the installed caller retains cancellation and cleanup responsibility."
+          },
+          "resources": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Clear keeps the same finite codec"
+            },
+            {
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "anchor": "SHEETS_LIMITS"
+            }
+          ],
+          "extension": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "The existing provider catalog owns extensions"
+            },
+            {
+              "path": "src/connectors/sheets/host-bundle.json",
+              "anchor": "\"installation\""
+            }
+          ],
+          "verification": [
+            {
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "anchor": "clear only settles the exact two acknowledgements"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request_wbtest.mbt",
+              "anchor": "test \""
+            },
+            {
+              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
+              "anchor": "Sheets clear Command retains original requests"
+            }
+          ]
+        }
       }
     ]
   },
@@ -3679,6 +4301,1118 @@
             {
               "path": "adapters/connectors/sheets/test/sheets-request-identity.test.mjs",
               "anchor": "same-typed path/body role swap"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "module": "adapters/connectors/sheets/host/sheets-clear-command.mjs",
+    "sha256": "26cad997d31b29add8ae1f4b027c080e590fc156a8e9b226e3e6f732a83611a0",
+    "exports": [
+      "createSheetsClearDriver",
+      "sheetsClearCommand"
+    ],
+    "operations": [
+      {
+        "name": "createSheetsClearDriver",
+        "parameters": [
+          "moon",
+          "site",
+          "command",
+          "bindingCid",
+          "target",
+          "isCurrent"
+        ],
+        "async": false
+      },
+      {
+        "name": "createSheetsClearDriver/admitRequest/admitRequest",
+        "parameters": [
+          "request"
+        ],
+        "async": false
+      },
+      {
+        "name": "createSheetsClearDriver/admitTarget/admitTarget",
+        "parameters": [
+          "target"
+        ],
+        "async": false
+      },
+      {
+        "name": "createSheetsClearDriver/createSheetsClearDriver",
+        "parameters": [],
+        "async": false
+      },
+      {
+        "name": "createSheetsClearDriver/createSheetsClearDriver#2",
+        "parameters": [
+          "request"
+        ],
+        "async": false
+      },
+      {
+        "name": "createSheetsClearDriver/createSheetsClearDriver#3",
+        "parameters": [
+          "options"
+        ],
+        "async": false
+      },
+      {
+        "name": "createSheetsClearDriver/createSheetsClearDriver#4",
+        "parameters": [],
+        "async": false
+      },
+      {
+        "name": "createSheetsClearDriver/current/current",
+        "parameters": [],
+        "async": false
+      },
+      {
+        "name": "createSheetsClearDriver/init:prepareRequest/init:prepareRequest",
+        "parameters": [
+          "member",
+          "value",
+          "selector"
+        ],
+        "async": false
+      },
+      {
+        "name": "createSheetsClearDriver/init:recheckRequests/init:recheckRequests",
+        "parameters": [
+          "entries"
+        ],
+        "async": false
+      },
+      {
+        "name": "createSheetsClearDriver/init:recoverRequests/init:recoverRequests",
+        "parameters": [
+          "body",
+          "durable"
+        ],
+        "async": false
+      },
+      {
+        "name": "createSheetsClearDriver/init:recoverRequests/init:recoverRequests/init:recoverRequests",
+        "parameters": [],
+        "async": false
+      },
+      {
+        "name": "createSheetsClearDriver/init:recoverRequests/init:recoverRequests/requests/requests",
+        "parameters": [
+          "rows"
+        ],
+        "async": false
+      },
+      {
+        "name": "createSheetsClearDriver/init:recoverRequests/init:recoverRequests/requests/requests/requests",
+        "parameters": [
+          "handle"
+        ],
+        "async": false
+      },
+      {
+        "name": "createSheetsClearDriver/init:recoveryEntry/init:recoveryEntry",
+        "parameters": [
+          "member",
+          "entries"
+        ],
+        "async": false
+      },
+      {
+        "name": "createSheetsClearDriver/init:recoveryEntry/init:recoveryEntry/init:recoveryEntry",
+        "parameters": [
+          "entry"
+        ],
+        "async": false
+      },
+      {
+        "name": "createSheetsClearDriver/init:send/init:send",
+        "parameters": [
+          "options"
+        ],
+        "async": true
+      },
+      {
+        "name": "fail/fail",
+        "parameters": [
+          "code"
+        ],
+        "async": false
+      },
+      {
+        "name": "limits/limits",
+        "parameters": [
+          "bytes"
+        ],
+        "async": false
+      },
+      {
+        "name": "sheetsClearCommand",
+        "parameters": [
+          "connectorId",
+          "site",
+          "moon"
+        ],
+        "async": false
+      },
+      {
+        "name": "wire/wire",
+        "parameters": [
+          "value"
+        ],
+        "async": false
+      }
+    ],
+    "imports": [
+      "../../../../packages/sdk/host-port.mjs",
+      "../site/sheets-clear-request.mjs",
+      "../site/sheets-exchange.mjs",
+      "../site/sheets-owned-request.mjs",
+      "node:crypto"
+    ],
+    "compilerFields": [],
+    "unresolvedSyntax": [],
+    "responsibilityFacet": "primary",
+    "role": "physical-io",
+    "owner": "Sheets installation and physical request adapter",
+    "contracts": [
+      {
+        "operations": [
+          "<module>",
+          "createSheetsClearDriver",
+          "createSheetsClearDriver/admitRequest/admitRequest",
+          "createSheetsClearDriver/admitTarget/admitTarget",
+          "createSheetsClearDriver/createSheetsClearDriver",
+          "createSheetsClearDriver/createSheetsClearDriver#2",
+          "createSheetsClearDriver/createSheetsClearDriver#3",
+          "createSheetsClearDriver/createSheetsClearDriver#4",
+          "createSheetsClearDriver/current/current",
+          "createSheetsClearDriver/init:prepareRequest/init:prepareRequest",
+          "createSheetsClearDriver/init:recheckRequests/init:recheckRequests",
+          "createSheetsClearDriver/init:recoverRequests/init:recoverRequests",
+          "createSheetsClearDriver/init:recoverRequests/init:recoverRequests/init:recoverRequests",
+          "createSheetsClearDriver/init:recoverRequests/init:recoverRequests/requests/requests",
+          "createSheetsClearDriver/init:recoverRequests/init:recoverRequests/requests/requests/requests",
+          "createSheetsClearDriver/init:recoveryEntry/init:recoveryEntry",
+          "createSheetsClearDriver/init:recoveryEntry/init:recoveryEntry/init:recoveryEntry",
+          "createSheetsClearDriver/init:send/init:send",
+          "fail/fail",
+          "limits/limits",
+          "sheetsClearCommand",
+          "wire/wire"
+        ],
+        "exports": [
+          "createSheetsClearDriver",
+          "sheetsClearCommand"
+        ],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "## Original clear request"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "pub struct ClearRangeRequest"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "src/connectors/sheets/catalog/pkg.generated.mbti",
+              "anchor": "pub fn clear_"
+            },
+            {
+              "path": "src/connectors/sheets/host_node/pkg.generated.mbti",
+              "anchor": "pub fn sheets_clear_"
+            }
+          ],
+          "identity": [
+            {
+              "path": "src/connectors/sheets/catalog/clear.mbt",
+              "anchor": "pub fn clear_request_identity"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "fn clear_recovery_value"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Their physical identity checks"
+            },
+            {
+              "path": "adapters/host-node/installed-row-effect.mjs",
+              "anchor": "The identities this factory issues"
+            }
+          ],
+          "synchronization": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "The clear driver uses the existing"
+            },
+            {
+              "path": "adapters/host-node/installed-row-effect.mjs",
+              "anchor": "await owned.recheckRequests"
+            }
+          ],
+          "failure": [
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "Err(range_failure"
+            },
+            {
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "anchor": "clear restore refuses missing"
+            }
+          ],
+          "cancellation": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Pure catalog operations cannot cancel I/O"
+            },
+            {
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "anchor": "signal?.throwIfAborted()"
+            }
+          ],
+          "resources": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Clear keeps the same finite codec"
+            },
+            {
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "anchor": "SHEETS_LIMITS"
+            }
+          ],
+          "extension": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "The existing provider catalog owns extensions"
+            },
+            {
+              "path": "src/connectors/sheets/host-bundle.json",
+              "anchor": "\"installation\""
+            }
+          ],
+          "verification": [
+            {
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "anchor": "clear only settles the exact two acknowledgements"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request_wbtest.mbt",
+              "anchor": "test \""
+            },
+            {
+              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
+              "anchor": "Sheets clear Command retains original requests"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "module": "adapters/connectors/sheets/site/sheets-clear-request.mjs",
+    "sha256": "565369edb40e4836cfe2cd6bf902ede11062982fe3a7ff1aea81c450581f1e60",
+    "exports": [
+      "ownedSheetsClearOutcome",
+      "ownedSheetsClearRecoveryEntry",
+      "ownedSheetsClearRequestCid",
+      "prepareOwnedSheetsClearRequest",
+      "projectOwnedSheetsClearRequest"
+    ],
+    "operations": [
+      {
+        "name": "fail/fail",
+        "parameters": [
+          "code"
+        ],
+        "async": false
+      },
+      {
+        "name": "freeze/freeze",
+        "parameters": [
+          "value"
+        ],
+        "async": false
+      },
+      {
+        "name": "originalOf/originalOf",
+        "parameters": [
+          "request",
+          "binding",
+          "moon"
+        ],
+        "async": false
+      },
+      {
+        "name": "ownedSheetsClearOutcome",
+        "parameters": [
+          "moon",
+          "request",
+          "status",
+          "body"
+        ],
+        "async": false
+      },
+      {
+        "name": "ownedSheetsClearRecoveryEntry",
+        "parameters": [
+          "moon",
+          "binding",
+          "effectId",
+          "requests"
+        ],
+        "async": false
+      },
+      {
+        "name": "ownedSheetsClearRecoveryEntry/handles/handles",
+        "parameters": [
+          "request"
+        ],
+        "async": false
+      },
+      {
+        "name": "ownedSheetsClearRequestCid",
+        "parameters": [
+          "request",
+          "binding"
+        ],
+        "async": false
+      },
+      {
+        "name": "prepareOwnedSheetsClearRequest",
+        "parameters": [
+          "moon",
+          "binding",
+          "value",
+          "target",
+          "marker"
+        ],
+        "async": false
+      },
+      {
+        "name": "projectOwnedSheetsClearRequest",
+        "parameters": [
+          "moon",
+          "binding",
+          "handle"
+        ],
+        "async": false
+      },
+      {
+        "name": "wire/wire",
+        "parameters": [
+          "value"
+        ],
+        "async": false
+      }
+    ],
+    "imports": [
+      "../../../../packages/sdk/host-port.mjs",
+      "./sheets-owned-request.mjs"
+    ],
+    "compilerFields": [],
+    "unresolvedSyntax": [],
+    "responsibilityFacet": "primary",
+    "role": "physical-io",
+    "owner": "Sheets installation and physical request adapter",
+    "contracts": [
+      {
+        "operations": [
+          "<module>",
+          "fail/fail",
+          "freeze/freeze",
+          "originalOf/originalOf",
+          "ownedSheetsClearOutcome",
+          "ownedSheetsClearRecoveryEntry",
+          "ownedSheetsClearRecoveryEntry/handles/handles",
+          "ownedSheetsClearRequestCid",
+          "prepareOwnedSheetsClearRequest",
+          "projectOwnedSheetsClearRequest",
+          "wire/wire"
+        ],
+        "exports": [
+          "ownedSheetsClearOutcome",
+          "ownedSheetsClearRecoveryEntry",
+          "ownedSheetsClearRequestCid",
+          "prepareOwnedSheetsClearRequest",
+          "projectOwnedSheetsClearRequest"
+        ],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "## Original clear request"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "pub struct ClearRangeRequest"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "src/connectors/sheets/catalog/pkg.generated.mbti",
+              "anchor": "pub fn clear_"
+            },
+            {
+              "path": "src/connectors/sheets/host_node/pkg.generated.mbti",
+              "anchor": "pub fn sheets_clear_"
+            }
+          ],
+          "identity": [
+            {
+              "path": "src/connectors/sheets/catalog/clear.mbt",
+              "anchor": "pub fn clear_request_identity"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "fn clear_recovery_value"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Their physical identity checks"
+            },
+            {
+              "path": "adapters/host-node/installed-row-effect.mjs",
+              "anchor": "The identities this factory issues"
+            }
+          ],
+          "synchronization": {
+            "notApplicable": "Synchronous bounded provider projection only; no physical I/O, await, scheduler, or asynchronous callback. It transports original handles without granting authority."
+          },
+          "failure": [
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "Err(range_failure"
+            },
+            {
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "anchor": "clear restore refuses missing"
+            }
+          ],
+          "cancellation": {
+            "notApplicable": "Pure provider projection owns no running I/O or release ACK; the installed caller retains cancellation and cleanup responsibility."
+          },
+          "resources": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Clear keeps the same finite codec"
+            },
+            {
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "anchor": "SHEETS_LIMITS"
+            }
+          ],
+          "extension": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "The existing provider catalog owns extensions"
+            },
+            {
+              "path": "src/connectors/sheets/host-bundle.json",
+              "anchor": "\"installation\""
+            }
+          ],
+          "verification": [
+            {
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "anchor": "clear only settles the exact two acknowledgements"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request_wbtest.mbt",
+              "anchor": "test \""
+            },
+            {
+              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
+              "anchor": "Sheets clear Command retains original requests"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "module": "src/connectors/sheets/catalog/clear_declaration.mbt",
+    "sha256": "dafe9097a4e50c674da79372a9fa1211e8932578edf5d8090aa2504c869ee754",
+    "exports": [],
+    "operations": [
+      {
+        "name": "clear_command_json",
+        "declaration": "clear_command_json ( connector_id : String , columns_wire : String , range_wire : String , limits : Limits , ) - > Result [ String , RangeFailure ]"
+      }
+    ],
+    "responsibilityFacet": "primary",
+    "role": "connector-semantics",
+    "owner": "Sheets catalog",
+    "package": "connectors/sheets/catalog",
+    "contracts": [
+      {
+        "operations": [
+          "<module>",
+          "clear_command_json"
+        ],
+        "exports": [],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "## Original clear request"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "pub struct ClearRangeRequest"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "src/connectors/sheets/catalog/pkg.generated.mbti",
+              "anchor": "pub fn clear_"
+            },
+            {
+              "path": "src/connectors/sheets/host_node/pkg.generated.mbti",
+              "anchor": "pub fn sheets_clear_"
+            }
+          ],
+          "identity": [
+            {
+              "path": "src/connectors/sheets/catalog/clear.mbt",
+              "anchor": "pub fn clear_request_identity"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "fn clear_recovery_value"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Their physical identity checks"
+            },
+            {
+              "path": "adapters/host-node/installed-row-effect.mjs",
+              "anchor": "The identities this factory issues"
+            }
+          ],
+          "synchronization": {
+            "notApplicable": "Synchronous bounded provider projection only; no physical I/O, await, scheduler, or asynchronous callback. It transports original handles without granting authority."
+          },
+          "failure": [
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "Err(range_failure"
+            },
+            {
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "anchor": "clear restore refuses missing"
+            }
+          ],
+          "cancellation": {
+            "notApplicable": "Pure provider projection owns no running I/O or release ACK; the installed caller retains cancellation and cleanup responsibility."
+          },
+          "resources": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Clear keeps the same finite codec"
+            },
+            {
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "anchor": "SHEETS_LIMITS"
+            }
+          ],
+          "extension": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "The existing provider catalog owns extensions"
+            },
+            {
+              "path": "src/connectors/sheets/host-bundle.json",
+              "anchor": "\"installation\""
+            }
+          ],
+          "verification": [
+            {
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "anchor": "clear only settles the exact two acknowledgements"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request_wbtest.mbt",
+              "anchor": "test \""
+            },
+            {
+              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
+              "anchor": "Sheets clear Command retains original requests"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "module": "src/connectors/sheets/catalog/clear_request.mbt",
+    "sha256": "c4acf61cb7d69498532a7f70dce4931499b9109461607c928ce2444647034844",
+    "exports": [],
+    "operations": [
+      {
+        "name": "admit_clear_range_binding",
+        "declaration": "admit_clear_range_binding ( configuration_wire : String , command_cid : String , binding_cid : String , target_wire : String , limits : Limits , ) - > Result [ ClearRangeBinding , RangeFailure ]"
+      },
+      {
+        "name": "admit_clear_range_request",
+        "declaration": "admit_clear_range_request ( binding : ClearRangeBinding , request : ClearRangeRequest , ) - > Result [ Unit , RangeFailure ]"
+      },
+      {
+        "name": "clear_range_recovery_entry",
+        "declaration": "clear_range_recovery_entry ( binding : ClearRangeBinding , effect_id : String , requests : Array [ ClearRangeRequest ] , ) - > Result [ String , RangeFailure ]"
+      },
+      {
+        "name": "clear_range_request_body",
+        "declaration": "clear_range_request_body ( binding : ClearRangeBinding , request : ClearRangeRequest , ) - > Result [ String , RangeFailure ]"
+      },
+      {
+        "name": "clear_range_request_identity",
+        "declaration": "clear_range_request_identity ( binding : ClearRangeBinding , request : ClearRangeRequest , ) - > Result [ String , RangeFailure ]"
+      },
+      {
+        "name": "clear_range_request_json",
+        "declaration": "clear_range_request_json ( binding : ClearRangeBinding , request : ClearRangeRequest , ) - > Result [ String , RangeFailure ]"
+      },
+      {
+        "name": "clear_range_request_outcome",
+        "declaration": "clear_range_request_outcome ( binding : ClearRangeBinding , request : ClearRangeRequest , status : Int , body : Bytes , ) - > Result [ AppendOutcome , RangeFailure ]"
+      },
+      {
+        "name": "clear_range_target_matches",
+        "declaration": "clear_range_target_matches ( binding : ClearRangeBinding , target_wire : String , ) - > Bool"
+      },
+      {
+        "name": "clear_recovery_value",
+        "declaration": "clear_recovery_value ( binding : ClearRangeBinding , effect_id : String , markers : Array [ String ] , ) - > Result [ Json , RangeFailure ]"
+      },
+      {
+        "name": "prepare_clear_range_request",
+        "declaration": "prepare_clear_range_request ( binding : ClearRangeBinding , value_wire : String , target_wire : String , marker : String , ) - > Result [ ClearRangeRequest , RangeFailure ]"
+      },
+      {
+        "name": "recover_clear_range_requests",
+        "declaration": "recover_clear_range_requests ( binding : ClearRangeBinding , effects_wire : String , recovery_wire : String , limits : Limits , ) - > Result [ Array [ Array [ ClearRangeRequest ] ] , RangeFailure ]"
+      }
+    ],
+    "responsibilityFacet": "primary",
+    "role": "connector-semantics",
+    "owner": "Sheets catalog",
+    "package": "connectors/sheets/catalog",
+    "contracts": [
+      {
+        "operations": [
+          "<module>",
+          "admit_clear_range_binding",
+          "admit_clear_range_request",
+          "clear_range_recovery_entry",
+          "clear_range_request_body",
+          "clear_range_request_identity",
+          "clear_range_request_json",
+          "clear_range_request_outcome",
+          "clear_range_target_matches",
+          "clear_recovery_value",
+          "prepare_clear_range_request",
+          "recover_clear_range_requests"
+        ],
+        "exports": [],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "## Original clear request"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "pub struct ClearRangeRequest"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "src/connectors/sheets/catalog/pkg.generated.mbti",
+              "anchor": "pub fn clear_"
+            },
+            {
+              "path": "src/connectors/sheets/host_node/pkg.generated.mbti",
+              "anchor": "pub fn sheets_clear_"
+            }
+          ],
+          "identity": [
+            {
+              "path": "src/connectors/sheets/catalog/clear.mbt",
+              "anchor": "pub fn clear_request_identity"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "fn clear_recovery_value"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Their physical identity checks"
+            },
+            {
+              "path": "adapters/host-node/installed-row-effect.mjs",
+              "anchor": "The identities this factory issues"
+            }
+          ],
+          "synchronization": {
+            "notApplicable": "Synchronous bounded provider projection only; no physical I/O, await, scheduler, or asynchronous callback. It transports original handles without granting authority."
+          },
+          "failure": [
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "Err(range_failure"
+            },
+            {
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "anchor": "clear restore refuses missing"
+            }
+          ],
+          "cancellation": {
+            "notApplicable": "Pure provider projection owns no running I/O or release ACK; the installed caller retains cancellation and cleanup responsibility."
+          },
+          "resources": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Clear keeps the same finite codec"
+            },
+            {
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "anchor": "SHEETS_LIMITS"
+            }
+          ],
+          "extension": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "The existing provider catalog owns extensions"
+            },
+            {
+              "path": "src/connectors/sheets/host-bundle.json",
+              "anchor": "\"installation\""
+            }
+          ],
+          "verification": [
+            {
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "anchor": "clear only settles the exact two acknowledgements"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request_wbtest.mbt",
+              "anchor": "test \""
+            },
+            {
+              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
+              "anchor": "Sheets clear Command retains original requests"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "module": "src/connectors/sheets/catalog/clear.mbt",
+    "sha256": "4c2d87cbc7955dad57ce5ed36b23e35cf94d7a08d60829e24443b4238556ad0c",
+    "exports": [],
+    "operations": [
+      {
+        "name": "check_clear_marker",
+        "declaration": "check_clear_marker ( marker : String ) - > Bool"
+      },
+      {
+        "name": "classify_clear",
+        "declaration": "classify_clear ( status : Int , body : Bytes , spreadsheet_id : String , range : GridRange , marker : String , limits : Limits , ) - > AppendOutcome"
+      },
+      {
+        "name": "clear_marker_value",
+        "declaration": "clear_marker_value ( range : GridRange , marker : String ) - > Json"
+      },
+      {
+        "name": "clear_request",
+        "declaration": "clear_request ( range : GridRange , columns : Array [ Column ] , marker : String , limits : Limits , ) - > Result [ String , Issue ]"
+      },
+      {
+        "name": "clear_request_identity",
+        "declaration": "clear_request_identity ( origin : String , path : String , body : String , target : String , ) - > Result [ String , RangeFailure ]"
+      }
+    ],
+    "responsibilityFacet": "primary",
+    "role": "connector-semantics",
+    "owner": "Sheets catalog",
+    "package": "connectors/sheets/catalog",
+    "contracts": [
+      {
+        "operations": [
+          "<module>",
+          "check_clear_marker",
+          "classify_clear",
+          "clear_marker_value",
+          "clear_request",
+          "clear_request_identity"
+        ],
+        "exports": [],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "## Original clear request"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "pub struct ClearRangeRequest"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "src/connectors/sheets/catalog/pkg.generated.mbti",
+              "anchor": "pub fn clear_"
+            },
+            {
+              "path": "src/connectors/sheets/host_node/pkg.generated.mbti",
+              "anchor": "pub fn sheets_clear_"
+            }
+          ],
+          "identity": [
+            {
+              "path": "src/connectors/sheets/catalog/clear.mbt",
+              "anchor": "pub fn clear_request_identity"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "fn clear_recovery_value"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Their physical identity checks"
+            },
+            {
+              "path": "adapters/host-node/installed-row-effect.mjs",
+              "anchor": "The identities this factory issues"
+            }
+          ],
+          "synchronization": {
+            "notApplicable": "Synchronous bounded provider projection only; no physical I/O, await, scheduler, or asynchronous callback. It transports original handles without granting authority."
+          },
+          "failure": [
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "Err(range_failure"
+            },
+            {
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "anchor": "clear restore refuses missing"
+            }
+          ],
+          "cancellation": {
+            "notApplicable": "Pure provider projection owns no running I/O or release ACK; the installed caller retains cancellation and cleanup responsibility."
+          },
+          "resources": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Clear keeps the same finite codec"
+            },
+            {
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "anchor": "SHEETS_LIMITS"
+            }
+          ],
+          "extension": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "The existing provider catalog owns extensions"
+            },
+            {
+              "path": "src/connectors/sheets/host-bundle.json",
+              "anchor": "\"installation\""
+            }
+          ],
+          "verification": [
+            {
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "anchor": "clear only settles the exact two acknowledgements"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request_wbtest.mbt",
+              "anchor": "test \""
+            },
+            {
+              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
+              "anchor": "Sheets clear Command retains original requests"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "module": "src/connectors/sheets/host_node/clear.mbt",
+    "sha256": "1e39544f369febe6b5a2ae495972f055b441e9d858b81facde8dc6c854a0846d",
+    "exports": [],
+    "operations": [
+      {
+        "name": "sheets_clear_binding",
+        "declaration": "sheets_clear_binding ( configuration : String , command_cid : String , binding_cid : String , target : String , max_bytes : Int , max_nodes : Int , max_depth : Int , max_cells : Int , ) - > Result [ @ catalog . ClearRangeBinding , @ catalog . RangeFailure ]"
+      },
+      {
+        "name": "sheets_clear_command_json",
+        "declaration": "sheets_clear_command_json ( connector_id : String , columns : String , range : String , max_bytes : Int , max_nodes : Int , max_depth : Int , max_cells : Int , ) - > Result [ String , @ catalog . RangeFailure ]"
+      },
+      {
+        "name": "sheets_clear_outcome_json",
+        "declaration": "sheets_clear_outcome_json ( binding : @ catalog . ClearRangeBinding , request : @ catalog . ClearRangeRequest , status : Int , body : Bytes , ) - > Result [ String , @ catalog . RangeFailure ]"
+      },
+      {
+        "name": "sheets_clear_prepare",
+        "declaration": "sheets_clear_prepare ( binding : @ catalog . ClearRangeBinding , value : String , target : String , marker : String , ) - > Result [ @ catalog . ClearRangeRequest , @ catalog . RangeFailure ]"
+      },
+      {
+        "name": "sheets_clear_recover",
+        "declaration": "sheets_clear_recover ( binding : @ catalog . ClearRangeBinding , effects : String , recovery : String , max_bytes : Int , max_nodes : Int , max_depth : Int , max_cells : Int , ) - > Result [ Array [ Array [ @ catalog . ClearRangeRequest ] ] , @ catalog . RangeFailure ]"
+      },
+      {
+        "name": "sheets_clear_recovery_entry_json",
+        "declaration": "sheets_clear_recovery_entry_json ( binding : @ catalog . ClearRangeBinding , effect_id : String , requests : Array [ @ catalog . ClearRangeRequest ] , ) - > Result [ String , @ catalog . RangeFailure ]"
+      },
+      {
+        "name": "sheets_clear_request_body",
+        "declaration": "sheets_clear_request_body ( binding : @ catalog . ClearRangeBinding , request : @ catalog . ClearRangeRequest , ) - > Result [ String , @ catalog . RangeFailure ]"
+      },
+      {
+        "name": "sheets_clear_request_cid",
+        "declaration": "sheets_clear_request_cid ( binding : @ catalog . ClearRangeBinding , request : @ catalog . ClearRangeRequest , ) - > Result [ String , @ catalog . RangeFailure ]"
+      },
+      {
+        "name": "sheets_clear_request_json",
+        "declaration": "sheets_clear_request_json ( binding : @ catalog . ClearRangeBinding , request : @ catalog . ClearRangeRequest , ) - > Result [ String , @ catalog . RangeFailure ]"
+      },
+      {
+        "name": "sheets_clear_target_matches",
+        "declaration": "sheets_clear_target_matches ( binding : @ catalog . ClearRangeBinding , target : String , ) - > Bool"
+      }
+    ],
+    "responsibilityFacet": "primary",
+    "role": "physical-io",
+    "owner": "Sheets typed host bridge",
+    "package": "connectors/sheets/host_node",
+    "contracts": [
+      {
+        "operations": [
+          "<module>",
+          "sheets_clear_binding",
+          "sheets_clear_command_json",
+          "sheets_clear_outcome_json",
+          "sheets_clear_prepare",
+          "sheets_clear_recover",
+          "sheets_clear_recovery_entry_json",
+          "sheets_clear_request_body",
+          "sheets_clear_request_cid",
+          "sheets_clear_request_json",
+          "sheets_clear_target_matches"
+        ],
+        "exports": [],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "## Original clear request"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "pub struct ClearRangeRequest"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "src/connectors/sheets/catalog/pkg.generated.mbti",
+              "anchor": "pub fn clear_"
+            },
+            {
+              "path": "src/connectors/sheets/host_node/pkg.generated.mbti",
+              "anchor": "pub fn sheets_clear_"
+            }
+          ],
+          "identity": [
+            {
+              "path": "src/connectors/sheets/catalog/clear.mbt",
+              "anchor": "pub fn clear_request_identity"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "fn clear_recovery_value"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Their physical identity checks"
+            },
+            {
+              "path": "adapters/host-node/installed-row-effect.mjs",
+              "anchor": "The identities this factory issues"
+            }
+          ],
+          "synchronization": {
+            "notApplicable": "Synchronous bounded provider projection only; no physical I/O, await, scheduler, or asynchronous callback. It transports original handles without granting authority."
+          },
+          "failure": [
+            {
+              "path": "src/connectors/sheets/catalog/clear_request.mbt",
+              "anchor": "Err(range_failure"
+            },
+            {
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "anchor": "clear restore refuses missing"
+            }
+          ],
+          "cancellation": {
+            "notApplicable": "Pure provider projection owns no running I/O or release ACK; the installed caller retains cancellation and cleanup responsibility."
+          },
+          "resources": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "Clear keeps the same finite codec"
+            },
+            {
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "anchor": "SHEETS_LIMITS"
+            }
+          ],
+          "extension": [
+            {
+              "path": "adapters/connectors/sheets/README.md",
+              "anchor": "The existing provider catalog owns extensions"
+            },
+            {
+              "path": "src/connectors/sheets/host-bundle.json",
+              "anchor": "\"installation\""
+            }
+          ],
+          "verification": [
+            {
+              "path": "adapters/connectors/sheets/test/sheets-clear-command.test.mjs",
+              "anchor": "clear only settles the exact two acknowledgements"
+            },
+            {
+              "path": "src/connectors/sheets/catalog/clear_request_wbtest.mbt",
+              "anchor": "test \""
+            },
+            {
+              "path": "adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs",
+              "anchor": "Sheets clear Command retains original requests"
             }
           ]
         }
