@@ -47,7 +47,9 @@ test('Gmail authentication success grants no API right after current Account rev
   const f = await gmailAuthenticationFixture(t);
   await f.authenticate(); await f.writeAccount('deny');
   const reader = f.reader();
-  await assert.rejects(reader.read(), error => error.cause.code === 'GmailReadDenied');
+  // This gate retains its original admitted Account. A changed configuration
+  // is refused by that Owner before any replacement decision is requested.
+  await assert.rejects(reader.read(), error => error.cause.code === 'AuthorizationCurrentAccountChanged');
   assert.equal(f.state.authRequests, 1); assert.equal(f.state.apiRequests, 0);
   const records = f.journal.recover();
   assert.equal(records.find(x => x.useId === 'original-auth').outcome, 'succeeded');
