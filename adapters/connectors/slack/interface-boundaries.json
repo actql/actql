@@ -1,6 +1,6 @@
 {
   "qualification": "Lead-reviewed existing Owner references and syntax coverage only; not normal funding, raw retirement, installation, actual Slack service or release acceptance",
-  "source": "cc8a2daa8a7bac53c5f069611eb525c9ab88ea95",
+  "source": "4b86d79e678dd6d84f017f7e22fa2f73744a8d59",
   "declarations": [
     {
       "module": "adapters/connectors/slack/site/user-list-read.mjs",
@@ -293,7 +293,7 @@
               },
               {
                 "path": "docs/design/slack-user-pages.md",
-                "anchor": "Reference"
+                "anchor": "sharing is not zero retained cost"
               },
               {
                 "path": "adapters/connectors/slack/site/user-list-read.mjs",
