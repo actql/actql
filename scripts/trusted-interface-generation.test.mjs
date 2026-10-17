@@ -22,6 +22,7 @@ test('genuine checked generator outputs qualify original compiler and action pro
   const checked = interfaceGenerationFreshness(root);
   assert(checked.checked.includes('lowering-registry-vectors.mjs'));
   assert(checked.checked.includes('native-cli-default-assets.mjs'));
+  assert(checked.checked.includes('compilation-manifests.mjs'));
   const original = interfaceOwnerDeclarations(process.cwd()).find(owner =>
     owner.id === 'scripts/interface-owners/js-bindings/interface-boundaries.json');
   const actions = [...actionBindingOutputs(pathToFileURL(join(root, '/'))).keys()].filter(module => module.endsWith('.mjs'));

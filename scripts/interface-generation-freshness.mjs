@@ -29,9 +29,10 @@ export function interfaceGenerationFreshness(root) {
   const generators = ['generate-client-host-wire.mjs', 'generate-client-publication-wire.mjs',
     'generate-interactive-run-control-wire.mjs', 'generate-python-client-wire.mjs',
     'lowering-registry-vectors.mjs', 'native-cli-default-assets.mjs',
-    'query-acquisition-contract.mjs', 'query-process-evidence.mjs',
-    'query-two-receipt.mjs', 'query-resource-scopes.mjs',
-    'check-query-evidence-fixtures.mjs'];
+    'lowering-registry-vectors.mjs', 'native-cli-default-assets.mjs',
+    'compilation-manifests.mjs', 'query-acquisition-contract.mjs',
+    'query-process-evidence.mjs', 'query-two-receipt.mjs',
+    'query-resource-scopes.mjs', 'check-query-evidence-fixtures.mjs'];
   for (const name of generators) execFileSync(process.execPath, [join(root, 'scripts', name), '--check'], {
     cwd: root, timeout: 15000, maxBuffer: 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
   const localGenerators = ['generate-local-wasm-abi.py', 'generate-local-native-runtime-binding.py',
