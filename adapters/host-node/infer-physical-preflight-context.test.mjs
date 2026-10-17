@@ -89,6 +89,34 @@ test('shared physical preflight retains a distinct raw binder for each original 
   assert.equal(ports.length, 2, 'retired setter cannot reopen or prepare another physical port');
 });
 
+test('one original operation binds every prepared request to its same raw registration', async () => {
+  const ports = [];
+  const f = fixture({preflight(request, context, retainBinder) {
+    const port = {request, context, registrations: []};
+    ports.push(port);
+    retainBinder((registration, persistence) => {
+      port.registrations.push([registration, persistence]);
+    });
+    return port;
+  }, poll: () => true});
+  const original = f.open(), secondRequest = {};
+  try {
+    assert.equal(f.bound()(f.request), ports[0]);
+    assert.equal(f.bound()(secondRequest), ports[1]);
+    assert.notEqual(ports[0].request, ports[1].request);
+    assert.equal(ports[0].context, f.notification);
+    assert.equal(ports[1].context, f.notification);
+    const registration = {};
+    original.bindModelRawCapture(registration);
+    assert.deepEqual(ports.map(port => port.registrations),
+      [[[registration, undefined]], [[registration, undefined]]]);
+    assert.throws(() => original.bindModelRawCapture(registration),
+      /InferRawCaptureBindingUnavailable/u);
+  } finally { await original.close(); }
+  assert.equal(original.cleanupPending(), false);
+  assert.equal(ports.length, 2, 'cleanup never prepares or dispatches another request');
+});
+
 test('invalid raw binder does not replace the original pending preflight responsibility', async () => {
   let setter;
   const f = fixture({preflight(request, context, retainBinder) {
