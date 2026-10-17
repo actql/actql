@@ -30274,6 +30274,7 @@
             "c_void_p"
           ],
           "operations": [
+            "<module>",
             "_OriginalInstalledProcessCustody",
             "_OriginalInstalledProcessCustody/__copy__",
             "_OriginalInstalledProcessCustody/__deepcopy__",
