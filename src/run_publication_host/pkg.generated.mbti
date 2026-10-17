@@ -75,6 +75,8 @@ pub fn admit_client_native_product_members(String, String, String, String) -> Re
 
 pub fn admit_client_project_configuration(String) -> Result[ClientProjectConfiguration, ClientProjectConfigurationIssue]
 
+pub fn admit_client_project_model_registry(String) -> Result[ClientProjectModelRegistry, ClientProjectBindingsIssue]
+
 pub fn admit_client_request_identity_record(String, String, String, String, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
 pub fn admit_client_request_identity_record_wire(String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
@@ -3117,6 +3119,14 @@ pub fn ClientProjectConfiguration::state_directory(Self) -> String
 pub(all) enum ClientProjectConfigurationIssue {
   InvalidConfiguration
 } derive(Eq, @debug.Debug)
+
+type ClientProjectModelRegistry
+pub fn ClientProjectModelRegistry::original_wire(Self) -> String
+pub fn ClientProjectModelRegistry::provider_at(Self, Int) -> (String, String, String?)?
+pub fn ClientProjectModelRegistry::provider_count(Self) -> Int
+pub fn ClientProjectModelRegistry::selected_default_provider(Self) -> String?
+pub fn ClientProjectModelRegistry::task_at(Self, Int) -> (String, String)?
+pub fn ClientProjectModelRegistry::task_count(Self) -> Int
 
 pub(all) enum ClientPublicationBindingAdmissionIssue {
   MissingPublication
