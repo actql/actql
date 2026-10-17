@@ -309,3 +309,28 @@ test('acquired and imported source vectors are explicitly unsupported before Sto
     assert.equal(events.writers.length, 0);
   }
 });
+
+test('private Command phase slots reject mutable sparse or callback-backed vectors before Store I/O', async () => {
+  const callback = Object.freeze(Object.defineProperty([, undefined], '0', {
+    get() { throw new Error('PhaseAccessorMustNotRun'); },
+  }));
+  for (const commandWorkspaces of [[], [undefined, undefined],
+    Object.freeze([undefined]), Object.freeze([, undefined]), callback]) {
+    const {options, events} = fixture();
+    await assert.rejects(preparePinnedEffectSourceSet({...options, commandWorkspaces}),
+      /InvalidEffectCommandWorkspaces/);
+    assert.equal(events.writers.length, 0);
+    assert.equal(events.comparisons, 0);
+  }
+});
+
+test('absent private phase slots retain the original same-view Manifest and payload grouping', async () => {
+  const {options, events} = fixture();
+  const sources = await preparePinnedEffectSourceSet({...options,
+    commandWorkspaces: Object.freeze([undefined, undefined])});
+  assert.equal(sources.payloads.length, 1);
+  assert.equal(sources.members[0].payload, sources.members[1].payload);
+  assert.equal(events.manifests.length, 1);
+  assert.equal(events.manifests[0].length, 1);
+  await sources.payloads[0].prepared.release();
+});

@@ -94,7 +94,7 @@ untransferred validation still requires its derived view to remain available.
 The private Node receiver starts only from that existing managed completion,
 retained material and exact local Result export. Its explicit-key proposal and
 Preview import entries require already completed original correspondence; they
-do not automatically begin key work at the ordinary Host entrance. Whole-key
+require an original funded phase at the ordinary Host entrance. Whole-key
 work and incremental private cleanup must precede proposal or payload rows.
 Abortion and refusal retain the same private cleanup callback until its
 workspace is retired. Import cancellation, promise completion and private
@@ -160,3 +160,35 @@ ordinary automatic caller must install and retain the original private supplier
 before choosing this entrance. Physical Content allocation, current permission,
 installed distribution and the four-role Model supplier are separate obligations;
 neither this Local phase nor a matching Ledger supplies them implicitly.
+
+
+## Ordinary member capture
+
+The installed capture passes its original Local Effect Host to the existing
+phase planner; its prepared computation is a different opaque owner and cannot
+substitute for that Host. It retains each returned phase before asynchronous
+export or any fallible preparation. The phase enters the same captured member,
+managed completion, material and complete export limits. The normal member
+export then completes the existing whole-input key continuation before creating
+its proposal or emitting payload rows. The same completed original key is
+passed to retained-Preview import, not recreated from a projected id or row.
+
+Members sharing a live Result may share its logical Manifest entry. An explicit
+Command key still has a separate original member binding, phase and overlapping
+import/key allowance, so its export is not merged with another member's key
+traversal. The existing Ledger can refuse the simultaneous allocations. An
+unkeyed member keeps its original export and proposal route. A dependent Local
+Result export needs its own original capacity receiver; a member-only phase is
+not silently used to fund that different route. Missing supply stays unavailable,
+not a language prohibition or permission to bypass the original key refusal.
+
+The parent capture retains phase views and completed-key aliases alongside
+source pins, prepared payloads, original Content artifacts and request children.
+Frozen phase-vector snapshots, key-slot arrays, projection callbacks and promise
+handlers overlap that same graph; cloning an array does not make its elements
+or controls free. A child failure, cancellation, stale current check or export
+finally does not retire these borrowers. Existing capture cleanup first waits
+for request children and original Content custody, then retires each key phase
+through its original Resource path before releasing captured inputs. A refusal
+keeps that same parent retry reachable. No method completion, boolean manufactured
+by JavaScript, or source close acknowledges physical retirement or grants apply.

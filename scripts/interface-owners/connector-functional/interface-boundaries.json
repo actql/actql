@@ -4133,7 +4133,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "e3343b912004c6510990c318b4380ab52184077101525ad560bbed1f4cabbe30",
+      "sha256": "74bd92c128588e48eeb954d6f79716e24b4d6c3353bb5385484086b65c0edbe3",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -4780,6 +4780,11 @@
           "async": true
         },
         {
+          "name": "createRowEffectStage/captureStage/releaseInputs/releaseInputs/releaseInputs",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/captureStage/route/route",
           "parameters": [
             "member"
@@ -4790,6 +4795,14 @@
           "name": "createRowEffectStage/captureStage/rows/rows",
           "parameters": [
             "proposal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/sourceSet/init:onCommandKey/init:onCommandKey",
+          "parameters": [
+            "memberIndex",
+            "key"
           ],
           "async": false
         },
@@ -5752,13 +5765,13 @@
             "createInstalledRowEffect/installedCommands/installedCommands",
             "createRowEffectStage",
             "createRowEffectStage/adapter/adapter",
-            "createRowEffectStage/adapter/adapter/adapter",
-            "createRowEffectStage/adapter/adapter/adapter/adapter",
-            "createRowEffectStage/adapter/adapter/adapter#2",
             "createRowEffectStage/adapter/adapter#2",
             "createRowEffectStage/adapter/adapter#3",
             "createRowEffectStage/adapter/adapter#4",
             "createRowEffectStage/adapter/adapter#5",
+            "createRowEffectStage/adapter/adapter/adapter",
+            "createRowEffectStage/adapter/adapter/adapter#2",
+            "createRowEffectStage/adapter/adapter/adapter/adapter",
             "createRowEffectStage/admitCapability/admitCapability",
             "createRowEffectStage/admitRow/admitRow",
             "createRowEffectStage/assertPrepared/assertPrepared",
@@ -5778,14 +5791,14 @@
             "createRowEffectStage/captureStage",
             "createRowEffectStage/captureStage/capabilities/capabilities",
             "createRowEffectStage/captureStage/captureStage",
-            "createRowEffectStage/captureStage/captureStage/captureStage",
-            "createRowEffectStage/captureStage/captureStage/captureStage#2",
             "createRowEffectStage/captureStage/captureStage#2",
             "createRowEffectStage/captureStage/captureStage#3",
             "createRowEffectStage/captureStage/captureStage#4",
             "createRowEffectStage/captureStage/captureStage#5",
             "createRowEffectStage/captureStage/captureStage#6",
             "createRowEffectStage/captureStage/captureStage#7",
+            "createRowEffectStage/captureStage/captureStage/captureStage",
+            "createRowEffectStage/captureStage/captureStage/captureStage#2",
             "createRowEffectStage/captureStage/childrenPending/childrenPending",
             "createRowEffectStage/captureStage/childrenPending/childrenPending/childrenPending",
             "createRowEffectStage/captureStage/claims/claims",
@@ -5802,8 +5815,10 @@
             "createRowEffectStage/captureStage/preparedRequest/preparedRequest",
             "createRowEffectStage/captureStage/proposals/proposals",
             "createRowEffectStage/captureStage/releaseInputs/releaseInputs",
+            "createRowEffectStage/captureStage/releaseInputs/releaseInputs/releaseInputs",
             "createRowEffectStage/captureStage/route/route",
             "createRowEffectStage/captureStage/rows/rows",
+            "createRowEffectStage/captureStage/sourceSet/init:onCommandKey/init:onCommandKey",
             "createRowEffectStage/captureStage/sourceSet/init:onProposalRow/init:onProposalRow",
             "createRowEffectStage/captureStage/sourceSet/sourceSet",
             "createRowEffectStage/captureStage/verified/verified",
@@ -5855,13 +5870,13 @@
             "createRowEffectStage/prepareRecovered/ledgerOwner/init:close/init:close",
             "createRowEffectStage/prepareRecovered/ledgerOwner/ledgerOwner",
             "createRowEffectStage/prepareRecovered/prepareRecovered",
-            "createRowEffectStage/prepareRecovered/prepareRecovered/prepareRecovered",
             "createRowEffectStage/prepareRecovered/prepareRecovered#2",
             "createRowEffectStage/prepareRecovered/prepareRecovered#3",
             "createRowEffectStage/prepareRecovered/prepareRecovered#4",
             "createRowEffectStage/prepareRecovered/prepareRecovered#5",
             "createRowEffectStage/prepareRecovered/prepareRecovered#6",
             "createRowEffectStage/prepareRecovered/prepareRecovered#7",
+            "createRowEffectStage/prepareRecovered/prepareRecovered/prepareRecovered",
             "createRowEffectStage/prepareRecovered/previewRows/previewRows",
             "createRowEffectStage/prepareRecovered/reconcileStoredResponses/reconcileStoredResponses",
             "createRowEffectStage/prepareRecovered/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery",
@@ -5933,6 +5948,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Owned guarded request preparation"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "inputsOutputs": [
@@ -5951,6 +5970,10 @@
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "rowIndex, authorizationForRow, assertCurrent})` (command or guarded write)"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "identity": [
@@ -5969,6 +5992,10 @@
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "fail('ForeignInstalledRowEffectRequest')"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "ownership": [
@@ -5991,6 +6018,10 @@
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
                 "anchor": "children.push({prepared: Object.freeze"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "synchronization": [
@@ -6013,6 +6044,10 @@
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "authorizationForRow: () => reads[index].authorizationForRow(rowIndex)"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "failure": [
@@ -6031,6 +6066,10 @@
               {
                 "path": "adapters/host-node/installed-row-json.test.mjs",
                 "anchor": "guarded request child preparation failure retains its original cleanup and sends nothing"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "cancellation": [
@@ -6049,6 +6088,10 @@
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
                 "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "resources": [
@@ -6071,6 +6114,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Children, pending prepare/read/close state, request/before aliases and callback"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "extension": [
@@ -6089,6 +6136,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Pure synchronous preparation and the existing Command child path are unchanged"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "verification": [
@@ -6119,6 +6170,14 @@
               {
                 "path": "adapters/host-node/installed-row-json.test.mjs",
                 "anchor": "the child cannot substitute another row index into its read use"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "ordinary Source set finishes the original funded whole key before proposing any row"
               }
             ]
           }
@@ -6497,6 +6556,7 @@
         "../host-common/effect-preparation-result.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
+        "./effect-command-key.mjs",
         "./effect-input-export.mjs",
         "./effect-ledger.mjs",
         "./effect-physical-dispatch.mjs",

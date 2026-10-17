@@ -2071,7 +2071,7 @@
     },
     {
       "module": "adapters/host-node/effect-input-export.mjs",
-      "sha256": "e4b995cad2b3719d4ca641cfd4f61aef12cbe6285709ab0c301361238f1b7046",
+      "sha256": "b7c5731d6449824ba699c3fdc545a20d07a14969ace38e56122fe30376dc6235",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -2172,13 +2172,20 @@
         {
           "name": "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet",
           "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet#2",
+          "parameters": [
             "left",
             "right"
           ],
           "async": false
         },
         {
-          "name": "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet#2",
+          "name": "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet#3",
           "parameters": [
             "entry"
           ],
@@ -2335,6 +2342,8 @@
             "proposalMemberIndexes",
             "proposalLimits",
             "onOriginalArtifact",
+            "commandWorkspace",
+            "onCommandKey",
             "manifestSet",
             "local",
             "duplicateManifestMember"
@@ -2437,6 +2446,11 @@
           "async": true
         },
         {
+          "name": "preparePinnedEffectSourcePayloadOwned/summary/init:prepareProposal/init:prepareProposal",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "preparePinnedEffectSourcePayloadOwned/summary/summary",
           "parameters": [
             "index",
@@ -2459,6 +2473,7 @@
             "maxMembers",
             "maxGroupingWork",
             "memberSourceBindings",
+            "commandWorkspaces",
             "options"
           ],
           "async": true
@@ -2614,6 +2629,7 @@
             "prepareDependentEffectSourceSet/orderedUnits/orderedUnits",
             "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet",
             "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet#2",
+            "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet#3",
             "prepareDependentEffectSourceSet/result/result",
             "prepareDependentEffectSourceSet/result/result#2",
             "prepareDependentEffectSourceSet/spend/spend",
@@ -2626,8 +2642,8 @@
             "preparePinnedEffectSourceHoldings/holdings/holdings",
             "preparePinnedEffectSourceHoldings/init:commit/init:commit",
             "preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit",
-            "preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit/init:commit",
             "preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit#2",
+            "preparePinnedEffectSourceHoldings/init:commit/init:commit/init:commit/init:commit",
             "preparePinnedEffectSourceHoldings/inventory/inventory",
             "preparePinnedEffectSourceHoldings/memberPayloads/memberPayloads",
             "preparePinnedEffectSourceHoldings/preparePinnedEffectSourceHoldings",
@@ -2636,7 +2652,6 @@
             "preparePinnedEffectSourcePayloadOwned/init:retry/init:retry",
             "preparePinnedEffectSourcePayloadOwned/init:retry/init:retry/init:retry",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
-            "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#10",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#2",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#3",
@@ -2646,8 +2661,10 @@
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#7",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#8",
             "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#9",
+            "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
             "preparePinnedEffectSourcePayloadOwned/retainText/retainText",
             "preparePinnedEffectSourcePayloadOwned/summary/init:onChunk/init:onChunk",
+            "preparePinnedEffectSourcePayloadOwned/summary/init:prepareProposal/init:prepareProposal",
             "preparePinnedEffectSourcePayloadOwned/summary/summary",
             "preparePinnedEffectSourcePayloadOwned/summary/summary#2",
             "preparePinnedEffectSourceSet",
@@ -2692,6 +2709,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "inputsOutputs": [
@@ -2710,6 +2731,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "identity": [
@@ -2724,6 +2749,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "ownership": [
@@ -2738,6 +2767,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "synchronization": [
@@ -2752,6 +2785,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "failure": [
@@ -2766,6 +2803,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "cancellation": [
@@ -2780,6 +2821,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "resources": [
@@ -2798,6 +2843,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "extension": [
@@ -2812,6 +2861,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "verification": [
@@ -2834,6 +2887,14 @@
               {
                 "path": "src/query_integration/command_key_export_retirement_wbtest.mbt",
                 "anchor": "test \""
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "ordinary Source set finishes the original funded whole key before proposing any row"
               }
             ]
           }
@@ -2844,6 +2905,7 @@
         "../host-common/completed-run-publication.mjs",
         "../host-common/effect-preparation-result.mjs",
         "../host-common/runtime-result.mjs",
+        "./effect-command-key.mjs",
         "node:crypto",
         "node:timers/promises"
       ],
@@ -2852,7 +2914,7 @@
     },
     {
       "module": "adapters/host-node/effect-plan-verify.mjs",
-      "sha256": "33b6b728bc25406b5f1dbef6c697987bca5ba3c1f1f24181fd13e06e3409cc29",
+      "sha256": "dc22354a266b1450c9b55d52e017dbc16a9ee7640ee1179201ee97b379f30e6c",
       "exports": [
         "verifyPinnedEffectPlan"
       ],
@@ -2868,6 +2930,7 @@
             "planLimits",
             "onChunk",
             "signal",
+            "inputKey",
             "advanceQuantum"
           ],
           "async": true
@@ -2916,6 +2979,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "inputsOutputs": [
@@ -2930,6 +2997,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "identity": [
@@ -2940,6 +3011,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "ownership": [
@@ -2950,6 +3025,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "synchronization": [
@@ -2960,6 +3039,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "failure": [
@@ -2970,6 +3053,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "cancellation": [
@@ -2980,6 +3067,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "resources": [
@@ -2990,6 +3081,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "extension": [
@@ -3000,6 +3095,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The Host's managed re-admission bridge"
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
               }
             ],
             "verification": [
@@ -3014,6 +3113,14 @@
               {
                 "path": "src/query_integration/command_key_export_retirement_wbtest.mbt",
                 "anchor": "test \""
+              },
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
+                "anchor": "ordinary Source set finishes the original funded whole key before proposing any row"
               }
             ]
           }
