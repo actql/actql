@@ -16,22 +16,29 @@ fn compose_source(
   crc? : String = "crxyRA==",
   storage_class? : String = "STANDARD",
   bucket? : String = "bucket",
+  content_type? : String = "application/octet-stream",
 ) -> ObjectMetadata {
   admit_object_metadata(
     @utf8.encode(
       "{\"bucket\":\"" + bucket + "\",\"name\":\"" + name +
       "\",\"generation\":\"" + generation + "\",\"metageneration\":\"" + meta +
       "\",\"size\":\"" + size + "\",\"crc32c\":\"" + crc +
-      "\",\"storageClass\":\"" + storage_class + "\"}",
+      "\",\"storageClass\":\"" + storage_class + "\",\"contentType\":\"" + content_type + "\"}",
     ),
     bucket, "", None, metadata_limits(),
   ).unwrap()
 }
 
 ///|
-fn compose_properties_fixture() -> ObjectComposeProperties {
-  { content_type: Some("application/octet-stream"), content_encoding: None,
-    metadata: [("é", "=exact\r\n"), ("", "")], }
+fn compose_existing(
+  binding : ObjectComposeBinding,
+  meta? : String = "2",
+  metadata? : String = "{\"é\":\"=exact\\r\\n\",\"\":\"\",\"actql-request\":\"old-marker\"}",
+) -> ObjectUploadObservation {
+  admit_object_upload_observation(binding.target, "in/é%2F.bin", 200,
+    @utf8.encode("{\"bucket\":\"bucket\",\"name\":\"in/é%2F.bin\",\"generation\":\"9007199254740993\",\"metageneration\":\"" + meta +
+      "\",\"size\":\"7\",\"contentType\":\"text/csv\",\"metadata\":" + metadata + "}"))
+    .unwrap()
 }
 
 ///|
@@ -43,10 +50,10 @@ fn compose_sources() -> Array[ObjectMetadata] {
 fn compose_request(
   binding : ObjectComposeBinding,
   sources? : Array[ObjectMetadata] = compose_sources(),
-  properties? : ObjectComposeProperties = compose_properties_fixture(),
+  before? : ObjectUploadObservation? = None,
 ) -> Result[ObjectComposeRequest, ObjectUploadIssue] {
-  prepare_object_compose(binding, upload_absent(binding.target), sources,
-    properties, mutation_marker())
+  prepare_object_compose(binding, before.unwrap_or(upload_absent(binding.target)),
+    sources, mutation_marker())
 }
 
 ///|
@@ -72,7 +79,7 @@ test "GCS compose seals original source order repetitions and exact generation g
   assert_eq(request.size, 10L)
   assert_eq(request.crc32c, "ml8N0A==")
   assert_eq(request.body,
-    "{\"deleteSourceObjects\":false,\"destination\":{\"contentType\":\"application/octet-stream\",\"metadata\":{\"\":\"\",\"actql-request\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"é\":\"=exact\\r\\n\"},\"name\":\"in/é%2F.bin\",\"storageClass\":\"STANDARD\"},\"sourceObjects\":[{\"generation\":\"9007199254740993\",\"name\":\"in/é%2F.bin\",\"objectPreconditions\":{\"ifGenerationMatch\":\"9007199254740993\"}},{\"generation\":\"9007199254740993\",\"name\":\"in/part2\",\"objectPreconditions\":{\"ifGenerationMatch\":\"9007199254740993\"}},{\"generation\":\"9007199254740993\",\"name\":\"in/é%2F.bin\",\"objectPreconditions\":{\"ifGenerationMatch\":\"9007199254740993\"}}]}")
+    "{\"deleteSourceObjects\":false,\"destination\":{\"contentType\":\"application/octet-stream\",\"metadata\":{\"actql-request\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"},\"name\":\"in/é%2F.bin\",\"storageClass\":\"STANDARD\"},\"sourceObjects\":[{\"generation\":\"9007199254740993\",\"name\":\"in/é%2F.bin\",\"objectPreconditions\":{\"ifGenerationMatch\":\"9007199254740993\"}},{\"generation\":\"9007199254740993\",\"name\":\"in/part2\",\"objectPreconditions\":{\"ifGenerationMatch\":\"9007199254740993\"}},{\"generation\":\"9007199254740993\",\"name\":\"in/é%2F.bin\",\"objectPreconditions\":{\"ifGenerationMatch\":\"9007199254740993\"}}]}")
   assert_eq(object_compose_body_for(binding, request), Ok(request.body))
   assert_true(request.cid.has_prefix("sha256:"))
   assert_eq(recheck_object_compose(binding, request, request.before, request.sources), Ok(()))
@@ -82,16 +89,16 @@ test "GCS compose seals original source order repetitions and exact generation g
 test "GCS compose copies caller arrays without merging repeated originals or normalizing metadata" {
   let binding = compose_binding()
   let sources = compose_sources()
-  let properties = compose_properties_fixture()
-  let request = compose_request(binding, sources~, properties~).unwrap()
+  let before = compose_existing(binding)
+  let request = compose_request(binding, sources~, before=Some(before)).unwrap()
   sources[0] = compose_source(name="in/replaced")
-  properties.metadata[0] = ("é", "changed")
+  object_metadata_fields(before.original.unwrap()).metadata.unwrap()[0] = ("é", "changed")
   assert_eq(request.sources[0].fields.name, "in/é%2F.bin")
   assert_eq(request.properties.metadata[0], ("é", "=exact\r\n"))
   assert_eq(request.sources.length(), 3)
   assert_eq(request.body.find("changed"), None)
   assert_eq(recheck_object_compose(binding, request, request.before, sources), Err(StaleObservation))
-  assert_not_eq(request.cid, compose_request(binding, sources~).unwrap().cid)
+  assert_not_eq(request.cid, compose_request(binding, sources~, before=Some(before)).unwrap().cid)
 }
 
 ///|
@@ -141,20 +148,18 @@ test "GCS compose refuses missing integrity foreign scope and incompatible stora
 }
 
 ///|
-test "GCS compose reserves only exact marker key and accounts its physical entry" {
+test "GCS compose preserves captured metadata replaces only original marker and accounts physical entry" {
   let binding = compose_binding()
-  for entries in [
-    [("actql-request", "foreign")], [("key", "one"), ("key", "two")],
-  ] {
-    assert_true(compose_request(binding, properties={ ..compose_properties_fixture(), metadata: entries, }) is Err(InvalidInput))
-  }
-  let legal = { ..compose_properties_fixture(), metadata: [("Actql-request", "user"), ("actql-request-extra", "user"), ("é", "NFD")], }
-  assert_true(compose_request(binding, properties=legal) is Ok(_))
-  let entries = legal.metadata.copy()
-  entries.push(("fourth", "user"))
-  let full = { ..legal, metadata: entries, }
-  assert_true(compose_request(binding, properties=full) is Err(CapacityExceeded))
-  assert_true(compose_request(binding, properties={ ..legal, content_type: Some("TEXT/CSV"), }) is Err(InvalidInput))
+  let before = compose_existing(binding)
+  let request = compose_request(binding, before=Some(before)).unwrap()
+  assert_eq(request.properties.content_type, "text/csv")
+  assert_eq(request.properties.metadata, [("é", "=exact\r\n"), ("", "")])
+  assert_eq(request.body.find("old-marker"), None)
+  let legal = compose_existing(binding, metadata="{\"Actql-request\":\"user\",\"actql-request-extra\":\"user\",\"é\":\"NFD\"}")
+  assert_true(compose_request(binding, before=Some(legal)) is Ok(_))
+  let full = compose_existing(binding, metadata="{\"one\":\"1\",\"two\":\"2\",\"three\":\"3\",\"four\":\"4\"}")
+  assert_true(compose_request(binding, before=Some(full)) is Err(CapacityExceeded))
+  assert_true(compose_request(binding, sources=[compose_source(content_type="TEXT/CSV")]) is Err(InvalidInput))
 }
 
 ///|
@@ -164,11 +169,11 @@ test "GCS compose refuses equal wire foreign binding and changed original destin
   let foreign = compose_binding()
   assert_eq(object_compose_body_for(foreign, request), Err(ForeignBinding))
   assert_eq(recheck_object_compose(foreign, request, request.before, request.sources), Err(ForeignBinding))
-  assert_true(prepare_object_compose(binding, upload_absent(foreign.target), request.sources, request.properties, mutation_marker()) is Err(ForeignBinding))
-  let before = upload_existing(binding.target)
-  let replacement = prepare_object_compose(binding, before, request.sources, request.properties, mutation_marker()).unwrap()
+  assert_true(prepare_object_compose(binding, upload_absent(foreign.target), request.sources, mutation_marker()) is Err(ForeignBinding))
+  let before = compose_existing(binding)
+  let replacement = prepare_object_compose(binding, before, request.sources, mutation_marker()).unwrap()
   assert_true(replacement.path.contains("ifGenerationMatch=9007199254740993&ifMetagenerationMatch=2"))
-  assert_eq(recheck_object_compose(binding, replacement, upload_existing(binding.target, metageneration="3"), request.sources), Err(StaleObservation))
+  assert_eq(recheck_object_compose(binding, replacement, compose_existing(binding, meta="3"), request.sources), Err(StaleObservation))
   assert_eq(recheck_object_compose(binding, replacement, request.before, request.sources), Err(StaleObservation))
   for source in [compose_source(meta="3"), compose_source(generation="9007199254740994")] {
     assert_eq(recheck_object_compose(binding, request, request.before, [source, request.sources[1], request.sources[2]]), Err(StaleObservation))
@@ -182,10 +187,10 @@ test "GCS compose refuses equal wire foreign binding and changed original destin
 ///|
 test "GCS compose response matching requires original marker checksum exact properties and new version" {
   let binding = compose_binding()
-  let request = prepare_object_compose(binding, upload_existing(binding.target),
-    compose_sources(), compose_properties_fixture(), mutation_marker()).unwrap()
+  let request = prepare_object_compose(binding, compose_existing(binding),
+    compose_sources(), mutation_marker()).unwrap()
   let answer =
-    #|{"bucket":"bucket","name":"in/é%2F.bin","generation":"9007199254740994","metageneration":"1","size":"10","crc32c":"ml8N0A==","storageClass":"STANDARD","contentType":"application/octet-stream","metadata":{"":"","é":"=exact\r\n","actql-request":"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"}}
+    #|{"bucket":"bucket","name":"in/é%2F.bin","generation":"9007199254740994","metageneration":"1","size":"10","crc32c":"ml8N0A==","storageClass":"STANDARD","contentType":"text/csv","metadata":{"":"","é":"=exact\r\n","actql-request":"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"}}
   let read = text => admit_object_metadata(@utf8.encode(text), "bucket", "in/", None, metadata_limits()).unwrap()
   assert_true(object_compose_response_matches(binding, request, read(answer)))
   for body in [

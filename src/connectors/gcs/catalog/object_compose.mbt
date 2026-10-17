@@ -9,11 +9,9 @@ pub struct ObjectComposeBinding {
 }
 
 ///|
-// The caller must select the complete intended properties explicitly. This
-// primitive neither chooses metadata inheritance nor invents authored defaults.
-pub(all) struct ObjectComposeProperties {
-  content_type : String?
-  content_encoding : String?
+// Selected from original Preview observations, never mutable current config.
+struct ObjectComposeProperties {
+  content_type : String
   metadata : Array[(String, String)]
 }
 
@@ -110,38 +108,38 @@ fn compose_crc_join(first : UInt, second : UInt, length : Int64) -> UInt {
 
 ///|
 fn compose_properties(
-  properties : ObjectComposeProperties,
+  before : ObjectUploadObservation,
+  first : ObjectMetadata,
   marker : String,
   limits : ObjectMetadataLimits,
 ) -> Result[(ObjectComposeProperties, Json), ObjectUploadIssue] {
+  let original = before.original.unwrap_or(first)
+  guard original.fields.content_type is Some(content_type) &&
+    @contract.admit_content_media_type_descriptor(content_type, limits.max_bytes) is Ok(_) else {
+    return Err(InvalidInput)
+  }
+  // This finite profile does not promise preservation of a separate encoded
+  // representation, ACL, encryption or retention settings.
+  if original.fields.content_encoding is Some(value) && value != "identity" {
+    return Err(InvalidInput)
+  }
+  let entries = before.original
+    .map(value => logical_metadata(value.fields.metadata).unwrap_or([]))
+    .unwrap_or([])
   // The private marker is one real physical metadata entry, not free space.
-  if properties.metadata.length() >= limits.max_metadata_entries {
+  if entries.length() >= limits.max_metadata_entries {
     return Err(CapacityExceeded)
   }
   let metadata : Map[String, Json] = Map([])
-  for (key, value) in properties.metadata {
-    if key == "actql-request" || metadata.contains(key) {
-      return Err(InvalidInput)
-    }
+  for (key, value) in entries {
     metadata[key] = value.to_json()
   }
   metadata["actql-request"] = marker.to_json()
   let destination : Map[String, Json] = Map([])
   destination["metadata"] = Json::object(metadata)
-  if properties.content_type is Some(value) {
-    if @contract.admit_content_media_type_descriptor(value, limits.max_bytes) is Err(_) {
-      return Err(InvalidInput)
-    }
-    destination["contentType"] = value.to_json()
-  }
-  if properties.content_encoding is Some(value) {
-    if !upload_text(value, limits.max_bytes) {
-      return Err(InvalidInput)
-    }
-    destination["contentEncoding"] = value.to_json()
-  }
+  destination["contentType"] = content_type.to_json()
   Ok((
-    { ..properties, metadata: properties.metadata.copy(), },
+    { content_type, metadata: entries },
     Json::object(destination),
   ))
 }
@@ -151,7 +149,6 @@ pub fn prepare_object_compose(
   binding : ObjectComposeBinding,
   before : ObjectUploadObservation,
   sources : Array[ObjectMetadata],
-  properties : ObjectComposeProperties,
   marker : String,
 ) -> Result[ObjectComposeRequest, ObjectUploadIssue] {
   let target = binding.target
@@ -165,7 +162,7 @@ pub fn prepare_object_compose(
     return Err(CapacityExceeded)
   }
   let (properties, destination) = match
-    compose_properties(properties, marker, target.limits.metadata) {
+    compose_properties(before, sources[0], marker, target.limits.metadata) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -185,6 +182,9 @@ pub fn prepare_object_compose(
       return Err(InvalidInput)
     }
     if !upload_text(observed_class, 128) {
+      return Err(InvalidInput)
+    }
+    if fields.content_encoding is Some(value) && value != "identity" {
       return Err(InvalidInput)
     }
     if storage_class is Some(previous) && previous != observed_class {
@@ -326,8 +326,8 @@ pub fn object_compose_response_matches(
   fields.bucket == binding.target.bucket && fields.name == request.before.name &&
   newer && fields.metageneration == 1L && fields.size == request.size &&
   fields.crc32c == Some(request.crc32c) && fields.storage_class == Some(request.storage_class) &&
-  (request.properties.content_type is None || fields.content_type == request.properties.content_type) &&
-  fields.content_encoding == request.properties.content_encoding &&
+  fields.content_type == Some(request.properties.content_type) &&
+  (fields.content_encoding is None || fields.content_encoding == Some("identity")) &&
   expected_metadata == actual_metadata &&
   fields.metadata.unwrap_or([]).any(entry => entry == ("actql-request", request.marker))
 }
