@@ -16423,7 +16423,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4b9ede6876bc2a4b3381c5b119c9c57e38d9fba345f03223d70b2473af8e5d29",
+      "sha256": "4dd7987253886940858446e1f84116d8d15bdc0cf2ab48846a5ea66d1990a916",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -18160,7 +18160,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const originalInferAdmissions = new WeakSet();"
+                "anchor": "if (originalInferRun !== undefined) {"
               }
             ],
             "synchronization": [
@@ -18592,7 +18592,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const originalInferAdmissions = new WeakSet();"
+                "anchor": "if (originalInferRun !== undefined) {"
               }
             ],
             "synchronization": [

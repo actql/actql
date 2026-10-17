@@ -8302,7 +8302,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const originalInferAdmissions = new WeakSet();"
+                "anchor": "if (originalInferRun !== undefined) {"
               }
             ],
             "synchronization": [
