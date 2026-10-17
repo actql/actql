@@ -140,3 +140,31 @@ independent invocation budgets and cannot invalidate an upstream completion.
 
 This boundary is not whole-Program admission, Result publication, Arrow support,
 general vectorization or a change to the default physical layout.
+
+## Generated Content original storage correspondence
+
+The installed serialization family keeps the exact candidate, issued checked
+Reference and confirmed physical holding returned by its existing Store issuance
+boundary. This is one generation's retained reference, not a wire/CID index.
+Its private consumer projection uses the Common original-reference matcher and
+checks the same generation's availability again after synchronous callbacks.
+An equal envelope from another issuance, a copied consumer view, cancellation
+or a retired original consumer cannot select that stored binding.
+
+Successful temporary encoder/writer cleanup does not retire durable generation
+Content. An abandoned generation retains its original cleanup duties until the
+same Store confirms their retirement; only then is its stored-binding reference
+cleared. Saved-input restoration obtains the stored binding from the existing
+authenticated evidence, original candidate re-admission and Store confirmation.
+It forwards that very issuance to the family without reconstructing it from the
+saved Reference wire. Legacy restoration without this original receiver cannot
+provide a physical stored binding through the private projection.
+
+The additional family reference and restored-result field keep candidate,
+checked Reference, holding metadata and their currentness closures alive with
+the existing generation. Per-call selection closures and checked-value aliases
+overlap those originals. They remain part of the original Host/Run inventory;
+temporary cleanup, promise completion and reference retirement are not GC or a
+physical-byte acknowledgement. This correspondence supplies neither a Content
+read grant nor a consumer-phase capacity/allocation, physical loan or dispatch
+permission. Those must still come from their existing original suppliers.
