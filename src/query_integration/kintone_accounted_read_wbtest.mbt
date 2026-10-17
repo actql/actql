@@ -549,18 +549,24 @@ fn kintone_seek_page(ids : Array[String]) -> Bytes {
 test "kintone seek uses original string IDs and only a short page completes traversal" {
   let (prepared, run, ledger) = kintone_host_run("kintone-seek")
   let read = kintone_borrow(prepared, run, Ref(true), Ref(0))
-  @kintone_host.accept_record_read_page(
-    read,
-    kintone_seek_page(["9007199254740992", "9007199254740993"]),
-  ).unwrap()
+  assert_eq(
+    @kintone_host.accept_record_read_page(
+      read,
+      kintone_seek_page(["9007199254740992", "9007199254740993"]),
+    ).unwrap(),
+    2,
+  )
   assert_eq(
     @kintone_host.record_page_next_cursor(read, None, 2).unwrap(),
     Some("9007199254740993"),
   )
-  @kintone_host.accept_record_read_page(
-    read,
-    kintone_seek_page(["9007199254740994"]),
-  ).unwrap()
+  assert_eq(
+    @kintone_host.accept_record_read_page(
+      read,
+      kintone_seek_page(["9007199254740994"]),
+    ).unwrap(),
+    1,
+  )
   assert_eq(
     @kintone_host.record_page_next_cursor(read, Some("9007199254740993"), 2).unwrap(),
     None,
@@ -589,7 +595,7 @@ test "kintone repeated reordered invalid and oversized seek pages retain failed 
       // The existing original page Owner rejects these before seek handling.
       assert_true(accepted is Err(@kintone_host.Page(_)))
     } else {
-      accepted.unwrap()
+      assert_eq(accepted.unwrap(), ids.length())
       assert_true(
         @kintone_host.record_page_next_cursor(read, prior, 2)
         is Err(@kintone_host.InvalidPageOrder),
