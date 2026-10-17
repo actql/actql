@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f69f2dbf1db4dc3237c1a532809f3e3bf2a6fb38bc301b69705fc00164e2fe19",
+      "sha256": "d4da683d8b3e4dbb7f0ceb21d00dac2375c5fbb024280e02d18fc2b48265cece",
       "exports": [
         "PublicationStoreError",
         "openLocalPublicationStore",
@@ -4102,12 +4102,13 @@
           "name": "acquireStoreOwnership",
           "parameters": [
             "root",
-            "bootstrap"
+            "bootstrap",
+            "key"
           ],
           "async": true
         },
         {
-          "name": "acquireStoreOwnership/init:release/init:release",
+          "name": "acquireStoreOwnership/ownership/init:release/init:release",
           "parameters": [],
           "async": true
         },
@@ -6860,6 +6861,40 @@
           "async": true
         },
         {
+          "name": "syncDirectoryPath/cleanup/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry#2",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "syncDirectoryPath/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "syncDirectoryPath/syncDirectoryPath",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "validateConfiguration",
           "parameters": [
             "options"
@@ -6889,7 +6924,7 @@
           "operations": [
             "<module>",
             "acquireStoreOwnership",
-            "acquireStoreOwnership/init:release/init:release",
+            "acquireStoreOwnership/ownership/init:release/init:release",
             "cidHex/cidHex",
             "encodePrivateEvidenceEnvelope",
             "encodePrivateEvidenceEnvelope/envelopeBytes/envelopeBytes",
@@ -7302,6 +7337,12 @@
             "storeBootstrapAcquisition/readDirectory/readDirectory/status/status",
             "storeBootstrapAcquisition/readMetadata/readMetadata",
             "syncDirectoryPath",
+            "syncDirectoryPath/cleanup/init:retry/init:retry",
+            "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry",
+            "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry#2",
+            "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry#3",
+            "syncDirectoryPath/status/status",
+            "syncDirectoryPath/syncDirectoryPath",
             "validateConfiguration",
             "validateContractControl",
             "writeExclusive"

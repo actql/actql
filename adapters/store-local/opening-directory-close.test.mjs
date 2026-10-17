@@ -42,7 +42,7 @@ async function fixture(t, phase, mode, syncFailure = false) {
     originalClose = handle.close.bind(handle);
     handle.sync = async () => {
       syncs++;
-      if (syncFailure) throw syncError;
+      if (syncFailure) throw typeof syncFailure === 'object' ? syncFailure.value : syncError;
       return sync();
     };
     handle.close = async () => {
@@ -86,6 +86,61 @@ async function fixture(t, phase, mode, syncFailure = false) {
     original: () => original, key: () => ownedKey,
     counts: () => ({syncs, closes, selectedOpens}), allow: () => { allow = true; },
     ownerPath: join(ownerDirectory, 'owner.json')};
+}
+
+for (const mode of ['false', 'reject']) {
+  for (const value of [null, undefined]) {
+    test(`thrown ${value} sync plus ${mode} close cannot mask original FD custody`, async t => {
+      const f = await fixture(t, 'owner', mode, {value});
+      let failure;
+      await assert.rejects(f.open(), error => {
+        failure = error;
+        assert.equal(Object.hasOwn(error, 'primaryFailure'), true);
+        assert.equal(error.primaryFailure, value);
+        assert.equal(error.cleanupHandle.status().pending, true);
+        return true;
+      });
+      await f.original().stat();
+      assert.deepEqual(f.key(), Buffer.alloc(32, 7));
+      f.allow();
+      assert.equal((await failure.cleanupHandle.retry()).pending, false);
+      await assert.rejects(f.original().stat(), {code: 'EBADF'});
+      assert.equal(f.counts().syncs, 1);
+      assert.deepEqual(f.key(), Buffer.alloc(32));
+    });
+  }
+}
+
+for (const kind of ['readonly-pending', 'inherited-handle', 'inherited-pending-setter']) {
+  test(`opening sync failure with ${kind} preserves primary and exports original FD`, async t => {
+    const prior = Object.freeze({original: 'prior diagnostic facet'});
+    class OriginalError extends Error {}
+    if (kind === 'inherited-handle') Object.defineProperty(OriginalError.prototype,
+      'cleanupHandle', {value: prior});
+    if (kind === 'inherited-pending-setter') Object.defineProperty(OriginalError.prototype,
+      'cleanupPending', {get() { return false; }, set() {}});
+    const primary = new OriginalError('OriginalOpeningSync');
+    if (kind === 'readonly-pending') Object.defineProperty(primary, 'cleanupPending', {value: false});
+    const f = await fixture(t, 'owner', 'reject', {value: primary});
+    let failure;
+    await assert.rejects(f.open(), error => {
+      failure = error;
+      assert.equal(error.primaryFailure, primary);
+      assert.equal(error.cleanupHandle.status().pending, true);
+      if (kind === 'inherited-handle') assert.equal(primary.cleanupHandle, prior);
+      if (kind === 'readonly-pending') assert.equal(primary.cleanupPending, false);
+      if (kind === 'inherited-pending-setter') {
+        assert.equal(Object.hasOwn(primary, 'cleanupPending'), true);
+        assert.equal(primary.cleanupPending, true);
+      }
+      return true;
+    });
+    await f.original().stat();
+    f.allow();
+    assert.equal((await failure.cleanupHandle.retry()).pending, false);
+    await assert.rejects(f.original().stat(), {code: 'EBADF'});
+    assert.equal(f.counts().syncs, 1);
+  });
 }
 
 for (const mode of ['false', 'reject']) {
