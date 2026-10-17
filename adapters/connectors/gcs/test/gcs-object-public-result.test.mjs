@@ -14,6 +14,7 @@ import * as provider from '../../../../_build/js/release/build/connectors/gcs/ho
 import {createOwnedScratch} from '../../../../scripts/owned-scratch.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {connectEmbeddedLocal} from '../../../host-node/embedded-local.mjs';
+import {CapturedRunPublicationError} from '../../../host-node/entry.mjs';
 import {createInstalledConnectorTable} from '../../../host-node/installed-connectors.mjs';
 import {createInstalledRowSource, installRowSourceAuthorization, rowSourceCheckEnvironment}
   from '../../../host-node/installed-row-source.mjs';
@@ -56,6 +57,18 @@ const columns = [
 ];
 
 test('public GCS Named Result preserves exact Decimal and JSON contracts across same-Run Host reopening', async t => {
+  let publicationFailure;
+  const prior = Object.getOwnPropertyDescriptor(CapturedRunPublicationError.prototype, 'primaryFailure');
+  Object.defineProperty(CapturedRunPublicationError.prototype, 'primaryFailure', {configurable: true,
+    set(value) {
+      publicationFailure = value;
+      Object.defineProperty(this, 'primaryFailure',
+        {value, writable: true, configurable: true, enumerable: true});
+    }});
+  t.after(() => {
+    if (prior === undefined) delete CapturedRunPublicationError.prototype.primaryFailure;
+    else Object.defineProperty(CapturedRunPublicationError.prototype, 'primaryFailure', prior);
+  });
   const scratch = await createOwnedScratch({parent: new URL('../../../../_build/', import.meta.url).pathname,
     prefix: 'gcs-public-typed-result-', label: 'GCS public typed Result'});
   const owner = userInfo().username;
@@ -176,7 +189,8 @@ test('public GCS Named Result preserves exact Decimal and JSON contracts across 
     throw error;
   });
   const state = await run.wait({signal: AbortSignal.timeout(15000)});
-  assert.equal(state.status, 'succeeded', JSON.stringify({state, events}));
+  assert.equal(state.status, 'succeeded', inspect({state, events, publicationFailure},
+    {depth: 12, maxArrayLength: 8, maxStringLength: 200}).slice(0, 12000));
   assert.equal(state.control.physical_stop, 'confirmed');
   const description = await run.result('r').describe();
   assert.deepEqual(description.columns, columns);
