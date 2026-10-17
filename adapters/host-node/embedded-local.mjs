@@ -39,6 +39,9 @@ import {installedModelEnvironment, readInstalledModelExecution,
   readInstalledModelDependencies, installModelProviders,
   admitInstalledModelProvider, admitInstalledModelProviderBinding} from
   './installed-model.mjs';
+import {loadInstalledProjectConfiguration, installedProjectOriginalsForRuntime}
+  from './installed-project-configuration.mjs';
+import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
 import {installNodeInferRun} from './installed-infer-run.mjs';
 import {installNodeModelContinuation} from './installed-model-continuation.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
@@ -131,7 +134,7 @@ const bytesCid = bytes => `sha256:${createHash('sha256')
 const publicKeyCid = value => bytesCid(createPublicKey(value).export({
   type: 'spki', format: 'der'}));
 
-async function embeddedInstallationIdentity(root, installation) {
+async function embeddedInstallationIdentity(root, installation, project, moon) {
   validateSourceNamespace(installation?.sourceNamespace);
   validateSourceNamespace(installation?.sourceSelectorNamespace);
   const connectorTable = installation?.connectorTable;
@@ -162,6 +165,12 @@ async function embeddedInstallationIdentity(root, installation) {
       typeof value !== 'function'));
   const identity = bytesCid(canonicalJson({
     version: 'actql-embedded-installation/0.1', root,
+    ...(project === undefined ? {} : {project: {
+      directory: project.directory,
+      configuration: bytesCid(Buffer.from(installedProjectOriginalsForRuntime(project, moon).configurationWire, 'utf8')),
+      registry: installedProjectOriginalsForRuntime(project, moon).modelRegistryWire === undefined ? null :
+        bytesCid(Buffer.from(installedProjectOriginalsForRuntime(project, moon).modelRegistryWire, 'utf8')),
+    }}),
     source, effect, accountIdentity, ordinary,
     ...(installation?.sourceSelectorNamespace === undefined ? {} : {
       sourceSelectorNamespace: installation.sourceSelectorNamespace}),
@@ -234,7 +243,7 @@ async function openInstalledHost(originalInstallation) {
   let {root, mode = 'local', beforeDispatch, workspaceId,
   authorization, connectorTable, sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace, resolveSourceSecret,
   effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
-  modelInstallation, registerModelProviders, calendarArtifact, resultDataPolicy, inferEvidence, hostCapacityPolicy,
+  modelInstallation, registerModelProviders, project, calendarArtifact, resultDataPolicy, inferEvidence, hostCapacityPolicy,
   hostLookupExecutionPolicy, verifyRequestValuePolicy,
   retainedRelationOutput = false, valuesMaxRows, observation: observationConnection} = originalInstallation;
   // This is the actual returned Host generation, not a CID/configuration
@@ -246,6 +255,7 @@ async function openInstalledHost(originalInstallation) {
   let modelRuntimeStartupView;
   let modelSdkStaticOriginals;
   let modelProviders;
+  let projectTasks;
   let store;
   // Nominal association in this SAME Host, not a capacity pool or Run Owner.
   // A key is an actual Common-issued Scope; its value is retired only after
@@ -304,6 +314,10 @@ async function openInstalledHost(originalInstallation) {
     originalInstallation = undefined;
     registerModelProviders = undefined;
     modelProviders?.clear();
+    // This drops DATA/backreferences only after the same Host shutdown duties
+    // retire. It is not physical read/Provider/Store or numerical release ACK.
+    projectTasks = undefined;
+    project = undefined;
   }
   try {
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
@@ -342,6 +356,15 @@ async function openInstalledHost(originalInstallation) {
     assertNewModelRuntime();
   }
   const moon = await import(runtimeUrl.href);
+  const projectOriginal = project === undefined ? undefined :
+    installedProjectOriginalsForRuntime(project, moon);
+  function assertProjectRuntime() {
+    if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
+    if (installedProjectOriginalsForRuntime(project, moon) !== projectOriginal) {
+      throw clientOperationError('ForeignInstalledProjectOriginal');
+    }
+    if (modelRuntimeView !== undefined) assertNewModelRuntime();
+  }
   if (modelRuntimeView !== undefined) assertModelRuntime();
   const control = runtimeCore(moon).publicationControl;
   const installedResultDataPolicy = resultDataPolicy === undefined ? undefined :
@@ -457,6 +480,18 @@ async function openInstalledHost(originalInstallation) {
       effectInstallation?.environmentWire);
     environmentWire = installedModelEnvironment(moon, baseEnvironmentWire,
       environmentWire, modelInstallation);
+    if (project !== undefined &&
+        installedProjectOriginalsForRuntime(project, moon).modelRegistry !== undefined) {
+      // These are installation-time reader ceilings, not Model fuel, memory
+      // reservations or a numerical execution profile. The ordinary complete
+      // Environment checker below still enforces its existing aggregate bounds.
+      projectTasks = await loadInstalledProjectModelTasks(moon, project, modelProviders, {
+        limits: {maxTasks: 128, maxBytes: 65536, maxNodes: 4096, maxDepth: 64,
+          maxMembers: 256, contractNodes: 4096, contractDepth: 64,
+          contractTextBytes: 65536, maxWork: 2097152},
+        assertCurrent: assertProjectRuntime,
+      });
+    }
     const {evidence_bundle_cid: ignored, ...body} = JSON.parse(environmentWire);
     void ignored;
     body.host_policy_profile = {...body.host_policy_profile,
@@ -475,6 +510,12 @@ async function openInstalledHost(originalInstallation) {
       ? canonicalJson({...body, evidence_bundle_cid: contentCid(body)})
       : canonicalValueJson({...body,
         evidence_bundle_cid: bytesCid(Buffer.from(canonicalValueJson(body), 'utf8'))});
+    if (projectTasks !== undefined) {
+      // Extend AFTER Host-local policy encoding. Do not NFC-normalize the
+      // original public Task identifier or rebuild its preimage in JS.
+      environmentWire = projectTasks.projectEnvironmentForRuntime(moon, environmentWire,
+        JSON.parse(environmentWire).evidence_bundle_cid).environmentWire;
+    }
     verifyInstalledConnectorBindings(sourceProfile,
       installedEffect ?? effectInstallation);
   } catch (cause) {
@@ -3307,12 +3348,17 @@ export async function connectEmbeddedLocal(options) {
       installation.effectProfilePaths = installedEffectPaths(installation);
     }
   }
-  const root = installation?.directory === undefined ? localStateRoot() :
+  // Discover only on the Local installation side. The same module instance
+  // admits and later consumes these originals; Remote clients do no such I/O.
+  const projectDirectory = process.cwd();
+  const moon = await import(runtimeUrl.href);
+  const project = await loadInstalledProjectConfiguration(moon, {directory: projectDirectory});
+  const root = installation?.directory === undefined ? project?.stateDirectory ?? localStateRoot() :
     resolve(installation.directory);
-  const identity = await embeddedInstallationIdentity(root, installation);
+  const identity = await embeddedInstallationIdentity(root, installation, project, moon);
   const {installation: _installation, ...clientOptions} = options;
   return profiles.connect(root, identity,
-    () => openInstalledHost({root, authorization: installation?.authorization,
+    () => openInstalledHost({root, project, authorization: installation?.authorization,
         connectorTable: installation?.connectorTable,
         sourceProfilePath: installation?.sourceProfilePath,
         sourceProfilePaths: installation?.sourceProfilePaths,

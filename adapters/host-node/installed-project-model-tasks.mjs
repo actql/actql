@@ -50,6 +50,7 @@ export async function loadInstalledProjectModelTasks(moon, project, providers,
     pair: moon?.clientProgramProjectModelTaskSelectionFor,
     normalize: moon?.clientProgramNormalizeProjectModelTask,
     materials: moon?.clientProgramNormalizedPublicModelTaskMaterials,
+    environment: moon?.clientProgramProjectPublicModelTaskEnvironment,
   });
   if (!Object.values(callbacks).every(value => typeof value === 'function')) {
     fail('InstalledProjectRuntimeUnavailable');
@@ -127,7 +128,7 @@ export async function loadInstalledProjectModelTasks(moon, project, providers,
       provider, defaults, normalized, taskWire, taskCid, promptWire, promptCid}));
   }
   const retained = Object.freeze(tasks);
-  return Object.freeze({originalsForRuntime(runtime) {
+  function originalsForRuntime(runtime) {
     if (runtime !== moon) fail('ForeignInstalledProjectRuntime');
     check();
     for (const task of retained) {
@@ -137,5 +138,20 @@ export async function loadInstalledProjectModelTasks(moon, project, providers,
       task.provider.assertNewTrustedRuntime?.();
     }
     return retained;
-  }});
+  }
+  return Object.freeze({originalsForRuntime,
+    projectEnvironmentForRuntime(runtime, wire, evidenceCid) {
+      originalsForRuntime(runtime);
+      if (typeof wire !== 'string' || typeof evidenceCid !== 'string') {
+        fail('InvalidInstalledProjectEnvironment');
+      }
+      const projection = checked(call('environment', wire, evidenceCid,
+        retained.map(task => task.normalized), ...coreBounds));
+      const environmentWire = runtimeField(projection, 0), identity = runtimeField(projection, 1);
+      const work = runtimeField(projection, 2);
+      if (typeof environmentWire !== 'string' || typeof identity !== 'string' ||
+          !Number.isSafeInteger(work) || work < 0) fail('InvalidHostRuntimeResult');
+      originalsForRuntime(runtime);
+      return Object.freeze({environmentWire, evidenceCid: identity, work});
+    }});
 }
