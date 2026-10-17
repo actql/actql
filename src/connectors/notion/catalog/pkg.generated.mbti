@@ -3,10 +3,16 @@ package "actql/actql/connectors/notion/catalog"
 
 import {
   "actql/actql/decode_core",
+  "actql/actql/value_admission",
+  "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn admit_notion_property_read_cell(NotionDataSourceReadContracts, OriginalNotionQueryRow, Int, @value_admission.Limits, Int) -> Result[(@value_admission.CheckedValue, Int, Int), NotionReadCellIssue]
+
+pub fn bind_notion_data_source_read_contracts(NotionDatabaseReadDeclaration, NotionDataSourceCatalog, NotionReadContractLimits) -> Result[NotionDataSourceReadContracts, NotionReadContractIssue]
+
 pub fn notion_data_source_database(NotionDataSourceCatalog) -> NotionDatabaseCatalog
 
 pub fn notion_data_source_matches_database(NotionDataSourceCatalog, NotionDatabaseCatalog) -> Bool
@@ -19,17 +25,35 @@ pub fn notion_data_source_property_at(NotionDataSourceCatalog, Int) -> NotionPro
 
 pub fn notion_data_source_property_count(NotionDataSourceCatalog) -> Int
 
+pub fn notion_data_source_read_column_at(NotionDataSourceReadContracts, Int) -> NotionPropertyReadColumn?
+
+pub fn notion_data_source_read_column_count(NotionDataSourceReadContracts) -> Int
+
+pub fn notion_data_source_read_matches(NotionDataSourceReadContracts, NotionDatabaseReadDeclaration, NotionDataSourceCatalog) -> Bool
+
+pub fn notion_data_source_read_schema(NotionDataSourceReadContracts) -> @value_contract.Contract
+
+pub fn notion_data_source_read_schema_wire(NotionDataSourceReadContracts, Int, Int, Int) -> Result[String, NotionReadContractIssue]
+
 pub fn notion_data_source_selected_index(NotionDataSourceCatalog) -> Int
 
 pub fn notion_database_metadata_wire(NotionDatabaseCatalog, Int, Int, Int) -> Result[String, NotionDatabaseIssue]
 
 pub fn notion_database_original(NotionDatabaseCatalog) -> @decode_core.Cursor
 
+pub fn notion_database_read_declaration_original(NotionDatabaseReadDeclaration) -> @decode_core.Cursor
+
+pub fn notion_database_read_source_index(NotionDatabaseReadDeclaration, NotionDatabaseCatalog) -> Result[Int, NotionReadContractIssue]
+
 pub fn notion_database_source_at(NotionDatabaseCatalog, Int) -> (String, String)?
 
 pub fn notion_database_source_count(NotionDatabaseCatalog) -> Int
 
 pub fn notion_property_definition(NotionPropertyMetadata) -> @decode_core.Cursor
+
+pub fn notion_property_read_cell_wire(NotionDataSourceReadContracts, OriginalNotionQueryRow, Int, @value_admission.Limits, Int, Int, Int, Int) -> Result[String, NotionReadCellIssue]
+
+pub fn notion_property_read_original(NotionPropertyReadColumn) -> NotionPropertyMetadata
 
 pub fn notion_query_page_matches_source(OriginalNotionQueryPage, NotionDataSourceCatalog) -> Bool
 
@@ -79,12 +103,18 @@ pub fn project_notion_query_page(NotionDataSourceCatalog, Bytes, NotionQueryLimi
 
 pub fn project_notion_user_list(Bytes, NotionUserListLimits) -> Result[NotionUserListPage, NotionUserListIssue]
 
+pub fn read_notion_database_read_declaration(Bytes, NotionReadContractLimits) -> Result[NotionDatabaseReadDeclaration, NotionReadContractIssue]
+
 // Errors
 
 // Types and methods
 pub struct NotionDataSourceCatalog {
   id : String
   response_sha256 : String
+  // private fields
+}
+
+pub struct NotionDataSourceReadContracts {
   // private fields
 }
 
@@ -115,10 +145,28 @@ pub(all) struct NotionDatabaseLimits {
   max_name_bytes : Int
 }
 
+pub struct NotionDatabaseReadDeclaration {
+  database_id : String
+  // private fields
+}
+
 pub struct NotionPropertyMetadata {
   id : String
   name : String
   kind : String
+  // private fields
+}
+
+pub enum NotionPropertyProjection {
+  Value
+  Start
+  End
+} derive(Eq, @debug.Debug)
+
+pub struct NotionPropertyReadColumn {
+  name : String
+  projection : NotionPropertyProjection
+  contract : @value_contract.Contract
   // private fields
 }
 
@@ -139,6 +187,40 @@ pub(all) struct NotionQueryLimits {
   metadata : NotionDatabaseLimits
   max_rows : Int
   max_cursor_bytes : Int
+}
+
+pub(all) enum NotionReadCellIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignOriginal
+  InvalidColumn
+  InvalidCell(String)
+  UnsupportedProperty(String)
+  PropertyCompletionRequired(String)
+  Decimal(@value_admission.DecimalTextIssue)
+  Admission(@value_admission.Issue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum NotionReadContractIssue {
+  InvalidLimits
+  BudgetExceeded
+  Metadata(NotionDatabaseIssue)
+  InvalidDeclaration
+  Contract(@value_contract.AdmissionError)
+  InvalidProperty(String)
+  MissingContract(String)
+  UnsupportedProperty(String)
+  InvalidColumn(String)
+  ForeignDatabase
+  InvalidSelection
+  ForeignOriginal
+} derive(Eq, @debug.Debug)
+
+pub(all) struct NotionReadContractLimits {
+  metadata : NotionDatabaseLimits
+  contracts : @value_contract.Limits
+  max_columns : Int
+  max_work : Int
 }
 
 pub(all) enum NotionUserListIssue {

@@ -133,3 +133,46 @@ read/write acceptance. The vendor inputs are the existing selected API's
 [page property values](https://developers.notion.com/reference/page-property-values)
 and [retrieve page property](https://developers.notion.com/reference/retrieve-a-page-property)
 contracts; their pagination obligations are retained separately.
+
+
+## Original checked property declarations
+
+The database declaration may carry `data_source_id` and `read_contracts` as
+specified by [the existing contract owner](../spec/protocols/contracts.md#notion-read-contracts).
+This is configuration DATA, with no new envelope, version, CID domain or
+permission owner. The original scalar/id-only object forms keep their bytes.
+A read binding retains both the original declaration and selected schema;
+physical equality, not equal JSON or ids, relates a query row to that pair.
+The actual installed supplier must additionally bind its configuration/revision
+and current Site. This Catalog pair alone does not complete that supplier.
+
+Every declared entry is checked through the existing checked ValueContract
+reader, including unused entries. Explicit column aliases preserve original
+vendor names while satisfying Common's canonical field-name rules. Decimal
+precision/scale and temporal projection are supplied, never inferred from
+number display format, expression text or example values. Numeric cell admission
+uses the private original response token and Common's exact Decimal codec;
+the parser's binary number is used only to recognize the native number kind.
+Common's existing admission/recheck and writer retain enum, extent and nullable
+requirements. Formula/rollup native discriminants must agree. Inline paginated
+property kinds request completion rather than claim their arrays are complete.
+
+Calendar's existing strict RFC3339 physical conversion now lives in the existing
+ValueAdmission owner, with Calendar forwarding unchanged bounds. Known numeric
+offsets normalize exactly to the same UTC millisecond, while the response retains
+the source spelling. Canonical logical Timestamp admission is unchanged.
+Unknown offsets, nonzero submillisecond digits and range overflow still refuse;
+named zones need their real timezone supplier. Start/end selection cannot discard
+a range end, change its temporal shape or silently fabricate midnight.
+
+The declaration Cursor, all Contracts/enum vectors, source and property aliases,
+column inventory and canonical Object schema remain live with the binding.
+During cell admission the full query snapshot and decode graph overlap with the
+exact numeric token, normalized text, converted Cursor, checked value, iterative
+validation frames and bounded writer/output. These are separate records, arrays,
+references and backings where applicable; aliasing is not free allocation or
+retirement. Aggregate row/page callers must charge returned admission usage and
+all simultaneously retained work, and keep actual cleanup responsibility.
+There is no I/O, current capability, release ACK or normal numerical supplier in
+this typed projection. Complete property pagination and the installed original
+configuration/Run path are still consuming implementation obligations.

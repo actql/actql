@@ -144,6 +144,8 @@ pub fn json_payload(Value) -> Value?
 
 pub fn normalize_decimal_text(String, Int, Int, Int) -> Result[String, DecimalTextIssue]
 
+pub fn normalize_timestamp_text(String, Int) -> String?
+
 pub fn null_value() -> Value
 
 pub fn number_value(Double) -> Value?
