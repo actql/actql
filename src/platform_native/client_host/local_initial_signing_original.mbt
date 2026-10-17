@@ -113,7 +113,9 @@ fn NativeLocalInitialSigningCapture::check_current(
   crypto : @crypto.Library,
   adoption : Bytes,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  if adoption != self.adoption || !physical_equal(crypto, self.material.library) {
+  if adoption != self.adoption ||
+    !physical_equal(crypto, self.material.library) ||
+    self.policy.issuer_identity(self.session.intent_cid) is Err(_) {
     return Err(CustodyLost)
   }
   match self.session.initial_signing_public_key(self.material) {
@@ -340,6 +342,13 @@ pub fn NativeLocalInitialSigningOriginal::require_current(
   }
   guard read_local_initial_signing_control(self.host, row.body)
     is Ok(Some(fields)) else {
+    return Err(CustodyLost)
+  }
+  if fields.public_key_pem != self.public_key_pem {
+    return Err(CustodyLost)
+  }
+  guard self.projection.export_original() is Ok(exported) &&
+    exported == self.exported else {
     return Err(CustodyLost)
   }
   match self.host.require_initial_signing_separation(fields) {
