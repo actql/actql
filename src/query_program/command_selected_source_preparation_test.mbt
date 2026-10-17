@@ -39,59 +39,20 @@ fn selected_command_source_preparation(
 }
 
 ///|
-// Closed test diagnostics retain the first typed Owner boundary. They never
-// inspect original payloads or make a refusal into execution evidence.
+// Retain only closed test diagnostics for the original policy and selected
+// Command boundaries; no payload inspection or second semantic classifier.
 fn selected_command_preparation_issue(
   issue : @publication_host.ClientEffectComputationIssue,
 ) -> String {
   match issue {
-    Syntax(_) => "Syntax"
-    Candidate(Computation(cause)) =>
-      match cause {
-        @check.LocalConstructionFailure::InvalidLimits =>
-          "Candidate.Computation.InvalidLimits"
-        Program(_) => "Candidate.Computation.Program"
-        CapacityInputs(_) => "Candidate.Computation.CapacityInputs"
-        Environment(_) => "Candidate.Computation.Environment"
-        Source(source) => {
-          let category = match source {
-            @check.SourceFailure::DeclarationWorkLimit => "DeclarationWorkLimit"
-            CapacityMetadataBudget => "CapacityMetadataBudget"
-            UnsupportedBindings(_) => "UnsupportedBindings"
-            UnsupportedEffects(_) => "UnsupportedEffects"
-            Requests(_) => "Requests"
-            RequestForm(_) => "RequestForm"
-            Checks(_) => "Checks"
-            Identity(_) => "Identity"
-            Declarations(_) => "Declarations"
-            Registration(_) => "Registration"
-            SourceView(view) =>
-              match view {
-                Context(Policy(policy)) =>
-                  "SourceView.Context.Policy." + @debug.to_string(policy)
-                Context(_) => "SourceView.Context"
-                Program(_) => "SourceView.Program"
-                Binding(_) => "SourceView.Binding"
-                InvalidLimits => "SourceView.InvalidLimits"
-              }
-          }
-          "Candidate.Computation.Source." + category
-        }
-        Closure(_) => "Candidate.Computation.Closure"
-        Units(_) => "Candidate.Computation.Units"
-        Template(_, _) => "Candidate.Computation.Template"
-      }
-    Candidate(_) => "Candidate"
-    Mapping(_) => "Mapping"
-    Static(Results(cause)) => "Static.Results." + @debug.to_string(cause.kind)
+    Candidate(Computation(Source(SourceView(Context(Policy(policy)))))) =>
+      "Original Host policy: " + @debug.to_string(policy)
+    Static(Results(cause)) => "Static Results: " + @debug.to_string(cause.kind)
     Static(CommandTargets(cause)) =>
-      "Static.CommandTargets." + @debug.to_string(cause.kind)
+      "Static Command target: " + @debug.to_string(cause.kind)
     Static(CommandInputs(cause)) =>
-      "Static.CommandInputs." + @debug.to_string(cause.kind)
-    Static(_) => "Static"
-    Stage(_) => "Stage"
-    Graph(cause) => "Graph." + @debug.to_string(cause)
-    TargetSelection(_) => "TargetSelection"
+      "Static Command input: " + @debug.to_string(cause.kind)
+    _ => "Selected original Command preparation failed"
   }
 }
 
