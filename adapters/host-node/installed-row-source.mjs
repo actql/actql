@@ -406,7 +406,8 @@ export async function createInstalledRowSource({moon, declaration,
   // authorization, RowRun, capture and failure cleanup. No wire selects this
   // port and none of these callbacks issues authority or a cleanup ACK.
   if (directReadIdentity !== undefined &&
-      (!Object.isFrozen(directReadIdentity) ||
+      (directReadIdentity === null || typeof directReadIdentity !== 'object' ||
+        Array.isArray(directReadIdentity) || !Object.isFrozen(directReadIdentity) ||
         Object.getPrototypeOf(directReadIdentity) !== Object.prototype ||
         Object.keys(directReadIdentity).sort().join("\0") !==
           ["attempt", "input", "subject", "useId"].join("\0") ||
