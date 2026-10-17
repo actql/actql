@@ -71,8 +71,7 @@ pub fn[T, C] NativeHostBootstrap::issue_backed_region(
     Err(issue) => return Err(Bootstrap(issue))
     Ok(_) => ()
   }
-  if !physical_equal(allocation.owner, self) ||
-    allocation.released ||
+  if !physical_equal(allocation.owner, self) || allocation.released ||
     allocation.physical_retired {
     return Err(Bootstrap(ForeignOriginal))
   }
@@ -81,22 +80,11 @@ pub fn[T, C] NativeHostBootstrap::issue_backed_region(
     return Err(Bootstrap(Physical(status)))
   }
   let accounting = match
-    @resources.issue_backed_execution_region(
-      self.capacity,
-      allocation.allocation,
-      self,
-    ) {
+    @resources.issue_backed_execution_region(self.capacity, allocation.allocation, self) {
     Err(issue) => return Err(Accounting(issue))
     Ok(value) => value
   }
-  Ok({
-    owner: self,
-    allocation,
-    accounting,
-    loans: [],
-    closed: false,
-    closing: false,
-  })
+  Ok({ owner: self, allocation, accounting, loans: [], closed: false, closing: false })
 }
 
 ///|
@@ -122,41 +110,23 @@ pub fn[T, C] NativeHostBootstrap::lend_backed_region(
   if !physical_equal(region.owner, self) || region.closed {
     return Err(Bootstrap(ForeignOriginal))
   }
-  if scope.scopes == 0L ||
-    region.loans.length() >= self.supplier.limits.attempts {
+  if scope.scopes == 0L || region.loans.length() >= self.supplier.limits.attempts {
     return Err(Bootstrap(Unavailable))
   }
   let accounting = match
     @resources.reserve_backed_execution_delegation(
-      region.accounting,
-      self,
-      child,
-      extent,
-      access,
-      limits,
-      overhead_retained,
-      overhead_execution,
+      region.accounting, self, child, extent, access, limits,
+      overhead_retained, overhead_execution,
     ) {
     Err(issue) => return Err(Accounting(issue))
     Ok(value) => value
   }
   let physical = lend_region_ffi(
-    self.backing,
-    region.allocation.extent,
-    extent.offset,
-    extent.length,
+    self.backing, region.allocation.extent, extent.offset, extent.length,
     access == @resources.ExclusiveWrite,
   )
   let loan : NativeBackedExecutionLoan[T, C] = {
-    region,
-    child,
-    accounting,
-    physical,
-    physical_returned: false,
-    settled: false,
-    view: None,
-    map_attempted: false,
-    transport: None,
+    region, child, accounting, physical, physical_returned: false, settled: false, view: None, map_attempted: false, transport: None,
   }
   region.loans.push(loan)
   let status = region_status_ffi(physical)
@@ -178,20 +148,13 @@ pub fn[T, C] NativeHostBootstrap::report_backed_region(
     Err(issue) => return Err(Bootstrap(issue))
     Ok(_) => ()
   }
-  if !physical_equal(loan.region.owner, self) ||
-    !physical_equal(loan.child, child) ||
-    loan.physical_returned ||
-    loan.settled {
+  if !physical_equal(loan.region.owner, self) || !physical_equal(loan.child, child) ||
+    loan.physical_returned || loan.settled {
     return Err(Bootstrap(ForeignOriginal))
   }
-  match
-    @resources.report_backed_execution_delegation(
-      loan.region.accounting,
-      self,
-      child,
-      loan.accounting,
-      usage,
-    ) {
+  match @resources.report_backed_execution_delegation(
+    loan.region.accounting, self, child, loan.accounting, usage,
+  ) {
     Err(issue) => Err(Accounting(issue))
     Ok(_) => Ok(())
   }
@@ -210,8 +173,7 @@ pub fn[T, C] NativeHostBootstrap::settle_backed_region_after_owner_ack(
   final_usage : @resources.LedgerUsage?,
 ) -> Result[Unit, NativeBackedExecutionIssue] {
   if !physical_equal(self.supplier.original, original) ||
-    !physical_equal(loan.region.owner, self) ||
-    !physical_equal(loan.child, child) {
+    !physical_equal(loan.region.owner, self) || !physical_equal(loan.child, child) {
     return Err(Bootstrap(ForeignOriginal))
   }
   if loan.settled {
@@ -221,24 +183,15 @@ pub fn[T, C] NativeHostBootstrap::settle_backed_region_after_owner_ack(
     return Err(Bootstrap(ReadersPending))
   }
   if !loan.physical_returned {
-    let status = return_region_ffi(
-      self.backing,
-      loan.region.allocation.extent,
-      loan.physical,
-    )
+    let status = return_region_ffi(self.backing, loan.region.allocation.extent, loan.physical)
     if status != 0 {
       return Err(Bootstrap(Physical(status)))
     }
     loan.physical_returned = true
   }
-  match
-    @resources.settle_backed_execution_after_owner_ack(
-      loan.region.accounting,
-      self,
-      child,
-      loan.accounting,
-      final_usage,
-    ) {
+  match @resources.settle_backed_execution_after_owner_ack(
+    loan.region.accounting, self, child, loan.accounting, final_usage,
+  ) {
     Err(issue) => Err(Accounting(issue))
     Ok(_) => {
       loan.settled = true
@@ -254,8 +207,7 @@ pub fn[T, C] NativeHostBootstrap::close_backed_region(
   original : T,
   region : NativeBackedExecutionRegion[T, C],
 ) -> Result[Bool, NativeBackedExecutionIssue] {
-  if !physical_equal(self.supplier.original, original) ||
-    !physical_equal(region.owner, self) {
+  if !physical_equal(self.supplier.original, original) || !physical_equal(region.owner, self) {
     return Err(Bootstrap(ForeignOriginal))
   }
   if region.closed {
