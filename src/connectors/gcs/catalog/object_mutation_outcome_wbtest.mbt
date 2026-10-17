@@ -221,6 +221,25 @@ test "GCS mutation outcome bounds raw response and control projection before cla
 }
 
 ///|
+test "GCS mutation outcome accepts newly reported optional checksums and storage class" {
+  let binding = mutation_binding()
+  let request = mutation_outcome_request(binding)
+  // These properties were absent from the original provider observation.
+  // Their appearance must not strengthen the accepted response predicate.
+  let response =
+    #|{"bucket":"bucket","name":"in/é%2F.csv","generation":"9007199254740993","metageneration":"3","size":"7","storageClass":"STANDARD","md5Hash":"AAAAAAAAAAAAAAAAAAAAAA==","crc32c":"AAAAAA==","contentType":"text/csv","metadata":{"keep":"kept","new":"=é\r\n","actql-request":"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"}}
+  assert_eq(
+    classify_object_mutation_response(
+      binding,
+      request,
+      200,
+      @utf8.encode(response),
+    ),
+    Ok(Applied),
+  )
+}
+
+///|
 test "GCS mutation outcome preserves observed content checksums storage class and encoding" {
   let binding = mutation_binding()
   let original =
