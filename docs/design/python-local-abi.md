@@ -2354,6 +2354,18 @@ partial response, failed spawn or uncertain cleanup retains the same parent
 and process carrier; transport never substitutes PID absence, relaunches the
 compiler, closes borrowed pipe FDs directly or manufactures a cleanup result.
 
+After a failed invocation the maintainer caller may explicitly request cleanup
+through that same registered process and parent. This is a separate bounded
+cleanup window, not another compilation attempt. The existing Native child
+receives at most one stop request per invocation of this cleanup routine;
+request delivery alone cannot return backing. Only the same typed stop and
+region/parent retirement chain precedes the original descriptor's one-shot
+close. A lost stop/close response retains the original error and all partial
+carriers. If process retirement completed but parent cleanup did not, the caller
+continues that parent's cleanup without signaling or retiring the child again.
+The primary compilation failure remains failed even after successful cleanup:
+partial bytes/images are not accepted, and the final physical gate is unchanged.
+
 The ordinary image producer can prepare that C executable independently of
 executing it. This preparation uses the same exact original module receipt,
 private two-library staging, binding/license/target checks and Engine Owner

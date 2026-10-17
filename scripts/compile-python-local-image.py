@@ -910,6 +910,7 @@ class CompilerProcessAssemblyError(RuntimeError):
         self.cleanup_runtime: _CompilerControlRuntime | None = None
         self.response = b''
         self.primary: BaseException | None = None
+        self.cleanup_error: BaseException | None = None
         super().__init__('Original compiler process assembly failed or is unconfirmed')
 
 
@@ -920,6 +921,52 @@ class _CompilerImage(NamedTuple):
     parent: _CompilerParent
     preparation: _CompilerRuntime
     program: Any
+
+
+def finish_failed_compilation(failure: CompilerProcessAssemblyError,
+                              *, seconds: float) -> dict[str, object]:
+    """Explicit same-invocation cleanup, never another compile or acceptance.
+
+    Only a registered failed child transport is supported here. Earlier partial
+    acquisition retains its existing error/carriers rather than falling through
+    to unrelated cleanup. The Native chain confirms process/region/parent
+    retirement before this original descriptor's one-shot close. Even then the
+    original failure and runtime aliases remain, with no accepted image.
+    """
+    from python_compiler_process import (CompilerChildProcessError,
+        finish_original_compiler_after_stop_request)
+    from python_compiler_program import _CompilerProgram
+
+    if (type(failure) is not CompilerProcessAssemblyError
+            or type(seconds) not in (int, float) or not math.isfinite(seconds) or seconds <= 0):
+        raise ValueError('Select the original compiler failure and finite cleanup budget')
+    parent, descriptor, primary = failure.cleanup_parent, failure.cleanup_descriptor, failure.primary
+    if (type(parent) is not _CompilerParent or type(descriptor) is not _OriginalDescriptor
+            or parent.descriptor is not descriptor
+            or descriptor._original is not descriptor
+            or failure.cleanup_runtime is not parent.runtime
+            or type(failure.program) is not _CompilerProgram
+            or failure.program.source != parent.original.holding.source_sha
+            or failure.program.module_sha256 != parent.original.holding.module_sha256
+            or failure.program.engine_sha256 != parent.original.holding.engine_sha256
+            or type(primary) is not CompilerChildProcessError
+            or primary.cleanup_parent is not parent):
+        raise ValueError('Original failed compiler child cleanup is unavailable')
+    try:
+        relayed = finish_original_compiler_after_stop_request(primary, timeout=seconds)
+        if not parent._closed:
+            raise ValueError('Original compiler parent cleanup remains unconfirmed')
+        descriptor.close()
+        return {'scope': 'original_compiler_failure_cleanup_only',
+            'source_sha': failure.program.source, 'request_relayed': relayed,
+            'original_process_closed': primary.cleanup_process._closed,
+            'original_parent_closed': parent._closed,
+            'backing_descriptor_closed': descriptor.closed,
+            'process_runtime_retirement_ACK': False,
+            'image_accepted': False, 'physical_acceptance': False, 'normal_profile': None}
+    except BaseException as cleanup_error:
+        failure.cleanup_error = cleanup_error
+        raise failure from cleanup_error
 
 
 def _compiler_process_report(raw: bytes, maximum: int) -> dict[str, Any]:
@@ -1056,12 +1103,16 @@ if __name__ == '__main__':
     parser.add_argument('--clang', type=Path)
     parser.add_argument('--sdk', type=Path)
     parser.add_argument('--seconds', type=float, default=50)
+    parser.add_argument('--cleanup-seconds', type=float, default=5,
+                        help='Separate bounded failed-child cleanup window; never another compilation')
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument('--verify-only', action='store_true')
     mode.add_argument('--prepare-c-config', action='store_true')
     mode.add_argument('--prepare-c-program', action='store_true')
     mode.add_argument('--compile', action='store_true')
     args = parser.parse_args()
+    if args.compile and (not math.isfinite(args.cleanup_seconds) or args.cleanup_seconds <= 0):
+        parser.error('Select a finite positive failed-child cleanup window')
     if args.verify_only:
         checked = verify(args.core_receipt, args.source)
         print(json.dumps({'scope': 'original_module_and_recipe_only',
@@ -1078,7 +1129,24 @@ if __name__ == '__main__':
             preparation=args.preparation, c_api_headers=args.c_api_headers,
             clang=args.clang, sdk=args.sdk, seconds=args.seconds)))
     else:
-        print(json.dumps(compile_from_original(args.core_receipt, args.source, args.destination,
-            bindings_source=args.bindings_source, native_libraries=args.native_libraries,
-            preparation=args.preparation, c_api_headers=args.c_api_headers,
-            clang=args.clang, sdk=args.sdk, seconds=args.seconds).receipt))
+        try:
+            compiled = compile_from_original(args.core_receipt, args.source, args.destination,
+                bindings_source=args.bindings_source, native_libraries=args.native_libraries,
+                preparation=args.preparation, c_api_headers=args.c_api_headers,
+                clang=args.clang, sdk=args.sdk, seconds=args.seconds)
+        except CompilerProcessAssemblyError as failure:
+            # This maintainer caller explicitly chooses same-original cleanup.
+            # The compilation remains failed even when physical cleanup ends;
+            # no report, partial image, new child or final receipt is accepted.
+            try:
+                cleanup = finish_failed_compilation(failure, seconds=args.cleanup_seconds)
+                with (args.destination / 'compiler-failure-cleanup.json').open('x') as record:
+                    record.write(json.dumps(cleanup, indent=2) + '\n')
+            except BaseException as cleanup_error:
+                if cleanup_error is failure:
+                    raise
+                failure.cleanup_error = cleanup_error
+                raise failure from cleanup_error
+            print(json.dumps(cleanup), file=sys.stderr, flush=True)
+            raise
+        print(json.dumps(compiled.receipt))
