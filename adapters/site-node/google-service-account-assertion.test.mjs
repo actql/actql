@@ -154,3 +154,15 @@ test('Google assertion key correspondence requires the same original rather than
   let calls=0;const proxy=new Proxy(privateKey,{get(){calls++;throw new Error('untrusted key getter');}});
   assert.equal(googleServiceAccountAssertionMatchesKey(original,proxy),false);assert.equal(calls,0);
 });
+
+test('Google assertion never synthesizes a scope from an inherited sparse-array entry',()=>{
+  const scopes=['read-only',,'write'];
+  Object.setPrototypeOf(scopes,Object.assign(Object.create(Array.prototype),{1:'inherited-scope'}));
+  assert.throws(()=>prepareGoogleServiceAccountAssertion({...base(),scopes}),{code:'InvalidGoogleAssertionScopes'});
+});
+
+test('Google assertion retains the original scope cardinality across getter-induced mutation',()=>{
+  const scopes=['read-only','original-second'];
+  Object.defineProperty(scopes,0,{get(){scopes.length=1;return 'read-only';}});
+  assert.throws(()=>prepareGoogleServiceAccountAssertion({...base(),scopes}),{code:'InvalidGoogleAssertionScopes'});
+});

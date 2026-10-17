@@ -49,9 +49,11 @@ export function prepareGoogleServiceAccountAssertion(options) {
       !Number.isSafeInteger(lifetimeSeconds) || lifetimeSeconds < 1 || lifetimeSeconds > 3600 ||
       !Number.isSafeInteger(issuedAtUnixSeconds + lifetimeSeconds)) fail('InvalidGoogleAssertionLifetime');
   if (types.isProxy(scopes) || !Array.isArray(scopes) || scopes.length === 0 || scopes.length > bound.maxScopes) fail('InvalidGoogleAssertionScopes');
+  const scopeCount = scopes.length;
   const selectedScopes = [], seen = new Set();
   let scopeBytes = 0;
-  for (let index = 0; index < scopes.length; index++) {
+  for (let index = 0; index < scopeCount; index++) {
+    if (!Object.hasOwn(scopes, index)) fail('InvalidGoogleAssertionScopes');
     const value = scopes[index];
     if (!scopeToken(value) || seen.has(value)) fail('InvalidGoogleAssertionScopes');
     scopeBytes += Buffer.byteLength(value) + (index === 0 ? 0 : 1);
