@@ -210,6 +210,15 @@ test "initial Signing foreign material refuses before journal creation and authe
       fail("changed initial Signing field admitted: " + keys[index])
     }
   }
+  for
+    pem in [
+      fields[9] + "x",
+      fields[9].replace_all(old="\n", new="\r\n"),
+      fields[9][:fields[9].length() - 1].to_owned() + "x",
+    ] {
+    assert_false(valid_initial_signing_public_pem(pem))
+  }
+  assert_true(valid_initial_signing_public_pem(fields[9]))
   let envelope = local_adoption_fields(packet, ["payload", "tag"]).unwrap()
   let tampered = local_adoption_record([
     ("payload", @base64.encode(b"changed")),

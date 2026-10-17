@@ -214,6 +214,9 @@ fn read_local_initial_signing_control(
         },
       ),
     )
+    if !valid_initial_signing_public_pem(fields[9]) {
+      return Err(CustodyLost)
+    }
     let raw = local_initial_signing_value(
       host.epoch.crypto
       .ed25519_public_key_raw32(fields[9])
@@ -452,4 +455,20 @@ fn NativeLocalHostConnection::require_initial_signing_separation(
     Err(issue) => Err(Physical(issue))
     Ok(_) => Err(CustodyLost)
   }
+}
+
+///|
+// The generated initial SPKI PEM is one fixed representation. The generic
+// Crypto parser deliberately accepts other PEM documents/trailing material;
+// it cannot alone validate this closed original record. Reuse existing base64
+// and Crypto admission, without introducing another public-key identity codec.
+fn valid_initial_signing_public_pem(pem : String) -> Bool {
+  let prefix = "-----BEGIN PUBLIC KEY-----\n"
+  let suffix = "\n-----END PUBLIC KEY-----\n"
+  if pem.length() != 113 || !pem.has_prefix(prefix) || !pem.has_suffix(suffix) {
+    return false
+  }
+  let encoded = pem[prefix.length():pem.length() - suffix.length()].to_owned()
+  let der = @base64.decode(encoded) catch { _ => return false }
+  der.length() == 44 && @base64.encode(der) == encoded
 }
