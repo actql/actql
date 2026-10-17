@@ -264,3 +264,44 @@ a synthetic row index or read grant to satisfy a declaration.
 
 Pure synchronous preparation and the existing Command child path are unchanged;
 this connection does not add DELETE to the separate saved-selection domain.
+
+## Original guarded row deletion
+
+The existing installed Row Effect accepts an explicitly installed `delete`
+kind. The checked Mapping and original input select the target; the driver
+prepares that exact target with no proposed value. An empty object, null, an
+UPDATE payload or a Command input cannot stand in for the absent value. This
+extends the existing lifecycle, not its authority or the provider's supported
+operations.
+
+The original per-row target-read decision precedes observation. The sealed
+full-diff Preview retains the observed before-value and version guard, states
+`after: {state: 'absent'}` and `intended_changes: {state: 'not_applicable'}`,
+and binds the original request CID. Mapping approval remains independent of
+Account Allow. Preparation, commit refresh, claim admission and restored
+request comparison retain their existing current and nominal-selection checks;
+an observed or acknowledged HTTP response alone cannot authorize deletion.
+
+The original capture, source holdings, request children, Ledger claim and
+response custody retain their existing owners and cleanup laws. Cancellation,
+a thrown hook, missing ACK or a lost response does not become an unsent or
+released outcome. The same request is not resent to turn an unknown result
+into success. DELETE request/response codecs and any reconciliation evidence
+remain provider-owned; this generic connection does not infer them from a
+record ID, equal bytes or an absent proposed value.
+
+The adapter additionally retains a delete capability bit only for an actual
+installed delete driver and a Mapping with its own delete permission rule.
+Existing non-delete observation shapes are unchanged. These bounded DATA
+projections and their temporary field records overlap the original input,
+request, Preview, captured payloads and cleanup-pending holdings; they issue
+no capacity reservation or numerical profile. New provider kinds still need
+normal Owner admission and physical acceptance, rather than a permissive
+fallback.
+
+The focused real Common/SQLite capture test independently checks the complete
+DELETE Preview and rejects substituted values and targets before send. The
+shared test assembly preserves the original Run, Store, journal and awaited
+stage disposal, with a Salesforce wrapper selecting its original unit reader.
+Capture evidence alone does not establish physical provider deletion, resolved
+approval, restored application, pristine installed artifacts or full funding.
