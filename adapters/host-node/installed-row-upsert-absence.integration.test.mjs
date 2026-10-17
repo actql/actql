@@ -55,7 +55,7 @@ async function fixture(t, {kind = 'upsert', observation = 'absent', targetSubsti
     required_permissions: [], minimum_approval: 'required', conversions: [],
     row_mapping: {id: {field: 'id', null_behavior: 'reject'}, value: {field: 'value', null_behavior: 'reject'}},
     permission_rules: [{effect_kind: kind, permissions: ['fixture:upsert'],
-      selector_class: 'id', write_fields: ['id', 'value']}]};
+      selector_class: kind === 'upsert' ? 'key' : 'id', write_fields: ['id', 'value']}]};
   const mapping = {...preimage, mapping_contract_cid: cid(preimage)};
   const {evidence_bundle_cid: _, ...base} = JSON.parse(await readFile(new URL('spec/local-check-environment.json', repo)));
   const environment = {...base, connector_manifest: manifest,
