@@ -952,3 +952,60 @@ response, charge, parsed Catalog, selected schema or failure aliases. The actual
 preparation phase must fund their full overlap before I/O and retain it until
 physical custody is confirmed. Post-response charging is not that supplier;
 missing installation-phase originals remain Unavailable before ordinary I/O.
+
+### Ordinary database RowRun caller
+
+The trusted installed database reader factory adapts the existing ordinary
+RowRun provider port. Common owns the saved snapshot's original declaration,
+selected source, complete checked contracts, pending property requests and row
+completion; the existing Site owns signing, claim, current authorization and
+Unknown. The factory is not a public grant constructor or an installation
+publication supplier.
+
+Its inputs are an authenticated installed snapshot, the same Site, resource,
+explicit bounds and same-runtime provider capacity. Its output is the existing
+`{capacity, prepare}` port and one `read/requestStop/observe` handle per original
+acquisition. Snapshot getters retain the same original read-contract pair;
+decoding a snapshot or matching thirteen scope fields cannot authenticate its
+installation provenance. The Host's original callbacks retain the actual
+acquisition/Run and Account decision rather than infer permission from fields.
+
+The factory captures provider and Site methods with their original receivers.
+Each prepared reader retains the original RowRun identifiers and callbacks,
+pending property requests, operation grants and original response/charge/child
+aliases. It never repeats preparation for that acquisition. Closing its HTTPS
+binding neither closes the shared Site nor retires those aliases.
+
+Every awaited Account/current check is followed by the original signal fence.
+Only a Common-issued pending occurrence selects a property operation. Its
+separate Site grant uses that same Run/dispatch and actual read decision;
+the query grant is never retargeted. Subsequent property cursors must retain the
+same original checked binding and exact page/property coordinates. The existing
+physical port independently checks each use and current authorization before
+claim/send and after the response.
+
+Missing capacity, foreign snapshots, wrong operations or original pairs refuse
+without a legacy reader fallback. Account replacement after query observation
+prevents dependent property signing/I/O. A lost property reply retains the same
+Journal Unknown, raw charge and RowRun recovery without another reader/send.
+Stop aborts that original child and closes only its transport; observation keeps
+`cleanupConfirmed:false` until a real retirement supplier exists.
+
+The original phase inventory includes factory capacity/snapshot/provider/Site
+references, captured method and wrapper closures, the acquisition WeakSet,
+per-reader control/Promise/callback graph, and the bounded pending-property Map.
+Each Map entry retains its original request, column, exact coordinate Strings,
+ordinal and operation grant/scope. Its count is bounded by admitted total rows
+times columns; pages, UTF-8/wire/contract work and temporary projections retain
+their independent bounds. These records overlap the Common row/Contract graph,
+request/signature/secret/TLS buffers, full responses and capture. They are not
+free aliases, a parser limit is not funding, and the normal installation must
+supply their full lifetime before protected I/O.
+
+Extension uses these existing snapshot, Credential and RowRun owners and keeps
+all wire/CID/version bodies unchanged. The ordinary caller tests cross actual
+Common/Account/Site/SQLite/TLS into typed RowRun capture and retain original
+failure/cleanup custody. Their explicit component capacity and installed
+metadata originals do not prove ordinary public installation, full workspace
+inventory, current Host publication persistence, physical retirement or normal
+numerical funding.
