@@ -59,6 +59,8 @@ pub fn notion_database_source_at(NotionDatabaseCatalog, Int) -> (String, String)
 
 pub fn notion_database_source_count(NotionDatabaseCatalog) -> Int
 
+pub fn notion_page_properties_write_wire(NotionDataSourceCatalog, Array[NotionPropertyWrite], NotionPropertyWriteLimits) -> Result[String, NotionPropertyWriteIssue]
+
 pub fn notion_property_definition(NotionPropertyMetadata) -> @decode_core.Cursor
 
 pub fn notion_property_item_page_complete(NotionPropertyItemPage) -> Bool
@@ -76,6 +78,8 @@ pub fn notion_property_item_request_wire(NotionPropertyItemRequest, Int, Int, In
 pub fn notion_property_read_cell_wire(NotionDataSourceReadContracts, OriginalNotionQueryRow, Int, @value_admission.Limits, Int, Int, Int, Int) -> Result[String, NotionReadCellIssue]
 
 pub fn notion_property_read_original(NotionPropertyReadColumn) -> NotionPropertyMetadata
+
+pub fn notion_property_write_matches(NotionPropertyWrite, NotionDataSourceCatalog, Int, @value_admission.CheckedValue) -> Bool
 
 pub fn notion_query_page_matches_source(OriginalNotionQueryPage, NotionDataSourceCatalog) -> Bool
 
@@ -124,6 +128,8 @@ pub fn notion_user_list_row_count(NotionUserListPage) -> Int
 pub fn notion_user_list_rows_wire(NotionUserListPage, Array[String], Int, Int, Int) -> Result[String, NotionUserListIssue]
 
 pub fn notion_user_list_schema_wire(Int, Int, Int) -> Result[String, NotionUserListIssue]
+
+pub fn prepare_notion_property_write(NotionDataSourceCatalog, Int, @value_admission.CheckedValue, NotionPropertyWriteLimits) -> Result[NotionPropertyWrite, NotionPropertyWriteIssue]
 
 pub fn project_notion_data_source(NotionDatabaseCatalog, Int, Bytes, NotionDatabaseLimits) -> Result[NotionDataSourceCatalog, NotionDatabaseIssue]
 
@@ -241,6 +247,32 @@ pub struct NotionPropertyReadColumn {
   projection : NotionPropertyProjection
   contract : @value_contract.Contract
   // private fields
+}
+
+pub struct NotionPropertyWrite {
+  // private fields
+}
+
+pub(all) enum NotionPropertyWriteIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidSelection
+  ForeignOriginal
+  DuplicateProperty(String)
+  InvalidValue(String)
+  UnsupportedProperty(String)
+  UnknownOption(String)
+  InvalidOptions(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct NotionPropertyWriteLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_properties : Int
+  max_items : Int
+  max_text_units : Int
+  max_work : Int
 }
 
 pub(all) enum NotionQueryIssue {
