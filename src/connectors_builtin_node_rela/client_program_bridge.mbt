@@ -6685,12 +6685,8 @@ pub fn client_program_effect_input_export_cancel(
 struct ClientEffectPlanImport {
   preview : @strategy.CapturedEffectPreviewInputs
   preview_index : Int
-  mut verifier : @strategy.CapturedEffectPlanVerifier?
+  verifier : @strategy.CapturedEffectPlanVerifier
   importing : ClientEffectManagedInputImport
-  published_target : @strategy.CapturedEffectCommandTarget?
-  max_fields : Int
-  max_work : Int
-  mut input_key : @strategy.CapturedEffectCommandKeyValidation?
   mut open : Bool
 }
 
@@ -6711,9 +6707,7 @@ struct ClientEffectPlanCursor {
 ///|
 fn client_effect_plan_poison(value : ClientEffectPlanCursor) -> Unit {
   value.closed = true
-  if value.owner.verifier is Some(verifier) {
-    @strategy.cancel_captured_effect_plan_verifier(verifier)
-  }
+  @strategy.cancel_captured_effect_plan_verifier(value.owner.verifier)
   @execution.cancel_completed_output_export(value.stream)
   client_program_effect_managed_input_cancel(value.owner.importing)
 }
@@ -6726,7 +6720,6 @@ pub(all) enum ClientEffectPlanStreamIssue {
   Plan(@strategy.CapturedEffectPlanVerifyIssue)
   Import(ClientEffectManagedInputIssue)
   Export(@execution.CompletedExportIssue)
-  Key(@strategy.CapturedEffectCommandKeyIssue)
 }
 
 ///|
@@ -6750,6 +6743,7 @@ pub fn client_program_effect_plan_import_begin(
     limits,
     max_fields,
     max_work,
+    None,
     None,
   )
 }
@@ -6775,6 +6769,60 @@ pub fn client_program_effect_plan_import_begin_with_target(
     max_fields,
     max_work,
     Some(target),
+    None,
+  )
+}
+
+///|
+/// The caller must already own completed original correspondence. This port
+/// does not start unfunded key work or issue a workspace allocation.
+#export_name("clientProgramEffectPlanImportBeginWithKey")
+pub fn client_program_effect_plan_import_begin_with_key(
+  preview : @strategy.CapturedEffectPreviewInputs,
+  preview_index : Int,
+  output : @execution.ManagedCompletedOutput[Int],
+  material : @execution.ManagedRetainedOutput[Int],
+  limits : @publication_host.PublicationOutputExportLimits,
+  max_fields : Int,
+  max_work : Int,
+  input_key : @strategy.CapturedEffectCommandKeyValidation,
+) -> Result[ClientEffectPlanImport, ClientEffectPlanStreamIssue] {
+  client_effect_plan_import_begin(
+    preview,
+    preview_index,
+    output,
+    material,
+    limits,
+    max_fields,
+    max_work,
+    None,
+    Some(input_key),
+  )
+}
+
+///|
+#export_name("clientProgramEffectPlanImportBeginWithTargetAndKey")
+pub fn client_program_effect_plan_import_begin_with_target_and_key(
+  preview : @strategy.CapturedEffectPreviewInputs,
+  preview_index : Int,
+  output : @execution.ManagedCompletedOutput[Int],
+  material : @execution.ManagedRetainedOutput[Int],
+  limits : @publication_host.PublicationOutputExportLimits,
+  max_fields : Int,
+  max_work : Int,
+  target : @strategy.CapturedEffectCommandTarget,
+  input_key : @strategy.CapturedEffectCommandKeyValidation,
+) -> Result[ClientEffectPlanImport, ClientEffectPlanStreamIssue] {
+  client_effect_plan_import_begin(
+    preview,
+    preview_index,
+    output,
+    material,
+    limits,
+    max_fields,
+    max_work,
+    Some(target),
+    Some(input_key),
   )
 }
 
@@ -6788,51 +6836,30 @@ fn client_effect_plan_import_begin(
   max_fields : Int,
   max_work : Int,
   published_target : @strategy.CapturedEffectCommandTarget?,
+  input_key : @strategy.CapturedEffectCommandKeyValidation?,
 ) -> Result[ClientEffectPlanImport, ClientEffectPlanStreamIssue] {
   guard @strategy.captured_effect_preview_input_at(preview, preview_index)
     is Some(input) else {
     return Err(InvalidMember)
   }
-  let requires_key = match
-    @strategy.captured_effect_command_requires_input_key(
-      @strategy.captured_effect_preview_input_owner(preview),
-      @strategy.captured_effect_input_member_index(input),
+  let verifier = match
+    @strategy.prepare_captured_effect_plan_verifier(
+      preview,
+      preview_index,
+      max_fields,
       max_work,
+      published_target~,
+      input_key~,
     ) {
-    Ok(required) => required
-    Err(issue) => return Err(Key(issue))
-  }
-  let verifier = if requires_key {
-    None
-  } else {
-    match
-      @strategy.prepare_captured_effect_plan_verifier(
-        preview,
-        preview_index,
-        max_fields,
-        max_work,
-        published_target~,
-      ) {
-      Ok(value) => Some(value)
-      Err(issue) => return Err(Plan(issue))
-    }
+    Ok(value) => value
+    Err(issue) => return Err(Plan(issue))
   }
   let importing = match
     client_program_effect_managed_input_begin(input, output, material, limits) {
     Ok(value) => value
     Err(issue) => return Err(Import(issue))
   }
-  Ok({
-    preview,
-    preview_index,
-    verifier,
-    importing,
-    published_target,
-    max_fields,
-    max_work,
-    input_key: None,
-    open: true,
-  })
+  Ok({ preview, preview_index, verifier, importing, open: true, })
 }
 
 ///|
@@ -6858,32 +6885,9 @@ pub fn client_program_effect_plan_import_finish(
     return Err(Closed)
   }
   value.open = false
-  let preparation = match
-    client_program_effect_managed_input_finish(value.importing) {
-    Ok(preparation) => preparation
-    Err(issue) => return Err(Import(issue))
-  }
-  if value.verifier is None {
-    guard @strategy.captured_effect_preview_input_at(
-        value.preview,
-        value.preview_index,
-      )
-      is Some(input) else {
-      return Err(NotReady)
-    }
-    value.input_key = match
-      client_program_effect_managed_command_key_start(
-        @strategy.captured_effect_preview_input_owner(value.preview),
-        @strategy.captured_effect_input_member_index(input),
-        value.importing,
-        value.max_work,
-      ) {
-      Ok(Some(key)) => Some(key)
-      Ok(None) => return Err(NotReady)
-      Err(issue) => return Err(Key(issue))
-    }
-  }
-  Ok({ owner: value, preparation, })
+  client_program_effect_managed_input_finish(value.importing)
+  .map(preparation => { owner: value, preparation, })
+  .map_err(issue => Import(issue))
 }
 
 ///|
@@ -6892,29 +6896,6 @@ pub fn client_program_effect_plan_advance(
   value : ClientEffectPlanPreparation,
   quantum : Int,
 ) -> Result[(Bool, Int), ClientEffectPlanStreamIssue] {
-  if value.owner.verifier is None {
-    guard value.owner.input_key is Some(key) else { return Err(NotReady) }
-    let (done, used) = match
-      @strategy.step_captured_effect_command_key_validation(key, quantum) {
-      Ok(progress) => progress
-      Err(issue) => return Err(Key(issue))
-    }
-    if done {
-      value.owner.verifier = match
-        @strategy.prepare_captured_effect_plan_verifier(
-          value.owner.preview,
-          value.owner.preview_index,
-          value.owner.max_fields,
-          value.owner.max_work,
-          published_target=value.owner.published_target,
-          input_key=Some(key),
-        ) {
-        Ok(verifier) => Some(verifier)
-        Err(issue) => return Err(Plan(issue))
-      }
-    }
-    return Ok((false, used))
-  }
   @execution.advance_completed_result_relation_export(
     value.preparation,
     quantum,
@@ -6926,9 +6907,6 @@ pub fn client_program_effect_plan_advance(
 pub fn client_program_effect_plan_ready(
   value : ClientEffectPlanPreparation,
 ) -> Result[ClientEffectPlanCursor, ClientEffectPlanStreamIssue] {
-  if value.owner.verifier is None {
-    return Err(NotReady)
-  }
   let stream = match
     @execution.finish_completed_result_relation_export_preparation(
       value.preparation,
@@ -6955,10 +6933,6 @@ pub fn client_program_effect_plan_next(
 ) -> Result[String?, ClientEffectPlanStreamIssue] {
   if value.closed || value.exhausted {
     return Err(Closed)
-  }
-  guard value.owner.verifier is Some(verifier) else {
-    client_effect_plan_poison(value)
-    return Err(NotReady)
   }
   if @strategy.captured_effect_preview_input_at(
       value.owner.preview,
@@ -6988,7 +6962,14 @@ pub fn client_program_effect_plan_next(
   let (index, batch, row) = next
   match
     @strategy.check_captured_effect_plan_row(
-      verifier, row, index, max_fields, max_work, max_bytes, max_nodes, max_depth,
+      value.owner.verifier,
+      row,
+      index,
+      max_fields,
+      max_work,
+      max_bytes,
+      max_nodes,
+      max_depth,
     ) {
     Ok(_) => ()
     Err(issue) => {
@@ -7016,10 +6997,6 @@ pub fn client_program_effect_plan_finish(
   if value.closed || !value.exhausted {
     return Err(Closed)
   }
-  guard value.owner.verifier is Some(verifier) else {
-    client_effect_plan_poison(value)
-    return Err(NotReady)
-  }
   if @strategy.captured_effect_preview_input_at(
       value.owner.preview,
       value.owner.preview_index,
@@ -7028,7 +7005,8 @@ pub fn client_program_effect_plan_finish(
     client_effect_plan_poison(value)
     return Err(NotReady)
   }
-  let proof = match @strategy.finish_captured_effect_plan_verifier(verifier) {
+  let proof = match
+    @strategy.finish_captured_effect_plan_verifier(value.owner.verifier) {
     Ok(proof) => proof
     Err(issue) => {
       client_effect_plan_poison(value)
@@ -7090,9 +7068,7 @@ pub fn client_program_effect_plan_cancel(
 pub fn client_program_effect_plan_cancel_preparation(
   value : ClientEffectPlanPreparation,
 ) -> Bool {
-  if value.owner.verifier is Some(verifier) {
-    @strategy.cancel_captured_effect_plan_verifier(verifier)
-  }
+  @strategy.cancel_captured_effect_plan_verifier(value.owner.verifier)
   client_program_effect_managed_input_cancel(value.owner.importing)
   @execution.cancel_completed_result_relation_export(value.preparation)
 }
@@ -7103,23 +7079,8 @@ pub fn client_program_effect_plan_cancel_import(
   value : ClientEffectPlanImport,
 ) -> Unit {
   value.open = false
-  if value.verifier is Some(verifier) {
-    @strategy.cancel_captured_effect_plan_verifier(verifier)
-  }
+  @strategy.cancel_captured_effect_plan_verifier(value.verifier)
   client_program_effect_managed_input_cancel(value.importing)
-}
-
-///|
-/// Incremental private-key retirement remains reachable on failure. This is
-/// separate from cancellation of the original physical reader or its import.
-#export_name("clientProgramEffectPlanKeyCleanup")
-pub fn client_program_effect_plan_key_cleanup(
-  value : ClientEffectPlanImport,
-) -> Result[Bool, @strategy.CapturedEffectCommandKeyIssue] {
-  match value.input_key {
-    Some(key) => @strategy.cleanup_captured_effect_command_key_validation(key)
-    None => Ok(true)
-  }
 }
 
 ///|
