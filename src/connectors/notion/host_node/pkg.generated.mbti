@@ -54,6 +54,8 @@ pub fn notion_query_property_value_json(@catalog.OriginalNotionQueryPage, Int, I
 
 pub fn notion_read_database_declaration(Bytes, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionDatabaseReadDeclaration, @catalog.NotionReadContractIssue]
 
+pub fn notion_read_database_id(@catalog.NotionDatabaseReadDeclaration) -> String
+
 pub fn notion_read_page_rows_json(@catalog.NotionDataSourceReadContracts, @catalog.OriginalNotionQueryPage, Array[@catalog.NotionReadRow], Int, Int, Int, Int, Int, Int, Int) -> Result[String, @catalog.NotionReadRowIssue]
 
 pub fn notion_read_row_json(@catalog.NotionReadRow, Int, Int, Int) -> Result[String, @catalog.NotionReadRowIssue]

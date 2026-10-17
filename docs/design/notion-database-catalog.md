@@ -362,3 +362,54 @@ or publish that page. This correction introduces no automatic partitioning,
 retry, replacement authorization or permanent product-wide row ceiling. A future
 complete partition strategy still requires its original planning/acquisition
 contract; it is not supplied by rejecting a capped query.
+
+## Original database discovery requests
+
+The private `createNotionDatabaseDiscovery` caller connects the existing Catalog
+selection to actual database and data-source retrieval. It receives the original
+checked alias declaration, reads its bounded database id through the private
+Common bridge and retains that same declaration. After the first response,
+`notion_database_read_source_index` alone chooses a singleton or the explicit
+id's occurrence in that original database inventory. The second request uses
+only that occurrence's id. Duplicate display names, first position, a matching
+schema or a compatible replacement do not select a source. The selected original
+schema and declaration then form the same `NotionDataSourceReadContracts` used
+by typed query and property completion; JS does not reconstruct their Contracts.
+
+Database retrieval and data-source retrieval have separate original operation
+grants/uses. Both belong to the same Site/runtime/connector/Run/task/dispatch
+scope, and current Account authorization is checked before, through and after
+each request. The caller cannot retarget one operation's grant to the other.
+The fixed GET paths and existing selected Notion API version do not come from
+response URLs. Dot-segment coordinates and overlong encoded targets refuse.
+No retries, redirect authority, public CID grant or second selection Owner is
+introduced. A current refusal or lost reply retains the same reader; a lost
+reply remains the original Credential journal's Unknown and is never resent.
+
+Every response is retained before charging/admission/current callbacks. Every
+actually returned charge remains on the same success or failure along with the
+original response, including the body that exceeds an aggregate limit. The
+existing observation callback does not retire the Catalog or grant a release.
+The reader is one-shot and has nominal methods; copied handles cannot dispatch.
+Stop aborts the same pending operation. `cleanupConfirmed` remains false on
+success, failure and stop: transport completion and protocol completion are not
+physical retirement or reservation release.
+
+The declaration/checked Contract graph, both response bodies and decode/Catalog
+graphs, original inventory, bounded metadata writer/String and parsed coordinate
+array, selected schema/property array, canonical schema writer/output, current
+and charge callbacks, credential/material references, pending Promise/handlers,
+original failure and returned aliases can overlap. Existing per-response and
+aggregate byte, metadata, Contract and output limits bound this work; they are
+not a numerical supplier, transfer allowance, lease or complete heap price.
+Aliases still extend the original lifetime and do not cost zero by sharing.
+
+This path supplies original remote observations to the existing selection and
+row readers. Trusted installation/configuration-revision membership, saved Run
+originals, standard system columns, Source/RowRun funding and physical retirement
+remain independent required integration. A discovery result is not permission,
+a currentness certificate or an installed Source. Actual Account/Credential/
+SQLite/local-TLS tests exercise singleton/explicit selection through typed rows,
+foreign/missing schema contracts, original charges, current denial, Unknown,
+nonresend, bounded output and nominal handles. They do not establish a pristine
+installed or live Notion profile.
