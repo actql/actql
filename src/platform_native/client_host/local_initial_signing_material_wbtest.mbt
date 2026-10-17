@@ -6,7 +6,7 @@ fn initial_signing_fixture(
   // Store under a currently locked parent would test lock contention instead.
   let top = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let parent = @filesystem.open_private_root(top).unwrap()
-  parent.create_directory(name).unwrap()
+  parent.create_directory(name).unwrap() |> ignore
   let source = parent.open_child(name).unwrap()
   let path = top + "/" + name
   let account = name + ".account.json"
@@ -73,10 +73,10 @@ test "initial Signing material uses exclusive Store generation and real matching
 ///|
 test "initial Signing material aliases cannot generate twice or substitute another Store" {
   let (_, _, session, crypto) = initial_signing_fixture("initial-signing-alias")
-  let alias = { ..session, }
+  let copied_session = { ..session, }
   let material = session.create_initial_signing_material(crypto).unwrap()
   let generation = material.generation
-  let failure = match alias.create_initial_signing_material(crypto) {
+  let failure = match copied_session.create_initial_signing_material(crypto) {
     Err(value) => value
     Ok(_) => fail("same original creation generated another key")
   }
