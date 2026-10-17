@@ -136,6 +136,10 @@ Receipt issuance follows native cleanup and a second original-material fence.
 Compilation also requires the trusted maintainer supplier's already acquired,
 unbound holding from the same selected provider. Runtime import, Config, pool,
 Engine, module serialization and handle cleanup use that holding's scope.
+`_NativeHoldingLease._from_native_provider` moves a trusted supplier's existing
+C slot and uses its canonical C symbols, before importing the dependent Rust
+DLL. The historical Rust-forwarder and typed child-borrow entrances remain
+separate; no symbol fallback or second provider is selected.
 Provider correspondence reuses the installed constructor's exact imported
 addresses and file checks; it does not manufacture an installed image or Core
 identity. A failed or unconfirmed close retains the same handles and holding
