@@ -890,6 +890,24 @@ pub fn client_program_kintone_form_limits(Int, Int, Int, Int, Int) -> @actql/act
 
 pub fn client_program_kintone_form_request_body(@actql/actql/connectors/kintone/host.PreparedRecordRead, Int) -> Result[String, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
+pub fn client_program_kintone_lookup_app(@actql/actql/connectors/kintone/catalog.RecordLookupRequest) -> String
+
+pub fn client_program_kintone_lookup_body(@actql/actql/connectors/kintone/catalog.RecordLookupRequest) -> String
+
+pub fn client_program_kintone_lookup_limits(Int, Int, Int, Int, Int, Int) -> @actql/actql/connectors/kintone/catalog.RecordLookupLimits
+
+pub fn client_program_kintone_lookup_match(@actql/actql/connectors/kintone/catalog.RecordLookupObservation, @actql/actql/connectors/kintone/catalog.RecordLookupObservation) -> Result[Unit, @actql/actql/connectors/kintone/catalog.RecordLookupIssue]
+
+pub fn client_program_kintone_lookup_page(@actql/actql/connectors/kintone/catalog.RecordLookupObservation) -> @actql/actql/connectors/kintone/catalog.OriginalRecordPage
+
+pub fn client_program_kintone_lookup_recheck_form(@actql/actql/connectors/kintone/catalog.RecordLookupRequest, Bytes, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> Result[Unit, @actql/actql/connectors/kintone/catalog.RecordLookupIssue]
+
+pub fn client_program_kintone_lookup_request(@actql/actql/connectors/kintone/catalog.FormFieldCatalog, String, String, Array[String], @actql/actql/connectors/kintone/catalog.RecordLookupLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordLookupRequest, @actql/actql/connectors/kintone/catalog.RecordLookupIssue]
+
+pub fn client_program_kintone_lookup_response(@actql/actql/connectors/kintone/catalog.RecordLookupRequest, Int, Bytes, @actql/actql/connectors/kintone/catalog.RecordPageLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordLookupObservation, @actql/actql/connectors/kintone/catalog.RecordLookupIssue]
+
+pub fn client_program_kintone_lookup_uses_request(@actql/actql/connectors/kintone/catalog.RecordLookupObservation, @actql/actql/connectors/kintone/catalog.RecordLookupRequest) -> Bool
+
 pub fn client_program_kintone_mutation_limits(Int, Int, Int, Int, Int, Int) -> @actql/actql/connectors/kintone/catalog.RecordMutationLimits
 
 pub fn client_program_kintone_original_record_target(@actql/actql/connectors/kintone/catalog.OriginalRecordPage, Int, Int) -> Result[@actql/actql/connectors/kintone/catalog.OriginalRecordTarget, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]

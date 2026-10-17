@@ -1,11 +1,11 @@
 {
-  "source": "a6cabd33cd55bdd9f59850877ef2a88412d648a7",
+  "source": "0a9ffa28608976fe94039baaeb3dfffd06f82d96",
   "qualification": "existing Client boundary references; not semantic proof, target execution or installed E2E",
   "declarations": [
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "fcc21e611792bd7662e3dd96a592f3089be698cb9ea90ff2426b1491a7b7b4a9",
+      "sha256": "85d910cb5aaa52afad8fd80dc3adcc1f3821682db5441fa086409364d2ecba0a",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",
@@ -55,6 +55,7 @@
         "RowEffectProjection",
         "RowEffectRequestChild",
         "RowEffectRequestFacts",
+        "RowEffectTargetObservation",
         "RowEffectValue",
         "RowEffectValueKind",
         "RowMappingSource",
@@ -354,7 +355,7 @@
           "parameters": [
             "options: Readonly<{member: RowEffectMember<Kind>;\n    entries: readonly RowEffectEntry<Request, Kind>[]; current: Current | undefined;\n    authorizationForRow: (index: number) => Promise<InvocationAuthorization>;\n    signal?: AbortSignal}>"
           ],
-          "result": "Awaitable<readonly Readonly<{\n      identity: ConnectorJsonValue; versionCid: string;\n      before: ConnectorJsonObject}>[]>"
+          "result": "Awaitable<readonly RowEffectTargetObservation<Kind>[]>"
         },
         {
           "name": "RowEffectDriver/observeTargets/<call>",
@@ -701,7 +702,8 @@
             "openRowSourceCredentialSite",
             "retainInstalledHostInitializationFailure",
             "rowSourceCheckEnvironment",
-            "rowSourceMapping"
+            "rowSourceMapping",
+            "RowEffectTargetObservation"
           ],
           "attributes": {
             "responsibility": [
@@ -720,6 +722,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Public Row Effect request kinds"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Responsibility: the existing installed Row Effect retains the original"
               }
             ],
             "inputsOutputs": [
@@ -738,6 +744,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Public Row Effect request kinds"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Inputs and outputs: `observeTargets` retains the original present"
               }
             ],
             "identity": [
@@ -764,6 +774,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Public Row Effect request kinds"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Identity: original request target and observation identity must match; the"
               }
             ],
             "ownership": [
@@ -790,6 +804,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Public Row Effect request kinds"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Ownership: existing capture/request children retain original reads and their"
               }
             ],
             "synchronization": [
@@ -816,6 +834,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Public Row Effect request kinds"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Synchronization: insert-side UPSERT emits before absent and a not-applicable"
               }
             ],
             "failure": [
@@ -838,6 +860,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Public Row Effect request kinds"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Failure: absent observations with before/version fields, unknown presence,"
               }
             ],
             "cancellation": [
@@ -864,6 +890,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Public Row Effect request kinds"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Cancellation: observation completion is not physical stop or release. Original"
               }
             ],
             "resources": [
@@ -890,6 +920,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Public Row Effect request kinds"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Resources: bounded observation envelope copies, original before references,"
               }
             ],
             "extension": [
@@ -912,6 +946,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "## Public Row Effect request kinds"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Extension: the additive public driver union restricts absence to UPSERT and"
               }
             ],
             "verification": [
@@ -950,6 +988,10 @@
               {
                 "path": "scripts/row-effect-delete-types.test.mjs",
                 "anchor": "public types actually reject proposed DELETE values and missing original value or cleanup"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Verification: `installed-row-upsert-absence.integration.test.mjs` uses actual"
               }
             ]
           }

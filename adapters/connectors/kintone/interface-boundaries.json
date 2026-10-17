@@ -1,5 +1,5 @@
 {
-  "source": "74ed37aed61cb7528abe8f6425405f22b6a557da",
+  "source": "a0411a7cd8caa71089e39a9be11787c641b5c6ee",
   "qualification": "Existing kintone original Catalog, Row Source, Account and Credential Site physical boundary references; not another Owner, permission, artifact or numerical admission",
   "declarations": [
     {
@@ -1062,7 +1062,7 @@
     },
     {
       "module": "src/connectors/kintone/catalog/record_lookup.mbt",
-      "sha256": "f9d628ccbdeb9270984933da7a670b1e1abe12df4dacbdebf46584cd32282ddc",
+      "sha256": "abdd72910fb12cf02e3ec6d7a7e0f461498c35c64e69de2525110b39f0517fdc",
       "exports": [],
       "operations": [
         {
@@ -1076,6 +1076,10 @@
         {
           "name": "project_record_key_lookup",
           "declaration": "project_record_key_lookup ( request : RecordLookupRequest , status : Int , bytes : Bytes , limits : RecordPageLimits , ) - > Result [ RecordLookupObservation , RecordLookupIssue ]"
+        },
+        {
+          "name": "recheck_record_lookup_form",
+          "declaration": "recheck_record_lookup_form ( request : RecordLookupRequest , bytes : Bytes , limits : FormFieldLimits , ) - > Result [ Unit , RecordLookupIssue ]"
         },
         {
           "name": "record_key_lookup_page",
@@ -1096,6 +1100,10 @@
         {
           "name": "record_lookup_limits_valid",
           "declaration": "record_lookup_limits_valid ( limits : RecordLookupLimits ) - > Bool"
+        },
+        {
+          "name": "record_lookup_request_app_id",
+          "declaration": "record_lookup_request_app_id ( request : RecordLookupRequest ) - > String"
         },
         {
           "name": "record_lookup_request_body",
@@ -1123,7 +1131,9 @@
             "record_lookup_field_token",
             "record_lookup_limits_valid",
             "record_lookup_request_body",
-            "record_lookup_request_uses_catalog"
+            "record_lookup_request_uses_catalog",
+            "recheck_record_lookup_form",
+            "record_lookup_request_app_id"
           ],
           "exports": [],
           "attributes": {
@@ -1201,6 +1211,217 @@
               {
                 "path": "src/connectors/kintone/catalog/record_lookup_wbtest.mbt",
                 "anchor": "positive byte column comparison request and page bounds refuse without partial lookup material"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_lookup_wbtest.mbt",
+                "anchor": "lookup Form recheck preserves original complete metadata and positive uniqueness"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/kintone/site/kintone-key-lookup.mjs",
+      "sha256": "7e51b8b91c51bb5bd93db14f2c86f88eda1630c8c4e8fe85a69fa4ea4a0d7a6a",
+      "exports": [
+        "KintoneLookupFailure",
+        "readRawKintoneKeyLookup"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "KintoneLookupFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause",
+            "observations",
+            "phase"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readRawKintoneKeyLookup",
+          "parameters": [
+            "moon",
+            "originalAppId",
+            "request",
+            "initialAuthorization",
+            "credential",
+            "authorizationFor",
+            "current",
+            "limits",
+            "chargeResponse",
+            "consumeObservation",
+            "guestSpaceId",
+            "signal",
+            "callResource"
+          ],
+          "async": true
+        },
+        {
+          "name": "readRawKintoneKeyLookup/form/form",
+          "parameters": [
+            "index"
+          ],
+          "async": true
+        },
+        {
+          "name": "readRawKintoneKeyLookup/readRawKintoneKeyLookup",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "readRawKintoneKeyLookup/readRawKintoneKeyLookup#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "readRawKintoneKeyLookup/readRawKintoneKeyLookup#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readRawKintoneKeyLookup/receive/receive",
+          "parameters": [
+            "operation",
+            "index",
+            "path",
+            "payload"
+          ],
+          "async": true
+        },
+        {
+          "name": "readRawKintoneKeyLookup/receive/receive/response/response",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "readRawKintoneKeyLookup/receive/receive/response/response/response",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readRawKintoneKeyLookup/verify/verify",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        }
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "./kintone-record-delete.mjs",
+        "./kintone-record-read.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing original Account/Credential Site and caller response custody; kintone request/observation interpretation stays in Catalog",
+      "rationale": "Same-binding independently counted authenticated reads with final current, exact response retention and original cleanup; no second Run, funding or Effect authority.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "KintoneLookupFailure/constructor:constructor/constructor:constructor",
+            "positive/positive",
+            "readRawKintoneKeyLookup",
+            "readRawKintoneKeyLookup/form/form",
+            "readRawKintoneKeyLookup/readRawKintoneKeyLookup",
+            "readRawKintoneKeyLookup/readRawKintoneKeyLookup#2",
+            "readRawKintoneKeyLookup/readRawKintoneKeyLookup#3",
+            "readRawKintoneKeyLookup/receive/receive",
+            "readRawKintoneKeyLookup/receive/receive/response/response",
+            "readRawKintoneKeyLookup/receive/receive/response/response/response",
+            "readRawKintoneKeyLookup/verify/verify"
+          ],
+          "exports": [
+            "KintoneLookupFailure",
+            "readRawKintoneKeyLookup"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Responsibility: `kintone-key-lookup.mjs` borrows the existing Account,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Inputs and outputs: the original opaque lookup request, original App, complete"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Identity: the same original private binding and request span all three reads."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Ownership: existing acquisition custody retains original request/Form, private"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Synchronization: current Account/Site is checked before authorization, after"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Failure: non-200, malformed, incomplete, duplicate or foreign-key responses"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Cancellation: abort or failed current does not acknowledge physical stop or"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Resources: original Catalog/request and body, Form and lookup response bytes,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Extension: the private Node/RelA bridge forwards the same Catalog originals;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Verification: `kintone-key-lookup.test.mjs` drives actual Common, Account,"
               }
             ]
           }
