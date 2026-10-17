@@ -8,6 +8,7 @@
 #include "worker_selection_shim.h"
 #include "original_read_shim.h"
 #include "live_channel_shim.h"
+#include "process_shim.h"
 #include "sqlite_shim.h"
 #include "sqlite_database_shim.h"
 #include "packaged_product_shim.h"
@@ -94,6 +95,16 @@ int actql_parent_read_leave_into(actql_control_host * host, actql_parent_read * 
 int32_t actql_parent_read_operation(actql_parent_read_reply * reply);
 int actql_parent_read_originals_into(actql_parent_read_reply * reply, actql_control_host ** host, actql_domain ** domain, actql_parent_read ** original);
 int actql_parent_read_prepare_into(actql_control_host * host, actql_domain * domain, int64_t bootstrap_retained, int64_t bootstrap_execution, int64_t workspace, int64_t read_retained, int64_t read_execution, actql_parent_read_reply ** reply);
+int actql_process_child_utf16_into(actql_control_host * host, actql_domain * domain, actql_process * process, const uint16_t * executable, int32_t units, const uint8_t * arguments, int32_t arguments_bytes, const uint8_t * environment, int32_t environment_bytes, actql_process_reply ** slot);
+int actql_process_copy_facts(actql_process_reply * reply, actql_control_host * host, actql_domain * domain, actql_process * process, int32_t * facts);
+int actql_process_drop_reply(actql_process_reply ** slot, actql_control_host * host, actql_domain * domain, actql_process * process);
+int actql_process_finish_closed_data(actql_control_host ** host, actql_domain ** domain, actql_process ** process, actql_live_channel ** channel, actql_original_child_frame ** frame, actql_process_reply ** reply);
+int actql_process_finish_refused_prepare(actql_control_host ** host, actql_domain ** domain, actql_process_reply ** reply);
+int32_t actql_process_issue_family(actql_process_reply * reply);
+int actql_process_operate_into(actql_control_host * host, actql_domain * domain, actql_process * process, int32_t operation, actql_process_reply ** slot);
+int32_t actql_process_operation(actql_process_reply * reply);
+int actql_process_originals_into(actql_process_reply * reply, actql_control_host ** host, actql_domain ** domain, actql_process ** process, actql_live_channel ** channel, actql_original_child_frame ** frame);
+int actql_process_prepare_utf16_into(actql_control_host * host, actql_domain * domain, const uint16_t * path, int32_t units, int32_t descriptor, int64_t nonce, int64_t retained, int64_t execution, actql_process_reply ** slot);
 int actql_sqlite_close_into(actql_control_host * host, actql_sqlite_original * original, actql_sqlite_reply ** reply);
 int actql_sqlite_current_into(actql_control_host * host, actql_sqlite_original * original, actql_sqlite_reply ** reply);
 int32_t actql_sqlite_database_after_issue_family(actql_sqlite_database_reply * reply);
