@@ -111,3 +111,59 @@ starts no retry, replacement token lookup or second DELETE.
 - Verification: `kintone-record-delete.test.mjs` drives real Common Account,
   signed Credential Site, SQLite and loopback TLS with independent request
   assertions, refusal/rotation/response-loss/current/retirement counters.
+
+## Original deletion Mapping
+
+`prepare_row_delete_mapping` projects the existing Mapping DATA from one
+original RowDeclaration and its exact selected View/carrier-schema members.
+It retains the original connector manifest, resource kind and complete checked
+schema. DELETE introduces no writable fields or proposed value. The selected
+primary field must be present, non-null and key-comparable; this metadata
+predicate does not prove a provider uniqueness constraint or issue authority.
+The existing Mapping reader and permission Owner still admit the result.
+
+The kintone `RecordDeleteMapping` holds that Mapping beside the same original
+Form/declaration. It fixes the API `$id` identity and existing deletion operation,
+never Record Number. Matching a request requires the same original Catalog and
+complete original declared page selection. Re-admitting equal Form bytes or a
+separate equal declaration cannot reconstruct this nominal relationship.
+
+The original carrier fields are preserved exactly, including native empty-text
+nullability and required Array fields. A conditional-presence Relation that
+cannot project to the existing closed object Mapping refuses this projection;
+that is not a language-wide restriction on Relation fields. No schema, View or
+Catalog is regenerated to make a request match.
+
+### Deletion Mapping interface responsibilities
+
+- Responsibility: existing RowDeclaration/Mapping and vendor Catalog Owners
+  project metadata; the existing Site/Effect retains physical execution.
+- Inputs and outputs: original declaration, selected resource/primary field,
+  existing permission/approval choice and positive caller limits produce the
+  existing Mapping shape, or a typed refusal without partial output.
+- Identity: original View output reference, carrier-schema CID and manifest
+  correspondence are rechecked; kintone matches original Catalog identity,
+  complete field selection and paired API IDs/revisions.
+- Ownership: `RecordDeleteMapping` retains its original declaration/Form and
+  Mapping. No new Site, journal, cleanup owner or synthetic target is created.
+- Synchronization: this synchronous projection and nominal matching confer no
+  current grant. Actual acquisition, approval, Preview, dispatch and awaited
+  transport/current fences remain mandatory at their original Owners.
+- Failure: foreign/mutated original members, absent/nullable primary fields,
+  incompatible conditional presence and exhausted limits return no Mapping;
+  request mismatch never authorizes fallback, lookup or physical send.
+- Cancellation: metadata completion is not transport stop or cleanup ACK;
+  existing capture/Slot/Root custody must retain every unsettled dependency.
+- Resources: original declaration strings, selected View, retained Form/page,
+  Source/Decode/JSON trees and checked schema overlap canonical writer,
+  preimage/UTF-8/hash workspace, field arrays and the returned Mapping. The
+  same positive caller byte/node/depth/field/View ceilings bound projection,
+  not whole-phase simultaneous retention or a funded normal profile.
+- Extension: the existing typed Node/RelA bridge forwards the same opaque
+  originals; absent exports refuse before physical entry. Equal wire does not
+  substitute for an issued original, permission or revision observation.
+- Verification: strict Common and vendor whitebox counters cover original
+  Mapping admission, exact schema/permission fields, bounded refusal and foreign
+  originals. `kintone-delete-mapping.test.mjs` consumes the actual Common bridge
+  and compares its schema with that same issued declaration. These checks do
+  not claim installed approved vendor deletion, reconciliation or full funding.
