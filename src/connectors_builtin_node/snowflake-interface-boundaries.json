@@ -206,7 +206,7 @@
       "responsibilityFacet": "primary",
       "role": "generated-binding",
       "owner": "Same-runtime wrappers of existing Common and Snowflake Owners",
-      "sha256": "36136b994aa095d07e7c40471c86ab87e3d0b0cd4bc7da8d8be492c94f3d7429",
+      "sha256": "88a914ee04572327f0e4a4838cda174d0862c2e1d31b3ddb495c09358eadc27c",
       "exports": [],
       "operations": [
         {
@@ -220,6 +220,10 @@
         {
           "name": "client_program_row_source_check_original_acquisition",
           "declaration": "client_program_row_source_check_original_acquisition ( acquisition : @ client_row_source_host . RowAcquisition , declaration : @ client_row_source_host . RowDeclaration , requirement : @ planning . QueryRequirement , ) - > Result [ Unit , @ client_row_source_host . RowHostIssue ]"
+        },
+        {
+          "name": "client_program_row_source_start_provider_accounted",
+          "declaration": "client_program_row_source_start_provider_accounted ( acquisition : @ client_row_source_host . RowAcquisition , capacity : @ execution . ExecutionCapacity ? , nonce : String , verify : ( @ client_row_source_host . RowAttempt ) - > Bool , ledger : @ resources . Ledger , transfer_bytes : Int64 , execution_scratch : Int64 , ) - > Result [ @ client_row_source_host . RowRun , @ client_row_source_host . RowHostIssue , ]"
         }
       ],
       "contracts": [
@@ -228,7 +232,8 @@
             "<module>",
             "client_program_row_source_bind_response_cleanup",
             "client_program_row_source_borrow_responses",
-            "client_program_row_source_check_original_acquisition"
+            "client_program_row_source_check_original_acquisition",
+            "client_program_row_source_start_provider_accounted"
           ],
           "exports": [],
           "attributes": {
@@ -236,60 +241,124 @@
               {
                 "path": "src/connectors_builtin_node/snowflake-read-interface.md",
                 "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Supplementary provider overlap"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/connectors_builtin_node/snowflake-read-interface.md",
                 "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "pub fn start_accounted_provider_row_acquisition"
               }
             ],
             "identity": [
               {
                 "path": "src/connectors_builtin_node/snowflake-read-interface.md",
                 "anchor": "- Identity:"
+              },
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "physical_equal(configuration, acquisition.configuration)"
               }
             ],
             "ownership": [
               {
                 "path": "src/connectors_builtin_node/snowflake-read-interface.md",
                 "anchor": "- Ownership:"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "provider_capacity : @execution.ExecutionCapacity?"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "@resources.reserve_attempt"
               }
             ],
             "synchronization": [
               {
                 "path": "src/connectors_builtin_node/snowflake-read-interface.md",
                 "anchor": "- Synchronization:"
+              },
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "physical.cleanup_confirmed = Some(cleanup)"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Before any provider page or completion"
               }
             ],
             "failure": [
               {
                 "path": "src/connectors_builtin_node/snowflake-read-interface.md",
                 "anchor": "- Failure:"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "return Err(Physical(InvalidLimits))"
+              },
+              {
+                "path": "src/query_integration/provider_capacity_wbtest.mbt",
+                "anchor": "provider envelope missing and one short refuse"
               }
             ],
             "cancellation": [
               {
                 "path": "src/connectors_builtin_node/snowflake-read-interface.md",
                 "anchor": "- Cancellation:"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "pub fn close_accounted_row_run"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "False retirement keeps the same debt for retry"
               }
             ],
             "resources": [
               {
                 "path": "src/connectors_builtin_node/snowflake-read-interface.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "9223372036854775807L - retained"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "execution and remaining retention survive evidence generation"
               }
             ],
             "extension": [
               {
                 "path": "src/connectors_builtin_node/snowflake-read-interface.md",
                 "anchor": "- Extension:"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Ordinary and listing-report entries keep their existing selection semantics"
               }
             ],
             "verification": [
               {
                 "path": "src/connectors_builtin_node/snowflake-read-interface.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/query_integration/provider_capacity_wbtest.mbt",
+                "anchor": "provider envelope survives capture callback completion"
+              },
+              {
+                "path": "src/query_integration/provider_capacity_wbtest.mbt",
+                "anchor": "provider envelope requires the exact reader cleanup binding"
               }
             ]
           }

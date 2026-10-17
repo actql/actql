@@ -102,15 +102,15 @@ pub fn start_accounted_listing_row_acquisition(
 }
 
 ///|
-// Capture does not retire explicitly selected report backing or later evidence
-// encoding. Keep that profile's remaining allowance until actual Row cleanup.
-// Ordinary resolved listings and non-listing captures retain their existing
-// immediate settlement; the presence of listing limits does not select reports.
+// Capture does not retire explicitly selected report/provider backing or later
+// evidence encoding. Keep its remaining allowance until actual Row cleanup.
+// Ordinary profiles retain immediate settlement; listing limits alone select
+// neither report backing nor supplementary provider capacity.
 fn settle_row_capture_capacity(
-  reports_selected : Bool,
+  extended_selected : Bool,
   physical : RowPhysical,
 ) -> Result[Unit, RowHostIssue] {
-  if reports_selected {
+  if extended_selected {
     if !@resources.reservation_open(physical.reservation) {
       return Err(Physical(ClosedReservation))
     }
