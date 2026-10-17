@@ -170,3 +170,52 @@ test('an auth-registered binding cannot use the old Bearer port before its separ
   assert.equal(f.secretResolutions(), 0);
   assert.equal(f.journal.recover().length, 1);
 });
+
+test('the original resolver failure retains its own cleanup duty beside binding retirement', async t => {
+  const cleanup = Object.freeze({status: () => ({pending: true}), retry: async () => {}});
+  const failure = Object.freeze(Object.assign(new Error('OriginalMaterialReaderPending'), {
+    cleanupHandle: cleanup, cleanupPending: true,
+  }));
+  const f = await fixture(t, {resolve: async () => {throw failure;}});
+  await assert.rejects(f.call(), error => error === failure);
+  assert.equal(closeHttpsCredentialBinding(f.binding), 'closed');
+  // The binding ACK is not the failed resolver's original Reader ACK.
+  assert.equal(failure.cleanupHandle, cleanup);
+  assert.equal(failure.cleanupHandle.status().pending, true);
+  assert.equal(failure.cleanupPending, true);
+  assert.equal(f.resolutions(), 1);
+});
+
+test('every generated invocation field remains required before material lookup', async t => {
+  const f = await fixture(t);
+  const {credentialInvocationBindingKeys} = await import('../host-common/credential-scope-fields.generated.mjs');
+  for (const field of credentialInvocationBindingKeys) {
+    const missing = {...f.scope}; delete missing[field];
+    await assert.rejects(f.call({scope: missing}), {code: 'ForeignRemoteCredentialBinding'});
+  }
+  assert.equal(f.resolutions(), 0);
+  assert.equal(f.journal.recover().length, 1);
+});
+
+test('a key replacement during the final current await cannot replace the original native object', async t => {
+  const f = await fixture(t), replacement = generateKeyPairSync('rsa', {modulusLength: 2048}).privateKey;
+  let currents = 0;
+  await assert.rejects(f.call({currentBeforeSign: async () => {
+    if (++currents === 2) f.original.privateKey = replacement;
+  }}), {code: 'RemoteCredentialAuthenticationMaterialChanged'});
+  assert.equal(f.resolutions(), 1);
+});
+
+test('registration missing generation or finite signing limits performs no material lookup', async t => {
+  const f = await fixture(t);
+  for (const authentication of [{...f.registration, keyGeneration: undefined},
+    {...f.registration, signingLimits: undefined},
+    {...f.registration, signingLimits: {...limits, maxRequestBytes: 0}},
+    {...f.registration, signingLimits: {...limits, maxRequestBytes: 2147483648}}]) {
+    assert.throws(() => openHttpsCredentialBinding({scope: f.scope, control,
+      journal: f.journal, resolveSecret: f.resolveSecret, maxSecretBytes: 64, authentication}),
+    {code: 'InvalidRemoteCredentialAuthenticationRegistration'});
+  }
+  assert.equal(f.resolutions(), 0);
+  assert.equal(f.journal.recover().length, 1);
+});

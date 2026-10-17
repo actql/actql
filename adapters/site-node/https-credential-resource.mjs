@@ -35,7 +35,8 @@ function ownAuthenticationRegistration(value) {
       !Array.isArray(inputScopes) || types.isProxy(inputScopes) || inputScopes.length === 0 ||
       !Number.isSafeInteger(lifetimeSeconds) || lifetimeSeconds <= 0 || lifetimeSeconds > 3600 ||
       limits === undefined || Object.keys(limits).length !== requiredLimits.length ||
-      requiredLimits.some(name => !Number.isSafeInteger(limits[name]) || limits[name] <= 0) ||
+      requiredLimits.some(name => !Number.isSafeInteger(limits[name]) ||
+        limits[name] <= 0 || limits[name] > 2147483647) ||
       Buffer.byteLength(keyGeneration) > limits.maxIdentityBytes) {
     fail('InvalidRemoteCredentialAuthenticationRegistration');
   }

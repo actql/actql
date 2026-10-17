@@ -228,3 +228,46 @@ returning a grant does not change response-loss Unknown or allow a new token
 exchange. If COMMIT outcome is unknown, the call throws without returning a
 claim result, even if a subsequent observation sees its durable row. Original
 journal/custody and no-resend responsibility remain with the existing Owner.
+
+### Native authentication material in the original binding
+
+An internal trusted installation can register an authentication selection with
+its existing opaque HTTPS Credential binding. `authentication` supplies an
+explicit original resolver, its synchronous `assertCurrentMaterial`, original
+service-account identity, ordered scopes, optional delegated subject, actual
+key generation, positive lifetime and the existing signer's seven explicit
+ceilings. There is no public profile/wire fallback or inferred generation from
+a key ID, equal key bytes or Site generation. Unregistered preparation and an
+incomplete registration refuse before resolving material.
+
+`prepareHttpsCredentialAuthenticationMaterial` uses the actual original parent
+claim, current/capacity callback and Journal authorization before lookup and
+after the material/current awaits. The resolver returns its original native RSA
+KeyObject, identity/scopes/subject/generation and explicit material expiry. Its
+current callback checks that original selection; equality alone is not current
+Account, grant or key authority. The original native reference and metadata are
+checked again before the existing vendor signer runs. Signing lifetime is
+clamped to that same signed parent grant, selected material and explicit signer
+lifetime, without a new grant or token-derived API permission.
+
+The returned material is an empty same-process opaque original, with no key,
+form body, assertion, token, digest or CID getter. Private native material and
+the original signer's request are retained by that binding until its operation
+and request/socket references retire. Binding retirement is not GC/RSS recovery
+or a failed resolver Reader's cleanup ACK. Resolver failures propagate unchanged
+with their original cleanup handle to the existing caller's failure carrier.
+No second lookup or new signing attempt is made on the same binding. A binding
+with an auth registration cannot use the legacy Bearer port to bypass its still
+separate original authentication exchange.
+
+This preparation component does not send an auth request, claim/settle an auth
+use, install a normal profile or mint a token. Site issuer, same-runtime Common
+request/use correspondence and the original form/token exchange remain separate
+physical connections. The resolver's material must carry actual generation and
+current facts; a test fixture providing those facts is not an installed secret
+supplier. The original native key/selection, registration and copied ordered
+scopes/limits, parent claim/grant, resolver/current Promises, opaque reference,
+signer JSON/UTF8/base64/signature/form backing and overlapping frames add to the
+same original retained/workspace inventory. Positive local ceilings do not
+supply numerical funding; normal supply remains None until that composition is
+proved by its existing Owner.
