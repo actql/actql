@@ -21,13 +21,12 @@ pub fn public_index_run_observation_cids(
 // dependency inventory or interpret provenance as permission/completion.
 fn result_artifact_provenance(
   artifact : PublicationContract,
-) -> Result[@json.CanonicalValue, DeliveryIssuanceIssue] {
+) -> Result[@json.FrozenArray[@json.CanonicalValue], DeliveryIssuanceIssue] {
   if artifact.name != "result_artifact" {
     return Err(DeliveryIssuanceWrongContract("result_artifact"))
   }
   guard @json.object_field(artifact.value, "provenance_evidence_cids")
-    is Some(provenance) &&
-    provenance is @json.Array(_) else {
+    is Some(@json.Array(provenance)) else {
     return Err(DeliveryIssuanceReferenceMismatch("result_artifact.provenance"))
   }
   Ok(provenance)
@@ -39,9 +38,7 @@ fn result_artifact_provenance(
 pub fn result_artifact_provenance_count(
   artifact : PublicationContract,
 ) -> Result[Int, DeliveryIssuanceIssue] {
-  result_artifact_provenance(artifact).map(value => {
-    @json.array_values(value).length()
-  })
+  result_artifact_provenance(artifact).map(value => @json.array_count(value))
 }
 
 ///|
@@ -56,13 +53,12 @@ pub fn result_artifact_provenance_at(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let values = @json.array_values(provenance)
-  if ordinal < 0 || ordinal >= values.length() {
+  if ordinal < 0 || ordinal >= @json.array_count(provenance) {
     return Err(
       DeliveryIssuanceReferenceMismatch("result_artifact.provenance_index"),
     )
   }
-  guard values[ordinal] is @json.String(cid) else {
+  guard @json.array_at(provenance, ordinal) is Some(@json.String(cid)) else {
     return Err(DeliveryIssuanceReferenceMismatch("result_artifact.provenance"))
   }
   Ok(cid)
