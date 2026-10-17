@@ -115,6 +115,24 @@ class WorkerProcessTests(unittest.TestCase):
         with self.assertRaises(RuntimeError): self.process.prepare_original_descriptors()
         self.assert_no_execution_ack()
 
+    def test_preparation_current_callback_cannot_reenter_prepare_or_spawn(self):
+        original = self.case.case.supplier.require_launch_originals
+        entries = []
+        def current(*args):
+            original(*args)
+            if self.process._descriptor_prepare_active:
+                entries.append(True)
+                with self.assertRaises(RuntimeError): self.process.prepare_original_descriptors()
+                with self.assertRaises(RuntimeError): self.process.spawn()
+        self.case.case.supplier.require_launch_originals = current
+        self.process.prepare_original_descriptors()
+        self.assertTrue(entries)
+        self.assertFalse(self.process._descriptor_prepare_active)
+        self.assertFalse(self.process._spawn_attempted)
+        self.assertEqual(self.os_pipe.call_count, 3)
+        self.os_posix_spawn.assert_not_called()
+        self.assert_no_execution_ack()
+
     def test_prepared_descriptor_cleanup_prevents_launch_without_new_pipes(self):
         self.process.prepare_original_descriptors()
         self.process.close_parent_descriptors()

@@ -103,6 +103,7 @@ class OriginalWorkerProcess:
         self._native_retirement_inflight = False
         self._native_retirement_unknown: BaseException | None = None
         self._descriptor_prepare_attempted = False
+        self._descriptor_prepare_active = False
         self._descriptors_prepared = False
         self._spawn_syscall_attempted = False
         self._spawn_attempted = False
@@ -411,25 +412,31 @@ class OriginalWorkerProcess:
 
     def _prepare_original_descriptors(self) -> None:
         self._launchable()
-        if self._descriptor_prepare_attempted:
-            raise RuntimeError('Original worker descriptor preparation was already attempted')
-        self._funding.require_launch()
-        self._launchable()
-        self._require_native_current()
-        self._descriptor_prepare_attempted = True
-        self._verify_executable()
-        self._duplicate_original_domain()
-        self._stdin, self._stdout, self._stderr = self._pipe(), self._pipe(), self._pipe()
-        self._funding.require_launch()
-        self._launchable()
-        self._require_native_current()
-        self._descriptors_prepared = True
+        if self._descriptor_prepare_attempted or self._descriptor_prepare_active:
+            raise RuntimeError('Original worker descriptor preparation was already attempted or is active')
+        # Busy before any current callback can reenter. This guards physical
+        # custody only; the existing supplier remains the authority.
+        self._descriptor_prepare_active = True
+        try:
+            self._funding.require_launch()
+            self._launchable()
+            self._require_native_current()
+            self._descriptor_prepare_attempted = True
+            self._verify_executable()
+            self._duplicate_original_domain()
+            self._stdin, self._stdout, self._stderr = self._pipe(), self._pipe(), self._pipe()
+            self._funding.require_launch()
+            self._launchable()
+            self._require_native_current()
+            self._descriptors_prepared = True
+        finally:
+            self._descriptor_prepare_active = False
 
     def spawn(self) -> None:
         with self._lock:
             self._launchable()
-            if self._spawn_attempted:
-                raise RuntimeError('Original worker spawn was already attempted')
+            if self._spawn_attempted or self._descriptor_prepare_active:
+                raise RuntimeError('Original worker spawn was already attempted or descriptor preparation is active')
             self._funding.require_launch()
             self._launchable()
             self._require_native_current()
