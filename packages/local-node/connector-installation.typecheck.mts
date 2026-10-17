@@ -8,6 +8,7 @@ import type {
   ConnectorJsonObject, ConnectorRuntimeHandle, ConnectorRuntimeOwner,
   CredentialResponse, RowSourceCredentialProfile, RowSourceDeclarationFacts,
   InstalledRowProviderReader, RowProviderReaderRequest,
+  RowEffectDriver, RowEffectRequestChild,
 } from '@actql/local-node/connector-installation';
 import type {HostRequestValuePolicyVerifier} from './host-policy.js';
 
@@ -130,3 +131,57 @@ rowSourceMapping(commonMoon, declaration, writesJson, 'items', [{target: 'name',
 // @ts-expect-error Physical invocation always requires an existing authorization.
 invokeScopedCredentialOperation({credential: site.credential, callResource: site.callResource, operation: 'items.read', method: 'GET', path: '/items'});
 void [pending, count, text];
+
+declare const originalDriver: RowEffectDriver<Request>;
+const guardedDriver: RowEffectDriver<Request> = {
+  ...originalDriver, kinds: ['update'],
+  prepareRequestChild(context): RowEffectRequestChild<Request> {
+    if (context.rowIndex === undefined) throw new Error('GuardedContextRequired');
+    const row: number = context.rowIndex;
+    // @ts-expect-error The original row cannot be replaced by the child.
+    context.rowIndex = row + 1;
+    return {
+      async prepare() {
+        await context.authorizationForRow();
+        // @ts-expect-error Read authorization is closed over the original row.
+        await context.authorizationForRow(row + 1);
+        return {request: {value: context.value}, requestCid: bindingCid};
+      },
+      release: () => false,
+      retry: async () => undefined,
+      status: () => ({pending: true}),
+    };
+  },
+};
+const asynchronousFactory: RowEffectDriver<Request> = {...guardedDriver,
+  // @ts-expect-error The existing capture must own the child before first await.
+  prepareRequestChild: async context => guardedDriver.prepareRequestChild!(context),
+};
+const missingCleanup: RowEffectDriver<Request> = {...guardedDriver,
+  // @ts-expect-error A request Promise alone cannot replace original cleanup custody.
+  prepareRequestChild: context => ({prepare: () => ({request: {value: context.value}, requestCid: bindingCid}),
+    status: () => ({pending: true})}),
+};
+void [guardedDriver, asynchronousFactory, missingCleanup];
+
+// These are the two contexts actually passed by the existing capture caller.
+// Command has neither a synthetic row index nor a fabricated read grant.
+type ChildContext = Parameters<NonNullable<RowEffectDriver<Request>['prepareRequestChild']>>[0];
+declare const childMember: ChildContext['member'];
+declare const indexedRead: (index: number) => Promise<import('@actql/local-node/connector-installation').InvocationAuthorization>;
+const commandWithoutRead: ChildContext = {
+  member: childMember, value: {}, current: undefined,
+};
+const commandWithRead: ChildContext = {...commandWithoutRead, authorizationForRow: indexedRead};
+if (commandWithRead.rowIndex === undefined) {
+  // @ts-expect-error The optional Command callback cannot be used as a required grant.
+  commandWithRead.authorizationForRow(0);
+  commandWithRead.authorizationForRow?.(0);
+  // @ts-expect-error The original indexed Command callback still requires its index.
+  commandWithRead.authorizationForRow?.();
+}
+// @ts-expect-error A guarded row cannot omit its original read supplier.
+const missingGuardedRead: ChildContext = {
+  member: childMember, value: {}, current: undefined, rowIndex: 0,
+};
+void [commandWithoutRead, commandWithRead, missingGuardedRead];
