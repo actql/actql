@@ -10904,7 +10904,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/captured-content-holding.mjs",
-                "anchor": "available, authorize, limits, signal}) {"
+                "anchor": "available, authorize, limits, signal, retainOriginal}) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
