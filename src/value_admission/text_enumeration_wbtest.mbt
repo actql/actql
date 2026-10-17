@@ -144,7 +144,7 @@ test "Text enum resumed runtime recheck preserves payload counts and pending ali
         complete = true
         break
       }
-      RecheckFailed => fail("matching original enum refused")
+      RecheckFailed => assert_true(false)
     }
   }
   assert_true(complete)
