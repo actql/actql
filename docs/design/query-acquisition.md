@@ -157,3 +157,11 @@ original historical bodies after restoring only the old dependency identities.
 Record schemas, receipt roles, resource limits and legacy canonical values remain
 unchanged by a dependency-only adoption. A public digest or matching version
 still cannot admit an execution record or replace an original opaque issuer.
+
+The fixed-input compute contract has the same requirement for its exact selected
+fragment-schema dependency. Its resource measures and limits do not change when
+that schema's original identity advances. The existing managed-retained profile
+then retains the new complete fixed-input contract identity; its generated
+Common body and pin move together. Both existing generators run in ordinary
+interface freshness. This updates interpretation inputs, not a numerical
+reservation, source lifetime, successful completion or execution permission.
