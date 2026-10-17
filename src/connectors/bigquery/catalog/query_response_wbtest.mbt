@@ -778,7 +778,10 @@ test "query totals are exact bounded integers and zero omitted rows remain disti
   assert_eq(query_page_row_count(page), 0)
   assert_eq(query_page_next_token(page), None)
   let missing = @utf8.encode(
-    @utf8.decode(empty).replace("\"totalRows\":\"0\"", "\"totalRows\":\"1\""),
+    @utf8.decode(empty).replace(
+      old="\"totalRows\":\"0\"",
+      new="\"totalRows\":\"1\"",
+    ),
   )
   assert_true(
     project_query_page(projection, qjob(), missing, qlimits())
