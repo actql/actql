@@ -129,7 +129,9 @@ The maintainer-only `scripts/compile-python-local-image.py` prepares the image
 receipt consumed by the component assembler. It requires an exact clean
 `--source`, original `--core-receipt`, new `--destination`, and explicit
 `--verify-only` or `--compile`. Verification does not import the native runtime
-or create an Engine. Compilation uses the same selected Engine adapter as the
+or create an Engine: it locates the selected regular files through installed
+distribution metadata, not a resource API that executes the package initializer.
+Compilation uses the same selected Engine adapter as the
 installed constructor, reuses the existing Core module signature validator,
 and serializes without creating a Wasm instance, Store, Run or Submission.
 Receipt issuance follows native cleanup and a second original-material fence.

@@ -8,7 +8,7 @@ from __future__ import annotations
 import argparse
 from ctypes import CDLL
 import hashlib
-from importlib import import_module, metadata, resources
+from importlib import import_module, metadata
 import importlib.util
 import json
 import platform
@@ -56,9 +56,13 @@ def verify(core_receipt: Path, expected_source: str) -> dict[str, Any]:
     original = assembly.recipe.image_recipe_original(ROOT, source)
     recipe = _recipe_from_original(original, source_sha=source,
                                    package_version=version, module_sha256=digest)
-    if metadata.version('wasmtime') != WASMTIME_VERSION:
+    distribution = metadata.distribution('wasmtime')
+    if distribution.version != WASMTIME_VERSION:
         raise ValueError('Image compiler Wasmtime version mismatch')
-    runtime = resources.files('wasmtime')
+    # resources.files('wasmtime') imports its package and therefore the DLL
+    # loader. Preflight must remain metadata/file-only before the original
+    # compiler holding has entered its scope.
+    runtime = distribution.locate_file('wasmtime')
     if not isinstance(runtime, Path):
         raise ValueError('Image compiler requires an ordinary installed Wasmtime wheel')
     library = runtime / 'darwin-aarch64/_libwasmtime.dylib'

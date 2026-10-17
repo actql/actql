@@ -1,6 +1,7 @@
 """Image compiler preflight/refusal and native doubles; no real compiler or image."""
 from contextlib import ExitStack
 import importlib.util
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
@@ -15,6 +16,7 @@ from actql_sdk._local_native_holding import NativeHoldingScopeError
 ROOT = Path(__file__).resolve().parents[3]
 spec = importlib.util.spec_from_file_location('prepared_image_compiler', ROOT / 'scripts/compile-python-local-image.py')
 compiler = importlib.util.module_from_spec(spec); spec.loader.exec_module(compiler)
+original_distribution = compiler.metadata.distribution
 
 
 class ImageCompilerTests(unittest.TestCase):
@@ -24,8 +26,8 @@ class ImageCompilerTests(unittest.TestCase):
         self.stack.enter_context(patch.object(compiler, 'ROOT', self.case.source))
         self.stack.enter_context(patch.object(compiler.sys, 'platform', 'darwin'))
         self.stack.enter_context(patch.object(compiler.platform, 'machine', return_value='arm64'))
-        self.stack.enter_context(patch.object(compiler.metadata, 'version', return_value='38.0.0'))
-        self.stack.enter_context(patch.object(compiler.resources, 'files', return_value=self.case.root))
+        self.distribution = SimpleNamespace(version='38.0.0', locate_file=lambda name: self.case.root)
+        self.stack.enter_context(patch.object(compiler.metadata, 'distribution', return_value=self.distribution))
         self.library = self.case.root / 'darwin-aarch64/_libwasmtime.dylib'
         self.library.parent.mkdir(); self.library.write_bytes(b'independent runtime library fixture')
         self.provider = self.library.parent / 'libactql_native_control.dylib'
@@ -39,6 +41,38 @@ class ImageCompilerTests(unittest.TestCase):
         self.assertEqual(checked['module_sha256'], self.case.core['module_sha256'])
         self.assertEqual(checked['recipe'].source_sha, self.case.head)
         self.assertFalse(self.destination.exists())
+
+    def test_actual_distribution_metadata_preflight_does_not_execute_package_initializer(self):
+        package = self.case.root / 'wasmtime'
+        package.mkdir()
+        marker = self.case.root / 'unfunded-package-imported'
+        (package / '__init__.py').write_text(
+            'from pathlib import Path\n'
+            f'Path({str(marker)!r}).write_text("package initializer executed")\n'
+            'raise AssertionError("Unfunded package initializer")\n')
+        info = self.case.root / 'wasmtime-38.0.0.dist-info'
+        info.mkdir(); (info / 'METADATA').write_text('Name: wasmtime\nVersion: 38.0.0\n')
+        native_directory = package / 'darwin-aarch64'; native_directory.mkdir()
+        (native_directory / self.library.name).write_bytes(self.library.read_bytes())
+        (native_directory / self.provider.name).write_bytes(self.provider.read_bytes())
+        self.assertNotIn('wasmtime', sys.modules)
+        self.stack.enter_context(patch.object(sys, 'path', [str(self.case.root), *sys.path]))
+        with patch.object(compiler.metadata, 'distribution', side_effect=original_distribution):
+            checked = compiler.verify(self.case.module_file, self.case.head)
+        self.assertEqual(checked['runtime_library'], native_directory / self.library.name)
+        self.assertFalse(marker.exists())
+        self.assertNotIn('wasmtime', sys.modules)
+        self.assertFalse(self.destination.exists())
+
+    def test_foreign_distribution_version_or_nonfilesystem_location_refuse_before_import(self):
+        with patch.object(compiler, 'import_module', side_effect=AssertionError('Native engine')):
+            self.distribution.version = '37.0.0'
+            with self.assertRaisesRegex(ValueError, 'version mismatch'):
+                compiler.verify(self.case.module_file, self.case.head)
+            self.distribution.version = '38.0.0'
+            self.distribution.locate_file = lambda name: object()
+            with self.assertRaisesRegex(ValueError, 'ordinary installed Wasmtime wheel'):
+                compiler.verify(self.case.module_file, self.case.head)
 
     def test_compile_only_original_verifies_without_claiming_physical_success(self):
         with patch.object(compiler, 'import_module', side_effect=AssertionError('Native engine')):
