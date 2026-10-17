@@ -823,3 +823,37 @@ actual installed before/apply reread, current original version guard, writes,
 reconciliation, saved-original recovery, complete workspace inventory and
 normal resource supplier remain separate obligations. No public schema,
 canonical preimage, wire/version or permission domain changes here.
+
+
+## Saved original database read material
+
+The existing Catalog can capture one bounded read snapshot from its same
+original declaration, observed database, selected data-source occurrence and
+checked schema binding. It retains those references and a private self seal;
+a copied record cannot issue or match its getters. Its complete canonical body
+stores exact original JSON text as String values, the checked schema/CID and
+the actual property-only/full-system distinction. The snapshot SOURCE hash is
+an identity of that representation, not a semantic replacement for the
+embedded declaration source or a credential/installation identity.
+
+Cold admission reads only that saved material. It constructs new local Catalog
+originals from the saved bytes, applies the existing singleton/explicit
+selection and complete checked Contract algorithms, reproduces the exact schema
+and rejects a mismatch or alternate canonical body. Those reconstructed
+originals do not nominally equal another live observation, even for equal saved
+bytes. Same-Run or installation custody has to be authenticated by its existing
+Store/Journal/installation owner; a caller-supplied body/CID is not that proof.
+There is no provider I/O, current-profile lookup, grant, cleanup acknowledgement
+or mutable byte/array getter in the codec.
+
+The snapshot adds a record, self-seal Ref, selection/source/read-binding graph
+references, checked schema text/CID and canonical body/CID. Its original three
+raw snapshots/decode graphs and Contract inventories remain live. The bounded
+pair/encoder inventory, UTF-8/hash backing, outer-body parse/copy and decoded
+source Strings overlap with re-encoded saved-source copies, the newly admitted
+Catalog graphs and returned opaque aliases. Each existing structural and
+selection/Contract work limit remains active; a finite sequence of independently
+bounded stages is not a reservation, zero-cost sharing or a normal numerical
+supplier. Cancellation is limited to bounded encoder failure; physical current,
+stop/Unknown/nonresend, raw retirement, installation publication persistence and
+final Run adoption remain separate consuming duties.
