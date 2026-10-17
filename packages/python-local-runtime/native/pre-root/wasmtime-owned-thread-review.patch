@@ -112,7 +112,7 @@
          }
 --- a/crates/wasmtime/src/runtime/vm/traphandlers/signals.rs
 +++ b/crates/wasmtime/src/runtime/vm/traphandlers/signals.rs
-@@ -34,7 +34,13 @@
+@@ -34,6 +34,12 @@
      let mut lock = TRAP_HANDLER.write();
      match lock.as_mut() {
          Some(state) => state.validate_config(macos_use_mach_ports),

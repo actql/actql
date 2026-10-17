@@ -27,7 +27,7 @@ export async function createGeneratedContentFixture(t, options = {}) {
   const directory = options.directory ?? await mkdtemp(join(tmpdir(), 'actql-generated-content-'));
   if (options.directory !== undefined) await mkdir(directory, {recursive: true});
   const configuration = {directory, storeAuthorityCid: token('1'),
-    capacityBytes: 65536, maxObjectBytes: 8192, maxObjects: 20,
+    capacityBytes: 65536, maxObjectBytes: options.maxObjectBytes ?? 8192, maxObjects: 20,
     maxContractNodes: 1000, maxContractDepth: 32};
   const store = await openLocalPublicationStore(configuration,
     runtime.publicationControl, options.durability?.(directory));
