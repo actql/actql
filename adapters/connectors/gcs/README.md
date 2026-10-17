@@ -48,6 +48,15 @@ completion. The existing Source/Credential owns current read admission before
 each send, original physical response charges, RowRun capture and cleanup.
 Flat scans request no delimiter; unexpected nonempty prefix pages still refuse.
 
+Installed and physical prefixes use the same opaque Unicode scope: bounded
+UTF-8 and well-formed scalars, without header/identifier control-character
+restrictions. The original query encoder percent-escapes them; it does not
+normalize, decode percent text or widen a prefix. Object names still separately
+reject CR/LF. The returned name and generation, original page/body charges,
+credential scope and exact prefix containment remain unchanged. This repairs
+prefixes containing otherwise legal object-name controls, not a new grant,
+reservation or installed/live-service acceptance.
+
 The portable parser checks every item and preserves exact Int64 generation,
 metageneration and size before projection. `objects` declares these fields with
 the existing Decimal(19,0) carrier, not Number or String: the provider's narrower
