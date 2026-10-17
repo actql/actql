@@ -36,7 +36,7 @@ fn write_test_value(
   contract : String,
   value : String,
 ) -> @admitted.CheckedValue {
-  let limits = { max_nodes: 512, max_depth: 16, max_text_bytes: 65536, }
+  let limits : @contract.Limits = { max_nodes: 512, max_depth: 16, max_text_bytes: 65536, }
   let metadata = {
     ..database_test_limits(),
     max_bytes: 65536,
@@ -49,7 +49,7 @@ fn write_test_value(
   @admitted.admit_wire(
     contract,
     database_cursor(@utf8.encode(value), metadata).unwrap(),
-    limits,
+    { max_nodes: 512, max_depth: 16, max_text_bytes: 65536, },
   ).unwrap()
 }
 

@@ -239,7 +239,7 @@ pub fn prepare_notion_property_write(
           Err(BudgetExceeded)
         } else {
           remaining -= count
-          let mut issue = None
+          let mut issue : NotionPropertyWriteIssue? = None
           @encode.begin_array(writer)
           for index in 0..<count {
             match @admitted.element_at(values, index).unwrap() {
