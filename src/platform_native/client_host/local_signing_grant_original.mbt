@@ -27,7 +27,7 @@ fn local_original_grant_reservation_scope(
 // Called inside the original journal transaction. Authenticate the original
 // Submission/Run join through the existing decoder/epoch Owner, without
 // turning its integrity result into a read, signing or new-start permission.
-fn NativeLocalHostConnection::check_signing_grant_original_locked(
+fn NativeLocalHostConnection::check_signing_grant_submission_locked(
   self : NativeLocalHostConnection,
   grant : @credential.LocalSigningCredentialGrant,
   request : @host.ClientRequestIdentity,
@@ -75,6 +75,22 @@ fn NativeLocalHostConnection::check_signing_grant_original_locked(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
+  Ok(())
+}
+
+///|
+fn NativeLocalHostConnection::check_signing_grant_original_locked(
+  self : NativeLocalHostConnection,
+  grant : @credential.LocalSigningCredentialGrant,
+  request : @host.ClientRequestIdentity,
+  expected_run : String,
+) -> Result[Unit, NativeClientRunJournalIssue] {
+  match
+    self.check_signing_grant_submission_locked(grant, request, expected_run) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let scope = @credential.local_signing_credential_grant_scope(grant)
   let key_file = match
     self.session.settings.files
     .iter()

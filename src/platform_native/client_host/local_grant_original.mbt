@@ -9,6 +9,7 @@ priv struct NativeLocalGrantOriginal {
   request : @host.ClientRequestIdentity
   issuer_selection_cid : String
   grant : NativeLocalOriginalGrant
+  initial_issue : Bytes?
 }
 
 ///|
@@ -125,6 +126,7 @@ fn local_owned_grant_original(
     request,
     issuer_selection_cid,
     grant,
+    initial_issue: None,
   })
 }
 
@@ -161,6 +163,11 @@ fn local_grant_original_packet(
           @credential.local_signing_credential_grant_scope(value).purpose,
         ),
       )
+    }
+    if original.initial_issue is Some(packet) {
+      guard original.grant is SigningGrant(_) else { return Err(CustodyLost) }
+      @encode.key(writer, "initial_issue")
+      @encode.string_value(writer, @utf8.decode(packet))
     }
     @encode.end_object(writer)
     Ok(@utf8.encode(@encode.finish(writer)))
@@ -221,10 +228,20 @@ fn read_local_grant_original(
     !local_signing_grant_matches_request(value, request) {
     return Err(CustodyLost)
   }
-  let original = match
+  let decoded = match
     local_owned_grant_original(crypto, fields[3], request, fields[2], grant) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
+  }
+  let original = match @decode.lookup(packet, "initial_issue") {
+    None => decoded
+    Some(_) => {
+      guard decoded.grant is SigningGrant(_) &&
+        epoch_text(packet, "initial_issue") is Some(wire) else {
+        return Err(CustodyLost)
+      }
+      { ..decoded, initial_issue: Some(@utf8.encode(wire)), }
+    }
   }
   guard local_grant_original_key(crypto, request, fields[3]) is Ok(key) &&
     key == row.key &&
@@ -296,12 +313,16 @@ fn NativeLocalHostConnection::local_grant_custody(
       return Err(CustodyLost)
     }
     if original.grant is SigningGrant(grant) {
-      match
+      let checked = if original.initial_issue is Some(_) {
+        self.check_initial_signing_grant_original_locked(original, retained_run)
+      } else {
         self.check_signing_grant_original_locked(
           grant,
           original.request,
           retained_run,
-        ) {
+        )
+      }
+      match checked {
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
@@ -311,27 +332,29 @@ fn NativeLocalHostConnection::local_grant_custody(
       @host.client_request_authority_scope_cid(original.request) {
       return Err(CustodyLost)
     }
-    guard self.session.settings.files
-      .iter()
-      .find_first(file => file.content_cid == original.issuer_selection_cid)
-      is Some(file) else {
-      return Err(CustodyLost)
-    }
-    let selection = match
-      admit_native_local_credential_issuer_selection(
-        @utf8.decode(file.body) catch {
-          _ => return Err(CustodyLost)
-        },
-      ) {
-      Ok(value) => value
-      Err(_) => return Err(CustodyLost)
-    }
-    if (
-        !(original.grant is SigningGrant(_)) &&
-        scope.principal != selection.principal
-      ) ||
-      !local_original_grant_matches_issuer(original.grant, selection) {
-      return Err(CustodyLost)
+    if original.initial_issue is None {
+      guard self.session.settings.files
+        .iter()
+        .find_first(file => file.content_cid == original.issuer_selection_cid)
+        is Some(file) else {
+        return Err(CustodyLost)
+      }
+      let selection = match
+        admit_native_local_credential_issuer_selection(
+          @utf8.decode(file.body) catch {
+            _ => return Err(CustodyLost)
+          },
+        ) {
+        Ok(value) => value
+        Err(_) => return Err(CustodyLost)
+      }
+      if (
+          !(original.grant is SigningGrant(_)) &&
+          scope.principal != selection.principal
+        ) ||
+        !local_original_grant_matches_issuer(original.grant, selection) {
+        return Err(CustodyLost)
+      }
     }
     let reservation = local_original_grant_reservation_scope(original)
     let (entries, bytes) = runs.get(reservation).unwrap_or((0, 0))
