@@ -77,7 +77,7 @@ test('public GCS Named Result preserves exact Decimal and JSON contracts across 
       boundary_cid: token('c'), identity_cid: token(String(index + 1))}]));
   const profileVersion = 'actql-installed-gcs-public-result-fixture/0.1';
   const events = [];
-  let calls = 0, acquisitions = 0, referenceChecks = 0, client;
+  let calls = 0, acquisitions = 0, referenceChecks = 0, client, sourcePreparationFailure;
   let allowRead = true;
   const connectorTable = createInstalledConnectorTable([{name: 'gcs', registration: 'gcs', revision: 'gcs/0.1',
     source: {profileVersion, load: async () => ({check: value => value, identityParts: value => [value],
@@ -94,7 +94,7 @@ test('public GCS Named Result preserves exact Decimal and JSON contracts across 
           referenceChecks++;
           return kind === 'file' && [...resources.values()].some(value => canonical(value) === wire);
         }, () => true);
-        return createInstalledRowSource({moon, declaration, declared, environmentWire: environment.wire,
+        const adapter = await createInstalledRowSource({moon, declaration, declared, environmentWire: environment.wire,
           connectorId: 'storage', connectorRegistration: 'gcs', connectorRevision: 'gcs/0.1',
           referenceIssuer, bindingCid: token('1'), authorization,
           readOperation: {objects: GCS_FILE_LIST_OPERATION, files: GCS_FILE_LIST_OPERATION,
@@ -122,6 +122,12 @@ test('public GCS Named Result preserves exact Decimal and JSON contracts across 
                 return {accepted: true, statusCode: 200, headers: [], body: Buffer.from(JSON.stringify(page))};
               }});
           }});
+        // Preserve the original receiver/result/error; this is diagnostic
+        // observation of the controlled installation, not Source admission.
+        return Object.freeze({...adapter, async prepare(...args) {
+          try { return await Reflect.apply(adapter.prepare, adapter, args); }
+          catch (error) { sourcePreparationFailure = error; throw error; }
+        }});
       }})}}]);
   const sourceProfilePath = join(scratch.path, 'source.json');
   await writeFile(sourceProfilePath, canonical({version: profileVersion}));
@@ -153,7 +159,7 @@ test('public GCS Named Result preserves exact Decimal and JSON contracts across 
     submissionRef: client.newSubmission({nonce: 'gcs-public-original'})}).catch(error => {
     // All observed values belong to this nonsecret fresh fixture. Retain the
     // exact refusal; diagnostic presentation does not replace that failure.
-    t.diagnostic(inspect({error, events, acquisitions, calls},
+    t.diagnostic(inspect({error, sourcePreparationFailure, events, acquisitions, calls},
       {depth: 10, maxArrayLength: 20, maxStringLength: 1000}).slice(0, 12000));
     throw error;
   });
