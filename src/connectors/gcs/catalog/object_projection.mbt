@@ -130,8 +130,10 @@ pub fn object_mutation_body_for(
 // Initial capture reuses the original before-GET; apply still reads/rechecks
 // current metadata through its separate approved path. The guard is the CID
 // of those retained response bytes, not a generation-only or authority proof.
-// Project only the checked fields changed by this PATCH, as the existing
-// Mapping Preview does. Json fields retain the Common Value envelope.
+// Project authored fields and effective logical changes from this same
+// request separately. The protocol marker can turn absent metadata into an
+// empty user map without adding metadata to authored intended changes.
+// Json fields retain the Common Value envelope; this is not permission.
 pub fn object_metadata_patch_effect_target_json(
   binding : ObjectMutationBinding,
   request : ObjectMutationRequest,
@@ -164,14 +166,22 @@ pub fn object_metadata_patch_effect_target_json(
     _ => return Err(InvalidChanges)
   }
   let fields = object_metadata_fields(request.original)
+  guard request.logical_after is Some(effective) else {
+    return Err(InvalidChanges)
+  }
   let before : Map[String, Json] = Map([])
+  let after : Map[String, Json] = Map([])
   if content_type is Some(_) {
     before["content_type"] = match fields.content_type {
       Some(text) => text.to_json()
       None => Json::null()
     }
+    guard effective.content_type is Some(text) else {
+      return Err(InvalidChanges)
+    }
+    after["content_type"] = text.to_json()
   }
-  if metadata is Some(_) {
+  if metadata is Some(_) || fields.metadata is None {
     before["metadata"] = match fields.metadata {
       None => Json::null()
       Some(entries) => {
@@ -182,13 +192,21 @@ pub fn object_metadata_patch_effect_target_json(
         { "$json": Json::object(values) }
       }
     }
+    guard effective.metadata is Some(entries) else {
+      return Err(InvalidChanges)
+    }
+    let values : Map[String, Json] = Map([])
+    for (name, value) in entries {
+      values[name] = value.to_json()
+    }
+    after["metadata"] = { "$json": Json::object(values) }
   }
   mutation_json(
     {
       "identity": fields.name.to_json(),
       "versionCid": ("sha256:" + request.original.response_sha256).to_json(),
       "before": Json::object(before),
-      "after": changes,
+      "after": Json::object(after),
       "value": changes,
       "requestCid": request.cid.to_json(),
       "protocol_behavior": "assign_original_request_marker:actql-request",

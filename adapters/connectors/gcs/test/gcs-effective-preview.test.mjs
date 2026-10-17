@@ -1,6 +1,7 @@
 // The actual portable original request owner, not an installed approval or
 // permission supplier. No service read, dispatch or replacement preparation.
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import test from 'node:test';
 import * as moon from '../../../../_build/js/release/build/connectors/gcs/host_node/host_node.js';
 import {admitGcsObjectMetadata, prepareGcsObjectBinding,
@@ -27,7 +28,14 @@ test('same original PATCH exposes effective NULL-to-empty map separately from au
   assert.deepEqual(row.before, {content_type: null, metadata: null});
   assert.deepEqual(row.after, {content_type: 'text/csv', metadata: {$json: {}}});
   assert.deepEqual(row.value, {content_type: 'text/csv'});
-  assert.deepEqual(JSON.parse(request.body), {contentType: 'text/csv', metadata: {'actql-request': cid('d')}});
+  const body = `{"contentType":"text/csv","metadata":{"actql-request":"${cid('d')}"}}`;
+  assert.equal(request.body, body);
+  const originalIdentity = JSON.stringify({body, catalog_cid: cid('a'), contract_cid: cid('c'),
+    installation_cid: cid('b'), method: 'PATCH',
+    path: '/storage/v1/b/bucket/o/in%2Fa?ifGenerationMatch=1&ifMetagenerationMatch=2',
+    permissions: ['storage.objects.update'], resource_origin: 'https://storage.googleapis.com',
+    version: 'actql-gcs-object-mutation-request/0.1'});
+  assert.equal(request.request_cid, `sha256:${createHash('sha256').update(originalIdentity).digest('hex')}`);
   assert.equal(row.requestCid, request.request_cid);
   assert.ok(Object.isFrozen(row.after.metadata.$json));
   assert.ok(!JSON.stringify(row).includes(cid('d')));
