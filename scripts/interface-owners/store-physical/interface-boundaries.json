@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "94f594cecb19f1ad9582c7827dc5279bcc876e200cc05b0e1bfe48acc3433772",
+      "sha256": "6c37c6fd0db49c7447f0acb8f0fb9204496476d8bceb1cfa0a9fe17b09d9a826",
       "exports": [
         "PublicationStoreError",
         "openLocalPublicationStore",
@@ -7471,6 +7471,14 @@
               {
                 "path": "adapters/store-local/physical-reader-close-ack.test.mjs",
                 "anchor": "setter cannot discard the original Content FD responsibility"
+              },
+              {
+                "path": "adapters/store-local/object-read-extent.test.mjs",
+                "anchor": "short reads fill the same dedicated piece with no read-ahead or alias reuse"
+              },
+              {
+                "path": "docs/design/execution-completion-storage.md",
+                "anchor": "one dedicated backing"
               }
             ]
           }

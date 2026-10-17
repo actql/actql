@@ -4211,19 +4211,30 @@ export async function openLocalPublicationStore(
           before.size > configuration.maxObjectBytes) {
         fail('InvalidPublicationStoreObject');
       }
-      // Bound this original FD's acquisition before allocating a stream,
-      // rather than relying on a later byte/hash check or its default HWM.
-      // A growing file cannot expand this read; the final version check still
-      // rejects it. Empty objects retain stat/hash/close without a data stream.
-      if (before.size > 0) {
-        const stream = handle.createReadStream({autoClose: false,
-          end: before.size - 1, highWaterMark: Math.min(65536, before.size)});
-        for await (const chunk of stream) {
-          if (chunk.byteLength > before.size - bytes) fail('PublicationObjectCorrupt');
-          hash.update(chunk);
-          await accept(chunk);
-          bytes += chunk.byteLength;
+      // One dedicated backing per bounded piece, filled on this SAME FD.
+      // A ReadStream can allocate a second backing for a short read and read
+      // ahead while accept is pending. Here short reads fill the original
+      // piece, and no following piece is acquired until its callback returns.
+      // Do not reuse a delivered backing: the consumer can retain its alias.
+      while (bytes < before.size) {
+        const buffer = Buffer.allocUnsafeSlow(Math.min(65536, before.size - bytes));
+        let filled = 0;
+        while (filled < buffer.byteLength) {
+          const requested = buffer.byteLength - filled;
+          const {bytesRead} = await handle.read(buffer, filled, requested, bytes + filled);
+          if (!quantity(bytesRead) || bytesRead > requested) fail('PublicationObjectCorrupt');
+          if (bytesRead === 0) break;
+          filled += bytesRead;
         }
+        if (filled === 0) break;
+        // Preserve delivery of an original prefix on truncation, followed by
+        // the existing size/hash/version refusal. subarray adds only a view;
+        // it neither copies a short piece nor proves retirement of its backing.
+        const chunk = filled === buffer.byteLength ? buffer : buffer.subarray(0, filled);
+        hash.update(chunk);
+        await accept(chunk);
+        bytes += filled;
+        if (filled < buffer.byteLength) break;
       }
       const after = await handle.stat();
       if (!after.isFile() || before.dev !== after.dev ||

@@ -177,3 +177,22 @@ temporary cleanup, promise completion and reference retirement are not GC or a
 physical-byte acknowledgement. This correspondence supplies neither a Content
 read grant nor a consumer-phase capacity/allocation, physical loan or dispatch
 permission. Those must still come from their existing original suppliers.
+
+The physical Content consumer fills each at-most-64-KiB piece directly from
+the same original FD into one dedicated backing, including repeated short
+reads. It does not acquire another piece while the consumer callback is
+pending or reuse a previously delivered backing. A truncated final prefix is
+a view of that original backing, not a shrink copy; the existing final
+size/hash/version checks still refuse the incomplete object. Empty objects
+retain stat/hash/close without a data allocation. Growth cannot extend the
+original admitted extent. Close failure retains the same FD and close-only
+retry, never a replacement read or permission to retire a live holding.
+
+For one such read, the sum of allocated piece payload extents is at most the
+original stat size, with each extent at most 65536 bytes. This is a byte-layout
+fact, not a whole-phase quote: Buffer/view/control objects, promises, hash
+state, metadata and independent verification reads, and all escaped consumer
+aliases still overlap. Callback return and losing a local reference are not
+physical backing retirement, GC acknowledgement, or capacity credit. The
+original Source/installation supplier must cover these components and retain
+its loan through actual physical and consumer cleanup.
