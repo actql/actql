@@ -206,7 +206,9 @@ test "initial Signing foreign material refuses before journal creation and authe
       ("adoption_body", header[0]),
       ("initial_signing_original", @base64.encode(signed)),
     ]).unwrap()
-    assert_true(read_local_initial_signing_control(host, candidate) is Err(_))
+    if read_local_initial_signing_control(host, candidate) is Ok(_) {
+      fail("changed initial Signing field admitted: " + keys[index])
+    }
   }
   let envelope = local_adoption_fields(packet, ["payload", "tag"]).unwrap()
   let tampered = local_adoption_record([
