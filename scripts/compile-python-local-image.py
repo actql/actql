@@ -224,6 +224,10 @@ def _acquire_compiler_parent(original: dict[str, Any], selected: _CompilerHoldin
                 parent.host, parent.backing, descriptor, domain, size=size, work=work,
                 attempts=attempts, holdings=holdings, transfer=transfer, retained=retained,
                 execution=execution)
+        # Existing physical preparation is one-shot and precedes projecting
+        # child material. It is neither process start nor a stop/cleanup ACK.
+        # Store the same domain above before this foreign call can lose reply.
+        parent.domain.transfer()
         parent.domain.current()
         return parent
     except BaseException as primary:

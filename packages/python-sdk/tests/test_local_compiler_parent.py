@@ -93,6 +93,7 @@ class CompilerParentTests(unittest.TestCase):
         self.assertIs(parent.domain._descriptor, self.descriptor)
         self.assertIs(parent.domain._functions.library, parent.library)
         self.assertIs(parent.host._borrowed_fd, self.descriptor)
+        self.assertEqual(sum(e[0:2] == ('call', 3) for e in f.events), 1)
         parent.close_unstarted(); parent.close_unstarted()
         self.assertTrue(parent._closed)
         self.assertTrue(parent.domain._closed and parent.backing._closed and parent.host._closed)
@@ -111,6 +112,24 @@ class CompilerParentTests(unittest.TestCase):
         with self.assertRaises(type(parent.domain._unknown)):
             parent.close_unstarted()
         self.assertEqual(events, (f.events, f.backing.events, f.backing.control.events))
+        self.assertFalse(parent._closed or self.descriptor.close_attempted)
+
+    def test_original_transfer_reply_loss_retains_same_domain_before_material(self):
+        f = DomainFixture()
+        transfer = f.functions.transfer.call
+        def lose(*args):
+            transfer(*args)
+            raise OSError('lost same original transfer response')
+        f.functions.transfer.call = lose
+        with self.assertRaises(compiler.CompilerParentAcquisitionError) as observed:
+            self.acquire(f)
+        parent = observed.exception.cleanup_parent
+        self.assertIsNotNone(parent.domain._reply.value)
+        self.assertEqual(sum(e[0:2] == ('call', 3) for e in f.events), 1)
+        before = list(f.events)
+        with self.assertRaises(type(parent.domain._unknown)):
+            parent.close_unstarted()
+        self.assertEqual(before, f.events)
         self.assertFalse(parent._closed or self.descriptor.close_attempted)
 
     def test_process_bound_domain_is_not_retired_as_unstarted(self):
