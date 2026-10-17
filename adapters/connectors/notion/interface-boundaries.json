@@ -778,7 +778,6 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "role": "physical-io",
-      "facet": "primary",
       "owner": "Existing Notion Catalog and physical reader; Common Value/Contract, Account, Credential/Site, Source RowRun and Resource keep original authority/accounting/capture/cleanup",
       "contracts": [
         {
@@ -899,7 +898,8 @@
             ]
           }
         }
-      ]
+      ],
+      "responsibilityFacet": "primary"
     }
   ]
 }
