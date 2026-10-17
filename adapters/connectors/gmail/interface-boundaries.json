@@ -837,7 +837,7 @@
     },
     {
       "module": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
-      "sha256": "7c873343d318a30eb6c226eb7bb79bfc042293911d8ac50c68be1ce13360a63f",
+      "sha256": "4b16e87a182563e9e29cf15fa2269d36e613b543d49ab0160a3646d4f8d285ed",
       "exports": [
         "INSTALLED_GMAIL_SITE_VERSION",
         "INSTALLED_GMAIL_SOURCE_VERSION",
@@ -1119,6 +1119,10 @@
               {
                 "path": "docs/design/gmail-label-reader-custody.md",
                 "anchor": "Their ordinary identity parts retain a digest of the exact mailbox bytes"
+              },
+              {
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "anchor": "connectorRegistration:registration,connectorRevision:revision,contextCid:"
               }
             ],
             "ownership": [
@@ -1217,6 +1221,10 @@
               {
                 "path": "adapters/connectors/gmail/test/installed-gmail-source.test.mjs",
                 "anchor": "test('installed Gmail optional TLS authority"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/installed-gmail-source.test.mjs",
+                "anchor": "test('installed Gmail binding retains original connector identity"
               }
             ]
           }
