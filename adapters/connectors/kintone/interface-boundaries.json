@@ -1715,6 +1715,271 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/connectors/kintone/catalog/record_create_requirements.mbt",
+      "sha256": "079899c09f1bd4fcf87b66c9aa9c2ff8c1eb2fba17c0bc5164bc5e70b2f57f71",
+      "exports": [],
+      "operations": [
+        {
+          "name": "record_create_required_fields",
+          "declaration": "record_create_required_fields ( catalog : FormFieldCatalog , max_fields : Int , max_work : Int , ) - > Result [ Array [ String ] , RecordWriteIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing kintone original Form and checked Row Mapping Owners; no permission, physical I/O or funding issuer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "record_create_required_fields"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The kintone CREATE projection uses the same complete original Form to select"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_create_requirements_wbtest.mbt",
+                "anchor": "CREATE required fields use positive original flags"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "Form and exactly the intended field inventory, subject only to explicit"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_create_requirements_wbtest.mbt",
+                "anchor": "CREATE required fields use positive original flags"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "unmapped write cannot replace those originals."
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_create_requirements_wbtest.mbt",
+                "anchor": "CREATE required fields use positive original flags"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "and existing create permission into its Mapping. The kintone wrapper privately"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_create_requirements_wbtest.mbt",
+                "anchor": "CREATE required fields use positive original flags"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "No new bridge, current"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_create_requirements_wbtest.mbt",
+                "anchor": "CREATE required fields use positive original flags"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "Unsupported required carriers and table-row requirements remain unfinished"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_create_requirements_wbtest.mbt",
+                "anchor": "CREATE required fields use positive original flags"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "capability is advertised by this pure Mapping connection. Actual installed"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_create_requirements_wbtest.mbt",
+                "anchor": "CREATE required fields use positive original flags"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The requirement projection's temporary copied-destination map, required-name"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_create_requirements_wbtest.mbt",
+                "anchor": "CREATE required fields use positive original flags"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "a default. Optional omitted fields remain omitted in the original request;"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_create_requirements_wbtest.mbt",
+                "anchor": "CREATE required fields use positive original flags"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "Those finite metadata limits do not"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_create_requirements_wbtest.mbt",
+                "anchor": "CREATE required fields use positive original flags"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/host/record_create_mapping.mbt",
+      "sha256": "d532f4a66df82b802947d78c83aac9c8c2f778f94552731f260c13ab315e30d2",
+      "exports": [],
+      "operations": [
+        {
+          "name": "prepare_record_create_mapping",
+          "declaration": "prepare_record_create_mapping ( original : RecordDeclaration , resource : String , sources : Array [ @ rows . RowMappingSource ] , approval : String , limits : @ rows . RowDeclarationLimits , ) - > Result [ RecordCreateMapping , @ rows . RowMappingIssue ]"
+        },
+        {
+          "name": "record_create_mapping",
+          "declaration": "record_create_mapping ( value : RecordCreateMapping ) - > @ rows . RowMapping"
+        },
+        {
+          "name": "record_create_mapping_matches_declaration",
+          "declaration": "record_create_mapping_matches_declaration ( value : RecordCreateMapping , original : RecordDeclaration , ) - > Bool"
+        },
+        {
+          "name": "record_create_mapping_matches_request",
+          "declaration": "record_create_mapping_matches_request ( value : RecordCreateMapping , request : @ catalog . RecordCreateRequest , ) - > Bool"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing kintone original Form and checked Row Mapping Owners; no permission, physical I/O or funding issuer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepare_record_create_mapping",
+            "record_create_mapping",
+            "record_create_mapping_matches_declaration",
+            "record_create_mapping_matches_request"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The kintone CREATE projection uses the same complete original Form to select"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_mapping_wbtest.mbt",
+                "anchor": "kintone CREATE Mapping retains original required evidence"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "Form and exactly the intended field inventory, subject only to explicit"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_mapping_wbtest.mbt",
+                "anchor": "kintone CREATE Mapping retains original required evidence"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "unmapped write cannot replace those originals."
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_mapping_wbtest.mbt",
+                "anchor": "kintone CREATE Mapping retains original required evidence"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "and existing create permission into its Mapping. The kintone wrapper privately"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_mapping_wbtest.mbt",
+                "anchor": "kintone CREATE Mapping retains original required evidence"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "No new bridge, current"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_mapping_wbtest.mbt",
+                "anchor": "kintone CREATE Mapping retains original required evidence"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "Unsupported required carriers and table-row requirements remain unfinished"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_mapping_wbtest.mbt",
+                "anchor": "kintone CREATE Mapping retains original required evidence"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "capability is advertised by this pure Mapping connection. Actual installed"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_mapping_wbtest.mbt",
+                "anchor": "kintone CREATE Mapping retains original required evidence"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The requirement projection's temporary copied-destination map, required-name"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_mapping_wbtest.mbt",
+                "anchor": "kintone CREATE Mapping retains original required evidence"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "a default. Optional omitted fields remain omitted in the original request;"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_mapping_wbtest.mbt",
+                "anchor": "kintone CREATE Mapping retains original required evidence"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "Those finite metadata limits do not"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_create_mapping_wbtest.mbt",
+                "anchor": "kintone CREATE Mapping retains original required evidence"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
