@@ -77,6 +77,20 @@ fn local_saved_run_status(
       (selected.reference, selected.submission, state)
     }
   }
+  // The public ID spelling returns the portable saved State directly. Do not
+  // nest it in private metadata or spend another wire budget on a wrapper.
+  if child.sources.get("run") is Some(@argparse.Argv) {
+    if !current() {
+      stop("LocalRunStateReadAuthorizationDenied")
+    }
+    return if child.flags.get("json").unwrap_or(false) {
+      state.wire()
+    } else {
+      local_run_state_display(state.wire()).unwrap_or_else(() => {
+        stop("LocalRunStateDisplayUnavailable")
+      })
+    }
+  }
   let original = @json.parse(state.wire()) catch {
     _ => stop("LocalOriginalRunStateUnavailable")
   }

@@ -1,26 +1,22 @@
 ///|
-/// The largest described precision this revision declares as
-/// `decimal(P,S)`. It is a chosen support range, not a proof that the value
-/// Salesforce holds is recovered: a value written through the API or Apex
-/// can carry more fractional digits than the field defines, and its
-/// precision may already have been lost before the reply. What the
-/// connector guarantees is only this: a read admits the value the reply's
-/// number text denotes, without rounding, and a write sends JSON whose
-/// number denotes the approved decimal. Neither step computes the value
-/// through binary64.
-const MAX_EXACT_DOUBLE_PRECISION : Int = 15
+/// The provider native kinds whose numeric values use a described Decimal.
+fn described_decimal_type(native_type : String) -> Bool {
+  native_type == "double" ||
+  native_type == "currency" ||
+  native_type == "percent"
+}
 
 ///|
-/// The ActQL `decimal(P,S)` a Salesforce Number (`double`) field is declared
-/// as, from its described precision and scale, or none.
-fn double_decimal(field : FieldMetadata) -> (Int, Int)? {
-  guard field.native_type == "double" &&
+/// The ActQL `decimal(P,S)` from the original described precision and scale.
+/// The existing Decimal Owner supplies the supported domain. Read and write
+/// preserve number text without binary64, currency conversion or percent
+/// scaling; neither recovers precision lost before the provider reply.
+fn described_decimal(field : FieldMetadata) -> (Int, Int)? {
+  guard described_decimal_type(field.native_type) &&
     field.precision is Some(precision) &&
     field.scale is Some(scale) &&
-    precision >= 1 &&
-    precision <= MAX_EXACT_DOUBLE_PRECISION &&
-    scale >= 0 &&
-    scale <= precision else {
+    @contract.decimal_contract(precision, scale, nullable=field.nullable)
+    is Some(_) else {
     return None
   }
   Some((precision, scale))

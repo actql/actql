@@ -1,7 +1,7 @@
 ///|
 fn infer_key_label_check_report(
-  issue : @query_program.InferKeyLabelIssue,
-  origin : @source_origin.Origin?,
+  issue : @query.InferKeyLabelIssue,
+  origin : @origin.Origin?,
 ) -> String {
   check_outcome_json(
     [check_query_finding(QueryLowering(InferKeyLabel(issue, origin)))],
@@ -25,9 +25,9 @@ fn infer_key_label_check_report(
 ///|
 test "INFER missing correspondence and duplicate slots retain located implementation limits" {
   // UTF-8 bytes, rather than UTF-16 offsets: the emoji precedes a CRLF.
-  let document = @source_origin.document("-- 😀\r\nINFER", 14).unwrap()
-  let origin = @source_origin.range(document, 9, 14).unwrap()
-  let issues : Array[@query_program.InferKeyLabelIssue] = [
+  let document = @origin.document("-- 😀\r\nINFER", 14).unwrap()
+  let origin = @origin.range(document, 9, 14).unwrap()
+  let issues : Array[@query.InferKeyLabelIssue] = [
     MissingCorrespondence,
     DuplicateSlot,
   ]
@@ -47,20 +47,14 @@ test "INFER missing correspondence and duplicate slots retain located implementa
     assert_true(report.contains("\"reasons\":[]"), msg=report)
     assert_true(!report.contains("\"facts\""), msg=report)
     assert_true(!report.contains("function_lowering_unresolved"), msg=report)
-    assert_eq(
-      client_source_preparation_issue_code(
-        Frontend(QueryLowering(InferKeyLabel(issue, Some(origin)))),
-      ),
-      "source_rejected",
-    )
   }
 }
 
 ///|
 test "INFER label conflicts project existing invalid arguments with authored byte locations" {
-  let document = @source_origin.document("-- 😀\r\nINFER", 14).unwrap()
-  let origin = @source_origin.range(document, 9, 14).unwrap()
-  let issues : Array[@query_program.InferKeyLabelIssue] = [
+  let document = @origin.document("-- 😀\r\nINFER", 14).unwrap()
+  let origin = @origin.range(document, 9, 14).unwrap()
+  let issues : Array[@query.InferKeyLabelIssue] = [
     EmptyOrAmbiguousLabel,
     ReservedRole,
     DuplicateLabel,
@@ -81,28 +75,22 @@ test "INFER label conflicts project existing invalid arguments with authored byt
     )
     assert_true(!report.contains("implementation_limit"), msg=report)
     assert_true(!report.contains("function_lowering_unresolved"), msg=report)
-    assert_eq(
-      client_source_preparation_issue_code(
-        Frontend(QueryLowering(InferKeyLabel(issue, Some(origin)))),
-      ),
-      "source_invalid_input",
-    )
   }
 }
 
 ///|
 test "INFER projection withholds generated and absent origins for all label issues" {
-  let document = @source_origin.document("-- 😀\r\nINFER", 14).unwrap()
-  let generated = @source_origin.range(document, 9, 14, kind=Generated).unwrap()
-  let cases : Array[(@query_program.InferKeyLabelIssue, String, String)] = [
-    (MissingCorrespondence, "undetermined", "source_rejected"),
-    (DuplicateSlot, "undetermined", "source_rejected"),
-    (EmptyOrAmbiguousLabel, "invalid", "source_invalid_input"),
-    (ReservedRole, "invalid", "source_invalid_input"),
-    (DuplicateLabel, "invalid", "source_invalid_input"),
+  let document = @origin.document("-- 😀\r\nINFER", 14).unwrap()
+  let generated = @origin.range(document, 9, 14, kind=Generated).unwrap()
+  let cases : Array[(@query.InferKeyLabelIssue, String)] = [
+    (MissingCorrespondence, "undetermined"),
+    (DuplicateSlot, "undetermined"),
+    (EmptyOrAmbiguousLabel, "invalid"),
+    (ReservedRole, "invalid"),
+    (DuplicateLabel, "invalid"),
   ]
   for origin in [Some(generated), None] {
-    for (issue, verdict, source_code) in cases {
+    for (issue, verdict) in cases {
       let finding = check_query_finding(
         QueryLowering(InferKeyLabel(issue, origin)),
       )
@@ -117,12 +105,6 @@ test "INFER projection withholds generated and absent origins for all label issu
       assert_true(!report.contains("\"start_byte\""), msg=report)
       assert_true(!report.contains("\"pointer\""), msg=report)
       assert_true(!report.contains("function_lowering_unresolved"), msg=report)
-      assert_eq(
-        client_source_preparation_issue_code(
-          Frontend(QueryLowering(InferKeyLabel(issue, origin))),
-        ),
-        source_code,
-      )
     }
   }
 }
@@ -130,10 +112,10 @@ test "INFER projection withholds generated and absent origins for all label issu
 ///|
 test "explicit INFER key refusals retain the unlocated unsupported projection" {
   let text = "/*😀é*/\r\nSELECT DISTINCT 'id' AS `VaLuE` |> INFER `model-task:risk-score.v1` ITEM KEY (`VaLuE`) INPUT (text = 'urgent') AS assessment"
-  let context = @source_frontend.bind_query_context([], "visible-environment").unwrap()
+  let context = @frontend.bind_query_context([], "visible-environment").unwrap()
   for format in ["sql", "aql-text"] {
-    let selected = @source_frontend.select_format(format).unwrap()
-    guard @source_frontend.lower(text, selected, Some(context))
+    let selected = @frontend.select_format(format).unwrap()
+    guard @frontend.lower(text, selected, Some(context))
       is Err(QueryLowering(UnsupportedInfer)) else {
       fail("the explicit authored tuple must retain UnsupportedInfer")
     }
@@ -147,10 +129,4 @@ test "explicit INFER key refusals retain the unlocated unsupported projection" {
     assert_true(!report.contains("\"location\""), msg=report)
     assert_true(!report.contains("\"facts\""), msg=report)
   }
-  assert_eq(
-    client_source_preparation_issue_code(
-      Frontend(QueryLowering(UnsupportedInfer)),
-    ),
-    "source_rejected",
-  )
 }

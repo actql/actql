@@ -96,7 +96,8 @@ fn recheck_value(
       (
         bounds.max_utf8_bytes is None ||
         byte_count <= bounds.max_utf8_bytes.unwrap()
-      )
+      ) &&
+      text_enum_accepts(text, bounds)
     }
     (Date(text), @contract.Date) =>
       recheck_text(text, budget) is Some(_) &&

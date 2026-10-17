@@ -95,5 +95,10 @@ async function issueStoredContent({store, control, candidate,
     authorize(value.identity) === true);
   // Failure deliberately leaves the existing Store holding untouched. Its
   // cleanup/recovery owner, not this issuance adapter, decides lawful retirement.
-  return control.issue(candidate, issuer, limits);
+  const issued = control.issue(candidate, issuer, limits);
+  // The original issuer invokes Host authority callbacks synchronously. A
+  // callback can retire availability even while returning its prior decision;
+  // do not hand off that issued value without the same holding's current fence.
+  if (!live()) fail(`${prefix}HoldingUnavailable`);
+  return issued;
 }

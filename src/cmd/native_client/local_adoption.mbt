@@ -354,7 +354,9 @@ fn execute_native_local_adoption(
   // Produce the reply before closing, but never publish it before confirmed close.
   let cancellation_recovery : Ref[String?] = Ref(None)
   let reply = try {
-    if packaged_runtime is Some(runtime) {
+    // Static check uses the original Host/configuration and the outer product
+    // physical fences; it does not bind a Run or demand an execution upgrade.
+    if packaged_runtime is Some(runtime) && operation != "check" {
       let run_file = settings.run_file.unwrap_or_else(() => {
         stop("LocalRunInstallationRequired")
       })
@@ -376,10 +378,19 @@ fn execute_native_local_adoption(
         |> ignore
       }
     }
-    if operation == "start" || operation == "aql" {
+    if operation == "check" {
+      local_check_for_host(host, crypto, name, input_root, child)
+    } else if operation == "start" || operation == "aql" {
       local_submission_start(
-        host, settings, crypto, sqlite, check_environment, input_root, operation,
+        host,
+        settings,
+        crypto,
+        sqlite,
+        check_environment,
+        input_root,
+        operation,
         child,
+        public_run=matches.subcommand is Some(("run", _)),
       )
     } else if operation == "upgrade-policy" ||
       operation == "lookup-policy-upgrade" {
@@ -412,6 +423,8 @@ fn execute_native_local_adoption(
       local_delivery_attempt_lookup(
         host, settings, crypto, sqlite, input_root, child,
       )
+    } else if operation == "result" {
+      local_public_result(host, settings, crypto, sqlite, child)
     } else if operation == "read" {
       local_result_stream(host, settings, crypto, sqlite, input_root, child)
     } else if operation == "new-submission" {

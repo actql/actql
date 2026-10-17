@@ -567,6 +567,11 @@ fn request_body(
   connection : Json,
   maximum : Int,
 ) -> Bytes raise ClientStop {
+  let stop_before = if operation == "aql" || operation == "start" {
+    native_requested_stop_before(child)
+  } else {
+    None
+  }
   let fields : Map[String, Json] = Map([("connection", connection)])
   match operation {
     "connect" | "new-submission" => ()
@@ -701,6 +706,9 @@ fn request_body(
     }
     _ => stop("unsupported Client operation")
   }
+  if stop_before is Some(boundary) {
+    fields["stopBefore"] = Json::string(boundary)
+  }
   if operation == "aql" ||
     operation == "start" ||
     operation == "lookup-submission" {
@@ -727,6 +735,9 @@ fn request_body(
       let intent : Map[String, Json] = Map([])
       for key in ["kind", "input", "parameters"] {
         intent[key] = fields[key]
+      }
+      if stop_before is Some(boundary) {
+        intent["stopBefore"] = Json::string(boundary)
       }
       let original_wire = encode_request_json(Json::object(intent), maximum)
       let admitted = match
@@ -836,6 +847,7 @@ fn command() -> @argparse.Command {
       ]),
       @argparse.Command("aql", options=[
         @argparse.OptionArg("program-file", required=true),
+        @argparse.OptionArg("stop-before"),
         @argparse.OptionArg("parameters-file"),
         @argparse.OptionArg("parameter-declarations-file"),
         @argparse.OptionArg("format", required=true),
@@ -851,17 +863,23 @@ fn command() -> @argparse.Command {
         ],
         options=[
           @argparse.OptionArg("program-file", conflicts_with=["program"]),
+          @argparse.OptionArg("stop-before"),
           @argparse.OptionArg("parameters-file", conflicts_with=["params"]),
           @argparse.OptionArg("params", conflicts_with=["parameters-file"]),
           @argparse.OptionArg("parameter-declarations-file"),
           @argparse.OptionArg("format"),
-          @argparse.OptionArg("request-id"),
-          @argparse.OptionArg("submission-ref-file", required=true),
-          @argparse.OptionArg("operation-attempt-id", required=true),
+          @argparse.OptionArg("request-id", requires=["submission-ref-file"]),
+          @argparse.OptionArg("submission-ref-file", requires=[
+            "operation-attempt-id",
+          ]),
+          @argparse.OptionArg("operation-attempt-id", requires=[
+            "submission-ref-file",
+          ]),
         ],
       ),
       @argparse.Command("start", options=[
         @argparse.OptionArg("program-file", required=true),
+        @argparse.OptionArg("stop-before"),
         @argparse.OptionArg("parameters-file"),
         @argparse.OptionArg("request-id"),
         @argparse.OptionArg("submission-ref-file", required=true),
@@ -927,6 +945,20 @@ fn command() -> @argparse.Command {
       @argparse.Command("reconcile", options=[
         @argparse.OptionArg("ref-file", required=true),
       ]),
+      @argparse.Command(
+        "result",
+        flags=[@argparse.FlagArg("json")],
+        positionals=[
+          @argparse.PositionArg("run", num_args=@argparse.ValueRange::single()),
+        ],
+        options=[
+          @argparse.OptionArg("result"),
+          @argparse.OptionArg("format"),
+          @argparse.OptionArg("output"),
+          @argparse.OptionArg("deliver", action=Append),
+          @argparse.OptionArg("receipt"),
+        ],
+      ),
       @argparse.Command("read", options=[
         @argparse.OptionArg("ref-file", required=true),
         @argparse.OptionArg("submission-ref-file"),
@@ -956,6 +988,7 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
       if matches.subcommand is Some(("check", _)) ||
         matches.subcommand is Some(("explain", _)) ||
         matches.subcommand is Some(("run", _)) ||
+        matches.subcommand is Some(("result", _)) ||
         matches.subcommand is Some(("adopt", _)) ||
         matches.subcommand is Some(("checkpoint-state", _)) ||
         matches.subcommand is Some(("lookup-preparation-grant", _)) ||
@@ -1294,12 +1327,12 @@ fn main {
       abort("native Client project input failure")
     }
   }
+  // Local read/result stream through the durable sink; never append a reply,
+  // newline or a second buffered copy to their payload.
+  if local_payload_already_streamed(matches) {
+    return
+  }
   if matches.subcommand is Some(("read", _)) {
-    // Local streams directly through the existing durable sink; never append
-    // a reply, newline or a second buffered copy to its payload.
-    if matches.values.get("mode") == Some(["local"]) {
-      return
-    }
     let bytes = @utf8.encode(value)
     if !write_stdout_ffi(bytes, bytes.length()) {
       fail_command("stdout write failed")

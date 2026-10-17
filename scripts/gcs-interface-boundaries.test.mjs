@@ -12,6 +12,8 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const declarations = JSON.parse(readFileSync(new URL(
   '../src/connectors/gcs/interface-boundaries.json', import.meta.url))).declarations;
 const paths = ['src/connectors/gcs/catalog/object_metadata.mbt',
+  'src/connectors/gcs/catalog/object_target_observation.mbt',
+  'src/connectors/gcs/catalog/target_headers.mbt',
   'src/connectors/gcs/catalog/object_request.mbt',
   'src/connectors/gcs/catalog/object_projection.mbt',
   'src/connectors/gcs/catalog/collection_identity.mbt',
@@ -29,9 +31,11 @@ const paths = ['src/connectors/gcs/catalog/object_metadata.mbt',
   'src/connectors/gcs/host_node/original_reference.mbt',
   'src/connectors/gcs/catalog/object_upload.mbt',
   'src/connectors/gcs/catalog/object_upload_outcome.mbt',
+  'src/connectors/gcs/catalog/object_mutation_outcome.mbt',
   'src/connectors/gcs/host_node/upload_request.mbt',
   'adapters/connectors/gcs/site/gcs-owned-upload-request.mjs',
   'adapters/connectors/gcs/site/gcs-object-listing.mjs',
+  'adapters/connectors/gcs/site/gcs-credential-site.mjs',
   'adapters/connectors/gcs/site/gcs-owned-object-request.mjs'];
 const moduleOf = (module, source = readFileSync(new URL(`../${module}`, import.meta.url), 'utf8')) => ({
   module, sha256: createHash('sha256').update(source).digest('hex'),
@@ -40,9 +44,9 @@ const moduleOf = (module, source = readFileSync(new URL(`../${module}`, import.m
       : {operations: moonOperations(source), exports: []}),
 });
 
-test('all twenty-two explicit GCS owner operations and APIs retain their ten contract references', () => {
-  assert.equal(declarations.length, 22);
-  assert.equal(assertInterfaceCoverage({root, modules: paths.map(path => moduleOf(path)), declarations}), 22);
+test('all twenty-six explicit GCS owner modules and APIs retain their ten contract references', () => {
+  assert.equal(declarations.length, 26);
+  assert.equal(assertInterfaceCoverage({root, modules: paths.map(path => moduleOf(path)), declarations}), 26);
   assert.deepEqual(moduleOf(paths.at(-1)).compilerFields, []);
 });
 

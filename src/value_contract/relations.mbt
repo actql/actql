@@ -49,7 +49,11 @@ fn compatible(a : Contract, b : Contract, relation : Relation) -> Bool {
   match (a.shape, b.shape) {
     (Text(x), Text(y)) =>
       match relation {
-        Equal => x == y
+        Equal =>
+          x.min_length == y.min_length &&
+          x.max_codepoints == y.max_codepoints &&
+          x.max_utf8_bytes == y.max_utf8_bytes &&
+          text_enumerant_count(x) == text_enumerant_count(y)
         Assign =>
           lower_assign(x.min_length, y.min_length) &&
           upper_assign(x.max_codepoints, y.max_codepoints) &&
@@ -109,7 +113,18 @@ fn compare(
     }
     remaining -= 1
     let (a, b) = pending.pop().unwrap()
-    if !compatible(a, b, relation) {
+    let fits = match (a.shape, b.shape, relation) {
+      (Text(actual), Text(expected), Assign) =>
+        if a.nullable && !b.nullable {
+          false
+        } else {
+          let (fits, left) = text_assignment(actual, expected, remaining)
+          remaining = left
+          fits
+        }
+      _ => compatible(a, b, relation)
+    }
+    if !fits {
       return (false, max_pairs - remaining)
     }
     if child_count(a) > remaining - pending.length() {
@@ -225,12 +240,16 @@ pub fn join_nullability_usage(
       }
       Assemble(a, b) => {
         let shape = match (a.shape, b.shape) {
-          (Text(x), Text(y)) =>
+          (Text(x), Text(y)) => {
+            let (enumeration, left) = join_text_enumeration(x, y, remaining)
+            remaining = left
             Text({
               min_length: lower_join(x.min_length, y.min_length),
               max_codepoints: upper_join(x.max_codepoints, y.max_codepoints),
               max_utf8_bytes: upper_join(x.max_utf8_bytes, y.max_utf8_bytes),
+              enumeration,
             })
+          }
           (Array(_, max_items=x), Array(_, max_items=y)) =>
             Array(values.pop().unwrap(), max_items=upper_join(x, y))
           (Object(x), Object(_)) => {

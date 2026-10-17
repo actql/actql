@@ -9,7 +9,7 @@ const safeBound = minimum => ({ type: 'integer', minimum, maximum: 9007199254740
 export function parameterSchema(declaration = false) {
   const bodies = {
     number: { integer: { type: 'boolean' }, minimum: { type: 'number' }, maximum: { type: 'number' } },
-    string: { format: { const: 'duration' } },
+    string: { format: { const: 'duration' }, enum: { type: 'array', items: { type: 'string' } } },
     boolean: {}, timestamp: {}, date: {},
     decimal: { precision: { type: 'integer', minimum: 1, maximum: 38 }, scale: { type: 'integer', minimum: 0, maximum: 38 } },
     array: { items: { $ref: '#/$defs/parameter_type' }, length: safeBound(1), max_items: safeBound(0) },
@@ -31,7 +31,7 @@ export const sourceParameters = {
   recursive_objects_arrays: true,
   nullable_default: false,
   nullable_default_scope: 'all-recursive-parameter-type-positions',
-  recursive_constraints: ['integer', 'minimum', 'maximum', 'format', 'length', 'max_items'],
+  recursive_constraints: ['integer', 'minimum', 'maximum', 'format', 'length', 'max_items', 'enum'],
   declaration_only_members: ['default', 'meta'],
   literal_default_on_missing_only: true,
   deep_merge: false,

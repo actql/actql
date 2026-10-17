@@ -167,6 +167,7 @@ export function createModelRawTransportPersistence({store, moon, registration,
   // One original physical call per installed port. This is a retained adapter
   // view, not another Slot owner. A retry reuses its exact Save/holding handles.
   let originalCall;
+  let retiredCall;
   let originalRaw;
   let port;
   let custodyRetained = false;
@@ -215,14 +216,34 @@ export function createModelRawTransportPersistence({store, moon, registration,
   // Store cleanup, not capture success, raw disclosure, whole Run release or
   // authority to send. Never adopt a caller's substituted error/cleanup handle.
   persist.cleanup = call => {
+    if (retired) {
+      // Keep exact-call retry/refusal without an escaped retired port keeping
+      // the entire Call/Entry/Plan graph alive. A cleared weak reference cannot
+      // match a foreign live Call. Scalar refused inputs need no weak backing.
+      if (retiredCall instanceof WeakRef) {
+        const original = retiredCall.deref();
+        return original !== undefined && original === call;
+      }
+      return retiredCall === undefined || retiredCall === call;
+    }
     if (originalCall !== undefined && originalCall !== call) return false;
-    if (retired) return true;
     const retireView = () => {
-      // Drop this port's transport-backing alias only. Escaped parent holding,
-      // Save/receipt and raw views retain their independent original custody.
+      // Drop this retired caller's transport and factory aliases only.
+      // Escaped parent holding, Save/receipt and raw views retain their
+      // independent original custody; this is not physical GC or capacity ACK.
+      retiredCall = originalCall !== null &&
+          (typeof originalCall === 'object' || typeof originalCall === 'function')
+        ? new WeakRef(originalCall) : originalCall;
+      originalCall = undefined;
       originalRaw = undefined;
       port = undefined;
       originalTransportPorts.delete(persist);
+      store = undefined;
+      moon = undefined;
+      registration = undefined;
+      retainHolding = undefined;
+      notify = undefined;
+      operation = undefined;
       retired = true;
       return true;
     };

@@ -16,8 +16,20 @@ export function publishEffect(options) {
 }
 
 export function connect(options) {
-  if (options?.mode !== 'local' || options?.owner !== 'local') {
+  const mode = options?.mode, owner = options?.owner;
+  if (mode !== 'local' || owner !== undefined && owner !== 'local') {
     throw new ClientError('LocalHybridUnavailable');
   }
-  return connectEmbeddedLocal(options);
+  if (owner === 'local') return connectEmbeddedLocal(options);
+  // Explicit embedded Local already selects this physical provider. Omission
+  // is not another Account/Run authority: the original Host still admits the
+  // same closed connection and its current policy. Never default null/foreign
+  // ownership or Hybrid, and do not reread mode/owner through caller getters.
+  // Preserve other original descriptors/prototype rather than invoking their
+  // getters here or dropping hidden/symbol installation inputs during a copy.
+  return connectEmbeddedLocal(Object.create(Object.getPrototypeOf(options), {
+    ...Object.getOwnPropertyDescriptors(options),
+    mode: {value: mode, enumerable: true},
+    owner: {value: 'local', enumerable: true},
+  }));
 }

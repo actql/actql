@@ -127,9 +127,7 @@ fn local_adoption_read(
           failure = Some(@filesystem.GenerationMismatch)
           break
         }
-        for i in 0..<chunk.bytes.length() {
-          body[offset + i] = chunk.bytes[i]
-        }
+        body.blit_from_bytes(offset, chunk.bytes, 0, chunk.bytes.length())
         offset += chunk.bytes.length()
       }
     }
@@ -146,7 +144,7 @@ fn local_adoption_read(
   }
   match failure {
     Some(issue) => Err(Filesystem(issue))
-    None => Ok((Bytes::makei(body.length(), i => body[i]), generation))
+    None => Ok((Bytes::from_array(body), generation))
   }
 }
 

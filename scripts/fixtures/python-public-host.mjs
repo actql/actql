@@ -35,4 +35,3 @@ export async function openPythonPublicHost(t,{workspaceId}={}){
     host=await openInstalledRemoteHttpHost(options);
   }};
 }
-
