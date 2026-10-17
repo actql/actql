@@ -106,6 +106,8 @@ async function fixture(t, {valueSubstitution = false, targetSubstitution = false
       footprint: () => ({kind: 'opaque', provider_namespace: 'fixture', resource_kind: 'records',
         provider_boundary_cid: cid('fixture boundary')}),
       requestCid,
+      recoveryEntry: ({entries}) => ({kind: 'fixture-delete-originals',
+        observationCid: state.version, wire: canonicalJson({requests: entries.map(entry => entry.request)})}),
       recoverRequests() {assert.fail('Recovery is a separate physical consuming acceptance');},
       send() {state.sends++; assert.fail('A captured required-approval Set cannot send');},
       project() {assert.fail('No Provider response exists in this capture test');},
