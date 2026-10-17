@@ -20,6 +20,8 @@ test('genuine checked generator outputs qualify original compiler and action pro
   const inputSource = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim();
   assert.equal(execFileSync('git', ['status', '--porcelain'], {cwd: root, encoding: 'utf8'}), '');
   const checked = interfaceGenerationFreshness(root);
+  assert(checked.checked.includes('lowering-registry-vectors.mjs'));
+  assert(checked.checked.includes('native-cli-default-assets.mjs'));
   const original = interfaceOwnerDeclarations(process.cwd()).find(owner =>
     owner.id === 'scripts/interface-owners/js-bindings/interface-boundaries.json');
   const actions = [...actionBindingOutputs(pathToFileURL(join(root, '/'))).keys()].filter(module => module.endsWith('.mjs'));

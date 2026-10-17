@@ -179,6 +179,7 @@ fn same_write_field(before : FieldMetadata, after : FieldMetadata) -> Bool {
     before.case_sensitive != after.case_sensitive ||
     before.precision != after.precision ||
     before.scale != after.scale ||
+    before.compound_field_name != after.compound_field_name ||
     before.reference_to.length() != after.reference_to.length() {
     return false
   }
