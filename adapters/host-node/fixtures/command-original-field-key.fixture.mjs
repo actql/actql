@@ -11,7 +11,7 @@ import {runCapturedEffectComputation} from '../entry.mjs';
 import {canonical, cid, resource} from './file-listing-source.fixture.mjs';
 import {moon, publicationEvidence} from './command-original-key.fixture.mjs';
 
-export async function originalFieldCommandKeyFixture({duplicate = false, inputKey = true, secondMember = false} = {}) {
+export async function originalFieldCommandKeyFixture({duplicate = false, inputKey = true, secondMember = false, published = true} = {}) {
   const read = path => readFile(new URL(`../../../${path}`, import.meta.url), 'utf8');
   const original = await read('src/query_integration/published_store_capture_wbtest.mbt');
   const literals = [...original.matchAll(/^\s*#\|(.+)$/gmu)].map(match => JSON.parse(match[1]));
@@ -59,6 +59,7 @@ export async function originalFieldCommandKeyFixture({duplicate = false, inputKe
   if (secondMember) {
     program.stages[1].effects.second = structuredClone(program.stages[1].effects.save);
   }
+  if (!published) program.results = {};
   const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
     canonical(program), 'json', environment, undefined, []);
   const prepared = moon.clientProgramEffectPreparationReady(outcome);
@@ -102,7 +103,10 @@ export async function originalFieldCommandKeyFixture({duplicate = false, inputKe
       10, 1000, 10000, 100, 100, 10000, 100000, 64, 100000,
       100000, 10000, 64, 10, 10000, 100000, 10003, 66, 10, 100000, 10000, 64, 4096);
     assert(limits);
-    return {prepared, owned, execution, inputs, limits, rows, revoke() { current = false; },
+    return {prepared, owned, execution, inputs, limits, rows,
+      command: commandEnvironment.command_contracts[0], environmentWire: canonical({...body, evidence_bundle_cid: environmentCid}),
+      unit: {programId: program.id, stageId: 'save', stageIndex: 1, effectIds: Object.keys(program.stages[1].effects)},
+      revoke() { current = false; },
       publicationContext(control) {
         // Publication consumes the same original acquisition and capture. The
         // fixture's policy remains explicit and is not an installed grant.
