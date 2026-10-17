@@ -541,6 +541,8 @@ pub fn normalized_public_model_task_usage(NormalizedPublicModelTask) -> Int
 
 pub fn program_source_grammar_cid() -> String
 
+pub fn project_public_model_task_environment(WireEnvironment, Array[NormalizedPublicModelTask], ModelTaskLimits) -> Result[(String, String, Int), ModelTaskIssue]
+
 pub fn protocol_command_input_type(ProtocolValueContract) -> CommandInputContract?
 
 pub fn protocol_value_at(ProtocolValueContracts, Int) -> ProtocolValueContract?
@@ -636,6 +638,8 @@ pub fn read_model_execution_contract(ModelTaskContract, Bytes, String, Limits, I
 pub fn read_model_provider_defaults_configuration(Bytes, Limits, Int) -> Result[(ModelProviderDefaults?, Int, Int, Int), ModelTaskIssue]
 
 pub fn read_model_response_profile(Bytes, String, Limits, Int) -> Result[ModelResponseProfile, ModelTaskIssue]
+
+pub fn read_project_public_model_task_environment(String, String, Array[NormalizedPublicModelTask], ModelTaskLimits) -> Result[(String, String, Int), ModelTaskIssue]
 
 pub fn read_public_model_task_contract(@decode_core.Cursor, ModelTaskLimits) -> Result[PublicModelTaskContract, ModelTaskIssue]
 
