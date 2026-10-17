@@ -37,7 +37,7 @@ function propertyPage(text,cursor=null){return{object:'list',type:'property_item
 const limits={maxResponseBytes:16384,maxTotalResponseBytes:131072,maxRequestBytes:1024,maxTargetBytes:1024,
   maxPages:4,pageSize:10,maxTotalRows:8,maxNodes:1024,maxDepth:20,maxDataSources:8,maxProperties:8,
   maxIdentityBytes:128,maxNameBytes:128,maxCursorBytes:128,maxRowNodes:256,maxRowDepth:16,maxRowTextBytes:4096,
-  maxColumns:16,maxRowWork:1000000,maxRowsWireBytes:16384,maxRowsWireNodes:2048,maxRowsWireDepth:20,
+  maxColumns:16,maxRowWork:1000000,maxPageWork:1000000,maxRowsWireBytes:16384,maxRowsWireNodes:2048,maxRowsWireDepth:20,
   maxPropertyPages:4,maxPropertyItems:128,maxPropertyBytes:65536,maxPropertyNodes:4096,maxPropertyTextBytes:32768,maxPropertyWork:1000000};
 async function fixture(t){
   const f=await propertyReadFixture(t,{additionalOperations:[NOTION_DATA_SOURCE_READ_OPERATION]}),original=originals(),rows=[],tickets=[];
@@ -135,7 +135,7 @@ test('actual Notion aggregate response/output exhaustion and stop retain raw wit
   const output=await fixture(t);
   output.state.respond=request=>request.method==='POST'?queryPage(['p1','p2','p3','p4','p5']):propertyPage('ab');
   const reader=output.create({limits:{...limits,maxRowsWireBytes:300}});
-  await assert.rejects(reader.read(),error=>error.cause.code==='NotionDataSourceRowsWireLimit');assert.deepEqual(output.rows,[]);
+  await assert.rejects(reader.read(),error=>error.cause.code==='MoonBitHostFailure');assert.deepEqual(output.rows,[]);
   const stopped=await fixture(t),controller=new AbortController(),reason=new Error('OriginalQueryStop');
   const handle=stopped.create({signal:controller.signal,chargeResponse:body=>{controller.abort(reason);return stopped.options.chargeResponse(body);}});
   await assert.rejects(handle.read(),error=>error.cause===reason);assert.equal(stopped.state.requests.length,1);

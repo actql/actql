@@ -325,3 +325,89 @@ pub fn notion_read_row_wire(
     }
   }
 }
+
+///|
+/// Aggregate every original row, including the outer array node/depth, in the
+/// existing Common Value/Encoder. Per-row bounds alone never bound a full page.
+pub fn notion_read_page_rows_wire(
+  binding : NotionDataSourceReadContracts,
+  page : OriginalNotionQueryPage,
+  rows : Array[NotionReadRow],
+  limits : @admitted.Limits,
+  max_work : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, NotionReadRowIssue] {
+  if limits.max_nodes <= 0 ||
+    limits.max_depth <= 0 ||
+    limits.max_text_bytes < 0 ||
+    max_work <= 0 {
+    return Err(InvalidLimits)
+  }
+  if !physical_equal(page.source, binding.source) ||
+    rows.length() != page.rows.length() {
+    return Err(ForeignOriginal)
+  }
+  if rows.length() > max_work || rows.length() > limits.max_nodes - 1 {
+    return Err(BudgetExceeded)
+  }
+  guard @admitted.prepare_array_value(rows.length()) is Some(output) else {
+    return Err(BudgetExceeded)
+  }
+  let mut work = max_work - rows.length()
+  let mut nodes = 1
+  let mut text = 0
+  for index in 0..<rows.length() {
+    let row = rows[index]
+    if !read_row_is_original(row) ||
+      !physical_equal(row.binding, binding) ||
+      !physical_equal(row.row, page.rows[index]) {
+      @admitted.cancel_array_value(output) |> ignore
+      return Err(ForeignOriginal)
+    }
+    let (value, child_nodes, child_text) = match finish_notion_read_row(row) {
+      Ok(value) => value
+      Err(issue) => {
+        @admitted.cancel_array_value(output) |> ignore
+        return Err(issue)
+      }
+    }
+    if child_nodes > limits.max_nodes - nodes ||
+      child_text > limits.max_text_bytes - text ||
+      child_nodes > work {
+      @admitted.cancel_array_value(output) |> ignore
+      return Err(BudgetExceeded)
+    }
+    work -= child_nodes
+    if child_text > work {
+      @admitted.cancel_array_value(output) |> ignore
+      return Err(BudgetExceeded)
+    }
+    work -= child_text
+    nodes += child_nodes
+    text += child_text
+    if !@admitted.append_array_item(output, value.value) {
+      @admitted.cancel_array_value(output) |> ignore
+      return Err(InvalidValue)
+    }
+  }
+  guard @admitted.finish_array_value(output) is Some(value) &&
+    @contract.array_contract(binding.schema, nullable=false) is Some(contract) &&
+    @admitted.recheck_runtime_value_usage(value, contract, limits)
+    is Some((checked, _, _)) else {
+    return Err(BudgetExceeded)
+  }
+  let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
+    _ => return Err(BudgetExceeded)
+  }
+  try {
+    @admitted.emit_checked_wire_value(checked, writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      Err(BudgetExceeded)
+    }
+  }
+}

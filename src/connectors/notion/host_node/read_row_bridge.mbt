@@ -48,3 +48,33 @@ pub fn notion_read_row_json(
 ) -> Result[String, @catalog.NotionReadRowIssue] {
   @catalog.notion_read_row_wire(row, max_bytes, max_nodes, max_depth)
 }
+
+///|
+#export_name("notionReadPageRowsJson")
+pub fn notion_read_page_rows_json(
+  binding : @catalog.NotionDataSourceReadContracts,
+  page : @catalog.OriginalNotionQueryPage,
+  rows : Array[@catalog.NotionReadRow],
+  max_value_nodes : Int,
+  max_value_depth : Int,
+  max_value_text : Int,
+  max_work : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @catalog.NotionReadRowIssue] {
+  @catalog.notion_read_page_rows_wire(
+    binding,
+    page,
+    rows,
+    {
+      max_nodes: max_value_nodes,
+      max_depth: max_value_depth,
+      max_text_bytes: max_value_text,
+    },
+    max_work,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}

@@ -23,10 +23,11 @@ fn row_test_setup() -> (NotionDataSourceReadContracts, OriginalNotionQueryPage) 
 fn row_test_title(
   binding : NotionDataSourceReadContracts,
   page : OriginalNotionQueryPage,
+  row_index? : Int = 0,
 ) -> NotionPropertyItemPage {
   let request = start_notion_column_property_item_request(
     binding,
-    notion_query_page_row_at(page, 0).unwrap(),
+    notion_query_page_row_at(page, row_index).unwrap(),
     0,
     property_test_limits(),
   ).unwrap()
@@ -41,6 +42,114 @@ fn row_test_title(
       (try! @utf8.decode(response[:])).replace_all(old="\"v\"", new="\"t%3Ax\""),
     ),
   ).unwrap()
+}
+
+///|
+test "Notion complete page bounds include every original row and its outer array" {
+  let (binding, _) = row_test_setup()
+  let page = project_notion_query_page(
+    binding.source,
+    @utf8.encode(
+      query_test_page(
+        query_test_row("one") + "," + query_test_row("two"),
+        "null",
+        "false",
+      ),
+    ),
+    query_test_limits(),
+  ).unwrap()
+  let rows = []
+  for index in 0..<2 {
+    let row = start_notion_read_row(binding, page, index, row_test_limits()).unwrap()
+    complete_notion_read_row_property(
+      row,
+      0,
+      row_test_title(binding, page, row_index=index),
+    ).unwrap()
+    rows.push(row)
+  }
+  let expected = "[{\"amount\":\"9007199254740993.25\",\"title\":\"é😀\"},{\"amount\":\"9007199254740993.25\",\"title\":\"é😀\"}]"
+  let limits : @admitted.Limits = {
+    max_nodes: 7,
+    max_depth: 2,
+    max_text_bytes: 72,
+  }
+  let bytes = @utf8.encode(expected).length()
+  assert_eq(
+    notion_read_page_rows_wire(binding, page, rows, limits, 10000, bytes, 7, 2),
+    Ok(expected),
+  )
+  for
+    short in [
+      { ..limits, max_nodes: 6, },
+      { ..limits, max_depth: 1, },
+      { ..limits, max_text_bytes: 71, },
+    ] {
+    assert_eq(
+      notion_read_page_rows_wire(binding, page, rows, short, 10000, bytes, 7, 2),
+      Err(BudgetExceeded),
+    )
+  }
+  assert_eq(
+    notion_read_page_rows_wire(
+      binding,
+      page,
+      rows,
+      limits,
+      10000,
+      bytes - 1,
+      7,
+      2,
+    ),
+    Err(BudgetExceeded),
+  )
+  assert_eq(
+    notion_read_page_rows_wire(binding, page, rows, limits, 10000, bytes, 6, 2),
+    Err(BudgetExceeded),
+  )
+  assert_eq(
+    notion_read_page_rows_wire(binding, page, rows, limits, 1, bytes, 7, 2),
+    Err(BudgetExceeded),
+  )
+  assert_eq(
+    notion_read_page_rows_wire(
+      binding,
+      page,
+      [rows[1], rows[0]],
+      limits,
+      10000,
+      bytes,
+      7,
+      2,
+    ),
+    Err(ForeignOriginal),
+  )
+  assert_eq(
+    notion_read_page_rows_wire(
+      binding,
+      page,
+      [rows[0]],
+      limits,
+      10000,
+      bytes,
+      7,
+      2,
+    ),
+    Err(ForeignOriginal),
+  )
+  assert_eq(
+    notion_read_page_rows_wire(
+      binding,
+      page,
+      [rows[0], rows[0]],
+      limits,
+      10000,
+      bytes,
+      7,
+      2,
+    ),
+    Err(ForeignOriginal),
+  )
 }
 
 ///|

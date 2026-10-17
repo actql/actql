@@ -14,11 +14,11 @@ const fail=code=>{throw Object.assign(new Error(code),{code});};
 const positive=x=>Number.isSafeInteger(x)&&x>0&&x<=2147483647;
 const required=['notionDataSourceReadMatches','notionDataSourceMetadataJson','notionDataSourceReadSchemaJson',
   'notionProjectQueryPage','notionQueryPageMetadataJson','notionStartReadRow','notionReadRowPendingJson',
-  'notionStartColumnPropertyRequest','notionCompleteReadRowProperty','notionReadRowJson'];
+  'notionStartColumnPropertyRequest','notionCompleteReadRowProperty','notionReadPageRowsJson'];
 const fields=['maxResponseBytes','maxTotalResponseBytes','maxRequestBytes','maxTargetBytes',
   'maxPages','pageSize','maxTotalRows','maxNodes','maxDepth','maxDataSources','maxProperties',
   'maxIdentityBytes','maxNameBytes','maxCursorBytes','maxRowNodes','maxRowDepth','maxRowTextBytes',
-  'maxColumns','maxRowWork','maxRowsWireBytes','maxRowsWireNodes','maxRowsWireDepth',
+  'maxColumns','maxRowWork','maxPageWork','maxRowsWireBytes','maxRowsWireNodes','maxRowsWireDepth',
   'maxPropertyPages','maxPropertyItems','maxPropertyBytes','maxPropertyNodes','maxPropertyTextBytes','maxPropertyWork'];
 
 export class NotionDataSourceReadFailure extends Error {
@@ -98,7 +98,7 @@ async function executeRead(prepared,state){
         cursors.add(metadata.nextCursor);
         if(index+1===b.maxPages)fail('NotionDataSourcePageLimit');
       }
-      const rows=[],originalRows=[];let wireBytes=2;
+      const originalRows=[];
       for(let rowIndex=0;rowIndex<metadata.ids.length;rowIndex++){
         const row=checked(provider.notionStartReadRow(readContracts,page,rowIndex,
           b.maxRowNodes,b.maxRowDepth,b.maxRowTextBytes,b.maxColumns,b.maxRowWork));
@@ -128,15 +128,15 @@ async function executeRead(prepared,state){
           const record={reader:child,result:undefined};children.push(record);state.children.push(child);
           const result=await child.read();record.result=result;observations.push(...result.observations);
         }
-        const wire=checked(provider.notionReadRowJson(row,b.maxRowsWireBytes,b.maxRowsWireNodes,b.maxRowsWireDepth));
-        const size=Buffer.byteLength(wire)+(rowIndex===0?0:1);
-        if(size>b.maxRowsWireBytes-wireBytes)fail('NotionDataSourceRowsWireLimit');
-        wireBytes+=size;rows.push(JSON.parse(wire));
       }
+      const wire=checked(provider.notionReadPageRowsJson(readContracts,page,Object.freeze(originalRows),
+        b.maxRowsWireNodes,b.maxRowsWireDepth,b.maxRowsWireBytes,b.maxPageWork,
+        b.maxRowsWireBytes,b.maxRowsWireNodes,b.maxRowsWireDepth));
+      const rows=JSON.parse(wire);
       if(pendingCharge===undefined)fail('NotionDataSourceObservationUnbound');
       await verify(NOTION_DATA_SOURCE_READ_OPERATION);
       await context.callbacks.consumePage(rows,Object.freeze({charge:pendingCharge,originalPage:page,
-        originalRows:Object.freeze(originalRows),readContracts}));
+        originalRows,readContracts}));
       totalRows+=rows.length;
       await verify(NOTION_DATA_SOURCE_READ_OPERATION);
       if(metadata.nextCursor===null)return Object.freeze({pages:index+1,rowCount:totalRows,schemaWire,
