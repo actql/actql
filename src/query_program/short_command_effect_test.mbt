@@ -281,6 +281,15 @@ test "short COMMAND original ID range survives local SET and never becomes mutat
     @wire.lookup(@wire.open_object(step).unwrap(), "derive") is Some(_)
   })
   assert_eq(derived.length(), 2)
+  let current = short_command_program(
+    "FROM pair AS original |> SET x = x + 1 |> EFFECT COMMAND mail.send ID x INPUT (body = 'same')",
+    "installation",
+  )
+  let current_key = @program.effect_header_command_input_key(
+    store_capture_header(current),
+  ).unwrap()
+  assert_true(current_key != key)
+  assert_true(current_key.has_prefix("aql_pipe_set_"))
   assert_true(semantic(program).contains("\"input_key\""))
   assert_true(!semantic(program).contains("\"mutation_identity\""))
   let renamed = short_command_program(
