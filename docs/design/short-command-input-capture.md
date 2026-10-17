@@ -34,3 +34,14 @@ The installed preparation owner must consume the original publication and
 issuer through compilation, Run materials, Preview, apply and restore; it must
 not recover these from selector DATA or current configuration. Approval,
 Unknown, nonresend and cleanup responsibilities stay with their existing owners.
+
+The Common Effect preparation accepts the optional nominal Command publication
+from that same frontend handoff and requires the exact checked Environment
+object, not merely its CID. Its read-only projection returns the identical
+publication; it neither resolves an alias again nor reconstructs the value from
+saved DATA. The absent option retains prior preparation and identity behavior.
+This retained reference is distinct from the eight-field UPDATE/published-STORE
+selection codec. It does not extend that codec to installation or identifier
+Commands, prove whole-input uniqueness, authenticate durable capture, or grant
+target read or dispatch authority. A later capture/restoration boundary must
+still consume the corresponding original issuer and saved material.
