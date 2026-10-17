@@ -24,6 +24,8 @@ pub fn classify_append(Int, Bytes, String, Limits) -> AppendOutcome
 
 pub fn classify_clear(Int, Bytes, String, GridRange, String, Limits) -> AppendOutcome
 
+pub fn clear_command_json(String, String, String, Limits) -> Result[String, RangeFailure]
+
 pub fn clear_range_recovery_entry(ClearRangeBinding, String, Array[ClearRangeRequest]) -> Result[String, RangeFailure]
 
 pub fn clear_range_request_body(ClearRangeBinding, ClearRangeRequest) -> Result[String, RangeFailure]
