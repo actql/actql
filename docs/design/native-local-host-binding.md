@@ -180,7 +180,9 @@ by physical file or raw public-key identity. An old raw row, missing metadata,
 foreign policy/epoch/key, changed control revision or Unknown initialization
 never chooses a fresh capture. Lost COMMIT acknowledgement preserves the same
 operation and its uncertainty; lookup can observe an authentic committed original
-but cannot create a replacement key, policy or claim.
+but cannot create a replacement key, policy or claim. Read failure retains its
+original typed cause; if transaction retirement also fails, both causes survive
+in the same existing Host error path, and the database remains fenced.
 
 This physical metadata seam is not default-signer selection, Account/Reviewer/
 Run authorization, first issue, use claim, signature or public approval. Those

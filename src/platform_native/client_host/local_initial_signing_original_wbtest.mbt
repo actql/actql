@@ -24,7 +24,7 @@ test "initial Signing original commits same Store key policy and intent without 
   let policy = original.policy().unwrap()
   assert_eq(
     original.issuer_identity().unwrap(),
-    policy.issuer_identity(host.session.intent_cid()).unwrap(),
+    "local-signing/" + host.session.intent_cid(),
   )
   assert_eq(policy.max_uses(), 1)
   let pem = host.epoch.crypto
@@ -310,7 +310,7 @@ test "initial Signing commit response loss preserves same original or missing re
       let original = host.restore_initial_signing_original().unwrap()
       assert_eq(
         original.issuer_identity().unwrap(),
-        capture.policy.issuer_identity(reopened.intent_cid()).unwrap(),
+        "local-signing/" + reopened.intent_cid(),
       )
       assert_eq(host.installation_custody().unwrap(), (0, 0L))
       host.close().unwrap()
