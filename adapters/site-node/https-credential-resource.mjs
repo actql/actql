@@ -796,6 +796,8 @@ async function callCredentialResource({
       binding,
     });
     if (metadata) {
+      // Known retirement/cancellation closes even further configuration reads.
+      metadataCurrent(binding, scope, signal);
       await currentBeforeSend();
       metadataCurrent(binding, scope, signal);
       journal.authorize(claimed.use, BigInt(now()), scope, control);

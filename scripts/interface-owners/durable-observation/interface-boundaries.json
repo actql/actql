@@ -5183,7 +5183,7 @@
           }
         }
       ],
-      "sha256": "bfa0fc5068e325b28b4d5e0ba24a80de9df696b5667c15fdb0ae36434e77570a",
+      "sha256": "d8d3821912b2779d544730120749787256194bdb57d4349218654325415fbf4f",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",
