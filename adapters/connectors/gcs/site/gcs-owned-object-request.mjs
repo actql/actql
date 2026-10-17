@@ -307,7 +307,7 @@ export function createGcsMutationRequestChild({moon, binding, kind, name, value,
           : prepareOwnedGcsObjectDelete({moon: original.moon, binding: original.binding,
             original: before, maxProjectionBytes: original.maxProjectionBytes});
         const owned = originals.get(request);
-        originals.set(request, {...owned, lifetime});
+        originals.set(request, {...owned, lifetime, previewCurrent: () => current(original)});
         prepared = Object.freeze({request, requestCid: request.request_cid});
         current(original);
         return prepared;
@@ -340,6 +340,36 @@ export function projectOwnedGcsMetadataPatchTarget(request, maxProjectionBytes, 
   return freeze(JSON.parse(gcsOwnedResult(original.moon,
     original.moon.gcsObjectPatchEffectTarget(binding ?? original.binding,
       original.handle, maxProjectionBytes))));
+}
+
+// A same-request projection borrow, not an issuer or permission. Only the
+// existing preparation child supplies its actual current/lifetime closure.
+// The installed Preview owner must separately bind and authorize these facts.
+export function borrowOwnedGcsMetadataPatchTarget(request, maxProjectionBytes, binding) {
+  if (!integer(maxProjectionBytes)) fail('InvalidGcsObjectAbiLimits');
+  const original = originalRequest(request, binding);
+  if (typeof original.previewCurrent !== 'function') fail('GcsOriginalMutationPreparationUnavailable');
+  original.previewCurrent();
+  if (original.moon.gcsObjectMutationKind(original.binding) !== 'patch_metadata') fail('GcsInvalidObjectBinding');
+  let retainedRequest = request, retainedBinding = binding;
+  const view = Object.freeze({
+    readFor(candidate) {
+      if (this !== view || retainedRequest === undefined || candidate !== retainedRequest) {
+        fail('ForeignGcsObjectPreview');
+      }
+      originalRequest(retainedRequest, retainedBinding).previewCurrent();
+      const projection = projectOwnedGcsMetadataPatchTarget(retainedRequest, maxProjectionBytes, retainedBinding);
+      originalRequest(retainedRequest, retainedBinding).previewCurrent();
+      return projection;
+    },
+    // Alias retirement only. It does not close the preparation child, confirm
+    // its raw response/FD/credential retirement or return physical capacity.
+    retire() {
+      if (this !== view) fail('ForeignGcsObjectPreview');
+      retainedRequest = retainedBinding = undefined;
+    },
+  });
+  return view;
 }
 
 export function recheckOwnedGcsObjectRequest(request, current, binding) {

@@ -83,6 +83,51 @@ test "GCS target Preview keeps changed-field omission missing metadata and empty
 }
 
 ///|
+test "GCS target Preview binds protocol NULL to empty without changing intended SET" {
+  let binding = mutation_binding()
+  let missing = metadata_read(
+    (
+      #|{"bucket":"bucket","name":"in/é%2F.csv","generation":"9007199254740993","metageneration":"2","size":"7"}
+    ),
+  ).unwrap()
+  let request = prepare_object_metadata_patch_value_wire(
+    binding,
+    missing,
+    b"{\"content_type\":\"text/csv\"}",
+    mutation_marker(),
+  ).unwrap()
+  let wire = object_metadata_patch_effect_target_json(binding, request, 8192).unwrap()
+  assert_true(
+    wire.contains(
+      "\"after\":{\"content_type\":\"text/csv\",\"metadata\":{\"$json\":{}}}",
+    ),
+  )
+  assert_true(
+    wire.contains("\"before\":{\"content_type\":null,\"metadata\":null}"),
+  )
+  assert_true(wire.contains("\"value\":{\"content_type\":\"text/csv\"}"))
+  assert_eq(request.authored_changes, "{\"content_type\":\"text/csv\"}")
+  assert_eq(
+    request.body,
+    "{\"contentType\":\"text/csv\",\"metadata\":{\"actql-request\":\"" +
+    mutation_marker() +
+    "\"}}",
+  )
+  let marker_only = prepare_object_metadata_patch_value_wire(
+    binding,
+    missing,
+    b"{}",
+    mutation_marker(),
+  ).unwrap()
+  let wire = object_metadata_patch_effect_target_json(
+    binding, marker_only, 8192,
+  ).unwrap()
+  assert_true(wire.contains("\"before\":{\"metadata\":null}"))
+  assert_true(wire.contains("\"after\":{\"metadata\":{\"$json\":{}}}"))
+  assert_true(wire.contains("\"value\":{}"))
+}
+
+///|
 test "GCS target Preview refuses a foreign binding raw Json payload or DELETE purpose" {
   let binding = mutation_binding()
   let request = prepare_object_metadata_patch_value_wire(

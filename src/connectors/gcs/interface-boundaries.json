@@ -1052,6 +1052,9 @@
             "admitGcsObjectTargetObservation",
             "admitGcsObjectTargetObservation/admitGcsObjectTargetObservation",
             "admitGcsObjectTargetObservation/admitGcsObjectTargetObservation#2",
+            "borrowOwnedGcsMetadataPatchTarget",
+            "borrowOwnedGcsMetadataPatchTarget/view/init:readFor/init:readFor",
+            "borrowOwnedGcsMetadataPatchTarget/view/init:retire/init:retire",
             "createGcsMutationRequestChild",
             "createGcsMutationRequestChild/current/current",
             "createGcsMutationRequestChild/current/current/current",
@@ -1060,6 +1063,7 @@
             "createGcsMutationRequestChild/init:prepare/init:prepare/init:prepare",
             "createGcsMutationRequestChild/init:prepare/init:prepare/init:prepare/init:prepare",
             "createGcsMutationRequestChild/init:prepare/init:prepare/init:prepare/init:prepare#2",
+            "createGcsMutationRequestChild/init:prepare/init:prepare/init:prepare/init:prepare#3",
             "createGcsMutationRequestChild/init:prepare/init:prepare/init:prepare#2",
             "createGcsMutationRequestChild/init:prepare/init:prepare/init:prepare#3",
             "createGcsMutationRequestChild/init:status/init:status",
@@ -1095,6 +1099,7 @@
           "exports": [
             "admitGcsObjectMetadata",
             "admitGcsObjectTargetObservation",
+            "borrowOwnedGcsMetadataPatchTarget",
             "createGcsMutationRequestChild",
             "gcsOwnedResult",
             "ownedGcsObjectRequestCid",
@@ -1160,6 +1165,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "### Original metadata and delete responses"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Original PATCH target Preview"
               }
             ],
             "synchronization": [
@@ -1294,6 +1303,10 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-mutation-preview.test.mjs",
                 "anchor": "GCS capture target projects the child original GET without replacement read"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-effective-preview.test.mjs",
+                "anchor": "effective Preview borrow stays on the original request current fence and child lifetime"
               }
             ],
             "inputsOutputs": [
@@ -1338,6 +1351,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "### Original mutation preparation child"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "borrowOwnedGcsMetadataPatchTarget"
               }
             ]
           }
@@ -1346,6 +1363,7 @@
       "exports": [
         "admitGcsObjectMetadata",
         "admitGcsObjectTargetObservation",
+        "borrowOwnedGcsMetadataPatchTarget",
         "createGcsMutationRequestChild",
         "gcsOwnedResult",
         "ownedGcsObjectRequestCid",
@@ -1398,6 +1416,27 @@
             "key",
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "borrowOwnedGcsMetadataPatchTarget",
+          "parameters": [
+            "request",
+            "maxProjectionBytes",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "borrowOwnedGcsMetadataPatchTarget/view/init:readFor/init:readFor",
+          "parameters": [
+            "candidate"
+          ],
+          "async": false
+        },
+        {
+          "name": "borrowOwnedGcsMetadataPatchTarget/view/init:retire/init:retire",
+          "parameters": [],
           "async": false
         },
         {
@@ -1460,6 +1499,11 @@
           "parameters": [
             "name"
           ],
+          "async": false
+        },
+        {
+          "name": "createGcsMutationRequestChild/init:prepare/init:prepare/init:prepare/init:prepare#3",
+          "parameters": [],
           "async": false
         },
         {
@@ -1731,7 +1775,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "377f9748504c26086529a49292de45039d5b4a8c2fb0097362a5e71c8b06e542"
+      "sha256": "eab4fec6ff81c4ef46221a7b0eb83e833137d8676c2911c62af0a6244a69ba32"
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
@@ -3045,6 +3089,10 @@
               {
                 "path": "docs/spec/protocols/contracts.md",
                 "anchor": "<a id=\"gcs-private-request-metadata\"></a>"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Original PATCH target Preview"
               }
             ],
             "synchronization": [
@@ -3107,6 +3155,10 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-mutation-preview.test.mjs",
                 "anchor": "GCS capture target projects the child original GET without replacement read"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-effective-preview.test.mjs",
+                "anchor": "effective Preview borrow stays on the original request current fence and child lifetime"
               }
             ],
             "inputsOutputs": [
@@ -3131,6 +3183,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
                 "anchor": "const originals = new WeakMap()"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "borrowOwnedGcsMetadataPatchTarget"
               }
             ]
           }
@@ -3167,7 +3223,7 @@
         }
       ],
       "exports": [],
-      "sha256": "bc24387ba43956b52890774d352d536b2320b43077d4840a6d8d3f200e681016"
+      "sha256": "213080924b9715a91c9c764f0771eaca8df192b9b5bbb3e3e9714ffcb158cae9"
     },
     {
       "module": "src/connectors/gcs/catalog/object_request.mbt",
