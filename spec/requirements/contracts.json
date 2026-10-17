@@ -1345,6 +1345,72 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/gcs-compose-destination-profile.existing-properties",
+      "statement_sha256": "0e56fd50f038aefe27d6ec002cb193de0964d80d02e976636626caa8776807c2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "gcs-compose-destination-profile",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/gcs-compose-destination-profile.absent-properties",
+      "statement_sha256": "748fea7b3887b88e2695b551c7a9978ec9a16409967e41047f36bcb6c0cbca48",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "gcs-compose-destination-profile",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/gcs-compose-destination-profile.original-guards",
+      "statement_sha256": "6b4680c6dd11e842b23bd1effaf71661aac20b6c9f64085a46294a200e46188e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "gcs-compose-destination-profile",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/gcs-compose-destination-profile.ordered-sources",
+      "statement_sha256": "59931f954d0f8d4d5d23ab39d6abef38b9060209b3366b37356320f22ee2be19",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "gcs-compose-destination-profile",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/gcs-compose-destination-profile.original-custody",
+      "statement_sha256": "765bd6ef454d110431a09f1aebd0d2dd373455e7637e2176b385ad55198466f9",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "gcs-compose-destination-profile",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/gcs-compose-destination-profile.unrelated-properties",
+      "statement_sha256": "b28d12756240dbafc09d498951c590153687a6c21a00d6d4707b878174ea08b0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "gcs-compose-destination-profile",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/file-sources.listing-resolution-and-metadata",
       "statement_sha256": "0b1b1f28c5b5195c53982a3108b0840863b74111cbd956466adcd4cf48c20c57",
       "status": "pending",

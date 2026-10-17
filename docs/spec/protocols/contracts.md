@@ -22,6 +22,7 @@ This document owns catalog, sourceview, mapping, command, model-task, check-envi
 - [Connector Catalog and lock](#catalog-and-lock)
 - [Connector manifest and authorization boundary](#connector-manifest)
 - [GCS private request metadata](#gcs-private-request-metadata)
+- [GCS compose destination profile](#gcs-compose-destination-profile)
 - [Deterministic Catalog generation](#mapping-generation)
 - [Capture classification inheritance](#classification-inheritance)
 - [Command item and recovery contract](#command-item-contract)
@@ -1154,6 +1155,49 @@ Effect owner's receipt, external-mutation guards and custody. A lost response
 or changed metageneration MUST NOT authorize automatic resend, adoption of a
 new head or a new operation. Unknown and unresolved cleanup remain owned by
 the original operation.
+
+<a id="gcs-compose-destination-profile"></a>
+
+#### GCS compose destination profile
+
+<!-- requirement-block: gcs-compose-destination-profile.existing-properties -->
+For an existing GCS compose destination, the Connector MUST retain the
+Preview-captured user metadata and content type, replacing only the reserved
+request marker with this original operation's marker. This explicitly selected
+profile is not JSON API default inheritance; it does not preserve an old marker
+as evidence for the new operation.
+
+<!-- requirement-block: gcs-compose-destination-profile.absent-properties -->
+For an explicitly observed absent destination, the Connector MUST preview and
+send the first original source's captured content type and an empty user map
+plus the new marker. Missing content-type evidence is not permission to invent
+a default; an explicit NULL metadata representation is not an empty map.
+
+<!-- requirement-block: gcs-compose-destination-profile.original-guards -->
+The request MUST bind both the original destination generation and
+metageneration when replacing an object, or the original absence precondition
+when creating it. A metadata-only concurrent change is not a new approved
+destination and cannot be silently overwritten.
+
+<!-- requirement-block: gcs-compose-destination-profile.ordered-sources -->
+Composition MUST retain original source order and repetitions, source
+generation preconditions, and the expected composed size and CRC evidence.
+This profile concatenates one through 32 original objects without deleting
+them; it does not sort or deduplicate their data, silently select newer source
+versions, or treat marker data alone as proof of apply.
+
+<!-- requirement-block: gcs-compose-destination-profile.original-custody -->
+The exact intended destination properties and source/destination bindings MUST
+remain with the existing original request, Preview, approval and recovery
+material. Current authority and the original dispatch/response ownership remain
+separate from request consistency; response loss preserves Unknown and does
+not permit blind resend or adoption of newly read properties.
+
+<!-- requirement-block: gcs-compose-destination-profile.unrelated-properties -->
+An implementation MUST distinguish this finite content-type/user-metadata
+profile from preservation of ACL, encryption, retention, encoded-representation
+or other unrelated properties. Unsupported properties or missing required
+evidence remain explicit rather than being described as generally preserved.
 
 <a id="file-sources"></a>
 
