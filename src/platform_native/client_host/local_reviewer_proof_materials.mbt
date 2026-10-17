@@ -14,7 +14,7 @@ priv struct NativeLocalReviewerProofSnapshot {
 /// The full Checkpoint/unsigned body remain private: this is not an Approval
 /// disclosure API and does not replace the existing material disclosure Owner.
 struct NativeLocalReviewerProofMaterials {
-  key : NativeLocalSigningKeyOriginal
+  key : NativeLocalReviewerProofKey
   reviewer : NativeLocalEffectReviewerBinding
   registration : @effect_resolution.NativeEffectReviewerRegistration
   original : NativeLocalReviewerProofSnapshot
@@ -108,7 +108,25 @@ pub fn NativeLocalSigningKeyOriginal::prepare_reviewer_proof_materials(
   NativeLocalReviewerProofMaterials,
   NativeLocalReviewerProofMaterialsIssue,
 ] {
-  let registration = match self.read_current_reviewer(reviewer) {
+  prepare_local_reviewer_proof_materials(
+    ConfiguredReviewerKey(self),
+    reviewer,
+    unsigned_wire,
+    limits,
+  )
+}
+
+///|
+fn prepare_local_reviewer_proof_materials(
+  key : NativeLocalReviewerProofKey,
+  reviewer : NativeLocalEffectReviewerBinding,
+  unsigned_wire : String,
+  limits : @checkpoint.WireLimits,
+) -> Result[
+  NativeLocalReviewerProofMaterials,
+  NativeLocalReviewerProofMaterialsIssue,
+] {
+  let registration = match key.read_current_reviewer(reviewer) {
     Ok(value) => value
     Err(issue) => return Err(ProofKey(issue))
   }
@@ -135,7 +153,7 @@ pub fn NativeLocalSigningKeyOriginal::prepare_reviewer_proof_materials(
     return Err(ProofUnavailable)
   }
   let materials : NativeLocalReviewerProofMaterials = {
-    key: self,
+    key,
     reviewer,
     registration,
     original,

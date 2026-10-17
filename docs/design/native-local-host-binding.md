@@ -217,6 +217,22 @@ grant, private-key acquisition, durable claim, signature or approval application
 Its original Host/configuration/key and Account reads retain their overlapping
 workspace and lifetime; parsing ceilings are not reservations or close receipts.
 
+The initialized key may also supply the existing opaque Reviewer proof material
+through a closed key variant. Its configuration identity is the existing digest
+of the authenticated initial control body, and its generation identity is the
+existing digest of the retained Store file projection. This introduces no CID
+domain, configuration file or permission. The same original Checkpoint snapshot,
+unsigned proof, authenticated Submission and paired-capture readers remain in
+use. A final noncallback key/Host generation check follows the existing original
+subject fence. The explicit issuer-file operation retains its configured
+source-root key and cannot consume the initialized key variant. This connection
+reads projection metadata only: actual private-key correspondence, durable
+first issue/sample/expiry, same-use claim and signature remain independent.
+The key variant and its small scope record retain the original Host, policy,
+projection and installed Reviewer throughout overlapping current callbacks;
+these references, record storage and read workspace are not free aliases or a
+physical cleanup acknowledgement.
+
 ### Writer close custody
 
 The existing filesystem Writer records its original close outcome separately
