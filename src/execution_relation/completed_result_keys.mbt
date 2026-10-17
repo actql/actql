@@ -18,6 +18,7 @@ priv struct CompletedResultKeyState {
   max_entries : Int
   mut completed : Bool
   mut retired : Bool
+  mut cancelled : Bool
 }
 
 ///|
@@ -95,6 +96,7 @@ pub fn start_completed_result_key_validation(
     max_entries,
     completed: false,
     retired: false,
+    cancelled: false,
   }
   let (session, token) = @bounded.start(
     engine,
@@ -102,6 +104,9 @@ pub fn start_completed_result_key_validation(
     (state, quantum, reader) => {
       let mut used = 0
       while used < quantum {
+        if state.cancelled {
+          return @bounded.Stopped(@bounded.Cancelled, used, used)
+        }
         if @bounded.stop_requested(reader) is Some(reason) {
           return @bounded.Stopped(reason, used, used)
         }
@@ -113,7 +118,10 @@ pub fn start_completed_result_key_validation(
           )
         }
         let available = completed_output_available(original.rows.source)
-        if !available || state.retired || state.original is None {
+        if !available ||
+          state.retired ||
+          state.cancelled ||
+          state.original is None {
           return @bounded.Failed(
             CompletedResultKeyIssue::Unavailable,
             used,
@@ -180,6 +188,7 @@ pub fn start_completed_result_key_validation(
             Ok(true) => {
               if !completed_output_available(original.rows.source) ||
                 state.retired ||
+                state.cancelled ||
                 state.original is None {
                 return @bounded.Failed(
                   CompletedResultKeyIssue::Unavailable,
@@ -228,6 +237,16 @@ pub fn cleanup_completed_result_key_validation(
 }
 
 ///|
+/// Request this validation's retirement without stopping another session that
+/// shares the engine Control. The next advance observes the request; neither
+/// this request nor a terminal observation is a cleanup acknowledgement.
+pub fn cancel_completed_result_key_validation(
+  value : CompletedResultKeyValidation,
+) -> Unit {
+  value.state.cancelled = true
+}
+
+///|
 /// Exact original references and current source remain necessary after all
 /// values were checked. Equal schema/rows/CIDs cannot replace this pair.
 pub fn completed_result_key_validation_matches(
@@ -236,7 +255,8 @@ pub fn completed_result_key_validation_matches(
   field : @schema.Field,
 ) -> Bool {
   let state = value.state
-  if !state.completed ||
+  if state.cancelled ||
+    !state.completed ||
     !state.retired ||
     !state.original
     .map(actual => physical_equal(actual, original))
@@ -245,5 +265,9 @@ pub fn completed_result_key_validation_matches(
     return false
   }
   let available = completed_output_available(original.rows.source)
-  available && state.completed && state.retired && state.original is Some(_)
+  available &&
+  !state.cancelled &&
+  state.completed &&
+  state.retired &&
+  state.original is Some(_)
 }

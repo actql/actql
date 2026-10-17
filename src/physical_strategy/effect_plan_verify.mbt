@@ -8,6 +8,7 @@ struct CapturedEffectPlanVerifier {
   terminal : @results.EffectPlanTerminal?
   command : @results.EffectCommandInputBinding?
   published_target : CapturedEffectCommandTarget?
+  input_key : CapturedEffectCommandKeyValidation?
   literals : @results.EffectMappingLiterals
   mut next_row : Int
   mut live : Bool
@@ -21,6 +22,7 @@ struct CapturedEffectPlanProof {
   preview_index : Int
   input : CapturedEffectInput
   published_target : CapturedEffectCommandTarget?
+  input_key : CapturedEffectCommandKeyValidation?
 }
 
 ///|
@@ -35,6 +37,7 @@ struct CapturedEffectProposalPlan {
   create_terminal : @results.EffectCreateRowTerminal?
   command : @results.EffectCommandInputBinding?
   published_target : CapturedEffectCommandTarget?
+  input_key : CapturedEffectCommandKeyValidation?
   literals : @results.EffectMappingLiterals
   mut next_row : Int
   mut live : Bool
@@ -66,6 +69,7 @@ pub fn prepare_captured_effect_proposal_plan(
   max_fields : Int,
   max_work : Int,
   published_target? : CapturedEffectCommandTarget? = None,
+  input_key? : CapturedEffectCommandKeyValidation? = None,
 ) -> Result[CapturedEffectProposalPlan, CapturedEffectProposalIssue] {
   if max_fields < 0 || max_work < 0 {
     return Err(Plan(@results.EffectPlanBindingIssue::InvalidLimits))
@@ -90,10 +94,11 @@ pub fn prepare_captured_effect_proposal_plan(
     Ok(value) => value
     Err(issue) => return Err(Plan(issue))
   }
-  // The original whole-input key validator must complete nominally before
-  // this Command can produce a proposal. Static field admission is no proof.
-  if command is Some(command) &&
-    @results.effect_command_input_key(command) is Some(_) {
+  // Static field admission is no whole-input proof. Only this exact
+  // captured member's completed and retired original validation can match.
+  if !captured_effect_optional_command_key_current(
+      input_key, inputs, member_index, command,
+    ) {
     return Err(NotReady)
   }
   if command is Some(command) &&
@@ -163,6 +168,7 @@ pub fn prepare_captured_effect_proposal_plan(
     create_terminal,
     command,
     published_target,
+    input_key,
     literals: @results.effect_static_candidate_mapping_literals(effects),
     next_row: 0,
     live: true,
@@ -185,6 +191,12 @@ pub fn project_captured_effect_proposal_row(
   if !value.live ||
     !captured_effect_optional_command_target_current(
       value.published_target,
+      value.inputs,
+      value.member_index,
+      value.command,
+    ) ||
+    !captured_effect_optional_command_key_current(
+      value.input_key,
       value.inputs,
       value.member_index,
       value.command,
@@ -298,6 +310,12 @@ pub fn finish_captured_effect_proposal_plan(
       value.member_index,
       value.command,
     ) ||
+    !captured_effect_optional_command_key_current(
+      value.input_key,
+      value.inputs,
+      value.member_index,
+      value.command,
+    ) ||
     captured_effect_input_at(value.inputs, value.member_index).map(input => {
       physical_equal(input, value.input)
     }) !=
@@ -348,6 +366,7 @@ pub fn prepare_captured_effect_plan_verifier(
   max_fields : Int,
   max_work : Int,
   published_target? : CapturedEffectCommandTarget? = None,
+  input_key? : CapturedEffectCommandKeyValidation? = None,
 ) -> Result[CapturedEffectPlanVerifier, CapturedEffectPlanVerifyIssue] {
   guard captured_effect_preview_input_at(preview, preview_index) is Some(input) else {
     return Err(InvalidMember)
@@ -388,11 +407,6 @@ pub fn prepare_captured_effect_plan_verifier(
     None
   }
   if command is Some(command) {
-    // A retained Preview must not bypass the same still-pending original
-    // input-key obligation through the later payload-proof entrance.
-    if @results.effect_command_input_key(command) is Some(_) {
-      return Err(NotReady)
-    }
     if terminal is Some(_) ||
       @results.effect_command_input_field_count(command) > max_fields {
       return Err(Plan(Plan(@results.Terminal(@results.FieldLimit))))
@@ -422,6 +436,14 @@ pub fn prepare_captured_effect_plan_verifier(
       return Err(Plan(ForeignBinding))
     }
   }
+  if !captured_effect_optional_command_key_current(
+      input_key,
+      preview.inputs,
+      input.source.member_index,
+      command,
+    ) {
+    return Err(NotReady)
+  }
   let literals = @results.effect_static_candidate_mapping_literals(effects)
   Ok({
     preview,
@@ -429,6 +451,7 @@ pub fn prepare_captured_effect_plan_verifier(
     terminal,
     command,
     published_target,
+    input_key,
     literals,
     next_row: 0,
     live: true,
@@ -456,6 +479,12 @@ pub fn check_captured_effect_plan_row(
       value.published_target
       .map(original => original.member_index)
       .unwrap_or(-1),
+      value.command,
+    ) ||
+    !captured_effect_optional_command_key_current(
+      value.input_key,
+      value.preview.inputs,
+      value.input_key.map(key => key.member_index).unwrap_or(-1),
       value.command,
     ) ||
     captured_effect_preview_input_at(value.preview, value.preview_index) is None {
@@ -563,6 +592,12 @@ pub fn finish_captured_effect_plan_verifier(
       .unwrap_or(-1),
       value.command,
     ) ||
+    !captured_effect_optional_command_key_current(
+      value.input_key,
+      value.preview.inputs,
+      value.input_key.map(key => key.member_index).unwrap_or(-1),
+      value.command,
+    ) ||
     captured_effect_preview_input_at(value.preview, value.preview_index) is None {
     value.live = false
     return Err(NotReady)
@@ -584,6 +619,7 @@ pub fn finish_captured_effect_plan_verifier(
     preview_index: value.preview_index,
     input,
     published_target: value.published_target,
+    input_key: value.input_key,
   })
 }
 
@@ -606,6 +642,15 @@ pub fn captured_effect_plan_proof_matches(
       ) else {
       return false
     }
+  }
+  if proof.input_key is Some(key) &&
+    !captured_effect_command_key_validation_matches(
+      key,
+      preview.inputs,
+      proof.input.source.member_index,
+      key.command,
+    ) {
+    return false
   }
   match captured_effect_preview_input_at(preview, preview_index) {
     Some(input) => physical_equal(input, proof.input)

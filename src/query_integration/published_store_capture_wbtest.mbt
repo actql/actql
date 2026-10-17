@@ -3,12 +3,14 @@
 // supplies an explicit Core capacity recipe, not a normal physical profile.
 fn published_store_capture_fixture(
   input_key? : Bool = false,
+  rows? : String,
 ) -> (
   @publication_host.PreparedClientEffectComputation,
   @strategy.CapturedEffectRunDAG,
   @strategy.CapturedEffectInputs,
   @local_driver.LocalManagedDispatchOperations[Int],
   Ref[Bool],
+  @execution.ManagedCompletedOutput[Int],
 ) raise {
   let wire =
     #|{"command_contracts":[{"atomicity":"single_target","command_id":"command:fixture.upload.v1","connector_id":"storage","contract_cid":"sha256:3768a016ccb69b496ebed661020966ce09ca6d836a89331937e131f891123853","idempotency":{"support":"unsupported"},"input_contract":{"additional_properties":false,"fields":{"id":{"nullable":false,"type":"string"},"value":{"nullable":false,"type":"string"}}},"input_schema":{"cid":"sha256:064d69d0cc1d5179f1349ec9d3c64c49fc620ab725bf3964c8a26a61578cd42b","id":"fixture.upload.command_input","version":"fixture-1"},"minimum_approval":"required","outcome":"synchronous","output_schema":{"cid":"sha256:7412c07a4deb13f8d3dbe75a93ae44e657f2c9728d99cff3c90c0f65555f52dc","id":"fixture.upload.command_output","version":"fixture-1"},"permissions":["scope:write"],"preview":{"strength":"exact"},"reversibility":"unknown","schema":"actql.command_contract/0.1","target":{"cardinality":"single","resource_kind":"file"},"version":"fixture-1"}],"connector_capabilities":[],"connector_catalogs":[{"catalog_cid":"sha256:b68e536b6a4324573fc3ac3d39904dcab677c9ec0f1c624f12994b920270a2dd","commands":[{"atomicity":"single_target","command_id":"command:fixture.upload.v1","connector_id":"storage","contract_cid":"sha256:3768a016ccb69b496ebed661020966ce09ca6d836a89331937e131f891123853","idempotency":{"support":"unsupported"},"input_contract":{"additional_properties":false,"fields":{"id":{"nullable":false,"type":"string"},"value":{"nullable":false,"type":"string"}}},"input_schema":{"cid":"sha256:064d69d0cc1d5179f1349ec9d3c64c49fc620ab725bf3964c8a26a61578cd42b","id":"fixture.upload.command_input","version":"fixture-1"},"minimum_approval":"required","outcome":"synchronous","output_schema":{"cid":"sha256:7412c07a4deb13f8d3dbe75a93ae44e657f2c9728d99cff3c90c0f65555f52dc","id":"fixture.upload.command_output","version":"fixture-1"},"permissions":["scope:write"],"preview":{"strength":"exact"},"reversibility":"unknown","schema":"actql.command_contract/0.1","target":{"cardinality":"single","resource_kind":"file"},"version":"fixture-1"}],"connector_id":"storage","connector_version":"fixture-1","contracts":[{"body":{"additional_properties":false,"fields":{"id":{"nullable":false,"type":"string"},"value":{"nullable":false,"type":"string"}},"nullable":false,"type":"object"},"cid":"sha256:064d69d0cc1d5179f1349ec9d3c64c49fc620ab725bf3964c8a26a61578cd42b","id":"fixture.upload.command_input","kind":"command_input","schema":"actql.contract/0.1","version":"fixture-1"},{"body":{"additional_properties":false,"fields":{},"nullable":false,"type":"object"},"cid":"sha256:7412c07a4deb13f8d3dbe75a93ae44e657f2c9728d99cff3c90c0f65555f52dc","id":"fixture.upload.command_output","kind":"command_output","schema":"actql.contract/0.1","version":"fixture-1"}],"schema":"actql.connector_catalog/0.1","source_views":[]}],"connector_manifest":{"connectors":[{"connector":"fixture","connector_id":"storage","connector_version":"fixture-1"}],"version":"actql-connectors/0.1"},"contract_registry":[{"body":{"additional_properties":false,"fields":{"id":{"nullable":false,"type":"string"},"value":{"nullable":false,"type":"string"}},"nullable":false,"type":"object"},"cid":"sha256:064d69d0cc1d5179f1349ec9d3c64c49fc620ab725bf3964c8a26a61578cd42b","id":"fixture.upload.command_input","kind":"command_input","schema":"actql.contract/0.1","version":"fixture-1"},{"body":{"additional_properties":false,"fields":{},"nullable":false,"type":"object"},"cid":"sha256:7412c07a4deb13f8d3dbe75a93ae44e657f2c9728d99cff3c90c0f65555f52dc","id":"fixture.upload.command_output","kind":"command_output","schema":"actql.contract/0.1","version":"fixture-1"}],"evidence_bundle_cid":"sha256:a3fc9bc8b36a77651425b10479d518ccfcaf89a0f6bb05a8c38690b003232a2a","host_policy_profile":{},"mapping_contracts":[{"connector_manifest_cid":"sha256:6960590acec3fcbd045e40dbb94ec08f77c3a2d271943b019a8ada57283a3208","conversions":[],"mapping_contract_cid":"sha256:8cb37a084de7d9c2092baffabb3ab29a8663aad8ad9a4b9d806e15fd98e77295","mapping_ref":"mapping:fixture.archive.v1","minimum_approval":"none","permission_rules":[{"effect_kind":"store","permissions":["scope:write"],"selector_class":"none","write_fields":["id","value"]}],"primary_identity":"id","required_fields":["id","value"],"required_permissions":[],"resource_identity_cid":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","row_mapping":{"id":{"field":"id","null_behavior":"reject"},"value":{"field":"value","null_behavior":"reject"}},"schema":"actql.mapping_contract/0.1","store_command":{"catalog_cid":"sha256:b68e536b6a4324573fc3ac3d39904dcab677c9ec0f1c624f12994b920270a2dd","command_contract_cid":"sha256:3768a016ccb69b496ebed661020966ce09ca6d836a89331937e131f891123853","command_ref":"command:fixture.upload.v1"},"target_ref":"connector://storage/archive","target_schema":{"additional_properties":false,"fields":{"id":{"nullable":false,"type":"string"},"value":{"nullable":false,"type":"string"}},"nullable":false,"type":"object"},"target_schema_identity":"sha256:bd89154b566792abefae13b781921bdb85725e117f241b99ce245d14d0efa37a","version":"fixture-1","writable_fields":["id","value"]}],"model_task_contracts":[],"schema_snapshots":[],"source_views":[],"version":"actql-check-environment/0.1"}
@@ -53,6 +55,14 @@ fn published_store_capture_fixture(
   } else {
     document
   }
+  let document = match rows {
+    None => document
+    Some(rows) =>
+      document.replace(
+        old="\"rows\":[{\"id\":\"one\",\"value\":\"original\"}]",
+        new="\"rows\":" + rows,
+      )
+  }
   let prepared = @publication_host.prepare_client_effect_computation(
     document,
     Json,
@@ -63,11 +73,11 @@ fn published_store_capture_fixture(
   ).unwrap()
   let (_, _, _, captured) = local_effect_open_run(prepared)
   let run = @strategy.captured_effect_run_dag(captured)
-  let (operations, _, available) = local_effect_execute_managed_values(
+  let (operations, completed, available) = local_effect_execute_managed_values(
     prepared, run,
   )
   let inputs = @strategy.pin_captured_effect_sources(captured, 2).unwrap()
-  (prepared, captured, inputs, operations, available)
+  (prepared, captured, inputs, operations, available, completed)
 }
 
 ///|
@@ -105,7 +115,7 @@ fn published_store_capture_reference(
 
 ///|
 test "explicit Command input key refuses original captured proposal until whole-input proof is available" {
-  let (_, captured, inputs, operations, available) = published_store_capture_fixture(
+  let (_, captured, inputs, operations, available, _) = published_store_capture_fixture(
     input_key=true,
   )
   let pair = @strategy.captured_effect_published_store_binding(inputs, 0, 100)
@@ -146,7 +156,7 @@ test "explicit Command input key refuses original captured proposal until whole-
 
 ///|
 test "published STORE captured proposal keeps one original Run and target across rows and retirement" {
-  let (_, captured, inputs, operations, available) = published_store_capture_fixture()
+  let (_, captured, inputs, operations, available, _) = published_store_capture_fixture()
   let pair = @strategy.captured_effect_published_store_binding(inputs, 0, 100)
     .unwrap()
     .unwrap()
@@ -247,13 +257,14 @@ test "published STORE captured proposal keeps one original Run and target across
 
 ///|
 test "published STORE captured proposal rejects an equal-definition foreign Run and pair" {
-  let (prepared, captured, inputs, operations, available) = published_store_capture_fixture()
+  let (prepared, captured, inputs, operations, available, _) = published_store_capture_fixture()
   let (
     foreign_prepared,
     foreign,
     foreign_inputs,
     foreign_operations,
     foreign_available,
+    _,
   ) = published_store_capture_fixture()
   assert_eq(
     @publication_host.prepared_client_effect_computation_definition_cid(
