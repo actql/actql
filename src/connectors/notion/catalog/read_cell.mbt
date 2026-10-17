@@ -218,3 +218,39 @@ pub fn admit_notion_property_read_cell(
     Err(issue) => Err(Admission(issue))
   }
 }
+
+///|
+/// The existing checked-value writer emits the scalar without reinterpretation
+/// in JS. A caller composing rows must still account for aggregate admission and
+/// output workspace; this bounded projection is not a Source/Run admission.
+pub fn notion_property_read_cell_wire(
+  binding : NotionDataSourceReadContracts,
+  row : OriginalNotionQueryRow,
+  column : Int,
+  limits : @admitted.Limits,
+  max_work : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, NotionReadCellIssue] {
+  let (value, _, _) = match
+    admit_notion_property_read_cell(binding, row, column, limits, max_work) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if max_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
+    return Err(InvalidLimits)
+  }
+  let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
+    _ => return Err(BudgetExceeded)
+  }
+  try {
+    @admitted.emit_checked_wire_value(value, writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      Err(BudgetExceeded)
+    }
+  }
+}

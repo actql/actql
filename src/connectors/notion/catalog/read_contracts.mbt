@@ -490,3 +490,22 @@ pub fn notion_property_read_original(
 ) -> NotionPropertyMetadata {
   column.property
 }
+
+///|
+/// Canonical checked schema from the same retained declaration/schema pair.
+/// This wire is DATA, not installation membership or a current capability.
+pub fn notion_data_source_read_schema_wire(
+  binding : NotionDataSourceReadContracts,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, NotionReadContractIssue] {
+  if max_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
+    return Err(InvalidLimits)
+  }
+  Ok(
+    @contract.stringify_checked(binding.schema, max_bytes, max_nodes, max_depth),
+  ) catch {
+    _ => Err(BudgetExceeded)
+  }
+}
