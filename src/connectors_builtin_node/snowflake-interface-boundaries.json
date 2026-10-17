@@ -206,7 +206,7 @@
       "responsibilityFacet": "primary",
       "role": "generated-binding",
       "owner": "Same-runtime wrappers of existing Common and Snowflake Owners",
-      "sha256": "366ae69e05425e678c49b703ee99bcd4ccc25f328bda5b4993afcab022a944fd",
+      "sha256": "a3d865be1e99261a58c8705968d271c60d8430c7ead825702a0dbd9655f364c8",
       "exports": [],
       "operations": [
         {
@@ -230,6 +230,10 @@
           "declaration": "client_program_row_source_check_original_acquisition ( acquisition : @ client_row_source_host . RowAcquisition , declaration : @ client_row_source_host . RowDeclaration , requirement : @ planning . QueryRequirement , ) - > Result [ Unit , @ client_row_source_host . RowHostIssue ]"
         },
         {
+          "name": "client_program_row_source_provider_capacity",
+          "declaration": "client_program_row_source_provider_capacity ( retained : Int64 , execution : Int64 , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "client_program_row_source_start_provider_accounted",
           "declaration": "client_program_row_source_start_provider_accounted ( acquisition : @ client_row_source_host . RowAcquisition , capacity : @ execution . ExecutionCapacity ? , nonce : String , verify : ( @ client_row_source_host . RowAttempt ) - > Bool , ledger : @ resources . Ledger , transfer_bytes : Int64 , execution_scratch : Int64 , ) - > Result [ @ client_row_source_host . RowRun , @ client_row_source_host . RowHostIssue , ]"
         }
@@ -243,6 +247,7 @@
             "client_program_row_source_bind_response_cleanup",
             "client_program_row_source_borrow_responses",
             "client_program_row_source_check_original_acquisition",
+            "client_program_row_source_provider_capacity",
             "client_program_row_source_start_provider_accounted"
           ],
           "exports": [],

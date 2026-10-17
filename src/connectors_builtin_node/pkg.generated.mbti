@@ -1925,6 +1925,8 @@ pub fn client_program_row_source_prepare_acquisition(@client_row_source_host.Row
 
 pub fn client_program_row_source_prepare_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String
 
+pub fn client_program_row_source_provider_capacity(Int64, Int64) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_row_source_request_wire(@client_row_source_host.RowAcquisition) -> Result[String, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_restore_declaration(String, String, String, String, String?) -> Result[@client_row_source_host.RowDeclaration, @client_row_source_host.RowHostIssue]
