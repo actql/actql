@@ -100,6 +100,23 @@ os.ftruncate(descriptor.value, 64 * page)
 parent = None
 process = None
 other = None
+spawn_attempted = False
+
+def cleanup_known_unstarted():
+    if spawn_attempted or parent is None:
+        return
+    if any(getattr(x, "_unknown", None) is not None for x in (other, process, parent.host, parent.domain)):
+        return
+    if other is not None and not other._closed:
+        other.close()
+    if process is not None and not process._closed:
+        process.restrict_transport()
+        process.return_transport()
+        process.close_unstarted()
+    if not parent._closed:
+        parent.close_unstarted()
+    if not descriptor.closed:
+        descriptor.close()
 
 def observe():
     (output / (case + '-original-observation.json')).write_text(json.dumps(dict(
@@ -109,6 +126,9 @@ def observe():
         other_host_closed=getattr(other, '_closed', None),
         process_runtime_retirement_ACK=False, normal_profile=None)) + '\n')
 atexit.register(observe)
+# atexit is LIFO: known original cleanup precedes the observation. An exception
+# here is retained by Python and cannot become a successful case or an ACK.
+atexit.register(cleanup_known_unstarted)
 parent = compiler._acquire_compiler_parent(original,
     compiler._compiler_holding_original(original), descriptor)
 process = parent.prepare_process(path=str(fixture / 'process.slot'), nonce=7)
@@ -126,7 +146,7 @@ if case == 'unstarted':
         execution=64 * page, envelope=65536)
     reply = C.c_void_p()
     functions = process._functions
-    assert functions.operate(other._host, process._native_domain, process._process,
+    assert functions.operate(other._original, process._native_domain, process._process,
                              12, C.byref(reply)) == 0 and reply.value is not None
     assert functions.operation(reply) == 12 and functions.issue(reply) != 0
     assert functions.drop(C.byref(reply), process._host,
@@ -137,6 +157,7 @@ if case == 'unstarted':
     process.close_unstarted()
 else:
     process.prepare_child('/bin/sh', ('-c', 'read command'), ())
+    spawn_attempted = True
     process.spawn()
     # ACTUAL original child stop request. The existing C tag and copied DATA
     # do not close any nominal slot or substitute for typed process stop.
