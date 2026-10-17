@@ -102,8 +102,9 @@ cleanup do not acknowledge physical reader retirement. The retained capture
 references, import controls, key owners, callbacks and promise handlers overlap
 the existing holding inventory.
 
-Normal key preparation remains unavailable until the existing capacity owner
-supplies the exact key-phase allocation for that captured Run and scope. A
+Normal key preparation requires the existing capacity owner to supply the
+exact key-phase allocation for that captured Run and scope. Missing supply
+remains unavailable. A
 structural entry ceiling, an unrelated Content reservation, or a same-Ledger
 borrow predicate cannot establish allocation adequacy. The original allocation
 and borrow must enter child custody before callbacks, survive current refusal,
@@ -166,7 +167,7 @@ key evidence even while an escaped proof alias still exists.
 
 The explicit legacy component entrance remains available without this phase;
 its structural fixtures do not thereby become funded normal preparation. The
-ordinary automatic caller must install and retain the original private supplier
+ordinary automatic caller installs and retains the original private supplier
 before choosing this entrance. Physical Content allocation, current permission,
 installed distribution and the four-role Model supplier are separate obligations;
 neither this Local phase nor a matching Ledger supplies them implicitly.
@@ -204,6 +205,13 @@ without an original receiver remain unavailable. Per-entry grouping records,
 member/payload maps, finalized aliases and all simultaneously retained sibling
 payloads overlap the existing parent inventory; they are not free controls or a
 substitute numerical supplier.
+
+The preceding Unit's Result must be exported with its original acquisition,
+retention and import evidence before the consumer can inspect its complete
+input. The key barrier applies before that consumer's proposal and payload
+rows; it does not forbid the required producer export. A duplicate consumer
+key refuses without a consumer payload, while the parent still releases its
+already prepared producer and retains the key-phase borrower for retirement.
 
 The parent capture retains phase views and completed-key aliases alongside
 source pins, prepared payloads, original Content artifacts and request children.

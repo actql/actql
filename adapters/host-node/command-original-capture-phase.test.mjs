@@ -83,8 +83,8 @@ test('ordinary Source set finishes the original funded whole key before proposin
       },
       (member, index, row) => { assert(key); rows.push([member, index, JSON.parse(row.changesWire)]); }),
       ...fixture.publicationContext(control)});
-    assert.equal(rows.length, 1);
-    assert.deepEqual(rows[0].slice(0, 2), [0, 0]);
+    assert.deepEqual(rows, [[0, 0,
+      {state: 'present', value: {id: 'one', value: 'original'}}]]);
     assert.equal(doubled.events.writers.length, 2);
     for (const chunks of doubled.events.writers) {
       assert.deepEqual(JSON.parse(chunks.join('')), fixture.rows);
@@ -100,6 +100,56 @@ test('ordinary Source set finishes the original funded whole key before proposin
   } finally {
     if (sources) await sources.payloads[0].prepared.release();
     await close(scope); await fixture.close();
+  }
+});
+
+test('two original acquired members keep separate phases and payloads for the same live Result', async () => {
+  const fixture = await originalFieldCommandKeyFixture({secondMember: true});
+  const control = runtimeCore(moon).publicationControl;
+  const doubled = publicationDoubles(control);
+  const scopes = [], keys = [], rows = [];
+  let sources;
+  try {
+    assert.equal(moon.clientProgramEffectInputCount(fixture.inputs), 2);
+    assert.equal(moon.clientProgramEffectInputsShareView(fixture.inputs, 0, 1), true);
+    for (let member = 0; member < 2; member++) {
+      scopes.push(checked(moon.clientProgramPlanEffectCommandKeyWorkspace(
+        fixture.owned, fixture.inputs, member, fixture.limits, 10000)));
+      assert(scopes[member]);
+    }
+    sources = await preparePinnedEffectSourceSet({
+      ...options(fixture, doubled, scopes[0], (member, key) => {
+        assert.equal(keys[member], undefined);
+        assert.equal(doubled.events.writers[member + 1].length, 0);
+        keys[member] = key;
+      }, (member, index) => { assert(keys[member]); rows.push([member, index]); }),
+      ...fixture.publicationContext(control), maxMembers: 2,
+      commandWorkspaces: Object.freeze([...scopes]),
+    });
+    assert.deepEqual(rows, [[0, 0], [1, 0]]);
+    assert.notEqual(scopes[0], scopes[1]);
+    assert.notEqual(keys[0], keys[1]);
+    assert.notEqual(sources.members[0].payload, sources.members[1].payload);
+    assert.notEqual(sources.members[0].payload.prepared, sources.members[1].payload.prepared);
+    assert.equal(sources.members[0].payload.localResultArtifact.identity,
+      sources.members[1].payload.localResultArtifact.identity);
+    assert.equal(sources.members[0].payload.localManifest.identity,
+      sources.members[1].payload.localManifest.identity);
+    assert.equal(doubled.events.writers.length, 3);
+    for (const chunks of doubled.events.writers) {
+      assert.deepEqual(JSON.parse(chunks.join('')), fixture.rows);
+    }
+    assert.throws(() => checked(moon.clientProgramEffectProposalBeginWithKey(
+      fixture.inputs, 1, 10, 10000, keys[0])), {code: 'MoonBitHostFailure'});
+    for (const scope of scopes) {
+      assert.equal(moon.clientProgramEffectCommandKeyWorkspacePending(scope), true);
+    }
+  } finally {
+    if (sources) {
+      for (const payload of sources.payloads) await payload.prepared.release();
+    }
+    for (const scope of scopes) await close(scope);
+    await fixture.close();
   }
 });
 

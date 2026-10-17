@@ -10,7 +10,7 @@ import {runCapturedEffectComputation} from '../entry.mjs';
 import {canonical, cid, resource} from './file-listing-source.fixture.mjs';
 import {moon, publicationEvidence} from './command-original-key.fixture.mjs';
 
-export async function originalFieldCommandKeyFixture({duplicate = false, inputKey = true} = {}) {
+export async function originalFieldCommandKeyFixture({duplicate = false, inputKey = true, secondMember = false} = {}) {
   const read = path => readFile(new URL(`../../../${path}`, import.meta.url), 'utf8');
   const original = await read('src/query_integration/published_store_capture_wbtest.mbt');
   const literals = [...original.matchAll(/^\s*#\|(.+)$/gmu)].map(match => JSON.parse(match[1]));
@@ -55,6 +55,9 @@ export async function originalFieldCommandKeyFixture({duplicate = false, inputKe
       from: {result: 'out'}, input: {id: {field: 'id'}, value: {field: 'value'}},
       ...(inputKey ? {input_key: 'id'} : {})}}},
   }], results: {published: {from: {stage: 'save', result: 'out'}}}};
+  if (secondMember) {
+    program.stages[1].effects.second = structuredClone(program.stages[1].effects.save);
+  }
   const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
     canonical(program), 'json', environment, undefined, []);
   const prepared = moon.clientProgramEffectPreparationReady(outcome);
