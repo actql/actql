@@ -23,13 +23,18 @@ fn kintone_page_limits() -> @kintone_catalog.RecordPageLimits {
 }
 
 ///|
-fn kintone_original_form() -> @kintone_catalog.FormFieldCatalog {
-  @kintone_catalog.project_form_fields(
-    @utf8.encode(
+fn kintone_original_form_body() -> Bytes {
+  @utf8.encode(
       (
         #|{"revision":"7","properties":{"Subject":{"code":"Subject","type":"SINGLE_LINE_TEXT"},"Tags":{"code":"Tags","type":"MULTI_SELECT","options":{"red":{"label":"red","index":"0"},"東京":{"label":"東京","index":"1"}}},"Amount":{"code":"Amount","type":"NUMBER","displayScale":"2"}}}
       ),
-    ),
+  )
+}
+
+///|
+fn kintone_original_form() -> @kintone_catalog.FormFieldCatalog {
+  @kintone_catalog.project_form_fields(
+    kintone_original_form_body(),
     "12",
     {
       max_bytes: 8192,
@@ -477,4 +482,69 @@ test "kintone equal independently admitted checked values cannot replace origina
   stopped.val = true
   kintone_assert_closed(run, ledger)
   assert_true(@kintone_host.record_read_original(read) is None)
+}
+
+///|
+fn kintone_form_limits() -> @kintone_catalog.FormFieldLimits {
+  {
+    max_bytes: 8192,
+    max_nodes: 1000,
+    max_depth: 16,
+    max_fields: 16,
+    max_name_units: 512,
+  }
+}
+
+///|
+test "kintone physical Form observation charges the same RowRun without inventing a row" {
+  let (prepared, run, ledger) = kintone_host_run("kintone-form-observation")
+  let stopped = Ref(false)
+  let read = kintone_borrow(prepared, run, stopped, Ref(0))
+  assert_eq(@kintone_host.record_read_app_id(prepared), "12")
+  let names = @kintone_host.record_read_fields(prepared)
+  names[0] = "foreign"
+  assert_eq(@kintone_host.record_read_fields(prepared), ["Subject", "Tags"])
+  let body = kintone_original_form_body()
+  @kintone_host.recheck_record_read_form(read, body, kintone_form_limits()).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).transferred_bytes, body.length().to_int64())
+  assert_true(@kintone_host.record_read_original(read) is None)
+  let page = kintone_original_page()
+  assert_eq(@kintone_host.accept_record_read_page(read, page).unwrap(), 2)
+  assert_eq(@resources.ledger_usage(ledger).transferred_bytes,
+    (body.length() + page.length()).to_int64())
+  let ids = @kintone_host.record_read_page_ids(read).unwrap()
+  assert_eq(ids, ["2", "1"])
+  ids[0] = "foreign"
+  assert_eq(@kintone_host.record_read_page_ids(read).unwrap(), ["2", "1"])
+  @row_host.abort_row_run(run)
+  assert_true(@row_host.close_accounted_row_run(run) is Err(_))
+  stopped.val = true
+  kintone_assert_closed(run, ledger)
+  assert_true(@kintone_host.record_read_page_ids(read) is Err(@kintone_host.Closed))
+}
+
+///|
+test "kintone changed current Form refuses with original charge and cleanup responsibility" {
+  for replacement in ["revision", "native", "field", "malformed"] {
+    let (prepared, run, ledger) = kintone_host_run("kintone-form-" + replacement)
+    let stopped = Ref(false)
+    let read = kintone_borrow(prepared, run, stopped, Ref(0))
+    let original = @utf8.decode(kintone_original_form_body()).unwrap()
+    let text = match replacement {
+      "revision" => original.replace(old="\"revision\":\"7\"", new="\"revision\":\"8\"")
+      "native" => original.replace(old="SINGLE_LINE_TEXT", new="MULTI_LINE_TEXT")
+      "field" => original.replace(old="\"Subject\"", new="\"Foreign\"")
+      _ => "{"
+    }
+    let body = @utf8.encode(text)
+    assert_true(@kintone_host.recheck_record_read_form(read, body, kintone_form_limits())
+      is Err(@kintone_host.ForeignDeclaration))
+    assert_eq(@resources.ledger_usage(ledger).transferred_bytes, body.length().to_int64())
+    assert_true(@kintone_host.accept_record_read_page(read, kintone_original_page()) is Err(_))
+    assert_true(@row_host.finish_row_run(run) is Err(_))
+    assert_true(@row_host.close_accounted_row_run(run) is Err(_))
+    assert_true(@resources.ledger_usage(ledger).reserved_execution_bytes > 0L)
+    stopped.val = true
+    kintone_assert_closed(run, ledger)
+  }
 }

@@ -55,6 +55,14 @@
     {
       "path": "actql/actql/connectors/snowflake/read",
       "alias": "snowflake_read"
+    },
+    {
+      "path": "actql/actql/connectors/kintone/catalog",
+      "alias": "kintone_catalog"
+    },
+    {
+      "path": "actql/actql/connectors/kintone/host",
+      "alias": "kintone_host"
     }
   ]
 }
