@@ -29,7 +29,7 @@ priv enum PublicTaskTypeFrame {
 fn public_task_type_wire(
   root : @decode.Cursor,
   b : ModelTaskBudget,
-) -> String raise ModelTaskStop {
+) -> (String, Int, Int) raise ModelTaskStop {
   let count = match @decode.object_length(root) {
     Some(n) if n <= b.limits.bodies.max_members => n
     Some(_) => model_task_fail(TaskLimit, root)
@@ -165,7 +165,8 @@ fn public_task_type_wire(
           }
       }
     }
-    @encode.finish(writer)
+    let (wire, bytes, nodes, _) = @encode.finish_text_usage(writer)
+    (wire, bytes, nodes)
   } catch {
     ModelTaskStop(e) => raise ModelTaskStop(e)
     _ => model_task_fail(BodyLimit, root)
@@ -193,12 +194,12 @@ pub fn read_public_model_task_contract(
   }
   let b = { limits, work: 0, contract_nodes: 0, contract_text: 0, }
   try {
-    let normalized = public_task_type_wire(root, b)
+    let (normalized, normalized_bytes, normalized_nodes) = public_task_type_wire(root, b)
     // Reserve UTF-8 materialization and both complete bounded parser/admission
     // traversals before any builds its tree. These are not physical funding.
     for _ in 0..<3 {
-      model_task_charge(b, limits.bodies.max_bytes, root)
-      model_task_charge(b, limits.bodies.max_nodes, root)
+      model_task_charge(b, normalized_bytes, root)
+      model_task_charge(b, normalized_nodes, root)
     }
     // Raw Cursor names must reach the Contract owner unchanged. Adding
     // nullability shorthand must not silently repair a noncanonical name.
@@ -221,8 +222,8 @@ pub fn read_public_model_task_contract(
       Ok(v) => v
       Err(_) => model_task_fail(BodyLimit, root)
     }
-    model_task_charge(b, limits.bodies.max_bytes, root)
-    model_task_charge(b, limits.bodies.max_nodes, root)
+    model_task_charge(b, normalized_bytes, root)
+    model_task_charge(b, normalized_nodes, root)
     let (contract, nodes, text) = match
       @value_contract.read_author_usage(cursor, limits.contracts) {
       Ok(v) => v
@@ -230,17 +231,31 @@ pub fn read_public_model_task_contract(
     }
     // Checked emission has its own bounded traversal/output; the normalized
     // author bytes are never used as the checked schema identity.
-    model_task_charge(b, limits.bodies.max_bytes, root)
-    model_task_charge(b, limits.bodies.max_nodes, root)
-    let wire = @value_contract.stringify_checked(
-      contract,
-      limits.bodies.max_bytes,
-      limits.bodies.max_nodes,
-      limits.bodies.max_depth,
-    ) catch {
+    let (wire, wire_bytes) = try {
+      let writer = @encode.writer(
+        limits.bodies.max_bytes,
+        limits.bodies.max_nodes,
+        limits.bodies.max_depth,
+      )
+      let emission = @value_contract.start_checked_emission(
+        contract, writer, limits.bodies.max_nodes,
+      )
+      errdefer @value_contract.cancel_checked_emission(emission)
+      // Existing emission advances one structural transition or at most 64
+      // UTF-16 units. Charge before each transition, including cancellation.
+      while true {
+        model_task_charge(b, 1, root)
+        if @value_contract.advance_checked_emission(emission) {
+          break
+        }
+      }
+      let (wire, bytes, _, _) = @encode.finish_text_usage(writer)
+      (wire, bytes)
+    } catch {
+      ModelTaskStop(e) => raise ModelTaskStop(e)
       _ => model_task_fail(BodyLimit, root)
     }
-    model_task_charge(b, limits.bodies.max_bytes, root)
+    model_task_charge(b, wire_bytes, root)
     let cid = "sha256:" + @sha.hex(@utf8.encode(wire))
     Ok({ original: root, contract, wire, cid, work: b.work, nodes, text, })
   } catch {

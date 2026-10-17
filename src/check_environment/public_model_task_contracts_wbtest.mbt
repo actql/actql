@@ -245,3 +245,26 @@ test "public Task raw field originals are rejected rather than normalized by int
     is Err({ kind: InvalidValueContract(_), .. }),
   )
 }
+
+///|
+test "public Task small actual type work is independent of loose body ceilings" {
+  let limits = public_task_contract_limits()
+  let root = public_task_contract_cursor("{\"v\":\"string\"}")
+  let small = read_public_model_task_contract(root, {
+    ..limits,
+    max_work: 10000,
+  }).unwrap()
+  let loose = read_public_model_task_contract(root, {
+    ..limits,
+    bodies: { ..limits.bodies, max_bytes: 1000000, max_nodes: 100000, },
+    max_work: 10000,
+  }).unwrap()
+  assert_eq(
+    public_model_task_contract_usage(small),
+    public_model_task_contract_usage(loose),
+  )
+  assert_eq(
+    public_model_task_contract_schema(small),
+    public_model_task_contract_schema(loose),
+  )
+}
