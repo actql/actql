@@ -9,7 +9,7 @@ import {createInstalledRowSource, rowSourceCheckEnvironment} from './installed-r
 // Actual Common acquisition/planner/Ledger/capture; the authority, reader and
 // retirement observation are explicit test ports. No physical or normal
 // numerical adequacy is inferred from these private declaration amounts.
-async function fixture() {
+async function fixture({withCompute = true} = {}) {
   const read = path => readFile(new URL(`../../${path}`, import.meta.url), 'utf8');
   const declaration = checked(moon.clientProgramRowSourceRestoreDeclaration(
     'fixture', 'fixture', 'fixture/0.1', JSON.stringify({views: [{resource: 'records',
@@ -24,10 +24,14 @@ async function fixture() {
     version: 'actql/0.1', id: 'original-provider-reader', stages: [{id: 'scan',
       inputs: {remote: {connector: 'fixture', resource: 'records'}},
       steps: [{filter: 'true', as: 'all_rows'}, {select: ['id'], as: 'output'}],
-      results: {r: {from: 'output', fields: ['id']}}}],
-    results: {r: {from: {stage: 'scan', result: 'r'}}}}), 'json', checkedEnvironment, undefined);
+      results: {r: {from: 'output', fields: ['id']}}},
+    ...(withCompute ? [{id: 'compute', inputs: {x: {result: {stage: 'scan', result: 'r'}}},
+      steps: [{filter: 'id > 0'}, {select: ['id'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['id']}}}] : [])],
+    results: {r: {from: {stage: withCompute ? 'compute' : 'scan', result: 'r'}}}}), 'json', checkedEnvironment, undefined);
   const preparedProgram = moon.clientProgramPreparationReady(outcome);
   assert.ok(preparedProgram, inspect(moon.clientProgramPreparationIssue(outcome), {depth: 5}));
+  assert.equal(moon.clientProgramTaskCount(preparedProgram), withCompute ? 2 : 1);
   const [registry, aoa] = await Promise.all([read('spec/dependencies/aoa-pipeline-registry.json'),
     read('spec/contracts/actql-aoa.json').then(JSON.parse)]);
   const preparation = {preparedProgram, registry,
@@ -71,13 +75,19 @@ async function fixture() {
   const ledger = moon.clientProgramPrepareSingleCapturedLocalInstalledLedger(preparedProgram,
     planned.capacity, planned.transferBytes, planned.executionBytes,
     preparation.registry, preparation.values, preparation.fragment, preparation.ordered);
-  assert.ok(ledger);
+  if (withCompute) assert.ok(ledger);
   return {adapter, preparation, preparedSource, ledger, providerReader, originalCapacity,
     usage: () => [...moon.clientProgramMultiCapturedLedgerUsage(ledger)],
     options: () => originalOptions,
     counts: () => ({readers, reads, stops, fallback}),
     retire() {retired = true;}, stale() {generation++;}};
 }
+
+test('original acquisition-only graph remains outside the Source-plus-Compute Ledger planner', async () => {
+  const f = await fixture({withCompute: false});
+  assert.equal(f.ledger, undefined);
+  assert.deepEqual(f.counts(), {readers: 0, reads: 0, stops: 0, fallback: 0});
+});
 
 test('actual Common provider projection and original reader retain one reservation through capture', async () => {
   const f = await fixture();
