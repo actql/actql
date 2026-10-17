@@ -40,7 +40,7 @@ static void writer_fixture(const char *directory,
                            actql_native_filesystem_writer *writer) {
   memset(root, 0, sizeof(*root)); memset(writer, 0, sizeof(*writer));
   root->fd = open(directory, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
-  assert(root->fd >= 0); root->ready = true;
+  assert(root->fd >= 0);
   writer->root = root; writer->staging_name = strdup("stage");
   writer->fd = openat(root->fd, "stage", O_CREAT | O_EXCL | O_RDWR | O_CLOEXEC, 0600);
   assert(writer->fd >= 0); assert(write(writer->fd, "abc", 3) == 3);
