@@ -51,6 +51,7 @@ async function saved(f) {
   assert.equal(port.cleanup(call), true);
   assert.equal(port.cleanup(call), true);
   assert.equal(port.cleanup({}), false);
+  assert.equal(port.cleanup(undefined), false);
   return {port, result, holding, ref: new WeakRef(call)};
 }
 
@@ -62,6 +63,7 @@ test('saved raw caller weakens only its retired Call alias and preserves origina
     const original = await saved(f);
     assert.equal(await collected(original.ref), true);
     assert.equal(original.port.cleanup({}), false);
+    assert.equal(original.port.cleanup(undefined), false);
     assert.equal(original.result.receipt, f.receipt);
     assert.equal(original.holding.holding.status().committed, true);
     assert.equal(f.state.writes, 1);

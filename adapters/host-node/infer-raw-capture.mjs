@@ -220,13 +220,17 @@ export function createModelRawTransportPersistence({store, moon, registration,
       // Keep exact-call retry/refusal without an escaped retired port keeping
       // the entire Call/Entry/Plan graph alive. A cleared weak reference cannot
       // match a foreign live Call. Scalar refused inputs need no weak backing.
-      return retiredCall instanceof WeakRef ? retiredCall.deref() === call
-        : retiredCall === undefined || retiredCall === call;
+      if (retiredCall instanceof WeakRef) {
+        const original = retiredCall.deref();
+        return original !== undefined && original === call;
+      }
+      return retiredCall === undefined || retiredCall === call;
     }
     if (originalCall !== undefined && originalCall !== call) return false;
     const retireView = () => {
-      // Drop this port's transport-backing alias only. Escaped parent holding,
-      // Save/receipt and raw views retain their independent original custody.
+      // Drop this retired caller's transport and factory aliases only.
+      // Escaped parent holding, Save/receipt and raw views retain their
+      // independent original custody; this is not physical GC or capacity ACK.
       retiredCall = originalCall !== null &&
           (typeof originalCall === 'object' || typeof originalCall === 'function')
         ? new WeakRef(originalCall) : originalCall;
