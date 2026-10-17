@@ -134,6 +134,16 @@ test('original mutation child requires selected bounds ABI and original binding 
   assert.equal(approvals, 0);
 });
 
+test('original mutation child refuses an asynchronous fence but retains its original pending borrower', async () => {
+  const gate = deferred();let approvals = 0;
+  const child = createGcsMutationRequestChild(options({assertCurrent: () => gate.promise,
+    authorizationForRow: async () => {approvals++;assert.fail('Async fence is not admission');}}));
+  await assert.rejects(child.prepare(), {code: 'GcsOriginalMutationPreparationUnavailable'});
+  assert.equal(await child.release(), false);assert.equal(child.status().pending, true);
+  gate.resolve();await gate.promise;
+  assert.equal(await child.retry(), true);assert.equal(approvals, 0);
+});
+
 test('original mutation child preserves frozen failure and same real FD close-only retry', async t => {
   const scratch = await createOwnedScratch({parent: new URL('../../../../_build/', import.meta.url).pathname,
     prefix: 'gcs-child-close-', label: 'GCS original preparation FD counter'});

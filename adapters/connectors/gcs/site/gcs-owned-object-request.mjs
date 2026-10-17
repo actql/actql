@@ -166,6 +166,7 @@ export function createGcsMutationRequestChild({moon, binding, kind, name, value,
   let preparing = false, prepared, response, physicalBinding;
   let changes;
   let preparation, releaseFlight, retired = false;
+  let fencePending = false, fenceFlight;
   let failure, cleanup, cleanupStatus, cleanupRetry, invalidCleanup = false, failed = false;
   const unavailable = () => fail('GcsOriginalMutationPreparationUnavailable');
   const current = original => {
@@ -173,7 +174,14 @@ export function createGcsMutationRequestChild({moon, binding, kind, name, value,
     original.signal?.throwIfAborted();
     const result = original.assertCurrent();
     if (result !== undefined) {
-      if (typeof result?.then === 'function') void Promise.resolve(result).catch(() => {});
+      if (typeof result?.then === 'function') {
+        // An invalid asynchronous fence is still an outstanding borrower.
+        // Refuse admission without dropping that same pending continuation.
+        fencePending = true;
+        fenceFlight = Promise.resolve(result).then(
+          () => { fencePending = false;fenceFlight = undefined; },
+          () => { fencePending = false;fenceFlight = undefined; });
+      }
       unavailable();
     }
     if (lifetime.retiring || configuration !== original) unavailable();
@@ -204,7 +212,7 @@ export function createGcsMutationRequestChild({moon, binding, kind, name, value,
       if (physicalBinding !== undefined) {
         closed = closeHttpsCredentialBinding(physicalBinding) === 'closed';
       }
-      if (preparing || !closed || invalidCleanup) return false;
+      if (preparing || fencePending || !closed || invalidCleanup) return false;
       if (cleanup !== undefined) {
         if (Reflect.apply(cleanupStatus, cleanup, [])?.pending !== false) {
           if (await Reflect.apply(cleanupRetry, cleanup, []) === false) return false;
@@ -214,6 +222,7 @@ export function createGcsMutationRequestChild({moon, binding, kind, name, value,
       if (prepared !== undefined) originals.delete(prepared.request);
       prepared = undefined;
       preparation = undefined;
+      fenceFlight = undefined;
       response = undefined;
       changes = undefined;
       configuration = undefined;

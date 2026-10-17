@@ -51,6 +51,8 @@ pub fn gcs_object_metadata_path(@catalog.ObjectMutationBinding, String) -> Resul
 
 pub fn gcs_object_mutation_binding(String, String, String, String, String, String, Array[String], Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMutationBinding, GcsFailure]
 
+pub fn gcs_object_mutation_kind(@catalog.ObjectMutationBinding) -> String
+
 pub fn gcs_object_prepare_delete(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata) -> Result[@catalog.ObjectMutationRequest, GcsFailure]
 
 pub fn gcs_object_prepare_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]

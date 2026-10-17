@@ -62,6 +62,8 @@ pub fn object_mutation_changes_json(ObjectMutationBinding, ObjectMutationRequest
 
 pub fn object_mutation_cid(ObjectMutationRequest) -> String
 
+pub fn object_mutation_kind(ObjectMutationBinding) -> ObjectMutationKind
+
 pub fn object_mutation_metadata_max_bytes(ObjectMutationBinding) -> Int
 
 pub fn object_mutation_metadata_path(ObjectMutationBinding, String) -> Result[String, ObjectTargetReadIssue]

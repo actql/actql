@@ -139,6 +139,47 @@ successful callback is not that reservation. The installed same-Site adapter,
 actual original read admission, Content byte borrow and saved Run restoration
 remain separate required connections; this primitive does not publish them.
 
+### Original mutation preparation child
+
+The private `createGcsMutationRequestChild` is an I/O-free synchronous factory
+for the existing capture cleanup protocol. Capture must retain it before
+`prepare()`. Its original caller supplies the justified preparation envelope,
+separate same-row read approval, original Credential/Site and synchronous
+current fence. Selected `maxSecretBytes` is mandatory; it has no default and is
+not funding. This unit does not install a normal supplier, add a permission or
+turn a DATA capacity declaration into a reservation.
+
+Preparation validates the selected binding kind/path/ABI and snapshots the
+admitted changes before the first await. It requests the original read approval
+once, creates one existing Credential binding and retains the original GET
+before the provider builds its exact conditional request. Repeated prepare
+calls share that same Promise; no failure or release starts another read.
+Parent capture must still compare the request's facts/CID with the original
+Program and hold all downstream borrowers through apply/Unknown/recovery.
+The generic guarded preparation receiver remains a separate connection.
+
+Release first invalidates use of this child's request, then drives only the
+same Credential binding and any original failure's cleanup handle. A pending
+prepare, invalid asynchronous fence, pending Credential close, false/rejected
+same-handle cleanup or malformed cleanup facet stays with the child. The
+primary error is never rewritten, including frozen/read-only diagnostics and
+ordinary null/undefined throws. There is no reacquisition or resend. Only after
+those duties retire are this child's raw response, request/preparation Promise,
+original configuration and method aliases detached; the old request can no
+longer be sent through its private original map. Escaped status snapshots are
+immutable. This is component custody, not a claim of heap/GC ACK or retirement
+of a later write, an escaped caller alias or a numerical Store loan.
+
+The new child/control/lifetime records, original configuration/fence/callbacks,
+single preparation/release/fence Promises and handlers, pre-await changes wire
+and Buffer, raw GET, parsed before metadata, conditional request/body and
+failure/cleanup/method references overlap the existing capture envelope.
+No body/secret clamp, callback return or weak-map deletion prices that overlap.
+Focused controls use the actual GCS compiler bridge, a fresh real FD failure,
+and the actual existing Credential binding before TCP. The success response
+ports and Credential claim controls are explicit doubles, not genuine Account
+approval, normal installed metadata/update/delete acceptance or live GCS.
+
 ### Retained upload target observations
 
 The upload-target receiver consumes the complete retained before-GET response,
