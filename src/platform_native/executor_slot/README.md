@@ -78,3 +78,32 @@ The fence retires known original transport endpoints only after borrow return,
 preserves close Unknown, and retains the anchor until the existing physical
 Owner completes its unstarted-region cleanup and calls `holder.cleanup`.
 It does not reopen a launch attempt or issue Stop, region or WorkspaceLoan ACK.
+
+# Original selected child inputs
+
+The trusted installed caller may use `prepare_duplex_child` and then
+`spawn_prepared_duplex` on the same original Holder. The existing physical
+region Owner must independently validate the original backing descriptor,
+nominal resource/loan, selected absolute executable, recipe and current
+authorization. This seam supplies none of those decisions. It retains only a
+new close-on-exec duplicate, the exact argument bytes and the explicitly
+selected environment in that already-funded parent holding.
+
+The new duplicate becomes child FD4; slot FD3, stdin0, stdout1 and diagnostic
+stderr2 keep their existing roles. The source descriptor remains owned by the
+original caller, must be CLOEXEC and must remain physically current. No path
+reopen can replace it. The selected OS fields are `LANG`, `LC_ALL`, `LC_CTYPE`
+and `TMPDIR`, without duplicates or NUL and with at most 4096 UTF-8 bytes per
+value. These are intake bounds, not resource funding. An empty selection is an
+actual empty environment; no ambient values or vendor defaults are merged.
+The prior launch APIs retain their original ABI and environment behavior.
+
+Preparation snapshots mutable argument/environment arrays and retains partial
+capture and close uncertainty in the same Holder. The prepared selection cannot
+be replaced or bypassed through the older launch entry. After spawn the parent
+duplicate is closed with observation, while the original caller retains its
+source and region through the existing scoped Stop and physical cleanup ACK.
+An error may still retain an actual child. A close Unknown prevents Stop and
+cannot close an independently reused descriptor. All known original aliases
+remain subject to the existing borrow-return, child-wait, slot-pin and final
+cleanup protocol; no new process, Run or cleanup Owner is created.
