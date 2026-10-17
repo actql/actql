@@ -11,7 +11,7 @@ export const SLACK_WORKSPACE_IDENTITY_OPERATION = 'slack:workspace:identity';
 const readers = new WeakMap();
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
-const providerExports = ['slackProjectUserList','slackUserListIdsJson','slackUserListRowsWire',
+const providerExports = ['slackProjectUserList','slackUserListIds','slackUserListRowsWire',
   'slackUserListMetadataJson','slackUserListColumnNames',
   'slackProjectWorkspaceIdentity','slackWorkspaceIdentityMatches'];
 const limitFields = ['maxResponseBytes','maxTotalResponseBytes','maxNodes','maxDepth',
@@ -101,7 +101,7 @@ async function executeRead(prepared, received) {
         bound.maxValueNodes,bound.maxValueTextBytes));
       const metadata = JSON.parse(provider.slackUserListMetadataJson(page));
       if (metadata.rowCount > bound.maxTotalRows-totalRows) fail('SlackUserListRowLimit');
-      const pageIds = JSON.parse(provider.slackUserListIdsJson(page));
+      const pageIds = provider.slackUserListIds(page);
       for (const id of pageIds) {
         if (ids.has(id)) fail('SlackUserListDuplicateUser');
         ids.add(id);

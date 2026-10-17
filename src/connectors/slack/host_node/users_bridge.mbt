@@ -74,9 +74,9 @@ pub fn slack_user_list_relation_facts_wire() -> String {
 }
 
 ///|
-#export_name("slackUserListIdsJson")
-pub fn slack_user_list_ids_json(page : @catalog.SlackUserListPage) -> String {
-  @catalog.slack_user_list_ids(page).to_json().stringify()
+#export_name("slackUserListIds")
+pub fn slack_user_list_ids(page : @catalog.SlackUserListPage) -> Array[String] {
+  @catalog.slack_user_list_ids(page)
 }
 
 ///|
