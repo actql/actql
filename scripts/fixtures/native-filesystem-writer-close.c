@@ -16,6 +16,8 @@ static int fixture_fsync(int);
 #include "../../src/platform_native/filesystem/filesystem_stub.c"
 #undef close
 #undef fsync
+// No generated Moon entrypoint is linked; an unexpected runtime panic fails.
+_Noreturn void moonbit_panic(void) { abort(); }
 static int selected_fd = -1, close_calls, close_error, sync_error;
 static bool no_retirement;
 static int fixture_close(int fd) {
