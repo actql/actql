@@ -228,7 +228,7 @@ fn admit_compound_cell(
     @decode.object_field_names(cursor) is Ok(names) else {
     return admit_query_cell(cursor, contract, field.name, budget)
   }
-  if components.length() != 2 || names.length() != components.length() {
+  if components.is_empty() || names.length() != components.length() {
     return Err(InvalidResponse)
   }
   for name in names {
