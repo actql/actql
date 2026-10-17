@@ -65,6 +65,7 @@ pub struct NotionDataSourceReadContracts {
   priv declaration : NotionDatabaseReadDeclaration
   priv source : NotionDataSourceCatalog
   priv columns : Array[NotionPropertyReadColumn]
+  priv system_columns : Array[(String, @contract.Contract)]
   priv schema : @contract.Contract
 }
 
@@ -438,7 +439,7 @@ pub fn bind_notion_data_source_read_contracts(
     Ok(value) => value
     Err(_) => return Err(InvalidColumn("names"))
   }
-  Ok({ declaration, source, columns, schema, })
+  Ok({ declaration, source, columns, system_columns: [], schema, })
 }
 
 ///|
