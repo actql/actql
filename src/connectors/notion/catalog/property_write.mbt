@@ -316,8 +316,9 @@ pub fn notion_property_write_matches(
   property_index : Int,
   value : @admitted.CheckedValue,
 ) -> Bool {
-  physical_equal(write.source, source) &&
-  physical_equal(write.value, value) &&
+  guard physical_equal(write.source, source) && physical_equal(write.value, value) else {
+    return false
+  }
   match notion_data_source_property_at(source, property_index) {
     Some(property) => physical_equal(write.property, property)
     None => false
