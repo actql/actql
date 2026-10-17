@@ -551,7 +551,7 @@ export async function exportPinnedEffectLocalResult({resultIndex, ...options}) {
 async function exportPinnedResult({
   moon, execution, inputs, memberIndex, limits, onChunk,
   onReceipt, onCanonicalRow, canonicalRowLimits,
-  prepareProposal,
+  prepareProposal, commandWorkspace,
   signal, advanceQuantum = 256, localResultIndex,
 }) {
   if (typeof onChunk !== 'function' ||
@@ -590,6 +590,12 @@ async function exportPinnedResult({
   if (physical === undefined && !local) {
     throw new TypeError('MissingEffectPhysicalSource');
   }
+  if (commandWorkspace !== undefined &&
+      (local || table || physical === undefined ||
+        typeof moon.clientProgramBeginEffectCommandKeyWorkspace !== 'function' ||
+        typeof moon.clientProgramEffectCommandKeyWorkspaceSynchronousEnd !== 'function')) {
+    throw new TypeError('EffectCommandWorkspaceUnavailable');
+  }
   let importing, preparation, stream, receipt, exportOwner;
   try {
     if (physical === undefined) {
@@ -598,7 +604,19 @@ async function exportPinnedResult({
       preparation = moon.clientProgramEffectLocalResultExportPreparation(
         exportOwner);
     } else {
-      importing = checked(local
+      if (commandWorkspace !== undefined) {
+        // The original capture retains this same phase view before calling
+        // the exporter. Reserve/allocate before withRows can materialize its
+        // managed import; no structural count or caller bytes issue capacity.
+        try {
+          importing = checked(moon.clientProgramBeginEffectCommandKeyWorkspace(
+            commandWorkspace, inputs, memberIndex, limits,
+            physical.completed, physical.material));
+        } finally {
+          // A synchronous return/throw is not a resource/physical ACK.
+          moon.clientProgramEffectCommandKeyWorkspaceSynchronousEnd(commandWorkspace);
+        }
+      } else importing = checked(local
         ? moon.clientProgramEffectLocalManagedInputBegin(inputs,
           localResultIndex, physical.completed, physical.material, limits)
         : table ? moon.clientProgramEffectTableManagedInputBegin(input,

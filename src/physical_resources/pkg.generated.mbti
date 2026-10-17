@@ -264,6 +264,8 @@ pub fn reserve_execution_delegation(Ledger, LedgerLimits, Int64, Int64) -> Resul
 
 pub fn reserve_shared_capacity(Ledger, Int64) -> Result[SharedCapacity, LedgerIssue]
 
+pub fn reserve_shared_workspace_capacity(Ledger, Int64, Int64) -> Result[SharedCapacity, LedgerIssue]
+
 pub fn retain_allocation(Ledger, Reservation, Int64) -> Result[Holding, LedgerIssue]
 
 pub fn[P, C, R] retire_backed_execution_live_child_after_owner_ack(BackedExecutionLiveAccess[P, C, R], R) -> Result[Unit, BackedExecutionIssue]
@@ -315,6 +317,8 @@ pub fn settle_reservation(Ledger, Reservation) -> Result[Unit, LedgerIssue]
 pub fn settle_shared_capacity(SharedCapacity) -> Result[Unit, LedgerIssue]
 
 pub fn shared_allocation_usage(SharedAllocation) -> SharedAllocationUsage
+
+pub fn shared_borrow_matches_ledger(SharedBorrow, Ledger) -> Bool
 
 pub fn shared_capacity_matches_ledger(SharedCapacity, Ledger) -> Bool
 

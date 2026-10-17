@@ -47,9 +47,9 @@ export async function retainGeneratedContentEvidence({store, publications,
 
 export async function issueStoredGeneratedContent({store, control, candidate,
   holdingCid, workspaceScopeCid, effectiveDataPolicyCid, available,
-  authorize, limits}) {
+  authorize, limits, retainOriginal}) {
   return issueStoredContent({store, control, candidate, holdingCid,
-    workspaceScopeCid, effectiveDataPolicyCid, available, authorize, limits},
+    workspaceScopeCid, effectiveDataPolicyCid, available, authorize, limits, retainOriginal},
   'GeneratedContent');
 }
 
@@ -61,9 +61,12 @@ export async function issueStoredCapturedContent(options) {
 
 async function issueStoredContent({store, control, candidate,
   holdingCid, workspaceScopeCid, effectiveDataPolicyCid, available,
-  authorize, limits}, prefix) {
+  authorize, limits, retainOriginal}, prefix) {
   if (typeof available !== 'function' || typeof authorize !== 'function') {
     throw new TypeError('Missing Content holding authority callbacks');
+  }
+  if (retainOriginal !== undefined && typeof retainOriginal !== 'function') {
+    throw new TypeError('InvalidContentOriginalReceiver');
   }
   const value = control.inspect(candidate);
   const fail = code => { throw Object.assign(new Error(code), {code}); };
@@ -100,5 +103,19 @@ async function issueStoredContent({store, control, candidate,
   // callback can retire availability even while returning its prior decision;
   // do not hand off that issued value without the same holding's current fence.
   if (!live()) fail(`${prefix}HoldingUnavailable`);
+  if (retainOriginal !== undefined) {
+    // Borrow the exact observation confirmed above, not a holding reconstructed
+    // later from a Ref/CID. This private DATA/original binding is not a byte
+    // loan, a read grant or proof of a consumer phase's allocation.
+    const original = Object.freeze({candidate, issued, holding,
+      storeAuthorityCid: store.storeAuthorityCid,
+      workspaceScopeCid, effectiveDataPolicyCid});
+    if (retainOriginal(original) !== undefined) {
+      throw new TypeError('InvalidContentOriginalReceiver');
+    }
+    // The existing Source/holding receiver may begin retirement synchronously.
+    // Its prior successful issuance does not permit a late handoff.
+    if (!live()) fail(`${prefix}HoldingUnavailable`);
+  }
   return issued;
 }
