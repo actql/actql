@@ -1,5 +1,5 @@
 {
-  "source": "ff798b87cc692436077e7140a44b3ceedfc33c13",
+  "source": "f22c1b98bbca68a1ad989fc2dd9c7ec7a03bb117",
   "qualification": "Lead-reviewed existing Owner references and syntax coverage only; not normal funding, raw retirement, installation, actual Notion service or release acceptance",
   "declarations": [
     {
@@ -602,7 +602,7 @@
     },
     {
       "module": "adapters/connectors/notion/site/data-source-read.mjs",
-      "sha256": "a0b581df94d09a8d2d8d41aeb8aeac49fc7652cb4729e410a412a476d6ace077",
+      "sha256": "184ad50c92997d74a383d9a72d8c7c4736c9417ff71ac04959d424a7e7a9bf61",
       "exports": [
         "NOTION_DATA_SOURCE_READ_OPERATION",
         "NotionDataSourceReadFailure",
@@ -817,6 +817,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "## Original complete property rows"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Provider-declared query incompleteness"
               }
             ],
             "inputsOutputs": [
@@ -859,6 +863,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "A lost\ndependent reply retains its original journal Unknown"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Provider-declared query incompleteness"
               }
             ],
             "cancellation": [
@@ -883,6 +891,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "The outer array and every row contribute to whole-page nodes, depth, text, work"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "### Provider-declared query incompleteness"
               }
             ],
             "extension": [
@@ -907,6 +919,18 @@
               {
                 "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
                 "anchor": "actual Notion aggregate page node cap applies to all complete rows together"
+              },
+              {
+                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "anchor": "actual Notion incomplete first page refuses before dependent I/O or row delivery and retains original charges"
+              },
+              {
+                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "anchor": "actual Notion incomplete final page cannot complete after an earlier valid original page"
+              },
+              {
+                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "anchor": "actual Notion explicit complete statuses preserve exact Decimal and original page custody"
               }
             ]
           }
