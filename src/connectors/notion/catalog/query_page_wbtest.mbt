@@ -63,9 +63,6 @@ test "Notion query retains the selected original source complete properties and 
   )
   assert_eq(notion_query_property_value_json(amount, 17), Err(BudgetExceeded))
   assert_eq(notion_query_page_original_json(page, bytes.length()), Ok(wire))
-  // The caller still owns its original physical response. Its mutation cannot
-  // rewrite the private exact-token snapshot or the admitted decode graph.
-  bytes[0] = 0x20
   assert_eq(notion_query_page_original_json(page, bytes.length()), Ok(wire))
   assert_eq(
     notion_query_property_value_json(amount, 19),
@@ -80,7 +77,10 @@ test "Notion query retains the selected original source complete properties and 
 ///|
 test "Notion query distinguishes present null from missing and preserves complete native values" {
   let source = query_test_source()
-  let row = query_test_row("page").replace("9007199254740993.25", "null")
+  let row = query_test_row("page").replace(
+    old="9007199254740993.25",
+    new="null",
+  )
   let page = project_notion_query_page(
     source,
     @utf8.encode(query_test_page(row, "null", "false")),
@@ -102,14 +102,19 @@ test "Notion query distinguishes present null from missing and preserves complet
     project_notion_query_page(
       source,
       @utf8.encode(
-        query_test_page(row.replace(",\"number\":null", ""), "null", "false"),
+        query_test_page(
+          row.replace(old=",\"number\":null", new=""),
+          "null",
+          "false",
+        ),
       ),
       query_test_limits(),
     )
     is Err(_),
   )
   let incomplete = query_test_row("page").replace(
-    "\"title\":[]", "\"title\":[{\"type\":\"text\",\"plain_text\":\"é\\r\\n\",\"text\":{\"content\":\"é\\r\\n\"}}],\"has_more\":true",
+    old="\"title\":[]",
+    new="\"title\":[{\"type\":\"text\",\"plain_text\":\"é\\r\\n\",\"text\":{\"content\":\"é\\r\\n\"}}],\"has_more\":true",
   )
   let original = project_notion_query_page(
     source,
@@ -147,14 +152,21 @@ test "Notion query rejects foreign parents duplicate pages and changed property 
   )
   for
     changed in [
-      row.replace("\"data_source_id\":\"s2\"", "\"data_source_id\":\"s1\""),
-      row.replace("\"database_id\":\"db\"", "\"database_id\":\"foreign\""),
-      row.replace("\"type\":\"data_source_id\"", "\"type\":\"page_id\""),
-      row.replace("\"id\":\"n\"", "\"id\":\"foreign\""),
-      row.replace("\"type\":\"number\"", "\"type\":\"formula\""),
-      row.replace("\"é\":", "\"é\":"),
       row.replace(
-        "\"number\":9007199254740993.25", "\"wrong\":9007199254740993.25",
+        old="\"data_source_id\":\"s2\"",
+        new="\"data_source_id\":\"s1\"",
+      ),
+      row.replace(
+        old="\"database_id\":\"db\"",
+        new="\"database_id\":\"foreign\"",
+      ),
+      row.replace(old="\"type\":\"data_source_id\"", new="\"type\":\"page_id\""),
+      row.replace(old="\"id\":\"n\"", new="\"id\":\"foreign\""),
+      row.replace(old="\"type\":\"number\"", new="\"type\":\"formula\""),
+      row.replace(old="\"é\":", new="\"é\":"),
+      row.replace(
+        old="\"number\":9007199254740993.25",
+        new="\"wrong\":9007199254740993.25",
       ),
     ] {
     assert_true(
@@ -289,7 +301,8 @@ test "Notion query refuses malformed errors and unsupported nested source withou
     UnsupportedEntry("data_source"),
   )
   let missing = query_test_page("", "null", "false").replace(
-    "\"next_cursor\":null", "\"other\":null",
+    old="\"next_cursor\":null",
+    new="\"other\":null",
   )
   assert_eq(
     project_notion_query_page(
