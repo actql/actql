@@ -27,7 +27,7 @@ fn short_command_context() -> Context {
 }
 
 ///|
-fn short_command_program(
+fn short_command_lowering_program(
   text : String,
   mode? : String = "installation",
 ) -> @program.Program raise {
@@ -69,7 +69,7 @@ test "short COMMAND installation emits the exact original contract and private i
       "FROM messages |> EFFECT COMMAND mail.send ID id INPUT (body = body)", "SELECT id, body FROM messages |> EFFECT COMMAND mail.send ID id INPUT (body = body)",
       "WITH original AS (FROM messages) FROM original |> EFFECT COMMAND mail.send ID id INPUT (body = body)",
     ] {
-    let program = short_command_program(text)
+    let program = short_command_lowering_program(text)
     let header = short_command_header(program)
     assert_eq(@program.effect_header_id(header), "aql_command_effect")
     assert_eq(@program.effect_header_kind(header), "command")
@@ -110,7 +110,7 @@ test "short COMMAND installation emits the exact original contract and private i
 
 ///|
 test "short COMMAND target identifier input ID and payload keep separate captured slots" {
-  let program = short_command_program(
+  let program = short_command_lowering_program(
     "FROM messages |> EFFECT send COMMAND mail.send TARGET mailbox ID id INPUT (body = body)",
     mode="identifier",
   )
@@ -129,7 +129,7 @@ test "short COMMAND target identifier input ID and payload keep separate capture
     .map(value => @wire.text(value).unwrap()),
     ["id", "mailbox", "body"],
   )
-  let legacy = short_command_program(
+  let legacy = short_command_lowering_program(
     "FROM messages |> EFFECT COMMAND mail.send TARGET mailbox ID id INPUT (body = body)",
     mode="legacy-field",
   )
@@ -151,7 +151,7 @@ test "short COMMAND target identifier input ID and payload keep separate capture
 
 ///|
 test "short COMMAND expressions use one ordinary derive before the closed capture" {
-  let program = short_command_program(
+  let program = short_command_lowering_program(
     "FROM messages |> EFFECT COMMAND mail.send TARGET CONCAT(mailbox, '.suffix') ID id INPUT (body = CONCAT(body, '!'))",
     mode="identifier",
   )
@@ -179,10 +179,10 @@ test "short COMMAND expressions use one ordinary derive before the closed captur
 
 ///|
 test "short COMMAND omitted and empty INPUT stay empty rather than copying columns" {
-  let omitted = short_command_program(
+  let omitted = short_command_lowering_program(
     "FROM messages |> EFFECT COMMAND mail.send ID id",
   )
-  let empty = short_command_program(
+  let empty = short_command_lowering_program(
     "FROM messages |> EFFECT COMMAND mail.send ID id INPUT ()",
   )
   assert_eq(semantic(omitted), semantic(empty))
@@ -246,7 +246,7 @@ test "short COMMAND target mode is resolved before unknown ID or payload express
 ///|
 test "short COMMAND preserves only explicit public Results and combines ordinary postludes" {
   let text = "FROM messages |> RESULT original |> WHERE body != '' |> EFFECT send COMMAND mail.send ID id INPUT (body = body); EFFECT audit COMMAND FROM RESULT original AS t TARGET t.mailbox CONTRACT `command:audit.v1` INPUT (body = t.body);"
-  let program = short_command_program(text)
+  let program = short_command_lowering_program(text)
   assert_eq(@program.export_count(program), 1)
   let headers = @program.collect_effect_headers(program, 10, 10000).unwrap()
   assert_eq(@program.effect_header_count(headers), 2)
@@ -284,7 +284,7 @@ test "short COMMAND completed set and original Model continuation retain the sam
       "FROM messages |> UNION ALL (FROM messages) |> EFFECT COMMAND mail.send ID id INPUT (body = body)",
       "FROM messages |> ASSERT UNIQUE BY (id) |> INFER score ITEM KEY (id) INPUT (n = body) KEEP (id, body) AS assessment |> RESULT classified |> WHERE body != '' |> EFFECT COMMAND mail.send ID id INPUT (body = body)",
     ] {
-    let program = short_command_program(text)
+    let program = short_command_lowering_program(text)
     assert_eq(
       @program.effect_header_command_input_key(short_command_header(program)),
       Some("id"),
@@ -590,7 +590,7 @@ test "short COMMAND private capture is not an authored Result for a long postlud
 
 ///|
 test "short COMMAND private port does not reserve the same public Result spelling" {
-  let program = short_command_program(
+  let program = short_command_lowering_program(
     "FROM messages |> RESULT aql_private_command |> EFFECT COMMAND mail.send ID id INPUT (body = body); EFFECT audit COMMAND FROM RESULT aql_private_command AS t TARGET t.mailbox CONTRACT `command:audit.v1` INPUT (body = t.body);",
   )
   assert_eq(@program.export_count(program), 1)
