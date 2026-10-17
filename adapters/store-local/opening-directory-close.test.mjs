@@ -4,15 +4,18 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import {syncBuiltinESMExports} from 'node:module';
 import {join} from 'node:path';
-import test from 'node:test';
+import test, {after} from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
 import {openLocalPublicationStore} from './publication-store.mjs';
 
+const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
+  prefix: 'opening-directory-close-', label: 'original Store opening directory FDs'});
+after(() => scratch.passed());
+
 async function fixture(t, phase, mode, syncFailure = false) {
-  const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
-    prefix: 'opening-directory-close-', label: 'original Store opening directory FD'});
-  const directory = join(scratch.path, 'store'), ownerDirectory = join(directory, 'owner');
+  const isolated = await fs.mkdtemp(join(scratch.path, 'case-'));
+  const directory = join(isolated, 'store'), ownerDirectory = join(directory, 'owner');
   const key = Buffer.alloc(32, 7);
   const configuration = {directory, privateEvidenceKey: key,
     storeAuthorityCid: `sha256:${'a'.repeat(64)}`, capacityBytes: 65536,
@@ -75,7 +78,6 @@ async function fixture(t, phase, mode, syncFailure = false) {
       } catch (error) { if (error.code !== 'ENOENT') throw error; }
     }
     ownedKey?.fill(0);
-    scratch.passed();
   });
   return {configuration, control, closeFailure, syncError, restore,
     open: async () => {
