@@ -332,6 +332,15 @@ pub fn record_read_original(read : RecordRead) -> @catalog.OriginalRecordPage? {
 }
 
 ///|
+/// The retained original metadata observation, including on a later refusal.
+/// It is neither current permission nor an acknowledgement of physical stop.
+pub fn record_read_observed_form(
+  read : RecordRead,
+) -> @catalog.FormFieldCatalog? {
+  read.observed_form
+}
+
+///|
 /// Copied original API IDs for the physical seek cursor, never RECORD_NUMBER
 /// labels, a numeric conversion, a new ResourceRef or a completion certificate.
 pub fn record_read_page_ids(
