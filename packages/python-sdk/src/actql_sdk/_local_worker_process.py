@@ -281,7 +281,9 @@ class OriginalWorkerProcess:
                 or self._native_domain is None or self._native_domain._live_channel_original is not proof
                 or proof._pipe._native_channel_original is not proof
                 or any(slot.value is not None for slot in
-                       (proof._host, proof._native_domain, proof._channel, proof._reply))
+                       (proof._host, proof._native_domain, proof._channel, proof._reply,
+                        proof._frame_host, proof._frame_domain, proof._frame_channel,
+                        proof._frame, proof._frame_reply))
                 or self._native_dup_unknown):
             raise ValueError('Original Native channel retirement is unconfirmed')
         self._finish_native_metadata()
