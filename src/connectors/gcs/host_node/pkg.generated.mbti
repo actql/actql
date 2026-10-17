@@ -37,6 +37,8 @@ pub fn gcs_object_metadata(Bytes, String, String, String?, Int, Int, Int, Int) -
 
 pub fn gcs_object_metadata_json(@catalog.ObjectMetadata, Int, Int, Int, Int) -> Result[String, GcsFailure]
 
+pub fn gcs_object_metadata_max_bytes(@catalog.ObjectMutationBinding) -> Int
+
 pub fn gcs_object_metadata_page(Bytes, String, String, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMetadataPage, GcsFailure]
 
 pub fn gcs_object_metadata_page_count(@catalog.ObjectMetadataPage) -> Int
@@ -44,6 +46,8 @@ pub fn gcs_object_metadata_page_count(@catalog.ObjectMetadataPage) -> Int
 pub fn gcs_object_metadata_page_next_token(@catalog.ObjectMetadataPage) -> String?
 
 pub fn gcs_object_metadata_page_row_json(@catalog.ObjectMetadataPage, Int, Int, Int, Int) -> Result[String, GcsFailure]
+
+pub fn gcs_object_metadata_path(@catalog.ObjectMutationBinding, String) -> Result[String, GcsFailure]
 
 pub fn gcs_object_mutation_binding(String, String, String, String, String, String, Array[String], Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMutationBinding, GcsFailure]
 
@@ -58,6 +62,8 @@ pub fn gcs_object_request_body(@catalog.ObjectMutationBinding, @catalog.ObjectMu
 pub fn gcs_object_request_changes(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest) -> Result[String, GcsFailure]
 
 pub fn gcs_object_request_projection(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]
+
+pub fn gcs_object_target_observation(@catalog.ObjectMutationBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectMetadata, GcsFailure]
 
 pub fn gcs_upload_binding(@catalog.ObjectCollectionBinding, String, Array[String], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectUploadBinding, @catalog.ObjectUploadIssue]
 
@@ -97,6 +103,7 @@ pub fn gcs_upload_target_observation(@catalog.ObjectUploadBinding, String, Int, 
 pub enum GcsFailure {
   Metadata(@catalog.ObjectMetadataIssue)
   Request(@catalog.ObjectRequestIssue)
+  TargetRead(@catalog.ObjectTargetReadIssue)
 }
 
 // Type aliases

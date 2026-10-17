@@ -114,6 +114,31 @@ custody and pending media charge rather than manufacturing a partial row.
 
 ## Original object request
 
+### Original mutation target observations
+
+Metadata PATCH and DELETE use a current complete target metadata GET under
+their original, separate read approval. The bounded path preserves the exact
+object name, including NFD and literal percent text. Before acquisition the
+portable provider checks the installed prefix/path ceiling; the physical call
+uses the existing metadata response ceiling and identity encoding. No write
+grant is reused as read authority, and no local retry is issued.
+
+The caller retains the same raw body and selected headers before admission.
+Only a complete 200 representation with the exact bucket/name and matching
+generation/metageneration headers yields before-observation DATA. Missing,
+partial, refused, malformed, encoded or contradictory responses cannot invent
+a before row. Existing conditional request bytes/CIDs remain unchanged; an
+admitted observation is not apply evidence, permission or physical cleanup ACK.
+
+The original raw response, three header tuple wrappers and borrowed Strings,
+bounded metadata parser/tree, detached metadata fields, path encoding/output,
+version text projections and before-observation aliases may coexist with the
+request preparation workspace. Their lifetime belongs to the original read,
+capture and Effect reservation, including pending failure/cleanup. A clamp or
+successful callback is not that reservation. The installed same-Site adapter,
+actual original read admission, Content byte borrow and saved Run restoration
+remain separate required connections; this primitive does not publish them.
+
 ### Retained upload target observations
 
 The upload-target receiver consumes the complete retained before-GET response,
