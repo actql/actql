@@ -175,10 +175,10 @@ fn admit_multipicklist_cell(
       ),
     )
   }
-  if budget.nodes < 2 {
+  if budget.nodes < 1 || (!text.is_empty() && budget.nodes < 2) {
     return Err(BudgetExceeded)
   }
-  let mut count = 1
+  let mut count = if text.is_empty() { 0 } else { 1 }
   for unit in text {
     if unit == ';' {
       if count >= budget.nodes - 1 {
@@ -190,25 +190,17 @@ fn admit_multipicklist_cell(
   // Delimiters are not payload text after the original physical projection.
   guard @scalar.admit_utf8_length64(
       text,
-      budget.text_bytes.to_int64() + count.to_int64() - 1L,
+      budget.text_bytes.to_int64() + (count - 1).max(0).to_int64(),
     )
     is Ok(_) else {
     return Err(BudgetExceeded)
   }
   let span = @decode.cursor_span(cursor)
   let nodes : Array[@source.Node] = []
-  for part in text.split(";") {
-    let value = part.to_owned()
-    // Empty-value representation is handled by the same vendor codec below.
-    if !multipicklist_item_valid(value) {
-      return Err(
-        ValueAdmission(
-          field_name,
-          @admitted.ValueIssue(@admitted.StringConstraint, path=[], span~),
-        ),
-      )
+  if !text.is_empty() {
+    for part in text.split(";") {
+      nodes.push({ value: @source.String(part.to_owned()), span, })
     }
-    nodes.push({ value: @source.String(value), span, })
   }
   let converted = match
     @decode.admit({ value: @source.Array(nodes), span, }, {

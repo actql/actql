@@ -113,15 +113,17 @@ fn emit_write_cell(
           Ok(_) => ()
           Err(issue) => return Err(issue)
         }
-        for part in text.split(";") {
-          let value = part.to_owned()
-          if !multipicklist_item_valid(value) {
-            return Err(InvalidValue(field.name))
-          }
-          match
-            emit_each([output], writer => @encode.string_value(writer, value)) {
-            Ok(_) => ()
-            Err(issue) => return Err(issue)
+        if !text.is_empty() {
+          for part in text.split(";") {
+            let value = part.to_owned()
+            if !multipicklist_item_valid(value) {
+              return Err(InvalidValue(field.name))
+            }
+            match
+              emit_each([output], writer => @encode.string_value(writer, value)) {
+              Ok(_) => ()
+              Err(issue) => return Err(issue)
+            }
           }
         }
         return emit_each([output], writer => @encode.end_array(writer))
@@ -133,7 +135,8 @@ fn emit_write_cell(
       for index in 0..<count {
         guard @decode.element_at(cursor, index) is Some(item) &&
           @decode.text(item) is Ok(value) &&
-          multipicklist_item_valid(value) else {
+          multipicklist_item_valid(value) &&
+          !(count == 1 && value.is_empty()) else {
           return Err(InvalidValue(field.name))
         }
         if index > 0 {

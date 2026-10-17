@@ -88,11 +88,11 @@ test "multi-select declaration carries the original nullable array of non-null s
   )
   assert_eq(
     declaration.writables[0].create_fields,
-    Some(["Name", "Choices__c"]),
+    Some(["Choices__c", "Name"]),
   )
   assert_eq(
     declaration.writables[0].update_fields,
-    Some(["Name", "Choices__c"]),
+    Some(["Choices__c", "Name"]),
   )
   assert_eq(declaration.exclusions.length(), 0)
 }
@@ -229,5 +229,58 @@ test "multi-select admission does not open an external target key or hide native
   )
   assert_true(
     recheck_write_projection(write, current) is Err(SchemaChanged("Choices__c")),
+  )
+}
+
+///|
+test "multi-select empty text array and representable empty elements have exact distinct projections" {
+  let read = choices_read()
+  let write = choices_write()
+  // Independent fixed expectations of the adopted physical codec, not product output.
+  for
+    (provider, logical) in [
+      ("\"\"", "[]"),
+      ("\";\"", "[\"\",\"\"]"),
+      ("\"a;\"", "[\"a\",\"\"]"),
+      ("\";a\"", "[\"\",\"a\"]"),
+      ("\"a;;a\"", "[\"a\",\"\",\"a\"]"),
+    ] {
+    assert_eq(choices_wire(choices_page(read, provider).unwrap()), logical)
+    let body = choices_body(write, logical).unwrap()
+    assert_eq(write_body_json(body), "{\"Choices__c\":" + provider + "}")
+    assert_eq(write_body_value_json(body), "{\"Choices__c\":" + logical + "}")
+  }
+  assert_true(choices_body(write, "[\"\"]") is Err(InvalidValue("Choices__c")))
+}
+
+///|
+test "a cleared multi-select does not convert an actual observed null into an empty array" {
+  let request = prepare_single_write_request(
+    choices_body(choices_write(), "[]").unwrap(),
+    "v62.0",
+    RecordId("a01000000000001"),
+    write_request_test_limits(),
+  ).unwrap()
+  assert_eq(single_write_request_body(request), "{\"Choices__c\":\"\"}")
+  let empty = prepare_target_observation(
+    request,
+    200,
+    @utf8.encode("{\"Id\":\"a01000000000001AAA\",\"Choices__c\":\"\"}"),
+    target_observation_test_limits(),
+  ).unwrap()
+  let nulled = prepare_target_observation(
+    request,
+    200,
+    @utf8.encode("{\"Id\":\"a01000000000001AAA\",\"Choices__c\":null}"),
+    target_observation_test_limits(),
+  ).unwrap()
+  assert_eq(target_observation_before_value_wire(empty), "{\"Choices__c\":[]}")
+  assert_eq(
+    target_observation_before_value_wire(nulled),
+    "{\"Choices__c\":null}",
+  )
+  assert_true(
+    target_observation_version_cid(empty) !=
+    target_observation_version_cid(nulled),
   )
 }
