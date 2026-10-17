@@ -61,8 +61,11 @@ existing nominal admission before execution or restoration.
 `ModelTaskLimits.contracts` bounds the aggregate semantic tree. Its `bodies`
 limits bound intermediate normalization and checked output bytes/JSON nodes/depth;
 `max_members` additionally bounds the top-level field count. Separate complete
-parser, admission, emitter and hash traversals are reserved against `max_work`
-before those operations, using the caller's body bounds. The transformer uses
+parser/admission traversals are charged before those operations against
+`max_work`, using the original normalization writer's actual byte/node usage.
+Checked emission charges each existing bounded transition before advancing;
+hashing charges its complete wire before traversal. A loose output bound does
+not itself consume that entire bound as work. The transformer uses
 active-ancestry frames and indexed children rather than a detached field map.
 Failure returns no partial checked schema. Original Cursor/tree, temporary wire,
 parser/admission trees, checked Contract/enum backing, emitted wire, hash work and
