@@ -65,7 +65,8 @@ async function fixture(t, options = {}) {
             Buffer.from(jwt[2], 'base64url')), true);
           assert.deepEqual(JSON.parse(Buffer.from(jwt[1], 'base64url')), {
             iss: 'fixture@example.test', scope: 'scope:a scope:b',
-            aud: 'https://oauth2.googleapis.com/token', iat: nowValue / 1000, exp: nowValue / 1000 + 120,
+            aud: 'https://oauth2.googleapis.com/token', iat: nowValue / 1000,
+            exp: nowValue / 1000 + Math.min(120, Math.floor((options.authLifetimeMs ?? 600_000) / 1000)),
           });
           entered();
           if (options.onToken?.(request, response)) return;
@@ -101,7 +102,8 @@ async function fixture(t, options = {}) {
     runtimeBundleCid: cid('a'), connectorRegistration: 'google-fixture', connectorRevision: '0.1',
     resourceOrigin: `https://127.0.0.1:${port}`, operation: 'read', runInvocationCid: cid('b'),
     taskAttempt: 3, dispatchRequestCid: cid('c'), expiresUnixMilliseconds: BigInt(nowValue + 600_000), maxUses: 4});
-  const authScope = Object.freeze({...scope, resourceOrigin: 'https://oauth2.googleapis.com', operation: 'google:oauth:token'});
+  const authScope = Object.freeze({...scope, resourceOrigin: 'https://oauth2.googleapis.com', operation: 'google:oauth:token',
+    expiresUnixMilliseconds: BigInt(nowValue + (options.authLifetimeMs ?? 600_000))});
   const grant = control.prepare(scope), authGrant = control.prepare(authScope);
   const sign = value => signRemoteCredentialGrant(value, control, {privateKey: authority.privateKey, keyId: 'issuer'});
   journal.acceptGrant(sign(grant), control); journal.acceptGrant(sign(authGrant), control);
@@ -133,7 +135,8 @@ async function fixture(t, options = {}) {
     else await rm(root, {recursive: true, force: true});
   });
   const material = await prepareHttpsCredentialAuthenticationMaterial({binding, scope, control,
-    journal, resolveSecret, parentClaim, currentBeforeSign: async () => {}, now: () => observedNow});
+    journal, resolveSecret, parentClaim, authenticationGrant: authGrant, authenticationScope: authScope,
+    currentBeforeSign: async () => {}, now: () => observedNow});
   const exchange = overrides => exchangeHttpsCredentialAuthentication({binding, material, scope,
     control, journal, resolveSecret, authGrant, authScope, useId: 'original-auth',
     currentBeforeSend: async () => {}, now: () => observedNow, ca: cert, ...overrides});
@@ -278,4 +281,14 @@ test('retirement inside the original material-current callback refuses before th
   assert.equal(pending, 'pending');
   assert.equal(f.tokenRequests(), 0);
   assert.equal(f.journal.recover().find(x => x.useId === 'original-auth').outcome, 'failed');
+});
+
+test('the actual auth grant deadline constrains the original assertion and retained token', async t => {
+  const f = await fixture(t, {authLifetimeMs: 10_000});
+  await f.exchange();
+  assert.equal(f.tokenRequests(), 1);
+  f.advance(nowValue + 11_000);
+  await assert.rejects(f.resource());
+  assert.equal(f.resourceRequests(), 0);
+  assert.equal(f.resolutions(), 1);
 });

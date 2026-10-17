@@ -234,6 +234,10 @@ function authenticationCurrent(state, original, scope, control, journal, now, si
   checkAuthenticationSelection(state, original);
   const time = now();
   if (!Number.isSafeInteger(time) || time < 0) fail('InvalidRemoteCredentialAuthenticationTime');
+  // Both original supplier and trusted-clock callbacks may synchronously
+  // retire/cancel this very binding. Their return is not a physical permit.
+  if (state.retiring) fail('RemoteCredentialBindingRetiring');
+  signal?.throwIfAborted();
   const parent = journal.authorize(original.parentClaim.use, BigInt(time),
     original.parentScope, control);
   if (parent.outcome !== 'claimed' && parent.outcome !== 'succeeded') {
