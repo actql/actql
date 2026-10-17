@@ -6,6 +6,8 @@
 import {createHash, createPrivateKey} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {readSourceProfileJson} from '../../../host-node/source-profile-json.mjs';
+import {retainInstalledCredentialSiteCleanup, releaseInstalledCredentialSite} from
+  '../../../host-node/installed-host-cleanup.mjs';
 import {isAbsolute} from 'node:path';
 import {canonicalJson as canonicalValueJson} from '../../../../packages/sdk/host-port.mjs';
 import {canonicalJson, contentCid} from
@@ -806,72 +808,14 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   });
 }
 
-// The failure of a caller that acquired `site`: the primary failure stays
-// the error, and the Site's release is attempted at once. When it does not
-// complete, the error carries the release responsibility (`cleanupPending`,
-// `cleanupErrors`, `cleanupHandle` {retry, status}) to the caller, beside any
-// cleanup responsibility it already carried. A frozen or non-object failure
-// is wrapped with `primaryFailure`.
+// Compatibility entries delegate the same Site and primary failure to the
+// shared Host lifecycle owner. Keep Salesforce's original fallback code and
+// synchronous first close; this does not prepare or retry provider work.
 export function retainSalesforceSiteCleanup(site, primary) {
-  const errors = [];
-  try { site.close(); } catch (error) { errors.push(error); }
-  return handOverSiteRelease(site, primary, errors);
+  return retainInstalledCredentialSiteCleanup(site, primary,
+    'SalesforceSiteOwnerFailed');
 }
 
-// Release `site` after its caller succeeded. A release that does not
-// complete throws its failure carrying the retry responsibility; the failed
-// attempt is not repeated here.
 export function releaseSalesforceSite(site) {
-  try { site.close(); }
-  catch (error) { throw handOverSiteRelease(site, error, [error]); }
+  return releaseInstalledCredentialSite(site, 'SalesforceSiteOwnerFailed');
 }
-
-function handOverSiteRelease(site, primary, errors) {
-  // Capture the previous owner before wrapping or replacing its metadata.
-  const earlier = primary?.cleanupHandle;
-  const earlierOwned = earlier !== undefined || primary?.cleanupPending === true;
-  const earlierErrors = primary?.cleanupErrors ?? [];
-  const earlierStatus = () => {
-    try {
-      return typeof earlier?.status === 'function' ? earlier.status() : undefined;
-    } catch (error) {
-      // An unavailable observation cannot replace the primary failure or
-      // confirm release. Keep the retry owner and the observation failure.
-      if (!errors.includes(error)) errors.push(error);
-      return undefined;
-    }
-  };
-  const failure = primary !== null && typeof primary === 'object' &&
-    Object.isExtensible(primary) ? primary
-    : Object.assign(new Error('SalesforceSiteOwnerFailed', {cause: primary}),
-      {code: primary?.code ?? 'SalesforceSiteOwnerFailed',
-        primaryFailure: primary});
-  if (site.cleanupPending() !== true && !earlierOwned) return failure;
-  const status = () => {
-    const before = earlierStatus();
-    return Object.freeze({
-      // Only the previous owner can confirm its own release. A missing or
-      // incomplete handle must not turn an outstanding duty into success.
-      pending: site.cleanupPending() === true ||
-        earlierOwned && before?.pending !== false,
-      errors: Object.freeze([...(before?.errors ?? earlierErrors), ...errors])});
-  };
-  const handle = Object.freeze({status, async retry() {
-    if (earlierStatus()?.pending !== false &&
-        typeof earlier?.retry === 'function') {
-      try { await earlier.retry(); } catch (error) { errors.push(error); }
-    }
-    if (site.cleanupPending() === true) {
-      try { site.close(); } catch (error) { errors.push(error); }
-    }
-    const current = status();
-    failure.cleanupPending = current.pending;
-    failure.cleanupErrors = current.errors;
-    return current;
-  }});
-  failure.cleanupPending = status().pending;
-  failure.cleanupErrors = status().errors;
-  failure.cleanupHandle = handle;
-  return failure;
-}
-
