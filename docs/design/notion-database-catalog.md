@@ -937,3 +937,18 @@ This projection holds the original parsed members, sorted arrays and canonical
 wire/hash workspace until the caller releases them; exact text is neither a
 grant nor a memory reservation. The original Source checker still admits the
 result before SQL/AQL preparation and does not relax an input Contract.
+
+The Site-backed discovery consumer binds the same original Host publication
+request, Account decision and installed credential issuer before the database
+GET. A separate schema use is issued only after the admitted database response
+selects its original data-source occurrence. Current publication, Account and
+Site observations fence each protected operation; changing an original across
+the dependent selection cannot authorize the schema request. A lost reply keeps
+that use's Journal Unknown and does not permit another reader or refreshed
+material to resend it.
+
+Closing that Site or its Journal does not retire the discovery reader's retained
+response, charge, parsed Catalog, selected schema or failure aliases. The actual
+preparation phase must fund their full overlap before I/O and retain it until
+physical custody is confirmed. Post-response charging is not that supplier;
+missing installation-phase originals remain Unavailable before ordinary I/O.

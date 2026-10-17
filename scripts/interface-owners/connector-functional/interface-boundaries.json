@@ -8948,6 +8948,10 @@
               {
                 "path": "adapters/host-node/installation-metadata-site.test.mjs",
                 "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Closing that Site or its Journal does not retire"
               }
             ],
             "extension": [
@@ -8968,6 +8972,10 @@
               {
                 "path": "adapters/host-node/installation-metadata-site.test.mjs",
                 "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "adapters/connectors/notion/test/site-metadata-discovery.test.mjs",
+                "anchor": "actual original Site signs and claims separate database and dependent schema uses through Notion discovery"
               }
             ]
           }
