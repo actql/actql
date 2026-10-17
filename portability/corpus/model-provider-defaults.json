@@ -1,0 +1,21 @@
+{
+  "version": "actql-model-provider-defaults-vectors/0.1",
+  "qualification": "Independent configuration DATA originals, not installation, Task, permission or numerical funding",
+  "cases": [
+    {
+      "id": "explicit-original-default100",
+      "wire": "{\"model_defaults\":{\"default_model\":\"m\",\"models\":[{\"generation_config\":{\"max_output_tokens\":100,\"temperature\":0.25,\"top_p\":0.875},\"model\":\"m\"}]}}",
+      "cid": "sha256:821a19a8b4546e416b58064e23e676ccdd1823efbbf2d9d3dcde745a807635d7"
+    },
+    {
+      "id": "changed-original-default200",
+      "wire": "{\"model_defaults\":{\"default_model\":\"m\",\"models\":[{\"generation_config\":{\"max_output_tokens\":200,\"temperature\":0.25,\"top_p\":0.875},\"model\":\"m\"}]}}",
+      "cid": "sha256:ebe16e2a149501cc6ebbcf6438cc7c1f0bf8bd7061f3e89a3b7b20289ac5481e"
+    },
+    {
+      "id": "exact-decomposed-original-model",
+      "wire": "{\"model_defaults\":{\"default_model\":\"e\u0301\",\"models\":[{\"generation_config\":{\"max_output_tokens\":100,\"temperature\":0,\"top_p\":1},\"model\":\"e\u0301\"}]}}",
+      "cid": "sha256:75345031b8849eda2418f63999674ec7d91ee0bd975190c7e02024468357f634"
+    }
+  ]
+}
