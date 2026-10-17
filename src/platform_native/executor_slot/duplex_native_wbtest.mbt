@@ -120,11 +120,13 @@ test "duplex foreign holder and borrow refuse before altering the original view"
     "foreign",
   )
   assert_true(borrowed.parent_descriptors(other_holder) is Err(NotHeld))
+  assert_true(borrowed.require_current(other_holder) is Err(NotHeld))
   assert_true(borrowed.return_transport(other_holder) is Err(NotHeld))
   assert_true(transport.borrow_transport(other_holder) is Err(NotHeld))
   assert_true(other_borrow.return_transport(holder) is Err(NotHeld))
   assert_true(other_transport.borrow_transport(holder) is Err(NotHeld))
   assert_true(borrowed.parent_descriptors(holder) is Ok(_))
+  scoped_test_ok(borrowed.require_current(holder), "foreign.original-current")
   scoped_test_ok(borrowed.return_transport(holder), "foreign.original-return")
   scoped_test_ok(
     other_borrow.return_transport(other_holder),

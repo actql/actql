@@ -179,12 +179,12 @@ fn NativeScopedDuplexBorrow::original_transport(
 }
 
 ///|
-/// Physical facts for the trusted channel caller: parent stdin writer first,
-/// parent stdout reader second. No caller-supplied numbers can mint this view.
-pub fn NativeScopedDuplexBorrow::parent_descriptors(
+/// Same-holder physical transport currentness only. Resource/permission and
+/// the channel's in-flight-use fence remain with their original Owners.
+pub fn NativeScopedDuplexBorrow::require_current(
   self : NativeScopedDuplexBorrow,
   expected : NativeScopedExecutorHolder,
-) -> Result[(Int, Int), NativeExecutorSlotIssue] {
+) -> Result[Unit, NativeExecutorSlotIssue] {
   match self.original_transport(expected) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -195,6 +195,25 @@ pub fn NativeScopedDuplexBorrow::parent_descriptors(
   let status = duplex_current_ffi(self.resource)
   if status != 0 {
     return Err(duplex_issue(status))
+  }
+  if duplex_descriptor_ffi(self.resource, 1) < 0 ||
+    duplex_descriptor_ffi(self.resource, 3) < 0 {
+    Err(Closed)
+  } else {
+    Ok(())
+  }
+}
+
+///|
+/// Physical facts for the trusted channel caller: parent stdin writer first,
+/// parent stdout reader second. No caller-supplied numbers can mint this view.
+pub fn NativeScopedDuplexBorrow::parent_descriptors(
+  self : NativeScopedDuplexBorrow,
+  expected : NativeScopedExecutorHolder,
+) -> Result[(Int, Int), NativeExecutorSlotIssue] {
+  match self.require_current(expected) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   let writer = duplex_descriptor_ffi(self.resource, 1)
   let reader = duplex_descriptor_ffi(self.resource, 3)
