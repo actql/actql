@@ -211,19 +211,20 @@ test('missing/unknown presence, placeholder values and contradictory version dat
 });
 
 test('mixed original presence binds only actual version rows in sealed canonical row order', async t => {
-  const rows = [{id: 'b-key', value: 'b'}, {id: 'a-key', value: 'a'}];
+  const rows = [{id: 'c-key', value: 'c'}, {id: 'b-key', value: 'b'}, {id: 'a-key', value: 'a'}];
   const f = await fixture(t, {observation: entry => ({identity: entry.target,
     ...(entry.target === 'b-key' ? {state: 'absent'} :
-      {state: 'present', versionCid: cid('a version'), before: {id: 'a-key', value: 'original a'}})})});
+      {state: 'present', versionCid: cid(entry.target + ' version'),
+        before: {id: entry.target, value: 'original ' + entry.target}})})});
   await f.host.run(program(f.mapping, {rows}), 'original-upsert-mixed');
   const stage = f.host.outcomes[0].stage;
   const member = JSON.parse(f.host.control.effectComputationPreviewWire(stage.preview)).effects[0];
-  assert.equal(member.changes.length, 2);
+  assert.equal(member.changes.length, 3);
   assert.deepEqual(member.changes.find(row => row.target_row_identity === 'b-key').before, {state: 'absent'});
-  const present = member.changes.find(row => row.target_row_identity === 'a-key');
+  const present = ['a-key', 'c-key'].map(key => member.changes.find(row => row.target_row_identity === key));
   const current = await stage.apply.refreshPreflight({preflight: stage.apply.preflight});
-  assert.deepEqual(current.observedRows, [present.row_preview_cid]);
-  assert.deepEqual(current.guardVersions, [cid('a version')]);
+  assert.deepEqual(current.observedRows, present.map(row => row.row_preview_cid));
+  assert.deepEqual(current.guardVersions, [cid('a-key version'), cid('c-key version')]);
   checked(moon.clientProgramCheckEffectPreviewTargetGuards(stage.apply.capturedInputs,
     current.observedRows, current.guardVersions, 100, 10000));
   assert.equal(f.state.sends, 0);
