@@ -1085,6 +1085,7 @@ for (const closeFailures of [0, 1]) {
 
 test('shared credential custody preserves every original Salesforce scope member and nondefault task attempt', async t => {
   const setup = await installed(t);
+  const requestsBefore = setup.org.seen.length;
   const now = 1_700_000_000_000;
   let accepted = 0;
   const site = await setup.load({now: () => now, grantLifetimeMs: 123_456,
@@ -1119,5 +1120,6 @@ test('shared credential custody preserves every original Salesforce scope member
       {code: 'InvalidSalesforceCredentialGrantRequest'});
   }
   assert.equal(accepted, 1);
-  assert.equal(setup.org.seen.length, 0, 'signing is not provider I/O');
+  assert.equal(setup.org.seen.length, requestsBefore,
+    'loading/signing adds no I/O to the original fixture preparation');
 });
