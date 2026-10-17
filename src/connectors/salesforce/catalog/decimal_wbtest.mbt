@@ -66,7 +66,10 @@ test "an approved decimal must be its canonical ActQL spelling" {
 ///|
 /// A synthetic Resource with a Number(12,2), a Number(16,2) and a
 /// Number(15,0); no real org.
-fn number_observation() -> (CatalogObservation, CatalogObservationBinding) {
+fn number_observation(
+  wide_precision? : Int = 16,
+  wide_scale? : Int = 2,
+) -> (CatalogObservation, CatalogObservationBinding) {
   let listing_body =
     #|{"sobjects":[{"name":"Order__c","queryable":true,"createable":true,"updateable":true}]}
   let listing = project_resource_listing(@utf8.encode(listing_body), {
@@ -84,6 +87,13 @@ fn number_observation() -> (CatalogObservation, CatalogObservationBinding) {
     #|{"name":"Amount__c","type":"double","precision":12,"scale":2,"nillable":true,"defaultedOnCreate":false,"createable":true,"updateable":true},
     #|{"name":"Units__c","type":"double","precision":15,"scale":0,"nillable":false,"defaultedOnCreate":false,"createable":true,"updateable":true},
     #|{"name":"Wide__c","type":"double","precision":16,"scale":2,"nillable":true,"defaultedOnCreate":false,"createable":true,"updateable":true}]}
+  let describe_body = describe_body.replace_all(
+    "\"precision\":16,\"scale\":2",
+    "\"precision\":" +
+    wide_precision.to_string() +
+    ",\"scale\":" +
+    wide_scale.to_string(),
+  )
   catalog_sync_describe(sync, "Order__c", @utf8.encode(describe_body), {
     max_bytes: 4096,
     max_nodes: 100,
