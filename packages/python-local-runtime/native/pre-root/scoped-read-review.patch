@@ -57,10 +57,13 @@
      lease->closing = true;
      for (size_t i = lease->control_pages; i < lease->page_count; i++) {
          if (lease->extents[i].pages == 0) continue;
-@@ -452,3 +461,6 @@
+@@ -452,6 +461,9 @@
   * domain borrow uses only its original interior relative allocator records. */
  #include "owned_region.inc"
  #include "owned_domain_borrow.inc"
+ 
+ /* Child startup and join reuse this provider's original scope and backing. */
+ #include "owned_thread.inc"
 +
 +/* Private selected read allocator preparation, same physical provider. */
 +#include "scoped_read.inc"

@@ -3,6 +3,7 @@
 #define ACTQL_PRIVATE_MEMORY_ABI_GENERATED_H
 #include "owned_capacity.h"
 #include "owned_domain_borrow.h"
+#include "owned_thread.h"
 int actql_native_domain_borrow_capacity(void * storage, uint64_t * out);
 int actql_native_domain_borrow_claim_holding(void * storage, actql_owned_capacity ** slot);
 int actql_native_domain_borrow_close(void * storage);
@@ -31,6 +32,10 @@ int actql_native_owned_protect(actql_owned_capacity * lease, void * allocation, 
 int actql_native_owned_retire(actql_owned_capacity * lease, void * allocation);
 int actql_native_owned_rounded_bytes(actql_owned_capacity * lease, size_t bytes, uint64_t * out);
 int actql_native_owned_seal_readonly(actql_owned_capacity * lease, void * allocation);
+size_t actql_native_owned_thread_control_alignment(void);
+size_t actql_native_owned_thread_control_bytes(void);
+int actql_native_owned_thread_join(actql_owned_capacity * lease, void * storage);
+int actql_native_owned_thread_start(actql_owned_capacity * lease, void * storage, size_t storage_bytes, actql_owned_thread_entry entry, void * argument);
 int actql_native_owned_transfer(actql_owned_capacity * lease, uint64_t generation, const unsigned char * recipe);
 int actql_native_owned_transfer_original_domain(actql_owned_capacity * lease);
 int actql_native_owned_try_close(actql_owned_capacity ** lease);

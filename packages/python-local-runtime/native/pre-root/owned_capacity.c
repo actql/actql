@@ -44,6 +44,8 @@ struct actql_owned_capacity {
 
 static _Thread_local actql_owned_capacity *current_capacity;
 static _Thread_local size_t current_depth;
+static _Thread_local size_t current_floor;
+static _Thread_local pid_t current_process;
 
 /* This physical exclusion is not child authorization. A trusted bootstrap
  * validates the original Core loan before publishing the process borrow. */
@@ -130,7 +132,8 @@ int actql_native_owned_transfer_original_domain(actql_owned_capacity *lease) {
 }
 
 int actql_native_owned_enter(actql_owned_capacity *lease) {
-    if (lease == NULL || (current_capacity != NULL && current_capacity != lease))
+    if (lease == NULL || (current_capacity != NULL &&
+        (current_capacity != lease || current_process != getpid())))
         return ACTQL_OWNED_INVALID;
     if (foreign_domain_process(lease)) return ACTQL_OWNED_BUSY;
     lock_capacity(lease);
@@ -141,16 +144,21 @@ int actql_native_owned_enter(actql_owned_capacity *lease) {
     lease->active_scopes++;
     current_capacity = lease;
     current_depth++;
+    current_process = getpid();
     unlock_capacity(lease);
     return ACTQL_OWNED_OK;
 }
 
 int actql_native_owned_leave(actql_owned_capacity *lease) {
-    if (lease == NULL || current_capacity != lease || current_depth == 0)
+    if (lease == NULL || current_capacity != lease || current_process != getpid() ||
+        current_depth <= current_floor)
         return ACTQL_OWNED_INVALID;
     lock_capacity(lease);
     lease->active_scopes--;
-    if (--current_depth == 0) current_capacity = NULL;
+    if (--current_depth == 0) {
+        current_capacity = NULL;
+        current_process = 0;
+    }
     unlock_capacity(lease);
     return ACTQL_OWNED_OK;
 }
@@ -452,3 +460,6 @@ int actql_native_owned_try_close(actql_owned_capacity **slot) {
  * domain borrow uses only its original interior relative allocator records. */
 #include "owned_region.inc"
 #include "owned_domain_borrow.inc"
+
+/* Child startup and join reuse this provider's original scope and backing. */
+#include "owned_thread.inc"

@@ -402,3 +402,36 @@ existing load-time runtime constructor remains part of the independent startup
 responsibility described above. Actual source/DLL/consumer identities and raw
 results are separate evidence; neither this recipe nor a successful physical
 fixture supplies an ordinary installed funding profile.
+
+## Pre-bootstrap thread scope
+
+`owned_thread.h` is a private physical adapter in this same C provider. Before
+`pthread_create`, it retains an original lease scope and binds an address-bound
+one-shot controller in an existing live allocation of that lease. Its C
+trampoline binds the existing provider TLS before invoking the callback. A Rust
+caller must enter its Rust bootstrap through this trampoline: binding inside an
+ordinary `std::thread` closure is too late for Rust spawn hooks and TLS setup.
+No unbound-thread allocator fallback or second provider is supplied.
+
+The caller owns the controller, callback and data aliases until confirmed join;
+it must exclude their retirement or mutation during start, execution and join.
+These ports do not fund OS thread creation, stack, pthread internals or unrelated
+VM/control allocations. A known create refusal retains a nonreusable record and
+releases only the confirmed-not-started scope pin. A lost create response must
+retain that original record and pin; it does not permit another launch.
+
+The baseline child scope cannot be consumed by callback `leave` and remains
+bound through pthread thread-specific destructors. Only successful original
+`pthread_join` releases its pin. A failed/lost join keeps the original pin and
+one-shot join attempt, with no blind retry or inferred stop. Confirmed join does
+not retire the controller allocation, acknowledge other resources, or finish a
+Run. Copied, foreign, retired and fork-inherited controllers are rejected.
+
+This is a source-level seam for the selected backend. `fixtures/thread.c`
+executes the matching C provider without Rust, Engine or VM. Actual Rust thread
+origins, process-global Mach handler/port lifetime and runtime integration remain
+separate obligations. Process-global handlers belong to existing process/runtime
+custody and cannot be acknowledged by ordinary Engine close. New linked library
+bytes require new source/recipe/current/provider provenance. The earlier compiler
+abort and its unconfirmed original holding ACK remain unchanged; neither this
+adapter nor a successful compile adopts normal capacity or physical acceptance.
