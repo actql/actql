@@ -11,12 +11,14 @@ import hashlib
 from importlib import import_module
 import importlib.util
 import json
+import math
 import os
 import platform
 import stat
 from pathlib import Path
 import subprocess
 import sys
+import time
 from threading import current_thread
 from typing import Any, NamedTuple
 
@@ -894,38 +896,152 @@ def prepare_compiler_executable(core_receipt: Path, expected_source: str,
     return result
 
 
+class CompilerProcessAssemblyError(RuntimeError):
+    """Retain the same original aliases; no retry, close or release policy.
+
+    Native parent/process/region owners remain authoritative. Even a closed
+    descriptor does not retire the parent control runtime's process lifetime.
+    """
+
+    def __init__(self, preparation: _CompilerRuntime, program: Any) -> None:
+        self.preparation, self.program = preparation, program
+        self.cleanup_parent: _CompilerParent | None = None
+        self.cleanup_descriptor: _OriginalDescriptor | None = None
+        self.cleanup_runtime: _CompilerControlRuntime | None = None
+        self.response = b''
+        self.primary: BaseException | None = None
+        super().__init__('Original compiler process assembly failed or is unconfirmed')
+
+
+class _CompilerImage(NamedTuple):
+    """Image metadata plus original process-lifetime aliases, not admission."""
+
+    receipt: dict[str, object]
+    parent: _CompilerParent
+    preparation: _CompilerRuntime
+    program: Any
+
+
+def _compiler_process_report(raw: bytes, maximum: int) -> dict[str, Any]:
+    """Closed compilation observation only, never a physical cleanup ACK."""
+    if type(raw) is not bytes or not 0 < len(raw) <= 4096:
+        raise ValueError('Original compiler report is unavailable')
+    value = _closed(json.loads(raw, object_pairs_hook=_pairs), (
+        'compilation_status', 'image_bytes', 'handles_close', 'leave', 'holding_close',
+        'holding_closed', 'runtime_retained', 'config_attempted', 'engine_attempted',
+        'module_attempted', 'instance', 'physical_acceptance'))
+    integers = ('compilation_status', 'image_bytes', 'handles_close', 'leave', 'holding_close')
+    booleans = ('holding_closed', 'runtime_retained', 'config_attempted', 'engine_attempted',
+                'module_attempted', 'instance', 'physical_acceptance')
+    if (any(type(value[k]) is not int for k in integers)
+            or any(type(value[k]) is not bool for k in booleans)
+            or value['compilation_status'] != 0 or value['handles_close'] != 0 or value['leave'] != 0
+            or not 0 < value['image_bytes'] <= maximum
+            or not all(value[k] for k in ('config_attempted', 'engine_attempted', 'module_attempted'))
+            or value['instance'] or value['physical_acceptance']
+            # Existing owned_capacity.h status: OK=0; BUSY=-3. BUSY stays
+            # RuntimeRetained; it is never upgraded to allocation-level close.
+            or not ((value['holding_close'] == 0 and value['holding_closed'] and not value['runtime_retained'])
+                    or (value['holding_close'] == -3 and not value['holding_closed'] and value['runtime_retained']))):
+        raise ValueError('Original compiler did not confirm compilation')
+    return value
+
+
 def compile_from_original(core_receipt: Path, expected_source: str,
                           destination: Path, *, bindings_source: Path | None = None,
                           native_libraries: Path | None = None,
-                          preparation: Path | None = None) -> dict[str, object]:
-    """Maintainer-only CLI composition; no normal factory or runtime fallback."""
+                          preparation: Path | None = None,
+                          c_api_headers: Path | None = None, clang: Path | None = None,
+                          sdk: Path | None = None, seconds: float = 50) -> _CompilerImage:
+    """Ordinary compiler through the same funded original Native process.
+
+    The source declaration precedes Native acquisition. Program preparation
+    shares the original Engine/configuration, module, DLL and actual C inputs.
+    No unbound holding, in-process Engine import or alternate compiler is used.
+    The caller must retain the returned parent runtime aliases until its own
+    process retires; neither this image nor Engine close acknowledges that.
+    """
+    from python_compiler_program import prepare_program, verify_program
+    from python_compiler_process import invoke_original_compiler
+
+    if (type(seconds) not in (int, float) or not math.isfinite(seconds) or seconds <= 0
+            or not destination.is_absolute() or destination.resolve() != destination
+            or destination.exists() or destination.is_symlink()):
+        raise ValueError('Select a fresh canonical compiler destination and finite budget')
+    deadline = time.monotonic() + seconds
     original = verify(core_receipt, expected_source)
-    if destination.exists():
-        raise ValueError('Image compiler destination already exists')
     selected = _compiler_holding_original(original)
-    if bindings_source is None or native_libraries is None or preparation is None:
-        raise ValueError('Select original binding source, native libraries and fresh preparation')
+    # Metadata selects this same original; it does not issue a Ledger or backing.
+    _compiler_parent_original(original, selected)
+    if any(value is None for value in (bindings_source, native_libraries, preparation,
+                                       c_api_headers, clang, sdk)):
+        raise ValueError('Select original compiler binding/library/header/toolchain inputs')
+    assert bindings_source is not None and native_libraries is not None and preparation is not None
+    assert c_api_headers is not None and clang is not None and sdk is not None
     prepared = prepare_compiler_runtime(original, bindings_source, native_libraries, preparation)
     original = _runtime_original(original, prepared)
-    holding = _acquire_compiler_holding(original, selected)
+    destination.mkdir(mode=0o700)
+    program = prepare_program(original, headers=c_api_headers, clang=clang, sdk=sdk,
+        destination=destination / 'program', seconds=deadline - time.monotonic())
+    original = _runtime_original(verify(core_receipt, expected_source), prepared)
+    executable = verify_program(original, program)
+    failure = CompilerProcessAssemblyError(prepared, program)
     try:
-        if holding._capacity_bytes() != selected.capacity_bytes:
-            raise ValueError('Physical compiler holding does not match its original extent')
-        return compile_image(core_receipt, expected_source, destination, _holding=holding,
-                             _runtime=prepared)
-    except ImageCompilerCleanupError:
-        # The existing carrier retains this same holding and every uncertain
-        # handle. Do not retry its scope, handle close or physical retirement.
-        raise
+        descriptor = _OriginalDescriptor(os.open(destination / 'compiler-parent.backing',
+            os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600))
+        failure.cleanup_descriptor = descriptor
+        os.ftruncate(descriptor.value, selected.capacity_bytes)
+        parent = _acquire_compiler_parent(original, selected, descriptor)
+        failure.cleanup_parent, failure.cleanup_runtime = parent, parent.runtime
+        image = destination / 'client_host_wasm.cwasm'
+        response = invoke_original_compiler(parent, executable=executable,
+            executable_bytes=program.executable[1], executable_sha256=program.executable[2],
+            module=original['module'], destination=image,
+            slot=str(destination / 'compiler-process.slot'), nonce=selected.generation,
+            timeout=deadline - time.monotonic())
+        failure.response = response
+        if not parent._closed:
+            raise ValueError('Original compiler process/region cleanup is unconfirmed')
+        # The helper returns only after the same Native process Owner confirmed
+        # stop/IPC/region retirement and parent cleanup. Report bytes never do so.
+        descriptor.close()
+        report = _compiler_process_report(response, original['recipe'].image_bytes_limit)
+        encoded = _read_file(image, maximum=original['recipe'].image_bytes_limit,
+                             expected=report['image_bytes'], capture=True)
+        image_hash = hashlib.sha256(encoded).hexdigest()
+        final = _runtime_original(verify(core_receipt, expected_source), prepared)
+        verify_program(final, program)
+        if (final['core_receipt_sha256'] != original['core_receipt_sha256']
+                or final['recipe'] != original['recipe']):
+            raise ValueError('Original image compiler materials changed')
+        recipe = final['recipe']
+        result: dict[str, object] = {'source_sha': expected_source,
+            'module_sha256': original['module_sha256'], 'core_abi': LOCAL_CORE_ABI,
+            'wasmtime_version': WASMTIME_VERSION,
+            'runtime_library_sha256': recipe.runtime_library_sha256,
+            'provider_library_sha256': recipe.provider_library_sha256,
+            'engine_sha256': hashlib.sha256(recipe.engine_body).hexdigest(),
+            'image': str(image.resolve()), 'image_sha256': image_hash,
+            'compiled': True, 'runtime_executed': False, 'public_local_acceptance': False}
+        (destination / 'compiler-process-receipt.json').write_text(json.dumps({
+            'scope': 'original_compiler_process_only', 'source_sha': expected_source,
+            'program_executable': program.executable, 'compilation_observation': report,
+            'parent_domain_region_closed': True, 'backing_descriptor_closed': descriptor.closed,
+            'parent_runtime_retirement_ACK': False, 'physical_acceptance': False,
+            'normal_profile': None}, indent=2) + '\n')
+        (destination / 'image-receipt.json').write_text(json.dumps(result, indent=2) + '\n')
+        return _CompilerImage(result, parent, prepared, program)
     except BaseException as primary:
-        try:
-            # Covers a changed second preflight or destination before the
-            # compiler has taken custody. Already confirmed close is a no-op
-            # in the existing holding; an uncertain close stays sticky there.
-            holding.close()
-        except BaseException as cleanup:
-            raise ImageCompilerCleanupError(_CompilerCustody(holding), primary) from cleanup
-        raise
+        failure.primary = primary
+        failure.cleanup_parent = getattr(primary, 'cleanup_parent', None) or failure.cleanup_parent
+        failure.cleanup_runtime = getattr(primary, 'cleanup_runtime', None) or failure.cleanup_runtime
+        partial = getattr(primary, 'response', None)
+        if type(partial) in (bytes, bytearray):
+            failure.response = bytes(partial)
+        # A descriptor opened before any Native operation is still this call's
+        # original. Once control/parent acquisition is attempted, retain all
+        # partial carriers; never infer release or repeat their foreign cleanup.
+        raise failure from primary
 
 
 if __name__ == '__main__':
@@ -964,4 +1080,5 @@ if __name__ == '__main__':
     else:
         print(json.dumps(compile_from_original(args.core_receipt, args.source, args.destination,
             bindings_source=args.bindings_source, native_libraries=args.native_libraries,
-            preparation=args.preparation)))
+            preparation=args.preparation, c_api_headers=args.c_api_headers,
+            clang=args.clang, sdk=args.sdk, seconds=args.seconds).receipt))

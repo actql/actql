@@ -2392,3 +2392,24 @@ retained/execution limits to the existing process Owner. The projection is
 not cached as authority. Source/recipe disagreement refuses before registering
 a process. The old explicit-size conformance declaration remains distinct and
 unchanged; neither selection substitutes for a normal product supplier.
+
+
+The ordinary maintainer `--compile` entry uses the original Native parent and
+process path; it does not acquire an unbound holding or import Wasmtime into
+the Python driver. It prepares the selected executable through the same
+source/module/Engine/actual-link-input verifier, then creates one private
+backing and passes that same original descriptor through the existing domain
+and process Owners before the child can allocate Config or Engine resources.
+The existing child helper retains one-shot start/IPC and typed stop/region
+retirement. A closed compiler report is a compilation observation only: it
+cannot acknowledge those operations or turn `RuntimeRetained` into an
+allocation-level close. Parent descriptor close remains separate and sticky.
+
+Image metadata is emitted only after both the original physical process path
+and the source/module/library/program fences have completed. The returned
+private result retains the parent control-runtime aliases for its process
+lifetime; no Engine drop or parent arena close retires them. Failed or partial
+acquisition, transport, descriptor close or final verification carries those
+same originals and partial response without retry or fallback. The final
+runtime producer still requires its stronger actual physical/workspace/Result
+receipt for this exact module/source, not this compile-only receipt.
