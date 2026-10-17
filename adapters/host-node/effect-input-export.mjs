@@ -92,7 +92,7 @@ export function retainPinnedEffectDependencyPayloads({
 // The caller retains the pins and receives every distinct physical owner;
 // durable holdings remain independent even when members share these bytes.
 export async function preparePinnedEffectSourceSet({
-  maxMembers, maxGroupingWork, memberSourceBindings, commandWorkspaces, ...options
+  maxMembers, maxGroupingWork, memberSourceBindings, commandWorkspaces, publishedTargets, ...options
 }) {
   const {moon, inputs, control, signal} = options;
   if (!Number.isSafeInteger(maxMembers) || maxMembers < 1 ||
@@ -103,7 +103,7 @@ export async function preparePinnedEffectSourceSet({
       typeof control?.publicationPreparedReleaseAction !== 'function' ||
       typeof control?.publicationCleanupOwnerAction !== 'function' ||
       options.memberIndex !== undefined ||
-      options.proposalMemberIndexes !== undefined) {
+      options.proposalMemberIndexes !== undefined || options.publishedTarget !== undefined) {
     throw new TypeError('InvalidEffectSourceSet');
   }
   const count = moon.clientProgramEffectInputCount(inputs);
@@ -129,6 +129,29 @@ export async function preparePinnedEffectSourceSet({
       hasCommandWorkspace ||= slot.value !== undefined;
     }
     Object.freeze(workspaces);
+  }
+  // The capture owns these originals. Snapshot dense own-data slots without
+  // inspecting, cloning or reissuing a target; Common checks its occurrence.
+  let targets;
+  let hasPublishedTarget = false;
+  if (publishedTargets !== undefined) {
+    if (!Array.isArray(publishedTargets) || !Object.isFrozen(publishedTargets) ||
+        publishedTargets.length !== count) {
+      throw new TypeError('InvalidEffectPublishedTargets');
+    }
+    targets = [];
+    for (let index = 0; index < count; index++) {
+      const slot = Object.getOwnPropertyDescriptor(publishedTargets, index);
+      if (slot === undefined || !Object.hasOwn(slot, 'value')) {
+        throw new TypeError('InvalidEffectPublishedTargets');
+      }
+      targets.push(slot.value);
+      hasPublishedTarget ||= slot.value !== undefined;
+    }
+    Object.freeze(targets);
+    if (hasPublishedTarget && typeof options.onProposalRow !== 'function') {
+      throw new TypeError('InvalidEffectPublishedTargets');
+    }
   }
   let bindings;
   if (memberSourceBindings !== undefined) {
@@ -190,8 +213,8 @@ export async function preparePinnedEffectSourceSet({
       return moon.clientProgramEffectResultImportCount(options.checkedOwner, stage) > 0;
     }).some(Boolean);
   if (options.localEvidenceContext?.acquiredEvidence !== undefined || importedSourceFree) {
-    return prepareDependentEffectSourceSet({...options, commandWorkspaces: workspaces},
-      count, maxGroupingWork, hasCommandWorkspace);
+    return prepareDependentEffectSourceSet({...options, commandWorkspaces: workspaces, publishedTargets: targets},
+      count, maxGroupingWork, hasCommandWorkspace, hasPublishedTarget);
   }
   const groups = [];
   const duplicateManifestMembers = new Set();
@@ -226,7 +249,8 @@ export async function preparePinnedEffectSourceSet({
       const sameView = shares(value[0], index);
       if (sameView) sharedManifest = true;
       return sameView && workspaces?.[value[0]] === undefined &&
-        workspaces?.[index] === undefined && (bindings === undefined ||
+        workspaces?.[index] === undefined && targets?.[value[0]] === undefined &&
+        targets?.[index] === undefined && (bindings === undefined ||
         bindings[value[0]] === bindings[index]);
     });
     if (group === undefined) {
@@ -251,6 +275,7 @@ export async function preparePinnedEffectSourceSet({
       const payload = await preparePinnedEffectSourcePayloadOwned({
         ...owned, memberIndex: indexes[0],
         commandWorkspace: workspaces?.[indexes[0]],
+        publishedTarget: targets?.[indexes[0]],
         ...(bindings === undefined ? {} : {
           sourceBindingCid: bindings[indexes[0]],
         }),
@@ -318,7 +343,7 @@ export async function preparePinnedEffectSourceSet({
 // retained read owner, rather than these JS coordinates, proves every edge.
 // All prepared payloads stay under the existing publication cleanup owner.
 async function prepareDependentEffectSourceSet(options, memberCount, maxWork,
-  hasCommandWorkspace) {
+  hasCommandWorkspace, hasPublishedTarget) {
   const {moon, inputs, control, checkedOwner, signal, contractLimits} = options;
   if (hasCommandWorkspace &&
       typeof moon.clientProgramBeginEffectLocalCommandKeyWorkspace !== 'function') {
@@ -412,26 +437,28 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork,
   // Complete original membership/grouping before any Store writer. A key
   // scope belongs to exactly one member even when the original view is shared.
   // Separate physical exports retain one original logical Manifest entry.
+  const distinctMembers = hasCommandWorkspace || hasPublishedTarget;
   for (const entry of selected) {
     const groups = [];
     let unkeyed;
-    for (const member of hasCommandWorkspace ? entry.members : []) {
+    for (const member of distinctMembers ? entry.members : []) {
       spend();
       const commandWorkspace = options.commandWorkspaces?.[member];
-      if (commandWorkspace !== undefined && entry.tableInput) {
+      const publishedTarget = options.publishedTargets?.[member];
+      if ((commandWorkspace !== undefined || publishedTarget !== undefined) && entry.tableInput) {
         throw new TypeError('EffectCommandDependencyWorkspaceUnavailable');
       }
       spend();
       if (moon.clientProgramEffectInputsShareView(inputs, entry.members[0], member) !== true) {
         throw new TypeError('ForeignEffectProposalSource');
       }
-      if (commandWorkspace !== undefined) groups.push([member]);
+      if (commandWorkspace !== undefined || publishedTarget !== undefined) groups.push([member]);
       else if (unkeyed === undefined) {
         unkeyed = [member];
         groups.push(unkeyed);
       } else unkeyed.push(member);
     }
-    entry.groups = !hasCommandWorkspace ? [entry.members]
+    entry.groups = !distinctMembers ? [entry.members]
       : groups.length === 0 ? [[]] : groups;
     entry.payloads = [];
     entry.memberPayloads = new Map();
@@ -518,6 +545,7 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork,
           const payload = await preparePinnedEffectSourcePayloadOwned({
             ...owned, memberIndex: indexes[0],
             commandWorkspace: owned.commandWorkspaces?.[indexes[0]],
+            publishedTarget: owned.publishedTargets?.[indexes[0]],
             onProposalRow: proposes ? owned.onProposalRow : undefined,
             ...(proposes ? {proposalMemberIndexes: indexes} : {}),
           }, manifestSet, {resultIndex: entry.resultIndex, tableInput: entry.tableInput, dependency,
@@ -792,7 +820,7 @@ async function preparePinnedEffectSourcePayloadOwned({
   control, invocation, retention, sourceBindingCid, contractLimits, signal,
   localEvidenceContext,
   onProposalRow, proposalMemberIndexes, proposalLimits, onOriginalArtifact,
-  commandWorkspace, onCommandKey,
+  commandWorkspace, onCommandKey, publishedTarget,
 }, manifestSet, local, duplicateManifestMember = false) {
   if (typeof store?.createPreparedObjectWriter !== 'function' ||
       typeof store.storeAuthorityCid !== 'string' ||
@@ -850,6 +878,11 @@ async function preparePinnedEffectSourcePayloadOwned({
         (local !== undefined && moon.clientProgramEffectLocalResultMatchesMember(
           inputs, local.resultIndex, memberIndex) !== true))) {
     throw new TypeError('ForeignEffectCommandWorkspaceRoute');
+  }
+  if (publishedTarget !== undefined &&
+      (proposalMembers?.length !== 1 || proposalMembers[0] !== memberIndex ||
+        local?.tableInput === true)) {
+    throw new TypeError('ForeignEffectPublishedTargetRoute');
   }
   signal?.throwIfAborted();
   const selectedResult = local === undefined || local.tableInput ? undefined :
@@ -910,8 +943,11 @@ async function preparePinnedEffectSourcePayloadOwned({
   const proposalPlans = [];
   try {
     for (const index of commandWorkspace === undefined ? proposalMembers ?? [] : []) {
-      proposalPlans.push(checked(moon.clientProgramEffectProposalBegin(
-        inputs, index, proposalBounds.maxFields, proposalBounds.maxWork)));
+      proposalPlans.push(checked(publishedTarget === undefined
+        ? moon.clientProgramEffectProposalBegin(
+          inputs, index, proposalBounds.maxFields, proposalBounds.maxWork)
+        : moon.clientProgramEffectProposalBeginWithTarget(
+          inputs, index, proposalBounds.maxFields, proposalBounds.maxWork, publishedTarget)));
     }
   } catch (error) {
     for (const plan of proposalPlans) {
@@ -960,8 +996,11 @@ async function preparePinnedEffectSourcePayloadOwned({
           if (onCommandKey !== undefined && onCommandKey(memberIndex, key) !== undefined) {
             throw new TypeError('InvalidEffectCommandKeyProjection');
           }
-          proposalPlans.push(checked(moon.clientProgramEffectProposalBeginWithKey(
-            inputs, memberIndex, proposalBounds.maxFields, proposalBounds.maxWork, key)));
+          proposalPlans.push(checked(publishedTarget === undefined
+            ? moon.clientProgramEffectProposalBeginWithKey(
+              inputs, memberIndex, proposalBounds.maxFields, proposalBounds.maxWork, key)
+            : moon.clientProgramEffectProposalBeginWithTargetAndKey(
+              inputs, memberIndex, proposalBounds.maxFields, proposalBounds.maxWork, publishedTarget, key)));
         },
       }),
       localResultIndex: table ? undefined : local?.resultIndex,

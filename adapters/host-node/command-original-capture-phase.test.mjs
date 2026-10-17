@@ -192,6 +192,11 @@ test('original completed key reaches actual Preview import and retirement revoke
       limits: fixture.limits, planLimits, onChunk: chunk => { chunks.push(chunk); }};
     await assert.rejects(verifyPinnedEffectPlan(optionsForImport), {code: 'MoonBitHostFailure'});
     assert.equal(chunks.length, 0, 'absence does not start unaccounted key work');
+    // Even a completed original key cannot turn a copied/DATA target into
+    // the nominal CapturedEffectCommandTarget belonging to this occurrence.
+    await assert.rejects(verifyPinnedEffectPlan({...optionsForImport,
+      publishedTarget: Object.freeze({}), inputKey: key}), {code: 'MoonBitHostFailure'});
+    assert.equal(chunks.length, 0, 'foreign target refuses before original rows');
     const verified = await verifyPinnedEffectPlan({...optionsForImport, inputKey: key});
     assert.deepEqual(JSON.parse(chunks.join('')), fixture.rows);
     assert.equal(moon.clientProgramEffectPlanProofMatches(verified.proof, previewInputs, 0), true);

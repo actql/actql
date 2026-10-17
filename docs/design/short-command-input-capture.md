@@ -223,3 +223,33 @@ for request children and original Content custody, then retires each key phase
 through its original Resource path before releasing captured inputs. A refusal
 keeps that same parent retry reachable. No method completion, boolean manufactured
 by JavaScript, or source close acknowledges physical retirement or grants apply.
+
+
+## Original target and key callers
+
+The private Result exporter and retained-Preview verifier accept an optional
+original `CapturedEffectCommandTarget` together with the optional completed
+input key. They select the existing Common entry for exactly those two
+originals: neither, target only, key only, or target and key. A target rejection
+never retries a key-only or row-only entry. Common retains the original
+Run/member/input occurrence, issuer-currentness and complete-input checks;
+JavaScript does not decode or issue a target, Reference, Mapping or key.
+
+The Source-set caller snapshots a frozen dense target vector by own data
+slots. Each supplied occurrence has a separate proposal/payload route even
+when Common proves that members share one live Result. The same proof still
+permits one logical Manifest entry; equal target bytes, shared JavaScript
+identity or matching CIDs are not membership proofs. Dependent producer exports
+remain ordered before consumers. Table routes and targets without a proposal
+consumer refuse rather than silently discard an original.
+
+The caller must retain the target's original issuer/current/cleanup custody
+through capture and Preview, alongside its key phase. Snapshot arrays, target
+aliases and the selected proposal/import lifetime overlap existing parent
+inventory; they do not supply a Resource allocation or release another owner.
+These receiver entries do not create an installed target supplier. The current
+captured-target owner admits published STORE originals; mapping-free published
+Command targets require their own checked original variant, not a fabricated
+STORE pair, hidden column or current-configuration re-resolution. Missing
+issuer, body workspace, current permission, saved material or physical cleanup
+remains unavailable. Private Preview correspondence is not approval or apply.
