@@ -12,11 +12,7 @@ fn local_publisher_fixture(
 ) {
   let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let root = @filesystem.open_private_root(path).unwrap()
-  let entries = [
-    (
-      #|{"entry_id":"submit","outcome":"allow","principal":{"any_of":["operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["run"]},"operation":{"any_of":["submit"]},"exclusions":[]}
-    ),
-  ]
+  let entries : Array[String] = []
   if publish {
     entries.push(
       (
@@ -24,9 +20,13 @@ fn local_publisher_fixture(
       ),
     )
   }
-  // These two fixed entry IDs must use the Account Owner's canonical order.
-  // Their distinct operation tuples and all original permissions are unchanged.
-  entries.sort()
+  // Account uses UTF-16 lexical order, not String's shortlex Compare. These
+  // two fixed IDs are explicitly publish, submit; permissions are unchanged.
+  entries.push(
+    (
+      #|{"entry_id":"submit","outcome":"allow","principal":{"any_of":["operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["run"]},"operation":{"any_of":["submit"]},"exclusions":[]}
+    ),
+  )
   let account = @utf8.encode(
     "{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"operator\",\"entries\":[" +
     entries.join(",") +
