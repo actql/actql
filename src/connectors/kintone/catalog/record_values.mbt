@@ -68,28 +68,19 @@ fn record_field_contract(
     return Err(BudgetExceeded)
   }
   budget.nodes -= 1
-  let nullable = field.required != Some(true)
+  // Required constrains future writes, not the nullness of every historical
+  // record. The native REST empty-value domain determines read nullability.
+  let nullable = true
   let text = @contract.primitive(@contract.StringType, nullable=false)
   match field.native_type {
     "NUMBER" | "CALC" if field.native_type == "NUMBER" ||
       field.calculation_format == Some("NUMBER") ||
-      field.calculation_format == Some("NUMBER_DIGIT") => {
-      guard settings is Some(original) else {
-        return Err(FieldUnavailable(field.code))
-      }
-      // The provider documents integer digits <= digits - decimalPlaces,
-      // and fractional storage precision decimalPlaces. DisplayScale does
-      // not narrow this storage domain or change the supplied value.
-      match
-        @contract.decimal_contract(
-          original.digits,
-          original.decimal_places,
-          nullable~,
-        ) {
-        Some(contract) => Ok(contract)
-        None => Err(FieldUnavailable(field.code))
-      }
-    }
+      field.calculation_format == Some("NUMBER_DIGIT") =>
+      // A changed App setting only applies when each record is next updated.
+      // Current configuration/revision is not historical storage evidence.
+      // Preserve this unfinished supplier boundary rather than selecting an
+      // arbitrary fixed-scale contract for the entire Source column.
+      Err(FieldUnavailable(field.code))
     "SINGLE_LINE_TEXT"
     | "MULTI_LINE_TEXT"
     | "RICH_TEXT"
@@ -400,6 +391,47 @@ fn record_value_node(
 }
 
 ///|
+fn record_checked_cell(
+  field : OriginalRecordField,
+  contract : @contract.Contract,
+  budget : RecordValueBudget,
+) -> Result[@admitted.CheckedValue, RecordValueIssue] {
+  let construction : RecordValueBudget = {
+    nodes: budget.nodes,
+    text_bytes: budget.text_bytes,
+    depth: budget.depth,
+  }
+  let node = match record_value_node(field, contract, construction, 1) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let cursor = match
+    @decode.admit(node, {
+      max_nodes: budget.nodes,
+      max_depth: budget.depth,
+      max_string_bytes: budget.text_bytes,
+      max_total_string_bytes: budget.text_bytes,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(BudgetExceeded)
+  }
+  let (checked, nodes, text) = match
+    @admitted.admit_usage(contract, cursor, {
+      max_nodes: budget.nodes,
+      max_depth: budget.depth,
+      max_text_bytes: budget.text_bytes,
+    }) {
+    Ok(value) => value
+    Err(@admitted.ValueIssue(@admitted.BudgetExceeded, ..)) =>
+      return Err(BudgetExceeded)
+    Err(issue) => return Err(ValueAdmission(field.metadata.code, issue))
+  }
+  budget.nodes -= nodes
+  budget.text_bytes -= text
+  Ok(checked)
+}
+
+///|
 pub fn project_checked_record_page(
   page : OriginalRecordPage,
   settings : AppNumberSettings?,
@@ -430,40 +462,10 @@ pub fn project_checked_record_page(
       @admitted.checked_text_value(original.record_id, contracts[0]).unwrap(),
     ]
     for index, field in original.fields {
-      let construction : RecordValueBudget = {
-        nodes: budget.nodes,
-        text_bytes: budget.text_bytes,
-        depth: budget.depth,
-      }
-      let node = match
-        record_value_node(field, contracts[index + 1], construction, 1) {
-        Ok(value) => value
+      match record_checked_cell(field, contracts[index + 1], budget) {
+        Ok(checked) => values.push(checked)
         Err(issue) => return Err(issue)
       }
-      let cursor = match
-        @decode.admit(node, {
-          max_nodes: budget.nodes,
-          max_depth: budget.depth,
-          max_string_bytes: budget.text_bytes,
-          max_total_string_bytes: budget.text_bytes,
-        }) {
-        Ok(value) => value
-        Err(_) => return Err(BudgetExceeded)
-      }
-      let (checked, nodes, text) = match
-        @admitted.admit_usage(contracts[index + 1], cursor, {
-          max_nodes: budget.nodes,
-          max_depth: budget.depth,
-          max_text_bytes: budget.text_bytes,
-        }) {
-        Ok(value) => value
-        Err(@admitted.ValueIssue(@admitted.BudgetExceeded, ..)) =>
-          return Err(BudgetExceeded)
-        Err(issue) => return Err(ValueAdmission(field.metadata.code, issue))
-      }
-      budget.nodes -= nodes
-      budget.text_bytes -= text
-      values.push(checked)
     }
     rows.push(values)
   }
@@ -553,4 +555,33 @@ pub fn record_schema_wire(
       Err(UnrepresentableField("schema"))
     }
   }
+}
+
+///|
+/// Admit one original numeric lexeme under an explicit existing Common Decimal
+/// contract. This neither derives that contract from App/display metadata nor
+/// establishes a whole-column storage bound, Source availability or authority.
+pub fn admit_record_number_value(
+  field : OriginalRecordField,
+  contract : @contract.Contract,
+  limits : RecordValueLimits,
+) -> Result[@admitted.CheckedValue, RecordValueIssue] {
+  if !record_value_limits_valid(limits) {
+    return Err(InvalidLimits)
+  }
+  if !(field.metadata.native_type == "NUMBER" ||
+    (
+      field.metadata.native_type == "CALC" &&
+      [Some("NUMBER"), Some("NUMBER_DIGIT")].contains(
+        field.metadata.calculation_format,
+      )
+    )) ||
+    !(contract.shape is @contract.Decimal(..)) {
+    return Err(InvalidValue(field.metadata.code))
+  }
+  record_checked_cell(field, contract, {
+    nodes: limits.max_nodes,
+    text_bytes: limits.max_text_bytes,
+    depth: limits.max_depth,
+  })
 }

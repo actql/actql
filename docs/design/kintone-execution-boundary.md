@@ -85,28 +85,35 @@ original caller must retain that custody through its existing cleanup.
 
 ## Checked record carriers and storage precision
 
-The original live App General Settings response supplies storage precision.
+The original live App General Settings response observes configured precision.
 Its `numberPrecision.digits` and `decimalPlaces` have a documented range
 meaning: the integer part has at most `digits - decimalPlaces` digits and the
-fractional storage precision is `decimalPlaces`. When that original envelope
-is representable by Common, the numeric carrier is its exact
-`decimal(digits, decimalPlaces)`. The settings App label and revision must
-match the original Form observation; missing or unrepresentable original
-bounds refuse the numeric projection. Independent nonnumeric fields do not
-need a fabricated numeric default.
+fractional configuration is `decimalPlaces`. However, changed settings apply
+when each record is next updated: existing records can retain earlier values.
+Current settings and a matching Form revision do not prove one fixed-scale
+historical column envelope. The normal numeric schema remains unavailable
+without an exact original representability contract. This is unfinished
+Connector work, not a permanent restriction or a supported numeric profile.
+Independent nonnumeric fields do not need a fabricated numeric default.
 
 Field `displayScale` stays display metadata. It neither narrows the stored
 read domain nor causes rounding or an excess-scale refusal against the
 display setting. For example, `1.007` displayed as `1.00` remains the original
 value. The Connector does not repeat the provider's configured rounding mode.
-Only the proved storage envelope constrains Common's exact Decimal admission.
+`admit_record_number_value` separately admits one original lexeme under an
+explicit existing Common Decimal contract. That per-value result does not
+establish a Source column contract or infer history from current settings.
+The original strings and metadata remain available after refusal. Any full
+numeric-domain resolution belongs to the existing ValueContract owner;
+the Connector does not widen Common or select an arbitrary `decimal(38,10)`.
 
 Checked record projection reuses Common ValueContract and Value admission.
 Codes stay codes, arrays preserve order and duplicates, and each table object
 keeps its original row ID and child contracts. Calendar validity is checked
 by the existing Date/Timestamp owner; UTC whole-second response spelling gains
 zero milliseconds without changing its instant. The canonical relation
-field-map is emitted by the same contracts before physical record I/O. Field
+field-map is emitted by the same contracts before physical record I/O. Required
+flags constrain future writes and do not narrow historical nullable reads. Field
 names that Common cannot represent are refused, never normalized or aliased
 into a different original field.
 
@@ -142,12 +149,15 @@ authority or an ACK.
   returns complete selected record fields and a nullable string total count;
   table children cannot be requested independently of their table.
 - [Get General Settings](https://kintone.dev/en/docs/kintone/rest-api/apps/settings/get-general-settings/)
-  supplies original storage settings and App revision, with a distinct preview
+  supplies original configured precision and App revision, with a distinct preview
   endpoint.
 - [Field entry limits](https://us.kintone.help/k/en/app/form/othersettings/field_restriction)
   defines integer and fractional storage ranges; the
   [Number field](https://us.kintone.help/k/en/app/form/form_parts/number)
   documentation distinguishes display truncation from unchanged stored values.
+- [Precision and rounding settings](https://us.kintone.help/k/en/app/form/othersettings/significant_figures)
+  states that changed settings apply on each record's next update, so current
+  configuration is not a historical column envelope.
 
 These metadata projections are not registration or installed acceptance of a
 complete Connector. Record acquisition/conversion, content, writes, operations,

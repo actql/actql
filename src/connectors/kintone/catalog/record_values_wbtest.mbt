@@ -68,14 +68,14 @@ fn values_test_page(
 
 ///|
 fn checked_values_test_page(
-  page? : OriginalRecordPage = values_test_page(),
+  page? : OriginalRecordPage = values_test_page(names=["text"]),
   settings? : AppNumberSettings? = Some(settings_test_original()),
 ) -> CheckedRecordPage {
   project_checked_record_page(page, settings, values_test_limits()).unwrap()
 }
 
 ///|
-test "same original settings storage envelope preserves 1.007 despite displayScale two" {
+test "original settings remain configuration while explicit per-value Common admission preserves 1.007" {
   let settings = settings_test_original()
   assert_eq(settings.digits, 16)
   assert_eq(settings.decimal_places, 4)
@@ -84,60 +84,66 @@ test "same original settings storage envelope preserves 1.007 despite displaySca
     settings.response_sha256,
     @sha.hex(@utf8.encode(settings_test_body())),
   )
+  let contract = @contract.decimal_contract(16, 4, nullable=true).unwrap()
   for scale in ["", "0", "2", "6"] {
     let original = values_test_page(display_scale=scale)
-    let checked = checked_values_test_page(page=original)
-    assert_true(physical_equal(checked_record_original(checked), original))
-    let rows = checked_record_rows(checked)
-    assert_true(rows[0][0].value is @admitted.Text("9007199254740993"))
+    let field = original_record_fields(record_page_records(original)[0])[0]
+    let checked = admit_record_number_value(
+      field,
+      contract,
+      values_test_limits(),
+    ).unwrap()
     assert_true(
-      rows[0][1].contract.shape is @contract.Decimal(precision=16, scale=4),
+      checked.contract.shape is @contract.Decimal(precision=16, scale=4),
     )
     assert_true(
-      rows[0][1].value is @admitted.Decimal(value) &&
-      value.coefficient == "10070",
+      checked.value is @admitted.Decimal(value) && value.coefficient == "10070",
+    )
+    assert_eq(@decode.text(original_record_value(field)).unwrap(), "1.007")
+    assert_true(
+      project_checked_record_page(
+        original,
+        Some(settings),
+        values_test_limits(),
+      )
+      is Err(FieldUnavailable("amount")),
     )
   }
 }
 
 ///|
-test "documented storage integer and fractional bounds are exact and independent of display" {
-  let settings = settings_test_original(
-    body=settings_test_body()
-      .replace(old="\"16\"", new="\"30\"")
-      .replace(old="\"4\"", new="\"10\""),
-  )
-  let positive = project_checked_record_page(
-    values_test_page(amount="99999999999999999999.1234567890"),
-    Some(settings),
-    values_test_limits(),
-  ).unwrap()
+test "explicit per-value decimal contracts preserve exact range and scale without proving a Source envelope" {
+  let contract = @contract.decimal_contract(30, 10, nullable=true).unwrap()
+  fn number(
+    value : String,
+    contract : @contract.Contract,
+  ) -> Result[@admitted.CheckedValue, RecordValueIssue] {
+    let page = values_test_page(amount=value)
+    admit_record_number_value(
+      original_record_fields(record_page_records(page)[0])[0],
+      contract,
+      values_test_limits(),
+    )
+  }
+  let positive = number("99999999999999999999.1234567890", contract).unwrap()
   assert_true(
-    checked_record_rows(positive)[0][1].value is @admitted.Decimal(value) &&
+    positive.value is @admitted.Decimal(value) &&
     value.coefficient == "999999999999999999991234567890",
   )
   assert_true(
-    project_checked_record_page(
-      values_test_page(amount="100000000000000000000"),
-      Some(settings),
-      values_test_limits(),
-    )
+    number("100000000000000000000", contract)
     is Err(DecimalValue("amount", @admitted.OutOfRange)),
   )
   assert_true(
-    project_checked_record_page(
-      values_test_page(amount="1.00000000001"),
-      Some(settings),
-      values_test_limits(),
-    )
+    number("1.00000000001", contract)
     is Err(DecimalValue("amount", @admitted.BeyondScale)),
   )
-  let exponent = checked_values_test_page(
-    page=values_test_page(amount="-12345e-4"),
-  )
+  let exponent = number(
+    "-12345e-4",
+    @contract.decimal_contract(16, 4, nullable=true).unwrap(),
+  ).unwrap()
   assert_true(
-    checked_record_rows(exponent)[0][1].value is @admitted.Decimal(value) &&
-    value.coefficient == "-12345",
+    exponent.value is @admitted.Decimal(value) && value.coefficient == "-12345",
   )
 }
 
@@ -188,13 +194,19 @@ test "missing foreign or unrepresentable original numeric settings never infer d
 }
 
 ///|
-test "numeric empty and nullability retain original refusal rather than an invented zero" {
-  let empty = checked_values_test_page(page=values_test_page(amount=""))
-  assert_true(checked_record_rows(empty)[0][1].value is @admitted.Null)
+test "explicit Common numeric nullability retains refusal rather than an invented zero" {
+  let contract = @contract.decimal_contract(16, 4, nullable=true).unwrap()
+  let empty = original_record_fields(
+      record_page_records(values_test_page(amount=""))[0],
+    )[0]
   assert_true(
-    project_checked_record_page(
-      values_test_page(amount="", required=true),
-      Some(settings_test_original()),
+    admit_record_number_value(empty, contract, values_test_limits()).unwrap().value
+    is @admitted.Null,
+  )
+  assert_true(
+    admit_record_number_value(
+      empty,
+      @contract.with_nullability(contract, false),
       values_test_limits(),
     )
     is Err(
@@ -205,14 +217,13 @@ test "numeric empty and nullability retain original refusal rather than an inven
     ),
   )
   for value in ["#INVALID!", "1,000", "01", "1.23451"] {
+    let original = values_test_page(amount=value)
+    let field = original_record_fields(record_page_records(original)[0])[0]
     assert_true(
-      project_checked_record_page(
-        values_test_page(amount=value),
-        Some(settings_test_original()),
-        values_test_limits(),
-      )
+      admit_record_number_value(field, contract, values_test_limits())
       is Err(DecimalValue("amount", _)),
     )
+    assert_eq(@decode.text(original_record_value(field)).unwrap(), value)
   }
 }
 
@@ -261,30 +272,52 @@ test "calendar admission and whole second UTC use the existing temporal owner" {
 }
 
 ///|
-test "subtable row identity and full original child contracts survive checked object admission" {
-  let checked = checked_values_test_page(page=values_test_page(names=["table"]))
+test "nonnumeric subtable row identity and original child contracts survive checked object admission" {
+  let catalog = form_test_catalog(
+    body=(
+      #|{"revision":"7","properties":{"table":{"type":"SUBTABLE","code":"table","fields":{"label":{"type":"SINGLE_LINE_TEXT","code":"label"}}}}}
+    ),
+  )
+  let bytes = @utf8.encode(
+    (
+      #|{"records":[{"$id":{"type":"__ID__","value":"1"},"$revision":{"type":"__REVISION__","value":"1"},"table":{"type":"SUBTABLE","value":[{"id":"81","value":{"label":{"type":"SINGLE_LINE_TEXT","value":"first"}}}]}}],"totalCount":null}
+    ),
+  )
+  let original = project_record_page(
+    bytes,
+    catalog,
+    ["table"],
+    record_test_limits(),
+  ).unwrap()
+  let checked = project_checked_record_page(
+    original,
+    None,
+    values_test_limits(),
+  ).unwrap()
   guard checked_record_rows(checked)[0][1].value is @admitted.Array(rows) &&
     @admitted.element_at(rows, 0).unwrap() is @admitted.Object(fields) else {
     abort("table")
   }
   let fields = @admitted.elements(fields)
-  assert_eq(fields.map(field => field.0), ["id", "label", "value"])
+  assert_eq(fields.map(field => field.0), ["id", "label"])
   assert_true(fields[0].1 is @admitted.Text("81"))
   assert_true(fields[1].1 is @admitted.Text("first"))
+  assert_true(physical_equal(checked_record_original(checked), original))
+  // Numeric children are not silently dropped to make a table available.
   assert_true(
-    fields[2].1 is @admitted.Decimal(value) && value.coefficient == "12345",
-  )
-  let contract = checked_record_rows(checked)[0][1].contract
-  assert_true(
-    contract.shape is @contract.Array(item, ..) &&
-    item.shape is @contract.Object(_),
+    project_checked_record_page(
+      values_test_page(names=["table"]),
+      Some(settings_test_original()),
+      values_test_limits(),
+    )
+    is Err(FieldUnavailable("value")),
   )
 }
 
 ///|
 test "same schema and checked cells are admitted by the existing Relation owner without a primitive fallback" {
   let checked = checked_values_test_page(
-    page=values_test_page(names=["amount", "choices", "table"]),
+    page=values_test_page(names=["text", "choices"]),
   )
   let columns = checked_record_columns(checked)
   let row = checked_record_rows(checked)[0]
@@ -293,21 +326,19 @@ test "same schema and checked cells are admitted by the existing Relation owner 
     fields.push((@schema.Unqualified(name), row[index].contract))
   }
   let relation = @schema.from_fields(fields, max_fields=30, max_name_bytes=2000).unwrap()
-  assert_eq(@schema.field_count(relation), 4)
+  assert_eq(@schema.field_count(relation), 3)
   assert_true(
-    @schema.lookup(relation, @schema.Unqualified("amount")).unwrap().shape
-    is @contract.Decimal(precision=16, scale=4),
+    @schema.lookup(relation, @schema.Unqualified("choices")).unwrap().shape
+    is @contract.Array(_, ..),
   )
   let wire = record_schema_wire(
     values_test_catalog(),
     Some(settings_test_original()),
-    ["amount", "choices", "table"],
+    ["text", "choices"],
     values_test_limits(),
     20000,
   ).unwrap()
-  assert_true(
-    wire.contains("\"precision\":16,\"scale\":4,\"type\":\"decimal\""),
-  )
+  assert_true(wire.contains("\"type\":\"array\""))
   assert_true(wire.contains("\"$id\":{\"nullable\":false,\"type\":\"string\"}"))
   assert_eq(
     record_schema_wire(
@@ -361,17 +392,17 @@ test "unsupported shared logical types and original field collisions remain unav
 
 ///|
 test "copied row and column arrays cannot change the original checked page" {
-  let original = values_test_page()
+  let original = values_test_page(names=["text"])
   let checked = checked_values_test_page(page=original)
   let names = record_page_columns(original)
   names.clear()
-  assert_eq(record_page_columns(original), ["amount"])
+  assert_eq(record_page_columns(original), ["text"])
   let columns = checked_record_columns(checked)
   columns[1] = "foreign"
   let rows = checked_record_rows(checked)
   rows[0].clear()
   rows.clear()
-  assert_eq(checked_record_columns(checked), ["$id", "amount"])
+  assert_eq(checked_record_columns(checked), ["$id", "text"])
   assert_eq(checked_record_rows(checked)[0].length(), 2)
 }
 
@@ -388,7 +419,7 @@ test "positive cumulative checked value schema output and original settings boun
     ] {
     assert_true(
       project_checked_record_page(
-        values_test_page(names=["amount", "table"]),
+        values_test_page(names=["text", "choices"]),
         Some(settings_test_original()),
         limits,
       )
@@ -462,4 +493,76 @@ test "settings numbers are original strings and missing malformed or unknown val
       is Err(InvalidResponse),
     )
   }
+}
+
+///|
+test "historical numeric values and required flags are not narrowed by current settings or Form revision" {
+  let settings = settings_test_original()
+  let original = values_test_page(amount="1.234567")
+  let field = original_record_fields(record_page_records(original)[0])[0]
+  let explicit_value_contract = @contract.decimal_contract(
+    20,
+    10,
+    nullable=true,
+  ).unwrap()
+  assert_true(
+    admit_record_number_value(
+      field,
+      explicit_value_contract,
+      values_test_limits(),
+    ).unwrap().value
+    is @admitted.Decimal(value) &&
+    value.coefficient == "12345670000",
+  )
+  assert_true(
+    record_schema_wire(
+      values_test_catalog(),
+      Some(settings),
+      ["amount"],
+      values_test_limits(),
+      20000,
+    )
+    is Err(FieldUnavailable("amount")),
+  )
+  assert_eq(@decode.text(original_record_value(field)).unwrap(), "1.234567")
+  let catalog = form_test_catalog(
+    body=(
+      #|{"revision":"7","properties":{"date":{"type":"DATE","code":"date","required":true}}}
+    ),
+  )
+  let original = project_record_page(
+    b"{\"records\":[{\"$id\":{\"type\":\"__ID__\",\"value\":\"1\"},\"$revision\":{\"type\":\"__REVISION__\",\"value\":\"1\"},\"date\":{\"type\":\"DATE\",\"value\":null}}],\"totalCount\":null}",
+    catalog,
+    ["date"],
+    record_test_limits(),
+  ).unwrap()
+  let checked = project_checked_record_page(
+    original,
+    None,
+    values_test_limits(),
+  ).unwrap()
+  assert_true(checked_record_rows(checked)[0][1].value is @admitted.Null)
+}
+
+///|
+test "per-value numeric admission does not retarget a text field or replace the explicit Common contract" {
+  let page = values_test_page(names=["text", "amount"])
+  let fields = original_record_fields(record_page_records(page)[0])
+  let decimal = @contract.decimal_contract(20, 10, nullable=true).unwrap()
+  assert_true(
+    admit_record_number_value(fields[0], decimal, values_test_limits())
+    is Err(InvalidValue("text")),
+  )
+  let text = @contract.primitive(@contract.StringType, nullable=false)
+  assert_true(
+    admit_record_number_value(fields[1], text, values_test_limits())
+    is Err(InvalidValue("amount")),
+  )
+  let selected = checked_values_test_page(page=values_test_page(names=["text"]))
+  assert_true(
+    physical_equal(
+      checked_record_settings(selected).unwrap(),
+      selected.settings.unwrap(),
+    ),
+  )
 }
