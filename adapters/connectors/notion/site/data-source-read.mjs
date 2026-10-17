@@ -30,10 +30,11 @@ export class NotionDataSourceReadFailure extends Error {
   }
 }
 
-function prepareRead({moon,declaration,source,readContracts,initialAuthorization,propertyAuthorization,
+function prepareRead({moon,declaration,source,readContracts,initialAuthorization,propertyAuthorization,propertyAuthorizationFor,
   credential,authorizationFor,current,chargeResponse,consumeObservation,consumePage,limits,signal}){
   if(!declaration||!source||!readContracts||
     [authorizationFor,current,chargeResponse,consumeObservation,consumePage].some(x=>typeof x!=='function'))fail('InvalidNotionDataSourceRead');
+  if(propertyAuthorizationFor!==undefined&&(typeof propertyAuthorizationFor!=='function'||propertyAuthorization!==undefined))fail('InvalidNotionDataSourceRead');
   // Include the existing property reader's actual functions in the same
   // read-once snapshot, so later getters/config cannot replace its port.
   const names=[...required,'notionPropertyRequestMatchesBinding','notionPropertyRequestJson',
@@ -55,11 +56,11 @@ function prepareRead({moon,declaration,source,readContracts,initialAuthorization
   const path='/v1/data_sources/'+encodeURIComponent(id)+'/query';
   if(Buffer.byteLength(path)>b.maxTargetBytes)fail('NotionDataSourceTargetLimit');
   const schemaWire=checked(provider.notionDataSourceReadSchemaJson(readContracts,b.maxRowsWireBytes,b.maxRowsWireNodes,b.maxRowsWireDepth));
-  return Object.freeze({provider,context,declaration,source,readContracts,property,path,schemaWire,signal});
+  return Object.freeze({provider,context,declaration,source,readContracts,property,propertyAuthorizationFor,path,schemaWire,signal});
 }
 
 async function executeRead(prepared,state){
-  const {provider,context,source,readContracts,property,path,schemaWire,signal}=prepared,b=context.limits;
+  const {provider,context,source,readContracts,property,propertyAuthorizationFor,path,schemaWire,signal}=prepared,b=context.limits;
   const observations=[],children=[],ids=new Set(),cursors=new Set();
   let totalBytes=0,totalRows=0,cursor,ordinal=0;
   const verify=async operation=>{signal.throwIfAborted();await context.callbacks.current(operation);signal.throwIfAborted();};
@@ -113,15 +114,29 @@ async function executeRead(prepared,state){
         originalRows.push(row);
         const pending=JSON.parse(checked(provider.notionReadRowPendingJson(row,b.maxRowsWireBytes,b.maxRowsWireNodes,b.maxRowsWireDepth)));
         for(const column of pending){
-          if(property===undefined)fail('NotionPropertyAuthorizationUnavailable');
+          if(property===undefined&&propertyAuthorizationFor===undefined)fail('NotionPropertyAuthorizationUnavailable');
           const request=checked(provider.notionStartColumnPropertyRequest(readContracts,page,rowIndex,column,...metadataLimits,
             b.maxPropertyPages,b.maxPropertyItems,b.maxPropertyBytes,b.maxPropertyNodes,b.maxPropertyTextBytes,b.maxCursorBytes,b.maxPropertyWork));
+          let selectedProperty=property;
+          if(propertyAuthorizationFor!==undefined){
+            // Select only after Common found this actual pending original. A
+            // query grant or equal DATA cannot stand in for its property use.
+            await verify(NOTION_PROPERTY_READ_OPERATION);
+            selectedProperty=ownInvocationAuthorization(await propertyAuthorizationFor(Object.freeze({
+              originalRequest:request,declaration:prepared.declaration,source,readContracts,
+              column,queryIndex:index,rowIndex,operation:NOTION_PROPERTY_READ_OPERATION,
+              origin:context.scope.resourceOrigin})));
+            if(provider.notionPropertyRequestMatchesBinding(request,readContracts,column)!==true||
+                selectedProperty.scope.operation!==NOTION_PROPERTY_READ_OPERATION||
+                !invocationBindingsMatch(selectedProperty.scope,context.scope))fail('ForeignNotionPropertyAuthorization');
+            await verify(NOTION_PROPERTY_READ_OPERATION);
+          }
           // Every earlier raw charge is consumed as an observation. Exactly the
           // last actual response ticket is held for complete-row delivery; it
           // is never replaced by a ticket for synthetic canonical output bytes.
           await context.callbacks.consumeObservation(pendingCharge);pendingCharge=undefined;
           const child=createNotionPropertyReader({moon:provider,originalRequest:request,readContracts,column,
-            initialAuthorization:property,credential:context.credential,signal,
+            initialAuthorization:selectedProperty,credential:context.credential,signal,
             authorizationFor:input=>authorizationFor({...input,queryIndex:index,rowIndex,column}),
             current:verify,chargeResponse,consumeObservation:context.callbacks.consumeObservation,
             consumeValue:(_wire,{charge,completedPage})=>{

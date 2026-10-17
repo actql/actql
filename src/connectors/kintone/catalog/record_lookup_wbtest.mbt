@@ -438,3 +438,46 @@ test "query field-code syntax is neither caller query text nor a normalized alia
     )
   }
 }
+
+///|
+test "lookup Form recheck preserves original complete metadata and positive uniqueness" {
+  let request = lookup_test_request()
+  assert_eq(record_lookup_request_app_id(request), "12")
+  assert_true(
+    recheck_record_lookup_form(
+      request,
+      @utf8.encode(form_test_body()),
+      form_test_limits(),
+    )
+    is Ok(_),
+  )
+  for
+    body in [
+      form_test_body().replace(
+        old="\"revision\":\"7\"",
+        new="\"revision\":\"8\"",
+      ),
+      form_test_body().replace(old="\"unique\":true", new="\"unique\":false"),
+      form_test_body().replace(old="SINGLE_LINE_TEXT", new="MULTI_LINE_TEXT"),
+    ] {
+    assert_true(
+      recheck_record_lookup_form(
+        request,
+        @utf8.encode(body),
+        form_test_limits(),
+      )
+      is Err(ForeignCatalog),
+    )
+  }
+  assert_true(
+    recheck_record_lookup_form(request, b"{}", form_test_limits())
+    is Err(Form(InvalidResponse)),
+  )
+  assert_true(
+    recheck_record_lookup_form(request, @utf8.encode(form_test_body()), {
+      ..form_test_limits(),
+      max_bytes: 1,
+    })
+    is Err(Form(BudgetExceeded)),
+  )
+}

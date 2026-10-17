@@ -191,6 +191,6 @@
   },
   "thread_preparation": {
     "source": "thread-source.json",
-    "sha256": "41560a87196cd78ade1be21e703b51a738b21f11d265ee5a8b7c8c49d10d6484"
+    "sha256": "767b0c4dc9db08c3b4f9d7453031a4c554d3c657e0efa0fb97adff49ee368b00"
   }
 }
