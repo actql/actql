@@ -780,7 +780,7 @@ fn carrier_segment_prefix_end(
 
 ///|
 /// A Direct scan/filter/select capture is not completion of a later keyed
-/// JOIN or pure projection in the same authored Stage. Derive that boundary
+/// JOIN or selected Relation operation in the same authored Stage. Derive that boundary
 /// from the original requests, then use the existing selected-task and
 /// exact-port expansion. The source capture never impersonates a later Result.
 fn captured_segment_prefix_end(
@@ -817,7 +817,7 @@ fn captured_segment_prefix_end(
       keyed = Some(binding)
     }
   }
-  let pure_projection = keyed is None
+  let direct_relation_suffix = keyed is None
   guard @lower.node_at(prepared, 0) is Some(first) &&
     @lower.node_input_target(first, 0) is Some(@pipeline.Input(source)) else {
     return None
@@ -861,12 +861,15 @@ fn captured_segment_prefix_end(
       carrier_node_supports_selected_execution(node, work) else {
       return None
     }
-    if pure_projection {
+    if direct_relation_suffix {
       match @lower.payload(node) {
         // A row assertion is a separately checked operation, not completion
         // of the acquisition prefix. Preserve its own port and selected
         // provider so the later Result cannot impersonate the capture.
-        @lower.Derive(_) | @lower.Select(_) | @lower.AssertRows(_) => ()
+        @lower.Derive(_)
+        | @lower.Select(_)
+        | @lower.AssertRows(_)
+        | @lower.Sort(_) => ()
         _ => return None
       }
     }
