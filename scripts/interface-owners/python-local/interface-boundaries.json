@@ -30463,6 +30463,10 @@
               {
                 "path": "src/platform_native/installed_arena_control/process_child_transport_wbtest.mbt",
                 "anchor": "test \"installed child stop request retains the original region until separate typed stop and retirement\""
+              },
+              {
+                "path": "scripts/fixtures/python-native-process-stop-request.py",
+                "anchor": "# ACTUAL original child stop request."
               }
             ]
           }
