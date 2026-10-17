@@ -195,3 +195,27 @@ original physical Owner's separate stop/alias/descriptor ACK permits retirement
 of the frame callbacks. Dropping a frame or closing an Engine does not prove
 process-static Rust/Mach resources retired. Normal supplier/profile and the
 Python worker/VM/final physical and wheel gates remain incomplete.
+
+## Original channel preparation transport
+
+The installed control entry roots code callbacks for the existing before-spawn
+channel and imported child frame. The private C shim preserves borrowed inputs,
+owned reply/getter references and persistent empty output slots. These callbacks
+are not a permission registry or a second Resource owner. A resource-frame reply
+can retain the same partial frame even when preparation returns a typed refusal.
+
+The Python physical caller prepares the original process descriptors once,
+retains the same channel before foreign capture, and binds only the actual PID
+returned by that process's original spawn. A lost spawn or binding response
+cannot select a different child. Both descriptor preparation and spawn reject
+reentry before the first supplier/current callback. The original supplier still
+has to fund independent process, FD, control and VM domains before launch.
+
+The frame's start, bootstrap reservation, current checks, immutable limits,
+cumulative reports and logical stop execute in the existing Native/Common
+owners. Python neither creates a Ledger nor computes usage or coverage from
+limits. Logical stop and immutable DATA are not physical retirement evidence.
+After the caller confirms the same original scoped stop, Host/Store cleanup and
+parent-descriptor closes, it retains the successful frame bootstrap-retirement
+and channel-retirement replies together before releasing extra managed aliases.
+A lost release response remains Unknown even if the C output slots were cleared.

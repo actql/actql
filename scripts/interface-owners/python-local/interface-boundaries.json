@@ -60314,7 +60314,7 @@
           ]
         }
       ],
-      "sha256": "84fb9a1784fa3d482f4f94f1ca35d68919bfd49bb2538f67a95f1c67c524a040",
+      "sha256": "9eab3ceccf681be118c4a88baf94bb6a9bcb40b27a5ed6976852446f3acdee9f",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -60610,6 +60610,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_worker_process.py",
                 "anchor": "def test_preparation_current_callback_cannot_reenter_prepare_or_spawn("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_worker_process.py",
+                "anchor": "def test_spawn_current_callback_cannot_reenter_original_spawn_or_preparation("
               }
             ]
           }
