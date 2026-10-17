@@ -46,7 +46,10 @@ export async function installedKintoneFixture(t, {formRead = 'allow', recordsRea
       body = await state.form?.(state.forms, exchange) ?? originalForm;
     } else {
       state.pages++;
-      assert.deepEqual(parameters.fields, ['$id', '$revision', 'Subject', 'Tags', 'RecordNumber']);
+      // The original checked carrier orders its field map canonically. Keep
+      // this independent literal projection, not an expectation generated
+      // from the driver or copied from the observed request.
+      assert.deepEqual(parameters.fields, ['$id', '$revision', 'RecordNumber', 'Subject', 'Tags']);
       assert.equal(parameters.query, state.pages === 1 ? 'order by $id asc limit 2'
         : '$id > 9007199254740993 order by $id asc limit 2');
       body = await state.page?.(state.pages, exchange) ?? {records: state.pages === 1

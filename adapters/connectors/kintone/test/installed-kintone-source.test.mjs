@@ -102,3 +102,34 @@ test('foreign App metadata and missing typed runtime refuse before key entry or 
   await assert.rejects(f.load({...common, clientProgramKintoneBorrowRead: undefined}), {code: 'KintoneOriginalReadUnavailable'});
   assert.equal(f.tls.seen().length, 0);assert.equal(f.state.resolutions, 0);
 });
+
+test('a rejected kintone response is charged on the original RowRun without another request', async t => {
+  const rejected = {code: 'CB_NO02', message: 'Permission denied.'};
+  const f = await fixture(t, {faults: [{kind: 'reply', method: 'POST',
+    pathname: '/k/v1/records.json', reply: {status: 403, body: rejected}}]}),
+    source = await f.load(), ledger = f.ledger();
+  await assert.rejects(source.openCapture({...await f.prepare(source), ledger}), {code: 'KintoneReadHttpRejected'});
+  assert.equal(f.tls.seen().length, 2);assert.equal(f.state.resolutions, 2);
+  assert.equal(common.clientProgramMultiCapturedLedgerUsage(ledger)[3], BigInt(
+    f.state.responseBodies[0].byteLength + Buffer.byteLength(JSON.stringify(rejected))));
+  assertReleased(ledger);
+});
+
+test('canceling an awaited kintone page retains its original reservation until transport retirement', async t => {
+  const f = await fixture(t), source = await f.load(), ledger = f.ledger();
+  let seen, resume;
+  const observed = new Promise(resolve => {seen = resolve;});
+  const response = new Promise(resolve => {resume = resolve;});
+  f.state.page = async () => {seen();await response;return {records: [], totalCount: null};};
+  const controller = new AbortController();
+  const opening = source.openCapture({...await f.prepare(source), ledger, signal: controller.signal});
+  const rejected = assert.rejects(opening, error => {
+    assert.equal(error.code, 'ABORT_ERR');assert.equal(error.outcome, 'unknown');return true;
+  });
+  await observed;
+  assert.ok(common.clientProgramMultiCapturedLedgerUsage(ledger)[7] > 0n);
+  controller.abort();resume();
+  await rejected;
+  assert.equal(f.tls.seen().length, 2);assert.equal(f.state.resolutions, 2);
+  assertReleased(ledger);
+});
