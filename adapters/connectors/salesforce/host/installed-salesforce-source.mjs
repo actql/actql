@@ -21,7 +21,7 @@ import {installSalesforceAuthorization, installedSalesforceSiteBinding,
   loadInstalledSalesforceSite, releaseSalesforceSite,
   retainSalesforceSiteCleanup} from
   './installed-salesforce-site.mjs';
-import {loadSalesforceGeneration, publishSalesforceGeneration,
+import {loadSalesforceGeneration, publishSalesforceGeneration, readPublicationFile,
   salesforceCheckEnvironment} from './salesforce-publication.mjs';
 import {installSalesforceResourceService} from
   './salesforce-resource-service.mjs';
@@ -77,8 +77,8 @@ export async function installedSalesforceSourceIdentityParts(profile,
   return [
     {...profile, accountConfigurationWire: JSON.parse(
       profile.accountConfigurationWire)},
-    await read(checkedProfile.siteProfilePath),
-    await read(checkedProfile.publicationPath),
+    await read(checkedProfile.siteProfilePath, {maxBytes: 8 * 1024 * 1024}),
+    JSON.parse((await readPublicationFile(checkedProfile.publicationPath)).body),
   ];
 }
 
