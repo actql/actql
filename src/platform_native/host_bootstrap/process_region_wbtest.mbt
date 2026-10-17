@@ -258,3 +258,48 @@ test "foreign stop cannot retire the original region and stopped startup uses or
   assert_false(value.loan.physical_returned)
   process_fixture_finish(value)
 }
+
+///|
+test "real retained Rust handler allocation retires only with original process region" {
+  let value = process_fixture("rust-handler")
+  let holder = process_fixture_holder("rust-handler")
+  let transport = value.host.project_prepared_domain(
+    value.original, value.domain, value.child,
+  ).unwrap()
+  let record = match
+    value.host.bind_prepared_process_region(
+      value.original, value.domain, value.child, holder, value.descriptor,
+    ).unwrap() {
+    ProcessRegionReady(record) => record
+    _ => fail("original Rust process capture failed")
+  }
+  let executable = @env.get_env_var("ACTQL_TEST_NATIVE_HANDLER_PROCESS_CHILD").unwrap()
+  let library = @env.get_env_var("ACTQL_TEST_NATIVE_HANDLER_LIBRARY").unwrap()
+  holder.spawn_with_channel(executable, [
+    process_fixture_root() + "/rust-handler.backing",
+    library,
+    transport.extent.mapping_offset.to_string(),
+    transport.extent.mapping_length.to_string(),
+    transport.extent.payload_offset.to_string(),
+    transport.extent.payload_length.to_string(),
+  ]).unwrap()
+  assert_true(holder.poll_stop().unwrap() is None)
+  assert_false(record.retired)
+  assert_false(record.physical_retired)
+  assert_true(
+    value.host.close_backed_domain(value.original, value.domain, value.child)
+    is Err(Bootstrap(ReadersPending)),
+  )
+  // The child executes the unchanged actual Rust cases, joins its handler
+  // threads and asserts ordinary borrow-return refusal on the retained std
+  // allocation. Only process/IPC stop permits this distinct region cleanup.
+  assert_true(holder.channel().unwrap().send("R"))
+  let stop = process_fixture_stop(holder)
+  assert_eq(holder.child().unwrap().wait(false).unwrap(), Some(@executor.Exited(0)))
+  assert_false(value.loan.physical_returned)
+  value.host.retire_stopped_process_region(value.original, record, stop).unwrap()
+  assert_true(record.retired && record.physical_retired)
+  assert_true(value.domain.closed && value.domain.view.closed)
+  assert_false(value.loan.physical_returned)
+  process_fixture_finish(value)
+}
