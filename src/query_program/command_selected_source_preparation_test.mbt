@@ -65,7 +65,15 @@ fn selected_command_preparation_issue(
             Identity(_) => "Identity"
             Declarations(_) => "Declarations"
             Registration(_) => "Registration"
-            SourceView(_) => "SourceView"
+            SourceView(view) =>
+              match view {
+                Context(Policy(policy)) =>
+                  "SourceView.Context.Policy." + @debug.to_string(policy)
+                Context(_) => "SourceView.Context"
+                Program(_) => "SourceView.Program"
+                Binding(_) => "SourceView.Binding"
+                InvalidLimits => "SourceView.InvalidLimits"
+              }
           }
           "Candidate.Computation.Source." + category
         }
