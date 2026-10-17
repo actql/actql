@@ -20,6 +20,7 @@ class ProcessFixture:
         self.issue, self.present = 0, True
         self.prepare_fault = self.capture_fault = self.call_fault = self.finish_fault = None
         self.wrong_operation = None
+        self.stop_request_status = 1
         library = self.original.host._functions.library
         calls = {'prepare_utf16_into': self.prepare, 'operate_into': self.operate,
                  'child_utf16_into': self.child, 'originals_into': self.originals,
@@ -60,7 +61,8 @@ class ProcessFixture:
         return 0
 
     def copy_facts(self, r, h, d, p, output):
-        output[:] = (21, 22, 23, 2)
+        output[:] = (21, 22, 23,
+                     self.stop_request_status if self.facts[r.value][0] == 12 else 2)
         return 0
 
     def drop(self, reply, h, d, p):
@@ -83,6 +85,47 @@ class ProcessFixture:
 
 
 class OriginalInstalledProcessTests(unittest.TestCase):
+    def test_stop_request_relay_is_distinct_from_stop_and_region_retirement(self):
+        f = ProcessFixture(); p = f.take()
+        self.assertTrue(p.request_stop())
+        self.assertFalse(p._closed)
+        self.assertIs(f.domain._installed_process_original, p)
+        self.assertNotIn(('operate', 6), f.events)
+        self.assertNotIn(('operate', 8), f.events)
+        self.assertFalse(f.domain._descriptor.close_attempted)
+        f.stop_request_status = 0
+        self.assertFalse(p.request_stop())
+        self.assertIsNone(p._unknown)
+        self.assertFalse(p._closed)
+
+    def test_lost_stop_request_reply_keeps_original_unknown_without_resending(self):
+        f = ProcessFixture(); p = f.take(); f.call_fault = OSError('lost stop request reply')
+        with self.assertRaises(Error) as caught: p.request_stop()
+        self.assertTrue(caught.exception.unknown)
+        self.assertIs(caught.exception.cleanup_process, p)
+        before = list(f.events)
+        for operation in (p.request_stop, p.poll_stop, p.retire_stopped):
+            with self.assertRaises(Error): operation()
+        self.assertEqual(f.events, before)
+        self.assertFalse(p._closed)
+        self.assertIs(f.domain._installed_process_original, p)
+
+    def test_stop_request_rejects_stopped_tag_as_an_invalid_request_observation(self):
+        f = ProcessFixture(); p = f.take(); f.stop_request_status = 2
+        with self.assertRaises(Error): p.request_stop()
+        before = list(f.events)
+        with self.assertRaises(Error): p.request_stop()
+        self.assertEqual(f.events, before)
+        self.assertIsNotNone(p._unknown)
+        self.assertFalse(p._closed)
+
+    def test_stop_request_cannot_accept_a_foreign_operation_reply(self):
+        f = ProcessFixture(); p = f.take(); f.wrong_operation = 6
+        with self.assertRaises(Error): p.request_stop()
+        self.assertIsNotNone(p._unknown)
+        self.assertIs(f.domain._installed_process_original, p)
+        self.assertFalse(p._closed)
+
     def test_same_partial_original_blocks_parent_until_confirmed_cleanup(self):
         f = ProcessFixture(); f.issue = 6
         with self.assertRaises(Error) as caught: f.take()

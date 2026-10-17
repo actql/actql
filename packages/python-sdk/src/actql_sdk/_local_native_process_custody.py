@@ -174,7 +174,7 @@ class _OriginalInstalledProcessCustody:
             raise ValueError('Original Native process is unavailable')
 
     def _operate(self, operation: int) -> tuple[_OriginalArenaFact, tuple[int, ...] | None]:
-        if type(operation) is not int or operation not in (2, 3, 4, 5, 6, 7, 8, 9, 11):
+        if type(operation) is not int or operation not in (2, 3, 4, 5, 6, 7, 8, 9, 11, 12):
             raise ValueError('Original Native process operation is unavailable')
         values = (c_int32 * 4)()
         self._enter()
@@ -185,7 +185,7 @@ class _OriginalInstalledProcessCustody:
                 self._process, operation, byref(self._reply)))
             fact = self._fact(operation)
             result = None
-            if fact.issue_family == 0 and operation in (3, 6, 9):
+            if fact.issue_family == 0 and operation in (3, 6, 9, 12):
                 self._status(self._functions.facts(self._reply, self._host,
                     self._native_domain, self._process, values))
                 result = tuple(values)
@@ -240,6 +240,17 @@ class _OriginalInstalledProcessCustody:
 
     def spawn(self) -> None:
         self._operate(11)
+
+    def request_stop(self) -> bool:
+        """Relay to the same original child; never observe stop or release.
+
+        False means the request was not confirmed. A lost/invalid response
+        keeps the existing sticky Unknown; it does not retry the signal.
+        """
+        _, facts = self._operate(12)
+        if facts is None or facts[3] not in (0, 1):
+            raise self._mark_unknown()
+        return facts[3] == 1
 
     def restrict_transport(self) -> None:
         self._operate(4)

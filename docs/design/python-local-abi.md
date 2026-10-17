@@ -2212,6 +2212,18 @@ runtime compatibility, ordinary funding or installed product acceptance.
 
 ## Original Native process transport
 
+The same installed process can relay a stop request to its original captured
+Holder child. That operation returns only whether the existing termination
+request was confirmed relayed. A false or lost response is not stop, and a true
+response is not transport return, process retirement, region/FD cleanup or an
+external operation outcome. The private reply keeps request observation separate
+from the typed stop observation, under their respective exact operation tags.
+Foreign, unstarted and retired carriers cannot select a replacement child.
+The caller separately returns its original transport borrow, observes the same
+Owner's typed stop and obtains the physical retirement acknowledgements. Logical
+Host closing must not erase that original cleanup responsibility. A lost foreign
+call retains the same sticky Unknown and cannot automatically resend the request.
+
 The private installed assembly retains the existing Native process Holder,
 region and imported child frame in their original Host/domain before physical
 preparation. Python transports the same opaque references through persistent

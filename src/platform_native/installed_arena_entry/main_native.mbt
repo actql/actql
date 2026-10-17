@@ -1049,7 +1049,7 @@ fn main {
     fn(reply) { reply.issue_family() },
     fn(reply, ordinal) { reply.descriptor(ordinal) },
     fn(reply) { reply.backing_descriptor() },
-    fn(reply) { reply.stop_observation() },
+    fn(reply) { reply.transport_observation() },
     fn(reply) { reply.issue_description() },
   )
   register_original_worker_selection_roots(
