@@ -109,7 +109,8 @@ async function installation(t, {readable = ['Test_Record__c'],
   writableObjects = [],
   queryFailureStatus, queryFailureOnRequest, storedRecords, recordsByResource,
   queryPageSize, queryResponse, temporalFields = false,
-  numberFields = false, numberNativeType = 'double', retainedRelationOutput = false,
+  numberFields = false, numberNativeType = 'double', multiPicklistFields = false,
+  retainedRelationOutput = false,
   secondInstallation = false} = {}) {
   const org = await openSalesforceEffectSiteFixture(t, {commonMoon,
     salesforceMoon, runInvocationCid: cid('1'), dispatchRequestCid: cid('2'),
@@ -117,7 +118,7 @@ async function installation(t, {readable = ['Test_Record__c'],
     recordsByResource, queryPageSize, queryResponse, extraObjects,
     writableObjects,
     temporalFields,
-    numberFields, numberNativeType,
+    numberFields, numberNativeType, multiPicklistFields,
     optionalText: storedRecords !== undefined});
   const root = await mkdtemp(join(scratch, 'host-'));
   // Hosts close before their directory is removed.
@@ -2472,4 +2473,46 @@ test('shared Salesforce Source preserves original read and credential preimages 
     capture?.close();
     adapter.close();
   }
+});
+
+
+test('Salesforce multi-select arrays reach the same Named Result after Host reopen without another query', async t => {
+  const setup = await installation(t, {multiPicklistFields: true, storedRecords: [
+    {Id: 'a00000000000001', Name: 'record-1', External_Key__c: 'key-1', Choices__c: 'red;東京;red'},
+    {Id: 'a00000000000002', Name: 'record-2', External_Key__c: 'key-2', Choices__c: ''},
+    {Id: 'a00000000000003', Name: 'record-3', External_Key__c: 'key-3', Choices__c: null},
+    {Id: 'a00000000000004', Name: 'record-4', External_Key__c: 'key-4', Choices__c: ';a;;'},
+  ]});
+  await setup.publish();
+  const {client, close} = await setup.open();
+  const document = JSON.parse(numberProgram.replaceAll('Amount__c', 'Choices__c'));
+  document.id = 'salesforce-multi-select';
+  document.stages[0].inputs.remote.view = 'records';
+  const before = setup.org.seen.length;
+  const checked = await client.check(document, {kind: 'program', scope: 'bound_input'});
+  assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+  assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+  assert.equal(setup.org.seen.length, before);
+  const execution = await client.startSource(JSON.stringify(document), {format: 'json',
+    submissionRef: client.newSubmission({nonce: 'multi-select-original'})});
+  assert.equal((await execution.wait({signal: AbortSignal.timeout(20_000)})).status, 'succeeded');
+  assert.deepEqual((await execution.result('records').describe()).columns, [
+    {name: 'Id', contract: {type: 'string', nullable: false}},
+    {name: 'Choices__c', contract: {type: 'array', nullable: true,
+      items: {type: 'string', nullable: false}}},
+  ]);
+  const expected = [
+    {Id: 'a00000000000001', Choices__c: ['red', '東京', 'red']},
+    {Id: 'a00000000000002', Choices__c: []},
+    {Id: 'a00000000000003', Choices__c: null},
+    {Id: 'a00000000000004', Choices__c: ['', 'a', '', '']},
+  ];
+  assert.deepEqual(await execution.result('records').all(), expected);
+  const original = execution.ref, queryCount = setup.queries().length;
+  assert.ok(queryCount > 0);
+  await close();
+  const reopened = await setup.open();
+  const restored = await reopened.client.attach(original);
+  assert.deepEqual(await restored.result('records').all(), expected);
+  assert.equal(setup.queries().length, queryCount);
 });

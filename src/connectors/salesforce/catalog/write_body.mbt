@@ -24,11 +24,11 @@ pub(all) enum WriteBodyIssue {
 } derive(Eq, Debug)
 
 ///|
-/// One bounded scalar row body. This is not an Effect admission or permission
+/// One bounded row body. This is not an Effect admission or permission
 /// to send a mutation; current authority and preview guards remain separate.
 /// `json` is the provider request body; `value_json` is the same row as ActQL
-/// values, the meaning a Preview states. They differ only in how a decimal
-/// is spelled: a JSON number to the provider, fixed-scale text in ActQL.
+/// values, the meaning a Preview states. Decimal text becomes a provider
+/// number; Multi-select arrays become the provider's semicolon-delimited text.
 pub struct WriteBody {
   projection : WriteProjection
   json : String

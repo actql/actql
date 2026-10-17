@@ -284,3 +284,51 @@ test "a cleared multi-select does not convert an actual observed null into an em
     target_observation_version_cid(nulled),
   )
 }
+
+///|
+test "multi-select expanded Array limits cover each row and target observation" {
+  let plan = choices_read()
+  let small : QueryPageLimits = {
+    max_bytes: 4096,
+    max_nodes: 8,
+    max_depth: 5,
+    max_rows: 2,
+    max_locator_units: 128,
+  }
+  let records = @utf8.encode(
+    "{\"totalSize\":2,\"done\":true,\"records\":[{\"Choices__c\":\"a;b;c\"},{\"Choices__c\":\"d;e;f\"}]}",
+  )
+  assert_true(
+    project_query_page(records, plan, "v62.0", small) is Err(BudgetExceeded),
+  )
+  let request = prepare_single_write_request(
+    choices_body(choices_write(), "[\"new\"]").unwrap(),
+    "v62.0",
+    RecordId("a01000000000001"),
+    write_request_test_limits(),
+  ).unwrap()
+  let bytes = @utf8.encode(
+    "{\"Id\":\"a01000000000001AAA\",\"Choices__c\":\"a;b;c;d;e;f;g;h;i\"}",
+  )
+  assert_true(
+    prepare_target_observation(request, 200, bytes, {
+      ..target_observation_test_limits(),
+      max_nodes: 6,
+    })
+    is Err(CapacityExceeded),
+  )
+}
+
+///|
+test "multi-select approved values do not escape the original body byte node or depth bounds" {
+  let plan = choices_write()
+  let bytes = @utf8.encode("{\"Choices__c\":[\"東京\",\"a\"]}")
+  for
+    limits in [
+      { max_bytes: 4, max_nodes: 100, max_depth: 5, },
+      { max_bytes: 4096, max_nodes: 3, max_depth: 5, },
+      { max_bytes: 4096, max_nodes: 100, max_depth: 1, },
+    ] {
+    assert_true(prepare_write_body(plan, bytes, limits) is Err(BudgetExceeded))
+  }
+}
