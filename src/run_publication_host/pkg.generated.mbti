@@ -225,6 +225,8 @@ pub fn bind_transferred_client_effect_local_result_artifact(ClientEffectRunMater
 
 pub fn borrow_client_effect_command_content(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, Int, String, Int, Int) -> Result[ClientEffectCommandContent, ClientEffectCommandContentIssue]
 
+pub fn borrow_client_effect_command_content_workspace(ClientEffectCommandContent, @value_admission.CheckedValue, @physical_resources.SharedCapacity, @physical_resources.SharedAllocation) -> Result[@physical_resources.SharedBorrow, ClientEffectCommandContentIssue]
+
 pub fn borrow_client_original_captured_prefix_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, Int, Int, @execution_query.CapturedInputSource) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
 
 pub fn borrow_client_original_keyed_captured_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientKeyedAcquisition, @execution_query.CapturedInputSource, prefix? : @physical_resources.Reservation?) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]

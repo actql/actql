@@ -60,6 +60,35 @@ export function commandInputPresenceSchemas(protocol, write=false) {
   assert.equal(protocol.registry_cid,machineCid(protocol.schemas));
 }
 
+// Text remains the original scalar; enum constrains its admitted domain.
+// The actual Common reader enforces Unicode, extent intersection and budgets.
+export function textEnumerationBody(protocol) {
+  const enumeration={type:'array',items:{type:'string'}};
+  for(const name of ['author_value_contract','canonical_value_contract']){
+    const branch=protocol.schemas[name].$defs.value_contract.oneOf
+      .find(value=>value.properties?.type?.const==='string');
+    assert.ok(branch,'separate closed Text branch: '+name);
+    assert.deepEqual(branch.properties.enum,enumeration,'retained enum grammar: '+name);
+    assert.equal(branch.required.includes('enum'),false,'absence keeps old bytes');
+    assert.equal(branch.additionalProperties,false);
+  }
+  return {
+    base:'existing_Text_not_a_new_scalar_or_authority',
+    grammar:enumeration,
+    membership:'exact_Unicode_scalar_sequence_intersected_with_retained_extents_no_normalization_coercion_or_default',
+    nullability:'nullable_independent_null_is_not_an_enumerant',
+    original:'empty_and_repeated_vectors_allowed_preserve_order_and_every_repetition_in_checked_preimage',
+    equality:'complete_checked_contract_including_exact_vector_not_membership_equivalence',
+    assignment:'actual_admitted_finite_domain_enum_intersected_with_extents_original_nullability_and_recursive_rules',
+    join:'nullable_OR_existing_common_extents_absent_if_either_enum_absent_else_left_vector_then_previously_absent_right_values_in_order',
+    join_qualification:'coordinatewise_conservative_common_supertype_not_necessarily_exact_union_or_global_least_upper_bound_not_either_original',
+    custody:'validate_and_charge_every_occurrence_even_repeated_or_extent_excluded_keep_comparison_vector_alias_and_union_holdings',
+    propagation:'identity_preserving_paths_retain_constraint_transforming_Text_may_drop_only_sound_derived_output_never_original_admission',
+    provider:'retain_schema_constraint_or_report_unavailable_never_strip_to_accept',
+    compatibility:'enum_absent_bytes_and_existing_absent_bounds_behavior_unchanged',
+  };
+}
+
 export function valueBodyContract(protocol) {
   const kinds=protocol.schemas.contract_envelope.properties.kind.enum;
   assert.deepEqual([...kinds].sort(),[...valueKinds,...otherKinds].sort(),'Every envelope kind needs an explicit body-grammar classification');
@@ -68,7 +97,8 @@ export function valueBodyContract(protocol) {
     admission:'all_supplied_bodies_including_unused_exact_checked_grammar_no_author_defaults_or_JSON_Schema_conversion',
     ownership:'retain_exact_registry_envelope_and_environment_not_only_bare_body_cid',
     scope:'type_declarations_only_not_value_admission_reference_authority_or_behavioral_contract_validation',
-    command_input_presence:commandInputPresenceBody(protocol)};
+    command_input_presence:commandInputPresenceBody(protocol),
+    text_enumeration:textEnumerationBody(protocol)};
 }
 
 export function generateValueKinds(protocol) {

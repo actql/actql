@@ -863,7 +863,7 @@ also has `type` and required `nullable`; `?` marks an optional member.
 <!-- requirement-block: value-contracts.type-other-author-members-checked-expansion-or -->
 | Type | Other author members | Checked expansion or evidence |
 | --- | --- | --- |
-| `string` | none | optional `min_length`, `max_codepoints`, `max_utf8_bytes` from admitted evidence |
+| `string` | `enum?: string[]` | enum vector retained; optional `min_length`, `max_codepoints`, `max_utf8_bytes` from admitted evidence |
 | `number`, `boolean`, `timestamp`, `date`, `json` | none | unchanged |
 | `decimal` | `precision`, `scale` | unchanged; [Exact decimal values](#decimal-values) ranges |
 | `array` | `items: AuthorValueContract`, `max_items?` | recursive checked `items`; bound unchanged |
@@ -882,10 +882,70 @@ are non-negative safe integers and do not become author syntax.
 string; `max_utf8_bytes` counts that value's UTF-8 bytes before JSON escaping.
 Neither counts grapheme clusters or UTF-16 code units.
 
+<a id="text-enumeration"></a>
+
+#### Text enumeration constraints
+
+<!-- requirement-block: value-contracts.text-enum-closed-membership -->
+An optional `enum` is a constraint on the existing `string` type, not a new
+base type. Both the authored and checked Text contract MUST admit exactly an
+array of well-formed Unicode strings at this member and MUST reject null,
+non-string entries and an enum member on other base types. A non-null admitted
+value MUST satisfy the existing retained Text extents and equal at least one
+enumerant by its exact Unicode scalar sequence. No normalization, trimming,
+case folding, numeric conversion or default is applied. Null admission remains
+controlled solely by `nullable`; null is not an enumerant. Absence of `enum`
+MUST retain the prior unrestricted Text meaning and canonical bytes.
+
+<!-- requirement-block: value-contracts.text-enum-original-vector -->
+An empty enum vector MUST denote no non-null Text values. Repeated enumerants
+MUST be permitted and MUST NOT change membership. The checked contract and its
+canonical preimage MUST retain the supplied vector order and every repetition;
+implementations MUST NOT sort or deduplicate an original declaration to obtain
+an equivalent membership set or reuse another original's identity.
+
+<!-- requirement-block: value-contracts.text-enum-bounded-occurrences -->
+Every enum occurrence MUST be validated and charged under the existing contract,
+comparison, value and resource bounds, including repeated strings and strings
+excluded by the retained extent intersection. The retained vector, exact text,
+comparison frames, union output and escaped aliases MUST remain in the existing
+Owner's holding inventory. A structural entry bound MUST NOT stand in for
+numerical capacity, and enum admission MUST NOT issue reference, permission,
+classification, uniqueness or key evidence.
+
+<!-- requirement-block: value-contracts.text-enum-assignment-domain -->
+For finite-enum assignment, the existing type Owner MUST consider the actual
+admitted domain: the original enum intersected with its retained Text extents,
+plus null only when admitted by the original nullability rule. Each permitted
+actual value MUST satisfy the expected Text constraint. Samples, a Text label,
+or equality of enum arrays alone MUST NOT discharge this proof. Legacy
+enum-absent bound behavior and recursive structure rules remain unchanged.
+
+<!-- requirement-block: value-contracts.text-enum-coordinatewise-join -->
+The Text common join MUST use nullable OR and the existing common extent bounds.
+Its enum MUST be absent if either input enum is absent. Otherwise it MUST retain
+the left vector exactly, then append each right enumerant not already present,
+in right order. This coordinatewise rule yields a conservative common supertype;
+it does not necessarily yield the exact union or globally least upper bound of
+the two admitted domains. For left enum `["a","xxxx"]` with `max_codepoints: 1`
+and right enum `["b"]` with `max_codepoints: 4`, the joined enum is
+`["a","xxxx","b"]` with `max_codepoints: 4`, which also admits `"xxxx"`.
+The derived joined contract MUST NOT substitute for either original contract or
+establish any original membership or authority.
+
+<!-- requirement-block: value-contracts.text-enum-preserved-admission -->
+Identity-preserving projection, filter, capture, public Result and reload MUST
+retain the checked Text constraint. A Text-transforming operation MAY drop enum
+only in a sound derived output type; it MUST NOT weaken an original input,
+Model, Command or task admission requirement. Provider schema projection MUST
+retain the enum constraint. A Provider unable to represent it MUST report that
+boundary unavailable rather than silently strip the constraint.
+
 Type equality and compatibility use the following common relations:
 
 - `TypeEqual(A,B)` compares complete canonical checked contracts recursively,
-  including nullability, bounds, decimal precision/scale, vector dimensions,
+  including nullability, bounds, exact Text enum vectors (order and repetitions),
+  decimal precision/scale, vector dimensions,
   reference kind/media type, and object field sets. Object key order is irrelevant.
 - `Assignable(A,B)` means every value permitted by A satisfies B. Non-null may
   flow to nullable, but not conversely. Base types match without coercion;

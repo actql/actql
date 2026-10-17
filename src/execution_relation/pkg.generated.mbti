@@ -105,6 +105,8 @@ pub fn advance_completed_output_export_preparation(CompletedOutputExportPreparat
 
 pub fn advance_completed_relation_identity_scan(CompletedRelationIdentityScan, Int) -> Result[(Bool, Int), CompletedExportIssue]
 
+pub fn advance_completed_result_key_validation(CompletedResultKeyValidation, Int) -> Result[@bounded_execution.Observation[Int, CompletedResultKeyIssue], @bounded_execution.Issue]
+
 pub fn advance_completed_result_relation_export(CompletedResultRelationExportPreparation, Int) -> Result[(Bool, Int), CompletedExportIssue]
 
 pub fn advance_completed_result_relation_export_progress(CompletedResultRelationExportPreparation, Int) -> (Bool, Int, CompletedExportIssue?)
@@ -303,6 +305,8 @@ pub fn cancel_completed_relation_export_receipt(CompletedRelationExportReceipt) 
 
 pub fn cancel_completed_relation_identity_scan(CompletedRelationIdentityScan) -> Bool
 
+pub fn cancel_completed_result_key_validation(CompletedResultKeyValidation) -> Unit
+
 pub fn cancel_completed_result_relation_export(CompletedResultRelationExportPreparation) -> Bool
 
 pub fn cancel_completed_table_input_relation_export(CompletedTableInputRelationExportPreparation) -> Bool
@@ -437,6 +441,8 @@ pub fn cleanup_bounded_unpivot(BoundedUnpivotExecution) -> Result[Bool, BoundedU
 
 pub fn cleanup_bounded_values(BoundedValuesExecution) -> Result[Bool, BoundedValuesIssue]
 
+pub fn cleanup_completed_result_key_validation(CompletedResultKeyValidation) -> Result[Bool, @bounded_execution.Issue]
+
 pub fn cleanup_fixed_record_guard(FixedRecordGuardScan) -> Result[Bool, @bounded_execution.Issue]
 
 pub fn cleanup_infer_rows_preparation(InferRowsPreparation) -> Result[Bool, InferPreparationIssue]
@@ -540,6 +546,8 @@ pub fn completed_relation_identity_scan_work(CompletedRelationIdentityScan) -> I
 pub fn completed_result_export_preparation_matches_owner(CompletedResultRelationExportPreparation, ManagedResultOccurrence, CompletedOutput) -> Bool
 
 pub fn completed_result_export_preparation_matches_receipt(CompletedResultRelationExportPreparation, CompletedRelationExportReceipt) -> Bool
+
+pub fn completed_result_key_validation_matches(CompletedResultKeyValidation, CompletedResultRelationExportPreparation, @relation_schema.Field) -> Bool
 
 pub fn completed_row_count(CompletedOutput) -> Int
 
@@ -1349,6 +1357,8 @@ pub fn start_completed_relation_export_snapshot(CompletedOutputExport, Completed
 
 pub fn start_completed_relation_identity_scan(CompletedOutput, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int, Int) -> Result[CompletedRelationIdentityScan, CompletedExportIssue]
 
+pub fn start_completed_result_key_validation(@bounded_execution.Control, CompletedResultRelationExportPreparation, @relation_schema.Field, Int, Int, Int) -> Result[CompletedResultKeyValidation, CompletedResultKeyIssue]
+
 pub fn start_completed_result_relation_export(CompletedOutput, ManagedResultOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedResultRelationExportPreparation, CompletedExportIssue]
 
 pub fn start_completed_table_input_relation_export(CompletedOutput, ManagedTableInputOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedTableInputRelationExportPreparation, CompletedExportIssue]
@@ -1862,6 +1872,14 @@ type CompletedRelationSnapshotPreparation
 pub fn CompletedRelationSnapshotPreparation::advance(Self, Int) -> Result[(Bool, Int), CompletedExportIssue]
 pub fn CompletedRelationSnapshotPreparation::cancel(Self) -> Unit
 pub fn CompletedRelationSnapshotPreparation::finish(Self) -> Result[(String, Array[String]), CompletedExportIssue]
+
+pub(all) enum CompletedResultKeyIssue {
+  Unavailable
+  View(CompletedResultViewIssue)
+  Key(InputKeyIssue)
+}
+
+type CompletedResultKeyValidation
 
 type CompletedResultRelationExportPreparation
 

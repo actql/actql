@@ -45,3 +45,38 @@ selection codec. It does not extend that codec to installation or identifier
 Commands, prove whole-input uniqueness, authenticate durable capture, or grant
 target read or dispatch authority. A later capture/restoration boundary must
 still consume the corresponding original issuer and saved material.
+
+## Whole-input correspondence evidence
+
+The captured-input owner admits key validation only from the same member's
+checked Command binding and existing local Result export. Cells and acquired
+Sources use their original borrowed export; a resident result uses its existing
+managed publication bridge. That bridge preserves the original completion and
+Result occurrence. A caller's row array, JSON, field name, equal schema or CID
+cannot issue this evidence.
+
+The Result's bounded projection and order are prepared by the existing Result
+view owner. The existing input-key cursor then validates the entire view with
+its typed key atoms, tuple equality, duplicate detection, UTF-8 work charges and
+incremental workspace retirement. An explicit Command ID does not declare a
+KeySet or prove a new Source key. Type comparison uses the existing bounded
+ValueContract comparison. The legacy supplied-KeySet path retains its original
+charges and ordering. Cancellation or failure does not promote partial work;
+completion alone does not acknowledge cleanup.
+
+Proposal and retained-Preview payload verification require completion and
+private workspace retirement for the exact captured input set, member, Command
+binding and export. They retain that evidence through row projection,
+finalization and payload-proof use, rechecking availability and the original
+retention fence after callbacks. Retiring the original capture revokes it.
+Neither target identity nor mutation identity is derived from the input ID.
+
+The validation retains references to the original capture, Command field,
+export and bounded session. Result row/column maps overlap key columns, type
+comparison frames, the current tuple, retained tuples, map entries and UTF-8
+charge state. Those controls, references and transient value wrappers remain
+part of the existing holding inventory. Structural work/frame/entry limits are
+not a numerical byte-capacity supplier. Retiring this private workspace neither
+retires the Result reader nor releases its physical raw/Artifact custody,
+permits dispatch or confirms cleanup. Existing current authorization, original
+installed issuer, approved Preview and saved-material checks remain necessary.

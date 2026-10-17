@@ -91,7 +91,7 @@ export type HostInstallation = Readonly<{
   observation?: HostObservationConnection;
 }>;
 export declare function connect(options: Readonly<{
-  mode: 'local'; owner: 'local'; runtime?: 'embedded'; durability?: 'volatile' | 'durable';
+  mode: 'local'; owner?: 'local'; runtime?: 'embedded'; durability?: 'volatile' | 'durable';
   consentRefs?: readonly string[]; installation?: HostInstallation;
 }>): Promise<Client>;
 export declare function publishSource(options?: Pick<HostInstallation,

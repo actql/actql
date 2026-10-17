@@ -576,6 +576,7 @@ pub(all) struct ShortCommandEffectClause {
   operation : Array[NamePart]
   target : Expression?
   id : Array[NamePart]
+  id_expression : Expression
   input : Array[(NamePart, Expression)]
   start : Int
   end : Int
