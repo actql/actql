@@ -479,3 +479,46 @@ test "write response limits include every identity and duplicate or original-ID 
     is Err(UncorrelatedResult),
   )
 }
+
+///|
+test "physical preparation reuses the original Form and exact update observation targets" {
+  let catalog = record_test_catalog()
+  let values = request_values(catalog, "x")
+  let create = prepare_record_create_request(
+    catalog,
+    [values],
+    mutation_limits(),
+  ).unwrap()
+  let body = b"{\"revision\":\"7\",\"properties\":{\"number\":{\"code\":\"number\",\"type\":\"RECORD_NUMBER\"},\"text\":{\"code\":\"text\",\"type\":\"SINGLE_LINE_TEXT\"}}}"
+  assert_true(
+    recheck_record_create_form(create, body, form_test_limits()) is Ok(_),
+  )
+  assert_true(
+    recheck_record_create_form(create, b"{", form_test_limits()) is Err(Form(_)),
+  )
+  let changed = @utf8.encode(
+    @utf8.decode(body).replace(old="\"7\"", new="\"8\""),
+  )
+  assert_true(
+    recheck_record_create_form(create, changed, form_test_limits())
+    is Err(ForeignCatalog),
+  )
+  let targets = request_targets(catalog)
+  let request = prepare_record_update_request(
+    [(targets[1], values), (targets[0], values)],
+    mutation_limits(),
+  ).unwrap()
+  let observation = record_update_request_observation(
+    request,
+    mutation_limits(),
+  ).unwrap()
+  let originals = record_delete_request_targets(observation)
+  assert_true(physical_equal(originals[0], targets[1]))
+  assert_true(physical_equal(originals[1], targets[0]))
+  assert_eq(
+    record_delete_request_body(observation),
+    (
+      #|{"app":"12","ids":["9007199254740994","9007199254740992"],"revisions":["8","9007199254740993"]}
+    ),
+  )
+}

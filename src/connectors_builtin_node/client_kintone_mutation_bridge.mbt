@@ -236,3 +236,197 @@ pub fn client_program_kintone_delete_preview_matches(
 ) -> Bool {
   @kintone_host.record_delete_preview_matches(view, mapping, target)
 }
+
+///|
+#export_name("clientProgramKintoneWriteLimits")
+pub fn client_program_kintone_write_limits(
+  max_fields : Int,
+  max_name_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_text_bytes : Int,
+  max_output_bytes : Int,
+) -> @kintone_catalog.RecordWriteLimits {
+  {
+    max_fields,
+    max_name_bytes,
+    max_nodes,
+    max_depth,
+    max_text_bytes,
+    max_output_bytes,
+  }
+}
+
+///|
+#export_name("clientProgramKintoneWriteValues")
+pub fn client_program_kintone_write_values(
+  catalog : @kintone_catalog.FormFieldCatalog,
+  values : Array[(String, @admitted.CheckedValue)],
+  limits : @kintone_catalog.RecordWriteLimits,
+) -> Result[
+  @kintone_catalog.RecordWriteValues,
+  @kintone_catalog.RecordWriteIssue,
+] {
+  @kintone_catalog.prepare_record_write_values(catalog, values, limits)
+}
+
+///|
+#export_name("clientProgramKintoneCreateRequest")
+pub fn client_program_kintone_create_request(
+  catalog : @kintone_catalog.FormFieldCatalog,
+  records : Array[@kintone_catalog.RecordWriteValues],
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_catalog.RecordCreateRequest,
+  @kintone_catalog.RecordMutationIssue,
+] {
+  @kintone_catalog.prepare_record_create_request(catalog, records, limits)
+}
+
+///|
+#export_name("clientProgramKintoneCreateBody")
+pub fn client_program_kintone_create_body(
+  request : @kintone_catalog.RecordCreateRequest,
+) -> String {
+  @kintone_catalog.record_create_request_body(request)
+}
+
+///|
+#export_name("clientProgramKintoneCreateApp")
+pub fn client_program_kintone_create_app_id(
+  request : @kintone_catalog.RecordCreateRequest,
+) -> String {
+  @kintone_catalog.record_create_request_app_id(request)
+}
+
+///|
+#export_name("clientProgramKintoneCreateCount")
+pub fn client_program_kintone_create_count(
+  request : @kintone_catalog.RecordCreateRequest,
+) -> Int {
+  @kintone_catalog.record_create_request_count(request)
+}
+
+///|
+#export_name("clientProgramKintoneCreateResponse")
+pub fn client_program_kintone_create_response(
+  request : @kintone_catalog.RecordCreateRequest,
+  status : Int,
+  bytes : Bytes,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_catalog.RecordCreateAcknowledgement,
+  @kintone_catalog.RecordMutationIssue,
+] {
+  @kintone_catalog.project_record_create_acknowledgement(
+    request, status, bytes, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneCreateResponseRequest")
+pub fn client_program_kintone_create_response_request(
+  response : @kintone_catalog.RecordCreateAcknowledgement,
+) -> @kintone_catalog.RecordCreateRequest {
+  @kintone_catalog.record_create_acknowledgement_request(response)
+}
+
+///|
+#export_name("clientProgramKintoneCreateResponseRecords")
+pub fn client_program_kintone_create_response_records(
+  response : @kintone_catalog.RecordCreateAcknowledgement,
+) -> Array[(String, String)] {
+  @kintone_catalog.record_create_acknowledgement_records(response)
+}
+
+///|
+#export_name("clientProgramKintoneUpdateRequest")
+pub fn client_program_kintone_update_request(
+  records : Array[
+    (@kintone_catalog.OriginalRecordTarget, @kintone_catalog.RecordWriteValues),
+  ],
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_catalog.RecordUpdateRequest,
+  @kintone_catalog.RecordMutationIssue,
+] {
+  @kintone_catalog.prepare_record_update_request(records, limits)
+}
+
+///|
+#export_name("clientProgramKintoneUpdateBody")
+pub fn client_program_kintone_update_body(
+  request : @kintone_catalog.RecordUpdateRequest,
+) -> String {
+  @kintone_catalog.record_update_request_body(request)
+}
+
+///|
+#export_name("clientProgramKintoneUpdateApp")
+pub fn client_program_kintone_update_app_id(
+  request : @kintone_catalog.RecordUpdateRequest,
+) -> String {
+  @kintone_catalog.record_update_request_app_id(request)
+}
+
+///|
+#export_name("clientProgramKintoneUpdateCount")
+pub fn client_program_kintone_update_count(
+  request : @kintone_catalog.RecordUpdateRequest,
+) -> Int {
+  @kintone_catalog.record_update_request_count(request)
+}
+
+///|
+#export_name("clientProgramKintoneUpdateResponse")
+pub fn client_program_kintone_update_response(
+  request : @kintone_catalog.RecordUpdateRequest,
+  status : Int,
+  bytes : Bytes,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_catalog.RecordUpdateAcknowledgement,
+  @kintone_catalog.RecordMutationIssue,
+] {
+  @kintone_catalog.project_record_update_acknowledgement(
+    request, status, bytes, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneUpdateResponseRequest")
+pub fn client_program_kintone_update_response_request(
+  response : @kintone_catalog.RecordUpdateAcknowledgement,
+) -> @kintone_catalog.RecordUpdateRequest {
+  @kintone_catalog.record_update_acknowledgement_request(response)
+}
+
+///|
+#export_name("clientProgramKintoneUpdateResponseRecords")
+pub fn client_program_kintone_update_response_records(
+  response : @kintone_catalog.RecordUpdateAcknowledgement,
+) -> Array[(String, String)] {
+  @kintone_catalog.record_update_acknowledgement_records(response)
+}
+
+///|
+#export_name("clientProgramKintoneCreateRecheckForm")
+pub fn client_program_kintone_create_recheck_form(
+  request : @kintone_catalog.RecordCreateRequest,
+  bytes : Bytes,
+  limits : @kintone_catalog.FormFieldLimits,
+) -> Result[Unit, @kintone_catalog.RecordMutationIssue] {
+  @kintone_catalog.recheck_record_create_form(request, bytes, limits)
+}
+
+///|
+#export_name("clientProgramKintoneUpdateObservation")
+pub fn client_program_kintone_update_observation(
+  request : @kintone_catalog.RecordUpdateRequest,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_catalog.RecordDeleteRequest,
+  @kintone_catalog.RecordMutationIssue,
+] {
+  @kintone_catalog.record_update_request_observation(request, limits)
+}

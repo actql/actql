@@ -412,3 +412,24 @@ pub fn record_update_request_app_id(request : RecordUpdateRequest) -> String {
 pub fn record_update_request_count(request : RecordUpdateRequest) -> Int {
   request.records.length()
 }
+
+///|
+/// Same original Form/revision DATA only. Actual current authority and the
+/// physical response's request binding remain with the existing Site.
+pub fn recheck_record_create_form(
+  request : RecordCreateRequest,
+  bytes : Bytes,
+  limits : FormFieldLimits,
+) -> Result[Unit, RecordMutationIssue] {
+  recheck_original_record_form(request.catalog, bytes, limits)
+}
+
+///|
+/// Reuse the existing original-target observation without issuing a delete
+/// claim. The same target objects, not their JSON IDs, remain retained.
+pub fn record_update_request_observation(
+  request : RecordUpdateRequest,
+  limits : RecordMutationLimits,
+) -> Result[RecordDeleteRequest, RecordMutationIssue] {
+  prepare_record_delete_request(request.records.map(record => record.0), limits)
+}
