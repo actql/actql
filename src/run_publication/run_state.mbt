@@ -13,6 +13,21 @@ pub(all) enum RunOutcomeStatus {
 } derive(Eq, Debug)
 
 ///|
+fn read_run_outcome_status(value : String) -> RunOutcomeStatus? {
+  match value {
+    "preparing" => Some(Preparing)
+    "running" => Some(Running)
+    "waiting_checkpoint" => Some(WaitingCheckpoint)
+    "resuming" => Some(Resuming)
+    "needs_reconciliation" => Some(NeedsReconciliation)
+    "succeeded" => Some(Succeeded)
+    "failed" => Some(Failed)
+    "cancelled" => Some(Cancelled)
+    _ => None
+  }
+}
+
+///|
 pub(all) enum ResultAvailabilityState {
   Available
   Unavailable

@@ -884,6 +884,8 @@ pub fn run_publication_template_cid(RunPublicationAdmission) -> String
 
 pub fn run_wait_ready(String, Int64?, Int, Int, Int) -> Result[Bool, RunWaitIssue]
 
+pub fn run_wait_ready_until(String, Int64?, RunWaitUntil, Int, Int, Int) -> Result[Bool, RunWaitIssue]
+
 pub fn seal_completed_file_listing_observation(CompletedSourceObservationBody, Int, Array[CompletedFileListingReportRow]) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
 pub fn seal_completed_source_observation(CompletedSourceObservationBody) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
@@ -2140,6 +2142,11 @@ pub(all) enum RunStateObservationIssue {
 pub(all) enum RunWaitIssue {
   InvalidState
   InvalidSince
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RunWaitUntil {
+  Stable
+  Final
 } derive(Eq, @debug.Debug)
 
 pub(all) enum SourceInputLogicalIssue {
