@@ -117,6 +117,57 @@ test('one original operation binds every prepared request to its same raw regist
   assert.equal(ports.length, 2, 'cleanup never prepares or dispatches another request');
 });
 
+test('each original preflight can retain only its synchronous raw callback', async () => {
+  const setters = [], callbacks = [];
+  const f = fixture({preflight(_request, _context, retainBinder) {
+    setters.push(retainBinder);
+    if (setters.length === 1) {
+      retainBinder(value => {callbacks.push(value);});
+      assert.throws(() => retainBinder(() => assert.fail('replacement')),
+        /InferRawCaptureBinderUnavailable/u);
+    }
+  }, poll: () => true});
+  const original = f.open();
+  try {
+    f.bound()(f.request); f.bound()({});
+    assert.notEqual(setters[0], setters[1]);
+    assert.throws(() => setters[1](() => assert.fail('late callback')),
+      /InferRawCaptureBinderUnavailable/u);
+    const registration = {};
+    original.bindModelRawCapture(registration);
+    assert.deepEqual(callbacks, [registration]);
+  } finally { await original.close(); }
+  for (const retain of setters) {
+    assert.throws(() => retain(() => {}), /InferRawCaptureBinderUnavailable/u);
+  }
+});
+
+test('partial raw binding failure never retries children or acknowledges their cleanup', async () => {
+  const calls = [], failure = new Error('OriginalSecondRawBinderFailure');
+  let clean = false;
+  const f = fixture({preflight(_request, _context, retainBinder) {
+    const index = calls.length;
+    calls.push({index, bound: 0});
+    retainBinder(() => {
+      calls[index].bound++;
+      if (index === 1) throw failure;
+    });
+  }, poll: () => true, cleanup: () => clean});
+  const original = f.open();
+  for (const request of [f.request, {}, {}]) f.bound()(request);
+  assert.throws(() => original.bindModelRawCapture({}), error => error === failure);
+  assert.deepEqual(calls.map(call => call.bound), [1, 1, 0]);
+  assert.throws(() => original.bindModelRawCapture({}), /InferRawCaptureBindingUnavailable/u);
+  await assert.rejects(original.close(), {code: 'ClientDispatchCleanupPending'});
+  assert.equal(original.cleanupPending(), true);
+  assert.equal(f.notification.notify(), true, 'original wake remains until Core cleanup');
+  clean = true;
+  assert.equal(original.cleanup(), true);
+  assert.equal(f.notification.notify(), false);
+  assert.deepEqual(calls.map(call => call.bound), [1, 1, 0]);
+  assert.equal(f.counts().starts, 1, 'a failed fanout never creates another execution');
+});
+
 test('invalid raw binder does not replace the original pending preflight responsibility', async () => {
   let setter;
   const f = fixture({preflight(request, context, retainBinder) {
