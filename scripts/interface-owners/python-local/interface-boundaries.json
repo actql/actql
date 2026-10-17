@@ -29,7 +29,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_memory_abi.py",
-      "sha256": "7dc0344cea5f7ffc5a3beaaeda887bfd49c616ec2e844e6d3e2a77b175c7eabf",
+      "sha256": "cf3b792e125cc0e3100ce7ff2c142354809154269ab5e27de268d61aec45802f",
       "generator": {
         "path": "scripts/generate-local-native-memory-binding.py",
         "anchor": "def outputs("
@@ -53,7 +53,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_shim_abi.py",
-      "sha256": "a61c74e7a77c7da0dd8f1783783644619965b88ba6594f912445457a49784a9f",
+      "sha256": "a46fee43dfb0d460d933294956b2d6fd4b9ee9f7e05010075f3ce65e1e6ddb7c",
       "generator": {
         "path": "scripts/generate-local-native-shim-bindings.py",
         "anchor": "def render("
@@ -26483,6 +26483,8 @@
         "byref",
         "c_int",
         "c_int32",
+        "c_ubyte",
+        "c_uint16",
         "c_void_p",
         "current_thread",
         "dataclass",
@@ -26543,6 +26545,14 @@
         },
         {
           "async": false,
+          "name": "_OriginalControlCustody/_empty_original",
+          "parameters": [
+            "cls",
+            "functions"
+          ]
+        },
+        {
+          "async": false,
           "name": "_OriginalControlCustody/_enter",
           "parameters": [
             "self"
@@ -26560,6 +26570,25 @@
           "name": "_OriginalControlCustody/_mark_unknown",
           "parameters": [
             "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalControlCustody/_prepare_original",
+          "parameters": [
+            "cls",
+            "functions",
+            "source",
+            "recipe",
+            "generation",
+            "size",
+            "work",
+            "attempts",
+            "holdings",
+            "transfer",
+            "retained",
+            "execution",
+            "envelope"
           ]
         },
         {
@@ -26627,7 +26656,7 @@
           "parameters": []
         }
       ],
-      "sha256": "cb2620a2bdb49382f57e64870ffdf2b8a9af508df6fc0b789e47758a908744af",
+      "sha256": "b08a091fed400d839ad42ada92b6b054cbb42c5600b0c8d8772a814f1a47ab91",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -26786,9 +26815,11 @@
             "_OriginalControlCustody/__deepcopy__",
             "_OriginalControlCustody/__reduce__",
             "_OriginalControlCustody/_drop",
+            "_OriginalControlCustody/_empty_original",
             "_OriginalControlCustody/_enter",
             "_OriginalControlCustody/_fact",
             "_OriginalControlCustody/_mark_unknown",
+            "_OriginalControlCustody/_prepare_original",
             "_OriginalControlCustody/_take_original_reply",
             "_OriginalControlCustody/acquire_fd",
             "_OriginalControlCustody/close",
@@ -26812,6 +26843,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Installed Host root capacity"
+              },
+              {
+                "path": "packages/python-local-runtime/native/pre-root/README.md",
+                "anchor": "## Private compiler parent assembly"
               }
             ],
             "inputsOutputs": [
@@ -26830,6 +26865,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Installed Host root capacity"
+              },
+              {
+                "path": "packages/python-local-runtime/native/pre-root/README.md",
+                "anchor": "## Private compiler parent assembly"
               }
             ],
             "identity": [
@@ -26844,6 +26883,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "packages/python-local-runtime/native/pre-root/README.md",
+                "anchor": "## Private compiler parent assembly"
               }
             ],
             "ownership": [
@@ -26858,6 +26901,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "packages/python-local-runtime/native/pre-root/README.md",
+                "anchor": "## Private compiler parent assembly"
               }
             ],
             "synchronization": [
@@ -26868,6 +26915,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_control_custody.py",
                 "anchor": "class _OriginalControlCustody:"
+              },
+              {
+                "path": "packages/python-local-runtime/native/pre-root/README.md",
+                "anchor": "## Private compiler parent assembly"
               }
             ],
             "failure": [
@@ -26882,6 +26933,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "packages/python-local-runtime/native/pre-root/README.md",
+                "anchor": "## Private compiler parent assembly"
               }
             ],
             "cancellation": [
@@ -26892,6 +26947,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_control_custody.py",
                 "anchor": "class _OriginalControlCustody:"
+              },
+              {
+                "path": "packages/python-local-runtime/native/pre-root/README.md",
+                "anchor": "## Private compiler parent assembly"
               }
             ],
             "resources": [
@@ -26906,6 +26965,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "packages/python-local-runtime/native/pre-root/README.md",
+                "anchor": "## Private compiler parent assembly"
               }
             ],
             "extension": [
@@ -26916,6 +26979,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_control_custody.py",
                 "anchor": "class _OriginalControlCustody:"
+              },
+              {
+                "path": "packages/python-local-runtime/native/pre-root/README.md",
+                "anchor": "## Private compiler parent assembly"
               }
             ],
             "verification": [
@@ -26934,6 +27001,18 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_control_custody.py",
                 "anchor": "class _OriginalControlCustody:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_control_custody.py",
+                "anchor": "def test_lost_preparation_keeps_same_reply_and_never_calls_acquire_or_capture("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_compiler_parent.py",
+                "anchor": "def test_original_transfer_reply_loss_retains_same_domain_before_material("
+              },
+              {
+                "path": "scripts/fixtures/python-native-compiler-parent.py",
+                "anchor": "parent=compiler._acquire_compiler_parent(value,selected,fd)"
               }
             ]
           }
@@ -27398,6 +27477,8 @@
             "byref",
             "c_int",
             "c_int32",
+            "c_ubyte",
+            "c_uint16",
             "c_void_p",
             "current_thread",
             "dataclass",
@@ -32783,7 +32864,7 @@
           ]
         }
       ],
-      "sha256": "7dc0344cea5f7ffc5a3beaaeda887bfd49c616ec2e844e6d3e2a77b175c7eabf",
+      "sha256": "cf3b792e125cc0e3100ce7ff2c142354809154269ab5e27de268d61aec45802f",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -35470,7 +35551,7 @@
           ]
         }
       ],
-      "sha256": "a61c74e7a77c7da0dd8f1783783644619965b88ba6594f912445457a49784a9f",
+      "sha256": "a46fee43dfb0d460d933294956b2d6fd4b9ee9f7e05010075f3ce65e1e6ddb7c",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
