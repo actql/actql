@@ -55,7 +55,8 @@ const columns = [
   {name: 'metadata', contract: {type: 'json', nullable: true}},
 ];
 
-test('public GCS Named Result preserves exact Decimal and JSON contracts across same-Run Host reopening', async t => {
+for (const captureSort of [false, true]) {
+test(`public GCS Named Result preserves exact Decimal and JSON across same-Run reopening (${captureSort ? 'capture assertion and sort' : 'capture assertion'})`, async t => {
   const scratch = await createOwnedScratch({parent: new URL('../../../../_build/', import.meta.url).pathname,
     prefix: 'gcs-public-typed-result-', label: 'GCS public typed Result'});
   const owner = userInfo().username;
@@ -146,10 +147,12 @@ test('public GCS Named Result preserves exact Decimal and JSON contracts across 
     inputs: {objects: {connector: 'storage', resource: 'objects', view: 'records', request: {prefix: null}}},
     steps: [{from: 'objects', filter: 'true', as: 'listed'},
       {from: 'listed', select: fields, as: 'rows'},
-      {from: 'rows', assert_rows: {unique_by: ['name']}, as: 'unique_names'}],
-    results: {r: {from: 'unique_names', fields}}}, {id: 'compute',
+      {from: 'rows', assert_rows: {unique_by: ['name']}, as: 'unique_names'},
+      ...(captureSort ? [{from: 'unique_names', sort: [{name: 'asc'}], as: 'ordered_capture'}] : [])],
+    results: {r: {from: captureSort ? 'ordered_capture' : 'unique_names', fields}}}, {id: 'compute',
     inputs: {rows: {result: {stage: 'scan', result: 'r'}}},
-    steps: [{from: 'rows', sort: [{name: 'asc'}], as: 'ordered'}],
+    steps: [captureSort ? {from: 'rows', select: fields, as: 'ordered'}
+      : {from: 'rows', sort: [{name: 'asc'}], as: 'ordered'}],
     results: {r: {from: 'ordered', fields}}}], results: {r: {from: {stage: 'compute', result: 'r'}}}};
   const checkedEnvironment = moon.clientProgramCheckEnvironment(environment.wire,
     environment.evidenceCid, false, false, true, false, false, false, false);
@@ -164,7 +167,6 @@ test('public GCS Named Result preserves exact Decimal and JSON contracts across 
   const state = await run.wait({signal: AbortSignal.timeout(15000)});
   assert.equal(state.status, 'succeeded', inspect({state, events},
     {depth: 12, maxArrayLength: 8, maxStringLength: 200}).slice(0, 12000));
-  assert.equal(state.control.physical_stop, 'confirmed');
   const description = await run.result('r').describe();
   assert.deepEqual(description.columns, columns);
   assert.deepEqual(await run.result('r').all(), expected);
@@ -180,10 +182,15 @@ test('public GCS Named Result preserves exact Decimal and JSON contracts across 
   assert.deepEqual(attached.ref, originalRef);
   assert.deepEqual(await attached.result('r').describe(), description);
   assert.deepEqual(await attached.result('r').all(), expected);
-  assert.equal((await attached.status()).status, 'succeeded');
+  const reopenedState = await attached.status();
+  assert.equal(reopenedState.status, 'succeeded');
+  // Terminal publication may precede the dispatch cleanup observation.
+  // Require its real stop confirmation only after the original Host close.
+  assert.equal(reopenedState.control.physical_stop, 'confirmed');
   assert.equal(acquisitions, 1);
   assert.equal(calls, 2, 'reopening reads the original committed Result, never a new provider generation');
   await client.close();
   client = undefined;
   scratch.passed();
 });
+}
