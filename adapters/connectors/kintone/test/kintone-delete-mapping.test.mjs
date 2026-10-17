@@ -39,7 +39,15 @@ test('actual Common runtime derives delete Mapping from the original declared Ap
   assert.equal(value.target_ref, 'connector://kintone/inquiries');
   assert.equal(value.primary_identity, '$id');
   assert.deepEqual(value.target_schema.fields, {$id: {nullable: false, type: 'string'},
-    Subject: {nullable: true, type: 'string'}});
+    Subject: {nullable: false, type: 'string'}});
+  // Compare with the same original issued declaration, not a guessed native
+  // nullable flag or a second schema issuer. SINGLE_LINE_TEXT uses empty text.
+  const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(
+    moon.clientProgramKintoneRecordDeclaration(original)));
+  const schema = declared.contracts.map(wire => JSON.parse(wire)).find(
+    entry => entry.cid === declared.views[0].carrier_schema_cid);
+  assert.equal(schema.body.version, 'actql-relation-schema/0.1');
+  assert.deepEqual(value.target_schema.fields, schema.body.fields);
   assert.deepEqual(value.writable_fields, []);
   assert.deepEqual(value.row_mapping, {});
   assert.deepEqual(value.permission_rules, [{effect_kind: 'delete',
