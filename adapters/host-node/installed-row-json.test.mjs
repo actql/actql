@@ -194,17 +194,24 @@ async function installationFor(t, {changeRequestValue, payloadContract, beforePa
             return {request, requestCid: requestCid(request)};
           },
           ...(requestChildMode === undefined ? {} : {prepareRequestChild(context) {
-            const original = {context, pending: true, prepares: 0, releases: 0};
+            const original = {context, pending: true, prepares: 0, releases: 0,
+              allowRetire: requestChildMode !== 'pending-failure'};
             requestChildren.push(original);
-            const retire = () => { original.releases++; original.pending = false; };
+            const retire = () => {
+              original.releases++;
+              if (!original.allowRetire) return false;
+              original.pending = false;
+            };
             return Object.freeze({
               async prepare() {
                 original.prepares++;
                 assert.equal(context.rowIndex, 0);
                 // A substituted argument cannot choose another row's grant.
-                await context.authorizationForRow(999);
+                const authorization = await context.authorizationForRow(999);
+                assert.match(authorization.useId, /-0-\d+$/u,
+                  'the child cannot substitute another row index into its read use');
                 const observed = structuredClone(before);
-                if (requestChildMode === 'failure') {
+                if (requestChildMode === 'failure' || requestChildMode === 'pending-failure') {
                   throw Object.assign(new Error('FixtureGuardedPrepareFailed'),
                     {code: 'FixtureGuardedPrepareFailed'});
                 }
@@ -331,6 +338,37 @@ test('guarded request child is not created when the original target read is deni
   assert.equal(installation.readGrants(), 0);
   assert.equal(installation.writeGrants(), 0);
   assert.deepEqual(installation.sends, []);
+});
+
+test('guarded child cleanup pending retains the same failure and original cleanup handle', async t => {
+  const installation = await installationFor(t, {requestChildMode: 'pending-failure'});
+  const host = await effectHost(t, installation, join(installation.root, 'host'),
+    {effect: await installation.load()});
+  const failed = await host.run(programFor({next: true}), 'guarded-child-pending')
+    .then(() => undefined, error => error);
+  assert.equal(failed?.cleanupPending, true, diagnostic(failed));
+  assert.equal(failed.primaryFailure?.code, 'FixtureGuardedPrepareFailed');
+  assert.equal(installation.requestChildren.length, 1);
+  const child = installation.requestChildren[0];
+  assert.equal(child.pending, true);
+  const handle = failed.cleanupHandle;
+  assert.ok(handle);
+  try {
+    const held = await handle.retry();
+    assert.equal(held.pending, true);
+    assert.equal(failed.cleanupHandle, handle);
+    assert.equal(child.pending, true);
+    assert.equal(child.prepares, 1);
+    assert.equal(installation.readGrants(), 1);
+    assert.equal(installation.writeGrants(), 0);
+    assert.deepEqual(installation.sends, []);
+  } finally {
+    child.allowRetire = true;
+    const closed = await handle.retry();
+    assert.equal(closed.pending, false);
+    assert.equal(child.pending, false);
+    assert.equal(child.prepares, 1);
+  }
 });
 
 test('installed JSON update preserves approved value and exact recovered outcome keys',
