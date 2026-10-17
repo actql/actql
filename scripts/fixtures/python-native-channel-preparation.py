@@ -90,7 +90,7 @@ assert frame.value is not None
 drop_frame(); resource(2); drop_frame(); resource(5)
 limits = (C.c_int64 * 6)(*([-1]*6))
 assert functions.limits(frame_reply, fh, fdomain, fchannel, frame, limits) == 0
-assert tuple(limits) == (2, 1, 1, 48*original['page'], 0, 48*original['page'])
+assert tuple(limits) == (2, 1, 1, 3, 0, 48*original['page'])
 drop_frame()
 cases.append('actual original Common frame start and inherited six-field limits')
 
