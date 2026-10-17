@@ -164,7 +164,9 @@ Explicit parent close is distinct from successful temporary encoder cleanup.
 Even when temporary duties already completed, close first forbids new original
 selections. Once those same duties have retired, it drops only the family's
 selection alias; durable Store bytes and escaped originals/borrowers keep their
-existing custody. Close, cancellation and the cleanup flag are not physical
+existing custody. The same rule applies when close awaited the original
+generation flight and that flight completed temporary cleanup before returning.
+Close, cancellation and the cleanup flag are not physical
 holding retirement or permission to return another owner's allocation.
 
 The additional family reference and restored-result field keep candidate,

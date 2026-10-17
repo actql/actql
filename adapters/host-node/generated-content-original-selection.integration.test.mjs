@@ -264,7 +264,7 @@ test('source probe retires the family alias when explicit close awaited the same
   });
   await f.generate();
   assert.equal(await closing, true);
-  assert.deepEqual(returns, [true], 'the post-flight cleaned return drops its own selection alias');
+  assert.deepEqual(returns.slice(), [true], 'the post-flight cleaned return drops its own selection alias');
   assert.equal(f.owner.cleanupPending(), false);
   assert.equal(f.generated.store.status().storedBytes, 3);
   assert.ok(await f.generated.store.inspectPhysicalHolding(f.holdingCid));

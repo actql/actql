@@ -80,7 +80,10 @@ export function installEffectContentFamily({moon, control, publications, bodies,
       return true;
     }
     if (flight !== undefined) await flight.catch(() => {});
-    if (cleaned) return true;
+    if (cleaned) {
+      storedOriginal = undefined;
+      return true;
+    }
     if (failureCleanup !== undefined) {
       if ((await failureCleanup.retry()).pending) return false;
       failureCleanup = undefined;

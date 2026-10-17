@@ -28197,7 +28197,7 @@
     {
       "module": "adapters/host-node/installed-content-family.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9be635f315352b243e5940d0cd94518ed786c6fc844c4553a976b4b2463e8fe8",
+      "sha256": "b633645b11789c1b893e8fc3f6fdd0ff35cfcc8a4f02dcd8cc47e33336aa8650",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -28606,6 +28606,10 @@
               {
                 "path": "adapters/host-node/generated-content-original-selection.integration.test.mjs",
                 "anchor": "test('explicit family close refuses new original handoffs after temporary generation cleanup'"
+              },
+              {
+                "path": "adapters/host-node/generated-content-original-selection.integration.test.mjs",
+                "anchor": "test('source probe retires the family alias when explicit close awaited the same completing flight'"
               }
             ]
           }
