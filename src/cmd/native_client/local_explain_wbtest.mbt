@@ -267,3 +267,200 @@ test "Native Effect explain preserves the complete wire limit without changing t
   }
   assert_eq(local_static_plan_view(preparation), wire)
 }
+
+///|
+test "Native human explain displays original logical occurrences without choosing placement" {
+  let wire = local_static_plan_view(
+    explain_fixture(explain_fixture_chain, Json),
+  )
+  let display = local_explain_reply(wire, false)
+  assert_true(display.has_prefix("ActQL EXPLAIN · static\n"))
+  assert_true(
+    display.contains("Run: not started by EXPLAIN\nProvider I/O: 0\n"),
+  )
+  assert_true(display.contains("Logical occurrences: 3\n"))
+  for operator in ["values", "filter", "select"] {
+    assert_true(display.contains("Operator: \"" + operator + "\"\n"))
+  }
+  for name in ["original", "filtered", "selected"] {
+    assert_true(display.contains("Names: [\"" + name + "\"]\n"))
+  }
+  assert_true(
+    display.contains(
+      "Site / Engine / pushdown: not represented in this static projection\n",
+    ),
+  )
+  assert_false(display.contains("Engine: DuckDB"))
+  assert_false(display.contains("Pushdown: selected"))
+  assert_false(display.contains("Actual rows:"))
+}
+
+///|
+test "Native human explain preserves every original port locator without adjacency edges" {
+  let wire = local_static_plan_view(
+    explain_fixture(explain_fixture_chain, Json),
+  )
+  let display = local_explain_reply(wire, false)
+  let value = @json.parse(wire) catch { _ => fail("invalid original Plan") }
+  let map = local_explain_field(value, "logical_map")
+  for step in local_explain_items(local_explain_field(map, "steps")) {
+    assert_true(
+      display.contains(
+        "Step " + local_explain_literal(local_explain_field(step, "step_id")),
+      ),
+    )
+    for port in local_explain_items(local_explain_field(step, "ports")) {
+      assert_true(
+        display.contains(
+          "Source: " +
+          local_explain_literal(local_explain_field(port, "source")) +
+          "\n",
+        ),
+      )
+    }
+  }
+  assert_false(display.contains("[1] -> [2]"))
+  assert_false(display.contains("Dependencies: previous"))
+}
+
+///|
+test "Native human Effect explain preserves declared targets and unknown decisions" {
+  let wire = local_static_plan_view(explain_update_fixture())
+  let display = local_explain_reply(wire, false)
+  assert_true(
+    display.contains(
+      "computation CID above covers only its computation component",
+    ),
+  )
+  assert_true(display.contains("Unit: \"source\"\n"))
+  assert_true(display.contains("Effect \"save\" \"update\"\n"))
+  assert_true(
+    display.contains("\"declared_target\":\"connector://crm/account\""),
+  )
+  assert_true(
+    display.contains("\"kind\":\"contract_minimum\",\"value\":\"none\""),
+  )
+  assert_true(
+    display.contains(
+      "A contract minimum is not current permission or an approval decision.",
+    ),
+  )
+  for
+    label in [
+      "Permission", "Gate", "Approval", "Resolved targets", "Changed values",
+    ] {
+    assert_true(
+      display.contains(
+        label + ": {\"reason\":\"not_observed\",\"state\":\"unknown\"}\n",
+      ),
+    )
+  }
+  assert_true(
+    display.contains(
+      "Preview: {\"reason\":\"not_sealed\",\"state\":\"unavailable\"}\n",
+    ),
+  )
+  assert_false(display.contains("Permission: allowed"))
+  assert_false(display.contains("Checkpoint: none"))
+}
+
+///|
+test "Native human Effect explain does not turn required approval into a human-only gate" {
+  let wire = local_static_plan_view(
+    @local_host.native_client_submitted_preparation(
+      local_effect_prefix_fixture_preparation(),
+    ),
+  )
+  let display = local_explain_reply(wire, false)
+  assert_true(
+    display.contains("\"kind\":\"contract_minimum\",\"value\":\"required\""),
+  )
+  assert_true(
+    display.contains(
+      "Approval: {\"reason\":\"not_observed\",\"state\":\"unknown\"}",
+    ),
+  )
+  assert_false(display.contains("human approval required"))
+}
+
+///|
+test "Native explain JSON preserves the exact original response in both alternatives" {
+  for
+    prepared in [
+      explain_fixture("SELECT 1 AS n", Sql),
+      explain_update_fixture(),
+    ] {
+    let wire = local_static_plan_view(prepared)
+    assert_eq(local_explain_reply(wire, true), wire)
+    ignore(local_explain_reply(wire, false))
+    assert_eq(local_static_plan_view(prepared), wire)
+  }
+}
+
+///|
+test "Native human explain quotes authored terminal controls without executing them" {
+  assert_eq(
+    local_explain_literal(Json::string("name\n\r\t\u001b[31m\"\\")),
+    "\"name\\n\\r\\t\\u001b[31m\\\"\\\\\"",
+  )
+  let wire = local_static_plan_view(
+    explain_fixture(explain_fixture_chain, Json),
+  )
+  // A shape-only display vector, not a new compiler original or authority.
+  let changed = wire.replace(
+    old="\"names\":[\"original\"]",
+    new="\"names\":[\"name\\n\\u001b[31m\"]",
+  )
+  assert_true(changed != wire)
+  let display = local_explain_reply(changed, false)
+  assert_true(display.contains("Names: [\"name\\n\\u001b[31m\"]\n"))
+  assert_false(display.contains("\u001b"))
+}
+
+///|
+test "Native human explain rejects malformed closed views instead of displaying partial facts" {
+  let wire = local_static_plan_view(explain_fixture("SELECT 1 AS n", Sql))
+  for
+    rejected in [
+      "{}",
+      wire.replace(old="actql-plan-view/0.1", new="unknown-plan"),
+      wire.replace(old="\"provider_io\":0", new="\"provider_io\":1"),
+      wire.replace(
+        old="\"provider_io\":0",
+        new="\"provider_io\":0,\"provider_io\":0",
+      ),
+      wire.replace(old="\"static_plan\":true", new="\"static_plan\":null"),
+    ] {
+    assert_true(rejected != wire)
+    let issue = try {
+      ignore(local_explain_reply(rejected, false))
+      "unexpected success"
+    } catch {
+      ClientStop(message) => message
+    }
+    assert_true(
+      issue == "LocalExplainDisplayUnavailable" ||
+      issue == "LocalInputNotAdmitted",
+    )
+  }
+}
+
+///|
+test "Native human explain admits the exact UTF8 display bound and refuses one byte less" {
+  let wire = local_static_plan_view(
+    explain_fixture(explain_fixture_chain, Json),
+  )
+  let display = local_explain_reply(wire, false)
+  let bytes = @utf8.encode(display).length()
+  assert_eq(local_explain_reply(wire, false, max_bytes=bytes), display)
+  for bound in [bytes - 1, 0, -1] {
+    let issue = try {
+      ignore(local_explain_reply(wire, false, max_bytes=bound))
+      "unexpected success"
+    } catch {
+      ClientStop(message) => message
+    }
+    assert_eq(issue, "LocalExplainDisplayLimit")
+  }
+  assert_eq(local_explain_reply(wire, true), wire)
+}

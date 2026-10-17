@@ -20,6 +20,8 @@ fn request_lookup_fixture(
   name : String,
   read? : Bool = true,
   existing? : Bool = false,
+  submit? : Bool = true,
+  ttl_ms? : Double = 100.0,
 ) -> (
   @local_host.NativeLocalHostConnection,
   LocalHostSettings,
@@ -41,7 +43,17 @@ fn request_lookup_fixture(
       @local_filesystem.open_private_root(root),
       "files",
     )
-    let operations = if read { "[\"read\",\"submit\"]" } else { "[\"submit\"]" }
+    let operations = if read {
+      if submit {
+        "[\"read\",\"submit\"]"
+      } else {
+        "[\"read\"]"
+      }
+    } else if submit {
+      "[\"submit\"]"
+    } else {
+      "[]"
+    }
     let body = @utf8.encode(
       "{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"operator\",\"entries\":[{\"entry_id\":\"request-lookup\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"cli\"]},\"resource\":{\"any_of\":[\"run\"]},\"operation\":{\"any_of\":" +
       operations +
@@ -84,7 +96,7 @@ fn request_lookup_fixture(
     "adoption",
   )
   let host = request_lookup_ok(
-    session.open_journal(sqlite, crypto, 100.0, 8, 8388608L),
+    session.open_journal(sqlite, crypto, ttl_ms, 8, 8388608L),
     "journal.open",
   )
   let settings : LocalHostSettings = {
@@ -97,7 +109,7 @@ fn request_lookup_fixture(
     managed_root: root,
     sqlite_library: sqlite_path,
     signature_library: crypto_path,
-    ttl_ms: 100.0,
+    ttl_ms,
     record_limit: 8,
     snapshot_bytes: 8388608L,
     installation_files: [],
