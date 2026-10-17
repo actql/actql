@@ -193,3 +193,48 @@ pub fn client_program_kintone_delete_mapping_matches_request(
 ) -> Bool {
   @kintone_host.record_delete_mapping_matches_request(mapping, request)
 }
+
+///|
+#export_name("clientProgramKintonePrepareDeletePreview")
+pub fn client_program_kintone_prepare_delete_preview(
+  mapping : @kintone_host.RecordDeleteMapping,
+  target : @kintone_catalog.OriginalRecordTarget,
+  values : @kintone_catalog.RecordValueLimits,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[@kintone_host.RecordDeletePreview, @kintone_host.RecordReadIssue] {
+  @kintone_host.prepare_record_delete_preview(mapping, target, values, limits)
+}
+
+///|
+#export_name("clientProgramKintoneDeletePreviewIdentity")
+pub fn client_program_kintone_delete_preview_identity(
+  view : @kintone_host.RecordDeletePreview,
+) -> String {
+  @kintone_host.record_delete_preview_identity(view)
+}
+
+///|
+#export_name("clientProgramKintoneDeletePreviewVersionCid")
+pub fn client_program_kintone_delete_preview_version_cid(
+  view : @kintone_host.RecordDeletePreview,
+) -> String {
+  @kintone_host.record_delete_preview_version_cid(view)
+}
+
+///|
+#export_name("clientProgramKintoneDeletePreviewBefore")
+pub fn client_program_kintone_delete_preview_before(
+  view : @kintone_host.RecordDeletePreview,
+) -> String {
+  @kintone_host.record_delete_preview_before_wire(view)
+}
+
+///|
+#export_name("clientProgramKintoneDeletePreviewMatches")
+pub fn client_program_kintone_delete_preview_matches(
+  view : @kintone_host.RecordDeletePreview,
+  mapping : @kintone_host.RecordDeleteMapping,
+  target : @kintone_catalog.OriginalRecordTarget,
+) -> Bool {
+  @kintone_host.record_delete_preview_matches(view, mapping, target)
+}

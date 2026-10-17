@@ -167,3 +167,61 @@ Catalog is regenerated to make a request match.
   originals. `kintone-delete-mapping.test.mjs` consumes the actual Common bridge
   and compares its schema with that same issued declaration. These checks do
   not claim installed approved vendor deletion, reconciliation or full funding.
+
+## Original checked deletion before-data
+
+`RecordDeletePreview` is private vendor before DATA, not the sealed Common
+Effect Preview or an approval. Its constructor requires the same original
+Mapping/Form and complete selected record page, checks values through the
+existing Catalog/ValueContract admission, and retains the exact original
+Mapping, target and checked page. A separately issued equal target or Mapping
+cannot replace those originals in its correspondence check.
+
+Before values are emitted by the existing checked-value writer under positive
+caller bounds. The original admitted column order is preserved; no canonical
+key sort is guessed. Array order and duplicates remain unchanged, and checked
+Decimal/date/timestamp wire meaning is not reconstructed through Double or
+JavaScript JSON. The generic Effect Owner separately canonicalizes the
+resulting object when sealing its Preview.
+
+The version guard is the ordinary SHA-256 fingerprint of the encoded three
+original strings `[appId, apiRecordId, revision]`. ID and revision never pass
+through a Number conversion, display Record Number or current time. This is
+version DATA within the already bound target/installation; a matching digest
+cannot establish remote provenance, current authorization or application.
+Only the actual authenticated Site may label the original response, and the
+existing Effect Owner must recheck the original target/version before claim.
+
+### Deletion before-data interface responsibilities
+
+- Responsibility: the existing vendor Catalog and typed Mapping project
+  original checked before DATA; the existing Effect Owner seals and approves
+  the actual Preview, while the Site owns physical observations.
+- Inputs and outputs: original Mapping/target, positive checked-value limits
+  and mutation/output bounds return private before/guard DATA or typed refusal.
+- Identity: the complete original Catalog/field selection and physical original
+  Mapping/target stay matched; exact App/API ID/revision strings bind the
+  version fingerprint without a new identity, wire or CID version authority.
+- Ownership: original Form/declaration/page, checked page and original target
+  remain retained beside before/guard text; no new cleanup Owner is issued.
+- Synchronization: projection is synchronous DATA only. Actual current, read
+  decisions, Site generation, response correspondence and approval must still
+  be checked by their existing Owners around every awaited physical action.
+- Failure: foreign originals, incomplete fields and exhausted identity,
+  comparison, value or output bounds return no partial before-data handle.
+  A successful projection cannot classify missing or uncertain physical I/O.
+- Cancellation: projection completion is not stop, release or cleanup ACK;
+  the capture child must retain its original physical dependencies until ACK.
+- Resources: original page/Form/declaration, copied record/column/row arrays,
+  checked matrix, original target, before writer/output and version hash
+  workspace can overlap. The returned view retains the complete checked page.
+  These positive bounds are not whole-phase reservations or a normal profile.
+- Extension: same-runtime Node/RelA forwards only the original opaque values.
+  The generic child currently has no adopted Effect response charge/holding
+  supplier; result-retention policy and Source RowRun closures cannot replace
+  it. Missing physical funding must remain unavailable before target I/O,
+  without a fabricated RowRun, Ledger or unaccounted legacy fallback.
+- Verification: vendor whitebox and actual Common Node consumers cover exact
+  before values, array order/duplicates, separate equal originals, wide
+  revision changes and finite refusal. They do not establish actual provider
+  observations, approved physical deletion, reconciliation or installed support.
