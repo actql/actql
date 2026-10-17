@@ -39,6 +39,9 @@ fn notion_read_scalar_value(
   max_input_units : Int,
 ) -> Result[@source.Value, NotionReadCellIssue] {
   let name = column.property.id
+  if max_input_units <= 0 {
+    return Err(BudgetExceeded)
+  }
   let mut cursor = property.value
   let kind = column.property.kind
   if ["title", "rich_text", "people", "relation"].contains(kind) {
@@ -62,6 +65,12 @@ fn notion_read_scalar_value(
     cursor = value
   }
   if @decode.is_null(cursor) {
+    if [
+        "checkbox", "created_time", "last_edited_time", "created_by", "last_edited_by",
+        "unique_id",
+      ].contains(kind) {
+      return Err(InvalidCell(name))
+    }
     return Ok(Null)
   }
   match column.contract.shape {
@@ -94,7 +103,12 @@ fn notion_read_scalar_value(
         return Err(UnsupportedProperty(name))
       }
       match @decode.text(cursor) {
-        Ok(value) => Ok(String(value))
+        Ok(value) =>
+          if value.length() <= max_input_units {
+            Ok(String(value))
+          } else {
+            Err(BudgetExceeded)
+          }
         Err(_) => Err(InvalidCell(name))
       }
     }
@@ -112,6 +126,9 @@ fn notion_read_scalar_value(
         // Named-zone material needs its actual admitted TZDB owner. It is
         // never interpreted through process-local timezone/offset defaults.
         return Err(InvalidCell(name))
+      }
+      if binding.columns.length() > max_input_units {
+        return Err(BudgetExceeded)
       }
       let field = if column.projection == Start { "start" } else { "end" }
       if column.projection == Start &&
