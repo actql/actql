@@ -160,6 +160,7 @@ test('same original material authenticates once then the original parent API use
   assert.equal(records.find(x => x.useId === 'original-parent').useCid, f.parentClaim.record.useCid);
   await assert.rejects(f.exchange(), {code: 'RemoteCredentialAuthenticationAlreadyClaimed'});
   await assert.rejects(f.resource(), {code: 'RemoteCredentialUseAlreadyClaimed'});
+  assert.deepEqual(f.journal.recover().map(x => x.outcome), ['succeeded', 'succeeded']);
   assert.equal(f.tokenRequests(), 1); assert.equal(f.resourceRequests(), 1);
 });
 
@@ -206,6 +207,7 @@ test('a lost token reply is the same original Unknown without refresh claim or r
   const reopened = f.opens();
   assert.equal(reopened.recover().find(x => x.useId === 'original-auth').outcome, 'unknown'); reopened.close();
   await assert.rejects(f.exchange(), {code: 'RemoteCredentialAuthenticationAlreadyClaimed'});
+  assert.equal(f.journal.recover().find(x => x.useId === 'original-auth').outcome, 'unknown');
   await assert.rejects(f.resource(), {code: 'RemoteCredentialAuthenticationUnavailable'});
   assert.equal(f.tokenRequests(), 1); assert.equal(f.resourceRequests(), 0);
 });
