@@ -121,6 +121,32 @@ original bounded capture/cleanup. `installed-row-observation.test.mjs` consumes
 the compiled Node bridge with an in-process driver; it does not test HTTP,
 credential authorization, a normal tarball, or live HubSpot.
 
+
+## Installed Row Site physical custody
+
+`openRowSourceCredentialSite` and the Salesforce compatibility entry share
+`openRowSourceCredentialCustody` for the original credential journal, Common
+scope preparation, signing and physical retirement. The trusted installation
+still validates its profile and key before opening that journal; the helper
+is a private Host port and does not decide or widen any operation's authority.
+The existing original decision, current issuer and Checkpoint entry fences
+remain with their respective Site admission paths.
+
+The shared signer preserves all scope members and the original task attempt.
+Ordinary Row Sites keep task attempt 1; Salesforce retains its explicit task
+attempt, org facts, origin and diagnostic classifications. Its private profile
+projection adds the original `instanceOrigin` as `resourceOrigin`; it does not
+regenerate the Account context, Site binding or any canonical contract. The
+original profile and this projection, key/control/journal, pending scope and
+signed envelope can overlap in the caller lifetime. This code movement is no
+numeric reservation, baseline or zero-cost assertion.
+
+Closing rejects new operations before the original journal closes. A failed
+close retains the same journal and cleanup responsibility. Salesforce's
+existing compatibility entry skips a confirmed close; the generic entry keeps
+its original idempotent journal-close invocation. Neither a cancellation,
+closed Site nor thrown diagnostic is a physical release acknowledgement.
+
 ## Google service-account assertion preparation
 
 The Google setup consumes the existing Credential and installed Site owners.

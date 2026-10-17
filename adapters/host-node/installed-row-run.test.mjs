@@ -581,3 +581,26 @@ for (const accounted of [false, true]) {
       assert.deepEqual(f.names(), [f.startName]);
     });
 }
+
+
+test('cleanup advance refusal retries the original close and preserves its failure until ACK', async () => {
+  const f = rowRunFixture({accounted: true});
+  const owner = f.start();
+  const failure = f.fail(f.closeName, {times: 2, checked: true});
+  const state = {};
+  owner.closeAfterFailure(state);
+  f.respond('clientProgramRowSourceCaptureCleanupAdvance',
+    {$tag: 0, _0: token('original-run-not-closed')});
+  await assert.rejects(state.recovery.cleanup(), error =>
+    error.code === 'MoonBitHostFailure' && error.cause === failure);
+  assert.equal(state.recovery.cleanupPending(), true);
+  assert.equal(f.count(f.closeName), 2);
+  assert.equal(f.count('clientProgramRowSourceCaptureCleanup'), 0);
+  assert.equal(await state.recovery.cleanup(), true);
+  assert.equal(state.recovery.cleanupPending(), false);
+  assert.equal(f.count(f.closeName), 3);
+  assert.equal(f.count('clientProgramRowSourceCaptureCleanup'), 1);
+  assert.equal(await state.recovery.cleanup(), true);
+  assert.equal(f.count(f.closeName), 3);
+  assert.equal(f.count(f.startName), 1);
+});
