@@ -5642,7 +5642,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4bfa9c71baffa0aa9dc44d759241ee1568d3164bdc4c57e0218d1b3a3f9c70a2",
+      "sha256": "00c4346bdf43d38c6cc3f92d304963abdb7e8273bacc5762eb6bea4170e42c6d",
       "role": "connector-semantics",
       "owner": "GitHub comment installation and Mapping/subject wiring under Common row Effect, Preview and Ledger",
       "exports": [
@@ -5972,6 +5972,10 @@
               {
                 "path": "adapters/connectors/github/test/github-comment-effect.integration.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/connector-configuration-bounds.test.mjs",
+                "anchor": "GitHub Source and Effect identity"
               }
             ]
           }
@@ -5981,7 +5985,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "55ae0545ced3a141714db6af8bb785b823a3f8559425e1da73677f141f38c93b",
+      "sha256": "a565181cb1ec181524f0968b8c17106632632b223b7fd90bd48da253f2253d5e",
       "role": "connector-semantics",
       "owner": "Published stable repository identity and installed Issue Source; Host RowSource owns capture and disclosure",
       "exports": [
@@ -6283,6 +6287,10 @@
               {
                 "path": "adapters/connectors/github/test/github-publication-cleanup.test.mjs",
                 "anchor": "GitHub publication retains its original journal after successful publication close fails"
+              },
+              {
+                "path": "adapters/host-node/connector-configuration-bounds.test.mjs",
+                "anchor": "GitHub Source and Effect identity"
               }
             ]
           }
@@ -8247,7 +8255,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "28338bda1759ffc5f0a7e87885847b1e2cd0c338747bbd0ca1dcd0a52f0ae0be",
+      "sha256": "0206537351753ffdb51636258c69ae77c96b66d5e2969d9d3ce0795329a62c07",
       "role": "connector-semantics",
       "owner": "Salesforce factory entries in the generated Host connector table, not an independent Effect runtime",
       "exports": [
@@ -8403,6 +8411,10 @@
               {
                 "path": "adapters/connectors/salesforce/test/installed-salesforce-effect.host.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/connector-configuration-bounds.test.mjs",
+                "anchor": "Salesforce Source and Effect identity"
               }
             ]
           }
@@ -8412,7 +8424,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "95a73c51369c3553bb9cb666491f727a126060ef07e6bd8e0c8551c88bbbfef0",
+      "sha256": "a2efc7de1500d115c9ca17f1f6fb147e7f106b9537ac0011d6d3181dbc236d82",
       "role": "connector-semantics",
       "owner": "Exact installed Salesforce org/Site binding with existing account gate, credential journal and release custody",
       "exports": [
@@ -9059,6 +9071,10 @@
               {
                 "path": "adapters/connectors/salesforce/test/installed-salesforce-site-cleanup.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/connector-configuration-bounds.test.mjs",
+                "anchor": "Salesforce Site close failure"
               }
             ]
           }
@@ -9471,7 +9487,7 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c1bcb5aff4ed979a0c6f939000a2104c8475fefbf4db4b4f9d674fd70304b8d7",
+      "sha256": "9fc0fb589969ea837ce3220585d8f94a2935d32dbf8f39b0d7280f4de2b18041",
       "role": "connector-semantics",
       "owner": "Atomic installed declaration generation and retained historical describe bytes, not current authorization",
       "exports": [
@@ -9709,6 +9725,10 @@
               {
                 "path": "adapters/connectors/salesforce/test/salesforce-resource-service.test.mjs",
                 "anchor": "a published generation is replaced whole and checked against its targets"
+              },
+              {
+                "path": "adapters/host-node/connector-configuration-bounds.test.mjs",
+                "anchor": "Salesforce publication keeps exact UTF8"
               }
             ]
           }

@@ -2757,7 +2757,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
-      "sha256": "7611563530b47dd8b093349911ff78f51cbd6d6dafaea566426da0053f5d740b",
+      "sha256": "dacaeb4cde3a0adb795b8f03d9b2d3c5f3ab2f46bba198b9d68664be5e81bbbc",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing published Salesforce source installation; provider protocol stays Salesforce and RowRun remains the capture owner",
@@ -3174,6 +3174,10 @@
               {
                 "path": "adapters/connectors/salesforce/test/standard-host.integration.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/connector-configuration-bounds.test.mjs",
+                "anchor": "Salesforce Source and Effect identity"
               }
             ]
           }

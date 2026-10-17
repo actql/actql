@@ -6,10 +6,11 @@
 // refused for another connection, principal, Site generation or connector.
 // A restored generation is not current authority: every read is decided again.
 import {createHash, randomBytes} from 'node:crypto';
-import {open, readFile, rename, rm} from 'node:fs/promises';
+import {open, rename, rm} from 'node:fs/promises';
 import {dirname, isAbsolute, join} from 'node:path';
 import {canonicalJson, contentCid} from
   '../../../host-node/local-account-config.mjs';
+import {readBoundedConfigurationText} from '../../../host-node/source-profile-json.mjs';
 
 export const SALESFORCE_PUBLICATION_VERSION =
   'actql-salesforce-publication/0.1';
@@ -23,7 +24,12 @@ const outcomeNames = Object.freeze(new Map([[1, 'described'],
 const maxGenerationBytes = 16_000_000;
 
 const fail = (code, cause) => {
-  throw Object.assign(new Error(code, {cause}), {code});
+  const failure = Object.assign(new Error(code, {cause}), {code});
+  if (cause?.cleanupHandle !== undefined) {
+    Object.assign(failure, {cleanupHandle: cause.cleanupHandle,
+      cleanupPending: cause.cleanupPending});
+  }
+  throw failure;
 };
 const text = value => typeof value === 'string' && value.length > 0;
 // The generation is stored as the exact JSON text it was published as (the
@@ -73,11 +79,16 @@ export async function readPublicationFile(path) {
     fail('InvalidSalesforcePublication');
   }
   let body;
-  try { body = await readFile(path, 'utf8'); }
+  try { body = await readBoundedConfigurationText(path, {maxBytes: maxGenerationBytes}); }
   catch (error) {
     if (error?.code === 'ENOENT') fail('SalesforcePublicationMissing', error);
+    if (error?.message === 'InvalidInstalledSourceProfile') {
+      fail('InvalidSalesforcePublication', error);
+    }
     throw error;
   }
+  // The bounded raw read does not replace the original decoded-text ceiling:
+  // UTF8 replacement decoding can expand the exact text used for its identity.
   if (Buffer.byteLength(body, 'utf8') > maxGenerationBytes) {
     fail('InvalidSalesforcePublication');
   }
