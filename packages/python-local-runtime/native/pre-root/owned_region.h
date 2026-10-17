@@ -48,6 +48,9 @@ int actql_native_owned_domain_matches_view(actql_owned_capacity *lease,
     const actql_owned_extent_view *view, int64_t original_process);
 int actql_native_owned_domain_has_child(actql_owned_capacity *lease,
     int64_t original_process, int64_t child_process);
+/* Read-only physical pre-start comparison; no launch or stop authority. */
+int actql_native_owned_domain_unborrowed(actql_owned_capacity *lease,
+    const actql_owned_extent_view *view);
 
 /* Borrow a trusted, exclusively initialized, exact-sized private regular FD.
  * This does not create/duplicate/close an FD or charge its physical overhead.

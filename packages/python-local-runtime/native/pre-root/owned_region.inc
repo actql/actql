@@ -417,3 +417,14 @@ int actql_native_owned_unmap_stopped_child_domain(actql_owned_extent_view *view,
     *slot = NULL;
     return ACTQL_OWNED_OK;
 }
+
+int actql_native_owned_domain_unborrowed(actql_owned_capacity *lease,
+    const actql_owned_extent_view *view) {
+    if (view == NULL || view->original != view || view->domain_borrowed ||
+        current_capacity != NULL ||
+        actql_native_owned_domain_matches_view(lease, view, (int64_t)getpid()) != ACTQL_OWNED_OK)
+        return ACTQL_OWNED_INVALID;
+    return lease->transferred && !lease->closing && !lease->domain_borrow_attempted &&
+        atomic_load_explicit(&lease->domain_borrower_pid, memory_order_acquire) == 0
+        ? ACTQL_OWNED_OK : ACTQL_OWNED_BUSY;
+}
