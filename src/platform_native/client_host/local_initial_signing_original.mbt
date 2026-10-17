@@ -293,6 +293,9 @@ pub fn NativeLocalHostConnection::restore_initial_signing_original(
         is Some(fields) else {
         return Err(CustodyLost)
       }
+      local_initial_signing_value(
+        self.require_initial_signing_separation(fields),
+      )
       let projection = local_initial_signing_value(
         self.session.root
         .restore_private_file_projection(fields.exported)
@@ -335,6 +338,14 @@ pub fn NativeLocalInitialSigningOriginal::require_current(
     row.body == self.control_body else {
     return Err(CustodyLost)
   }
+  guard read_local_initial_signing_control(self.host, row.body)
+    is Ok(Some(fields)) else {
+    return Err(CustodyLost)
+  }
+  match self.host.require_initial_signing_separation(fields) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   match self.host.session.root.restore_private_file_projection(self.exported) {
     Err(issue) => return Err(Filesystem(issue))
     Ok(_) => ()
@@ -362,4 +373,71 @@ pub fn NativeLocalInitialSigningOriginal::public_key(
   self : NativeLocalInitialSigningOriginal,
 ) -> Result[@credential.LocalSigningPublicKey, NativeLocalAdoptionIssue] {
   self.require_current().map(_ => self.public_key)
+}
+
+///|
+// Join the new Store-root ReviewerProof original to the existing separation
+// rule. Original source-root custody remains source-root, never relabelled.
+fn NativeLocalHostConnection::require_initial_signing_separation(
+  self : NativeLocalHostConnection,
+  original : NativeLocalInitialSigningFields,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  let mut cursor = ""
+  for _ in 0..<8 {
+    let row = match
+      self.database.scan_after("client_local_installation_originals", cursor) {
+      Err(@sqlite.NotFound) => return Ok(())
+      Err(issue) => return Err(Physical(issue))
+      Ok(value) => value
+    }
+    cursor = row.key
+    if row.key == local_policy_upgrade_key {
+      continue
+    }
+    guard self.session.settings.files
+      .iter()
+      .find_first(file => file.name == row.key)
+      is Some(file) else {
+      return Err(CustodyLost)
+    }
+    let other = match read_local_installation_projection(self, file, row.body) {
+      Err(issue) => return Err(issue)
+      Ok(value) => value
+    }
+    if self.session.source_root.restore_private_file_projection(other) is Err(_) {
+      return Err(CustodyLost)
+    }
+    // AQLPFP01's file device/inode pair is independent of which original Root
+    // selected it. This is an existing private export, not a native C layout.
+    let same_file = other.length() > 106 &&
+      original.exported.length() > 106 &&
+      other[26:42].to_owned() == original.exported[26:42].to_owned()
+    let wire = @utf8.decode(file.body) catch { _ => return Err(CustodyLost) }
+    match @credential_resource.admit_native_local_signing_key_selection(wire) {
+      Err(_) => if same_file { return Err(ChangedIntent) }
+      Ok(selection) => {
+        let (_, purpose, _, _, _, _, _, pem) = @credential_resource.native_local_signing_key_selection_projection(
+          selection,
+        )
+        if purpose == @credential.HostAttestation {
+          let raw = match self.epoch.crypto.ed25519_public_key_raw32(pem) {
+            Err(issue) => return Err(Crypto(issue))
+            Ok(value) => value
+          }
+          guard original.public_key.raw32() is Ok(own_raw) else {
+            return Err(CustodyLost)
+          }
+          if same_file || raw == own_raw {
+            return Err(ChangedIntent)
+          }
+        }
+      }
+    }
+  }
+  match
+    self.database.scan_after("client_local_installation_originals", cursor) {
+    Err(@sqlite.NotFound) => Ok(())
+    Err(issue) => Err(Physical(issue))
+    Ok(_) => Err(CustodyLost)
+  }
 }
