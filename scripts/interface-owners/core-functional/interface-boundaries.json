@@ -164,7 +164,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "8507967a97c7e21b24451f6e19e700c817b132a0e026f469a6412df8da8d1b89",
+      "sha256": "f0ecc5e65f628590f0d12e1a8005975a398b3b8ce4a967a45fe4edd48d83c704",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -1823,6 +1823,13 @@
           "name": "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:borrowEffectCommandContent",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:matchesIssued/init:matchesIssued",
+          "parameters": [
+            "issued"
           ],
           "async": false
         },
@@ -7641,6 +7648,7 @@
             "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/current/current",
             "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:borrowEffectCommandContent",
             "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:release/init:release",
+            "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:matchesIssued/init:matchesIssued",
             "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:wire/init:wire"
           ],
           "exports": [],
