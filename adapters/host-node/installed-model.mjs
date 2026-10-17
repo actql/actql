@@ -250,7 +250,7 @@ export function installModelProviders(moon, register, assertHostRuntime,
       requireOriginalEagerStartup();
       assertTrustedRuntime();
     };
-    let defaultsOriginal, defaultsBounds;
+    let defaultsOriginal, defaultsBounds, defaultsReadFailure;
     function resolveTaskDefaults(selectedModel, taskMaxOutputTokens, limits) {
       if (this !== retained) {
         throw Object.assign(new Error('InstalledModelDefaultsForeignOriginal'),
@@ -273,15 +273,27 @@ export function installModelProviders(moon, register, assertHostRuntime,
         throw Object.assign(new Error('InstalledModelDefaultsLimitsChanged'),
           {code: 'InstalledModelDefaultsLimitsChanged'});
       }
-      if (defaultsOriginal === undefined) {
-        defaultsOriginal = checked(Reflect.apply(defaultsReader, moon, [providerId,
-          bindingOriginals.installationRevision.wire,
-          bindingOriginals.configurationContract.wire,
-          bindingOriginals.configuration.wire,
-          bounds.maxBytes, bounds.maxNodes, bounds.maxDepth, bounds.maxMembers,
-          bounds.maxWork]));
+      if (defaultsBounds === undefined) {
+        // A refused original read cannot rebind its ceiling or become another
+        // parser attempt. Retain its exact throwable as well as successful DATA.
         defaultsBounds = bounds;
+        try {
+          const original = checked(Reflect.apply(defaultsReader, moon, [providerId,
+            bindingOriginals.installationRevision.wire,
+            bindingOriginals.configurationContract.wire,
+            bindingOriginals.configuration.wire,
+            bounds.maxBytes, bounds.maxNodes, bounds.maxDepth, bounds.maxMembers,
+            bounds.maxWork]));
+          if (original === undefined || original === null) {
+            throw Object.assign(new Error('InvalidHostRuntimeResult'),
+              {code: 'InvalidHostRuntimeResult'});
+          }
+          defaultsOriginal = original;
+        } catch (cause) {
+          defaultsReadFailure = Object.freeze({cause});
+        }
       }
+      if (defaultsReadFailure !== undefined) throw defaultsReadFailure.cause;
       // Keep the already read original through a current refusal. Do not
       // reparse a replacement configuration to rescue another registration.
       assertNewTrustedRuntime();
