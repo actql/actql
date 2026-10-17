@@ -31,6 +31,8 @@ pub fn form_field_paths(FormFieldCatalog) -> Array[Array[String]]
 
 pub fn match_original_record_target_revision(OriginalRecordTarget, OriginalRecordPage, Int) -> Result[Unit, RecordMutationIssue]
 
+pub fn match_record_key_lookup(RecordLookupObservation, RecordLookupObservation) -> Result[Unit, RecordLookupIssue]
+
 pub fn original_record_fields(OriginalRecord) -> Array[OriginalRecordField]
 
 pub fn original_record_table_rows(OriginalRecordField) -> Array[OriginalTableRow]?
@@ -49,6 +51,8 @@ pub fn prepare_original_record_target(OriginalRecordPage, Int, Int) -> Result[Or
 
 pub fn prepare_record_delete_request(Array[OriginalRecordTarget], RecordMutationLimits) -> Result[RecordDeleteRequest, RecordMutationIssue]
 
+pub fn prepare_record_text_key_lookup(FormFieldCatalog, String, String, Array[String], RecordLookupLimits) -> Result[RecordLookupRequest, RecordLookupIssue]
+
 pub fn project_checked_record_page(OriginalRecordPage, AppNumberSettings?, RecordValueLimits) -> Result[CheckedRecordPage, RecordValueIssue]
 
 pub fn project_form_fields(Bytes, String, FormFieldLimits) -> Result[FormFieldCatalog, FormFieldIssue]
@@ -56,6 +60,8 @@ pub fn project_form_fields(Bytes, String, FormFieldLimits) -> Result[FormFieldCa
 pub fn project_number_settings(Bytes, String, NumberSettingsLimits) -> Result[AppNumberSettings, NumberSettingsIssue]
 
 pub fn project_record_delete_acknowledgement(RecordDeleteRequest, Int, Bytes, Int, Int, Int) -> Result[RecordDeleteAcknowledgement, RecordMutationIssue]
+
+pub fn project_record_key_lookup(RecordLookupRequest, Int, Bytes, RecordPageLimits) -> Result[RecordLookupObservation, RecordLookupIssue]
 
 pub fn project_record_page(Bytes, FormFieldCatalog, Array[String], RecordPageLimits) -> Result[OriginalRecordPage, RecordPageIssue]
 
@@ -74,6 +80,14 @@ pub fn record_delete_request_body(RecordDeleteRequest) -> String
 pub fn record_delete_request_count(RecordDeleteRequest) -> Int
 
 pub fn record_delete_request_targets(RecordDeleteRequest) -> Array[OriginalRecordTarget]
+
+pub fn record_key_lookup_page(RecordLookupObservation) -> OriginalRecordPage
+
+pub fn record_key_lookup_uses_request(RecordLookupObservation, RecordLookupRequest) -> Bool
+
+pub fn record_lookup_request_body(RecordLookupRequest) -> String
+
+pub fn record_lookup_request_uses_catalog(RecordLookupRequest, FormFieldCatalog) -> Bool
 
 pub fn record_page_columns(OriginalRecordPage) -> Array[String]
 
@@ -181,6 +195,37 @@ pub struct RecordDeleteAcknowledgement {
 }
 
 pub struct RecordDeleteRequest {
+  // private fields
+}
+
+pub(all) enum RecordLookupIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidKey
+  InvalidSelection
+  Form(FormFieldIssue)
+  Page(RecordPageIssue)
+  UnexpectedStatus
+  IncompleteResponse
+  ForeignRecord
+  ForeignRequest
+  ChangedObservation
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RecordLookupLimits {
+  max_key_bytes : Int
+  max_columns : Int
+  max_comparison_work : Int
+  max_request_bytes : Int
+  max_request_nodes : Int
+  max_request_depth : Int
+}
+
+pub struct RecordLookupObservation {
+  // private fields
+}
+
+pub struct RecordLookupRequest {
   // private fields
 }
 
