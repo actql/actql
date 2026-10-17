@@ -2478,10 +2478,11 @@ test('shared Salesforce Source preserves original read and credential preimages 
 
 test('Salesforce multi-select arrays reach the same Named Result after Host reopen without another query', async t => {
   const setup = await installation(t, {multiPicklistFields: true, storedRecords: [
-    {Id: 'a00000000000001', Name: 'record-1', External_Key__c: 'key-1', Choices__c: 'red;東京;red'},
-    {Id: 'a00000000000002', Name: 'record-2', External_Key__c: 'key-2', Choices__c: ''},
-    {Id: 'a00000000000003', Name: 'record-3', External_Key__c: 'key-3', Choices__c: null},
+    // Arrival order is deliberately different from the authored Id order.
     {Id: 'a00000000000004', Name: 'record-4', External_Key__c: 'key-4', Choices__c: ';a;;'},
+    {Id: 'a00000000000002', Name: 'record-2', External_Key__c: 'key-2', Choices__c: ''},
+    {Id: 'a00000000000001', Name: 'record-1', External_Key__c: 'key-1', Choices__c: 'red;東京;red'},
+    {Id: 'a00000000000003', Name: 'record-3', External_Key__c: 'key-3', Choices__c: null},
   ]});
   await setup.publish();
   const {client, close} = await setup.open();
