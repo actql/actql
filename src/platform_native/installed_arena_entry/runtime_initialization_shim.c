@@ -18,6 +18,9 @@ static _Atomic int phase;
 
 int actql_control_runtime_initialize_into(actql_control_runtime_origin **slot) {
     if (slot == NULL || *slot != NULL) return ACTQL_CONTROL_INVALID_SLOT;
+    /* An old direct initializer or partial registration is not a fresh
+     * component and cannot be silently adopted or initialized a second time. */
+    if (actql_control_runtime_roots_state() != 0) return ACTQL_CONTROL_UNAVAILABLE;
     int untouched = 0;
     if (!atomic_compare_exchange_strong_explicit(&phase, &untouched, 1,
             memory_order_acq_rel, memory_order_acquire))
@@ -28,8 +31,9 @@ int actql_control_runtime_initialize_into(actql_control_runtime_origin **slot) {
     char name[] = "actql-private-compiler-control";
     char *arguments[] = {name, NULL};
     int result = actql_original_control_initialize(1, arguments);
-    atomic_store_explicit(&phase, result == 0 ? 2 : 3, memory_order_release);
-    return result == 0 ? ACTQL_CONTROL_OK : ACTQL_CONTROL_CLEANUP_PENDING;
+    int ready = result == 0 && actql_control_runtime_roots_state() == 1;
+    atomic_store_explicit(&phase, ready ? 2 : 3, memory_order_release);
+    return ready ? ACTQL_CONTROL_OK : ACTQL_CONTROL_CLEANUP_PENDING;
 }
 
 int actql_control_runtime_current(actql_control_runtime_origin *original) {

@@ -2307,6 +2307,8 @@ opaque process-lifetime record into the caller's original empty slot before
 calling its own emitted initializer. This one-shot entry admits no replacement
 callback. An occupied slot, another attempt, reentry, a foreign thread or an
 inherited record after fork cannot initialize or adopt that original again.
+Existing or partially registered original control roots also refuse before
+the emitted initializer; an older direct call cannot bypass the one-shot rule.
 Initializer failure and lost response retain the same slot and library; neither
 the Python assembly nor C resets the component and retries its initializer.
 

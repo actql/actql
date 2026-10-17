@@ -11,6 +11,9 @@
 static actql_control_runtime_origin **published;
 static int calls;
 static const char *mode;
+static int roots_state;
+
+int actql_control_runtime_roots_state(void) { return roots_state; }
 
 static void *foreign_thread(void *unused) {
     (void)unused;
@@ -36,6 +39,7 @@ int actql_original_control_initialize(int argc, char **argv) {
         assert(pthread_create(&thread, NULL, foreign_thread, NULL) == 0);
         assert(pthread_join(thread, NULL) == 0);
     }
+    roots_state = strcmp(mode, "failed") == 0 ? -1 : 1;
     return strcmp(mode, "failed") == 0 ? 7 : 0;
 }
 
@@ -43,7 +47,7 @@ int main(int argc, char **argv) {
     assert(argc == 2);
     mode = argv[1];
     assert(strcmp(mode, "success") == 0 || strcmp(mode, "failed") == 0 ||
-           strcmp(mode, "reentrant") == 0);
+           strcmp(mode, "reentrant") == 0 || strcmp(mode, "preinitialized") == 0);
     actql_control_runtime_origin *original = NULL;
     published = &original;
     assert(actql_control_runtime_initialize_into(NULL) == ACTQL_CONTROL_INVALID_SLOT);
@@ -52,6 +56,16 @@ int main(int argc, char **argv) {
     assert(occupied == (actql_control_runtime_origin *)1 && calls == 0);
     assert(actql_control_runtime_current(NULL) == ACTQL_CONTROL_UNAVAILABLE);
     assert(actql_control_runtime_current(occupied) == ACTQL_CONTROL_UNAVAILABLE);
+    if (strcmp(mode, "preinitialized") == 0) {
+        for (int state = -1; state <= 1; state += 2) {
+            roots_state = state;
+            assert(actql_control_runtime_initialize_into(&original) == ACTQL_CONTROL_UNAVAILABLE);
+            assert(original == NULL && calls == 0);
+        }
+        puts("{\"case\":\"preinitialized\",\"passed\":true,\"initializer_calls\":0,"
+             "\"original_slot_retained\":false,\"actual_Core\":false,\"process_retirement_ACK\":false}");
+        return 0;
+    }
     int result = actql_control_runtime_initialize_into(&original);
     assert(original != NULL && calls == 1);
     actql_control_runtime_origin *same = original;

@@ -42,6 +42,7 @@ int actql_control_originals_into(actql_control_reply * reply, actql_control_host
 int actql_control_prepare_utf16_into(const uint16_t * source, int32_t source_units, const uint8_t * recipe, int32_t recipe_bytes, int64_t generation, int64_t bytes, int32_t planning, int32_t attempts, int32_t holdings, int64_t transfer, int64_t retained, int64_t execution, int64_t envelope, actql_control_reply ** reply_slot);
 int actql_control_runtime_current(actql_control_runtime_origin * original);
 int actql_control_runtime_initialize_into(actql_control_runtime_origin ** slot);
+int actql_control_runtime_roots_state(void);
 int actql_control_try_close_and_drop(actql_control_host ** original_slot, actql_control_reply ** pending_slot);
 int actql_domain_close_into(actql_control_host * host, actql_domain * domain, actql_domain_reply ** slot);
 int actql_domain_copy_material(actql_domain_reply * reply, actql_control_host * host, actql_domain * domain, unsigned char * source, unsigned char * recipe, int64_t * scalars);
