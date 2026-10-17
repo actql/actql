@@ -15618,7 +15618,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "f0ecc5e65f628590f0d12e1a8005975a398b3b8ce4a967a45fe4edd48d83c704",
+      "sha256": "2c5cb459a2541f69f3e30c54ff5d80ed13717e4c290d3e4d10d36f5b89299dc2",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -19147,6 +19147,15 @@
           "parameters": [
             "record",
             "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:projectEffectComputationReview/init:projectEffectComputationReview",
+          "parameters": [
+            "preview",
+            "policy",
+            "limits"
           ],
           "async": false
         },
@@ -24878,6 +24887,126 @@
               {
                 "path": "adapters/host-node/effect-content-original-borrow.integration.test.mjs",
                 "anchor": "test('actual Content preparation borrows the original captured Command input and rejects copied or retired views'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:projectEffectComputationReview/init:projectEffectComputationReview"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Original sealed Effect review evidence"
+              },
+              {
+                "path": "src/run_publication/effect_review_projection.mbt",
+                "anchor": "pub fn project_effect_review_projection("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "projectEffectComputationReview(preview, policy, limits)"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const originalReview = (subjectCid, claims) =>"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const original = computationPreviewTokens.get(preview);"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "body.effect_preview_cid !== subjectCid"
+              },
+              {
+                "path": "packages/sdk/checkpoints.mjs",
+                "anchor": "value.review_projection_cid !== artifactCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "anchor": "async artifactBytes(name, artifactCid, options)"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "same review holding: its historical `semantic_cid` still addresses complete"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "await beforeDefer();"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "facts.assertUpdateSelectionCurrent?.();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('OriginalEffectReviewUnavailable')"
+              },
+              {
+                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "anchor": "fail('ContinuationEvidenceRetired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and cleanup custody remain with their existing Owners."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "entry, bounded parser node and saved/read response overlap remain in the same"
+              },
+              {
+                "path": "src/run_publication_host/client_private_continuation_retention.mbt",
+                "anchor": "15L + 8L * max_entries.to_int64()"
+              },
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "anchor": "maxWireBytes: 256 * 1024"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Historical unassociated holdings keep their old byte-addressed behavior"
+              },
+              {
+                "path": "packages/sdk/checkpoints.mjs",
+                "anchor": "value?.version === 'actql-review-projection/0.1'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/sealed-effect-review-checkpoints.test.mjs",
+                "anchor": "test('copied and foreign Preview DATA"
+              },
+              {
+                "path": "adapters/host-node/sealed-effect-review-host.integration.test.mjs",
+                "anchor": "test('public Effect review keeps sealed original row evidence"
+              },
+              {
+                "path": "packages/sdk/effect-review-checkpoints.test.mjs",
+                "anchor": "test('Effect semantic review verification rejects"
               }
             ]
           }
