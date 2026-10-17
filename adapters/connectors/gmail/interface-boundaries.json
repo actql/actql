@@ -221,6 +221,10 @@
               {
                 "path": "docs/design/gmail-label-reader-custody.md",
                 "anchor": "The original Site"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "## Original authentication dependency"
               }
             ],
             "resources": [
@@ -231,6 +235,10 @@
               {
                 "path": "docs/design/gmail-label-reader-custody.md",
                 "anchor": "Limits on wire bytes, rows, nodes, names and strings"
+              },
+              {
+                "path": "docs/design/gmail-label-reader-custody.md",
+                "anchor": "The original signing key, assertion preparation, private form/response/token,"
               }
             ],
             "extension": [
@@ -247,6 +255,18 @@
               {
                 "path": "adapters/connectors/gmail/test/gmail-label-list-read.test.mjs",
                 "anchor": "test('Gmail labels actual SQL and AQL prepare"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/gmail-authentication.test.mjs",
+                "anchor": "test('Gmail SQL and AQL capture consume the original authenticated parent use"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/gmail-authentication.test.mjs",
+                "anchor": "test('Gmail lost auth response retains its original Unknown"
+              },
+              {
+                "path": "adapters/connectors/gmail/test/gmail-authentication.test.mjs",
+                "anchor": "test('Gmail lost authenticated label reply keeps the original API Unknown"
               }
             ],
             "inputsOutputs": [

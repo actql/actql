@@ -94,3 +94,43 @@ the existing custody Owner supplies an actual original transfer/retirement
 receipt. The enclosing capture therefore keeps its reservation and recovery
 responsibility. No factory-local ledger, cleanup acknowledgement or token-based
 mailbox identity is introduced.
+
+## Original authentication dependency
+
+The existing label reader accepts the original physical Credential binding;
+it does not need a Connector-visible token, hidden resolver request or a second
+authentication wrapper. The Credential Owner can prepare and exchange a
+registered service-account assertion on that same binding before the reader
+consumes its original API use. The original API parent claim and separately
+scoped authentication grant/use retain the same Site, generation, Run/task/
+attempt and dispatch correspondence. The API grant is never retargeted to the
+OAuth origin. The registered dependency owns its exact subject, scopes, native
+material generation and current check; a configured mailbox, byte equality or
+a returned token is not its issuer.
+
+Only the existing physical Credential port signs and sends the bounded private
+form to the fixed OAuth endpoint. It retains the response and access token
+privately and returns the original use identity. The reader subsequently sends
+the existing label request under the same already claimed original parent use.
+There is no second claim for that first API request and no legacy secret lookup
+or token getter. The exact configured mailbox remains the explicit path
+component; neither `me` nor the authentication response supplies a replacement
+mailbox. Google's [label-list contract](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.labels/list)
+allows the original read scope and requires an empty GET body. The service's
+scope list is not a grant issued by ActQL.
+
+Successful authentication does not override current Account or physical material
+checks. Expiry, revocation or retirement before the API send refuses it without
+refresh. A lost authentication response keeps the original authentication use
+Unknown; a lost label response keeps the original API use Unknown. Neither path
+creates a new assertion, claim, acquisition or retry to make the old request
+succeed. Journal reopen observes the same original responsibility.
+
+The original signing key, assertion preparation, private form/response/token,
+parser workspace, original API request, label response and reader aliases can
+overlap. They require the existing installed supplier's complete reservation and
+confirmed retirement. Legacy canonical-RowRun component reservations do not fund
+this graph. This caller connection does not supply a normal Site/material issuer,
+normal numerical capacity, configured Workspace delegation, raw retirement,
+normal installation or live Google access. Missing original supplies remain
+unavailable in the existing installed path.
