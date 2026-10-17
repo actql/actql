@@ -3,6 +3,7 @@
 // SERIALIZE Effect preparation, selected physical allocation or installed loan.
 import assert from 'node:assert/strict';
 import {createHash, generateKeyPairSync} from 'node:crypto';
+import {join} from 'node:path';
 import test from 'node:test';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
@@ -18,7 +19,8 @@ async function fixture(t, {restored = false, omitRestoredOriginal = false, after
     prefix: 'generated-original-selection-', label: 'Generated Content original selection'});
   const generatedCleanups = [];
   let owner, holdingCid;
-  const generated = await createGeneratedContentFixture({after: fn => generatedCleanups.push(fn)});
+  const generated = await createGeneratedContentFixture({after: fn => generatedCleanups.push(fn)},
+    {directory: join(scratch.path, 'original-publication')});
   t.after(async () => {
     // Drain this same family's temporary duties before the fixture Store closes.
     if (owner !== undefined) assert.equal(await owner.cleanup(), true);
@@ -73,7 +75,7 @@ async function fixture(t, {restored = false, omitRestoredOriginal = false, after
       afterMatch?.({result, owner, port});
       return result;
     }}, control, publications: {
-      bindCheckedClientSerializationCapture() { return {}; },
+      bindCheckedClientEffectSerializationCapture() { return {}; },
       bindCheckedClientSerializationInputIdentity() { return evidence; },
       checkedClientSerializationByteHoldingCid() { return holdingCid; },
       exportCheckedClientContentGenerationOutput() { return completion; },
