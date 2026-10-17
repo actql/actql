@@ -56,7 +56,7 @@ for(const maxWork of [8,10000]) test(`ordinary capture uses finite Host grouping
     try {await factory.prepareCaptured({moon,control,store,execution:f.execution,
       checkedHost:f.owned,prepared:f.prepared,
       identity:moon.clientProgramEffectRequestIdentity(f.prepared,cid('a'),'key-fixture',cid('b')),
-      publicationPlan:{...c,runDefinition:c.localEvidenceContext.runDefinition,
+      publicationPlan:{...c,effectInputRetention:c.retention,runDefinition:c.localEvidenceContext.runDefinition,
         results:[],outputLimits,contractLimits:{maxWireBytes:100000,maxNodes:10000,maxDepth:64}},
       previewContext:{},unit:f.unit});} catch(error){failure=error;}
     if(maxWork===8){
@@ -64,7 +64,7 @@ for(const maxWork of [8,10000]) test(`ordinary capture uses finite Host grouping
       assert.equal(events.descriptions,0);
       assert.equal(events.writers.length,0,'exhaustion refuses before any Store writer');
     }else{
-      assert.equal(failure?.primaryFailure??failure,stop);
+      assert.equal(failure?.primaryFailure??failure,stop,failure?.stack);
       assert.equal(events.descriptions,1,'actual ordinary caller reaches its next physical boundary');
       assert.equal(events.writers.length,3,'original producer plus two distinct keyed member exports');
       for(const chunks of events.writers)assert.deepEqual(JSON.parse(chunks.join('')),f.rows);
