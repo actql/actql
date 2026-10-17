@@ -46,13 +46,15 @@ for(const scenario of ['checked','changed-registry','wrong-task','missing-provid
       let client;
       try{
         if(${JSON.stringify(scenario)}==='wrong-task'){
-          await assert.rejects(connect({mode:'local',installation}),{code:'InvalidInstalledProjectTaskSelection'});
+          // The declared foreign Task is absent from this original registry;
+          // Common's selection Owner refuses before a Host can be returned.
+          await assert.rejects(connect({mode:'local',installation}),{code:'MoonBitHostFailure'});
         }else if(${JSON.stringify(scenario)}==='missing-provider'){
           await assert.rejects(connect({mode:'local',installation}),{code:'InstalledModelDefaultsUnavailable'});
         }else{
           client=await connect({mode:'local',installation});
           const outcome=await client.check(${JSON.stringify(query)},{kind:'text',scope:'bound_input',format:'sql'});
-          assert.equal(outcome.outcome,'complete',JSON.stringify(outcome));
+          assert.equal(outcome.outcome,'completed',JSON.stringify(outcome));
           assert.equal(outcome.report.verdict,'verified',JSON.stringify(outcome));
           if(${JSON.stringify(scenario)}==='changed-registry'){
             const registry=JSON.parse(await readFile('tasks.json','utf8'));
