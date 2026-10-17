@@ -2532,6 +2532,17 @@ test('Salesforce multi-select arrays reach the same Named Result after Host reop
 });
 
 
+function geolocationProgram() {
+  const document = JSON.parse(numberProgram.replaceAll('Amount__c', 'Location__c'));
+  document.id = 'salesforce-geolocation';
+  document.stages[0].inputs.remote.view = 'records';
+  document.stages[0].steps.push(
+    {from: 'captured', assert_rows: {unique_by: ['Id']}, as: 'unique_records'},
+    {from: 'unique_records', sort: [{Id: 'asc'}], as: 'ordered_records'});
+  document.stages[0].results.r.from = 'ordered_records';
+  return document;
+}
+
 test('Salesforce compound geolocation reaches its exact Named Result and same Run Host reopen', async t => {
   const setup = await installation(t, {geolocationFields: true, storedRecords: [
     {Id: 'a00000000000003', Name: 'record-3', External_Key__c: 'key-3',
@@ -2547,13 +2558,7 @@ test('Salesforce compound geolocation reaches its exact Named Result and same Ru
   ]});
   await setup.publish();
   const {client, close} = await setup.open();
-  const document = JSON.parse(numberProgram.replaceAll('Amount__c', 'Location__c'));
-  document.id = 'salesforce-geolocation';
-  document.stages[0].inputs.remote.view = 'records';
-  document.stages[0].steps.push(
-    {from: 'captured', assert_rows: {unique_by: ['Id']}, as: 'unique_records'},
-    {from: 'unique_records', sort: [{Id: 'asc'}], as: 'ordered_records'});
-  document.stages[0].results.r.from = 'ordered_records';
+  const document = geolocationProgram();
   const before = setup.org.seen.length;
   const checked = await client.check(document, {kind: 'program', scope: 'bound_input'});
   assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
@@ -2583,4 +2588,33 @@ test('Salesforce compound geolocation reaches its exact Named Result and same Ru
   const restored = await reopened.client.attach(original);
   assert.deepEqual(await restored.result('records').all(), expected);
   assert.equal(setup.queries().length, queryCount);
+});
+
+
+test('a compound geolocation beyond original component scale fails typed without a Result', async t => {
+  const setup = await installation(t, {geolocationFields: true, storedRecords: [
+    {Id: 'a00000000000001', Name: 'record-1', External_Key__c: 'key-1',
+      Location__c: {latitude: numberText('37.1000000000000001'),
+        longitude: numberText('-122.25')},
+      Location__Latitude__s: numberText('37.1000000000000001'),
+      Location__Longitude__s: numberText('-122.25')},
+  ]});
+  await setup.publish();
+  const {client, close} = await setup.open();
+  const program = JSON.stringify(geolocationProgram());
+  const execution = await client.startSource(program, {format: 'json',
+    submissionRef: client.newSubmission({nonce: 'geolocation-value-refusal'})});
+  assert.equal((await execution.wait({signal: AbortSignal.timeout(20_000)})).status, 'failed');
+  await assert.rejects(execution.result('records').all());
+  await close();
+  const {adapter, common} = await installedAdapter(setup, program);
+  try {
+    const failure = await adapter.open(common).then(() => undefined, error => error);
+    assert.equal(failure?.code, 'SalesforceValueViolation', String(failure?.code));
+    assert.equal(failure.outcome, 'stopped');
+    assert.deepEqual(failure.cause.violation, {expected_type: 'object',
+      field: 'Location__c', kind: 'scale', resource: 'Test_Record__c'});
+  } finally {
+    adapter.close();
+  }
 });
