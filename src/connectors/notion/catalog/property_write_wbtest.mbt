@@ -288,13 +288,13 @@ test "Notion nullable native fields retain null and never conflate false or empt
   let null = @admitted.checked_null_value(
     @contract.primitive(StringType, nullable=true),
   ).unwrap()
-  for kind in ["url", "email", "phone_number", "select", "status", "number"] {
+  for kind in ["url", "email", "phone_number", "select", "number"] {
     assert_eq(
       write_test_wire(write_test_source(kind), null),
       "{\"properties\":{\"p%3Ax\":{\"" + kind + "\":null}}}",
     )
   }
-  for kind in ["title", "rich_text", "checkbox", "people", "relation"] {
+  for kind in ["title", "rich_text", "checkbox", "people", "relation", "status"] {
     assert_eq(
       prepare_notion_property_write(
         write_test_source(kind),
