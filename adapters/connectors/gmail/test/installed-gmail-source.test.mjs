@@ -81,6 +81,17 @@ test('installed Gmail copied preparation and missing original Ledger cannot issu
   assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
 });
 
+test('installed Gmail binding retains original connector identity even for the same mailbox Site and runtime',async t=>{
+  const f=await installedGmailFixture(t),first=await f.load();
+  f.profile.connectorId='other-mailbox';const other=await f.load();
+  f.profile.connectorId='mailbox';const original=await f.load();
+  assert.notEqual(first.connectorBindings[0].bindingCid,other.connectorBindings[0].bindingCid);
+  assert.equal(first.connectorBindings[0].bindingCid,original.connectorBindings[0].bindingCid);
+  assert.notEqual(first.sourceReadAccesses[0].sourceRef,other.sourceReadAccesses[0].sourceRef);
+  assert.equal(first.sourceReadAccesses[0].sourceRef,original.sourceReadAccesses[0].sourceRef);
+  assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
+});
+
 test('installed Gmail actual Account deny refuses preparation before Credential or HTTP',async t=>{
   const f=await installedGmailFixture(t,{account:'deny'}),source=await f.load();
   await assert.rejects(f.prepare(source),{code:'ACTQL_E_ACCOUNT_DENIED'});
