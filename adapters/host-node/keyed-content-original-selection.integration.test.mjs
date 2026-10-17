@@ -171,7 +171,7 @@ test('stored original handoff refences Source availability after the original ma
     assert.equal(f.owner.issuedForContent(view.binding), undefined);
     assert.equal(f.execution().cleanupPending(), true,
       'availability refusal does not acknowledge Source cleanup');
-  });
+  }, 'needs_reconciliation');
   assert.equal(f.generated.store.status().storedBytes, 3);
   assert.equal(await f.execution().cleanup(), true);
   await f.generated.store.retirePhysicalHolding(f.generated.holding.holding_cid);
