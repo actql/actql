@@ -2418,8 +2418,11 @@ fn check_original_pointer(
           })
         }
         guard decoded is Ok({ value: String(name), .. }) else { return None }
-        if format == Yaml && @canonical.normalize_nfc_lf(name) != Ok(key) {
-          return None
+        if format == Yaml {
+          guard @canonical_value.normalize_nfc_lf(name) is Ok(normalized) &&
+            normalized == key else {
+            return None
+          }
         }
         original.push(@source.Key(name))
         cursor = child
