@@ -45,7 +45,7 @@ pub fn gcs_object_mutation_kind(
 ) -> String {
   match @catalog.object_mutation_kind(binding) {
     PatchMetadata => "patch_metadata"
-    DeleteObject => "delete_object"
+    DeleteObject => "delete"
   }
 }
 

@@ -74,7 +74,7 @@ test('original mutation child registers before one GET and invalidates the same 
 });
 
 test('original mutation child produces a bodyless delete from the same original before observation', async () => {
-  const child = createGcsMutationRequestChild(options({kind: 'delete_object', value: {}}));
+  const child = createGcsMutationRequestChild(options({kind: 'delete', value: {}}));
   const {request} = await child.prepare();
   assert.equal(request.method, 'DELETE');assert.equal(request.body, '');
   assert.ok(request.path.endsWith('ifGenerationMatch=9007199254740993&ifMetagenerationMatch=2'));
@@ -125,13 +125,31 @@ test('original mutation child requires selected bounds ABI and original binding 
   let approvals = 0;
   const base = options({authorizationForRow: async () => {approvals++;assert.fail('No original approval');}});
   for (const extra of [{maxSecretBytes: undefined}, {maxSecretBytes: 0},
-    {moon: {...moon, gcsObjectTargetObservation: undefined}}, {kind: 'delete_object'},
+    {moon: {...moon, gcsObjectTargetObservation: undefined}}, {kind: 'delete'},
     {name: 'outside/scope'}, {assertCurrent: undefined}]) {
     const child = createGcsMutationRequestChild({...base, ...extra});
     await assert.rejects(child.prepare());
     assert.equal(await child.release(), true);
   }
   assert.equal(approvals, 0);
+});
+
+test('original mutation child snapshots the same Credential methods before approval await', async () => {
+  const gate = deferred();let approvals = 0, observed;
+  const original = options();
+  const originalResolver = original.credential.resolveSecret;
+  const child = createGcsMutationRequestChild({...original,
+    authorizationForRow: async () => {approvals++;await gate.promise;return authorization();},
+    callResource: async invocation => {observed = invocation.resolveSecret;return response();}});
+  const preparation = child.prepare();await entered(() => approvals === 1);
+  original.credential.resolveSecret = async () => 'replacement';
+  gate.resolve();await preparation;
+  assert.equal(observed, originalResolver);assert.equal(await child.release(), true);
+  const foreign = createGcsMutationRequestChild({...original,
+    credential: {...original.credential, binding: {}},
+    authorizationForRow: async () => assert.fail('Do not replace an original owned binding')});
+  await assert.rejects(foreign.prepare(), {code: 'GcsOriginalMutationPreparationUnavailable'});
+  assert.equal(await foreign.release(), true);
 });
 
 test('original mutation child refuses an asynchronous fence but retains its original pending borrower', async () => {

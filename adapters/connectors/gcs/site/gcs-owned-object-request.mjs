@@ -164,7 +164,7 @@ export function createGcsMutationRequestChild({moon, binding, kind, name, value,
     maxProjectionBytes, maxRequestBytes, maxSecretBytes, credential,
     callResource, authorizationForRow, assertCurrent, signal};
   let preparing = false, prepared, response, physicalBinding;
-  let changes;
+  let changes, credentialSnapshot;
   let preparation, releaseFlight, retired = false;
   let fencePending = false, fenceFlight;
   let failure, cleanup, cleanupStatus, cleanupRetry, invalidCleanup = false, failed = false;
@@ -225,6 +225,7 @@ export function createGcsMutationRequestChild({moon, binding, kind, name, value,
       fenceFlight = undefined;
       response = undefined;
       changes = undefined;
+      credentialSnapshot = undefined;
       configuration = undefined;
       physicalBinding = undefined;
       failure = undefined;
@@ -243,7 +244,7 @@ export function createGcsMutationRequestChild({moon, binding, kind, name, value,
       const original = configuration;
       preparing = true;
       preparation = (async () => {
-        if (!['patch_metadata', 'delete_object'].includes(original.kind) ||
+        if (!['patch_metadata', 'delete'].includes(original.kind) ||
             ![original.maxRequestBytes, original.maxProjectionBytes, original.maxSecretBytes].every(n => integer(n)) ||
             typeof original.authorizationForRow !== 'function' ||
             typeof original.assertCurrent !== 'function' ||
@@ -256,6 +257,10 @@ export function createGcsMutationRequestChild({moon, binding, kind, name, value,
             original.moon.gcsObjectMutationKind(original.binding) !== original.kind) unavailable();
         // Path/binding refusal must precede a fresh read decision or secret.
         gcsOwnedResult(original.moon, original.moon.gcsObjectMetadataPath(original.binding, original.name));
+        credentialSnapshot = Object.freeze({...original.credential});
+        // This child owns its one new binding. It cannot close or replace a
+        // caller's already-owned binding without that original borrow seam.
+        if (credentialSnapshot.binding !== undefined) unavailable();
         if (original.kind === 'patch_metadata') {
           // Snapshot the original admitted row DATA before the first await.
           // This additional wire/Buffer overlaps the caller row and raw GET;
@@ -269,10 +274,10 @@ export function createGcsMutationRequestChild({moon, binding, kind, name, value,
         current(original);
         const authorization = await original.authorizationForRow();
         current(original);
-        physicalBinding = openHttpsCredentialBinding({...original.credential,
+        physicalBinding = openHttpsCredentialBinding({...credentialSnapshot,
           scope: authorization?.scope, maxSecretBytes: original.maxSecretBytes});
         response = await readGcsObjectTarget({moon: original.moon, binding: original.binding,
-          name: original.name, authorization, credential: {...original.credential, binding: physicalBinding},
+          name: original.name, authorization, credential: {...credentialSnapshot, binding: physicalBinding},
           callResource: original.callResource, maxRequestBytes: original.maxRequestBytes, signal: original.signal});
         current(original);
         const before = admitGcsObjectTargetObservation(original.moon, original.binding, original.name, response);
