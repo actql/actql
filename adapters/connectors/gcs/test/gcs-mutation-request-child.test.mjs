@@ -109,6 +109,26 @@ test('original mutation child rechecks currentness after approval before opening
   assert.equal(await child.release(), true);
 });
 
+test('original mutation child rechecks the same Site after the original GET without another read', async () => {
+  let current = true, calls = 0;
+  const primary = Object.freeze(new Error('OriginalSiteChangedAfterRead'));
+  const child = createGcsMutationRequestChild(options({
+    assertCurrent() {if (!current) throw primary;},
+    callResource: async () => {calls++;current = false;return response();}}));
+  await assert.rejects(child.prepare(), error => error === primary);
+  await assert.rejects(child.prepare(), error => error === primary);
+  assert.equal(child.status().pending, true);
+  assert.equal(await child.release(), true);assert.equal(calls, 1);
+});
+
+test('original mutation child can retire before prepare without issuing approval or opening a binding', async () => {
+  let approvals = 0;
+  const child = createGcsMutationRequestChild(options({authorizationForRow: async () => {approvals++;assert.fail('No entry after retirement');}}));
+  assert.equal(await child.release(), true);
+  await assert.rejects(child.prepare(), {code: 'GcsOriginalMutationPreparationUnavailable'});
+  assert.equal(child.status().pending, false);assert.equal(approvals, 0);
+});
+
 test('original mutation child snapshots admitted row bytes before approval await', async () => {
   const gate = deferred();let approvals = 0;
   const value = {content_type: 'text/csv', metadata: {keep: 'kept', new: '=e\u0301\r\n'}};
@@ -168,7 +188,8 @@ test('original mutation child preserves frozen failure and same real FD close-on
   const path = join(scratch.path, 'response');await writeFile(path, bytes());
   const fd = await open(path);let pending = true, closes = 0, allowClose = false, calls = 0;
   t.after(async () => {await fd.close();scratch.passed();});
-  const cleanupHandle = Object.freeze({status: () => ({pending}), async retry() {
+  const cleanupHandle = Object.freeze({status() {assert.equal(this, cleanupHandle);return {pending};}, async retry() {
+    assert.equal(this, cleanupHandle);
     closes++;if (!allowClose) return false;await fd.close();pending = false;return {pending};
   }});
   const primary = Object.freeze(Object.assign(new Error('OriginalReadFailure'), {cleanupHandle, cleanupPending: false}));
