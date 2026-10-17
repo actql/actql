@@ -2,7 +2,7 @@
 // This reader only obtains those originals through separately scoped Site uses.
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {ownInvocationContext,ownInvocationAuthorization,invocationBindingsMatch,
-  invokeScopedCredentialOperation} from '../../../host-common/owned-invocation-context.mjs';
+  invocationScopeFields,invokeScopedCredentialOperation} from '../../../host-common/owned-invocation-context.mjs';
 import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
 import {NOTION_PROPERTY_READ_API_VERSION} from './property-item-read.mjs';
 
@@ -46,13 +46,20 @@ function prepare({moon,declaration,initialAuthorization,sourceAuthorization,sour
   if(names.some(name=>typeof provider[name]!=='function'))fail('InvalidNotionDiscovery');
   const context=ownInvocationContext({authorization:initialAuthorization,credential,limits,
     callbacks:{authorizationFor,current,chargeResponse,consumeObservation}});
-  const source=lazy?undefined:ownInvocationAuthorization(sourceAuthorization);
+  const control=context.credential.control;
+  const scope=invocationScopeFields(context.scope,control);
+  // A pre-schema operation has no Program Run. Keep its opaque Subject/Scope
+  // and select the schema grant only after the original database observation;
+  // the old Run-bound early-authorized path remains unchanged.
+  if(control?.kind==='installation-metadata'&&!lazy)fail('NotionMetadataSelectionRequired');
+  const source=lazy?undefined:ownInvocationAuthorization(sourceAuthorization,control);
+  const sourceScope=source===undefined?undefined:invocationScopeFields(source.scope,control);
   if(!fields.every(name=>positive(context.limits[name]))||!context.credential.binding)fail('InvalidNotionDiscovery');
-  if(context.scope.operation!==NOTION_DATABASE_RETRIEVE_OPERATION||(!lazy&&(
-    source.scope.operation!==NOTION_DATA_SOURCE_RETRIEVE_OPERATION||
-    !invocationBindingsMatch(source.scope,context.scope))))fail('ForeignNotionDiscoveryAuthorization');
+  if(scope.operation!==NOTION_DATABASE_RETRIEVE_OPERATION||(!lazy&&(
+    sourceScope.operation!==NOTION_DATA_SOURCE_RETRIEVE_OPERATION||sourceScope.resourceOrigin!==scope.resourceOrigin||
+    !invocationBindingsMatch(source.scope,context.scope,control))))fail('ForeignNotionDiscoveryAuthorization');
   const path=coordinate(provider.notionReadDatabaseId(declaration),'databases',context.limits.maxTargetBytes);
-  return Object.freeze({provider,declaration,context,source,sourceAuthorizationFor,path,signal,systemColumns});
+  return Object.freeze({provider,declaration,context,scope,source,sourceAuthorizationFor,path,signal,systemColumns});
 }
 
 async function discover(original,state){
@@ -62,8 +69,10 @@ async function discover(original,state){
   const request=async(operation,index,path,selectedAuthorization)=>{
     await verify(operation);
     const authorization=ownInvocationAuthorization(selectedAuthorization??
-      await context.callbacks.authorizationFor(Object.freeze({operation,index})));
-    if(authorization.scope.operation!==operation||!invocationBindingsMatch(authorization.scope,context.scope))fail('ForeignNotionDiscoveryAuthorization');
+      await context.callbacks.authorizationFor(Object.freeze({operation,index})),context.credential.control);
+    const scope=invocationScopeFields(authorization.scope,context.credential.control);
+    if(scope.operation!==operation||scope.resourceOrigin!==original.scope.resourceOrigin||
+        !invocationBindingsMatch(authorization.scope,context.scope,context.credential.control))fail('ForeignNotionDiscoveryAuthorization');
     await verify(operation);
     const response=await invokeScopedCredentialOperation({authorization,credential:context.credential,
       callResource:options=>callHttpsCredentialResource({...options,currentBeforeSend:()=>verify(operation)}),
@@ -91,10 +100,11 @@ async function discover(original,state){
       await verify(NOTION_DATA_SOURCE_RETRIEVE_OPERATION);
       selectedAuthorization=ownInvocationAuthorization(await original.sourceAuthorizationFor(Object.freeze({
         selection,declaration,database,operation:NOTION_DATA_SOURCE_RETRIEVE_OPERATION,
-        origin:context.scope.resourceOrigin,method:'GET',path:sourcePath,bodyBytes:0})));
+        origin:original.scope.resourceOrigin,method:'GET',path:sourcePath,bodyBytes:0})),context.credential.control);
+      const selectedScope=invocationScopeFields(selectedAuthorization.scope,context.credential.control);
       if(provider.notionReadSourceSelectionMatches(selection,declaration,database)!==true||
-          selectedAuthorization.scope.operation!==NOTION_DATA_SOURCE_RETRIEVE_OPERATION||
-          !invocationBindingsMatch(selectedAuthorization.scope,context.scope))fail('ForeignNotionDiscoveryAuthorization');
+          selectedScope.operation!==NOTION_DATA_SOURCE_RETRIEVE_OPERATION||selectedScope.resourceOrigin!==original.scope.resourceOrigin||
+          !invocationBindingsMatch(selectedAuthorization.scope,context.scope,context.credential.control))fail('ForeignNotionDiscoveryAuthorization');
       await verify(NOTION_DATA_SOURCE_RETRIEVE_OPERATION);
     }else{
       // Existing early-authorized path retains its original contract/behavior.

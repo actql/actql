@@ -61,6 +61,8 @@ pub fn admit_client_infer_composed_sources(ClientInferOccurrence, Array[@executi
 
 pub fn admit_client_infer_occurrence_egress(ClientInferOccurrence, @check_environment.ModelExecutionContract, () -> ClientInferEgressObservation?) -> Result[ClientInferEgressAdmission, ClientInferEgressIssue]
 
+pub fn admit_client_infer_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits) -> Result[ClientTaskRunMaterials, ClientTaskRunMaterialsIssue]
+
 pub fn admit_client_keyed_serialization_captured_input(PreparedClientProgram, ClientSerializationPlanGraph, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, ClientKeyedLookupObservation, String, String, String) -> Result[ClientSerializationCapturedInput, @run_publication.RunEvidenceValueIssue]
 
 pub fn admit_client_local_run_policy_original(Bytes, ClientLocalRunPolicyProfile, ClientSubmissionReferenceRecord, ClientRequestIdentity, @run_publication.PublicationContract, String, String) -> Result[ClientLocalRunPolicyOriginal, ClientLocalRunPolicyProfileIssue]
@@ -718,6 +720,8 @@ pub fn client_local_configuration_selection_body(Array[ClientLocalOriginalConfig
 pub fn client_local_default_signing_bootstrap_policy() -> ClientLocalSigningBootstrapPolicy
 
 pub fn client_local_finite_read_selection_wire(String, ClientLocalRunPolicyProfile, String, String, String) -> Result[String, ClientLocalRunPolicyProfileIssue]
+
+pub fn client_local_initial_signing_payload_body(ClientLocalInitialSigningPayloadFields) -> Result[Bytes, ClientLocalOriginalCodecIssue]
 
 pub fn client_local_initialization_body(@execution_authorization.AdmittedAccountConfiguration, Bytes, Bytes, ClientLocalInitializationPhysical) -> Result[Bytes, ClientLocalOriginalCodecIssue]
 
@@ -1385,6 +1389,8 @@ pub fn issue_client_infer_dispatch_admission(ClientCompiledRun, @run_publication
 
 pub fn issue_client_infer_occurrence_call_scope(ClientInferOccurrence, ClientInferPlanGraph, @execution_relation.CompletedOutput, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int, captured? : ClientInferCapturedInput?, sources? : ClientInferComposedSources?, generation? : ClientSerializationGeneration?) -> Result[ClientInferCallScope, ClientInferCallScopeIssue]
 
+pub fn issue_client_infer_run_materials(ClientCompiledRun, @run_publication.PublicationContract, @program_check.CheckEnvironment, String, String, String?, ClientValuesRunMaterialsLimits) -> Result[String, ClientTaskRunMaterialsIssue]
+
 pub fn issue_client_keyed_lookup_observation(ClientKeyedLookupInput, String, String) -> Result[ClientKeyedLookupObservation, ClientKeyedRequestIssue]
 
 pub fn issue_client_local_run_retention_policy(ClientLocalRunPolicyProfile, String) -> Result[@run_publication.PublicationContract, ClientLocalRunPolicyProfileIssue]
@@ -1468,6 +1474,8 @@ pub fn issue_prepared_client_infer_execution_material(PreparedClientProgram, Cli
 pub fn issue_prepared_client_infer_plan_graph(PreparedClientProgram, Int, @check_environment.ModelExecutionContract, String, String, @lowering_relation.SequenceLimits, Int, Int, Int, capacity_work? : Int) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue]
 
 pub fn issue_prepared_client_infer_prefix_fragment(PreparedClientProgram, Int, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientTaskFragmentNode, ClientTaskFragmentIssue]
+
+pub fn issue_prepared_client_infer_run_materials(ClientCompiledRun, @run_publication.PublicationContract, @program_check.CheckEnvironment, String?, ClientValuesRunMaterialsLimits) -> Result[String, ClientTaskRunMaterialsIssue]
 
 pub fn issue_prepared_client_local_normalization(PreparedClientProgram) -> Result[ClientLocalNormalization, ClientLocalNormalizationIssue]
 
@@ -1816,6 +1824,8 @@ pub fn read_client_captured_effect_subject(ClientEffectAllowedRun, @run_publicat
 pub fn read_client_infer_occurrence_model_execution(ClientInferOccurrence, Bytes, String, @check_environment.Limits, Int) -> Result[@check_environment.ModelExecutionContract, ClientInferPlanGraphIssue]
 
 pub fn read_client_infer_saved_call_scope(ClientCompiledRun, @run_publication.PublicationContract, ClientInferOccurrence, ClientInferPlanGraph, String, String, () -> Bool) -> Result[ClientInferSavedCallScope, ClientInferCallScopeIssue]
+
+pub fn read_client_local_initial_signing_payload(Bytes) -> Result[ClientLocalInitialSigningPayloadFields, ClientLocalOriginalCodecIssue]
 
 pub fn read_client_local_runtime_successor_metadata(Bytes) -> Result[ClientLocalRuntimeSuccessorMetadata, ClientLocalRuntimeSuccessorIssue]
 
@@ -2855,6 +2865,22 @@ pub(all) enum ClientLocalAdoptionCurrentObservation[Store] {
 pub(all) enum ClientLocalAuthorityScopeIssue {
   InvalidInput
   Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ClientLocalInitialSigningPayloadFields {
+  adoption_cid : String
+  initialization_intent_cid : String
+  issuer_authority : String
+  key_file : String
+  key_projection : String
+  policy_cid : String
+  policy_original : String
+  public_key_cid : String
+  public_key_original : String
+  public_key_pem : String
+  purpose : String
+  root_role : String
+  version : String
 } derive(Eq, @debug.Debug)
 
 pub(all) struct ClientLocalInitializationPhysical {

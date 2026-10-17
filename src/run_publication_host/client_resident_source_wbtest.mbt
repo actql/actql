@@ -4,6 +4,22 @@ let resident_source_program : String =
   #|{"version":"actql/0.1","id":"fixture.resident-source-filter-select","stages":[{"id":"acquire","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0","as":"filtered"},{"select":["id","amount"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id","amount"]}}}],"results":{"answer":{"from":{"stage":"acquire","result":"rows"}}}}
 
 ///|
+test "resident Source fixture has canonical ordered Environment evidence" {
+  match
+    @environment.read(
+      @utf8.encode(multi_source_environment),
+      "sha256:8dddb2a590629efb451ee5c579798da0ec64a674980601b49a97ff6a79140505",
+      { max_bytes: 65536, max_nodes: 4096, max_depth: 64, max_members: 256, },
+    ) {
+    Ok(_) => ()
+    Err(issue) => {
+      debug_inspect(issue, content="valid ordered fixture Environment")
+      fail("fixture Environment admission refused")
+    }
+  }
+}
+
+///|
 test "resident Source Result compiles its exact acquisition task without Compute" {
   let prepared = multi_source_prepared(resident_source_program)
   let graph = prepared_client_graph(prepared)
@@ -43,7 +59,7 @@ test "resident Source Result compiles its exact acquisition task without Compute
 
 ///|
 test "resident task materials preserve original Source and Values Run evidence" {
-  let environment_cid = "sha256:4cfc3a08514b254c76ac810df9153072a3f0edbf0f211c18b85298aa0c51a92e"
+  let environment_cid = "sha256:8dddb2a590629efb451ee5c579798da0ec64a674980601b49a97ff6a79140505"
   let environment = admit_client_check_environment(
     multi_source_environment,
     environment_cid,
