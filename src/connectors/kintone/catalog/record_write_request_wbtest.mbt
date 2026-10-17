@@ -116,14 +116,14 @@ test "updates refuse foreign target or value Forms and duplicate numeric ID alia
     )
     is Err(DuplicateTarget),
   )
-  let alias = prepare_original_record_target(
+  let numeric_alias = prepare_original_record_target(
     mutation_page(catalog, [mutation_row("0009007199254740992")]),
     0,
     100,
   ).unwrap()
   assert_true(
     prepare_record_update_request(
-      [(first, values), (alias, values)],
+      [(first, values), (numeric_alias, values)],
       mutation_limits(),
     )
     is Err(DuplicateTarget),
