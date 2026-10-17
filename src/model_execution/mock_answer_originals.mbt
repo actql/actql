@@ -253,7 +253,9 @@ fn ModelMockAnswers::require_original(
   self : Self,
   task : @environment.PublicModelTaskDeclaration,
 ) -> Result[Unit, ModelMockAnswerIssue] {
-  guard self.original is Some(original) && self.task is Some(retained) else {
+  guard self.original is Some(original) &&
+    self.task is Some(retained) &&
+    self.document is Some(_) else {
     return Err(Retired)
   }
   if !physical_equal(self, original) || !physical_equal(task, retained) {
