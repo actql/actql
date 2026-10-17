@@ -394,3 +394,77 @@ test('failed outcome recording keeps original current failure and its same pendi
   assert.equal(f.resourceRequests(), 0); assert.equal(f.tokenRequests(), 1);
   assert.equal(f.journal.recover().length, 2);
 });
+
+test('a post-response current await cannot renew the original token lifetime', async t => {
+  const f = await fixture(t);
+  let checks = 0;
+  await assert.rejects(f.exchange({currentBeforeSend: async () => {
+    checks++;
+    if (checks === 3) f.advance(nowValue + 61_000);
+  }}), {code: 'RemoteCredentialAuthenticationMaterialExpired'});
+  assert.equal(checks, 3);
+  assert.equal(f.tokenRequests(), 1);
+  assert.equal(f.resourceRequests(), 0);
+  assert.equal(f.journal.recover().find(x => x.useId === 'original-auth').outcome, 'unknown');
+  assert.equal(f.journal.recover().find(x => x.useId === 'original-parent').outcome, 'claimed');
+  const reopened = f.opens();
+  try { assert.equal(reopened.recover().find(x => x.useId === 'original-auth').outcome, 'unknown'); }
+  finally { reopened.close(); }
+  await assert.rejects(f.exchange(), {code: 'RemoteCredentialAuthenticationAlreadyClaimed'});
+  await assert.rejects(f.resource(), {code: 'RemoteCredentialAuthenticationUnavailable'});
+  assert.equal(f.tokenRequests(), 1);
+  assert.equal(f.resourceRequests(), 0);
+  assert.equal(f.resolutions(), 1);
+});
+
+test('physical token response delay consumes the original advertised lifetime', async t => {
+  let release;
+  const f = await fixture(t, {onToken(_request, response) {
+    release = () => response.writeHead(200, {'content-type': 'application/json'})
+      .end('{"access_token":"LOCAL_ONLY_ORIGINAL_TOKEN","token_type":"Bearer","expires_in":60}');
+    return true;
+  }});
+  const exchange = f.exchange();
+  await f.requestEntered;
+  f.advance(nowValue + 61_000);
+  release();
+  await assert.rejects(exchange, {code: 'RemoteCredentialAuthenticationMaterialExpired'});
+  assert.equal(f.tokenRequests(), 1);
+  assert.equal(f.resourceRequests(), 0);
+  assert.equal(f.journal.recover().find(x => x.useId === 'original-auth').outcome, 'unknown');
+});
+
+test('post-response current delay leaves only the remaining original token lifetime', async t => {
+  const f = await fixture(t);
+  let checks = 0;
+  await f.exchange({currentBeforeSend: async () => {
+    if (++checks === 3) f.advance(nowValue + 59_000);
+  }});
+  assert.equal(f.journal.recover().find(x => x.useId === 'original-auth').outcome, 'succeeded');
+  assert.equal((await f.resource()).status, 200);
+  f.advance(nowValue + 60_000);
+  const claimed = f.journal.recover().length;
+  await assert.rejects(f.resource({useId: 'page-at-original-token-expiry'}),
+    {code: 'RemoteCredentialAuthenticationMaterialExpired'});
+  assert.equal(f.journal.recover().length, claimed);
+  assert.equal(f.tokenRequests(), 1);
+  assert.equal(f.resourceRequests(), 1);
+  assert.equal(f.resolutions(), 1);
+});
+
+test('token duration starts at the final authorized physical POST rather than earlier preparation', async t => {
+  const f = await fixture(t);
+  let checks = 0;
+  await f.exchange({currentBeforeSend: async () => {
+    checks++;
+    if (checks === 2) f.advance(nowValue + 30_000);
+    if (checks === 3) f.advance(nowValue + 89_000);
+  }});
+  assert.equal((await f.resource()).status, 200);
+  f.advance(nowValue + 90_000);
+  await assert.rejects(f.resource({useId: 'page-at-final-post-token-expiry'}),
+    {code: 'RemoteCredentialAuthenticationMaterialExpired'});
+  assert.equal(f.tokenRequests(), 1);
+  assert.equal(f.resourceRequests(), 1);
+  assert.equal(f.resolutions(), 1);
+});
