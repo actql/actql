@@ -210,6 +210,8 @@ pub fn client_program_append_captured_source_identity_scan(@execution_query.Capt
 
 pub fn client_program_author_effect_preview(String, String, String, @logical_request_scope.LogicalRequestScope, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[(String, Array[Array[@effect_application.EffectDispatchKey]]), ClientEffectPreviewAuthorIssue]
 
+pub fn client_program_begin_effect_command_key_workspace(ClientEffectCommandWorkspace, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.PublicationOutputExportLimits, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int]) -> Result[ClientEffectManagedInputImport, ClientEffectCommandWorkspaceIssue]
+
 pub fn client_program_begin_infer_original_model_invalidation(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin]) -> Result[@physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin], @client_infer_host.Issue]
 
 pub fn client_program_begin_infer_original_read_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelQuantityCapacity?, Int64, Int64, Int, Int, Int) -> Result[@run_publication_host.ClientModelReadScope, @client_infer_host.Issue]
@@ -402,6 +404,8 @@ pub fn client_program_cleanup_model_execution(@model_execution.ModelExecution) -
 
 pub fn client_program_cleanup_model_output(@model_execution.ModelOutputPreparation) -> Result[Bool, @model_execution.ModelExecutionIssue]
 
+pub fn client_program_close_effect_command_key_workspace(ClientEffectCommandWorkspace) -> Result[Bool, ClientEffectCommandWorkspaceIssue]
+
 pub fn client_program_close_effect_source_port(@physical_strategy.CapturedEffectInputs, Int) -> Bool
 
 pub fn client_program_close_source_capture(@client_local_host.ClientAccountedSourceCapture, Int?) -> Bool
@@ -553,6 +557,10 @@ pub fn client_program_effect_command_content_wire(@run_publication_host.ClientEf
 pub fn client_program_effect_command_key_advance(@physical_strategy.CapturedEffectCommandKeyValidation, Int) -> Result[(Bool, Int), @physical_strategy.CapturedEffectCommandKeyIssue]
 
 pub fn client_program_effect_command_key_cleanup(@physical_strategy.CapturedEffectCommandKeyValidation) -> Result[Bool, @physical_strategy.CapturedEffectCommandKeyIssue]
+
+pub fn client_program_effect_command_key_workspace_pending(ClientEffectCommandWorkspace) -> Bool
+
+pub fn client_program_effect_command_key_workspace_synchronous_end(ClientEffectCommandWorkspace) -> Unit
 
 pub fn client_program_effect_compilation_compiled_plan_wire(@run_publication_host.ClientEffectCompilation) -> String
 
@@ -1602,6 +1610,8 @@ pub fn client_program_park_infer_original_model_resources_for_state_write(@clien
 
 pub fn client_program_pin_effect_sources(ClientLocalEffectHost, Int) -> Result[@physical_strategy.CapturedEffectInputs, @physical_strategy.RunIssue]
 
+pub fn client_program_plan_effect_command_key_workspace(ClientLocalEffectHost, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.PublicationOutputExportLimits, Int) -> Result[ClientEffectCommandWorkspace?, ClientEffectCommandWorkspaceIssue]
+
 pub fn client_program_plan_fact_manifest_cid(@run_publication_host.PlanFactManifestIdentity) -> String
 
 pub fn client_program_plan_fact_manifest_wire(@run_publication_host.PlanFactManifestIdentity) -> String
@@ -2213,6 +2223,8 @@ pub fn client_program_start_composed_infer_execution(@run_publication_host.Clien
 pub fn client_program_start_composed_infer_input(@run_publication_host.ClientInferOccurrence, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @run_publication_host.ClientInferComposedSources?) -> Result[@client_local_host.ClientInferInputExecution, @client_local_host.ClientInferInputIssue]
 
 pub fn client_program_start_content_infer_observation_issuance(Array[@client_infer_host.Execution], Array[@run_publication_host.ClientSerializationGeneration], @physical_resources.Ledger, Int, Int, Int) -> Result[@client_infer_host.ObservationIssuance, @client_infer_host.Issue]
+
+pub fn client_program_start_effect_command_key_workspace(ClientEffectCommandWorkspace) -> Result[@physical_strategy.CapturedEffectCommandKeyValidation, ClientEffectCommandWorkspaceIssue]
 
 pub fn client_program_start_generated_infer_execution(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelProvider) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
@@ -4043,6 +4055,16 @@ pub(all) enum ClientCapturedSourceLogicalIssue {
   Encoding(@encode_core.EncodeFailure)
   Evidence(@run_publication.RunEvidenceValueIssue)
   Admission(@run_publication.SourceInputLogicalIssue)
+}
+
+type ClientEffectCommandWorkspace
+
+pub(all) enum ClientEffectCommandWorkspaceIssue {
+  ForeignOrigin
+  Unavailable
+  Resource(@physical_resources.LedgerIssue)
+  Import(ClientEffectManagedInputIssue)
+  Key(@physical_strategy.CapturedEffectCommandKeyIssue)
 }
 
 pub(all) enum ClientEffectLocalArtifactBridgeIssue {

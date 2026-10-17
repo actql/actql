@@ -103,6 +103,12 @@ test('actual original phase rejects a foreign Run or member and leaves absent-ke
       commandWorkspace: scope, onChunk() { chunks++; },
     }), {code: 'MoonBitHostFailure'});
     assert.equal(chunks, 0);
+    // Identical Program/schema/rows do not replace the managed generation.
+    await assert.rejects(exportPinnedEffectInput({moon, execution: second.execution,
+      inputs: first.inputs, memberIndex: 0, limits: first.limits,
+      commandWorkspace: scope, onChunk() { chunks++; },
+    }), {code: 'MoonBitHostFailure'});
+    assert.equal(chunks, 0);
     await close(scope);
     assert.equal(pending(scope), false);
   } finally {
