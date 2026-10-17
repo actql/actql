@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {writeFile} from 'node:fs/promises';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {createNotionDatabaseReaderFactory} from '../host/database-reader.mjs';
 import {databaseRowReaderFixture,databaseReaderLimits,databaseSnapshot} from './database-row-reader.fixture.mjs';
@@ -43,4 +44,19 @@ test('database factory refuses absent capacity and foreign snapshot before any i
   const p=await f.prepare();
   await assert.rejects(f.source.openCapture({...p,ledger:undefined}),{code:'InstalledProviderSourceLedgerRequired'});
   assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
+});
+
+test('ordinary database current Account replacement after query refuses dependent property grant and I/O',async t=>{
+  const f=await databaseRowReaderFixture(t,{currentAccountFile:true}),p=await f.prepare();
+  f.state.beforeResponse=async request=>{
+    assert.equal(request.method,'POST');
+    await writeFile(f.accountPath,f.accountWire.replace('"outcome":"allow"','"outcome":"deny"'),{mode:0o600});
+  };
+  let original;
+  await assert.rejects(f.source.openCapture(p),error=>{original=error;return error.recovery?.cleanupPending()===true;});
+  await f.retain(original.recovery,p.ledger);
+  assert.equal(f.state.requests.length,1);assert.equal(f.state.resolutions,1);
+  assert.equal(f.site.credential.journal.recover().length,1);
+  await original.recovery.close();assert.equal(await original.recovery.cleanup(),false);
+  assert.equal(f.state.requests.length,1);
 });

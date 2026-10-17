@@ -7,7 +7,7 @@ import {join} from 'node:path';
 import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as provider from '../../../../_build/js/release/build/connectors/notion/host_node/host_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {canonicalJson} from '../../../host-node/local-account-config.mjs';
+import {canonicalJson,createLocalAuthorizationGate} from '../../../host-node/local-account-config.mjs';
 import {createInstalledRowSource,installRowSourceAuthorization,openRowSourceCredentialSite,
   rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
 import {createNotionDatabaseReaderFactory} from '../host/database-reader.mjs';
@@ -54,7 +54,7 @@ export function databaseSnapshot(){
   return checked(provider.notionCaptureDatabaseReadSnapshot(selection,source,contracts,...savedLimits));
 }
 
-export async function databaseRowReaderFixture(t){
+export async function databaseRowReaderFixture(t,{currentAccountFile=false}={}){
   const f=await userListFixture(t,{accounted:false}),snapshot=databaseSnapshot();
   f.state.pages=[queryPage('page1','query cursor'),propertyPage('a','property cursor'),propertyPage('b',null),
     queryPage('page2',null),propertyPage('c','property cursor'),propertyPage('d',null)];
@@ -62,7 +62,15 @@ export async function databaseRowReaderFixture(t){
   const accountWire=canonicalJson({version:'actql-execution-account-config/0.1',account_id:'database-reader',entries:[{
     entry_id:'database',outcome:'allow',principal:{all:true},connection:{any_of:[connection]},
     resource:{any_of:[resource]},operation:{any_of:['read']},exclusions:[]}]});
-  const authorization=await installRowSourceAuthorization({root:f.root,principalId:'operator',connectorRegistration:'notion',
+  const accountPath=join(f.root,'database-account.json');await writeFile(accountPath,accountWire,{mode:0o600});
+  let authorization;
+  if(currentAccountFile){
+    const context=Object.freeze({principal:'operator',contextCid:hash('original-database-account-context')});
+    const gate=await createLocalAuthorizationGate({accountConfig:accountPath,principal:'operator',context}),issued=new WeakSet();
+    authorization=Object.freeze({...gate,context,issued:decision=>issued.has(decision),authorize:async(...args)=>{
+      const decision=await gate.authorize(...args);issued.add(decision);return decision;
+    }});
+  }else authorization=await installRowSourceAuthorization({root:f.root,principalId:'operator',connectorRegistration:'notion',
     accountConfiguration:accountWire});
   const specification=checked(provider.notionDatabaseReadSnapshotRelationSpecification(snapshot,resource,...savedLimits));
   const declaration=checked(common.clientProgramRowSourceRestoreRelationDeclaration('workspace','notion','notion/0.1',specification,undefined));
@@ -110,5 +118,5 @@ export async function databaseRowReaderFixture(t){
       sourceCid:checked(provider.notionDatabaseReadSnapshotSourceCid(snapshot)),
       usage:common.clientProgramMultiCapturedLedgerUsage(ledger).map(x=>typeof x==='bigint'?x.toString():x)}),{mode:0o600});
   };
-  return{...f,snapshot,source,site,factory,capacity,prepare,retain,common,provider};
+  return{...f,snapshot,source,site,factory,capacity,prepare,retain,common,provider,accountPath,accountWire};
 }
