@@ -2358,3 +2358,26 @@ object, executable and library bytes before execution through the original
 funded parent. This preparation neither admits arbitrary user executables nor
 supplies normal resources or the stronger same-module physical acceptance
 required by the final producer and loader.
+
+### Initial compiler domain in the original backing
+
+Compiler preparation can select one initial execution-only domain from the
+same Native parent. Before that domain's ordinary acquisition, the existing
+Bootstrap Owner checks its original/current identity, the actual provider
+control-byte observation and the matching charged control allocation. Only
+when control is the sole existing allocation does it select capacity minus
+that control as the accounting candidate. Earlier allocations, delegations or
+domain attempts, including retired or partial ones, cannot become another
+initial attempt.
+
+This candidate is neither a physical maximum nor a claim that every byte is
+usable for compiler buffers. The same allocator must acquire the extent;
+fragmentation or other physical occupancy can still refuse it. Domain heap
+metadata and fragmentation remain inside that gross extent. Its original
+execution limit covers that extent, with zero retained bytes; this does not
+fund a separate loader, Python runtime or VM domain. Non-byte limits remain
+explicit source-bound inputs, and normal numerical funding stays unavailable.
+The ordinary domain record is registered before physical acquisition, so a
+partial mapping, loan or allocation remains with that same original pending
+carrier. No failed attempt is retried as a new initial domain, and only the
+existing original stop, borrower and physical cleanup boundaries retire it.
