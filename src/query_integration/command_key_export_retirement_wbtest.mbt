@@ -1,6 +1,6 @@
 ///|
 test "original Command correspondence transfers once after whole-input cleanup before derived view closes" {
-  let (_, captured, inputs, operations, available, completed, _) = published_store_capture_with_completion(
+  let (prepared, captured, inputs, operations, available, completed, template) = published_store_capture_with_completion(
     input_key=true,
   )
   let (exported, bridge) = command_key_managed_export_with_bridge(
@@ -59,14 +59,31 @@ test "original Command correspondence transfers once after whole-input cleanup b
     8,
     1024,
   )
-  let (_, changes) = @strategy.project_captured_effect_proposal_row(
+  let (selector, changes) = @strategy.project_captured_effect_proposal_row(
     proposal, row, 0, 2, 100, 1024, 64, 8,
   ).unwrap()
   assert_eq(
     changes, "{\"state\":\"present\",\"value\":{\"id\":\"one\",\"value\":\"original\"}}",
   )
   @strategy.finish_captured_effect_proposal_plan(proposal, 1).unwrap()
+  let preview = command_key_preview(
+    prepared, captured, inputs, template, selector,
+  )
+  let verifier = @strategy.prepare_captured_effect_plan_verifier(
+    preview,
+    0,
+    2,
+    100,
+    published_target=Some(target),
+    input_key=Some(key),
+  ).unwrap()
+  @strategy.check_captured_effect_plan_row(
+    verifier, row, 0, 2, 100, 1024, 64, 8,
+  ).unwrap()
+  let proof = @strategy.finish_captured_effect_plan_verifier(verifier).unwrap()
+  assert_true(@strategy.captured_effect_plan_proof_matches(proof, preview, 0))
   command_key_close(captured, inputs, operations, available)
+  assert_false(@strategy.captured_effect_plan_proof_matches(proof, preview, 0))
   assert_true(
     @strategy.prepare_captured_effect_proposal_plan(
       inputs,
@@ -78,6 +95,59 @@ test "original Command correspondence transfers once after whole-input cleanup b
     )
     is Err(@strategy.CapturedEffectProposalIssue::InvalidMember),
   )
+}
+
+///|
+test "Host key continuation completes whole traversal and private cleanup before retaining correspondence" {
+  let (_, captured, inputs, operations, available, completed, _) = published_store_capture_with_completion(
+    input_key=true,
+  )
+  let (exported, bridge) = command_key_managed_export_with_bridge(
+    inputs, operations, completed,
+  )
+  assert_true(
+    @strategy.captured_effect_command_requires_input_key(inputs, 0, 100).unwrap(),
+  )
+  let key = @strategy.start_captured_effect_command_key_validation(
+    @bounded.control(),
+    inputs,
+    0,
+    0,
+    exported,
+    100,
+    1000,
+    10,
+    100,
+  ).unwrap()
+  assert_true(
+    @strategy.step_captured_effect_command_key_validation(key, 0)
+    is Err(
+      @strategy.CapturedEffectCommandKeyIssue::Control(@bounded.InvalidQuantum)
+    ),
+  )
+  let mut done = false
+  for _ in 0..<10000 {
+    let (finished, used) = @strategy.step_captured_effect_command_key_validation(
+      key, 1,
+    ).unwrap()
+    assert_true(used > 0)
+    if finished {
+      done = true
+      break
+    }
+  }
+  assert_true(done)
+  @execution.close_managed_publication_bridge(bridge)
+  assert_true(
+    @strategy.step_captured_effect_command_key_validation(key, 1)
+    is Ok((true, 0)),
+  )
+  available.val = false
+  assert_true(
+    @strategy.step_captured_effect_command_key_validation(key, 1)
+    is Err(@strategy.CapturedEffectCommandKeyIssue::ForeignOrigin),
+  )
+  command_key_close(captured, inputs, operations, available)
 }
 
 ///|

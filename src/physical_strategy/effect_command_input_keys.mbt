@@ -16,6 +16,7 @@ struct CapturedEffectCommandKeyValidation {
   mut revoked : Bool
   mut retained : Bool
   mut retaining : Bool
+  mut step_work : Int64
 }
 
 ///|
@@ -25,6 +26,45 @@ pub(all) enum CapturedEffectCommandKeyIssue {
   Plan(@results.EffectPlanBindingIssue)
   Validation(@execution.CompletedResultKeyIssue)
   Control(@bounded.Issue)
+  Stopped(@bounded.StopReason)
+}
+
+///|
+/// Inspect the same checked member binding. This is neither whole-input
+/// evidence nor a caller-selected field name.
+pub fn captured_effect_command_requires_input_key(
+  inputs : CapturedEffectInputs,
+  member_index : Int,
+  max_work : Int,
+) -> Result[Bool, CapturedEffectCommandKeyIssue] {
+  guard captured_effect_input_at(inputs, member_index) is Some(_) else {
+    return Err(ForeignOrigin)
+  }
+  let effects = @checked.effect_program_static_effects(
+    @effect_binding.effect_program_run_static_candidate(inputs.run.checked.run),
+  )
+  guard @results.effect_result_binding_at(
+      @results.effect_static_candidate_results(effects),
+      member_index,
+    )
+    is Some(binding) else {
+    return Err(ForeignOrigin)
+  }
+  if @syntax.effect_header_kind(@results.effect_result_binding_header(binding)) !=
+    "command" {
+    return Ok(false)
+  }
+  match
+    @results.effect_command_input_for_member(
+      @results.effect_static_candidate_command_inputs(effects),
+      member_index,
+      max_work,
+    ) {
+    Ok(Some(command)) =>
+      Ok(@results.effect_command_input_key(command) is Some(_))
+    Ok(None) => Ok(false)
+    Err(issue) => Err(Plan(issue))
+  }
 }
 
 ///|
@@ -139,7 +179,56 @@ pub fn start_captured_effect_command_key_validation(
     revoked: false,
     retained: false,
     retaining: false,
+    step_work: 0L,
   })
+}
+
+///|
+/// One bounded validation or private-retirement transition for a Host caller.
+/// No row is projected until whole completion, workspace cleanup and the
+/// one-time original-capture transfer all succeed. The second result counts
+/// semantic traversal work, or one private cleanup transition.
+pub fn step_captured_effect_command_key_validation(
+  value : CapturedEffectCommandKeyValidation,
+  quantum : Int,
+) -> Result[(Bool, Int), CapturedEffectCommandKeyIssue] {
+  if quantum <= 0 {
+    return Err(Control(@bounded.InvalidQuantum))
+  }
+  if value.retaining {
+    return Err(ForeignOrigin)
+  }
+  if value.retained {
+    return if captured_effect_command_key_origin(value) {
+      Ok((true, 0))
+    } else {
+      Err(ForeignOrigin)
+    }
+  }
+  if value.terminal {
+    match cleanup_captured_effect_command_key_validation(value) {
+      Err(issue) => return Err(issue)
+      Ok(true) =>
+        return retain_captured_effect_command_key_validation(value).map(_ => {
+          (true, 1)
+        })
+      Ok(false) => return Ok((false, 1))
+    }
+  }
+  let poll = match
+    advance_captured_effect_command_key_validation(value, quantum) {
+    Ok(poll) => poll
+    Err(issue) => return Err(issue)
+  }
+  match poll {
+    @bounded.ContinueWith(_, work~, ..) | @bounded.Completed(_, work~, ..) => {
+      let used = work - value.step_work
+      value.step_work = work
+      Ok((false, Int::max(1, used.to_int())))
+    }
+    @bounded.FailedWith(issue, ..) => Err(Validation(issue))
+    @bounded.StoppedWith(reason, ..) => Err(Stopped(reason))
+  }
 }
 
 ///|

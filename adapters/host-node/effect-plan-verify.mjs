@@ -1,6 +1,7 @@
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
+import {retireEffectCommandKeyWorkspace} from './effect-command-key.mjs';
 
 /**
  * Match an admitted private Preview against the checked, retained Result view.
@@ -38,7 +39,7 @@ export async function verifyPinnedEffectPlan({
   const importing = checked(moon.clientProgramEffectPlanImportBegin(
     previewInputs, previewIndex, physical.completed, physical.material,
     limits, ownedPlanLimits.maxFields, ownedPlanLimits.maxWork));
-  let preparation, cursor, receipt;
+  let preparation, cursor, receipt, failure;
   try {
     preparation = await physical.withRows(
       row => checked(moon.clientProgramEffectPlanImportAppend(importing, row)),
@@ -72,7 +73,14 @@ export async function verifyPinnedEffectPlan({
       logicalCid: moon.clientProgramEffectInputExportLogicalCid(receipt),
       proof: runtimeField(finished, 2),
     });
+  } catch (error) {
+    failure = error;
+    throw error;
   } finally {
+    try {
+      await retireEffectCommandKeyWorkspace(() => checked(
+        moon.clientProgramEffectPlanKeyCleanup(importing)), failure);
+    } finally {
     if (receipt !== undefined) {
       moon.clientProgramEffectInputExportReleaseReceipt(receipt);
     }
@@ -82,5 +90,6 @@ export async function verifyPinnedEffectPlan({
       moon.clientProgramEffectPlanCancelPreparation(preparation);
     }
     moon.clientProgramEffectPlanCancelImport(importing);
+    }
   }
 }

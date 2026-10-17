@@ -3,6 +3,7 @@ import {createHash} from 'node:crypto';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
 import {checkedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
+import {advanceEffectCommandKey, retireEffectCommandKeyWorkspace} from './effect-command-key.mjs';
 import {releasePreparedResults, retainCompletedEffectDependencyPayloads} from
   '../host-common/completed-run-publication.mjs';
 
@@ -551,6 +552,7 @@ export async function exportPinnedEffectLocalResult({resultIndex, ...options}) {
 async function exportPinnedResult({
   moon, execution, inputs, memberIndex, limits, onChunk,
   onReceipt, onCanonicalRow, canonicalRowLimits,
+  prepareProposal,
   signal, advanceQuantum = 256, localResultIndex,
 }) {
   if (typeof onChunk !== 'function' ||
@@ -624,6 +626,9 @@ async function exportPinnedResult({
         throw new Error('EffectInputExportDidNotAdvance');
       }
       await yieldEventLoop(undefined, {signal});
+    }
+    if (prepareProposal !== undefined) {
+      await prepareProposal(exportOwner, importing);
     }
     stream = checked(table ? moon.clientProgramEffectTableInputExportReady(preparation)
       : moon.clientProgramEffectInputExportReady(preparation));
@@ -797,17 +802,9 @@ async function preparePinnedEffectSourcePayloadOwned({
     observation: localEvidenceContext.observation,
   });
   const proposalPlans = [];
-  try {
-    for (const index of proposalMembers ?? []) {
-      proposalPlans.push(checked(moon.clientProgramEffectProposalBegin(
-        inputs, index, proposalBounds.maxFields, proposalBounds.maxWork)));
-    }
-  } catch (error) {
-    for (const plan of proposalPlans) {
-      moon.clientProgramEffectProposalCancel(plan);
-    }
-    throw error;
-  }
+  const proposalKeys = [];
+  const cleanupKeys = () => proposalKeys.every(key => checked(
+    moon.clientProgramEffectCommandKeyCleanup(key)) === true);
   let writer;
   try {
     writer = store.createPreparedObjectWriter(maxBytes);
@@ -838,6 +835,27 @@ async function preparePinnedEffectSourcePayloadOwned({
       moon, execution, inputs, memberIndex, limits, signal,
       localResultIndex: table ? undefined : local?.resultIndex,
       ...(onProposalRow === undefined ? {} : {
+        prepareProposal: async (exportOwner, importing) => {
+          try {
+            for (const index of proposalMembers) {
+              const key = checked(exportOwner === undefined
+                ? moon.clientProgramEffectManagedCommandKeyStart(
+                  inputs, index, importing, proposalBounds.maxWork)
+                : moon.clientProgramEffectLocalCommandKeyStart(
+                  inputs, index, local.resultIndex, exportOwner, limits,
+                  proposalBounds.maxWork));
+              if (key !== undefined) proposalKeys.push(key);
+              await advanceEffectCommandKey(moon, key, signal, 256);
+              proposalPlans.push(checked(moon.clientProgramEffectProposalBegin(
+                inputs, index, proposalBounds.maxFields, proposalBounds.maxWork, key)));
+            }
+          } catch (failure) {
+            // Retire private traversal before the export finally closes its
+            // temporary view; a failed cleanup keeps the original callback.
+            await retireEffectCommandKeyWorkspace(cleanupKeys, failure);
+            throw failure;
+          }
+        },
         canonicalRowLimits: {maxNodes: proposalBounds.maxNodes,
           maxDepth: proposalBounds.maxDepth,
           maxUtf16Units: proposalBounds.maxUtf16Units},
@@ -1012,8 +1030,12 @@ async function preparePinnedEffectSourcePayloadOwned({
     }
     throw failure;
   } finally {
-    for (const plan of proposalPlans) {
-      moon.clientProgramEffectProposalCancel(plan);
+    try {
+      await retireEffectCommandKeyWorkspace(cleanupKeys);
+    } finally {
+      for (const plan of proposalPlans) {
+        moon.clientProgramEffectProposalCancel(plan);
+      }
     }
   }
 }

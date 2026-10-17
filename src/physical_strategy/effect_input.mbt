@@ -292,6 +292,15 @@ pub fn captured_effect_preview_owner(
 }
 
 ///|
+/// Return the identical captured-input owner retained by this private Preview.
+/// This read neither checks current authority nor reconstructs saved inputs.
+pub fn captured_effect_preview_input_owner(
+  value : CapturedEffectPreviewInputs,
+) -> CapturedEffectInputs {
+  value.inputs
+}
+
+///|
 /// The historical private Preview identity retained by the captured owner.
 /// Durable progress may be reconciled after Result pins are released, but
 /// this identity is not current material availability or send authority.
