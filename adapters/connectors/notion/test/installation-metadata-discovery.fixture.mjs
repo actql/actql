@@ -22,7 +22,7 @@ import {createNotionDatabaseDiscovery,NOTION_DATABASE_RETRIEVE_OPERATION as data
   NOTION_DATA_SOURCE_RETRIEVE_OPERATION as sourceOperation} from '../site/database-discovery.mjs';
 
 const emptyBody='sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
-const version='actql-notion-metadata-discovery-private-fixture/0.1';
+const version='actql-installed-notion-metadata-discovery-private-fixture/0.1';
 const metadata=[16384,1024,20,8,8,128,128];
 export const metadataDiscoveryLimits=Object.freeze({maxResponseBytes:16384,maxTotalResponseBytes:32768,
   maxTargetBytes:1024,maxNodes:1024,maxDepth:20,maxDataSources:8,maxProperties:8,maxIdentityBytes:128,
