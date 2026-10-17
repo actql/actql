@@ -161,7 +161,7 @@ test "installed process known synchronous spawn refusal uses original unstarted 
   assert_true(process.holder.unwrap().child() is Err(@executor.InvalidConfiguration))
   fixture.host.restrict_process_transport(fixture.domain, process).unwrap()
   fixture.host.return_process_transport(fixture.domain, process).unwrap()
-  fixture.host.close_prepared_process(fixture.domain, process).unwrap()
+  assert_eq(fixture.host.close_prepared_process(fixture.domain, process), Ok(()))
   assert_true(process.closed && process.stop is None)
   assert_true(fixture.domain.loan is Some(_))
   assert_true(process.holder.unwrap().spawn_duplex("/usr/bin/true", []) is Err(_))
