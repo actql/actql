@@ -154,6 +154,16 @@ test "Native check context keys exact original inputs audience and disclosure wi
   assert_false(reference == other_audience.reference(original))
   assert_false(reference == other_connection.reference(original))
   assert_false(reference == other_key.reference(original))
+  // Independent Python stdlib HMAC-SHA256 vectors over key 01 repeated 32
+  // and the exact domain, role, UTF-8 bytes; not derived from this implementation.
+  assert_eq(
+    other_key.revision("source", original.document),
+    "rev:ac093ea103a4d5d28f0a9f728cb0c5991f01e0366a42588f95bfb32f22a76d89",
+  )
+  assert_eq(
+    other_key.revision("parameters", original.document),
+    "rev:450cddef673fdcc17c50bf0062a3a4dd161e54a72cda0660e462177e9d1f5f20",
+  )
   assert_false(
     context.revision("source", original.document) ==
     context.revision("parameters", original.document),
