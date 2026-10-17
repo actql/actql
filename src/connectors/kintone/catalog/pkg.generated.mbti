@@ -69,6 +69,8 @@ pub fn recheck_record_delete_form(RecordDeleteRequest, Bytes, FormFieldLimits) -
 
 pub fn recheck_record_delete_records(RecordDeleteRequest, Bytes, RecordPageLimits, Int, Int) -> Result[Unit, RecordMutationIssue]
 
+pub fn recheck_record_lookup_form(RecordLookupRequest, Bytes, FormFieldLimits) -> Result[Unit, RecordLookupIssue]
+
 pub fn record_delete_acknowledgement_request(RecordDeleteAcknowledgement) -> RecordDeleteRequest
 
 pub fn record_delete_observation_body(RecordDeleteRequest, Int, Int, Int, Int) -> Result[String, RecordMutationIssue]
@@ -84,6 +86,8 @@ pub fn record_delete_request_targets(RecordDeleteRequest) -> Array[OriginalRecor
 pub fn record_key_lookup_page(RecordLookupObservation) -> OriginalRecordPage
 
 pub fn record_key_lookup_uses_request(RecordLookupObservation, RecordLookupRequest) -> Bool
+
+pub fn record_lookup_request_app_id(RecordLookupRequest) -> String
 
 pub fn record_lookup_request_body(RecordLookupRequest) -> String
 
@@ -208,6 +212,7 @@ pub(all) enum RecordLookupIssue {
   UnexpectedStatus
   IncompleteResponse
   ForeignRecord
+  ForeignCatalog
   ForeignRequest
   ChangedObservation
 } derive(Eq, @debug.Debug)
