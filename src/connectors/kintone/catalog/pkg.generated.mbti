@@ -95,6 +95,8 @@ pub fn record_create_request_count(RecordCreateRequest) -> Int
 
 pub fn record_create_request_values(RecordCreateRequest) -> Array[RecordWriteValues]
 
+pub fn record_create_required_fields(FormFieldCatalog, Int, Int) -> Result[Array[String], RecordWriteIssue]
+
 pub fn record_delete_acknowledgement_request(RecordDeleteAcknowledgement) -> RecordDeleteRequest
 
 pub fn record_delete_observation_body(RecordDeleteRequest, Int, Int, Int, Int) -> Result[String, RecordMutationIssue]

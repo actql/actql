@@ -17,6 +17,8 @@ pub fn borrow_record_read(PreparedRecordRead, @client_row_source_host.RowRun, @c
 
 pub fn declare_records(@catalog.FormFieldCatalog, @catalog.AppNumberSettings?, Array[String], String, String, String, @catalog.RecordValueLimits, @client_row_source_host.RowDeclarationLimits) -> Result[RecordDeclaration, RecordReadIssue]
 
+pub fn prepare_record_create_mapping(RecordDeclaration, String, Array[@client_row_source_host.RowMappingSource], String, @client_row_source_host.RowDeclarationLimits) -> Result[RecordCreateMapping, @client_row_source_host.RowMappingIssue]
+
 pub fn prepare_record_delete_mapping(RecordDeclaration, String, String, @client_row_source_host.RowDeclarationLimits) -> Result[RecordDeleteMapping, @client_row_source_host.RowMappingIssue]
 
 pub fn prepare_record_delete_preview(RecordDeleteMapping, @catalog.OriginalRecordTarget, @catalog.RecordValueLimits, @catalog.RecordMutationLimits) -> Result[RecordDeletePreview, RecordReadIssue]
@@ -26,6 +28,12 @@ pub fn prepare_record_read(RecordDeclaration, @query_planning.QueryRequirement, 
 pub fn prepare_record_update_mapping(RecordDeclaration, String, Array[@client_row_source_host.RowMappingSource], String, @client_row_source_host.RowDeclarationLimits) -> Result[RecordUpdateMapping, @client_row_source_host.RowMappingIssue]
 
 pub fn recheck_record_read_form(RecordRead, Bytes, @catalog.FormFieldLimits) -> Result[Unit, RecordReadIssue]
+
+pub fn record_create_mapping(RecordCreateMapping) -> @client_row_source_host.RowMapping
+
+pub fn record_create_mapping_matches_declaration(RecordCreateMapping, RecordDeclaration) -> Bool
+
+pub fn record_create_mapping_matches_request(RecordCreateMapping, @catalog.RecordCreateRequest) -> Bool
 
 pub fn record_declaration(RecordDeclaration) -> @client_row_source_host.RowDeclaration
 
@@ -75,6 +83,10 @@ pub fn retire_record_read(RecordRead) -> Result[Unit, RecordReadIssue]
 
 // Types and methods
 pub struct PreparedRecordRead {
+  // private fields
+}
+
+pub struct RecordCreateMapping {
   // private fields
 }
 
