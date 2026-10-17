@@ -53,6 +53,16 @@ fn installation_preparation_grant_body(
   grant : InstallationPreparationCredentialGrant,
 ) -> Result[String, RemoteCredentialIssue] {
   try {
+    Ok(emit_installation_preparation_grant_body(grant))
+  } catch {
+    _ => Err(InvalidCredentialGrant)
+  }
+}
+
+///|
+fn emit_installation_preparation_grant_body(
+  grant : InstallationPreparationCredentialGrant,
+) -> String raise @encode.EncodeFailure {
     let writer = @encode.writer(16384, 32, 2)
     @encode.begin_ordered_object(writer)
     @encode.ordered_key(writer, "expires_unix_ms")
@@ -76,10 +86,7 @@ fn installation_preparation_grant_body(
       @encode.ordered_key(writer, key)
       @encode.string_value(writer, value)
     }
-    Ok(@encode.finish(writer))
-  } catch {
-    _ => Err(InvalidCredentialGrant)
-  }
+    @encode.finish(writer)
 }
 
 ///|
