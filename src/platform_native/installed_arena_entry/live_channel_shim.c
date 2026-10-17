@@ -275,7 +275,7 @@ int actql_channel_ledger_operate_into(actql_control_host *host, actql_domain *do
     int32_t operation, int64_t retained, int64_t execution,
     actql_channel_ledger_reply **slot) {
     if (!host || !domain || !channel || !frame || !slot || *slot ||
-        operation < 2 || operation > 9 ||
+        operation < 2 || operation > 10 ||
         (operation != 3 && (retained != 0 || execution != 0)))
         return ACTQL_CONTROL_INVALID_SLOT;
     if (preparation_registered != 1) return ACTQL_CONTROL_UNAVAILABLE;

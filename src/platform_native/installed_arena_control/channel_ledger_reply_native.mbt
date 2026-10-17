@@ -103,6 +103,7 @@ pub fn operate_installed_arena_channel_ledger_reply(
             backing.require_backed_channel_bootstrap_current(
               host, channel, frame,
             )
+          10 => backing.stop_backed_live_channel_transport_use(host, channel)
           8 =>
             backing.retire_backed_channel_bootstrap_after_owner_ack(
               host, channel, frame,

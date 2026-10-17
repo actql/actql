@@ -343,7 +343,7 @@ class _OriginalLiveChannelCustody:
                          *, cleanup: bool = False, keep_reply: bool = False) -> tuple[int, ...] | None:
         functions = self._preparation_functions
         # Closed transport selection, not an authority or accounting decision.
-        if (functions is None or type(operation) is not int or not 2 <= operation <= 9
+        if (functions is None or type(operation) is not int or not 2 <= operation <= 10
                 or type(retained) is not int or type(execution) is not int
                 or not 0 <= retained <= 2**63 - 1 or not 0 <= execution <= 2**63 - 1
                 or (operation == 3 and execution == 0)
@@ -405,6 +405,15 @@ class _OriginalLiveChannelCustody:
     def stop_original_frame(self) -> None:
         # Logical stop alone never calls physical/metadata retirement.
         self._frame_operation(7, cleanup=True)
+
+    def stop_transport_use(self) -> None:
+        """Ask the same Native Owner to restrict fresh transport work.
+
+        The physical caller must still finish actual I/O and return its opaque
+        endpoint borrow. This confirmation is no FD close, scoped process stop,
+        metadata retirement, quota settlement or business acknowledgment.
+        """
+        self._frame_operation(10, cleanup=True)
 
     def require_original_bootstrap_current(self) -> None:
         self._frame_operation(9)

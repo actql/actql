@@ -94,6 +94,9 @@ int actql_live_channel_bind_child_into(actql_control_host *, actql_domain *,
     actql_live_channel *, int32_t, actql_live_channel_reply **);
 int actql_channel_ledger_prepare_into(actql_control_host *, actql_domain *,
     actql_live_channel *, actql_channel_ledger_reply **);
+/* Operation10 restricts the same original transport/Common frame before an
+ * actual endpoint borrow return. It closes no FD and issues no process-stop,
+ * mapping, metadata, backing or business acknowledgment. */
 int actql_channel_ledger_operate_into(actql_control_host *, actql_domain *,
     actql_live_channel *, actql_original_child_frame *, int32_t, int64_t, int64_t,
     actql_channel_ledger_reply **);
