@@ -72,7 +72,7 @@ test "initial Signing original cold restore keeps exact epoch key control and ph
   let parent = host.session.source_root
   let path = host.session.state_path
   // State is a child of this independently owned fixture parent.
-  let top = path[:path.length() - "/initial-original-reopen.host".length()].to_string()
+  let top = path[:path.length() - "/initial-original-reopen.host".length()].to_owned()
   let source = host.session.source_name
   let crypto = host.epoch.crypto
   host.close().unwrap()

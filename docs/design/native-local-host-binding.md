@@ -147,6 +147,51 @@ The Library, temporary key buffers, private/public encodings, Writer and escaped
 view overlap still require the existing actual caller resource supply; format
 lengths and a diagnostic ceiling are not numerical funding.
 
+### Authenticated initial Store signing original
+
+A trusted explicit first installer can carry that same session's opaque material
+and the pinned Common bootstrap policy into the existing journal initialization.
+The original marker and physical database inspection, not a caller Boolean,
+select the first branch. The existing initialization transaction establishes the
+epoch key and authenticates a closed initial-signing payload with that same key
+before inserting the installation control row and confirming COMMIT. It retains
+the original initialization intent, Host adoption, Store-root file projection,
+public-key body/CID and original PEM, exact policy body/CID, issuer identity and
+ReviewerProof purpose. The issuer identity comes from the Common policy Owner's
+original-intent projection; the payload does not issue an operational grant.
+
+This is a closed alternative in the existing installation `host` control row.
+The historical raw adoption body remains a separate exact alternative. The
+adoption body/CID and initialization body/CID themselves do not change. The
+`issued` counter, setting-original rows and their `files.length + 1`, eight-object,
+8192-byte reservation and 2048-byte authenticated-payload bounds do not grow.
+The complete nested record must fit the existing codec/snapshot limits or the
+same transaction refuses it. Intake bounds are not physical read or workspace
+funding. No extra row, issuer file or replacement policy ledger is introduced.
+
+Restore authenticates the exact retained payload with the current original epoch,
+admits policy and public-key originals through their existing Common Owners,
+checks original intent/adoption/purpose/root role, and restores the same physical
+private-file projection. A returned view retains its Host, Library through that
+Host, original projection, policy and public metadata; current access fences the
+same retained row and physical generation again. A configured source-root key
+stays source-root, and a HostAttestation key cannot alias this ReviewerProof key
+by physical file or raw public-key identity. An old raw row, missing metadata,
+foreign policy/epoch/key, changed control revision or Unknown initialization
+never chooses a fresh capture. Lost COMMIT acknowledgement preserves the same
+operation and its uncertainty; lookup can observe an authentic committed original
+but cannot create a replacement key, policy or claim.
+
+This physical metadata seam is not default-signer selection, Account/Reviewer/
+Run authorization, first issue, use claim, signature or public approval. Those
+existing operational gates must independently bind the exact original purpose,
+Checkpoint, preimage and use. First issue alone samples the trusted clock and
+persists the finite absolute expiry; initialization and restore do not sample or
+renew it. Configured/named signers and the generic explicit issuer-file route
+retain their separate original authorization, and a missing legacy supplier stays
+unavailable. The actual caller must retain the overlapping session/material,
+HMAC/codec workspace and escaped view until their own physical acknowledgements.
+
 ### Writer close custody
 
 The existing filesystem Writer records its original close outcome separately
