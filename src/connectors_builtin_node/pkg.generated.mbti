@@ -96,6 +96,60 @@ pub fn client_host_signers_original_wire(@run_publication_host.ClientHostSignerC
 
 pub fn client_host_signers_select(@run_publication_host.ClientHostSignerConfiguration, String) -> @run_publication_host.ClientHostSignerSelection?
 
+pub fn client_installation_preparation_grant_admit(@remote_credential.InstallationPreparationSubject, String, String) -> @remote_credential.InstallationPreparationCredentialGrant raise NodeHostFailure
+
+pub fn client_installation_preparation_grant_cid(@remote_credential.InstallationPreparationCredentialGrant) -> String
+
+pub fn client_installation_preparation_grant_expires(@remote_credential.InstallationPreparationCredentialGrant) -> Int64
+
+pub fn client_installation_preparation_grant_issuer(@remote_credential.InstallationPreparationCredentialGrant) -> String
+
+pub fn client_installation_preparation_grant_max_uses(@remote_credential.InstallationPreparationCredentialGrant) -> Int
+
+pub fn client_installation_preparation_grant_prepare(String, @remote_credential.InstallationPreparationCredentialScope, Int64, Int) -> @remote_credential.InstallationPreparationCredentialGrant raise NodeHostFailure
+
+pub fn client_installation_preparation_grant_scope(@remote_credential.InstallationPreparationCredentialGrant) -> @remote_credential.InstallationPreparationCredentialScope
+
+pub fn client_installation_preparation_grant_wire(@remote_credential.InstallationPreparationCredentialGrant) -> String raise NodeHostFailure
+
+pub fn client_installation_preparation_scope_fields(@remote_credential.InstallationPreparationCredentialScope) -> Array[String]
+
+pub fn client_installation_preparation_scope_matches_subject(@remote_credential.InstallationPreparationCredentialScope, @remote_credential.InstallationPreparationSubject) -> Bool
+
+pub fn client_installation_preparation_scope_prepare(@remote_credential.InstallationPreparationSubject, String, String, String, String, String, String) -> @remote_credential.InstallationPreparationCredentialScope raise NodeHostFailure
+
+pub fn client_installation_preparation_signature_admit(@remote_credential.InstallationPreparationSubject, String, String, String, String, String) -> @remote_credential.InstallationPreparationCredentialSignatureEnvelope raise NodeHostFailure
+
+pub fn client_installation_preparation_signature_grant(@remote_credential.InstallationPreparationCredentialSignatureEnvelope) -> @remote_credential.InstallationPreparationCredentialGrant
+
+pub fn client_installation_preparation_signature_preimage(@remote_credential.InstallationPreparationCredentialGrant) -> Bytes raise NodeHostFailure
+
+pub fn client_installation_preparation_signature_prepare(@remote_credential.InstallationPreparationCredentialGrant, String, String) -> @remote_credential.InstallationPreparationCredentialSignatureEnvelope raise NodeHostFailure
+
+pub fn client_installation_preparation_signature_projection(@remote_credential.InstallationPreparationCredentialSignatureEnvelope) -> Array[String]
+
+pub fn client_installation_preparation_subject_admit(String, String) -> @remote_credential.InstallationPreparationSubject raise NodeHostFailure
+
+pub fn client_installation_preparation_subject_cid(@remote_credential.InstallationPreparationSubject) -> String
+
+pub fn client_installation_preparation_subject_fields(@remote_credential.InstallationPreparationSubject) -> Array[String]
+
+pub fn client_installation_preparation_subject_prepare(String, String, String, String, String, String, String, String, String, Int, String) -> @remote_credential.InstallationPreparationSubject raise NodeHostFailure
+
+pub fn client_installation_preparation_subject_wire(@remote_credential.InstallationPreparationSubject) -> String
+
+pub fn client_installation_preparation_use_admit(@remote_credential.InstallationPreparationCredentialGrant, String, String) -> @remote_credential.InstallationPreparationCredentialUse raise NodeHostFailure
+
+pub fn client_installation_preparation_use_check(@remote_credential.InstallationPreparationCredentialUse, Int64, Bool, @remote_credential.InstallationPreparationCredentialScope) -> Unit raise NodeHostFailure
+
+pub fn client_installation_preparation_use_cid(@remote_credential.InstallationPreparationCredentialUse) -> String
+
+pub fn client_installation_preparation_use_prepare(@remote_credential.InstallationPreparationCredentialGrant, String, Int64, Int, Bool, @remote_credential.InstallationPreparationCredentialScope) -> @remote_credential.InstallationPreparationCredentialUse raise NodeHostFailure
+
+pub fn client_installation_preparation_use_projection(@remote_credential.InstallationPreparationCredentialUse) -> Array[String]
+
+pub fn client_installation_preparation_use_wire(@remote_credential.InstallationPreparationCredentialUse) -> String raise NodeHostFailure
+
 pub fn client_local_signing_grant_admit(String, String) -> @remote_credential.LocalSigningCredentialGrant raise NodeHostFailure
 
 pub fn client_local_signing_grant_cid(@remote_credential.LocalSigningCredentialGrant) -> String

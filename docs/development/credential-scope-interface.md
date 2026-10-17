@@ -62,8 +62,31 @@ Their source snapshot, encode/decode/hash workspace, canonical wire and
 original subject/grant/use references can overlap. Physical supplier and
 cleanup custody must cover that actual lifetime before an operational caller
 is connected. Cold DATA admission does not supply that operational original,
-claim an ordinal or permit retry. Node bridge, actual Host request, current
-Account/issuer and metadata resource supplier remain separate connections.
+claim an ordinal or permit retry. The private
+`installation-preparation-metadata.mjs` view and its canonical Node/RelA
+bridges project these originals without supplying the actual Host request,
+current Account/issuer or metadata resource supplier.
+
+The view captures its actual runtime methods and receiver once, retains each
+original behind a view-local opaque handle, and binds each returned control to
+one same original subject. Grant projection is a named DATA record; the old
+Run control and its seventeen-field projection remain distinct. Subject/Scope
+constructors and primitive field projections are generated from Common; the
+generated kinds preserve numeric fields without hand-maintained layout rules.
+The existing compiler-binding shim alone unwraps raised results. The Node
+bridge destructures Common tuples before projecting explicit protocol arrays.
+
+The actual-runtime cases in
+`adapters/host-node/installation-preparation-metadata.integration.test.mjs`
+exercise exact independent subject/grant/use preimages, copied/foreign/mixed
+scope refusal, per-operation/current-time/revocation/quota refusal, the existing
+signature helper with explicit fixture keys, original callback receivers,
+retirement and abnormal-result refusal. A cited test is not its execution
+receipt. Fixture signing is not an authenticated operational issuer or a
+durable use. The view's records, six maps, aliases, callbacks/receiver, field
+snapshots, generated vectors, writer/decoder/preimage workspace and escaped
+closures/bytes retain their actual overlapping lifetime independently of any
+later physical call and current permission.
 
 
 ## Same-acquisition private credential binding

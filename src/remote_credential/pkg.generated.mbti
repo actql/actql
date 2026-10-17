@@ -15,6 +15,8 @@ pub fn admit_grant_json(String, String) -> Result[RemoteCredentialGrant, RemoteC
 
 pub fn admit_installation_preparation_credential_grant_json(InstallationPreparationSubject, String, String) -> Result[InstallationPreparationCredentialGrant, RemoteCredentialIssue]
 
+pub fn admit_installation_preparation_credential_scope(InstallationPreparationCredentialScope) -> Result[InstallationPreparationCredentialScope, RemoteCredentialIssue]
+
 pub fn admit_installation_preparation_credential_signature_envelope(InstallationPreparationSubject, String, String, String, String, String) -> Result[InstallationPreparationCredentialSignatureEnvelope, RemoteCredentialIssue]
 
 pub fn admit_installation_preparation_credential_use_json(InstallationPreparationCredentialGrant, String, String) -> Result[InstallationPreparationCredentialUse, RemoteCredentialIssue]
@@ -162,6 +164,9 @@ type CredentialAuthenticationRequest[Material]
 
 type InstallationPreparationCredentialGrant
 pub fn InstallationPreparationCredentialGrant::cid(Self) -> String
+pub fn InstallationPreparationCredentialGrant::expires_unix_ms(Self) -> Int64
+pub fn InstallationPreparationCredentialGrant::issuer_authority(Self) -> String
+pub fn InstallationPreparationCredentialGrant::max_uses(Self) -> Int
 pub fn InstallationPreparationCredentialGrant::original_wire(Self) -> Result[String, RemoteCredentialIssue]
 pub fn InstallationPreparationCredentialGrant::scope(Self) -> InstallationPreparationCredentialScope
 
