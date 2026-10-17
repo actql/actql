@@ -1850,6 +1850,7 @@ function publicationControl(moon) {
   const compiledRunTokens = new WeakMap();
   const originalRunPlanTokens = new WeakMap();
   const originalInferRunTokens = new WeakMap();
+  const restoredInferRuns = new WeakSet();
   const serializationPlanTokens = new WeakMap();
   const serializationGenerationTokens = new WeakMap();
   const serializationInputEvidenceTokens = new WeakMap();
@@ -2425,7 +2426,26 @@ function publicationControl(moon) {
         authorization: inspectEvidence(moon.clientProgramCompiledRunAuthorization(value)),
         admission: inspectAdmission(moon.clientProgramCompiledRunAdmission(value))});
       compiledRunTokens.set(compiled, value);
-      return Object.freeze({compiled, prepared, graph, runDefinition: definition});
+      const restored = Object.freeze({compiled, prepared, graph, runDefinition: definition});
+      restoredInferRuns.add(restored);
+      return restored;
+    },
+    checkRestoredClientInferRunOwner(restored, checkedProgram) {
+      if (!restoredInferRuns.has(restored) || restored.prepared !== checkedProgram) {
+        throw new TypeError('Foreign Client restored Infer Run');
+      }
+      control.checkClientCompiledRunOwner(restored.compiled, checkedProgram);
+      return restored;
+    },
+    checkedClientCompiledInferOriginal(compiled, checkedProgram, definition) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer' ||
+          !moon.clientProgramCheckCompiledRunDefinition(value, token(definition))) {
+        throw new TypeError('Foreign Client original Infer compilation');
+      }
+      const original = moon.clientProgramCompiledInferOriginal(value, checkedProgram);
+      if (original === undefined) throw new TypeError('Foreign Client original Infer preparation');
+      return Object.freeze({graph: runtimeField(original, 0), execution: runtimeField(original, 1)});
     },
     prepareCheckedClientCompiledRun(checkedProgram, kind, policy, inferGraph) {
       if (!['values', 'tasks', 'infer', 'serialization'].includes(kind)) {

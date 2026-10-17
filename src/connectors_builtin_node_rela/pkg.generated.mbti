@@ -324,6 +324,8 @@ pub fn client_program_compile_local_values(@run_publication_host.PreparedClientP
 
 pub fn client_program_compiled_effect_program(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientEffectComputation) -> @run_publication_host.PreparedClientProgram?
 
+pub fn client_program_compiled_infer_original(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientProgram) -> (@run_publication_host.ClientInferPlanGraph, @check_environment.ModelExecutionContract)?
+
 pub fn client_program_compiled_run_admission(@run_publication_host.ClientCompiledRun) -> @run_publication.RunPublicationAdmission
 
 pub fn client_program_compiled_run_authorization(@run_publication_host.ClientCompiledRun) -> @run_publication.RunEvidenceValue
