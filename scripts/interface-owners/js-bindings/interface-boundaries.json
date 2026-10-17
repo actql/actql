@@ -43787,7 +43787,7 @@
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "99561c228b553fff5b5a987c47854f45dc0b2f5071d0a78b2e6f8da58e363b02",
+      "sha256": "6e76d39ff96987a99afafc358fc00a9235f4db151e49e156c5939098e1981499",
       "role": "physical-io",
       "owner": "A — existing Model raw custody projection",
       "exports": [
@@ -44243,6 +44243,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/infer-async-response-custody.md",
+                "anchor": "## Retired raw persistence aliases"
               }
             ],
             "synchronization": [
@@ -44283,6 +44287,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/infer-async-response-custody.md",
+                "anchor": "## Retired raw persistence aliases"
               }
             ],
             "extension": [
@@ -44307,6 +44315,10 @@
               {
                 "path": "adapters/host-node/infer-raw-capture.test.mjs",
                 "anchor": "raw tuple projection preserves field roles"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-port-retirement.test.mjs",
+                "anchor": "saved raw caller weakens only its retired Call alias"
               }
             ]
           }
