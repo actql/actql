@@ -21,6 +21,10 @@ unsafe extern "C" {
                                    alignment: usize, out: *mut *mut c_void) -> c_int;
     fn actql_native_owned_protect(lease: *mut c_void, allocation: *mut c_void,
                                   offset: usize, length: usize, protection: c_int) -> c_int;
+    fn actql_native_owned_rust_allocate(lease: *mut c_void, bytes: usize,
+        alignment: usize, out: *mut *mut c_void, token: *mut u64) -> c_int;
+    fn actql_native_owned_rust_retire(lease: *mut c_void, allocation: *mut c_void,
+        token: u64) -> c_int;
     fn actql_native_owned_retire(lease: *mut c_void, allocation: *mut c_void) -> c_int;
     fn actql_native_owned_try_close(lease: *mut *mut c_void) -> c_int;
     fn actql_native_owned_seal_readonly(lease: *mut c_void, allocation: *mut c_void) -> c_int;
@@ -66,3 +70,9 @@ forward!(actql_owned_seal_readonly, actql_native_owned_seal_readonly,
 forward!(actql_owned_capture_image_fd, actql_native_owned_capture_image_fd,
          (lease: *mut c_void, fd: c_int, expected: usize, maximum: usize,
           digest: *const u8, out: *mut *mut c_void), c_int);
+
+forward!(actql_owned_rust_allocate, actql_native_owned_rust_allocate,
+         (lease: *mut c_void, bytes: usize, alignment: usize, out: *mut *mut c_void,
+          token: *mut u64), c_int);
+forward!(actql_owned_rust_retire, actql_native_owned_rust_retire,
+         (lease: *mut c_void, allocation: *mut c_void, token: u64), c_int);

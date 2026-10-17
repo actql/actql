@@ -57,6 +57,14 @@ int actql_native_owned_capture_image_fd(actql_owned_capacity *lease, int fd,
                                         const unsigned char digest[32], void **out);
 /* Retirement keeps a failed physical cleanup in the same native lease. */
 int actql_native_owned_retire(actql_owned_capacity *lease, void *allocation);
+/* Rust-only internal storage. A token identifies the original live slot and is
+ * consumed once; it is not a grant. Storage/metadata stay in this same holding.
+ * Allocate requires the original current scope. Retirement retains its original
+ * lease after scope exit, but never re-adopts an inherited/foreign process. */
+int actql_native_owned_rust_allocate(actql_owned_capacity *lease, size_t bytes,
+    size_t alignment, void **out, uint64_t *token);
+int actql_native_owned_rust_retire(actql_owned_capacity *lease, void *allocation,
+                                   uint64_t token);
 /* Requires all children retired. Failure preserves the original pointer. */
 int actql_native_owned_try_close(actql_owned_capacity **lease);
 

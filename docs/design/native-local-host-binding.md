@@ -793,3 +793,26 @@ or funding claim. Unknown parents and unlisted empty directories are refused.
 Only the root descriptor path is self-hash-excluded; the same basename below
 a directory is an ordinary declared member. Exact selected npm dependency
 placement remains separate and does not exempt arbitrary node_modules content.
+
+### Rust storage within the original holding
+
+The private Rust allocation path uses bounded size-class pages within the same
+physical provider and admitted holding. Its page lists, live-slot tokens,
+alignment padding and control metadata consume that holding. Large or highly
+aligned Rust requests remain original extents classified as Rust storage.
+Neither path introduces another capacity root, reservation or system fallback.
+
+A live Rust page is not a generic exportable span: protection, sealing, lending
+and generic retirement reject it. Slot retirement consumes its original token
+under the holding's existing lock. The unsafe Rust caller remains responsible
+for releasing only after its last alias; an equal/copied header is not a new
+allocation. A final-slot retirement failure removes the page from reuse and
+keeps the original pending extent until confirmed physical cleanup. Reallocation
+acquires its replacement before releasing the old slot, so overlap is funded by
+the same finite holding and failure preserves the original allocation.
+
+Process-static Rust storage retains the original process/runtime lifetime.
+Engine or thread close does not acknowledge that storage, original region
+retirement or an external operation. A derived allocator/runtime identity and
+successful compilation do not establish normal funding or final image, workspace
+and Result acceptance.

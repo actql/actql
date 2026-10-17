@@ -51,6 +51,7 @@ int actql_native_owned_acquire_fd(int fd, size_t capacity, uint64_t generation,
     lease->fd_backed = true;
     lease->extent_domain = false;
     atomic_init(&lease->domain_borrower_pid, 0);
+    atomic_init(&lease->rust_process, 0);
     lease->generation = generation;
     memcpy(lease->recipe, recipe, sizeof(lease->recipe));
     lease->lock = (atomic_flag)ATOMIC_FLAG_INIT;
@@ -281,6 +282,7 @@ int actql_native_owned_acquire_extent_domain(actql_owned_extent_view *view,
     lease->extent_domain = true;
     lease->domain_origin_pid = getpid();
     atomic_init(&lease->domain_borrower_pid, 0);
+    atomic_init(&lease->rust_process, 0);
     lease->generation = view->extent.generation;
     memcpy(lease->recipe, view->extent.recipe, sizeof(lease->recipe));
     lease->lock = (atomic_flag)ATOMIC_FLAG_INIT;

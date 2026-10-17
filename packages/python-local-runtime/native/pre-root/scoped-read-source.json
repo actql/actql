@@ -10,30 +10,30 @@
   ],
   "patch": {
     "path": "scoped-read-review.patch",
-    "bytes": 19956,
-    "sha256": "7d531e56fd0fb823a74aae45224da7e33d08970f6c437bf050a745109cae121a"
+    "bytes": 20081,
+    "sha256": "47e4da41bfc89dfa4f13de51890ae1b0af67935f8c35c3949bb52076d9a8f53e"
   },
   "inputs": [
     {
       "root": "provider",
       "path": "owned_capacity.c",
       "output": "owned_capacity.c",
-      "bytes": 20874,
-      "sha256": "a08f2bda0d45984817423606b59d6550b3692d026d939a4f1b0311b7e6420a78"
+      "bytes": 21605,
+      "sha256": "2c332de921e15cdc9735d59e438526e8a389f659775472c8fbf57992417c1105"
     },
     {
       "root": "provider",
       "path": "owned_region.inc",
       "output": "owned_region.inc",
-      "bytes": 21313,
-      "sha256": "3cfd396ab2ac0d550ef0eb220df20dbce4b79999ab6eb9518b035bac1379165f"
+      "bytes": 21397,
+      "sha256": "0cedb78e3fd4f612ac3854e3dd211b9fded1c085505d1c8cbc7850344786a711"
     },
     {
       "root": "provider",
       "path": "owned_capacity.h",
       "output": "owned_capacity.h",
-      "bytes": 3526,
-      "sha256": "c2f1c4c88a152e0c983b0a672563a27f756e1f11d9159691746c86ffefb3824e"
+      "bytes": 4114,
+      "sha256": "5f80406f63ec9723fce3fe2b732448dfa668e02783ff5e1bdedd87237b4ffec5"
     },
     {
       "root": "provider",
@@ -153,24 +153,59 @@
       "output": "owned_thread.inc",
       "bytes": 8529,
       "sha256": "2e676c3e5eae7a0b9bd5291ce5d2f92be44cf798bf9c1ed86d7c0ab14a440423"
+    },
+    {
+      "root": "provider",
+      "path": "owned_rust_heap.inc",
+      "output": "owned_rust_heap.inc",
+      "bytes": 6972,
+      "sha256": "a6b3c1c69b653932a027e5f3851c7528d6220c75c31c242293a25aa65b5a0a04"
     }
   ],
   "outputs": {
-    "owned_capacity.c": {
-      "bytes": 21423,
-      "sha256": "79bb7a74564b302f6902022ed859326a8280cb6a4a8b5e0e8ed0f7b300e41568"
+    "backtrace.c": {
+      "bytes": 30967,
+      "sha256": "cefacf238ba336912a37e20cfb550dea4c76d04dbfd7d0d939e178a04dd94c1d"
     },
-    "owned_region.inc": {
-      "bytes": 21355,
-      "sha256": "3c81e770b069c07918d5e84b8c320810fb593af82118fb15007750bb7349c898"
+    "backtrace.h": {
+      "bytes": 8782,
+      "sha256": "d2ac7d5c6910c011f860d04a04a4a6a6fbea2882f23878f1f5f6721831a28acd"
+    },
+    "env.c": {
+      "bytes": 19449,
+      "sha256": "30b236c56b4374bdaa87af5b380de71835e511eab701e52741ab90fb9c1e8dee"
+    },
+    "libbacktrace.a": {
+      "bytes": 281872,
+      "sha256": "a0ed98ead4be023f2840063c0e1c016fe581895c936759e68fd6e0e23dfaf9b7"
+    },
+    "libmoonbitrun.o": {
+      "bytes": 188920,
+      "sha256": "d9db2413e755c00ab374901211a03a9551222fe779022bc3648235747ed2bd96"
+    },
+    "moonbit-fundamental.h": {
+      "bytes": 1129,
+      "sha256": "afd2c5d1ecb6b5cabb6781207d87a1074d9e87b54dfd85367d91e8a45ebbd567"
+    },
+    "moonbit.h": {
+      "bytes": 9955,
+      "sha256": "c713a6a0f3f5f73508099bc5678ca3c1171ea988da01fb8463cfd98469a7fd8d"
+    },
+    "moonbit_runtime.h": {
+      "bytes": 14824,
+      "sha256": "a5545e79f443c04436989542ca20911be0c3488906b8a05eb1fc733ac2f637ac"
+    },
+    "moonbit_simd.h": {
+      "bytes": 78816,
+      "sha256": "4995faa31ac633768430bad1b7ea28699ab601e216fb357739a092cbea455022"
+    },
+    "owned_capacity.c": {
+      "bytes": 22154,
+      "sha256": "d80eab9a59edaac515584e019a802aeca009fdb0e04cd7e66c26317e5216e79f"
     },
     "owned_capacity.h": {
-      "bytes": 3526,
-      "sha256": "c2f1c4c88a152e0c983b0a672563a27f756e1f11d9159691746c86ffefb3824e"
-    },
-    "owned_region.h": {
-      "bytes": 6275,
-      "sha256": "cdafe64f5a629e42bced6aea88443642bb8b75969a8258250ba7a66d39b500bc"
+      "bytes": 4114,
+      "sha256": "5f80406f63ec9723fce3fe2b732448dfa668e02783ff5e1bdedd87237b4ffec5"
     },
     "owned_domain_borrow.h": {
       "bytes": 2573,
@@ -180,53 +215,29 @@
       "bytes": 8662,
       "sha256": "e3914075758a265d18c3a6b075053d2fe31a3f35ee8cc8aee0548493ab814373"
     },
-    "moonbit_runtime.h": {
-      "bytes": 14824,
-      "sha256": "a5545e79f443c04436989542ca20911be0c3488906b8a05eb1fc733ac2f637ac"
+    "owned_region.h": {
+      "bytes": 6275,
+      "sha256": "cdafe64f5a629e42bced6aea88443642bb8b75969a8258250ba7a66d39b500bc"
     },
-    "moonbit.h": {
-      "bytes": 9955,
-      "sha256": "c713a6a0f3f5f73508099bc5678ca3c1171ea988da01fb8463cfd98469a7fd8d"
+    "owned_region.inc": {
+      "bytes": 21439,
+      "sha256": "588b573f29d0e4e7d293e48a12044db285e2d255aa8431b4ffd731a639f307df"
     },
-    "moonbit-fundamental.h": {
-      "bytes": 1129,
-      "sha256": "afd2c5d1ecb6b5cabb6781207d87a1074d9e87b54dfd85367d91e8a45ebbd567"
+    "owned_rust_heap.inc": {
+      "bytes": 6972,
+      "sha256": "a6b3c1c69b653932a027e5f3851c7528d6220c75c31c242293a25aa65b5a0a04"
     },
-    "moonbit_simd.h": {
-      "bytes": 78816,
-      "sha256": "4995faa31ac633768430bad1b7ea28699ab601e216fb357739a092cbea455022"
+    "owned_thread.h": {
+      "bytes": 1894,
+      "sha256": "9cc6dfb81529954e07267e0ae0c14f89cc8a2648252b6ac498bf0f0ed6b37bdd"
     },
-    "backtrace.h": {
-      "bytes": 8782,
-      "sha256": "d2ac7d5c6910c011f860d04a04a4a6a6fbea2882f23878f1f5f6721831a28acd"
-    },
-    "backtrace.c": {
-      "bytes": 30967,
-      "sha256": "cefacf238ba336912a37e20cfb550dea4c76d04dbfd7d0d939e178a04dd94c1d"
-    },
-    "env.c": {
-      "bytes": 19449,
-      "sha256": "30b236c56b4374bdaa87af5b380de71835e511eab701e52741ab90fb9c1e8dee"
+    "owned_thread.inc": {
+      "bytes": 8529,
+      "sha256": "2e676c3e5eae7a0b9bd5291ce5d2f92be44cf798bf9c1ed86d7c0ab14a440423"
     },
     "runtime.c": {
       "bytes": 38961,
       "sha256": "1f4e1bc297835605be01298370f1bff7d0f8ec2a23c86371bb20db89356e2369"
-    },
-    "sync_io.c": {
-      "bytes": 6246,
-      "sha256": "9a94a6b8dd26ba5de7809f8dd913ac36295067bc0ebcdcf40344634a78b662d1"
-    },
-    "utf.c": {
-      "bytes": 11366,
-      "sha256": "b5a564f1439c2d242188b4a84bbb1f97f47cb201b7dc2022fa5f067d2c1e3b50"
-    },
-    "libmoonbitrun.o": {
-      "bytes": 188920,
-      "sha256": "d9db2413e755c00ab374901211a03a9551222fe779022bc3648235747ed2bd96"
-    },
-    "libbacktrace.a": {
-      "bytes": 281872,
-      "sha256": "a0ed98ead4be023f2840063c0e1c016fe581895c936759e68fd6e0e23dfaf9b7"
     },
     "scoped_read.h": {
       "bytes": 1573,
@@ -236,13 +247,13 @@
       "bytes": 15273,
       "sha256": "827b667982a8bc274f0da4c8b92cae92edf259896622160da002faafe9adcca3"
     },
-    "owned_thread.h": {
-      "bytes": 1894,
-      "sha256": "9cc6dfb81529954e07267e0ae0c14f89cc8a2648252b6ac498bf0f0ed6b37bdd"
+    "sync_io.c": {
+      "bytes": 6246,
+      "sha256": "9a94a6b8dd26ba5de7809f8dd913ac36295067bc0ebcdcf40344634a78b662d1"
     },
-    "owned_thread.inc": {
-      "bytes": 8529,
-      "sha256": "2e676c3e5eae7a0b9bd5291ce5d2f92be44cf798bf9c1ed86d7c0ab14a440423"
+    "utf.c": {
+      "bytes": 11366,
+      "sha256": "b5a564f1439c2d242188b4a84bbb1f97f47cb201b7dc2022fa5f067d2c1e3b50"
     }
   },
   "normal_profile": null,

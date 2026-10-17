@@ -21,7 +21,7 @@
 
 --- a/owned_capacity.c
 +++ b/owned_capacity.c
-@@ -14,12 +14,17 @@
+@@ -14,15 +14,20 @@
  #include <pthread.h>
 
  /* An extent is a physical allocator record, not a Run or capacity decision. */
@@ -32,6 +32,9 @@
      bool sealed;
      size_t external_readers;
      bool external_writer;
+     /* Private Rust storage is never a generic exportable span. */
+     unsigned char rust_class;
+     uint64_t rust_token;
 +    /* Derived physical layout; not covered by an old numerical profile. */
 +    struct actql_read_context *read_context;
 +    pid_t read_process;
