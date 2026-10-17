@@ -174,7 +174,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "f77b40805150c260bc1c2921c415cf745be740c50f65a0d1d70c7eb3b5eb15ed",
+      "sha256": "cfd06f2bf42bcf5d154c3b67eae74b3eee74b981a8d73fd34176fc7fd5beb1a5",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -236,6 +236,7 @@
         "pub fn prepare_row_acquisition(RowDeclaration, @query_planning.QueryRequirement, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]",
         "pub fn prepare_row_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]",
+        "pub fn project_row_declaration(String, String, String, String, String, Array[String], Array[RowDeclaredView], Array[String], String, String) -> Result[RowDeclaration, RowDeclarationIssue]",
         "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]",
         "pub fn restore_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]",
         "pub fn restore_row_original_read(@query_planning.QueryRequirement, String, String, Array[String], () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[RowRestoredOriginalInput, RowOriginalCaptureIssue]",
@@ -511,6 +512,10 @@
           "declaration": "pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]"
         },
         {
+          "name": "project_row_declaration",
+          "declaration": "pub fn project_row_declaration(String, String, String, String, String, Array[String], Array[RowDeclaredView], Array[String], String, String) -> Result[RowDeclaration, RowDeclarationIssue]"
+        },
+        {
           "name": "restore_relation_row_declaration",
           "declaration": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
         },
@@ -709,6 +714,7 @@
             "prepare_row_acquisition",
             "prepare_row_mapping",
             "prepare_row_source",
+            "project_row_declaration",
             "restore_relation_row_declaration",
             "restore_row_declaration",
             "restore_row_original_read",
@@ -803,6 +809,7 @@
             "pub fn prepare_row_acquisition(RowDeclaration, @query_planning.QueryRequirement, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]",
             "pub fn prepare_row_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]",
             "pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]",
+            "pub fn project_row_declaration(String, String, String, String, String, Array[String], Array[RowDeclaredView], Array[String], String, String) -> Result[RowDeclaration, RowDeclarationIssue]",
             "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]",
             "pub fn restore_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]",
             "pub fn restore_row_original_read(@query_planning.QueryRequirement, String, String, Array[String], () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[RowRestoredOriginalInput, RowOriginalCaptureIssue]",
@@ -903,6 +910,10 @@
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/query_integration/salesforce_row_declaration_projection_wbtest.mbt",
+                "anchor": "Salesforce row projection preserves every original declaration and evidence byte"
               }
             ]
           }
@@ -1003,6 +1014,103 @@
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_row_source_host/declaration_projection.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "55933d03703de504712fc2a36b864bad3995019eb763be19234ed80240b0f2e4",
+      "role": "common-semantics",
+      "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
+      "exports": [],
+      "operations": [
+        {
+          "name": "project_row_declaration",
+          "declaration": "project_row_declaration ( connector_id : String , connector_registration : String , connector_version : String , catalog : String , catalog_cid : String , contracts : Array [ String ] , views : Array [ RowDeclaredView ] , view_bodies : Array [ String ] , manifest_entry : String , manifest_entry_cid : String , ) - > Result [ RowDeclaration , RowDeclarationIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "project_row_declaration"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "src/client_row_source_host/declaration_projection.mbt",
+                "anchor": "typed metadata port"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Identity:"
+              },
+              {
+                "path": "src/client_row_source_host/declaration_projection.mbt",
+                "anchor": "check_row_acquisition_original"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Verification:"
+              },
+              {
+                "path": "src/query_integration/salesforce_row_declaration_projection_wbtest.mbt",
+                "anchor": "Salesforce row acquisition requires the same projected view and checked requirement"
               }
             ]
           }
