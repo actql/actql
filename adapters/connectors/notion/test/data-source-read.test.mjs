@@ -240,12 +240,10 @@ test('actual Notion dependent property selection is exclusive and absent pending
   for(const propertyAuthorizationFor of [null,false,{}])assert.throws(()=>f.create({
     propertyAuthorization:undefined,propertyAuthorizationFor}),{code:'InvalidNotionDataSourceRead'});
   assert.equal(f.state.requests.length,0);
-  f.state.respond=()=>{
-    const page=JSON.parse(queryPage(['page1']));
-    page.results[0].properties.title={id:'t%3Ax',type:'rich_text',has_more:false,
-      rich_text:[{type:'text',text:{content:'ab'},plain_text:'ab'}]};
-    return JSON.stringify(page);
-  };
+  // Change only this fixture's title span, preserving its original exact
+  // Decimal token instead of parsing/re-encoding the entire vendor body.
+  f.state.respond=()=>queryPage(['page1']).replace('"rich_text":[],"has_more":true',
+    '"rich_text":[{"type":"text","text":{"content":"ab"},"plain_text":"ab"}],"has_more":false');
   let calls=0;
   const reader=f.create({propertyAuthorization:undefined,propertyAuthorizationFor:()=>{
     calls++;throw new Error('NoPendingProperty');

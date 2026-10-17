@@ -390,6 +390,36 @@ and [retrieve property endpoint](https://developers.notion.com/reference/retriev
 under the already selected vendor API version. No ActQL version or identity domain
 changes for this implementation.
 
+### Original dependent property authorization
+
+A complete-row reader may retain the existing early property grant, or capture
+one `propertyAuthorizationFor` callback before I/O. These choices are exclusive.
+The callback is entered only after the same original query response and checked
+row identify a pending original property request. It receives that request,
+original declaration/source/checked-contract binding, column and query/row
+occurrences. No query scope is retargeted and no grant is inferred from that
+DATA. Every property use still passes the existing Credential and Site owners;
+query/property remain separate operations of the same original Run/acquisition.
+This is unrelated to the earlier installation-metadata subject.
+
+Before and after the awaited selection, retain current/abort checks. The
+returned property operation and complete existing invocation bindings must
+match, and Common must still recognize the same request/checked-column pair.
+A missing, foreign or failed supplier cannot fall back to the query grant or
+repeat preparation. If no property is pending, no supplier is called. The old
+early-property path retains its bytes and behavior.
+
+The reader keeps the callback and the actual immutable argument record through
+selection; that record references the existing request, declaration, source and
+contracts, rather than cloning their inventories. The pending Promise and
+continuation overlap the query response, original ticket, row and checked
+schema; a callback may retain its escaped argument after returning. These
+references/records/workspaces are not zero-cost and limits are not funding.
+Do not consume the pending query ticket for row delivery or release its custody
+before the selected original/current checks finish. Failed selection retains
+its original cause, raw response and ticket. Reader/Site close, Promise
+settlement and GC are not raw retirement or a cleanup ACK.
+
 ### Provider-declared query incompleteness
 
 The selected query response's optional `request_status` is admitted by the
