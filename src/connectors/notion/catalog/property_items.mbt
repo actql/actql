@@ -94,7 +94,9 @@ pub fn notion_property_item_request_matches(
   row : OriginalNotionQueryRow,
   property_index : Int,
 ) -> Bool {
-  physical_equal(request.row, row) &&
+  if !physical_equal(request.row, row) {
+    return false
+  }
   match notion_query_row_property_at(row, property_index) {
     Some(property) => physical_equal(request.property, property)
     None => false
@@ -431,7 +433,7 @@ pub fn admit_notion_completed_property(
     }
     @source.String(output.to_string())
   } else {
-    let output = []
+    let output : Array[@source.Node] = []
     for index = pages.length() - 1; index >= 0; index = index - 1 {
       for (original, text, _) in pages[index].items {
         if work == 0 {
@@ -492,5 +494,25 @@ pub fn notion_completed_property_wire(
       @encode.cancel_writer(writer)
       Err(BudgetExceeded)
     }
+  }
+}
+
+///|
+pub fn notion_property_item_page_original(
+  page : NotionPropertyItemPage,
+) -> @decode.Cursor {
+  page.original
+}
+
+///|
+pub fn notion_property_item_page_original_wire(
+  page : NotionPropertyItemPage,
+  max_bytes : Int,
+) -> Result[String, NotionPropertyItemIssue] {
+  if max_bytes < page.raw.length() {
+    return Err(BudgetExceeded)
+  }
+  Ok(@utf8.decode(page.raw[:])) catch {
+    _ => Err(InvalidResponse)
   }
 }
