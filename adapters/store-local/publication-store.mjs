@@ -4221,14 +4221,23 @@ export async function openLocalPublicationStore(
               return field === undefined || field.writable === true;
             })
             ? primary : new Error('PublicationObjectReaderCleanupPending', {cause: primary});
-          failure.cleanupHandle = cleanup;
-          failure.cleanupPending = true;
-          failure.cleanupError = closeFailure;
+          // Ordinary inherited setters may silently discard assignments. Own
+          // data fields preserve the same FD duty and mutable primary identity.
+          Object.defineProperties(failure, {
+            cleanupHandle: {...(Object.getOwnPropertyDescriptor(failure, 'cleanupHandle') ??
+              {writable: true, enumerable: true, configurable: true}), value: cleanup},
+            cleanupPending: {...(Object.getOwnPropertyDescriptor(failure, 'cleanupPending') ??
+              {writable: true, enumerable: true, configurable: true}), value: true},
+            cleanupError: {...(Object.getOwnPropertyDescriptor(failure, 'cleanupError') ??
+              {writable: true, enumerable: true, configurable: true}), value: closeFailure},
+          });
         } catch {
           failure = new Error('PublicationObjectReaderCleanupPending', {cause: primary});
-          failure.cleanupHandle = cleanup;
-          failure.cleanupPending = true;
-          failure.cleanupError = closeFailure;
+          Object.defineProperties(failure, {
+            cleanupHandle: {value: cleanup, writable: true, enumerable: true, configurable: true},
+            cleanupPending: {value: true, writable: true, enumerable: true, configurable: true},
+            cleanupError: {value: closeFailure, writable: true, enumerable: true, configurable: true},
+          });
         }
         throw failure;
       }
