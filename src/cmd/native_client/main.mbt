@@ -927,6 +927,20 @@ fn command() -> @argparse.Command {
       @argparse.Command("reconcile", options=[
         @argparse.OptionArg("ref-file", required=true),
       ]),
+      @argparse.Command(
+        "result",
+        flags=[@argparse.FlagArg("json")],
+        positionals=[
+          @argparse.PositionArg("run", num_args=@argparse.ValueRange::single()),
+        ],
+        options=[
+          @argparse.OptionArg("result"),
+          @argparse.OptionArg("format"),
+          @argparse.OptionArg("output"),
+          @argparse.OptionArg("deliver", action=Append),
+          @argparse.OptionArg("receipt"),
+        ],
+      ),
       @argparse.Command("read", options=[
         @argparse.OptionArg("ref-file", required=true),
         @argparse.OptionArg("submission-ref-file"),
@@ -956,6 +970,7 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
       if matches.subcommand is Some(("check", _)) ||
         matches.subcommand is Some(("explain", _)) ||
         matches.subcommand is Some(("run", _)) ||
+        matches.subcommand is Some(("result", _)) ||
         matches.subcommand is Some(("adopt", _)) ||
         matches.subcommand is Some(("checkpoint-state", _)) ||
         matches.subcommand is Some(("lookup-preparation-grant", _)) ||
