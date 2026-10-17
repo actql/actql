@@ -184,7 +184,7 @@ test "Native check hidden namespace stays unresolved while independent invalid i
     document: "SELECT @count AS id",
     format: Sql,
     declarations: Some(
-      "[{\"name\":\"count\",\"type\":{\"type\":\"number\",\"nullable\":false}}]",
+      "{\"count\":{\"type\":\"number\",\"nullable\":false}}",
     ),
     parameters: Some("{\"count\":\"private-input-value\"}"),
   })
@@ -203,7 +203,7 @@ test "Native check missing parameters use the same Owner requirements and runnab
     document: "SELECT @count AS id",
     format: Sql,
     declarations: Some(
-      "[{\"name\":\"count\",\"type\":{\"type\":\"number\",\"nullable\":false}}]",
+      "{\"count\":{\"type\":\"number\",\"nullable\":false}}",
     ),
     parameters: None,
   })
