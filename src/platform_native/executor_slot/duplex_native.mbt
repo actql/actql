@@ -65,7 +65,7 @@ fn duplex_issue(status : Int) -> NativeExecutorSlotIssue {
 }
 
 ///|
-fn NativeScopedDuplexTransport::require_original(
+fn NativeScopedDuplexTransport::require_identity(
   self : NativeScopedDuplexTransport,
   expected : NativeScopedExecutorHolder,
 ) -> Result[Unit, NativeExecutorSlotIssue] {
@@ -77,7 +77,22 @@ fn NativeScopedDuplexTransport::require_original(
     !(expected.duplex is Some(original) && physical_equal(original, self)) {
     return Err(NotHeld)
   }
-  if expected.closed || self.closed {
+  if expected.closed {
+    return Err(Closed)
+  }
+  Ok(())
+}
+
+///|
+fn NativeScopedDuplexTransport::require_original(
+  self : NativeScopedDuplexTransport,
+  expected : NativeScopedExecutorHolder,
+) -> Result[Unit, NativeExecutorSlotIssue] {
+  match self.require_identity(expected) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if self.closed {
     return Err(Closed)
   }
   let path = @utf8.encode(self.original.path)
@@ -165,7 +180,7 @@ fn NativeScopedDuplexBorrow::original_transport(
     Some(value) => value
     None => return Err(NotHeld)
   }
-  match transport.require_original(expected) {
+  match transport.require_identity(expected) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -185,12 +200,16 @@ pub fn NativeScopedDuplexBorrow::require_current(
   self : NativeScopedDuplexBorrow,
   expected : NativeScopedExecutorHolder,
 ) -> Result[Unit, NativeExecutorSlotIssue] {
-  match self.original_transport(expected) {
+  let transport = match self.original_transport(expected) {
     Err(issue) => return Err(issue)
-    Ok(_) => ()
+    Ok(value) => value
   }
   if self.returned {
     return Err(Closed)
+  }
+  match transport.require_original(expected) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   let status = duplex_current_ffi(self.resource)
   if status != 0 {
@@ -237,10 +256,6 @@ pub fn NativeScopedDuplexBorrow::return_transport(
   }
   if self.returned {
     return Ok(())
-  }
-  let status = duplex_current_ffi(self.resource)
-  if status != 0 {
-    return Err(duplex_issue(status))
   }
   self.returned = true
   Ok(())
@@ -297,11 +312,14 @@ fn NativeScopedDuplexTransport::cleanup_unstarted(
   self : NativeScopedDuplexTransport,
   expected : NativeScopedExecutorHolder,
 ) -> Bool {
-  if self.require_original(expected) is Err(_) {
+  if self.require_identity(expected) is Err(_) {
     return false
   }
   if self.borrowed is Some(borrowed) && !borrowed.returned {
     return false
+  }
+  if self.closed {
+    return true
   }
   if duplex_close_ffi(self.resource) != 0 {
     return false
@@ -315,7 +333,7 @@ fn NativeScopedExecutorHolder::poll_duplex_stop(
   self : NativeScopedExecutorHolder,
   transport : NativeScopedDuplexTransport,
 ) -> Result[NativeScopedExecutorStop?, NativeExecutorSlotIssue] {
-  match transport.require_original(self) {
+  match transport.require_identity(self) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }

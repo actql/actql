@@ -209,8 +209,9 @@ test "duplex descriptor close Unknown cannot close an independently reused numbe
   assert_true(borrowed.parent_descriptors(holder) is Err(LockFailed))
   let independent_reader = channel_reuse_closed_descriptor(writer)
   assert_true(independent_reader >= 0)
-  assert_true(borrowed.return_transport(holder) is Err(LockFailed))
-  assert_true(holder.poll_stop() is Err(Busy))
+  scoped_test_ok(borrowed.return_transport(holder), "close-unknown.view-return")
+  assert_true(borrowed.parent_descriptors(holder) is Err(Closed))
+  assert_true(holder.poll_stop() is Err(LockFailed))
   assert_false(holder.cleanup())
   let payload = @utf8.encode("independent-reused-endpoint")
   assert_eq(
@@ -222,6 +223,53 @@ test "duplex descriptor close Unknown cannot close an independently reused numbe
   assert_eq(slot_close_ffi(independent_reader), 0)
   assert_true(slot.close())
   scoped_test_pending.push(holder)
+}
+
+///|
+test "duplex current loss forbids use but permits original borrow withdrawal and known FD close" {
+  let (slot, holder, _, borrowed) = duplex_test_prepare("replaced")
+  let descriptors = scoped_test_ok(
+    borrowed.parent_descriptors(holder),
+    "replaced.descriptors",
+  )
+  scoped_test_ok(
+    holder.spawn_duplex("/bin/sh", ["-c", "exit 0"]),
+    "replaced.spawn",
+  )
+  let child = scoped_test_ok(holder.child(), "replaced.child")
+  assert_eq(scoped_test_ok(child.wait(true), "replaced.wait"), Some(Exited(0)))
+  let path = @utf8.encode(slot.path)
+  assert_eq(scoped_test_replace_slot(path, path.length()), 0)
+  assert_true(borrowed.require_current(holder) is Err(Replaced))
+  scoped_test_ok(borrowed.return_transport(holder), "replaced.view-return")
+  assert_true(holder.poll_stop() is Err(Replaced))
+  assert_eq(duplex_test_open_ffi(descriptors.0), 0)
+  assert_eq(duplex_test_open_ffi(descriptors.1), 0)
+  assert_false(holder.cleanup())
+  assert_true(slot.close())
+  scoped_test_pending.push(holder)
+
+  let (unstarted_slot, unstarted, _, unstarted_borrow) = duplex_test_prepare(
+    "unstarted-replaced",
+  )
+  let unstarted_descriptors = scoped_test_ok(
+    unstarted_borrow.parent_descriptors(unstarted),
+    "unstarted-replaced.descriptors",
+  )
+  let unstarted_path = @utf8.encode(unstarted_slot.path)
+  assert_eq(
+    scoped_test_replace_slot(unstarted_path, unstarted_path.length()),
+    0,
+  )
+  assert_true(unstarted_borrow.require_current(unstarted) is Err(Replaced))
+  scoped_test_ok(
+    unstarted_borrow.return_transport(unstarted),
+    "unstarted-replaced.return",
+  )
+  assert_true(unstarted.cleanup())
+  assert_eq(duplex_test_open_ffi(unstarted_descriptors.0), 0)
+  assert_eq(duplex_test_open_ffi(unstarted_descriptors.1), 0)
+  assert_true(unstarted_slot.close())
 }
 
 ///|
