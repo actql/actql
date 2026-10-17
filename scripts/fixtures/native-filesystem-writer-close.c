@@ -55,8 +55,7 @@ static void writer_fixture(const char *directory,
 }
 static void release_buffers(actql_native_filesystem_writer *w) {
   free(w->staging_name); free(w->final_name); free(w->error);
-  // The new independent close diagnostic is released by the test teardown
-  // once its preservation is available; this fixture never finalizes stack roots.
+  free(w->close_error);
 }
 static void retry_cannot_finish_unknown(const char *directory, bool from_seal) {
   actql_native_filesystem_root root; actql_native_filesystem_writer w;
@@ -66,6 +65,13 @@ static void retry_cannot_finish_unknown(const char *directory, bool from_seal) {
   int result = from_seal ? actql_native_filesystem_writer_seal(&w, final, 6)
                          : actql_native_filesystem_writer_cancel(&w);
   assert(result == -1 && close_calls == 1);
+  moonbit_bytes_t diagnostic = actql_native_filesystem_writer_error(&w);
+  int diagnostic_size = Moonbit_array_length(diagnostic);
+  actql_replace_error(&w.error, "another operation failed");
+  moonbit_bytes_t later = actql_native_filesystem_writer_error(&w);
+  assert(Moonbit_array_length(later) == diagnostic_size &&
+         memcmp(diagnostic, later, (size_t)diagnostic_size) == 0);
+  moonbit_decref(diagnostic); moonbit_decref(later);
   int replacement = open("/dev/null", O_RDONLY);
   assert(replacement >= 0);
   if (replacement != original) { assert(dup2(replacement, original) == original); assert(close(replacement) == 0); }
@@ -119,6 +125,28 @@ static void conflict_preserves_foreign_file(const char *directory) {
   assert(close(fd) == 0 && close(root.fd) == 0);
   moonbit_decref(final); release_buffers(&w);
 }
+static void finalizer_preserves_unknown_material(const char *directory) {
+  moonbit_bytes_t path = text(directory), stage = text("stage");
+  actql_native_filesystem_root *root = actql_native_filesystem_open_root(path, (int32_t)strlen(directory));
+  assert(root->fd >= 0);
+  actql_native_filesystem_writer *writer = actql_native_filesystem_create_writer(root, stage, 5, 3);
+  assert(writer->ready);
+  moonbit_bytes_t body = text("abc");
+  assert(actql_native_filesystem_writer_append(writer, body, 3) == 0);
+  selected_fd = writer->fd; close_calls = 0; close_error = EIO;
+  no_retirement = false;
+  assert(actql_native_filesystem_writer_cancel(writer) == -1);
+  assert(actql_native_filesystem_writer_pending_cleanup(writer) == 1);
+  moonbit_decref(writer);
+  assert(close_calls == 1);
+  struct stat status;
+  assert(fstatat(root->fd, "stage", &status, AT_SYMLINK_NOFOLLOW) == 0 && status.st_size == 3);
+  int fd = openat(root->fd, "stage", O_RDONLY | O_CLOEXEC); char actual[3];
+  assert(fd >= 0 && read(fd, actual, 3) == 3 && memcmp(actual, "abc", 3) == 0);
+  assert(close(fd) == 0);
+  assert(actql_native_filesystem_root_close(root) == 0);
+  moonbit_decref(root); moonbit_decref(path); moonbit_decref(stage); moonbit_decref(body);
+}
 int main(int argc, char **argv) {
   assert(argc == 3);
   if (!strcmp(argv[1], "seal-close-eio")) retry_cannot_finish_unknown(argv[2], true);
@@ -127,6 +155,7 @@ int main(int argc, char **argv) {
   else if (!strcmp(argv[1], "sync-before-close")) sync_failure_is_before_close(argv[2]);
   else if (!strcmp(argv[1], "confirmed-seal")) confirmed_seal_is_idempotent(argv[2]);
   else if (!strcmp(argv[1], "foreign-conflict")) conflict_preserves_foreign_file(argv[2]);
+  else if (!strcmp(argv[1], "finalizer-unknown")) finalizer_preserves_unknown_material(argv[2]);
   else assert(false);
   printf("{\"case\":\"%s\",\"passed\":true,\"kernelFaultObserved\":false}\n", argv[1]); return 0;
 }

@@ -23,7 +23,7 @@ before(() => {
     qualification: 'Actual C Writer boundary with diagnostic fault injection; not installed key adoption'}));
 });
 for (const name of ['seal-close-eio', 'cancel-close-eio', 'cancel-close-eintr',
-  'sync-before-close', 'confirmed-seal', 'foreign-conflict']) {
+  'sync-before-close', 'confirmed-seal', 'foreign-conflict', 'finalizer-unknown']) {
   test(`original Writer ${name}`, () => {
     const directory = join(scratch, name); mkdirSync(directory, {mode: 0o700});
     const run = spawnSync(executable, [name, directory], {cwd: root, encoding: 'utf8', timeout: 10_000});

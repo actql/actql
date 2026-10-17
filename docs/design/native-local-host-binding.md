@@ -108,6 +108,16 @@ and a byte-identical replacement file cannot assume its predecessor's identity.
 These configuration records confer no execution permission; the existing
 execution-account Owner evaluates each current access tuple.
 
+### Writer close custody
+
+The existing filesystem Writer records its original close outcome separately
+from later diagnostics. A consumed but unconfirmed close remains pending through
+seal/cancel retries and finalization; it never closes a reused descriptor or
+unlinks partial material as if cleanup had succeeded. An acknowledged close is
+idempotent, while failures before close leave that first physical close available.
+This preserves the original Writer's custody rather than issuing key adoption or
+converting process exit into a creation, cleanup or signing acknowledgement.
+
 ## Direct Local credential grant/use scope
 
 ### Explicit post-adoption issuer acquisition
