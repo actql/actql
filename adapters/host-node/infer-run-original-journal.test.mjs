@@ -135,6 +135,16 @@ test('saved Infer originals and Result policy commit with the same Run and reope
   assert.equal(f.accept().inserted, false);
 });
 
+test('original Infer ticket refuses another original request even for identical Program and Parameters', t => {
+  const f = journalFixture(t);
+  const foreign = moon.clientProgramRequestIdentity(f.value.prepared, cid('c'), 'another-original-request',
+    moon.clientProgramSourceFreeInputIntentCid());
+  assert.ok(foreign);
+  assert.throws(() => f.journal.acceptDefinition(foreign, {...f.options,
+    originalInferRun: f.value.ticket}, moon, control), {code: 'InvalidClientInferRunOriginal'});
+  assert.equal(f.lookup(), undefined);
+});
+
 test('saved Infer reader refuses altered original Task materials Run program and admission correspondence', () => {
   const value = original();
   for (const field of ['materialsWire', 'resultPolicyOriginal']) {
