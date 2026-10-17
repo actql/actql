@@ -38,7 +38,7 @@ fn row_test_title(
   project_notion_property_item_page(
     request,
     @utf8.encode(
-      @utf8.decode(response[:]).replace(old="\"v\"", new="\"t%3Ax\""),
+      (try! @utf8.decode(response[:])).replace(old="\"v\"", new="\"t%3Ax\""),
     ),
   ).unwrap()
 }
@@ -56,7 +56,8 @@ test "Notion full checked property row retains original Decimal and completed te
   let (checked, nodes, text) = finish_notion_read_row(row).unwrap()
   assert_true(physical_equal(checked.contract, binding.schema))
   assert_eq(nodes, 3)
-  assert_eq(text, 6 + 5 + 7)
+  // Runtime recheck counts the exact 18-digit Decimal coefficient, not a Double.
+  assert_eq(text, 6 + 5 + 7 + 18)
   assert_eq(notion_read_row_pending_wire(row, 64, 8, 4), Ok("[]"))
   assert_eq(
     notion_read_row_wire(row, 256, 32, 8),
@@ -120,7 +121,7 @@ test "Notion row refuses copied assembly and uncompleted property controls" {
   let incomplete = project_notion_property_item_page(
     request,
     @utf8.encode(
-      @utf8.decode(response[:]).replace(old="\"v\"", new="\"t%3Ax\""),
+      (try! @utf8.decode(response[:])).replace(old="\"v\"", new="\"t%3Ax\""),
     ),
   ).unwrap()
   assert_eq(
