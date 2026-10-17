@@ -30,8 +30,9 @@ fn projection_test_options() -> NotionDataSourceCatalog {
 }
 
 ///|
-test "Notion people and relation writes retain vendor100 and stricter actual supplied item bounds" {
-  let value = projection_test_strings(
+test "Notion people and relation writes retain vendor100 and stricter original supplied bounds" {
+  let value = write_test_value(
+    "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"string\",\"nullable\":false}}",
     "[" + Array::make(100, "\"user\"").join(",") + "]",
   )
   for kind in ["people", "relation"] {
@@ -49,7 +50,6 @@ test "Notion people and relation writes retain vendor100 and stricter actual sup
     )
   }
 }
-
 ///|
 test "Notion multiselect encodes exact existing original ids and retains request order and occurrences" {
   let source = projection_test_options()

@@ -36,8 +36,10 @@ the actual default original, rather than claiming a null value was preserved.
 People/relation arrays carry original checked identifier text, never
 manufactured ResourceRefs or permissions. People, relation and multi-select
 writes each require both the actual supplied item bound and the vendor's
-100-entry request bound. That request bound does not limit reads or the logical
-Array type. Multi-select checks the complete original option inventory once,
+100-entry request bound. A larger supplied bound cannot bypass the vendor
+limit; a smaller supplied bound remains effective. That request bound does not
+limit reads, property pagination, the logical Array type, permission or numerical
+resource supply. Multi-select checks the complete original option inventory once,
 including for an empty selection; every exact supplied label selects an
 existing option id. Unknown or normalized-equivalent names cannot create an
 option. The encoded request retains supplied order and repeated occurrences;
