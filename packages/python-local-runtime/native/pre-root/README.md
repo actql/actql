@@ -464,3 +464,28 @@ mutex through the original allocator; native join does not free that static
 allocation. A failed final close stays failed with the original responsibility.
 No panic-hook suppression, capacity increase or force-free substitutes for
 confirmed process/runtime stop and original backing return.
+
+## Private compiler parent assembly
+
+The maintainer compiler can prepare its selected arena through the existing
+Native `InstalledArenaHost` and original domain owner. The private bounded UTF16
+shim only transports preparation inputs to that owner. Native bootstrap creates
+and reserves its original Ledger before acquiring the actual backing FD; Python
+neither creates a Ledger nor rebrands an unbound native holding as worker funding.
+
+The preparation requires a committed `selected-compiler-parent.json` beside the
+existing holding declaration. Its closed `image_compiler_parent_only` body binds
+`holding_sha256`, explicit `parent` limits/control envelope and explicit `child`
+limits. Parent bytes equal the original holding envelope; physical control,
+page rounding, capacity/delegation refusal and child extent still belong to the
+Native owner. There is no default declaration or automatic profile expansion.
+The separately trusted initial control envelope is not a claim that the arena
+covers Python, library loading, process stacks or all VM allocations.
+
+The same acquired Host, backing loan, actual descriptor and partial domain stay
+reachable on failure. `close_unstarted` is limited to this unstarted assembly;
+unknown replies or existing process custody refuse it before parent return.
+Descriptor close remains with the original caller. This preparation does not
+launch a worker or satisfy `OriginalWorkerFunding`, issue a production supplier,
+acknowledge Rust/Mach process-static retirement, or weaken final physical/image
+and installed acceptance. Ordinary supplier/profile remains unavailable.

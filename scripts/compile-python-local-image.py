@@ -31,6 +31,10 @@ from actql_sdk._local_image_recipe import _SelectedImageRecipe, _recipe_from_ori
 from actql_sdk._local_native_holding import _NativeHoldingLease  # noqa: E402
 from actql_sdk._local_native_memory_abi import bind as bind_memory  # noqa: E402
 from actql_sdk._local_distribution import _closed, _pairs  # noqa: E402
+from actql_sdk._local_native_control_custody import _OriginalControlCustody, _OriginalControlFunctions  # noqa: E402
+from actql_sdk._local_native_backing_custody import _OriginalBackingCustody, _OriginalBackingFunctions  # noqa: E402
+from actql_sdk._local_native_domain_custody import _OriginalDomainCustody, _OriginalDomainFunctions  # noqa: E402
+from actql_sdk._local_worker_slot import _OriginalDescriptor  # noqa: E402
 
 spec = importlib.util.spec_from_file_location('image_component_assembly', ROOT / 'scripts/produce-python-local-runtime.py')
 if spec is None or spec.loader is None:
@@ -74,6 +78,164 @@ def _compiler_holding_original(original: dict[str, Any]) -> _CompilerHoldingOrig
     return _CompilerHoldingOriginal(original['source'], body['module_sha256'],
         body['engine_sha256'], body['runtime_library_sha256'], body['provider_library_sha256'],
         body['capacity_bytes'], body['generation'], hashlib.sha256(raw).digest())
+
+
+class _CompilerParentOriginal(NamedTuple):
+    """Source-bound maintainer selection, not a Ledger or worker permit."""
+
+    holding: _CompilerHoldingOriginal
+    parent: tuple[int, ...]
+    child: tuple[int, ...]
+    recipe: bytes
+
+
+def _compiler_parent_original(original: dict[str, Any],
+                              selected: _CompilerHoldingOriginal) -> _CompilerParentOriginal:
+    if type(selected) is not _CompilerHoldingOriginal or selected != _compiler_holding_original(original):
+        raise ValueError('Foreign original compiler selection')
+    raw = assembly.recipe._source_original(ROOT, original['source'],
+        'packages/python-local-runtime/selected-compiler-parent.json',
+        'Selected source-original compiler parent')
+    body = _closed(json.loads(raw, object_pairs_hook=_pairs),
+                   ('scope', 'holding_sha256', 'parent', 'child'))
+    parent = _closed(body['parent'], ('bytes', 'work', 'attempts', 'holdings',
+                                     'transfer', 'retained', 'execution', 'control_envelope'))
+    child = _closed(body['child'], ('bytes', 'work', 'attempts', 'holdings',
+                                   'transfer', 'retained', 'execution'))
+    if (body['scope'] != 'image_compiler_parent_only'
+            or body['holding_sha256'] != selected.recipe.hex()
+            or selected.generation > 2**63 - 1
+            or parent['bytes'] != selected.capacity_bytes
+            or any(type(n) is not int or not 0 <= n <= 2**63 - 1
+                   for n in (*parent.values(), *child.values()))
+            or any(n > 2**31 - 1 for n in (parent['work'], parent['attempts'], parent['holdings'],
+                                           child['work'], child['attempts'], child['holdings']))
+            or parent['bytes'] <= 0 or parent['execution'] != parent['bytes']
+            or parent['retained'] != 0 or parent['control_envelope'] <= 0
+            or child['bytes'] <= 0 or child['bytes'] > parent['bytes']):
+        raise ValueError('Compiler parent differs from its source-original envelope')
+    # Adequacy, quota/delegation and physical page rounding remain Native
+    # decisions. There is deliberately no default profile or inferred grant.
+    fields = ('bytes', 'work', 'attempts', 'holdings', 'transfer', 'retained', 'execution')
+    return _CompilerParentOriginal(selected, tuple(parent[k] for k in (*fields, 'control_envelope')),
+                                    tuple(child[k] for k in fields),
+                                    hashlib.sha256(raw).digest())
+
+
+class CompilerParentAcquisitionError(RuntimeError):
+    """Same Native partial originals and borrowed FD; never another acquire."""
+
+    def __init__(self, parent: _CompilerParent) -> None:
+        self.cleanup_parent = parent
+        super().__init__('Original compiler parent acquisition is pending')
+
+
+class _CompilerParent:
+    """Private assembly of existing Native owners, not OriginalWorkerFunding.
+
+    Preparing/closing an unstarted domain does not cover a process, DLL, Mach
+    handler or VM. A later worker must use the actual original child/delegation
+    owner and keep its process/descriptor/region confirmation independently.
+    """
+
+    def __init__(self, original: _CompilerParentOriginal, library: CDLL,
+                 descriptor: _OriginalDescriptor) -> None:
+        self.original, self.library, self.descriptor = original, library, descriptor
+        self.host: _OriginalControlCustody | None = None
+        self.backing: _OriginalBackingCustody | None = None
+        self.domain: _OriginalDomainCustody | None = None
+        self._closed = False
+        self.failure = CompilerParentAcquisitionError(self)
+
+    def __copy__(self) -> _CompilerParent:
+        raise TypeError('Original compiler parent cannot be copied')
+
+    def __deepcopy__(self, memo: dict[int, object]) -> _CompilerParent:
+        raise TypeError('Original compiler parent cannot be copied')
+
+    def __reduce__(self) -> Any:
+        raise TypeError('Original compiler parent cannot be serialized')
+
+    def close_unstarted(self) -> None:
+        """No process/holding is issued here. Retire only these same originals.
+
+        Known pending retries stay in the existing Native owners. Lost replies
+        remain sticky there. FD is borrowed: this assembly never closes it.
+        """
+        if self._closed:
+            return
+        for carrier in (self.host, self.backing, self.domain):
+            if carrier is not None and carrier._unknown is not None:
+                raise carrier._unknown
+        if self.domain is not None and self.domain._worker_process_original is not None:
+            raise ValueError('Original compiler domain still has process custody')
+        if self.backing is not None:
+            self.backing.return_after_stop()
+        if self.domain is not None:
+            self.domain.close_after_stop()
+        if self.host is not None:
+            self.host.close()
+        self._closed = True
+
+
+def _acquire_compiler_parent(original: dict[str, Any], selected: _CompilerHoldingOriginal,
+                             descriptor: _OriginalDescriptor) -> _CompilerParent:
+    """Connect trusted compiler preparation to real Native bootstrap/domain.
+
+    The matching library is already initialized by the trusted control runtime.
+    The Native bootstrap creates/reserves the original Ledger before acquiring
+    this actual FD backing. Python neither exposes it nor creates a substitute.
+    Missing declaration/new private ABI refuses before physical acquisition.
+    """
+    declaration = _compiler_parent_original(original, selected)
+    if (type(descriptor) is not _OriginalDescriptor or descriptor._original is not descriptor
+            or descriptor.closed or descriptor.close_attempted
+            or type(descriptor.value) is not int or not 0 <= descriptor.value <= 2**31 - 1):
+        raise ValueError('Original compiler backing descriptor is unavailable')
+    opened = os.fstat(descriptor.value)
+    if not stat.S_ISREG(opened.st_mode) or opened.st_size != declaration.parent[0]:
+        raise ValueError('Original compiler descriptor differs from its selected backing')
+    recipe = original['recipe']
+    provider = original['provider_library']
+    _read_file(provider, maximum=recipe.provider_library_bytes,
+               expected=recipe.provider_library_bytes, digest=recipe.provider_library_sha256)
+    library = CDLL(str(provider))
+    _read_file(provider, maximum=recipe.provider_library_bytes,
+               expected=recipe.provider_library_bytes, digest=recipe.provider_library_sha256)
+    control = _OriginalControlFunctions(library)
+    backing = _OriginalBackingFunctions(library)
+    domain = _OriginalDomainFunctions(library)
+    parent = _CompilerParent(declaration, library, descriptor)
+    size, work, attempts, holdings, transfer, retained, execution, envelope = declaration.parent
+    try:
+        parent.host = _OriginalControlCustody._prepare_original(control,
+            source=selected.source_sha, recipe=declaration.recipe, generation=selected.generation,
+            size=size, work=work, attempts=attempts, holdings=holdings, transfer=transfer,
+            retained=retained, execution=execution, envelope=envelope)
+        parent.host.acquire_fd(descriptor)
+        parent.host.current()
+        current = os.fstat(descriptor.value)
+        if (current.st_dev, current.st_ino, current.st_size) != (opened.st_dev, opened.st_ino, opened.st_size):
+            raise ValueError('Original compiler descriptor changed during acquisition')
+        parent.backing = _OriginalBackingCustody._borrow_original(parent.host, backing)
+        size, work, attempts, holdings, transfer, retained, execution = declaration.child
+        with parent.backing._physical_scope():
+            parent.domain = _OriginalDomainCustody._prepare_original(
+                parent.host, parent.backing, descriptor, domain, size=size, work=work,
+                attempts=attempts, holdings=holdings, transfer=transfer, retained=retained,
+                execution=execution)
+        parent.domain.current()
+        return parent
+    except BaseException as primary:
+        # Every existing acquisition carrier must remain reachable even when
+        # assignment was interrupted after the same Native out-slot changed.
+        if parent.host is None:
+            parent.host = getattr(primary, 'cleanup_host', None)
+        if parent.backing is None:
+            parent.backing = getattr(primary, 'cleanup_borrow', None)
+        if parent.domain is None:
+            parent.domain = getattr(primary, 'cleanup_domain', None)
+        raise parent.failure from primary
 
 
 class CompilerHoldingAcquisitionError(RuntimeError):
