@@ -103,7 +103,11 @@ fn kintone_read_preparation(
       ),
     ),
   )
-  let sequence = query_checked_sequence(checked)
+  // This existing broad RowRun port consumes the checked filter/select
+  // acquisition prefix (steps 0 and 1). Keep the original later uniqueness
+  // assertion and sort in the Program; they are not part of this reader's
+  // residual/capture boundary and cannot run through its borrowed handle.
+  let sequence = query_checked_sequence(checked, prefix_end=Some(1))
   let requirement = @planning.prepare_query_requirement(
     @planning.prepare_query_material(sequence, query_material_limits()).unwrap(),
     @program_check.source_identity(checked),
