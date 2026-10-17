@@ -43,7 +43,10 @@ int32_t actql_native_client_submission_name_schema(
     "SELECT name,sql FROM sqlite_schema WHERE type='trigger' "
     "AND tbl_name='actql_records' ORDER BY name COLLATE BINARY", -1,
     &statement, NULL);
-  if (code != SQLITE_OK) return -1;
+  if (code != SQLITE_OK) {
+    if (statement != NULL) database->library->finalize(statement);
+    return -1;
+  }
   const char *names[] = {"actql_submission_names_delete", "actql_submission_names_insert"};
   const char *sql[] = {ACTQL_NAME_DELETE_TRIGGER, ACTQL_NAME_INSERT_TRIGGER};
   int count = 0;
@@ -68,7 +71,10 @@ int32_t actql_native_client_submission_name_schema(
   code = database->library->prepare_v2(database->database,
     "SELECT 1 FROM actql_records WHERE namespace='client_submission_name_custody' "
     "AND record_key NOT IN ('issued','retained') LIMIT 1", -1, &statement, NULL);
-  if (code != SQLITE_OK) return -1;
+  if (code != SQLITE_OK) {
+    if (statement != NULL) database->library->finalize(statement);
+    return -1;
+  }
   code = database->library->step(statement);
   finalized = database->library->finalize(statement);
   return code == SQLITE_DONE && finalized == SQLITE_OK ? 1 : -1;
@@ -84,7 +90,10 @@ int64_t actql_native_client_submission_name_census(
   int code = database->library->prepare_v2(database->database,
     "SELECT count(*) FROM actql_records WHERE namespace='client_submission_names'",
     -1, &statement, NULL);
-  if (code != SQLITE_OK) return -1;
+  if (code != SQLITE_OK) {
+    if (statement != NULL) database->library->finalize(statement);
+    return -1;
+  }
   code = database->library->step(statement);
   int64_t count = code == SQLITE_ROW ? database->library->column_int64(statement, 0) : -1;
   if (code == SQLITE_ROW) code = database->library->step(statement);
@@ -105,7 +114,10 @@ int32_t actql_native_client_submission_name_install(
     "SELECT count(*) FROM actql_records WHERE namespace='client_submission_name_custody' "
     "AND record_key IN ('issued','retained') AND revision=0 AND body=X'30'",
     -1, &statement, NULL);
-  if (code != SQLITE_OK) return 0;
+  if (code != SQLITE_OK) {
+    if (statement != NULL) database->library->finalize(statement);
+    return 0;
+  }
   code = database->library->step(statement);
   bool original = code == SQLITE_ROW && database->library->column_int64(statement, 0) == 2;
   if (code == SQLITE_ROW) code = database->library->step(statement);
