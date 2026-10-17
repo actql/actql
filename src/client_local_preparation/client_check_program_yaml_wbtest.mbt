@@ -45,7 +45,7 @@ fn yaml_check_report(
 ///|
 test "original YAML check uses the same static Owner and preserves source bytes" {
   let body = "# é 😀\n" + yaml_check_values
-  let body = body.replace(old="\n", new="\r\n")
+  let body = body.replace_all(old="\n", new="\r\n")
   let report = yaml_check_report(body)
   assert_true(report.contains("\"verdict\":\"verified\""), msg=report)
   assert_true(

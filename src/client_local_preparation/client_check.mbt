@@ -2373,7 +2373,7 @@ fn check_parse_original_pointer(
 ///|
 /// Binder paths use admitted keys, which may have been normalized by the
 /// input reader. Recover each owned key from its retained source span with
-/// the existing preserving JSON reader; this explains a proven finding and
+/// the existing same-format scalar reader; this explains a proven finding and
 /// does not change binding, admission or the caller's original document.
 fn check_original_pointer(
   body : String,
