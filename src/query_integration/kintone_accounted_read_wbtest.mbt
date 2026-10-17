@@ -539,7 +539,7 @@ test "kintone physical Form observation charges the same RowRun without inventin
 
 ///|
 test "kintone changed current Form refuses with original charge and cleanup responsibility" {
-  for replacement in ["revision", "native", "field", "malformed"] {
+  for replacement in ["revision", "native", "field", "malformed", "limits"] {
     let (prepared, run, ledger) = kintone_host_run(
       "kintone-form-" + replacement,
     )
@@ -552,17 +552,23 @@ test "kintone changed current Form refuses with original charge and cleanup resp
       "native" =>
         original.replace(old="SINGLE_LINE_TEXT", new="MULTI_LINE_TEXT")
       "field" => original.replace(old="\"Subject\"", new="\"Foreign\"")
-      _ => "{"
+      "malformed" => "{"
+      _ => original
     }
     let body = @utf8.encode(text)
-    let refusal = @kintone_host.recheck_record_read_form(
-      read,
-      body,
-      kintone_form_limits(),
-    )
+    let limits = if replacement == "limits" {
+      { ..kintone_form_limits(), max_bytes: 1, }
+    } else {
+      kintone_form_limits()
+    }
+    let refusal = @kintone_host.recheck_record_read_form(read, body, limits)
     if replacement == "malformed" {
       assert_true(
         refusal is Err(@kintone_host.Form(@kintone_catalog.InvalidResponse)),
+      )
+    } else if replacement == "limits" {
+      assert_true(
+        refusal is Err(@kintone_host.Form(@kintone_catalog.BudgetExceeded)),
       )
     } else {
       assert_true(refusal is Err(@kintone_host.ForeignDeclaration))
