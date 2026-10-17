@@ -545,7 +545,7 @@ the entire row-identity union, a stringified reference or a newly issued grant.
 <!-- requirement-block: review-artifacts.projection-self-identity-and-store-address -->
 The `review_projection_cid` MUST hash the complete canonical review projection
 excluding only its own root field, including every present row extension and
-all fourteen original top-level fields otherwise. Its self identity is distinct
+every other required top-level field. Its self identity is distinct
 from the physical Store's digest of complete bytes. The Checkpoint and approval
 bind that exact original review identity, Preview, authority scope, claims,
 Authoring Context and immutable redaction policy; a public shape or CID is not

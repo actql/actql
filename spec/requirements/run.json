@@ -521,7 +521,7 @@
     },
     {
       "requirement_id": "actql.protocol.run/review-artifacts.projection-self-identity-and-store-address",
-      "statement_sha256": "292c3ede2bbba6eb28f87cde70c21d7c879f0672d9ea06ab4b12e3816c45bea7",
+      "statement_sha256": "084a1d21f0554651ce2514c22b01d4ae0c09fcba4156b3d64b6033bf03646b73",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

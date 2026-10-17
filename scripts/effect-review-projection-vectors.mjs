@@ -2,8 +2,7 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
-import {canonicalText} from './check-canonical-json.mjs';
-import {vectors,legacy,legacyBody,mutations,scope,policy,claims,originalRun,authoring,expectedCids,legacyCid,insufficientOriginals} from
+import {canonicalText,vectors,legacy,legacyBody,mutations,scope,policy,claims,originalRun,authoring,expectedCids,legacyCid,insufficientOriginals} from
   './fixtures/effect-review-projection-vectors.mjs';
 
 export function generateEffectReviewVectors(){

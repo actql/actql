@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
 import test from 'node:test';
 import {correctedEffectReviewContracts} from './run-publication-contracts.mjs';
 import {machineCid} from './actql-spec-family.mjs';
-import {canonicalText,verifyIdentity} from './check-canonical-json.mjs';
-import {vectors,expectedCids,legacy,legacyBody,legacyCid,mutations} from
+import {verifyIdentity} from './check-canonical-json.mjs';
+import {canonicalText,hash,vectors,expectedCids,legacy,legacyBody,legacyCid,mutations} from
   './fixtures/effect-review-projection-vectors.mjs';
 
 const registry=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json'));
@@ -46,7 +47,7 @@ test('scoped review generation preserves every unrelated adopted schema and old 
 test('independent Effect review preimages and historical absence have fixed identities',()=>{
   assert.deepEqual(vectors.map(value=>value.cid),expectedCids);
   for(const v of vectors){
-    verifyIdentity(v.body,v.cid);assert.equal(canonicalText(v.review),v.reviewWire);
+    assert.equal(hash(v.body),v.cid);assert.equal(canonicalText(v.review),v.reviewWire);
     assert.equal(v.review.displayed_rows[0].preview_strength,v.preview.effects[0].preview_strength);
     for(const name of ['before','after','target_guard','intended_changes'])assert.deepEqual(
       v.review.displayed_rows[0][name],v.preview.effects[0].changes[0][name]);
@@ -61,4 +62,16 @@ test('no-control schema pattern alias retains exact existing finite matcher mean
   assert(module.includes("case '^[^\\\\u0000-\\\\u001f\\\\u007f]+(?![\\\\s\\\\S])': return 9;"));
   const exact=/^[^\u0000-\u001f\u007f]+(?![\s\S])/u;
   assert(exact.test('original-e\u0301'));for(const value of ['', 'x\n','x\r','x\u007f'])assert(!exact.test(value));
+});
+
+test('independent Python SHA agrees on literal legacy and exact Unicode data preimages',()=>{
+  const bodies=[...vectors.map(value=>value.body),legacyBody];
+  const actual=JSON.parse(execFileSync('python3',['-B','-c',
+    'import sys,json,hashlib; b=json.load(sys.stdin); print(json.dumps(["sha256:"+hashlib.sha256(json.dumps(v,ensure_ascii=False,sort_keys=True,separators=(",",":")).encode("utf-8")).hexdigest() for v in b]))'],
+  {input:JSON.stringify(bodies),encoding:'utf8',timeout:15000}));
+  assert.deepEqual(actual,[...expectedCids,legacyCid]);
+  const exact=vectors.at(-1).review.displayed_rows[0];
+  assert.equal(Object.keys(exact.before.value).length,3);
+  assert.notEqual(exact.before.value['e\u0301'],exact.before.value['é']);
+  assert.equal(exact.before.value.line,'raw\r\n');
 });

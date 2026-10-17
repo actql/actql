@@ -1,7 +1,14 @@
 // Independently authored preimages. This fixture never imports a product
 // sealer, compiler, runtime, schema generator or Host observation.
 import {createHash} from 'node:crypto';
-import {canonicalText} from '../check-canonical-json.mjs';
+// All structural keys in these literal preimages are ASCII. Opaque row keys
+// are exact data: the independent oracle sorts without NFC/LF rewriting.
+export function canonicalText(value){
+  if(Array.isArray(value))return '['+value.map(canonicalText).join(',')+']';
+  if(value!==null&&typeof value==='object')return '{'+Object.keys(value).sort()
+    .map(key=>JSON.stringify(key)+':'+canonicalText(value[key])).join(',')+'}';
+  return JSON.stringify(value);
+}
 export const C = digit => `sha256:${digit.repeat(64)}`;
 export const hash = body => `sha256:${createHash('sha256').update(canonicalText(body)).digest('hex')}`;
 export const scope = C('7');
@@ -15,17 +22,17 @@ export const resource = {$actql_ref: 'resource', version: 'actql-resource-ref/0.
   resource_kind: 'file', provider_namespace: 'fixture', provider_identity_cid: C('a'),
   authority_scope_cid: C('7'), boundary_cid: C('c'), identity_cid: C('d')};
 
-function vector(name, kind, strength, target, rowTarget) {
+function vector(name, kind, strength, target, rowTarget, values) {
   const before = kind === 'create' ? {state: 'absent'}
     : kind === 'command' ? {state: 'not_applicable'}
       : strength === 'targeted' ? {state: 'unavailable'}
-        : {state: 'present', value: {Name: 'Before'}};
+        : {state: 'present', value: values?.before??{Name: 'Before'}};
   const after = kind === 'delete' ? {state: 'absent'} : kind === 'command' ? {state: 'not_applicable'}
-    : {state: 'present', value: {Name: 'After'}};
+    : {state: 'present', value: values?.after??{Name: 'After'}};
   const guard = ['create', 'command'].includes(kind)
     ? {state: 'not_applicable'} : {state: 'version', version_cid: C('a')};
   const intended = kind === 'delete' ? {state: 'not_applicable'} : {state: 'present', value: kind === 'command'
-    ? {operation: 'reindex', input: {label: 'original-e\u0301\r\n'}} : {Name: 'After'}};
+    ? {operation: 'reindex', input: {label: 'original-e\u0301\r\n'}} : values?.after??{Name: 'After'}};
   if (kind === 'create') rowTarget = {content_cid: hash({
     value: after, version: 'actql-effect-content-row/0.1'}), occurrence: 0};
   const rowBody = {version: 'actql-effect-preview-row/0.1',
@@ -78,6 +85,9 @@ export const vectors = [
   vector('command keeps concrete ResourceRef and typed request', 'command', 'full_diff', resource, resource),
   vector('store keeps concrete ResourceRef and intended value', 'store', 'full_diff', resource, resource),
   vector('delete preserves absent after and payload-free change', 'delete', 'full_diff', 'Object', '001000000000001'),
+  vector('opaque Unicode row keys and newline values remain exact', 'update', 'full_diff', 'Object',
+    '001000000000001',{before:{'e\u0301':2,'é':1,line:'raw\r\n'},
+      after:{'e\u0301':null,'é':false,line:'next\r\n'}}),
 ];
 export const legacyBody = structuredClone(vectors[0].body);
 for (const name of ['preview_strength', 'target_guard', 'intended_changes']) delete legacyBody.displayed_rows[0][name];
@@ -90,6 +100,7 @@ export const expectedCids = [
   'sha256:65d5eba02275b8471fafaf8d6930729379624ac2ee1322b081ee8c9162805214',
   'sha256:069e220e25f61baed146575925e7a40c9c1895cd258d039c61beee6d17ac2bf5',
   'sha256:1ecc3251def806992ada589a1503a8912a28c3690fba532a9aef74f939613426',
+  'sha256:6beeebbee9948fc51d7b820e85df2d30029bf8ba5866f4d04a1c476ad309b807',
 ];
 export const legacyCid = 'sha256:e93b31fcde78f6640c6997cad2d53b0e5cd44f17b2acb275220f76c183130d86';
 
