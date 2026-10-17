@@ -39,7 +39,11 @@ test('installed Notion actual SQL and AQL retain original multi-page users and t
     const f=await installedNotionFixture(t),source=await f.load(),preparation=await f.prepare(source,{format});
     const opened=await source.openCapture(preparation);await f.retain(opened,preparation.ledger);
     const exported=checked(f.common.clientProgramExportSourceCapture(opened.capture.source(),opened.requirement,'installed-notion-user-test'));
-    assert.deepEqual(f.common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse),[{id:'U1',name:'one'},{id:'U2',name:'two'}]);
+    // This is the original acquisition capture, before the query's SELECT.
+    // Its complete declared row shape must remain available to the same Run.
+    assert.deepEqual(f.common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse),[
+      {email:'one@example.test',id:'U1',name:'one',type:'person'},
+      {email:null,id:'U2',name:'two',type:'bot'}]);
     assert.equal(f.state.requests.length,2);assert.equal(f.state.resolutions,2);
     const held=f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger);
     await assert.rejects(async()=>opened.close(),{code:'MoonBitHostFailure'});
