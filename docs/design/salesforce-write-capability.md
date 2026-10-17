@@ -109,6 +109,12 @@ same original components remain with the read plan and are rechecked against
 current metadata; digit, type, association and nullability drift cannot attach
 to the old declaration. Current Site and read authority remain separate.
 
+The emitted Object Contract includes the existing required closed-object flag
+and passes the same checked Contract reader as other published fields. Binding
+the caller's original Contract compares the Object and its two retained Decimal
+children; its pair bound follows that fixed structure, while scalar and Array
+plans retain their previous bound. A changed component Contract is still refused.
+
 Compound parents are not write fields. Existing component-field mappings retain
 their own declared writable flags, original target/Preview and checked decimal
 body; compound read support does not turn a parent into a mutation target.

@@ -54,6 +54,17 @@ test "geolocation binds the original caller Object and both Decimal component co
     plan.field_components[0],
   ).unwrap()
   assert_true(bind_read_projection_contracts(plan, [caller]) is Some(_))
+  let changed = geolocation_contract(
+    plan.fields[0],
+    [
+      (
+        "latitude",
+        { ..plan.field_components[0][0].1, scale: Some(14), },
+      ),
+      plan.field_components[0][1],
+    ],
+  ).unwrap()
+  assert_true(bind_read_projection_contracts(plan, [changed]) is None)
 }
 
 ///|
