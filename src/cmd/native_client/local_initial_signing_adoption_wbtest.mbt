@@ -18,7 +18,7 @@ fn initial_signing_cli_session(
   @local_host.NativeLocalAdoptionSession,
   @local_crypto.Library,
   @local_sqlite.Library,
-) raise {
+) {
   let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let files = @local_filesystem.open_private_root(path).unwrap()
   if !existing_only {
@@ -53,23 +53,31 @@ fn initial_signing_cli_session(
 
 ///|
 test "CLI initial signing selection is explicit and confined to adoption" {
-  let selected = command().parse(args=[
-    "--mode", "local", "adopt", "--initialize-signing",
-  ])
+  let selected = command().parse(
+    argv=["--mode", "local", "adopt", "--initialize-signing"],
+    env=Map([]),
+  )
   guard selected.subcommand is Some(("adopt", child)) else {
     fail("missing original adopt command")
   }
   assert_true(child.flags.get("initialize-signing").unwrap_or(false))
-  let ordinary = command().parse(args=["--mode", "local", "adopt"])
+  let ordinary = command().parse(argv=["--mode", "local", "adopt"], env=Map([]))
   guard ordinary.subcommand is Some(("adopt", child)) else {
     fail("missing ordinary adopt command")
   }
   assert_false(child.flags.get("initialize-signing").unwrap_or(false))
   for operation in ["connect", "status"] {
-    let rejected = try? command().parse(args=[
-      "--mode", "local", operation, "--initialize-signing",
-    ])
-    assert_true(rejected is Err(_))
+    let rejected = try {
+      command().parse(
+        argv=["--mode", "local", operation, "--initialize-signing"],
+        env=Map([]),
+      )
+      |> ignore
+      false
+    } catch {
+      _ => true
+    }
+    assert_true(rejected)
   }
 }
 
