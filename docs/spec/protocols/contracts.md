@@ -22,6 +22,7 @@ This document owns catalog, sourceview, mapping, command, model-task, check-envi
 - [Connector Catalog and lock](#catalog-and-lock)
 - [Connector manifest and authorization boundary](#connector-manifest)
 - [GCS private request metadata](#gcs-private-request-metadata)
+- [GCS compose destination profile](#gcs-compose-destination-profile)
 - [Deterministic Catalog generation](#mapping-generation)
 - [Capture classification inheritance](#classification-inheritance)
 - [Command item and recovery contract](#command-item-contract)
@@ -1154,6 +1155,49 @@ Effect owner's receipt, external-mutation guards and custody. A lost response
 or changed metageneration MUST NOT authorize automatic resend, adoption of a
 new head or a new operation. Unknown and unresolved cleanup remain owned by
 the original operation.
+
+<a id="gcs-compose-destination-profile"></a>
+
+#### GCS compose destination profile
+
+<!-- requirement-block: gcs-compose-destination-profile.existing-properties -->
+For an existing GCS compose destination, the Connector MUST retain the
+Preview-captured user metadata and content type, replacing only the reserved
+request marker with this original operation's marker. This explicitly selected
+profile is not JSON API default inheritance; it does not preserve an old marker
+as evidence for the new operation.
+
+<!-- requirement-block: gcs-compose-destination-profile.absent-properties -->
+For an explicitly observed absent destination, the Connector MUST preview and
+send the first original source's captured content type and an empty user map
+plus the new marker. Missing content-type evidence is not permission to invent
+a default; an explicit NULL metadata representation is not an empty map.
+
+<!-- requirement-block: gcs-compose-destination-profile.original-guards -->
+The request MUST bind both the original destination generation and
+metageneration when replacing an object, or the original absence precondition
+when creating it. A metadata-only concurrent change is not a new approved
+destination and cannot be silently overwritten.
+
+<!-- requirement-block: gcs-compose-destination-profile.ordered-sources -->
+Composition MUST retain original source order and repetitions, source
+generation preconditions, and the expected composed size and CRC evidence.
+This profile concatenates one through 32 original objects without deleting
+them; it does not sort or deduplicate their data, silently select newer source
+versions, or treat marker data alone as proof of apply.
+
+<!-- requirement-block: gcs-compose-destination-profile.original-custody -->
+The exact intended destination properties and source/destination bindings MUST
+remain with the existing original request, Preview, approval and recovery
+material. Current authority and the original dispatch/response ownership remain
+separate from request consistency; response loss preserves Unknown and does
+not permit blind resend or adoption of newly read properties.
+
+<!-- requirement-block: gcs-compose-destination-profile.unrelated-properties -->
+An implementation MUST distinguish this finite content-type/user-metadata
+profile from preservation of ACL, encryption, retention, encoded-representation
+or other unrelated properties. Unsupported properties or missing required
+evidence remain explicit rather than being described as generally preserved.
 
 <a id="file-sources"></a>
 
@@ -2496,11 +2540,11 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/caller_input_intent sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/initial_input_artifact_set sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:60ac5c1260e83fe6a10668a84fce4b450380edcd50b80c5b3dfd51be3684d509
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:1233ea18fefe024c7ededda918ace41c0a0ece305a0fae2699b047179c708924
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/result_plan sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_fact_manifest sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:815ca0589661557d8548cea7afbb5088ae5827ed8d1e0ae2eefca5a00292092a
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:c2ccbe439bebe37794c2771b5435a788d8315d4a1543c52d3cae6856fc315714
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:692b481d25e23400f0f81e0ddade946aba2dafca4dd2f1fe6c22c7e15e5122c1
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_reason sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:988a8893ede0e64a351f077f28c7b7c82a9b2988467b8eb8a02755ad3530ca7b

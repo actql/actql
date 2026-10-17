@@ -29,6 +29,19 @@ extern "C" fn slot_spawn_ffi(
 ) -> Int = "actql_executor_slot_spawn"
 
 ///|
+#borrow(executable, arguments)
+extern "C" fn slot_spawn_duplex_ffi(
+  executable : Bytes,
+  executable_length : Int,
+  arguments : Bytes,
+  arguments_length : Int,
+  descriptor : Int,
+  target_descriptor : Int,
+  input_descriptor : Int,
+  output_descriptor : Int,
+) -> Int = "actql_executor_slot_spawn_duplex"
+
+///|
 extern "C" fn slot_wait_ffi(pid : Int, block : Int) -> Int = "actql_executor_slot_wait"
 
 ///|
@@ -156,6 +169,7 @@ fn NativeExecutorSlot::spawn_holder_reading(
   arguments : Array[String],
   input : Int,
   scoped? : NativeScopedExecutorHolder? = None,
+  output? : Int = -1,
 ) -> Result[NativeExecutorSlotChild, NativeExecutorSlotIssue] {
   if self.descriptor < 0 {
     return Err(Closed)
@@ -186,15 +200,38 @@ fn NativeExecutorSlot::spawn_holder_reading(
   }
   let encoded_executable = @utf8.encode(executable)
   let encoded_arguments = Bytes::from_array(block)
-  let pid = slot_spawn_ffi(
-    encoded_executable,
-    encoded_executable.length(),
-    encoded_arguments,
-    encoded_arguments.length(),
-    self.descriptor,
-    NATIVE_EXECUTOR_SLOT_INHERITED_FD,
-    input,
-  )
+  let pid = if output < 0 {
+    slot_spawn_ffi(
+      encoded_executable,
+      encoded_executable.length(),
+      encoded_arguments,
+      encoded_arguments.length(),
+      self.descriptor,
+      NATIVE_EXECUTOR_SLOT_INHERITED_FD,
+      input,
+    )
+  } else {
+    slot_spawn_duplex_ffi(
+      encoded_executable,
+      encoded_executable.length(),
+      encoded_arguments,
+      encoded_arguments.length(),
+      self.descriptor,
+      NATIVE_EXECUTOR_SLOT_INHERITED_FD,
+      input,
+      output,
+    )
+  }
+  self.record_spawn_result(pid, scoped)
+}
+
+///|
+// One bookkeeping boundary for both original and selected physical launch.
+fn NativeExecutorSlot::record_spawn_result(
+  self : NativeExecutorSlot,
+  pid : Int,
+  scoped : NativeScopedExecutorHolder?,
+) -> Result[NativeExecutorSlotChild, NativeExecutorSlotIssue] {
   if pid <= 0 {
     return Err(SpawnFailed)
   }

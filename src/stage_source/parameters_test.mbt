@@ -10,6 +10,49 @@ fn parameter_caps() -> @collection.Limits {
 }
 
 ///|
+test "create values retain only immediate literal Parameters in the original index" {
+  let body = prepare(
+    collected(
+      (
+        #|,"effects":{"c":{"create":{"from":{"result":"r"},"values":{"direct":{"literal":{"$param":"n"}},"quoted":{"literal":{"literal":{"$param":"missing"}}},"nested":{"literal":{"x":{"$param":"missing"}}},"array":{"literal":[{"$param":"missing"}]},"business":{"literal":{"$param":"missing","other":0}},"field":{"field":"n"}}}},"raw":{"create":{"payload":{"literal":{"$param":"missing"}}}}}
+      ),
+    ),
+    caps(),
+  ).unwrap()
+  let uses = collect_parameter_uses(body, parameter_caps()).unwrap()
+  let index = parameter_index(uses)
+  assert_eq(@references.reference_count(index), 1)
+  assert_eq(
+    @references.reference_at(index, 0).unwrap().path,
+    "/effects/c/create/values/direct/literal",
+  )
+  assert_eq(@references.reference_at(index, 0).unwrap().name, "n")
+  let missing = prepare(
+    collected(
+      ",\"effects\":{\"c\":{\"create\":{\"values\":{\"x\":{\"literal\":{\"$param\":\"missing\"}}}}}}",
+    ),
+    caps(),
+  ).unwrap()
+  assert_true(
+    collect_parameter_uses(missing, parameter_caps())
+    is Err(
+      References(
+        UnknownParameter("missing", "/effects/c/create/values/x/literal")
+      )
+    ),
+  )
+  let exact = parameter_work(uses)
+  assert_true(
+    collect_parameter_uses(body, { ..parameter_caps(), max_work: exact, })
+    is Ok(_),
+  )
+  assert_true(
+    collect_parameter_uses(body, { ..parameter_caps(), max_work: exact - 1, })
+    is Err(_),
+  )
+}
+
+///|
 test "stage operation and Effect holes share one owned reference index" {
   let body = prepare(
     collected(

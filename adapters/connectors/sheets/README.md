@@ -98,3 +98,73 @@ semantic execution is not evidence of a Native physical Sheets installation.
 The public Local/HTTPS fixtures retain independent physical expectations and
 their own artifact/source-qualified acceptance. Availability of a test is not
 a statement that it passed for an arbitrary source or distribution.
+
+## Original clear request
+
+The closed installation choice `rangeCommand: "clear"` publishes the existing
+`sheet_range` Source and a separate `sheets.clear_range.v1` Command. The historical
+`rangeCommand: true` selects update, and the absent choice selects append; their
+declarations and request preimages are unchanged. The business Command suffix is
+not a contract version: the Command, installation and provider domains remain
+on their current initial 0.1 baseline. Clear's input is exactly `{}`; update rows,
+NULL and extra fields cannot request clearing accidentally. Common admits the
+original Command/Catalog and the current acquired range Ref before approval.
+
+`catalog/clear.mbt` owns the bounded Google batch encoding and response meaning.
+The first request has the exact original GridRange, no supplied rows, and only
+the `userEnteredValue` field mask. Google clears masked fields in the uncovered
+range, preserving formatting. The second request creates DOCUMENT metadata in
+the same batch on the same sheet, with the original exact range and UUIDv4
+request marker. A marker is correlation data, not a permission or a replacement
+for the Common request identity. Both acknowledgement replies, the original
+spreadsheet, range and marker must match for a typed Applied response; missing,
+foreign or uncertain acknowledgements remain Unknown.
+
+`ClearRangeBinding` and `ClearRangeRequest` in `catalog/clear_request.mbt` retain
+the original configuration, target, encoded body, marker and request CID.
+Their physical identity checks reject equal-content foreign handles and copied
+JS projections. `site/sheets-clear-request.mjs` retains only those original
+handles in its private language-lifetime WeakMap. The driver gets the exact
+captured `entries[index]` from the existing installed-row Effect owner when
+serializing recovery. It never mints a marker from a Preview or a current DTO.
+
+Clear recovery preserves ordered saved markers under the exact original
+Command, binding, Effect, range and target. Restoration does not prepare another
+UUID or reacquire a Source. The provider's rebuilt requests are still compared
+with the existing durable claim's original canonical request CID, approved
+value/target and capability by the installed Effect owner. A rehashed recovery
+record alone cannot approve a different request. Current installation and
+credential checks remain independent and are repeated before send.
+
+The clear driver uses the existing `sheets:cells:clear` scoped credential
+operation and existing durable claim, signal, response custody and cleanup.
+Update permission is not clear permission. A lost reply is not proof of
+nonexecution: the same saved request and cleanup responsibility remain Unknown
+after restart, with no automatic resend. External developer-metadata lookup and
+revision-based reconciliation are not implemented by this extension; a marker
+or an observed empty range alone does not settle an Unknown.
+
+Clear keeps the same finite codec, rectangular cell, member, row, recovery and
+physical request/response limits described above. In addition to the original
+configuration and body, preparation retains one bounded marker and the small
+metadata request; recovery retains the bounded marker list, JSON/hash workspace
+and rebuilt original handles until the existing consumer releases them. No
+new reservation, free workspace, numeric funding or GC release ACK is implied.
+Pure catalog operations cannot cancel I/O; the physical callback forwards the
+original signal through the existing credential owner and propagates failures.
+
+`clear_wbtest.mbt`, `clear_request_wbtest.mbt`, `clear_declaration_wbtest.mbt`
+and `test/sheets-clear-command.test.mjs` cover the independent body/CID,
+declaration, nominal/copy, exact input, current target, ordered recovery and
+acknowledgement refusals. `test/sheets-public-acceptance.fixture.mjs` drives the
+real Source/Effect/Account/Checkpoint/SQLite/credential owners against a local
+TLS Google-shaped fixture, including approval after Host reopen, postcommit
+child attach and lost-reply nonresend. This is not live Google acceptance or
+evidence that short Command input-key verification has completed. The existing
+normal package and installed acceptance gates remain separate qualifications.
+
+The existing provider catalog owns extensions to clear encoding, identity and
+response classification; its typed Node bridge only transports original
+handles. It adds no new execution, approval, claim or recovery owner. Google
+references: [UpdateCellsRequest](https://developers.google.com/workspace/sheets/api/reference/rest/v4/spreadsheets/request#UpdateCellsRequest)
+and [developer metadata](https://developers.google.com/workspace/sheets/api/guides/metadata).

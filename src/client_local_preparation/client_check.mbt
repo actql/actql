@@ -307,6 +307,11 @@ fn check_source_findings(
     Ok(value) => value
     Err(_) => return Failed("check_context_invalid")
   }
+  let update_targets = match
+    @publication.published_update_targets(environment, visible_publication) {
+    Ok(value) => value
+    Err(_) => return Failed("check_context_invalid")
+  }
   let store_targets = match
     @publication.published_store_targets(environment, visible_publication) {
     Ok(value) => value
@@ -323,6 +328,7 @@ fn check_source_findings(
       selected,
       Some(context),
       table_writes~,
+      update_targets~,
       store_targets~,
       command_targets~,
     ) {
@@ -646,7 +652,9 @@ fn check_source_findings(
       // SQL spelling, target provider and public Result count are irrelevant.
       if scope == BoundInput &&
         @checked.diagnostic_cause(diagnostic) is Source(UnsupportedEffects(_)) {
-        if lowered.command_selection is Some(_) {
+        if lowered.command_selection is Some(_) ||
+          lowered.keyed_effect_kind is Some(Upsert | Delete) ||
+          lowered.insert_effect {
           findings.push(Limit("implementation_limit"))
           return Report
         }
@@ -657,6 +665,7 @@ fn check_source_findings(
             supplied,
             [],
             @host.client_standard_effect_computation_limits(),
+            update_targets=lowered.update_targets,
             store_targets=lowered.store_targets,
             command_targets=lowered.command_targets,
           ) {

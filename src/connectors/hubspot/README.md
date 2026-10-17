@@ -138,3 +138,10 @@ original top-level record id supplies only a conditional Source key: same-page
 and cross-page duplicates refuse completion. These source/component connections
 are distinct from ordinary distribution acceptance, normal wholephase funding,
 public Cloud acceptance and the remaining record/association/enrolment Effects.
+
+The [execution Mapping projection](catalog/execution-mapping.md) derives the existing
+Mapping contract from full original property types for create/update/upsert.
+Its identity binds the original Common-issued manifest and exact row Mapping;
+the actual Common checker must admit it. It is candidate DATA, not a new
+permission, installed Effect or normal funding/profile. The same mapped-body
+Owner preserves explicit omission and complete typed provider roundtrip.

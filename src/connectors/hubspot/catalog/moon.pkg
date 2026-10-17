@@ -7,6 +7,7 @@ import {
   "actql/actql/value_contract" @contract,
   "actql/actql/value_admission" @admitted,
   "actql/actql/sha256" @sha,
+  "actql/actql/canonical_value" @canonical,
   "moonbitlang/core/string",
   "moonbitlang/core/encoding/utf8",
 }

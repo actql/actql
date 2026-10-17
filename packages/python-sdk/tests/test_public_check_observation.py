@@ -100,6 +100,20 @@ class PublicCheckObservationTests(unittest.TestCase):
                 bind_check(value, BODY)
             self.assertEqual(caught.exception.code, 'InvalidHostCheckOutcome')
 
+    def test_old_reason_identity_is_rejected_with_current_outcome_identity(self):
+        raw = check_report()
+        raw['reason_schema_cid'] = 'sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742'
+        with self.assertRaises(ClientError) as caught:
+            bind_check(raw, BODY)
+        self.assertEqual(caught.exception.code, 'InvalidHostCheckOutcome')
+
+    def test_old_outcome_identity_is_rejected_with_current_reason_identity(self):
+        raw = check_report()
+        raw['outcome_schema_cid'] = 'sha256:b82a51998a31b6b6cb469fa366a497cea1b48a8b92ac73a5046dffb622b8bdce'
+        with self.assertRaises(ClientError) as caught:
+            bind_check(raw, BODY)
+        self.assertEqual(caught.exception.code, 'InvalidHostCheckOutcome')
+
 
 class PublicAsyncCheckTests(unittest.IsolatedAsyncioTestCase):
     async def test_actual_async_check_exposes_guide_attributes_without_another_request(self):

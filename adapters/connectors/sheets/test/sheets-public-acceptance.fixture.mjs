@@ -13,6 +13,7 @@ import {promisify} from 'node:util';
 import {blankGridRows, columns, errorGridRows, expectedRows, sheetsRoutes}
   from './sheets-api.fixture.mjs';
 import {rangeProgram} from './sheets-range-program.fixture.mjs';
+import {clearProgram} from './sheets-clear-program.fixture.mjs';
 
 // Close live handles even when the caller retains the original fixture custody.
 export async function closeSheetsAcceptanceCustody({root, closers = [],
@@ -99,7 +100,7 @@ const settled = execution => until(async () => {
 
 async function installation(t, {faults = [], commit = 'delegate', reviewerPrincipal,
   rangeCommand = false, resumeAfterAnswer = false} = {}) {
-  const state = {appended: [], ...(rangeCommand ? {rangeCommand: true, updated: []} : {})};
+  const state = {appended: [], ...(rangeCommand ? {rangeCommand, updated: [], cleared: []} : {})};
   const observations = [];
   const api = await openHttpsExchangeFixture(t, {routes: sheetsRoutes(state), faults});
   const root = await mkdtemp(join(scratch, 'host-'));
@@ -123,9 +124,9 @@ async function installation(t, {faults = [], commit = 'delegate', reviewerPrinci
     connectorId: 'sheet-book', accountConfigurationWire: account};
   const sourceProfilePath = join(root, 'source.json'), effectProfilePath = join(root, 'effect.json');
   await writeFile(sourceProfilePath, JSON.stringify({...base, version: SHEETS_SOURCE_VERSION,
-    ...(rangeCommand ? {rangeCommand: true} : {})}));
+    ...(rangeCommand ? {rangeCommand} : {})}));
   await writeFile(effectProfilePath, JSON.stringify({...base, version: SHEETS_EFFECT_VERSION,
-    ...(rangeCommand ? {rangeCommand: true}
+    ...(rangeCommand ? {rangeCommand}
       : {sources: columns.map(column => ({target: column.name, field: column.name, null_behavior: 'reject'}))})}));
   const directory = join(root, 'state');
   const publish = async effect => {
@@ -248,6 +249,74 @@ async function approvedAppend(setup, rows) {
   return initial.execution;
 }
 const row = {text: '=literal e\u0301\r\n', number: 0, flag: false};
+
+test('Sheets clear Command retains original requests through Local and HTTPS approval and cold restore', async t => {
+  for (const local of [true, false]) {
+    const setup = await installation(t, {rangeCommand: 'clear', resumeAfterAnswer: true,
+      ...(local ? {reviewerPrincipal: owner} : {})});
+    const [command] = (await setup.publish(true)).commands;
+    assert.equal(command.commandRef, 'command:sheet-book.sheets.clear_range.v1');
+    const first = await setup.open(true, local);
+    const client = first.client ?? await first.as('owner-token');
+    const execution = await client.startSource(clearProgram(command.commandRef), {
+      format: 'json', submissionRef: client.newSubmission({nonce: 'clear-once'})});
+    const waiting = await settled(execution);
+    assert.equal(waiting.status, 'waiting_checkpoint', JSON.stringify(waiting));
+    assert.equal(setup.state.cleared.length, 0, 'metadata acquisition is not a clear grant');
+    const capturedCalls = setup.api.seen().length;
+    if (first.client) await first.client.close(); else await first.close();
+    const resumed = await setup.open(true, local);
+    const resumedClient = resumed.client ?? await resumed.as('owner-token');
+    const restored = await resumedClient.attach(execution.ref);
+    assert.equal(setup.api.seen().length, capturedCalls, 'restore does not reacquire the target');
+    await approve(resumed, restored);
+    await restored.reconcile();
+    const done = await until(async () => {
+      const current = await restored.status();
+      return terminal.has(current.status) || current.status === 'needs_reconciliation' ? current : undefined;
+    });
+    assert.equal(done.status, 'succeeded', JSON.stringify(done));
+    assert.deepEqual(await restored.result('answer').all(), [{receipt: 'clear-request'}]);
+    assert.equal(setup.state.cleared.length, 1);
+    assert.deepEqual(setup.state.cleared[0].requests[0], {updateCells: {
+      range: {sheetId: 7, startRowIndex: 2, endRowIndex: 4, startColumnIndex: 0, endColumnIndex: 3},
+      rows: [], fields: 'userEnteredValue'}});
+    assert.equal(setup.state.updated.length, 0);
+    assert.equal(setup.state.appended.length, 0);
+    const before = setup.api.seen().length;
+    if (resumed.client) await resumed.client.close(); else await resumed.close();
+    await setup.replayInNewProcess(execution.ref, 'succeeded', [{receipt: 'clear-request'}]);
+    assert.equal(setup.api.seen().length, before, 'cold attach neither reacquires nor resends');
+    setup.state.acceptanceComplete = true;
+  }
+});
+
+test('Sheets clear keeps a lost response Unknown after cold restart without resend', async t => {
+  const setup = await installation(t, {rangeCommand: 'clear', reviewerPrincipal: owner,
+    faults: [{kind: 'apply-then-lose-reply', method: 'POST', pathname: '/v4/spreadsheets/book:batchUpdate'}]});
+  const [command] = (await setup.publish(true)).commands;
+  const first = await setup.open(true, true), client = first.client;
+  const execution = await client.startSource(clearProgram(command.commandRef), {
+    format: 'json', submissionRef: client.newSubmission({nonce: 'clear-unknown'})});
+  assert.equal((await settled(execution)).status, 'waiting_checkpoint');
+  assert.equal(setup.state.cleared.length, 0);
+  await approve(first, execution);
+  await execution.reconcile();
+  const unknown = await until(async () => {
+    const current = await execution.status();
+    return current.status === 'needs_reconciliation' ? current : undefined;
+  });
+  assert.equal(unknown.result_available, false);
+  assert.equal(setup.state.cleared.length, 1);
+  const before = setup.api.seen().length;
+  await client.close();
+  await setup.replayInNewProcess(execution.ref, 'needs_reconciliation');
+  assert.equal(setup.api.seen().length, before);
+  await writeFile(join(setup.root, 'clear-unknown.json'), JSON.stringify({ref: execution.ref,
+    status: unknown.status, resultAvailable: false, appliedBatches: 1,
+    additionalRequestsAfterRestart: 0}), {mode: 0o600});
+  // The actual Unknown, journal, credentials and cleanup responsibility remain.
+});
 
 test('Sheets range Command uses the real Local and HTTPS approval owners and original saved request', async t => {
   const rows = [row, {...row, text: 'second', number: -2.5, flag: true}];

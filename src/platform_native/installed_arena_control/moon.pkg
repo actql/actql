@@ -4,8 +4,13 @@ import {
   "moonbitlang/core/encoding/utf8" @utf8,
   "moonbitlang/core/debug" @debug,
   "actql/actql/platform_native/host_bootstrap" @bootstrap,
+  "actql/actql/platform_native/executor_slot" @executor,
   "actql/actql/physical_resources" @resources,
   "actql/actql/client_host_buffers" @buffers,
   "actql/actql/platform_native/sqlite" @sqlite,
   "actql/actql/platform_native/filesystem" @filesystem,
 }
+
+import {
+  "moonbitlang/core/env",
+} for "wbtest"

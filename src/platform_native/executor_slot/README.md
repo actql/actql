@@ -40,3 +40,70 @@ no user callbacks. Foreign-thread operations refuse; aliases must not be used
 concurrently or transferred to another runtime. Best-effort finalizers are not
 cleanup acknowledgements. The old spawn/wait APIs and their result semantics
 remain unchanged.
+# Scoped duplex transport
+
+The same scoped Holder may capture a duplex transport before launch. Its four
+original pipe endpoints are retained in one parent-owned opaque carrier,
+including partial allocation and unconfirmed-close responsibility. A single
+opaque borrow projects only the original parent stdin writer and stdout reader
+to the trusted channel caller. Descriptor numbers are physical facts, not a
+capacity grant, permission, process identity or Stop constructor.
+
+The channel Owner must fence new use and observe zero in-flight operations
+before returning that same borrow. Return requires the original nominal identity,
+not continued use permission, and invalidates its descriptor projection;
+it does not acknowledge child exit, channel metadata, exclusive region or
+WorkspaceLoan cleanup. The Holder refuses close/Stop while the borrow is active.
+Lost currentness or an Unknown descriptor cannot prevent withdrawal of that
+same view; known endpoints may retire while the original Unknown remains sticky.
+After return it closes the original endpoints, observes actual child wait and
+reacquires the pinned original slot inode before issuing the existing scoped
+Stop. Closing the parent writer may permit an EOF-waiting child to exit, but EOF
+does not establish any business-operation outcome. The Stop pin remains held
+through the outer physical cleanup acknowledgement.
+
+The Holder, transport, borrow, anchor and library roots must remain in the same
+parent holding outside the child region. This module supplies no numerical
+profile or funding and cannot replace the original installed resource Owner.
+The existing one-way Channel API and scoped Stop contract remain unchanged.
+
+`prepare_unstarted_cleanup` is a cleanup-only fence for an original physical
+region that was bound before launch. An actual child always refuses this path,
+including after its wait observation. After an attempted duplex launch the same
+Holder must have observed that synchronous call return with no retained child;
+an unresolved attempt, external error or missing PID supplies no such fact. The
+older attempted one-way path is not admitted by this new seam.
+
+The fence retires known original transport endpoints only after borrow return,
+preserves close Unknown, and retains the anchor until the existing physical
+Owner completes its unstarted-region cleanup and calls `holder.cleanup`.
+It does not reopen a launch attempt or issue Stop, region or WorkspaceLoan ACK.
+
+# Original selected child inputs
+
+The trusted installed caller may use `prepare_duplex_child` and then
+`spawn_prepared_duplex` on the same original Holder. The existing physical
+region Owner must independently validate the original backing descriptor,
+nominal resource/loan, selected absolute executable, recipe and current
+authorization. This seam supplies none of those decisions. It retains only a
+new close-on-exec duplicate, the exact argument bytes and the explicitly
+selected environment in that already-funded parent holding.
+
+The new duplicate becomes child FD4; slot FD3, stdin0, stdout1 and diagnostic
+stderr2 keep their existing roles. The source descriptor remains owned by the
+original caller, must be CLOEXEC and must remain physically current. No path
+reopen can replace it. The selected OS fields are `LANG`, `LC_ALL`, `LC_CTYPE`
+and `TMPDIR`, without duplicates or NUL and with at most 4096 UTF-8 bytes per
+value. These are intake bounds, not resource funding. An empty selection is an
+actual empty environment; no ambient values or vendor defaults are merged.
+The prior launch APIs retain their original ABI and environment behavior.
+
+Preparation snapshots mutable argument/environment arrays and retains partial
+capture and close uncertainty in the same Holder. The prepared selection cannot
+be replaced or bypassed through the older launch entry. After spawn the parent
+duplicate is closed with observation, while the original caller retains its
+source and region through the existing scoped Stop and physical cleanup ACK.
+An error may still retain an actual child. A close Unknown prevents Stop and
+cannot close an independently reused descriptor. All known original aliases
+remain subject to the existing borrow-return, child-wait, slot-pin and final
+cleanup protocol; no new process, Run or cleanup Owner is created.

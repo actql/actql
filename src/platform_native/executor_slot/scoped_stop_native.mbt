@@ -52,8 +52,11 @@ struct NativeScopedExecutorHolder {
   anchor : NativeExecutorSlotAnchor
   preparation_issue : NativeExecutorSlotIssue?
   mut attempted : Bool
+  mut duplex_spawn_returned : Bool
   mut child : NativeExecutorSlotChild?
   mut channel : NativeHolderChannel?
+  mut duplex : NativeScopedDuplexTransport?
+  mut child_launch : NativeScopedDuplexChildLaunch?
   mut input : Int
   mut output : Int
   mut partial_close_unknown : Bool
@@ -75,7 +78,7 @@ struct NativeScopedExecutorStop {
   original : NativeExecutorSlot
   anchor : NativeExecutorSlotAnchor
   child : NativeExecutorSlotChild
-  channel : NativeHolderChannel
+  transport : NativeScopedStopTransport
   mut closed : Bool
   mut close_unknown : Bool
 }
@@ -124,8 +127,11 @@ pub fn NativeExecutorSlot::prepare_scoped_holder(
     anchor,
     preparation_issue: issue,
     attempted: false,
+    duplex_spawn_returned: false,
     child: None,
     channel: None,
+    duplex: None,
+    child_launch: None,
     input: -1,
     output: -1,
     partial_close_unknown: false,
@@ -177,6 +183,9 @@ pub fn NativeScopedExecutorHolder::spawn_with_channel(
   match self.require_prepared() {
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  if self.duplex is Some(_) {
+    return Err(InvalidConfiguration)
   }
   self.attempted = true
   let ends = open_channel_ffi()
@@ -262,6 +271,9 @@ pub fn NativeScopedExecutorHolder::poll_stop(
     }
     return Ok(Some(stop))
   }
+  if self.duplex is Some(transport) {
+    return self.poll_duplex_stop(transport)
+  }
   let child = match self.child() {
     Err(issue) => return Err(issue)
     Ok(value) => value
@@ -294,7 +306,7 @@ pub fn NativeScopedExecutorHolder::poll_stop(
     original: self.original,
     anchor: self.anchor,
     child,
-    channel,
+    transport: HolderChannel(channel),
     closed: false,
     close_unknown: false,
   }
@@ -321,7 +333,7 @@ pub fn NativeScopedExecutorStop::require_current(
   }
   if !(expected.stop is Some(original) && physical_equal(original, self)) ||
     !(expected.child is Some(child) && physical_equal(child, self.child)) ||
-    !(expected.channel is Some(channel) && physical_equal(channel, self.channel)) ||
+    !scoped_stop_transport_matches(expected, self.transport) ||
     expected.parent_close_unknown ||
     expected.partial_close_unknown {
     return Err(NotHeld)
@@ -331,10 +343,11 @@ pub fn NativeScopedExecutorStop::require_current(
     Ok(None) => return Err(Busy)
     Ok(Some(_)) => ()
   }
-  if self.channel.descriptor >= 0 ||
-    self.channel.inspection_descriptor >= 0 ||
-    self.channel.close_unknown ||
-    self.channel.pending_frame is Some(_) {
+  if !scoped_stop_transport_closed(self.transport) {
+    return Err(Busy)
+  }
+  if expected.child_launch is Some(launch) &&
+    selected_child_closed_ffi(launch.resource) != 0 {
     return Err(Busy)
   }
   let path = @utf8.encode(self.original.path)
@@ -387,6 +400,37 @@ pub fn NativeScopedExecutorHolder::cleanup(
     }
     return false
   }
+  if self.duplex is Some(_) && self.attempted && !self.duplex_spawn_returned {
+    return false
+  }
+  if self.retire_unstarted_transport() is Err(_) {
+    return false
+  }
+  if scoped_anchor_close_ffi(self.anchor) != 0 {
+    self.partial_close_unknown = true
+    return false
+  }
+  self.closed = true
+  true
+}
+
+///|
+fn NativeScopedExecutorHolder::retire_unstarted_transport(
+  self : NativeScopedExecutorHolder,
+) -> Result[Unit, NativeExecutorSlotIssue] {
+  let duplex_closed = if self.duplex is Some(transport) {
+    if transport.borrowed is Some(borrowed) && !borrowed.returned {
+      return Err(Busy)
+    }
+    transport.cleanup_unstarted(self)
+  } else {
+    true
+  }
+  let child_closed = if self.child_launch is Some(launch) {
+    selected_child_close_ffi(launch.resource) == 0
+  } else {
+    true
+  }
   if self.output >= 0 {
     let original = self.output
     self.output = -1
@@ -401,13 +445,11 @@ pub fn NativeScopedExecutorHolder::cleanup(
       self.partial_close_unknown = true
     }
   }
-  if self.partial_close_unknown || self.parent_close_unknown {
-    return false
+  if !duplex_closed ||
+    !child_closed ||
+    self.partial_close_unknown ||
+    self.parent_close_unknown {
+    return Err(LockFailed)
   }
-  if scoped_anchor_close_ffi(self.anchor) != 0 {
-    self.partial_close_unknown = true
-    return false
-  }
-  self.closed = true
-  true
+  Ok(())
 }
