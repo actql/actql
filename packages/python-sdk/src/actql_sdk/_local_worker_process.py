@@ -102,6 +102,8 @@ class OriginalWorkerProcess:
         self._native_metadata_retired = False
         self._native_retirement_inflight = False
         self._native_retirement_unknown: BaseException | None = None
+        self._descriptor_prepare_attempted = False
+        self._descriptors_prepared = False
         self._spawn_syscall_attempted = False
         self._spawn_attempted = False
         self._pid: int | None = None
@@ -389,6 +391,38 @@ class OriginalWorkerProcess:
         elif identity != self._launch_identity:
             raise ValueError('Original worker launch link identity changed')
 
+    def prepare_original_descriptors(self) -> None:
+        """Same funded process: create/retain its original pipes before spawn.
+
+        This is not launch or child/Host admission. The original supplier must
+        already cover this process/FD/control phase. Partial pairs and a lost
+        duplicate remain in this same process; another preparation is refused.
+        """
+        with self._lock:
+            self._launchable()
+            if self._spawn_attempted:
+                raise RuntimeError('Original worker spawn was already attempted')
+            self._prepare_original_descriptors()
+
+    def _prepare_original_descriptors(self) -> None:
+        self._launchable()
+        if self._descriptor_prepare_attempted:
+            raise RuntimeError('Original worker descriptor preparation was already attempted')
+        self._funding.require_launch()
+        self._launchable()
+        self._require_native_current()
+        self._descriptor_prepare_attempted = True
+        try:
+            self._verify_executable()
+            self._duplicate_original_domain()
+            self._stdin, self._stdout, self._stderr = self._pipe(), self._pipe(), self._pipe()
+            self._funding.require_launch()
+            self._launchable()
+            self._require_native_current()
+            self._descriptors_prepared = True
+        except BaseException as failure:
+            raise LocalWorkerProcessPending(self) from failure
+
     def spawn(self) -> None:
         with self._lock:
             self._launchable()
@@ -401,10 +435,14 @@ class OriginalWorkerProcess:
             try:
                 # Same-FD nofollow/size/digest check; no PATH search or system
                 # interpreter fallback. Startup attestation is still required.
-                self._verify_executable()
-                self._duplicate_original_domain()
+                if self._descriptors_prepared:
+                    # A previously prepared interpreter is checked again at
+                    # the original launch boundary; no stale pathname proof.
+                    self._verify_executable()
+                else:
+                    self._prepare_original_descriptors()
+                assert self._stdin is not None and self._stdout is not None and self._stderr is not None
                 slot_action = self._slot.inheritance_action()
-                self._stdin, self._stdout, self._stderr = self._pipe(), self._pipe(), self._pipe()
                 actions: list[tuple[int, int] | tuple[int, int, int]] = [slot_action,
                     (os.POSIX_SPAWN_DUP2, self._stdin[0].value, 0),
                     (os.POSIX_SPAWN_DUP2, self._stdout[1].value, 1),
