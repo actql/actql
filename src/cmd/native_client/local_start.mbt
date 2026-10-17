@@ -151,11 +151,14 @@ fn local_submission_start(
   let reference = selection.reference
   let attempt = selection.attempt
   let observe_original = () => {
-    if selection.fresh {
+    let reply = if selection.fresh {
       local_submission_lookup_selected(host, settings, crypto, () => reference)
     } else {
       local_submission_lookup(host, settings, crypto, input_root, child)
     }
+    local_public_run_state_reply(
+      host, settings, crypto, reference, public_run, reply,
+    )
   }
   try {
     let intent = @run_host.prepare_client_submitted_intent(
@@ -530,7 +533,9 @@ fn local_submission_start(
     if !(store.close() is Ok(true)) {
       stop("LocalResultStoreCleanupPending")
     }
-    reply
+    local_public_run_state_reply(
+      host, settings, crypto, reference, public_run, reply,
+    )
   } catch {
     ClientStop(message) =>
       stop(local_run_submission_failure(selection, message))

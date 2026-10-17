@@ -38,11 +38,11 @@ import {
   "moonbitlang/core/env",
 }
 
+import {
+  "actql/actql/publication_payload" @test_payload,
+} for "wbtest"
+
 options(
   "native-stub": [ "stdout_stub.c" ],
   link: { "native": { "cc-flags": "-O0" } },
 )
-
-import {
-  "actql/actql/publication_payload" @test_payload,
-} for "wbtest"
