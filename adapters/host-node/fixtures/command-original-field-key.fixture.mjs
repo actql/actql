@@ -20,15 +20,23 @@ export async function originalFieldCommandKeyFixture({duplicate = false, inputKe
   const schema = {id: {type: 'string', nullable: false}, value: {type: 'string', nullable: false},
     resource: {type: 'resource_ref', resource_kind: 'file', nullable: false}};
   const declaration = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
-    'fixture', 'storage', 'fixture-1', canonical({views: [{resource: 'rows', resource_kind: 'file',
+    'field-target-source', 'fixture', 'fixture/0.1', canonical({views: [{resource: 'rows', resource_kind: 'file',
       schema_wire: canonical(schema), schema_cid: cid(schema), facts_wire: '{}'}]}), undefined));
   const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
-  const supplied = rowSourceCheckEnvironment(canonical(commandEnvironment), declared);
-  const environment = moon.clientProgramCheckEnvironment(supplied.wire, supplied.evidenceCid,
+  const supplied = rowSourceCheckEnvironment(canonical(base), declared);
+  const {evidence_bundle_cid: _old, ...body} = JSON.parse(supplied.wire);
+  // A new independent field-target Program has one actual Source Catalog and
+  // the original Command Catalog/role bodies. No published Mapping is needed.
+  body.connector_catalogs.push(...commandEnvironment.connector_catalogs);
+  body.connector_manifest.connectors.push(...commandEnvironment.connector_manifest.connectors);
+  body.command_contracts = commandEnvironment.command_contracts;
+  body.contract_registry.push(...commandEnvironment.contract_registry);
+  const environmentCid = cid(body);
+  const environment = moon.clientProgramCheckEnvironment(canonical({...body, evidence_bundle_cid: environmentCid}), environmentCid,
     false, false, true, false, false, false, false);
   assert(environment, 'original command Catalog plus actual Source declaration');
   const program = {version: 'actql/0.1', id: 'original-field-command-key', stages: [{id: 'capture',
-    inputs: {original: {connector: 'fixture', resource: 'rows', view: 'records'}},
+    inputs: {original: {connector: 'field-target-source', resource: 'rows', view: 'records'}},
     steps: [{from: 'original', select: ['resource', 'id', 'value'], as: 'selected'}],
     results: {out: {from: 'selected', fields: ['resource', 'id', 'value']}},
     effects: {save: {command: {contract: 'command:fixture.upload.v1', target: {field: 'resource'},
