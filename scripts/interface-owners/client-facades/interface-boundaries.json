@@ -4122,7 +4122,7 @@
     {
       "module": "packages/sdk/host-port.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "68507053372ca1976060a10b42c03865cbc9de73f36a10f19ad18c2bc6ff19a1",
+      "sha256": "86291e5775e8da315a7e83b818510f903c0e047dfcbdc51d2284ec20ec5e3709",
       "exports": [
         "EmbeddedLocalOptions",
         "InProcessHostPort",
@@ -4153,6 +4153,15 @@
             "port: InProcessHostPort"
           ],
           "result": "Promise<Client>"
+        },
+        {
+          "name": "InProcessHostPort/answerCheckpoint",
+          "parameters": [
+            "summary: CheckpointSummary",
+            "decision: 'approved' | 'rejected'",
+            "signal?: AbortSignal"
+          ],
+          "result": "Promise<SignedCheckpointAnswer>"
         },
         {
           "name": "InProcessHostPort/close",
@@ -4206,13 +4215,25 @@
             "responsibility": [
               {
                 "path": "packages/sdk/host-port.d.ts",
-                "anchor": "import type {Client, Durability} from './index.d.ts';"
+                "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Original Checkpoint ID answers and SDK reference views"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "packages/sdk/host-port.d.ts",
-                "anchor": "import type {Client, Durability} from './index.d.ts';"
+                "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+              },
+              {
+                "path": "packages/sdk/host-port.d.ts",
+                "anchor": "answerCheckpoint?(summary: CheckpointSummary"
               }
             ],
             "identity": [
@@ -4222,7 +4243,15 @@
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
-                "anchor": "import type {Client, Durability} from './index.d.ts';"
+                "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "validCheckpointLookup(page, checkpointId)"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "value: observation.checkpoint.checkpoint_id"
               }
             ],
             "ownership": [
@@ -4232,7 +4261,15 @@
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
-                "anchor": "import type {Client, Durability} from './index.d.ts';"
+                "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "// The same lease/Host handling sets own signing as well as reads."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "An uncertain signing operation retains its own original claim and cleanup."
               }
             ],
             "synchronization": [
@@ -4242,7 +4279,15 @@
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
-                "anchor": "import type {Client, Durability} from './index.d.ts';"
+                "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "current(signal);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               }
             ],
             "failure": [
@@ -4252,7 +4297,15 @@
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
-                "anchor": "import type {Client, Durability} from './index.d.ts';"
+                "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "fail('CheckpointSignerUnavailable')"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "ResolutionUnknown carries"
               }
             ],
             "cancellation": [
@@ -4262,7 +4315,15 @@
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
-                "anchor": "import type {Client, Durability} from './index.d.ts';"
+                "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
               }
             ],
             "resources": [
@@ -4272,7 +4333,11 @@
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
-                "anchor": "import type {Client, Durability} from './index.d.ts';"
+                "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "exact response-loss items overlap within the original Client/Host inventory."
               }
             ],
             "extension": [
@@ -4282,13 +4347,145 @@
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
-                "anchor": "import type {Client, Durability} from './index.d.ts';"
+                "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Wire bytes, canonical preimages, signed"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Ordinary `wait()` may"
               }
             ],
             "verification": [
               {
                 "path": "packages/sdk/host-port.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "test('a lost resolution reply preserves exact signed bytes"
+              },
+              {
+                "path": "packages/sdk/checkpoint-reference-view.test.mjs",
+                "anchor": "test('invalid wire fields and malformed references"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('throwing original answer acquisition retains"
+              },
+              {
+                "path": "adapters/host-node/sdk-checkpoint-actions.integration.test.mjs",
+                "anchor": "test(`public ${decision}(id) binds the original Checkpoint"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "InProcessHostPort/answerCheckpoint"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Original Checkpoint ID answers and SDK reference views"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+              },
+              {
+                "path": "packages/sdk/host-port.d.ts",
+                "anchor": "answerCheckpoint?(summary: CheckpointSummary"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "validCheckpointLookup(page, checkpointId)"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "value: observation.checkpoint.checkpoint_id"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "// The same lease/Host handling sets own signing as well as reads."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "An uncertain signing operation retains its own original claim and cleanup."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "current(signal);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "fail('CheckpointSignerUnavailable')"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "ResolutionUnknown carries"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "exact response-loss items overlap within the original Client/Host inventory."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Wire bytes, canonical preimages, signed"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Ordinary `wait()` may"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "test('a lost resolution reply preserves exact signed bytes"
+              },
+              {
+                "path": "packages/sdk/checkpoint-reference-view.test.mjs",
+                "anchor": "test('invalid wire fields and malformed references"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('throwing original answer acquisition retains"
+              },
+              {
+                "path": "adapters/host-node/sdk-checkpoint-actions.integration.test.mjs",
+                "anchor": "test(`public ${decision}(id) binds the original Checkpoint"
               }
             ]
           }
@@ -4418,7 +4615,7 @@
     {
       "module": "packages/sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "ad744453b084406c26ad1aecd8a3a4e830061af986c81d3141e0b6828dd84578",
+      "sha256": "a22fe8e01f418c00dbf32c7e9451bb13cb5c100fb4ae1985b0cc1a7af914b3b3",
       "exports": [
         "CancellationExplanation",
         "CancellationLookup",
@@ -4627,6 +4824,14 @@
           "result": "Promise<void>"
         },
         {
+          "name": "Client/approve",
+          "parameters": [
+            "checkpointId: string",
+            "options?: {signer?: CheckpointSigner;\n    signal?: AbortSignal}"
+          ],
+          "result": "ReturnType<Client['resolveCheckpoints']>"
+        },
+        {
           "name": "Client/aql",
           "parameters": [
             "text: string",
@@ -4670,7 +4875,7 @@
         {
           "name": "Client/checkpoints",
           "parameters": [
-            "options?: {after?: string; limit?: number;\n    signal?: AbortSignal}"
+            "options?: {after?: string; limit?: number; checkpointId?: string;\n    signal?: AbortSignal}"
           ],
           "result": "Promise<Readonly<{\n      items: readonly CheckpointSummary[]; next?: string}>>"
         },
@@ -4734,6 +4939,14 @@
             "observationOrTarget: unknown"
           ],
           "result": "RequestRecovery"
+        },
+        {
+          "name": "Client/reject",
+          "parameters": [
+            "checkpointId: string",
+            "options?: {signer?: CheckpointSigner;\n    signal?: AbortSignal}"
+          ],
+          "result": "ReturnType<Client['resolveCheckpoints']>"
         },
         {
           "name": "Client/resolveCheckpoints",
@@ -5563,6 +5776,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "### Original short-query continuation"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Original Checkpoint ID answers and SDK reference views"
               }
             ],
             "inputsOutputs": [
@@ -5581,6 +5798,14 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"readOnly\": {\"const\": true}"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+              },
+              {
+                "path": "packages/sdk/host-port.d.ts",
+                "anchor": "answerCheckpoint?(summary: CheckpointSummary"
               }
             ],
             "identity": [
@@ -5603,6 +5828,14 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_cid("
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "validCheckpointLookup(page, checkpointId)"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "value: observation.checkpoint.checkpoint_id"
               }
             ],
             "ownership": [
@@ -5625,6 +5858,14 @@
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "assertSubmittedIntent(prepared, intent)"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "// The same lease/Host handling sets own signing as well as reads."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "An uncertain signing operation retains its own original claim and cleanup."
               }
             ],
             "synchronization": [
@@ -5647,6 +5888,14 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "current(signal);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               }
             ],
             "failure": [
@@ -5669,6 +5918,14 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "fail('CheckpointSignerUnavailable')"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "ResolutionUnknown carries"
               }
             ],
             "cancellation": [
@@ -5691,6 +5948,14 @@
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
               }
             ],
             "resources": [
@@ -5721,6 +5986,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "max_bytes > 1048576"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "exact response-loss items overlap within the original Client/Host inventory."
               }
             ],
             "extension": [
@@ -5739,6 +6008,14 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Wire bytes, canonical preimages, signed"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Ordinary `wait()` may"
               }
             ],
             "verification": [
@@ -5769,6 +6046,131 @@
               {
                 "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              },
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "test('a lost resolution reply preserves exact signed bytes"
+              },
+              {
+                "path": "packages/sdk/checkpoint-reference-view.test.mjs",
+                "anchor": "test('invalid wire fields and malformed references"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('throwing original answer acquisition retains"
+              },
+              {
+                "path": "adapters/host-node/sdk-checkpoint-actions.integration.test.mjs",
+                "anchor": "test(`public ${decision}(id) binds the original Checkpoint"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "Client/approve",
+            "Client/reject"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Original Checkpoint ID answers and SDK reference views"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+              },
+              {
+                "path": "packages/sdk/host-port.d.ts",
+                "anchor": "answerCheckpoint?(summary: CheckpointSummary"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "validCheckpointLookup(page, checkpointId)"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "value: observation.checkpoint.checkpoint_id"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "// The same lease/Host handling sets own signing as well as reads."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "An uncertain signing operation retains its own original claim and cleanup."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "current(signal);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "fail('CheckpointSignerUnavailable')"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "ResolutionUnknown carries"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "exact response-loss items overlap within the original Client/Host inventory."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Wire bytes, canonical preimages, signed"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Ordinary `wait()` may"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "test('a lost resolution reply preserves exact signed bytes"
+              },
+              {
+                "path": "packages/sdk/checkpoint-reference-view.test.mjs",
+                "anchor": "test('invalid wire fields and malformed references"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('throwing original answer acquisition retains"
+              },
+              {
+                "path": "adapters/host-node/sdk-checkpoint-actions.integration.test.mjs",
+                "anchor": "test(`public ${decision}(id) binds the original Checkpoint"
               }
             ]
           }
@@ -6679,7 +7081,7 @@
     {
       "module": "packages/sdk/internal/checkpoint-operations.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4bdd304efe2146654e86f5124139da466de84d460a36cfa8d71be5d075e56f7e",
+      "sha256": "4d29820be9b89aa5f45e7524b499ed51e24bf209d42d1c33d664173fc5a7a5cf",
       "exports": [
         "createCheckpointOperations"
       ],
@@ -6689,49 +7091,99 @@
           "parameters": [
             "connection",
             "exchange",
-            "responseValue"
+            "responseValue",
+            "answerOriginal",
+            "isClosed"
           ],
           "async": false
         },
         {
-          "name": "createCheckpointOperations/createCheckpointOperations",
+          "name": "createCheckpointOperations/answerById/answerById",
           "parameters": [
-            "after",
-            "limit",
+            "checkpointId",
+            "decision",
+            "signer",
             "signal"
           ],
           "async": true
         },
         {
-          "name": "createCheckpointOperations/createCheckpointOperations/bytes/bytes",
+          "name": "createCheckpointOperations/answerById/answerById/init:sign/init:sign",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointOperations/answerMatches/answerMatches",
+          "parameters": [
+            "answer",
+            "summary",
+            "decision",
+            "signer"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointOperations/answerMatches/answerMatches/answerMatches",
+          "parameters": [
+            "claim",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointOperations/createCheckpointOperations",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createCheckpointOperations/current/current",
+          "parameters": [
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointOperations/operations/operations",
+          "parameters": [
+            "after",
+            "limit",
+            "checkpointId",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointOperations/operations/operations/bytes/bytes",
           "parameters": [
             "character"
           ],
           "async": false
         },
         {
-          "name": "createCheckpointOperations/createCheckpointOperations/createCheckpointOperations",
+          "name": "createCheckpointOperations/operations/operations/operations",
           "parameters": [
             "item"
           ],
           "async": false
         },
         {
-          "name": "createCheckpointOperations/createCheckpointOperations/createCheckpointOperations#2",
+          "name": "createCheckpointOperations/operations/operations/operations#2",
           "parameters": [
             "item"
           ],
           "async": false
         },
         {
-          "name": "createCheckpointOperations/createCheckpointOperations/createCheckpointOperations#3",
+          "name": "createCheckpointOperations/operations/operations/operations#3",
           "parameters": [
             "result"
           ],
           "async": false
         },
         {
-          "name": "createCheckpointOperations/createCheckpointOperations#2",
+          "name": "createCheckpointOperations/operations/operations#2",
           "parameters": [
             "checkpoint",
             "maxBytes",
@@ -6740,17 +7192,49 @@
           "async": true
         },
         {
-          "name": "createCheckpointOperations/createCheckpointOperations#3",
+          "name": "createCheckpointOperations/operations/operations#3",
           "parameters": [
             "items",
             "signer",
             "signal"
           ],
           "async": true
+        },
+        {
+          "name": "createCheckpointOperations/operations/operations#4",
+          "parameters": [
+            "checkpointId",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointOperations/operations/operations#5",
+          "parameters": [
+            "checkpointId",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointOperations/without/without",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointOperations/without/without/without",
+          "parameters": [
+            "key"
+          ],
+          "async": false
         }
       ],
       "imports": [
         "../checkpoints.mjs",
+        "./checkpoint-answer-contract.generated.mjs",
         "./data.mjs",
         "./errors.mjs",
         "./transport-response.mjs",
@@ -6766,13 +7250,7 @@
           "operations": [
             "<module>",
             "createCheckpointOperations",
-            "createCheckpointOperations/createCheckpointOperations",
-            "createCheckpointOperations/createCheckpointOperations/bytes/bytes",
-            "createCheckpointOperations/createCheckpointOperations/createCheckpointOperations",
-            "createCheckpointOperations/createCheckpointOperations/createCheckpointOperations#2",
-            "createCheckpointOperations/createCheckpointOperations/createCheckpointOperations#3",
-            "createCheckpointOperations/createCheckpointOperations#2",
-            "createCheckpointOperations/createCheckpointOperations#3"
+            "createCheckpointOperations/createCheckpointOperations"
           ],
           "exports": [
             "createCheckpointOperations"
@@ -6782,12 +7260,24 @@
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mjs",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Original Checkpoint ID answers and SDK reference views"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mjs",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+              },
+              {
+                "path": "packages/sdk/host-port.d.ts",
+                "anchor": "answerCheckpoint?(summary: CheckpointSummary"
               }
             ],
             "identity": [
@@ -6798,6 +7288,14 @@
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mjs",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "validCheckpointLookup(page, checkpointId)"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "value: observation.checkpoint.checkpoint_id"
               }
             ],
             "ownership": [
@@ -6808,6 +7306,14 @@
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mjs",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "// The same lease/Host handling sets own signing as well as reads."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "An uncertain signing operation retains its own original claim and cleanup."
               }
             ],
             "synchronization": [
@@ -6818,6 +7324,14 @@
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mjs",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "current(signal);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               }
             ],
             "failure": [
@@ -6828,6 +7342,14 @@
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mjs",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "fail('CheckpointSignerUnavailable')"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "ResolutionUnknown carries"
               }
             ],
             "cancellation": [
@@ -6838,6 +7360,14 @@
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mjs",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
               }
             ],
             "resources": [
@@ -6848,6 +7378,10 @@
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mjs",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "exact response-loss items overlap within the original Client/Host inventory."
               }
             ],
             "extension": [
@@ -6858,12 +7392,266 @@
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mjs",
                 "anchor": "// Existing bounded Checkpoint review and signed resolution operations."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Wire bytes, canonical preimages, signed"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Ordinary `wait()` may"
               }
             ],
             "verification": [
               {
                 "path": "packages/sdk/checkpoints.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "test('a lost resolution reply preserves exact signed bytes"
+              },
+              {
+                "path": "packages/sdk/checkpoint-reference-view.test.mjs",
+                "anchor": "test('invalid wire fields and malformed references"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('throwing original answer acquisition retains"
+              },
+              {
+                "path": "adapters/host-node/sdk-checkpoint-actions.integration.test.mjs",
+                "anchor": "test(`public ${decision}(id) binds the original Checkpoint"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createCheckpointOperations/answerById/answerById",
+            "createCheckpointOperations/answerById/answerById/init:sign/init:sign",
+            "createCheckpointOperations/current/current",
+            "createCheckpointOperations/operations/operations",
+            "createCheckpointOperations/operations/operations/bytes/bytes",
+            "createCheckpointOperations/operations/operations/operations",
+            "createCheckpointOperations/operations/operations/operations#2",
+            "createCheckpointOperations/operations/operations/operations#3",
+            "createCheckpointOperations/operations/operations#2",
+            "createCheckpointOperations/operations/operations#3",
+            "createCheckpointOperations/operations/operations#4",
+            "createCheckpointOperations/operations/operations#5"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Original Checkpoint ID answers and SDK reference views"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+              },
+              {
+                "path": "packages/sdk/host-port.d.ts",
+                "anchor": "answerCheckpoint?(summary: CheckpointSummary"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "validCheckpointLookup(page, checkpointId)"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "value: observation.checkpoint.checkpoint_id"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "// The same lease/Host handling sets own signing as well as reads."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "An uncertain signing operation retains its own original claim and cleanup."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "current(signal);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "fail('CheckpointSignerUnavailable')"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "ResolutionUnknown carries"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "exact response-loss items overlap within the original Client/Host inventory."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Wire bytes, canonical preimages, signed"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Ordinary `wait()` may"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "test('a lost resolution reply preserves exact signed bytes"
+              },
+              {
+                "path": "packages/sdk/checkpoint-reference-view.test.mjs",
+                "anchor": "test('invalid wire fields and malformed references"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('throwing original answer acquisition retains"
+              },
+              {
+                "path": "adapters/host-node/sdk-checkpoint-actions.integration.test.mjs",
+                "anchor": "test(`public ${decision}(id) binds the original Checkpoint"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createCheckpointOperations/answerMatches/answerMatches",
+            "createCheckpointOperations/answerMatches/answerMatches/answerMatches",
+            "createCheckpointOperations/without/without",
+            "createCheckpointOperations/without/without/without"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "An original-answer callback remains responsible for key custody and current"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "const answerMatches = async (answer, summary, decision, signer) =>"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "const answerSchemas = {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "resolution.decision !== decision"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "resolution.run_definition_cid !== summary.subject.runDefinitionCid"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "contentCid(without(resolution, 'resolution_cid'))"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Self-addressed identities are checked without changing the signed"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "new ClientError('InvalidCheckpointAnswer', {signed: Object.freeze([answer])})"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "current(signal);"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "if (!await answerMatches(answer, summary, decision, selectedSigner))"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "throw new ClientError('InvalidCheckpointAnswer'"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "resolution; it neither signs again nor treats the bytes as a retry permission."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "exact response-loss items overlap within the original Client/Host inventory."
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "protocol.artifact_schemas.checkpoint_resolution"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Wire bytes, canonical preimages, signed"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "refuses an original-port answer for the opposite decision"
+              },
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "valid signatures for another original Summary refuse"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.test.mjs",
+                "anchor": "SDK answer grammar projects existing Resolution and Evidence"
               }
             ]
           }
@@ -7031,7 +7819,7 @@
     {
       "module": "packages/sdk/internal/client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "665b489d89a1697fb2ff64dc53f820e18c5589b3ee6f44ac7ac1888df33daae2",
+      "sha256": "df45617c955ff7ae628b08b509c999b3f01283b1114c715a3b6c4adb4463db6e",
       "exports": [
         "connectSelected"
       ],
@@ -7043,6 +7831,15 @@
             "port"
           ],
           "async": true
+        },
+        {
+          "name": "connectSelected/connectSelected",
+          "parameters": [
+            "summary",
+            "decision",
+            "signal"
+          ],
+          "async": false
         }
       ],
       "imports": [
@@ -7077,12 +7874,24 @@
               {
                 "path": "packages/sdk/internal/client.mjs",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Original Checkpoint ID answers and SDK reference views"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "packages/sdk/internal/client.mjs",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+              },
+              {
+                "path": "packages/sdk/host-port.d.ts",
+                "anchor": "answerCheckpoint?(summary: CheckpointSummary"
               }
             ],
             "identity": [
@@ -7093,6 +7902,14 @@
               {
                 "path": "packages/sdk/internal/client.mjs",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "validCheckpointLookup(page, checkpointId)"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "value: observation.checkpoint.checkpoint_id"
               }
             ],
             "ownership": [
@@ -7103,6 +7920,14 @@
               {
                 "path": "packages/sdk/internal/client.mjs",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "// The same lease/Host handling sets own signing as well as reads."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "An uncertain signing operation retains its own original claim and cleanup."
               }
             ],
             "synchronization": [
@@ -7113,6 +7938,14 @@
               {
                 "path": "packages/sdk/internal/client.mjs",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "current(signal);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               }
             ],
             "failure": [
@@ -7123,6 +7956,14 @@
               {
                 "path": "packages/sdk/internal/client.mjs",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "fail('CheckpointSignerUnavailable')"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "ResolutionUnknown carries"
               }
             ],
             "cancellation": [
@@ -7133,6 +7974,14 @@
               {
                 "path": "packages/sdk/internal/client.mjs",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
               }
             ],
             "resources": [
@@ -7143,6 +7992,10 @@
               {
                 "path": "packages/sdk/internal/client.mjs",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "exact response-loss items overlap within the original Client/Host inventory."
               }
             ],
             "extension": [
@@ -7153,12 +8006,144 @@
               {
                 "path": "packages/sdk/internal/client.mjs",
                 "anchor": "// Assemble operation families after admitting the original connection profile."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Wire bytes, canonical preimages, signed"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Ordinary `wait()` may"
               }
             ],
             "verification": [
               {
                 "path": "packages/sdk/profile-observation.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "test('a lost resolution reply preserves exact signed bytes"
+              },
+              {
+                "path": "packages/sdk/checkpoint-reference-view.test.mjs",
+                "anchor": "test('invalid wire fields and malformed references"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('throwing original answer acquisition retains"
+              },
+              {
+                "path": "adapters/host-node/sdk-checkpoint-actions.integration.test.mjs",
+                "anchor": "test(`public ${decision}(id) binds the original Checkpoint"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "connectSelected/connectSelected"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Original Checkpoint ID answers and SDK reference views"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+              },
+              {
+                "path": "packages/sdk/host-port.d.ts",
+                "anchor": "answerCheckpoint?(summary: CheckpointSummary"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "validCheckpointLookup(page, checkpointId)"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "value: observation.checkpoint.checkpoint_id"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "// The same lease/Host handling sets own signing as well as reads."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "An uncertain signing operation retains its own original claim and cleanup."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "current(signal);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "fail('CheckpointSignerUnavailable')"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "ResolutionUnknown carries"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "exact response-loss items overlap within the original Client/Host inventory."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Wire bytes, canonical preimages, signed"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Ordinary `wait()` may"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "test('a lost resolution reply preserves exact signed bytes"
+              },
+              {
+                "path": "packages/sdk/checkpoint-reference-view.test.mjs",
+                "anchor": "test('invalid wire fields and malformed references"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('throwing original answer acquisition retains"
+              },
+              {
+                "path": "adapters/host-node/sdk-checkpoint-actions.integration.test.mjs",
+                "anchor": "test(`public ${decision}(id) binds the original Checkpoint"
               }
             ]
           }
@@ -8566,7 +9551,7 @@
     {
       "module": "packages/sdk/internal/run-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3e15bf2d22033a883f49bbfc1050c3a60ffaa68d3749403ae304ca5e5a8e35c0",
+      "sha256": "dd6b2fceaf1e4d34e904f01a94cac19dab1c89181ef1db8f1f59f02b33ff8ddb",
       "exports": [
         "copyRunObservationFailure",
         "createExecutionFactory",
@@ -8879,6 +9864,10 @@
               {
                 "path": "src/run_publication/run_wait.mbt",
                 "anchor": "pub fn run_wait_ready("
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Original Checkpoint ID answers and SDK reference views"
               }
             ],
             "inputsOutputs": [
@@ -8889,6 +9878,14 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"run_wait\": {"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "const answerById = async (checkpointId, decision, {signer, signal} = {}) =>"
+              },
+              {
+                "path": "packages/sdk/host-port.d.ts",
+                "anchor": "answerCheckpoint?(summary: CheckpointSummary"
               }
             ],
             "identity": [
@@ -8903,6 +9900,14 @@
               {
                 "path": "packages/sdk/internal/run-observation.mjs",
                 "anchor": "state.run_id !== latestState.runId"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "validCheckpointLookup(page, checkpointId)"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "value: observation.checkpoint.checkpoint_id"
               }
             ],
             "ownership": [
@@ -8917,6 +9922,14 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "// The same lease/Host handling sets own signing as well as reads."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "An uncertain signing operation retains its own original claim and cleanup."
               }
             ],
             "synchronization": [
@@ -8931,6 +9944,14 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const observeStep = async promise => {"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "current(signal);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "Reflect.apply(answer, originalPort, [summary, decision, signal])"
               }
             ],
             "failure": [
@@ -8945,6 +9966,14 @@
               {
                 "path": "src/run_publication/run_wait.mbt",
                 "anchor": "return Err(InvalidSince)"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "fail('CheckpointSignerUnavailable')"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "ResolutionUnknown carries"
               }
             ],
             "cancellation": [
@@ -8959,6 +9988,14 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
               }
             ],
             "resources": [
@@ -8977,6 +10014,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "exact response-loss items overlap within the original Client/Host inventory."
               }
             ],
             "extension": [
@@ -8991,6 +10032,14 @@
               {
                 "path": "scripts/generate-client-host-wire.mjs",
                 "anchor": "const wait = requestRules.run_wait;"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Wire bytes, canonical preimages, signed"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Ordinary `wait()` may"
               }
             ],
             "verification": [
@@ -9005,6 +10054,22 @@
               {
                 "path": "adapters/host-node/client-run-wait-since.test.mjs",
                 "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
+              },
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "test('a lost resolution reply preserves exact signed bytes"
+              },
+              {
+                "path": "packages/sdk/checkpoint-reference-view.test.mjs",
+                "anchor": "test('invalid wire fields and malformed references"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('throwing original answer acquisition retains"
+              },
+              {
+                "path": "adapters/host-node/sdk-checkpoint-actions.integration.test.mjs",
+                "anchor": "test(`public ${decision}(id) binds the original Checkpoint"
               }
             ]
           }
@@ -11535,6 +12600,269 @@
               {
                 "path": "packages/sdk/typed-results.test.mjs",
                 "anchor": "test("
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/sdk/internal/checkpoint-answer-contract.generated.mjs",
+      "sha256": "170e71af07cdbcb99ac43625ce42bf0c958f588ae4c22a02fc80c340b64a70a2",
+      "exports": [
+        "validAnswerEvidence",
+        "validAnswerResolution"
+      ],
+      "operations": [
+        {
+          "name": "finiteWireNumber",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameConstant",
+          "parameters": [
+            "value",
+            "expected"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameConstant/sameConstant",
+          "parameters": [
+            "item",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameConstant/sameConstant#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid",
+          "parameters": [
+            "value",
+            "schema"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#2",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#3",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#4",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#5",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#6",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#7",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#8",
+          "parameters": [
+            "key",
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#9",
+          "parameters": [
+            "key",
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "validAnswerEvidence/validAnswerEvidence",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "validAnswerResolution/validAnswerResolution",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "public-wire-codec",
+      "owner": "existing SDK Checkpoint action correspondence over registered Common artifact contracts",
+      "rationale": "Generated structural DATA admission, not a signing authority or second Checkpoint state machine",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "finiteWireNumber",
+            "sameConstant",
+            "sameConstant/sameConstant",
+            "sameConstant/sameConstant#2",
+            "valid",
+            "valid/valid",
+            "valid/valid#2",
+            "valid/valid#3",
+            "valid/valid#4",
+            "valid/valid#5",
+            "valid/valid#6",
+            "valid/valid#7",
+            "valid/valid#8",
+            "valid/valid#9",
+            "validAnswerEvidence/validAnswerEvidence",
+            "validAnswerResolution/validAnswerResolution"
+          ],
+          "exports": [
+            "validAnswerEvidence",
+            "validAnswerResolution"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "An original-answer callback remains responsible for key custody and current"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "const answerMatches = async (answer, summary, decision, signer) =>"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "const answerSchemas = {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "resolution.decision !== decision"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "resolution.run_definition_cid !== summary.subject.runDefinitionCid"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "contentCid(without(resolution, 'resolution_cid'))"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Self-addressed identities are checked without changing the signed"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "new ClientError('InvalidCheckpointAnswer', {signed: Object.freeze([answer])})"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "current(signal);"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "if (!await answerMatches(answer, summary, decision, selectedSigner))"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "throw new ClientError('InvalidCheckpointAnswer'"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "resolution; it neither signs again nor treats the bytes as a retry permission."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "exact response-loss items overlap within the original Client/Host inventory."
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "protocol.artifact_schemas.checkpoint_resolution"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Wire bytes, canonical preimages, signed"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "refuses an original-port answer for the opposite decision"
+              },
+              {
+                "path": "packages/sdk/checkpoint-actions.test.mjs",
+                "anchor": "valid signatures for another original Summary refuse"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.test.mjs",
+                "anchor": "SDK answer grammar projects existing Resolution and Evidence"
               }
             ]
           }

@@ -380,7 +380,11 @@ export interface RequestRecovery {
     options?: {signal?: AbortSignal}): Promise<Execution>;
 }
 
-export type RunState = WireRunState;
+/** Validated wire facts with a non-wire convenience alias on an actual
+ * Checkpoint reference. Other states do not fabricate a Checkpoint. */
+export type RunState = Omit<WireRunState, 'checkpoint'> & Readonly<{
+  checkpoint?: NonNullable<WireRunState['checkpoint']> & Readonly<{id: string}>;
+}>;
 export type OwnerObservations = import('@actql/client-wire').WireOwnerObservations;
 export type OwnerCursor = import('@actql/client-wire').WireOwnerCursor;
 export type RunNextAction = WireRunState['next_action'];
@@ -634,7 +638,7 @@ export interface Client {
       rows: readonly Readonly<Record<string,
         string | number | boolean | null>>[];
       limited: boolean}>>;
-  checkpoints(options?: {after?: string; limit?: number;
+  checkpoints(options?: {after?: string; limit?: number; checkpointId?: string;
     signal?: AbortSignal}): Promise<Readonly<{
       items: readonly CheckpointSummary[]; next?: string}>>;
   reviewCheckpoint(checkpoint: string | CheckpointSummary, options?: {
@@ -647,6 +651,15 @@ export interface Client {
       signer?: CheckpointSigner; signal?: AbortSignal}): Promise<Readonly<{
         results: readonly CheckpointAnswerResult[];
         signed: readonly SignedCheckpointAnswer[]}>>;
+  /** Exact authorized pending-ID lookup, then the existing signed resolution.
+   * Without an explicit application signer, requires the installed Local
+   * provider's original signing custody; never discovers or creates a key.
+   * On ResolutionUnknown, resend only its exact `signed` items through
+   * resolveCheckpoints; do not call approve/reject again to re-sign. */
+  approve(checkpointId: string, options?: {signer?: CheckpointSigner;
+    signal?: AbortSignal}): ReturnType<Client['resolveCheckpoints']>;
+  reject(checkpointId: string, options?: {signer?: CheckpointSigner;
+    signal?: AbortSignal}): ReturnType<Client['resolveCheckpoints']>;
   /** Seal this Client immediately, release its readers and await its Local
    * lease. Does not cancel Runs. A failed close may be retried. */
   close(): Promise<void>;
