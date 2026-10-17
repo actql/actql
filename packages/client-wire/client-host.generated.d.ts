@@ -1,7 +1,7 @@
 // Generated from the registered Client–Host machine contract.
 export declare const checkOutcomeProtocol: Readonly<{version: "actql-check-outcome/0.1"; reasonSchemaCid: string; outcomeSchemaCid: string; outcomes: readonly ("completed" | "failed" | "unavailable")[]}>;
 export declare const runStateProtocol: Readonly<{version: "actql-run-state/0.1"; statuses: readonly ("preparing" | "running" | "waiting_checkpoint" | "resuming" | "needs_reconciliation" | "succeeded" | "failed" | "cancelled")[]}>;
-export type ClientHostOperation = "connect" | "submit" | "submit-intent" | "restart-intent" | "lookup-submission" | "check" | "plan" | "inspect-run" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "lookup-cancellation" | "reconcile" | "read" | "result-describe" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request" | "resources" | "resource-inspect" | "resource-peek" | "owner-observations" | "run-plan";
+export type ClientHostOperation = "connect" | "submit" | "submit-intent" | "submit-named-intent" | "restart-intent" | "lookup-submission" | "check" | "plan" | "inspect-run" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "lookup-cancellation" | "reconcile" | "read" | "result-describe" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request" | "resources" | "resource-inspect" | "resource-peek" | "owner-observations" | "run-plan";
 export type WireValueContractShape = Readonly<{
   type: "decimal";
   nullable: boolean;
@@ -731,6 +731,241 @@ export type WireSubmissionAttemptShape = Readonly<{
 }>;
   intentCid: string;
   reason: "intent" | "restart_decision";
+}>;
+
+export type WireSubmissionNameShape = string;
+
+export type WireNamedSubmissionAttemptShape = Readonly<{
+  kind: "observed";
+  requestName: string;
+  intentCid: string;
+  attemptRef: Readonly<{
+  operation: "submit";
+  attemptId: string;
+}>;
+  outcome: Readonly<{
+  kind: "ready";
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  intentCid: string;
+  admission: Readonly<{
+  ref: Readonly<{
+  namespaceId: string;
+  authorityScopeCid: string;
+  runDefinitionCid: string;
+}>;
+  durability: "volatile" | "durable";
+  revision: number;
+}>;
+  unresolvedHistory?: Readonly<{
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  acknowledgement: "possible_prior_execution_and_effects";
+}>;
+}> | Readonly<{
+  kind: "held";
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  intentCid: string;
+  held: Readonly<{
+  kind: "held";
+  requestId: string;
+  prepareAttemptId: string;
+  state: "waiting_checkpoint" | "resuming" | "ended";
+  durability: "durable";
+  lookupExpiresAt: string;
+  checkpoint?: Readonly<{
+  checkpointId: string;
+  checkpointCid: string;
+  kind: "run_scope" | "read_access" | "data_egress" | "cost_scope" | "effect_set";
+  expiresAt: string;
+}>;
+  endReason?: string;
+  terminalErrorCode?: string;
+}>;
+  unresolvedHistory?: Readonly<{
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  acknowledgement: "possible_prior_execution_and_effects";
+}>;
+}> | Readonly<{
+  kind: "preparing";
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  intentCid: string;
+  unresolvedHistory?: Readonly<{
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  acknowledgement: "possible_prior_execution_and_effects";
+}>;
+}> | Readonly<{
+  kind: "not_accepted";
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  intentCid: string;
+  problem: Readonly<{
+  code: string;
+  classification: "invalid_input" | "requirements" | "implementation_limit" | "authorization" | "operation_failed";
+}>;
+  unresolvedHistory?: Readonly<{
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  acknowledgement: "possible_prior_execution_and_effects";
+}>;
+}> | Readonly<{
+  kind: "preparation_failed";
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  intentCid: string;
+  problem: Readonly<{
+  code: string;
+  classification: "invalid_input" | "requirements" | "implementation_limit" | "authorization" | "operation_failed";
+}>;
+  unresolvedHistory?: Readonly<{
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  acknowledgement: "possible_prior_execution_and_effects";
+}>;
+}> | Readonly<{
+  kind: "unresolvable";
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  problem: Readonly<{
+  code: string;
+}>;
+  unresolvedHistory?: Readonly<{
+  submissionRef: Readonly<{
+  epoch: Readonly<{
+  version: "actql-submission-epoch/0.1";
+  authorityScopeCid: string;
+  epochNonce: string;
+  notBefore: number;
+  expiresAt: number;
+  authenticator: string;
+}>;
+  nonce: string;
+}>;
+  acknowledgement: "possible_prior_execution_and_effects";
+}>;
+}>;
+}> | Readonly<{
+  kind: "refused";
+  requestName: string;
+  intentCid: string;
+  attemptRef: Readonly<{
+  operation: "submit";
+  attemptId: string;
+}>;
+  guarantee: "attempt_uncommitted_unconsumed";
+  reason: "authorization" | "admission_capacity" | "epoch_expired" | "epoch_not_yet_valid";
+}> | Readonly<{
+  kind: "conflict";
+  requestName: string;
+  intentCid: string;
+  attemptRef: Readonly<{
+  operation: "submit";
+  attemptId: string;
+}>;
+  reason: "intent";
 }>;
 
 export type WireRunRefShape = Readonly<{

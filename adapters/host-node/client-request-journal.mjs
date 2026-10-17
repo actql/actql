@@ -17,7 +17,7 @@ import {canonicalJson} from './local-account-config.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {BOUND_SOURCE_INVENTORY, validBoundSourceOccurrence} from './ordinary-source-binding.mjs';
 import {valuesExecutionContextCid} from './local-values-capacity.mjs';
-import {sameSubmissionRef, validSubmissionRef, validSubmissionOutcome, validStoredSubmissionOutcome} from '../../packages/client-wire/index.mjs';
+import {sameSubmissionRef, validSubmissionRef, validSubmissionName, validSubmissionOutcome, validStoredSubmissionOutcome} from '../../packages/client-wire/index.mjs';
 
 const cid = value => typeof value === 'string' &&
   /^sha256:[0-9a-f]{64}$/u.test(value);
@@ -1757,7 +1757,7 @@ export function openClientRequestJournal(directory, {
     resolveOrBindSubmittedName(name, intent, {namespaceId, actorId, authorityScopeCid,
       currentAuthorization, submissionRef}, control) {
       ensureOpen();
-      if (!text(name) || !name.isWellFormed() || !text(namespaceId) ||
+      if (!validSubmissionName(name) || !text(namespaceId) ||
           !namespaceId.isWellFormed() || !text(actorId) || !actorId.isWellFormed() ||
           !cid(authorityScopeCid)) fail('InvalidClientSubmissionName');
       if (currentAuthorization !== true) fail('ClientSubmissionEpochUnauthorized');
@@ -1771,7 +1771,7 @@ export function openClientRequestJournal(directory, {
               !timingSafeEqual(Buffer.from(existing.binding_authenticator, 'hex'),
                 Buffer.from(authenticateName(existing), 'hex'))) fail('ClientSubmissionNameCustodyLost');
           if (existing.authority_scope_cid !== authorityScopeCid ||
-              existing.intent_cid !== original.identity) fail('ClientSubmittedIntentConflict');
+              existing.intent_cid !== original.identity) rejectSubmission('ClientSubmittedIntentConflict', 'conflict', 'intent');
           const row = intentSelect.get(existing.submission_id);
           // Formal retirement leaves this permanent bounded fence. Missing
           // history is never promoted to an unused name or a fresh epoch.
@@ -1787,7 +1787,7 @@ export function openClientRequestJournal(directory, {
           return {inserted: false, ...retained};
         }
         if (issued >= maxRecords || issued === Number.MAX_SAFE_INTEGER) {
-          fail('ClientSubmissionNameCapacity');
+          rejectSubmission('ClientSubmissionNameCapacity', 'refused', 'admission_capacity');
         }
         if (!validSubmissionRef(submissionRef)) fail('InvalidClientSubmissionName');
         const verified = verifyEpochLocked(submissionRef.epoch, {authorityScopeCid,
@@ -1814,6 +1814,10 @@ export function openClientRequestJournal(directory, {
       });
       if (result.epochRejected !== undefined) rejectSubmissionEpoch(result.epochRejected);
       return Object.freeze(result);
+    },
+    resolveNamedSubmissionAttempt(name, intent, options, control) {
+      return submissionAttempt(options.submissionRef, intent, options, control,
+        () => journal.resolveOrBindSubmittedName(name, intent, options, control), 'recorded');
     },
     checkSubmittedIntent(submissionRef, intent, {authorityScopeCid,
       currentAuthorization, unresolvedHistory, actorId}, control) {
