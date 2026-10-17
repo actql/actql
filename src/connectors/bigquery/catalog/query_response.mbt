@@ -142,6 +142,14 @@ fn native_kind(kind : String) -> String {
 }
 
 ///|
+fn find_query_original(columns : Array[ColumnDescription], name : String) -> ColumnDescription? {
+  for column in columns {
+    if column.name == name { return Some(column) }
+  }
+  None
+}
+
+///|
 fn query_column(
   cursor : @decode.Cursor,
   original : ColumnDescription,
@@ -212,7 +220,7 @@ fn query_column(
         return Err(QuerySchemaMismatch(original.name))
       }
       seen.push(name)
-      guard original.children.find(child => child.name == name) is Some(selected) else {
+      guard find_query_original(original.children, name) is Some(selected) else {
         return Err(QuerySchemaMismatch(name))
       }
       match query_column(field, selected, budget, depth + 1, limits) {
@@ -481,7 +489,7 @@ pub fn project_query_page(
   }
   let columns : Array[QueryColumn] = []
   for index, name in projection.fields {
-    guard projection.original.columns.find(column => column.name == name) is Some(original) &&
+    guard find_query_original(projection.original.columns, name) is Some(original) &&
       original.contract is Some(_) else { return Err(QuerySchemaMismatch(name)) }
     match query_column(@decode.element_at(fields, index).unwrap(), original, metadata_budget, 1, limits.description) {
       Ok(value) => columns.push(value)
