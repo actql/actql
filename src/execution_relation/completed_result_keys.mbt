@@ -99,7 +99,7 @@ pub fn start_completed_result_key_validation(
   let (session, token) = @bounded.start(
     engine,
     state,
-    (state, quantum, reader) => {
+    (state, quantum, reader) -> @bounded.KernelStep[Int, CompletedResultKeyIssue] => {
       let mut used = 0
       while used < quantum {
         if @bounded.stop_requested(reader) is Some(reason) {

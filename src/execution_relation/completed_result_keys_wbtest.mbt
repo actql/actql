@@ -29,7 +29,7 @@ fn result_key_fixture(
 }
 
 ///|
-fn result_key_cleanup(value : CompletedResultKeyValidation) raise {
+fn result_key_cleanup(value : CompletedResultKeyValidation) -> Unit raise {
   let mut done = false
   for _ in 0..<10000 {
     if cleanup_completed_result_key_validation(value).unwrap() {
@@ -190,10 +190,10 @@ test "original Result cancellation retires retained key entries and never comple
   for _ in 0..<10000 {
     assert_true(
       advance_completed_result_key_validation(validation, 1).unwrap()
-      is @bounded.ContinueWith(..),
+      is @bounded.ContinueWith(_, ..),
     )
     if validation.state.cursor
-      .map(cursor => cursor.seen.size() > 0)
+      .map(cursor => cursor.seen.length() > 0)
       .unwrap_or(false) {
       held = true
       break
@@ -203,7 +203,7 @@ test "original Result cancellation retires retained key entries and never comple
   @bounded.request_cancel(engine) |> ignore
   assert_true(
     advance_completed_result_key_validation(validation, 1).unwrap()
-    is @bounded.StoppedWith(..),
+    is @bounded.StoppedWith(_, ..),
   )
   result_key_cleanup(validation)
   assert_false(
@@ -241,7 +241,7 @@ test "original Result retirement revokes partial and completed key validation" {
       for _ in 0..<10000 {
         match advance_completed_result_key_validation(validation, 1).unwrap() {
           @bounded.ContinueWith(_, ..) => ()
-          @bounded.Completed(..) => {
+          @bounded.Completed(_, ..) => {
             done = true
             break
           }
@@ -257,7 +257,7 @@ test "original Result retirement revokes partial and completed key validation" {
     } else {
       assert_true(
         advance_completed_result_key_validation(validation, 1).unwrap()
-        is @bounded.ContinueWith(..),
+        is @bounded.ContinueWith(_, ..),
       )
       live.val = false
       assert_true(

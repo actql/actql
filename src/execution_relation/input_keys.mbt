@@ -66,13 +66,9 @@ fn input_key_rows_count(rows : InputKeyRows) -> Int {
 }
 
 ///|
-fn input_key_rows_cell(
-  rows : InputKeyRows,
-  row : Int,
-  column : Int,
-) -> @admitted.Value? {
+fn input_key_rows_cell(rows : InputKeyRows, row : Int, column : Int) -> Value? {
   match rows {
-    CapturedKeyRows(value) => captured_cell(value, row, column)
+    CapturedKeyRows(value) => captured_cell(value, row, column).map(capture)
     ResultKeyRows(value) =>
       if row < 0 ||
         row >= IndexedRows::row_count(value) ||
@@ -189,7 +185,18 @@ fn input_key_selected_name(state : InputKeyCursor) -> @schema.FieldName {
 }
 
 ///|
-fn input_key_atom(
+fn input_key_atom(cell : Value, row : Int) -> Result[KeyAtom, InputKeyIssue] {
+  match cell {
+    Null => Err(NullKey(row))
+    Number(n) => Ok(KeyNumber(n))
+    Boolean(b) => Ok(KeyBoolean(b))
+    Text(s) => Ok(KeyText(s))
+    Captured(value) => input_key_admitted_atom(value, row)
+  }
+}
+
+///|
+fn input_key_admitted_atom(
   cell : @admitted.Value,
   row : Int,
 ) -> Result[KeyAtom, InputKeyIssue] {
