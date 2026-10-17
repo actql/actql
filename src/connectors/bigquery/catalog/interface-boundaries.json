@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "src/connectors/bigquery/catalog/description.mbt",
-      "sha256": "0cc3ed1532b28751abbf7c651dd4ee4450a91699bd35fa01905c06dd21ee84f1",
+      "sha256": "0f1829ea9dfe78efb281a87c2a68bb5d0fd6554af948144488d77be8f98ffdbd",
       "exports": [],
       "operations": [
         {
