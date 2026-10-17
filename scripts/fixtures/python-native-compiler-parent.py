@@ -42,6 +42,7 @@ page = os.sysconf('SC_PAGE_SIZE')
 fixture = Path(tempfile.mkdtemp(prefix='actql-compiler-parent-original-', dir='/private/tmp'))
 # No old Store/Run/DB or keys. Keep source/FD fixture and its identity as evidence.
 (fixture/'packages/python-local-runtime').mkdir(parents=True)
+(fixture/'.gitignore').write_text('*.backing\n')
 subprocess.run(['git','init','-q'],cwd=fixture,check=True)
 engine_body = b'independent compiler-parent fixture; no Engine or VM'
 holding = dict(scope='image_compiler_only',module_sha256='0'*64,
