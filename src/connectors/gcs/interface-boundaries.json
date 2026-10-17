@@ -2,6 +2,37 @@
   "qualification": "Explicit GCS semantics, typed bridge and physical transport reference supply; not installed capability, funded admission, genuine Effect/Store recovery or service acceptance",
   "declarations": [
     {
+      "module": "adapters/connectors/gcs/site/gcs-credential-site.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "ee9b09524542041c30a8d894933f5d00fe7a8647b13b6e892e954dfdf8fbfaca",
+      "role": "connector-semantics",
+      "owner": "Existing GCS installation scope policy; Checkpoint/current/credential signing remain in the original row Site Owner",
+      "exports": ["openGcsCredentialSite"],
+      "operations": [
+        {"name": "openGcsCredentialSite", "parameters": ["options"], "async": false},
+        {"name": "openGcsCredentialSite/openGcsCredentialSite", "parameters": ["binding", "resource", "operation"], "async": false}
+      ],
+      "imports": ["../../../host-node/installed-row-source.mjs"],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [{
+        "operations": ["<module>", "openGcsCredentialSite", "openGcsCredentialSite/openGcsCredentialSite"],
+        "exports": ["openGcsCredentialSite"],
+        "attributes": {
+          "responsibility": [{"path": "adapters/connectors/gcs/README.md", "anchor": "### Same-Site collection target read"}],
+          "inputsOutputs": [{"path": "adapters/connectors/gcs/site/gcs-credential-site.mjs", "anchor": "export function openGcsCredentialSite(options)"}],
+          "identity": [{"path": "adapters/connectors/gcs/host/installed-gcs-source.mjs", "anchor": "binding.scope_cid === scopeCid"}],
+          "ownership": [{"path": "adapters/host-node/installed-row-source.mjs", "anchor": "const approvals = new WeakMap()"}],
+          "ordering": [{"path": "adapters/host-node/installed-row-source.mjs", "anchor": "synchronous(approved.enter())"}],
+          "failure": [{"path": "adapters/connectors/gcs/test/gcs-effect-target-read.test.mjs", "anchor": "GCS target read rejects a matching approval for foreign"}],
+          "resources": [{"path": "adapters/connectors/gcs/README.md", "anchor": "The added predicate closure"}],
+          "authority": [{"path": "adapters/host-node/installed-row-source.mjs", "anchor": "admitCheckpointEffectTargetRead(decision, physicalBinding, operation)"}],
+          "extension": [{"path": "adapters/connectors/gcs/site/gcs-credential-site.mjs", "anchor": "resource === 'objects' && operation === 'gcs:file:read'"}],
+          "verification": [{"path": "adapters/connectors/gcs/test/gcs-effect-target-read.test.mjs", "anchor": "GCS same Site admits the original objects read"}]
+        }
+      }]
+    },
+    {
       "module": "src/connectors/gcs/catalog/object_metadata.mbt",
       "responsibilityFacet": "primary",
       "sha256": "033978bbea9c765ee515109fe52b7899d3c1e05f56bdeff359dc9aa01c9e4e14",

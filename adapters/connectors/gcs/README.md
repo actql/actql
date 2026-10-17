@@ -532,6 +532,33 @@ metadata byte clamp plus 256, not another response allowance or reservation.
 These are managed components in the existing read envelope; no new numerical
 grant or zero-cost/GC/physical-cleanup conclusion follows from this admission.
 
+### Same-Site collection target read
+
+The ordinary GCS loader opens its existing credential Site through
+`openGcsCredentialSite`. The published collection's preparation may admit an
+original Effect-target read only for `objects` and `gcs:file:read`, using the
+same exact project/bucket/prefix/scope/Catalog/Resource/field predicate as the
+installed Source. No name normalization, new target packet or write-to-read
+permission conversion is introduced. Source-only installations without an
+objects declaration continue to refuse this admission.
+
+The existing Site still authenticates the original Checkpoint decision,
+principal/configuration/context, connection, physical binding and current
+fence, then consumes its original one-shot entry before signing a read grant.
+A copied decision, foreign purpose or a closed Site cannot substitute for
+that custody. Neither this predicate nor a successful signature proves a
+Content byte loan, physical cleanup, Account permission or numerical funding.
+The generic Command target-read selection and the actual same-Store Content
+borrow remain separate incomplete connections; no installed STORE or service
+acceptance is claimed here.
+
+The added predicate closure and captured original installation callback stay
+with the existing Site/module lifetime. Its comparisons overlap the original
+physical binding and bounded canonical String; approved records, current/entry
+callbacks, grant/signature/journal work and pending cleanup retain their
+existing Owner inventory. They are not a new reservation, zero-cost component
+or physical retirement acknowledgement.
+
 ## Verification boundary
 
 The catalog white-box tests execute the portable semantics with independent
