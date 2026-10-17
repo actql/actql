@@ -22,7 +22,7 @@ _MISSING = object()
 
 
 def _submission_context(body, original=None):
-    context = {'submission_ref': freeze(snapshot(body['submissionRef'] if original is None else original)),
+    context = {'submission_ref': freeze(snapshot(thaw(body['submissionRef'] if original is None else original))),
                'attempt_ref': freeze(snapshot(body['attemptRef']))}
     if 'requestName' in body:
         context['request_id'] = body['requestName']

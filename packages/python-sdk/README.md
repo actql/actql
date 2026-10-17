@@ -75,8 +75,22 @@ Effect requires the general `start_source` surface. An older Host that cannot
 admit the restriction refuses it; the SDK never removes it or sends a separate
 check as a substitute.
 
-Use `request_id=` or `submission_ref=` to select the existing original identity
-(not both). Changing the query or restriction under that identity is a conflict.
+Use `request_id="nightly-report"` for a durable name in the authenticated Host
+scope. The existing Host journal atomically resolves or binds that name before
+preparation. The same name and exact intent select the same original Run after
+Client or Host restart; changing text, parameters or either restriction raises
+`RequestConflict`. A name is neither an epoch nonce nor authorization. The
+explicit `submission_ref=` API retains its original epoch identity and conflict
+rules; select only one of these options.
+
+Lost responses remain `SubmissionUnknown`, with `request_id`, `submission_ref`
+and `attempt_ref` retained on the error. The SDK never automatically repeats the
+request. Use the retained reference for explicit lookup/attach; an explicit
+later same-name call can only resolve the original journal binding. Missing,
+retired or uncertain history never becomes a fresh submission. The captured
+input retains the proposed reference, while `execution.submission` identifies
+the actual original selected by the Host.
+
 Omission on general `start`/`start_source` preserves their original behavior;
 their explicit `read_only=True` selects the same restriction. `False` and `None`
 are invalid choices. No restriction is inferred when attaching to a Run.
