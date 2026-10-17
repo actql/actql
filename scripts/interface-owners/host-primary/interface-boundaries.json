@@ -3706,7 +3706,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "e842a937bf3b333ebef98e6ca9e6dc8cd390c8267855bb98ad685b8bb768befd",
+      "sha256": "7a62d537847dc53f78783affd66c30e0025a90b5e2deec28d680a80247d859dd",
       "exports": [
         "connectEmbeddedLocal",
         "openInstalledRemoteHttpHost",
@@ -3823,6 +3823,11 @@
         },
         {
           "name": "openInstalledHost/admitDefinition/admitDefinition/accepted/accepted",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/admitDefinition/admitDefinition/accepted/accepted/originalInferRun/originalInferRun",
           "parameters": [],
           "async": false
         },
@@ -4570,6 +4575,16 @@
             "requestIdentity"
           ],
           "async": true
+        },
+        {
+          "name": "openInstalledHost/prepareSubmit/prepareSubmit",
+          "parameters": [
+            "original",
+            "definition",
+            "request",
+            "evidence"
+          ],
+          "async": false
         },
         {
           "name": "openInstalledHost/projectRunObservation/projectRunObservation",
@@ -5613,6 +5628,10 @@
               {
                 "path": "src/run_publication_host/client_project_profile.mbt",
                 "anchor": "pub fn select_client_project_profile("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
               }
             ],
             "inputsOutputs": [
@@ -5651,6 +5670,14 @@
               {
                 "path": "src/run_publication_host/client_project_profile.mbt",
                 "anchor": "pub fn client_project_profile_matches("
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "originalInputs(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {"
               }
             ],
             "identity": [
@@ -5693,6 +5720,14 @@
               {
                 "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
                 "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
               }
             ],
             "ownership": [
@@ -5735,6 +5770,14 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "projectProfile?.retire(projectRuntime);"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const owned = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
               }
             ],
             "synchronization": [
@@ -5777,6 +5820,14 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const {installation: suppliedInstallation, profile: requestedProfile,"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
               }
             ],
             "failure": [
@@ -5811,6 +5862,14 @@
               {
                 "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
                 "anchor": "test('actual profile rejects invalid choices and retains nominal retirement without physical ACK'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
               }
             ],
             "cancellation": [
@@ -5845,6 +5904,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "// Host, however, keeps this same view until its existing shutdown finishes."
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
               }
             ],
             "resources": [
@@ -5895,6 +5958,14 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "requestedProfile.length > 65536"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
               }
             ],
             "extension": [
@@ -5929,6 +6000,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "An unavailable"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
               }
             ],
             "verification": [
@@ -5991,6 +6070,18 @@
               {
                 "path": "packages/node/project-profile.typecheck.mts",
                 "anchor": "const selected={mode:"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -6237,6 +6328,111 @@
               {
                 "path": "adapters/host-node/project-model-task-host.actual.test.mjs",
                 "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openInstalledHost/admitDefinition/admitDefinition/accepted/accepted/originalInferRun/originalInferRun",
+            "openInstalledHost/prepareSubmit/prepareSubmit"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "originalInputs(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const owned = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -6767,7 +6963,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "3c8489ba987d207badea97e5c5b93b63730cba8816c0e870ce139e65d51a4f0e",
+      "sha256": "1012f8e39bfc04bd0a9db034ca9e2852f541ea72c28d7ebabe87e7f884183640",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -6781,6 +6977,7 @@
         "inferTaskRunAdmission",
         "localContractLimits",
         "localOutputLimits",
+        "restoreInferTaskRunAdmission",
         "selectInstalledSerializationGraph",
         "serializationTaskPublicationPlan",
         "serializationTaskRunAdmission",
@@ -7106,6 +7303,15 @@
           "async": false
         },
         {
+          "name": "restoreInferTaskRunAdmission",
+          "parameters": [
+            "control",
+            "preparedProgram",
+            "restored"
+          ],
+          "async": false
+        },
+        {
           "name": "retainOriginalPlan",
           "parameters": [
             "plan",
@@ -7293,6 +7499,10 @@
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
                 "anchor": "common Run and publication"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
               }
             ],
             "inputsOutputs": [
@@ -7303,36 +7513,80 @@
               {
                 "path": "src/run_publication_host/client_effect_original_materials.mbt",
                 "anchor": "pub fn"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "originalInputs(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
                 "anchor": "Physical Local policy CIDs are stable identities"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "Failed or interrupted writes retain their cleanup"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const owned = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/client-dispatch-owner.mjs",
                 "anchor": "physical owner calls this after confirmed stop"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/client-dispatch-owner.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/client-dispatch-owner.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
               }
             ],
             "resources": [
@@ -7343,12 +7597,28 @@
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
                 "anchor": "localContractLimits"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/local-values-plan-policy.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
               }
             ],
             "verification": [
@@ -7359,11 +7629,137 @@
               {
                 "path": "adapters/host-node/local-values-plan-policy.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "restoreInferTaskRunAdmission"
+          ],
+          "exports": [
+            "restoreInferTaskRunAdmission"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "originalInputs(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const owned = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./local-values-capacity.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/local-node/retained-output.mjs",

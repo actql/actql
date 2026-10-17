@@ -139,6 +139,8 @@ pub fn record_update_request_observation(RecordUpdateRequest, RecordMutationLimi
 
 pub fn record_update_request_values(RecordUpdateRequest) -> Array[(OriginalRecordTarget, RecordWriteValues)]
 
+pub fn record_write_field_contract(FormFieldCatalog, String) -> @value_contract.Contract?
+
 pub fn record_write_values_body(RecordWriteValues) -> String
 
 pub fn record_write_values_fields(RecordWriteValues) -> Array[String]

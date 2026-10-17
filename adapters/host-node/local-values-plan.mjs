@@ -486,6 +486,20 @@ export function inferTaskRunAdmission(options) {
   return checkedTaskRunAdmission(options, 'infer');
 }
 
+// Reuse the admitted original Run and its compiler-owned graph. This is not
+// fresh authorization, a new expiry, a replacement execution or a new Ledger.
+export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {
+  control.checkRestoredClientInferRunOwner(restored, preparedProgram);
+  if (restored.compiled.kind !== 'infer') {
+    throw new TypeError('ForeignInstalledInferOriginalRun');
+  }
+  const {compiled, runDefinition} = restored;
+  const original = control.checkedClientCompiledInferOriginal(compiled, preparedProgram, runDefinition);
+  if (original.graph !== restored.graph) throw new TypeError('ForeignInstalledInferOriginalGraph');
+  return Object.freeze({...compiled, compiled, runDefinition,
+    createdAt: JSON.parse(runDefinition.wire).created_at, inferGraph: original.graph});
+}
+
 // Select the original checked Content occurrence, not a second parsed Program
 // or a pure Values fallback. Physical generation must still supply its actual
 // input/generation observations before publication can issue an Invocation.
