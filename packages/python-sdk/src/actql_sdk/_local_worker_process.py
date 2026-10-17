@@ -402,7 +402,10 @@ class OriginalWorkerProcess:
             self._launchable()
             if self._spawn_attempted:
                 raise RuntimeError('Original worker spawn was already attempted')
-            self._prepare_original_descriptors()
+            try:
+                self._prepare_original_descriptors()
+            except BaseException as failure:
+                raise LocalWorkerProcessPending(self) from failure
 
     def _prepare_original_descriptors(self) -> None:
         self._launchable()
@@ -412,16 +415,13 @@ class OriginalWorkerProcess:
         self._launchable()
         self._require_native_current()
         self._descriptor_prepare_attempted = True
-        try:
-            self._verify_executable()
-            self._duplicate_original_domain()
-            self._stdin, self._stdout, self._stderr = self._pipe(), self._pipe(), self._pipe()
-            self._funding.require_launch()
-            self._launchable()
-            self._require_native_current()
-            self._descriptors_prepared = True
-        except BaseException as failure:
-            raise LocalWorkerProcessPending(self) from failure
+        self._verify_executable()
+        self._duplicate_original_domain()
+        self._stdin, self._stdout, self._stderr = self._pipe(), self._pipe(), self._pipe()
+        self._funding.require_launch()
+        self._launchable()
+        self._require_native_current()
+        self._descriptors_prepared = True
 
     def spawn(self) -> None:
         with self._lock:

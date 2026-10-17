@@ -130,7 +130,10 @@ class WorkerProcessTests(unittest.TestCase):
             self.process.prepare_original_descriptors()
         self.assertIs(caught.exception.cleanup_process, self.process)
         originals = tuple(self.process._descriptors)
-        self.assertEqual(len(originals), 2)
+        # The first pair retains both closed low FDs and both live lifted
+        # originals. The failed second os.pipe produced no descriptors.
+        self.assertEqual([fd.value for fd in originals], [3, 4, 11, 12])
+        self.assertEqual([fd.closed for fd in originals], [True, True, False, False])
         with self.assertRaises(RuntimeError): self.process.prepare_original_descriptors()
         with self.assertRaises(LocalWorkerProcessPending): self.process.spawn()
         self.assertEqual(self.os_pipe.call_count, 2)
