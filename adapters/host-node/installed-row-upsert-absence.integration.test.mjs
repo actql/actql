@@ -220,6 +220,11 @@ test('mixed original presence binds only actual version rows in sealed canonical
   const stage = f.host.outcomes[0].stage;
   const member = JSON.parse(f.host.control.effectComputationPreviewWire(stage.preview)).effects[0];
   assert.equal(member.changes.length, 3);
+  assert.deepEqual(member.changes.map(row => row.target_row_identity), ['c-key', 'b-key', 'a-key']);
+  const byCid = new Map(member.changes.map(row => [row.row_preview_cid, row]));
+  assert.deepEqual(member.row_order.map(row => byCid.get(row).target_row_identity), ['a-key', 'b-key', 'c-key']);
+  assert.deepEqual(stage.apply.members[0].claims.map(row => row.canonicalRequestCid),
+    [...rows].reverse().map(value => cid({target: value.id, value})));
   assert.deepEqual(member.changes.find(row => row.target_row_identity === 'b-key').before, {state: 'absent'});
   const present = ['a-key', 'c-key'].map(key => member.changes.find(row => row.target_row_identity === key));
   const current = await stage.apply.refreshPreflight({preflight: stage.apply.preflight});

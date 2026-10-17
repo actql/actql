@@ -357,10 +357,10 @@ source qualifications.
   a presence change refuses before dispatch rather than switching the sealed
   request branch. Version observations stay paired by original row Preview CID
   in its sealed canonical order; existing Common checks reject changed versions.
-  Before capability/Preview identities are derived, the existing Common Owner
-  returns the canonical target inventory for guarded rows. The adapter moves
-  each original request together with its observation using those source indexes;
-  it does not sort display names, partial CIDs or reconstructed locators.
+  The existing Common Owner authors canonical target dispatch order separately
+  from changes in original source/Plan enumeration. The adapter projects that
+  sealed row-CID permutation to the same original requests, observations, keys
+  and durable claims; it does not sort display names, partial CIDs or locators.
 - Failure: absent observations with before/version fields, unknown presence,
   foreign target identities and absence for UPDATE/DELETE refuse capture.
   Provider conditional creation must enforce the same original unique key and

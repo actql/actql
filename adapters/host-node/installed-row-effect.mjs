@@ -916,7 +916,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   // Current use and physical dispatch over one set of members. `entries`
   // and `previewRows` are each member's rows in the approved Preview's order.
   const physicalRoute = ({members, entries, previewRows, runInvocationCid,
-    dispatches, subjectCid, applyPreview, ledger, targetReads, assertCurrent}) => {
+    dispatches, subjectCid, applyPreview, ledger, targetReads, assertCurrent,
+    dispatchIndexes}) => {
     // Once the durable claim exists, selection drift does not establish an
     // unsent outcome. Preserve the claim and any retained response for recovery.
     const assertClaimedCurrent = () => {
@@ -1005,7 +1006,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       return async ({memberIndex, rowIndex, claim}) => {
         assertCurrent?.();
         const member = members[memberIndex];
-        const entry = entries[memberIndex]?.[rowIndex];
+        const sourceIndex = dispatchIndexes[memberIndex]?.[rowIndex];
+        const entry = entries[memberIndex]?.[sourceIndex];
         const expected = claims[memberIndex]?.claims[rowIndex];
         if (member === undefined || entry === undefined || !claim ||
             !expected || ['scope', 'locator', 'key', 'basis',
@@ -1019,7 +1021,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         requireApproval(member, commits.get(scopeKey(member)));
         const ownedClaim = admitRow({applyPreview, memberIndex, rowIndex,
           claim, member, entry,
-          previewRow: previewRows[memberIndex][rowIndex]});
+          previewRow: previewRows[memberIndex][sourceIndex]});
         await owned.recheckRequests?.({member, entries: [entry],
           current: now[memberIndex]});
         assertCurrent?.();
@@ -1270,10 +1272,24 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       keys: runtimeField(authored, 1)});
   }
 
-  // The Ledger claims of every row of the admitted Preview.
+  // Project original change positions from the Common-sealed dispatch order.
+  // The Plan still verifies changes against the original source cursor; neither
+  // source positions nor request/observation objects are rewritten to sort it.
+  const orderedSourceIndexes = member => {
+    const positions = new Map(member.changes.map((row, index) => [row.row_preview_cid, index]));
+    if (positions.size !== member.changes.length || member.row_order.length !== positions.size ||
+        new Set(member.row_order).size !== positions.size) fail('InstalledRowEffectPreviewOrderMismatch');
+    return Object.freeze(member.row_order.map(row => {
+      if (!positions.has(row)) fail('InstalledRowEffectPreviewOrderMismatch');
+      return positions.get(row);
+    }));
+  };
+
+  // The Ledger claims of every row in the admitted dispatch order.
   const claimsOf = ({body, keys, entries, requestScope, unit, dispatches,
     unitCids, members, retentionId}) => body.effects.map((member, memberIndex) => ({
-    claims: member.changes.map((change, rowIndex) => {
+    claims: orderedSourceIndexes(member).map(rowIndex => {
+      const change = member.changes[rowIndex];
       const key = keys[memberIndex][rowIndex];
       const locator = effect.logicalItemLocator(requestScope,
         unit.programId, unit.stageId, member.effect_id,
@@ -1459,19 +1475,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         current: description, read: reads[index], signal, assertCurrent});
       assertCurrent?.();
       observations.push(observed);
-      // Canonical dispatch order comes from the Common target inventory.
-      // Keep every original request and its original observation together;
-      // observation/grant ordinals are not used as replacement identities.
-      const order = checked(moon.clientProgramEffectTargetRowInventory(
-        entries.map(entry => canonicalValueJson(entry.target)),
-        limits.maxRows, limits.preview.maxWireBytes, limits.preview.maxNodes,
-        limits.preview.maxDepth));
-      if (order.length !== entries.length || new Set(order).size !== entries.length ||
-          order.some(row => !Number.isSafeInteger(row) || row < 0 || row >= entries.length)) {
-        fail('InvalidInstalledRowEffectInventory');
-      }
-      rowsOf.push(Object.freeze(order.map(row => Object.freeze({
-        entry: entries[row], state: observed[row].state, versionCid: observed[row].versionCid,
+      rowsOf.push(Object.freeze(entries.map((entry, row) => Object.freeze({
+        entry, state: observed[row].state, versionCid: observed[row].versionCid,
         before: observed[row].before}))));
     }
     const entries = Object.freeze(rowsOf.map(rows =>
@@ -1585,6 +1590,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         retentionId: plan.effectInputRetention.identity});
       const route = physicalRoute({members, entries,
         previewRows: body.effects.map(member => member.changes),
+        dispatchIndexes: body.effects.map(orderedSourceIndexes),
         runInvocationCid, dispatches,
         subjectCid: moon.clientProgramEffectApplySubjectCid(previewInputs),
         applyPreview, ledger, targetReads, assertCurrent});
@@ -1731,7 +1737,11 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const entries = members.map((member, index) => {
       const {owned} = ownerOf(member);
       const claims = recorded.members[index]?.claims ?? [];
-      const changes = body.effects[index].changes;
+      const effectMember = body.effects[index];
+      const changes = effectMember.changes;
+      const sourceIndexes = orderedSourceIndexes(effectMember);
+      const claimBySource = new Map(sourceIndexes.map((sourceIndex, dispatchIndex) =>
+        [sourceIndex, claims[dispatchIndex]]));
       if (claims.length !== changes.length) {
         fail('InstalledEffectContinuationMismatch');
       }
@@ -1748,7 +1758,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         fail('InstalledEffectContinuationMismatch');
       }
       rows.forEach((entry, row) => {
-        if (entry.requestCid !== claims[row].canonicalRequestCid ||
+        if (entry.requestCid !== claimBySource.get(row)?.canonicalRequestCid ||
             !sameEffectValue(member.kind, entry.value, approvedValue(member.kind, changes[row])) ||
             (targeted(member.kind) && !sameValue(entry.target,
               changes[row].target_row_identity))) {
@@ -1875,7 +1885,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         }
       });
       const previewRows = body.effects.map(member => member.changes);
-      const route = physicalRoute({members, entries, previewRows,
+      const dispatchIndexes = body.effects.map(orderedSourceIndexes);
+      const route = physicalRoute({members, entries, previewRows, dispatchIndexes,
         runInvocationCid, dispatches,
         subjectCid: control.effectComputationPreviewSemanticCid(preview),
         applyPreview, ledger, targetReads, assertCurrent});
@@ -1886,10 +1897,11 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           for (const [rowIndex, claim] of member.claims.entries()) {
             route.assertClaimedCurrent();
             if (ledger.readClaimedResponse(claim) === undefined) continue;
-            const entry = entries[memberIndex][rowIndex];
+            const sourceIndex = dispatchIndexes[memberIndex][rowIndex];
+            const entry = entries[memberIndex][sourceIndex];
             const ownedClaim = admitRow({applyPreview: ledgerPreview,
               memberIndex, rowIndex, claim, member: members[memberIndex],
-              entry, previewRow: previewRows[memberIndex][rowIndex]});
+              entry, previewRow: previewRows[memberIndex][sourceIndex]});
             const recovery = await recoverProjectedEffectResponse({ledger,
               claims: ownedClaim, commonMoon: moon,
               expectedRequestCid: entry.requestCid,

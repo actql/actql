@@ -2,7 +2,7 @@
 /// Canonical target identity order is shared Effect meaning. Return only
 /// original source indexes so callers retain each request and observation
 /// owner together; this inventory is neither a read nor write permission.
-pub fn derive_effect_target_row_inventory(
+fn derive_effect_target_row_inventory(
   target_wires : Array[String],
   max_rows : Int,
   max_total_bytes : Int,

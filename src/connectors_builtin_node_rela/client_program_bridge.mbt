@@ -5641,21 +5641,6 @@ pub fn client_program_effect_create_row_inventory(
 }
 
 ///|
-/// Return the common canonical target order without replacing request owners.
-#export_name("clientProgramEffectTargetRowInventory")
-pub fn client_program_effect_target_row_inventory(
-  target_wires : Array[String],
-  max_rows : Int,
-  max_total_bytes : Int,
-  max_nodes : Int,
-  max_depth : Int,
-) -> Result[Array[Int], @publication.EffectPreviewIdentityIssue] {
-  @publication.derive_effect_target_row_inventory(
-    target_wires, max_rows, max_total_bytes, max_nodes, max_depth,
-  )
-}
-
-///|
 /// Sealed Effect Set Preview identity of the live captured Preview: the
 /// decision subject the Host binds at the Effect commit boundary.
 #export_name("clientProgramEffectApplySubjectCid")
