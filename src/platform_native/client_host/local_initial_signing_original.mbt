@@ -286,6 +286,7 @@ pub fn NativeLocalHostConnection::restore_initial_signing_original(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  let primary : Ref[NativeLocalAdoptionIssue?] = Ref(None)
   let original = self.journal.transaction(() => {
     try {
       local_initial_signing_value(self.check_binding())
@@ -321,11 +322,22 @@ pub fn NativeLocalHostConnection::restore_initial_signing_original(
         issuer: fields.issuer,
       })
     } catch {
-      LocalInstallationAdoptionStop(_) => Err(CustodyLost)
+      LocalInstallationAdoptionStop(issue) => {
+        primary.val = Some(issue)
+        Err(CustodyLost)
+      }
     }
   })
   match original {
-    Err(issue) => Err(Journal(issue))
+    Err(issue) =>
+      match primary.val {
+        None => Err(Journal(issue))
+        Some(original) =>
+          match issue {
+            CustodyLost => Err(original)
+            _ => Err(InstallationReadTransactionFailure(original, issue))
+          }
+      }
     Ok(value) => value.require_current().map(_ => value)
   }
 }

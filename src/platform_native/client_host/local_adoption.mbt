@@ -52,6 +52,10 @@ pub(all) enum NativeLocalAdoptionIssue {
   TransactionUnknown
   DatabasePending(@sqlite.Database, NativeLocalAdoptionIssue)
   Inspection(NativeClientStateInspectionIssue)
+  InstallationReadTransactionFailure(
+    NativeLocalAdoptionIssue,
+    NativeClientRunJournalIssue
+  )
 }
 
 ///|

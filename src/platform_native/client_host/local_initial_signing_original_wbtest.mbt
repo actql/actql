@@ -378,7 +378,7 @@ test "initial Signing original rejects identical replacement file and foreign ep
   writer.append(private_key).unwrap()
   writer.seal("local-signing-key.pem").unwrap() |> ignore
   assert_true(original.require_current() is Err(_))
-  assert_true(host.restore_initial_signing_original() is Err(_))
+  assert_true(host.restore_initial_signing_original() is Err(Filesystem(_)))
   assert_eq(
     host.database.read("client_local_installation_custody", "host").unwrap().body,
     row.body,
