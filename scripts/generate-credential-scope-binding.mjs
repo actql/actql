@@ -58,14 +58,22 @@ export function checkCredentialScopeBinding(root = repository, source = readFile
 function preparationOwnerFields(source, name, opaque = false) {
     const match = new RegExp(`^pub\\(all\\) struct ${name} \\{\\n([^}]+)\\n\\}`, 'mu').exec(source);
     if (match === null) throw new Error('InstallationPreparationOwnerDeclarationMissing');
-    const names = match[1].trim().split('\n').map(line => {
+    const fields = match[1].trim().split('\n').map(line => {
       const field = /^\s*([a-z][a-z0-9_]*)\s*:\s*(String|Int|Int64|InstallationPreparationSubject)\s*$/u.exec(line);
       if (field === null || (field[2] === 'InstallationPreparationSubject' &&
-          (!opaque || field[1] !== 'subject'))) throw new Error('InstallationPreparationOwnerFieldUnsupported');
-      return field[2] === 'InstallationPreparationSubject' ? null : {name: field[1], type: field[2], key: camel(field[1])};
-    }).filter(name => name !== null);
-    if (new Set(names.map(field => field.name)).size !== names.length) throw new Error('InstallationPreparationOwnerFieldMismatch');
-    return names;
+          (!opaque || field[1] !== 'subject')) ||
+          (opaque && field[1] === 'subject' && field[2] !== 'InstallationPreparationSubject')) {
+        throw new Error('InstallationPreparationOwnerFieldUnsupported');
+      }
+      return {name: field[1], type: field[2], key: camel(field[1])};
+    });
+    // Validate nominal custody before omitting it from the primitive vector.
+    // An unchanged generated field list cannot prove a required opaque member.
+    if (new Set(fields.map(field => field.name)).size !== fields.length ||
+        (opaque && fields.filter(field => field.type === 'InstallationPreparationSubject').length !== 1)) {
+      throw new Error('InstallationPreparationOwnerFieldMismatch');
+    }
+    return fields.filter(field => field.type !== 'InstallationPreparationSubject');
 }
 
 export function installationPreparationFields(subjectSource, grantSource) {
