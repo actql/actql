@@ -225,7 +225,7 @@ test "foreign stop cannot retire the original region and stopped startup uses or
     ProcessRegionReady(record) => record
     _ => fail("fresh original process capture failed")
   }
-  foreign.spawn_with_channel("/bin/true", []).unwrap()
+  foreign.spawn_with_channel("/usr/bin/true", []).unwrap()
   let foreign_stop = process_fixture_stop(foreign)
   assert_true(
     value.host.retire_stopped_process_region(
@@ -242,7 +242,7 @@ test "foreign stop cannot retire the original region and stopped startup uses or
   assert_true(foreign_stop.close())
   // This original child stops before acquiring its allocator borrow. The
   // retained prepared domain must still close through its ordinary rules.
-  holder.spawn_with_channel("/bin/true", []).unwrap()
+  holder.spawn_with_channel("/usr/bin/true", []).unwrap()
   let stop = process_fixture_stop(holder)
   assert_true(
     value.host.abandon_prepared_process_region(value.original, record)
