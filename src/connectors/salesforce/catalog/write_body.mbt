@@ -104,6 +104,69 @@ fn emit_write_cell(
       }
       emit_each(writers, writer => @encode.string_value(writer, value))
     }
+    "multipicklist" => {
+      if observed_source is Some(_) {
+        guard @decode.text(cursor) is Ok(text) else {
+          return Err(InvalidValue(field.name))
+        }
+        match emit_each([output], writer => @encode.begin_array(writer)) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+        for part in text.split(";") {
+          let value = part.to_owned()
+          if !multipicklist_item_valid(value) {
+            return Err(InvalidValue(field.name))
+          }
+          match
+            emit_each([output], writer => @encode.string_value(writer, value)) {
+            Ok(_) => ()
+            Err(issue) => return Err(issue)
+          }
+        }
+        return emit_each([output], writer => @encode.end_array(writer))
+      }
+      guard @decode.array_length(cursor) is Some(count) else {
+        return Err(InvalidValue(field.name))
+      }
+      let text = StringBuilder()
+      for index in 0..<count {
+        guard @decode.element_at(cursor, index) is Some(item) &&
+          @decode.text(item) is Ok(value) &&
+          multipicklist_item_valid(value) else {
+          return Err(InvalidValue(field.name))
+        }
+        if index > 0 {
+          text.write_char(';')
+        }
+        text.write_string(value)
+      }
+      match
+        emit_each([output], writer => {
+          @encode.string_value(writer, text.to_string())
+        }) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      match value_output {
+        None => Ok(())
+        Some(value) => {
+          match emit_each([value], writer => @encode.begin_array(writer)) {
+            Ok(_) => ()
+            Err(issue) => return Err(issue)
+          }
+          for index in 0..<count {
+            let item = @decode.text(@decode.element_at(cursor, index).unwrap()).unwrap()
+            match
+              emit_each([value], writer => @encode.string_value(writer, item)) {
+              Ok(_) => ()
+              Err(issue) => return Err(issue)
+            }
+          }
+          emit_each([value], writer => @encode.end_array(writer))
+        }
+      }
+    }
     "boolean" => {
       guard @decode.boolean(cursor) is Ok(value) else {
         return Err(InvalidValue(field.name))

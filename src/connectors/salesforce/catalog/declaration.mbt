@@ -281,6 +281,7 @@ fn read_value_type(native_type : String) -> String? {
     | "url"
     | "picklist"
     | "combobox" => Some("string")
+    "multipicklist" => Some("array")
     "boolean" => Some("boolean")
     "int" => Some("number")
     "date" => Some("date")
@@ -307,6 +308,21 @@ fn write_value_type(native_type : String) -> String? {
 ///|
 fn typed_contract(field : FieldMetadata, kind : String?) -> Json? {
   guard field.nullability_confirmed && kind is Some(kind) else { return None }
+  if kind == "array" {
+    return Some(
+      object([
+        (
+          "items",
+          object([
+            ("nullable", Json::boolean(false)),
+            ("type", "string".to_json()),
+          ]),
+        ),
+        ("nullable", Json::boolean(field.nullable)),
+        ("type", kind.to_json()),
+      ]),
+    )
+  }
   if kind == "decimal" {
     guard described_decimal(field) is Some((precision, scale)) else {
       return None

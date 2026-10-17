@@ -46,6 +46,7 @@ fn write_field_type_supported(native_type : String) -> Bool {
     | "url"
     | "picklist"
     | "combobox"
+    | "multipicklist"
     | "boolean"
     | "int"
     | "double"
