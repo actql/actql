@@ -44,23 +44,34 @@ def _row_validator(schema):
     return validate
 
 
+def _capture_rows(profile, *, schema=None, max_wire_bytes=None, max_row_wire_bytes=None,
+                  max_row_retained_value_bytes=None):
+    """Capture the existing row contract before a lazy caller performs I/O."""
+    limits = profile['limits']
+    return ({'wire': tighter(max_wire_bytes, limits['maxReadWireBytes']),
+             'row_wire': tighter(max_row_wire_bytes, limits['maxRowWireBytes']),
+             'row_retained': tighter(max_row_retained_value_bytes, limits['maxRowRetainedValueBytes'])},
+            _row_validator(schema))
+
+
 class AsyncResult:
     def __init__(self, run, name):
         self._run, self._name = run, name
 
     def rows(self, *, schema=None, max_wire_bytes=None, max_row_wire_bytes=None, max_row_retained_value_bytes=None):
-        limits = self._run._client.profile['limits']
-        return AsyncReader(self, {
-            'wire': tighter(max_wire_bytes, limits['maxReadWireBytes']),
-            'row_wire': tighter(max_row_wire_bytes, limits['maxRowWireBytes']),
-            'row_retained': tighter(max_row_retained_value_bytes, limits['maxRowRetainedValueBytes'])}, _row_validator(schema))
+        return AsyncReader(self, *_capture_rows(self._run._client.profile, schema=schema,
+            max_wire_bytes=max_wire_bytes, max_row_wire_bytes=max_row_wire_bytes,
+            max_row_retained_value_bytes=max_row_retained_value_bytes))
 
     async def all(self, *, max_rows=None, max_retained_value_bytes=None, **read_options):
         limits = self._run._client.profile['limits']
         rows = tighter(max_rows, limits['maxRows'])
         size = tighter(max_retained_value_bytes, limits['maxRetainedValueBytes'])
+        return await self._all(rows, size, _capture_rows(self._run._client.profile, **read_options))
+
+    async def _all(self, rows, size, captured):
         result, retained = [], 0
-        async with self.rows(**read_options) as reader:
+        async with AsyncReader(self, *captured) as reader:
             async for row in reader:
                 retained += reader._last_retained_bytes
                 if len(result) >= rows or retained > size:
