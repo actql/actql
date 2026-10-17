@@ -30,6 +30,7 @@ pub struct NotionPropertyWrite {
   priv source : NotionDataSourceCatalog
   priv property : NotionPropertyMetadata
   priv value : @admitted.CheckedValue
+  priv range_end : @admitted.CheckedValue?
   priv document : @encode.EncodedDocument
 }
 
@@ -357,7 +358,110 @@ pub fn prepare_notion_property_write(
       return Err(BudgetExceeded)
     }
   }
-  Ok({ source, property, value, document, })
+  Ok({ source, property, value, range_end: None, document, })
+}
+
+///|
+/// The original Mapping supplies both checked projections of one date
+/// property. Neither a Text value nor a copied start/end can stand in for
+/// those originals. This encoding does not establish their captured-row,
+/// permission, target/current, approval or physical Effect correspondence.
+pub fn prepare_notion_date_range_property_write(
+  source : NotionDataSourceCatalog,
+  property_index : Int,
+  start : @admitted.CheckedValue,
+  end : @admitted.CheckedValue,
+  limits : NotionPropertyWriteLimits,
+) -> Result[NotionPropertyWrite, NotionPropertyWriteIssue] {
+  if !notion_write_limits_valid(limits) {
+    return Err(InvalidLimits)
+  }
+  guard notion_data_source_property_at(source, property_index) is Some(property) else {
+    return Err(InvalidSelection)
+  }
+  if property.kind != "date" {
+    return Err(UnsupportedProperty(property.id))
+  }
+  let same_shape = (
+      start.contract.shape is @contract.Date &&
+      end.contract.shape is @contract.Date
+    ) ||
+    (
+      start.contract.shape is @contract.Timestamp &&
+      end.contract.shape is @contract.Timestamp
+    )
+  if !same_shape {
+    return Err(InvalidValue(property.id))
+  }
+  let start_text = match start.value {
+    @admitted.Date(text) | @admitted.Timestamp(text) => text
+    _ => return Err(InvalidValue(property.id))
+  }
+  let end_text = match end.value {
+    @admitted.Date(text) | @admitted.Timestamp(text) => Some(text)
+    @admitted.Null => None
+    _ => return Err(InvalidValue(property.id))
+  }
+  let mut remaining = limits.max_work
+  if property.id.length() >= remaining {
+    return Err(BudgetExceeded)
+  }
+  remaining -= 1 + property.id.length()
+  // Charge both actual original scalars without concatenating, parsing or
+  // normalizing them. An explicit typed null end remains distinct from an
+  // absent end on the legacy scalar constructor.
+  if start_text.length() > limits.max_text_units ||
+    start_text.length() > remaining {
+    return Err(BudgetExceeded)
+  }
+  remaining -= start_text.length()
+  if end_text is Some(text) &&
+    (text.length() > limits.max_text_units || text.length() > remaining) {
+    return Err(BudgetExceeded)
+  }
+  let writer = @encode.writer(
+    limits.max_bytes,
+    limits.max_nodes,
+    limits.max_depth,
+  ) catch {
+    _ => return Err(InvalidLimits)
+  }
+  let document = try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "date")
+    @encode.begin_object(writer)
+    @encode.key(writer, "start")
+    @encode.string_value(writer, start_text)
+    @encode.key(writer, "end")
+    match end_text {
+      Some(text) => @encode.string_value(writer, text)
+      None => @encode.null_value(writer)
+    }
+    @encode.end_object(writer)
+    @encode.end_object(writer)
+    @encode.finish_document(writer)
+  } catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      return Err(BudgetExceeded)
+    }
+  }
+  Ok({ source, property, value: start, range_end: Some(end), document, })
+}
+
+///|
+fn notion_property_write_original_matches(
+  write : NotionPropertyWrite,
+  source : NotionDataSourceCatalog,
+  property_index : Int,
+) -> Bool {
+  if !physical_equal(write.source, source) {
+    return false
+  }
+  match notion_data_source_property_at(source, property_index) {
+    Some(property) => physical_equal(write.property, property)
+    None => false
+  }
 }
 
 ///|
@@ -367,14 +471,25 @@ pub fn notion_property_write_matches(
   property_index : Int,
   value : @admitted.CheckedValue,
 ) -> Bool {
-  guard physical_equal(write.source, source) &&
-    physical_equal(write.value, value) else {
-    return false
-  }
-  match notion_data_source_property_at(source, property_index) {
-    Some(property) => physical_equal(write.property, property)
-    None => false
-  }
+  write.range_end is None &&
+  physical_equal(write.value, value) &&
+  notion_property_write_original_matches(write, source, property_index)
+}
+
+///|
+/// A range cannot match on its start alone. Equal bytes, reversed originals,
+/// another property occurrence or the legacy scalar encoding do not match.
+pub fn notion_date_range_property_write_matches(
+  write : NotionPropertyWrite,
+  source : NotionDataSourceCatalog,
+  property_index : Int,
+  start : @admitted.CheckedValue,
+  end : @admitted.CheckedValue,
+) -> Bool {
+  guard write.range_end is Some(original_end) else { return false }
+  physical_equal(write.value, start) &&
+  physical_equal(original_end, end) &&
+  notion_property_write_original_matches(write, source, property_index)
 }
 
 ///|

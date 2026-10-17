@@ -52,9 +52,19 @@ rounds precision. Common's canonical checked scalar spelling remains intact.
 Explicit null clears a date. A supplied range Object is not silently reduced
 to its start: range fields need their original typed Mapping projection and
 remain unavailable through this single-scalar codec. Computed and audit
-properties refuse encoding. Temporal range and Content/file writes still need
-their actual typed physical suppliers; this is an implementation boundary,
-not a new public language restriction.
+properties refuse encoding. A separate range projection receives both original
+checked start and end from the consuming Mapping. Both contracts must have the
+same Date or Timestamp shape, the start must be present, and a null end must be
+an explicit original of that same nullable temporal shape. The bounded Encoder
+emits both fields without parsing Text, dropping an end, choosing a timezone,
+rounding or manufacturing midnight. The range matcher requires the same source,
+property occurrence and both original CheckedValues; the scalar matcher cannot
+accept it on the start alone. The scalar constructor and its absent-end bytes
+remain unchanged. The codec does not establish that the two originals belong
+to the same captured input row or approved Mapping: the existing Effect owner
+must supply and retain that correspondence. Temporal range and Content/file
+writes still need their actual typed physical suppliers; this is an
+implementation boundary, not a new public language restriction.
 
 Codec work and output limits cover string/option/identifier scans, property
 membership, duplicate detection and bounded Encoder depth/nodes/bytes. Original
@@ -64,8 +74,13 @@ can overlap. The multi-select label-to-original-id map shares its original
 strings but retains its own bounded map backing; duplicate input labels are
 still charged, and no selected option is free because another occurrence used
 it. Single-scalar temporal emission retains the original CheckedValue and text
-alongside its encoded document. Those holdings require the existing
-Effect/resource supplier;
+alongside its encoded document. Every property-write record also has an optional
+end slot, including the legacy None case; a range retains the original end and
+contract graph alongside start/source/property, the writer and encoded body.
+The matcher/constructor callback and aggregate-body overlap remain part of the
+same caller lifetime. An extra alias or absent slot is not zero-cost or a
+cleanup acknowledgement. Those holdings require the existing Effect/resource
+supplier;
 structural limits do not reserve capacity, acknowledge physical retirement or
 prove normal numerical funding. Approval/current authority, original captured
 Mapping/input, Run materials, dispatch, Unknown/nonresend and cleanup remain
