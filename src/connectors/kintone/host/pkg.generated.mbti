@@ -1,0 +1,56 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/kintone/host"
+
+import {
+  "actql/actql/client_row_source_host",
+  "actql/actql/connectors/kintone/catalog",
+  "actql/actql/query_planning",
+}
+
+// Values
+pub fn accept_record_read_page(RecordRead, Bytes) -> Result[Int, RecordReadIssue]
+
+pub fn bind_record_read_cleanup(RecordRead, () -> Bool) -> Result[Unit, RecordReadIssue]
+
+pub fn borrow_record_read(PreparedRecordRead, @client_row_source_host.RowRun, @catalog.RecordPageLimits, @catalog.RecordValueLimits, Int) -> Result[RecordRead, RecordReadIssue]
+
+pub fn declare_records(@catalog.FormFieldCatalog, @catalog.AppNumberSettings?, Array[String], String, String, String, @catalog.RecordValueLimits, @client_row_source_host.RowDeclarationLimits) -> Result[RecordDeclaration, RecordReadIssue]
+
+pub fn prepare_record_read(RecordDeclaration, @query_planning.QueryRequirement, String, String) -> Result[PreparedRecordRead, RecordReadIssue]
+
+pub fn record_declaration(RecordDeclaration) -> @client_row_source_host.RowDeclaration
+
+pub fn record_read_acquisition(PreparedRecordRead) -> @client_row_source_host.RowAcquisition
+
+pub fn record_read_original(RecordRead) -> @catalog.OriginalRecordPage?
+
+pub fn retire_record_read(RecordRead) -> Result[Unit, RecordReadIssue]
+
+// Errors
+
+// Types and methods
+pub struct PreparedRecordRead {
+  // private fields
+}
+
+pub struct RecordDeclaration {
+  // private fields
+}
+
+pub struct RecordRead {
+  // private fields
+}
+
+pub enum RecordReadIssue {
+  InvalidLimits
+  ForeignDeclaration
+  Closed
+  TransportUnsettled
+  Catalog(@catalog.RecordValueIssue)
+  Page(@catalog.RecordPageIssue)
+  Host(@client_row_source_host.RowHostIssue)
+}
+
+// Type aliases
+
+// Traits

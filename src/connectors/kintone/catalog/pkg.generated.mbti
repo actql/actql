@@ -11,6 +11,8 @@ import {
 // Values
 pub fn admit_record_number_value(OriginalRecordField, @value_contract.Contract, RecordValueLimits) -> Result[@value_admission.CheckedValue, RecordValueIssue]
 
+pub fn admit_record_page_contracts(OriginalRecordPage, AppNumberSettings?, Array[String], Array[@value_contract.Contract], RecordValueLimits, Int) -> Result[Array[Array[@value_admission.CheckedValue]], RecordValueIssue]
+
 pub fn checked_record_columns(CheckedRecordPage) -> Array[String]
 
 pub fn checked_record_original(CheckedRecordPage) -> OriginalRecordPage
