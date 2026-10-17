@@ -54,7 +54,9 @@ test('Slack original workspace identity rejects mismatch errors and malformed ob
 test('Slack complete reader options reject missing observation custody target and invalid bounds before I/O',async t=>{
   const f=await userListFixture(t);
   for(const override of [{workspaceId:undefined},{workspaceId:''},{workspaceId:'x\ud800'},
-    {names:['foreign']},{names:['id','id']},{current:undefined},{chargeResponse:undefined},
+    {names:['foreign']},{names:['id','id']},{names:Array(1000).fill('id')},
+    {workspaceId:'x'.repeat(f.options.limits.maxIdentityBytes+1)},
+    {current:undefined},{chargeResponse:undefined},
     {consumeObservation:undefined},{consumePage:undefined},{credential:{...f.options.credential,binding:undefined}},
     {limits:{...f.options.limits,pageSize:1000}},{limits:{...f.options.limits,maxPages:0}}]){
     assert.throws(()=>f.create(override),{code:'InvalidSlackUserListRead'});

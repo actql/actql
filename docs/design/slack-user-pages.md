@@ -102,6 +102,15 @@ callback workspace overlap with these holdings, including on failure. Reference
 sharing is not zero retained cost, and total byte/row/page bounds include the
 identity observation where applicable.
 
+Success totals are not peak simultaneous holdings. Aggregate refusal can retain
+the previously accepted raw history plus the last per-response-bounded body that
+causes failure. Admission must cover that extra response and its transport
+workspace, not merely `maxTotalResponseBytes`. A current decoded page can likewise
+overlap the previously accepted rows before a total-row refusal. Cursor target
+encoding workspace follows the bounded cursor's encoded size before the final
+target ceiling check. Shape/length checks precede set allocation and Unicode
+scanning of the bounded original selection and workspace id.
+
 The reader always reports `cleanupConfirmed: false`: raw observations escape to
 the result, failure and callbacks. Socket close, a settled Promise, cancellation,
 freezing, dropping a reference or GC cannot acknowledge their retirement. The

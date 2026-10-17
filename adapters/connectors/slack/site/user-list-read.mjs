@@ -29,9 +29,9 @@ export class SlackUserListReadFailure extends Error {
 
 function prepareRead({moon, workspaceId, names, initialAuthorization, credential,
   authorizationFor, limits, current, chargeResponse, consumeObservation, consumePage, signal}) {
-  if (!Array.isArray(names) || new Set(names).size !== names.length ||
+  if (!Array.isArray(names) ||
       [authorizationFor,current,chargeResponse,consumeObservation,consumePage].some(fn=>typeof fn !== 'function') ||
-      typeof workspaceId !== 'string' || !workspaceId.length || !workspaceId.isWellFormed() ||
+      typeof workspaceId !== 'string' || !workspaceId.length ||
       !credential || typeof credential !== 'object' || !limits || typeof limits !== 'object') {
     fail('InvalidSlackUserListRead');
   }
@@ -41,10 +41,12 @@ function prepareRead({moon, workspaceId, names, initialAuthorization, credential
   if (providerExports.some(name=>typeof provider[name] !== 'function') ||
       !limitFields.every(name=>positive(context.limits[name])) || context.limits.pageSize >= 1000 ||
       !context.credential.binding || typeof context.credential.binding !== 'object' ||
+      workspaceId.length > context.limits.maxIdentityBytes || !workspaceId.isWellFormed() ||
       Buffer.byteLength(workspaceId) > context.limits.maxIdentityBytes) fail('InvalidSlackUserListRead');
   if (context.scope.operation !== SLACK_USER_LIST_OPERATION) fail('ForeignSlackUserListOperation');
   const columns = Object.freeze(provider.slackUserListColumnNames().slice());
-  if (names.some(name=>!columns.includes(name))) fail('InvalidSlackUserListRead');
+  if (names.length > columns.length || new Set(names).size !== names.length ||
+      names.some(name=>!columns.includes(name))) fail('InvalidSlackUserListRead');
   return Object.freeze({provider,context,workspaceId,names:Object.freeze(names.slice()),signal});
 }
 
