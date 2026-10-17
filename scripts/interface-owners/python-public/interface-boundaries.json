@@ -4883,10 +4883,10 @@
           ]
         }
       ],
-      "sha256": "8e8a7bdb204b832363a1fc6909e03b22f456d6ac139fd8fb719fd6cd0cbed687",
+      "sha256": "b639b81157450fa5f07ef099d2617b0c237aeb45aeba7348b11bd23050e67838",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
-      "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
+      "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup. Effect review integrity uses exact DATA keys and root-self exclusion; Model and legacy byte domains remain distinct. Integrity does not issue signing, resolve, permission or cleanup authority.",
       "contracts": [
         {
           "operations": [
