@@ -329,8 +329,18 @@ test "Native check reads original YAML Program and separately JSON Parameters th
     Json::string("yes"),
   )
   assert_true(wire.contains("\"document_id\":\"program\""))
-  assert_true(wire.contains(context.revision("program", original)))
-  assert_true(wire.contains(context.revision("parameters", "{\"x\":2}")))
+  // Independent UTF-8 count includes the original Unicode comment and CR/LF.
+  assert_true(wire.contains("\"byte_length\":449"))
+  // The command creates its own fresh key. Check exact revision binding only
+  // within one original context, never by borrowing another context's key.
+  let keyed = context.project({
+    document: original,
+    format: Yaml,
+    declarations: None,
+    parameters: Some("{\"x\":2}"),
+  })
+  assert_true(keyed.contains(context.revision("program", original)))
+  assert_true(keyed.contains(context.revision("parameters", "{\"x\":2}")))
   assert_false(wire.contains("\"document_id\":\"source\""))
   effect_finite_cli_ok(context.host.close(), "check.yaml.host.close")
 }
