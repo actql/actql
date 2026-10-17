@@ -540,7 +540,7 @@ test('kintone credential headers cannot be supplied or observed by the provider 
     for (const name of ['x-cybozu-api-token', 'x-cybozu-authorization']) {
       for (const [field, value, code] of [
         ['headers', [[name, 'replacement-secret']], 'ReservedHttpRequestHeader'],
-        ['responseHeaders', [name], 'ReservedHttpResponseHeader'],
+        ['responseHeaders', [name], 'InvalidHttpResponseHeaderNames'],
       ]) {
         await assert.rejects(invoke(original, `${name}-${field}`, {
           operations: new Map([[original.operation,

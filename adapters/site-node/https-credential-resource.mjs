@@ -67,15 +67,15 @@ export function openHttpsCredentialBinding({scope, control, journal,
         !['string', 'number', 'bigint'].includes(typeof scope[key]))) {
     fail('InvalidRemoteCredentialBinding');
   }
+  const original = Object.freeze(Object.fromEntries(
+    credentialInvocationBindingKeys.map(key => [key, scope[key]])));
   // Installation selects a closed presentation inside this original binding.
   // It grants no operation and cannot expose a secret to the provider driver.
   if (secretPresentation !== 'bearer' &&
       (secretPresentation !== 'kintone-api-token' ||
-        scope.connectorRegistration !== 'kintone' || authentication !== undefined)) {
+        original.connectorRegistration !== 'kintone' || authentication !== undefined)) {
     fail('InvalidRemoteCredentialSecretPresentation');
   }
-  const original = Object.freeze(Object.fromEntries(
-    credentialInvocationBindingKeys.map(key => [key, scope[key]])));
   const binding = Object.freeze(Object.create(null));
   bindings.set(binding, {original, control, journal, resolveSecret,
     maxSecretBytes, secretPresentation, secret: undefined, active: false, retiring: false,
