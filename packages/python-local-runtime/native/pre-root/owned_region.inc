@@ -391,3 +391,29 @@ int actql_native_owned_return_extent_domain_borrow(actql_owned_extent_view *view
         atomic_store_explicit(&lease->domain_borrower_pid, 0, memory_order_release);
     return status;
 }
+
+int actql_native_owned_unmap_stopped_child_domain(actql_owned_extent_view *view,
+                                                 actql_owned_capacity **slot) {
+    /* The Native process Owner must retain and validate its original scoped
+     * stop proof before this physical call. Neither this port nor the recorded
+     * borrower PID issues such a proof. Ordinary close/borrow return above
+     * deliberately keep their allocation-level requirements unchanged. */
+    if (view == NULL || view->original != view || slot == NULL || *slot == NULL ||
+        !view->domain_attempted || view->domain_borrowed || !view->payload_bound ||
+        !view->extent.writable || current_capacity != NULL ||
+        actql_native_owned_domain_matches_view(*slot, view, (int64_t)getpid()) != ACTQL_OWNED_OK)
+        return ACTQL_OWNED_INVALID;
+    actql_owned_capacity *lease = *slot;
+    if (!lease->transferred || !lease->domain_borrow_attempted ||
+        atomic_load_explicit(&lease->domain_borrower_pid, memory_order_acquire) <= 0)
+        return ACTQL_OWNED_INVALID;
+    /* Do not lock, reset or mark the child's shared allocator as returned.
+     * It may retain a process-static allocation or an abandoned lock. The
+     * parent loan stays pinned, including through a failed physical unmap. */
+    if (munmap(view->mapping, view->length) != 0)
+        return ACTQL_OWNED_PHYSICAL_FAILURE;
+    view->mapping = NULL;
+    view->domain_live = false;
+    *slot = NULL;
+    return ACTQL_OWNED_OK;
+}
