@@ -225,7 +225,7 @@ test "initial issue existing operation with missing use refuses without resampli
     local_original_grant_cid(original.grant)
   let use_row = host.database.read(bucket, scope.attempt_id).unwrap()
   host.database
-  .remove_exact(bucket, use_row.key, use_row.revision, use_row.body)
+  .remove_exact(bucket, scope.attempt_id, use_row.revision, use_row.body)
   .unwrap()
   let samples = Ref(0)
   let refused = initial_issue_storage_transaction(key, request, scope, () => {
@@ -407,4 +407,28 @@ test "initial issue closure refuses autocommit and preserves old configured pack
   host.close().unwrap()
   assert_true(refused && no_default && exact)
   assert_eq(samples.val, 0)
+}
+
+///|
+test "initial issue lost COMMIT ACK fences original grant and claim without another clock or issue" {
+  let (key, request, scope) = initial_issue_storage_fixture(
+    "initial-issue-lost-ack",
+  )
+  let host = key.original.host
+  let samples = Ref(0)
+  client_test_fail_commit_reply(host.database, 1)
+  let unknown = initial_issue_storage_transaction(key, request, scope, () => {
+      samples.val += 1
+      10000L
+    })
+    is Err(InitialStorageJournal(TransactionUnknown))
+  let fenced = host.journal.fenced
+  let again = initial_issue_storage_transaction(key, request, scope, () => {
+      samples.val += 1
+      20000L
+    })
+    is Err(InitialStorageJournal(Fenced))
+  host.close().unwrap()
+  assert_true(unknown && fenced && again)
+  assert_eq(samples.val, 1)
 }

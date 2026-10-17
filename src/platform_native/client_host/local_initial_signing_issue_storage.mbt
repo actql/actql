@@ -53,7 +53,12 @@ fn local_initial_signing_issue_storage_locked(
   // select a new sample/expiry, ordinal, claim, key or grant.
   match host.database.read("client_local_grant_originals", row_key) {
     Ok(row) => {
-      let original = match read_local_grant_original(host.epoch.crypto, row) {
+      let original = match
+        read_local_grant_original(host.epoch.crypto, {
+          key: row_key,
+          body: row.body,
+          revision: row.revision,
+        }) {
         Ok(value) => value
         Err(issue) => return Err(InitialStorageJournal(issue))
       }
@@ -91,7 +96,7 @@ fn local_initial_signing_issue_storage_locked(
         Ok(value) => value
         Err(issue) => return Err(InitialStorageCredential(issue))
       }
-      match current() {
+      return match current() {
         Ok(_) => Ok(InitialStorageHistory(original, history))
         Err(issue) => Err(InitialStorageJournal(issue))
       }
