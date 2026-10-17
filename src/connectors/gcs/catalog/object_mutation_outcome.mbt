@@ -1,5 +1,6 @@
-// Original conditional request/response consistency. The existing Effect
-// Ledger authenticates the direct response and owns settlement/Unknown.
+// Provider consistency only. The existing Effect Ledger must authenticate the
+// original dispatch and retained direct response before using this projection.
+// A later GET/404 never proves a delete or authorizes another physical send.
 
 ///|
 pub(all) enum ObjectMutationOutcome {
@@ -9,44 +10,63 @@ pub(all) enum ObjectMutationOutcome {
 } derive(Eq, Debug)
 
 ///|
-// A later metadata read may supply correlation DATA for PATCH only. The
-// original request/claim/current authority are still required by its caller;
-// this function cannot authenticate that read or settle a possible dispatch.
+fn mutation_request_marker(request : ObjectMutationRequest) -> String? {
+  // Reuse the bounded decoder on the original sealed request, not current
+  // configuration or a caller's expected marker. No new record field/issuer.
+  guard metadata_cursor(@utf8.encode(request.body), {
+      ..request.binding.limits.metadata,
+      max_bytes: request.binding.limits.max_body_bytes,
+    })
+    is Ok(root) &&
+    @decode.open_object(root) is Ok(object) &&
+    @decode.required(object, "metadata") is Ok(metadata) &&
+    @decode.open_object(metadata) is Ok(metadata) &&
+    metadata_text(metadata, "actql-request", 71) is Some(marker) &&
+    mutation_cid(marker) else {
+    return None
+  }
+  Some(marker)
+}
+
+///|
 pub fn object_mutation_response_matches(
   binding : ObjectMutationBinding,
   request : ObjectMutationRequest,
-  response : ObjectMetadata,
+  observed : ObjectMetadata,
 ) -> Bool {
   if !physical_equal(binding, request.binding) || binding.kind != PatchMetadata {
     return false
   }
-  guard request.marker is Some(marker) &&
-    request.logical_after is Some(expected) else {
+  guard request.logical_after is Some(expected) &&
+    mutation_request_marker(request) is Some(marker) else {
     return false
   }
   let before = request.original.fields
-  let fields = response.fields
-  let desired = expected.metadata.unwrap_or([])
-  let observed = logical_metadata(fields.metadata).unwrap_or([])
-  fields.bucket == before.bucket &&
-  fields.name == before.name &&
-  fields.generation == before.generation &&
-  fields.metageneration > before.metageneration &&
-  fields.size == before.size &&
-  fields.content_type == expected.content_type &&
-  fields.content_encoding == before.content_encoding &&
-  fields.storage_class == before.storage_class &&
-  fields.md5 == before.md5 &&
-  fields.crc32c == before.crc32c &&
-  fields.metadata.unwrap_or([]).contains(("actql-request", marker)) &&
-  observed.length() == desired.length() &&
-  observed.all(entry => desired.contains(entry))
+  let actual = observed.fields
+  // Metadata updates do not replace object bytes/generation/storage class.
+  // Only selected user properties change; the original response may advance
+  // metageneration but cannot keep or move behind the captured version.
+  if actual.bucket != before.bucket ||
+    actual.name != before.name ||
+    actual.generation != before.generation ||
+    actual.metageneration <= before.metageneration ||
+    actual.size != before.size ||
+    actual.content_type != expected.content_type ||
+    actual.content_encoding != before.content_encoding ||
+    (before.storage_class is Some(value) && actual.storage_class != Some(value)) ||
+    (before.md5 is Some(value) && actual.md5 != Some(value)) ||
+    (before.crc32c is Some(value) && actual.crc32c != Some(value)) {
+    return false
+  }
+  let intended = expected.metadata.unwrap_or([]).copy()
+  let received = logical_metadata(actual.metadata).unwrap_or([])
+  intended.sort_by((left, right) => left.0.lexical_compare(right.0))
+  received.sort_by((left, right) => left.0.lexical_compare(right.0))
+  intended == received &&
+  actual.metadata.unwrap_or([]).any(entry => entry == ("actql-request", marker))
 }
 
 ///|
-// Only the response authenticated for this original conditional dispatch may
-// establish direct conflict or DELETE success. Object absence after a lost
-// DELETE response is deliberately not an input to this classifier.
 pub fn classify_object_mutation_response(
   binding : ObjectMutationBinding,
   request : ObjectMutationRequest,
@@ -62,34 +82,34 @@ pub fn classify_object_mutation_response(
   if status == 412 {
     return Ok(Conflict)
   }
-  match binding.kind {
-    DeleteObject =>
-      Ok(if status == 204 && body.length() == 0 { Applied } else { Unknown })
-    PatchMetadata => {
-      if status != 200 {
-        return Ok(Unknown)
-      }
-      let observed = match
-        admit_object_metadata(
-          body,
-          binding.bucket,
-          binding.prefix,
-          Some(request.original.fields.name),
-          binding.limits.metadata,
-        ) {
-        Ok(value) => value
-        Err(BudgetExceeded) => return Err(CapacityExceeded)
-        Err(_) => return Ok(Unknown)
-      }
-      Ok(
-        if object_mutation_response_matches(binding, request, observed) {
-          Applied
-        } else {
-          Unknown
-        },
-      )
-    }
+  if binding.kind == DeleteObject {
+    // An authenticated original empty DELETE response is confirmation, not
+    // evidence inferred from subsequent object absence. Lost reply stays
+    // Unknown, including after a 404 from any later observation.
+    return Ok(if status == 204 && body.is_empty() { Applied } else { Unknown })
   }
+  if status != 200 {
+    return Ok(Unknown)
+  }
+  let observed = match
+    admit_object_metadata(
+      body,
+      binding.bucket,
+      binding.prefix,
+      Some(request.original.fields.name),
+      binding.limits.metadata,
+    ) {
+    Ok(value) => value
+    Err(BudgetExceeded) => return Err(CapacityExceeded)
+    Err(_) => return Ok(Unknown)
+  }
+  Ok(
+    if object_mutation_response_matches(binding, request, observed) {
+      Applied
+    } else {
+      Unknown
+    },
+  )
 }
 
 ///|
@@ -121,7 +141,7 @@ pub fn object_mutation_response_projection_json(
           "state": "failed",
           "error": {
             "code": "conflict",
-            "message": "The original GCS object precondition failed",
+            "message": "The original GCS mutation precondition failed",
           },
         },
       }

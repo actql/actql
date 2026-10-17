@@ -57,7 +57,7 @@ test('original PATCH response requires marker version and full logical replaceme
   assert.throws(() => ownedGcsObjectResponseMatches(request, observed, requestOf('patch_metadata').binding),
     {code: 'GcsForeignObjectBinding'});
   assert.throws(() => projectOwnedGcsObjectResponse(request, {statusCode: 200, body: new Uint8Array(new SharedArrayBuffer(16))}, 1024),
-    {code: 'GcsInvalidObjectResponse'});
+    {code: 'InvalidGcsObjectResponse'});
 });
 
 test('original DELETE classifies only direct empty 204 and conditional 412 without treating absence as apply', () => {
@@ -70,16 +70,16 @@ test('original DELETE classifies only direct empty 204 and conditional 412 witho
   }
   assert.deepEqual(projectOwnedGcsObjectResponse(request, {statusCode: 412, body: Buffer.from('{}')}, 1024),
     {kind: 'typed-failure-response', outcome: {state: 'failed', error: {
-      code: 'conflict', message: 'The original GCS object precondition failed'}}});
+      code: 'conflict', message: 'The original GCS mutation precondition failed'}}});
 });
 
 test('missing mutation response ABI refuses without classifying or replacing the original request', () => {
   const {request, original} = requestOf('patch_metadata', {...provider,
     gcsObjectResponseProjection: undefined, gcsObjectResponseMatches: undefined});
   assert.throws(() => projectOwnedGcsObjectResponse(request, {statusCode: 200, body: answer()}, 1024),
-    {code: 'GcsObjectResponseProjectionUnavailable'});
+    {code: 'GcsObjectResponseUnavailable'});
   assert.throws(() => ownedGcsObjectResponseMatches(request, original),
-    {code: 'GcsObjectResponseProjectionUnavailable'});
+    {code: 'GcsObjectResponseUnavailable'});
   assert.equal(request.method, 'PATCH');
   assert.match(request.request_cid, /^sha256:[0-9a-f]{64}$/u);
 });

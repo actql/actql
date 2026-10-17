@@ -12,15 +12,11 @@ pub fn admit_object_metadata_page(Bytes, String, String, Int, ObjectMetadataLimi
 
 pub fn admit_object_mutation_request(ObjectMutationBinding, ObjectMutationRequest) -> Result[Unit, ObjectRequestIssue]
 
-pub fn admit_object_mutation_target_observation(ObjectMutationBinding, String, Int, Bytes, Array[(String, String)]) -> Result[ObjectMetadata, ObjectTargetReadIssue]
-
 pub fn admit_object_upload_observation(ObjectUploadBinding, String, Int, Bytes) -> Result[ObjectUploadObservation, ObjectUploadIssue]
 
 pub fn admit_object_upload_target_observation(ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[ObjectUploadObservation, ObjectUploadIssue]
 
 pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]
-
-pub fn check_object_metadata_patch_input(ObjectMutationBinding, Bytes, String, Bool) -> Result[Unit, ObjectRequestIssue]
 
 pub fn classify_object_mutation_response(ObjectMutationBinding, ObjectMutationRequest, Int, Bytes) -> Result[ObjectMutationOutcome, ObjectRequestIssue]
 
@@ -50,8 +46,6 @@ pub fn object_metadata_page_response_sha256(ObjectMetadataPage) -> String
 
 pub fn object_metadata_page_row_json(ObjectMetadataPage, Int, Int, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]
 
-pub fn object_metadata_patch_effect_target_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]
-
 pub fn object_metadata_response_sha256(ObjectMetadata) -> String
 
 pub fn object_metadata_version(ObjectMetadata) -> String
@@ -67,12 +61,6 @@ pub fn object_mutation_body_for(ObjectMutationBinding, ObjectMutationRequest) ->
 pub fn object_mutation_changes_json(ObjectMutationBinding, ObjectMutationRequest) -> Result[String, ObjectRequestIssue]
 
 pub fn object_mutation_cid(ObjectMutationRequest) -> String
-
-pub fn object_mutation_kind(ObjectMutationBinding) -> ObjectMutationKind
-
-pub fn object_mutation_metadata_max_bytes(ObjectMutationBinding) -> Int
-
-pub fn object_mutation_metadata_path(ObjectMutationBinding, String) -> Result[String, ObjectTargetReadIssue]
 
 pub fn object_mutation_method(ObjectMutationRequest) -> String
 
@@ -115,8 +103,6 @@ pub fn prepare_object_collection_binding(String, String, String, String, String,
 pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]
 
 pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]
-
-pub fn prepare_object_metadata_patch_value_wire(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]
 
 pub fn prepare_object_multipart_upload(ObjectUploadBinding, ObjectUploadObservation, Bytes, String, String, String, Bool?, String) -> Result[ObjectUploadRequest, ObjectUploadIssue]
 
@@ -229,7 +215,6 @@ pub struct ObjectMutationRequest {
   cid : String
   logical_after : ObjectMetadataFields?
   authored_changes : String
-  marker : String?
 }
 
 pub(all) enum ObjectRequestIssue {
@@ -247,13 +232,6 @@ pub(all) struct ObjectRequestLimits {
   max_body_bytes : Int
   max_identity_bytes : Int
 }
-
-pub(all) enum ObjectTargetReadIssue {
-  InvalidName
-  InvalidResponse
-  CapacityExceeded
-  Metadata(ObjectMetadataIssue)
-} derive(Eq, @debug.Debug)
 
 pub struct ObjectUploadBinding {
   collection : ObjectCollectionBinding

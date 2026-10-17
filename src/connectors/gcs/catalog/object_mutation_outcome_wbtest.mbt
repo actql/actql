@@ -1,217 +1,279 @@
 ///|
-fn mutation_answer(
-  marker? : String = mutation_marker(),
-  generation? : String = "9007199254740993",
-  meta? : String = "3",
-  size? : String = "7",
-  name? : String = "in/é%2F.csv",
-  content_type? : String = "text/csv",
-  extra? : String = "",
-) -> Bytes {
-  @utf8.encode(
-    "{\"bucket\":\"bucket\",\"name\":\"" +
-    name +
-    "\",\"generation\":\"" +
-    generation +
-    "\",\"metageneration\":\"" +
-    meta +
-    "\",\"size\":\"" +
-    size +
-    "\",\"contentType\":\"" +
-    content_type +
-    "\",\"metadata\":{\"new\":\"=é\\r\\n\",\"actql-request\":\"" +
-    marker +
-    "\",\"keep\":\"kept\"}" +
-    extra +
-    "}",
-  )
-}
-
-///|
-test "GCS original PATCH outcome matches exact marker generation and user fields independent of map order" {
-  let binding = mutation_binding()
-  let request = prepare_object_metadata_patch(
+fn mutation_outcome_request(
+  binding : ObjectMutationBinding,
+) -> ObjectMutationRequest {
+  prepare_object_metadata_patch(
     binding,
     mutation_original(),
     mutation_changes(),
     mutation_marker(),
   ).unwrap()
+}
+
+///|
+fn mutation_outcome_body() -> String {
+  (
+    // Independent provider response, not generated from the request projection.
+    #|{"bucket":"bucket","name":"in/é%2F.csv","generation":"9007199254740993","metageneration":"3","size":"7","contentType":"text/csv","metadata":{"new":"=é\r\n","actql-request":"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","keep":"kept"}}
+  )
+}
+
+///|
+test "GCS mutation outcome matches exact original metadata request and new metageneration" {
+  let binding = mutation_binding()
+  let request = mutation_outcome_request(binding)
+  let body = @utf8.encode(mutation_outcome_body())
   assert_eq(
-    classify_object_mutation_response(binding, request, 200, mutation_answer()),
+    classify_object_mutation_response(binding, request, 200, body),
     Ok(Applied),
   )
-  let observed = admit_object_metadata(
-    mutation_answer(),
-    "bucket",
-    "in/",
-    Some("in/é%2F.csv"),
-    metadata_limits(),
+  let wire = object_mutation_response_projection_json(
+    binding, request, 200, body, 1024,
   ).unwrap()
+  assert_eq(
+    wire, "{\"kind\":\"typed-success-response\",\"outcome\":{\"result\":{},\"state\":\"applied\"}}",
+  )
+  let observed = metadata_read(mutation_outcome_body()).unwrap()
   assert_true(object_mutation_response_matches(binding, request, observed))
+  assert_false(
+    object_mutation_response_matches(mutation_binding(), request, observed),
+  )
+}
+
+///|
+test "GCS mutation outcome refuses foreign marker changed properties generation and nonadvancing metadata" {
+  let binding = mutation_binding()
+  let request = mutation_outcome_request(binding)
+  let original = mutation_outcome_body()
   for
     body in [
-      mutation_answer(marker="copied-from-another-request"),
-      mutation_answer(generation="9007199254740994"),
-      mutation_answer(meta="2"),
-      mutation_answer(meta="1"),
-      mutation_answer(size="8"),
-      mutation_answer(name="in/é%2F.csv"),
-      mutation_answer(content_type="application/json"),
-      mutation_answer(extra=",\"contentEncoding\":\"gzip\""),
-      mutation_answer(extra=",\"crc32c\":\"AAAAAA==\""),
-      b"{\"bucket\":\"bucket\",\"name\":\"in/é%2F.csv\",\"generation\":\"9007199254740993\",\"metageneration\":\"3\",\"size\":\"7\",\"contentType\":\"text/csv\",\"metadata\":{\"keep\":\"kept\",\"new\":\"=é\\r\\n\"}}",
+      original.replace(old="sha256:dddd", new="sha256:aaaa"),
+      original.replace(old="\"actql-request\"", new="\"Actql-request\""),
+      original.replace(old="=é", new="=é"),
+      original.replace(old="\"size\":\"7\"", new="\"size\":\"8\""),
+      original.replace(old="text/csv", new="text/plain"),
+      original.replace(old="9007199254740993", new="9007199254740994"),
+      original.replace(
+        old="\"metageneration\":\"3\"",
+        new="\"metageneration\":\"2\"",
+      ),
+      original.replace(
+        old="\"metageneration\":\"3\"",
+        new="\"metageneration\":\"1\"",
+      ),
+    ] {
+    assert_eq(
+      classify_object_mutation_response(
+        binding,
+        request,
+        200,
+        @utf8.encode(body),
+      ),
+      Ok(Unknown),
+    )
+  }
+  for
+    body in [
       b"{}",
       b"\xff",
-      b"{\"generation\":\"1\",\"generation\":\"2\"}",
+      b"{\"x\":1,\"x\":2}",
+      @utf8.encode(
+        original.replace(old="\"keep\":\"kept\"", new="\"drop\":\"old\""),
+      ),
     ] {
     assert_eq(
       classify_object_mutation_response(binding, request, 200, body),
       Ok(Unknown),
     )
   }
-  let expected = "{\"kind\":\"typed-success-response\",\"outcome\":{\"result\":{},\"state\":\"applied\"}}"
-  assert_eq(
-    object_mutation_response_projection_json(
-      binding,
-      request,
-      200,
-      mutation_answer(),
-      expected.length(),
-    ),
-    Ok(expected),
-  )
-  assert_eq(
-    object_mutation_response_projection_json(
-      binding,
-      request,
-      200,
-      mutation_answer(),
-      expected.length() - 1,
-    ),
-    Err(CapacityExceeded),
-  )
 }
 
 ///|
-test "GCS response matching preserves omitted metadata and distinguishes explicit empty replacement" {
+test "GCS mutation outcome distinguishes metadata omission and explicit empty map" {
   let binding = mutation_binding()
-  for
-    (changes, answer) in [
-      (
-        b"{\"content_type\":\"text/csv\"}",
-        "{\"bucket\":\"bucket\",\"name\":\"in/é%2F.csv\",\"generation\":\"9007199254740993\",\"metageneration\":\"3\",\"size\":\"7\",\"contentType\":\"text/csv\",\"metadata\":{\"keep\":\"kept\",\"drop\":\"old\",\"actql-request\":\"" +
-        mutation_marker() +
-        "\"}}",
-      ),
-      (
-        b"{\"metadata\":{}}",
-        "{\"bucket\":\"bucket\",\"name\":\"in/é%2F.csv\",\"generation\":\"9007199254740993\",\"metageneration\":\"3\",\"size\":\"7\",\"metadata\":{\"actql-request\":\"" +
-        mutation_marker() +
-        "\"}}",
-      ),
-    ] {
-    let request = prepare_object_metadata_patch(
+  let original = mutation_original()
+  let keep = prepare_object_metadata_patch(
+    binding,
+    original,
+    b"{}",
+    mutation_marker(),
+  ).unwrap()
+  let clear = prepare_object_metadata_patch(
+    binding,
+    original,
+    b"{\"metadata\":{}}",
+    mutation_marker(),
+  ).unwrap()
+  let preserved =
+    #|{"bucket":"bucket","name":"in/é%2F.csv","generation":"9007199254740993","metageneration":"3","size":"7","metadata":{"drop":"old","keep":"kept","actql-request":"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"}}
+  let cleared =
+    #|{"bucket":"bucket","name":"in/é%2F.csv","generation":"9007199254740993","metageneration":"3","size":"7","metadata":{"actql-request":"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"}}
+  assert_eq(
+    classify_object_mutation_response(
       binding,
-      mutation_original(),
-      changes,
-      mutation_marker(),
-    ).unwrap()
-    assert_eq(
-      classify_object_mutation_response(
-        binding,
-        request,
-        200,
-        @utf8.encode(answer),
-      ),
-      Ok(Applied),
-    )
-    assert_eq(
-      classify_object_mutation_response(
-        binding,
-        request,
-        200,
-        mutation_answer(),
-      ),
-      Ok(Unknown),
-    )
-  }
+      keep,
+      200,
+      @utf8.encode(preserved),
+    ),
+    Ok(Applied),
+  )
+  assert_eq(
+    classify_object_mutation_response(
+      binding,
+      clear,
+      200,
+      @utf8.encode(cleared),
+    ),
+    Ok(Applied),
+  )
+  assert_eq(
+    classify_object_mutation_response(
+      binding,
+      clear,
+      200,
+      @utf8.encode(preserved),
+    ),
+    Ok(Unknown),
+  )
+  assert_eq(
+    classify_object_mutation_response(binding, keep, 200, @utf8.encode(cleared)),
+    Ok(Unknown),
+  )
 }
 
 ///|
-test "GCS original DELETE needs its direct empty 204 and never reconciles from metadata or absence" {
-  let binding = mutation_binding(kind=DeleteObject, permissions=[
-    "storage.objects.delete",
-  ])
+test "GCS mutation outcome confirms only original direct empty delete and conditional conflict" {
+  let binding = mutation_binding(kind=DeleteObject)
   let request = prepare_object_delete(binding, mutation_original()).unwrap()
   assert_eq(
     classify_object_mutation_response(binding, request, 204, b""),
     Ok(Applied),
   )
-  for (status, body) in [(204, b"{}"), (200, b""), (404, b""), (500, b"")] {
-    assert_eq(
-      classify_object_mutation_response(binding, request, status, body),
-      Ok(Unknown),
-    )
-  }
-  assert_false(
-    object_mutation_response_matches(binding, request, mutation_original()),
-  )
   assert_eq(
-    classify_object_mutation_response(binding, request, 412, b"{}"),
-    Ok(Conflict),
-  )
-  assert_eq(
-    object_mutation_response_projection_json(binding, request, 412, b"{}", 1024),
-    Ok(
-      "{\"kind\":\"typed-failure-response\",\"outcome\":{\"error\":{\"code\":\"conflict\",\"message\":\"The original GCS object precondition failed\"},\"state\":\"failed\"}}",
-    ),
-  )
-}
-
-///|
-test "GCS mutation response refuses foreign original binding and input output capacity excess" {
-  let binding = mutation_binding()
-  let request = prepare_object_metadata_patch(
-    binding,
-    mutation_original(),
-    mutation_changes(),
-    mutation_marker(),
-  ).unwrap()
-  assert_eq(
-    classify_object_mutation_response(
-      mutation_binding(),
-      request,
-      200,
-      mutation_answer(),
-    ),
-    Err(ForeignBinding),
+    classify_object_mutation_response(binding, request, 204, b"{}"),
+    Ok(Unknown),
   )
   assert_eq(
     classify_object_mutation_response(
       binding,
       request,
       200,
+      @utf8.encode(mutation_outcome_body()),
+    ),
+    Ok(Unknown),
+  )
+  for status in [0, 200, 201, 202, 308, 400, 401, 403, 404, 429, 500, 503] {
+    assert_eq(
+      classify_object_mutation_response(binding, request, status, b""),
+      Ok(Unknown),
+    )
+  }
+  assert_eq(
+    classify_object_mutation_response(binding, request, 412, b"{}"),
+    Ok(Conflict),
+  )
+  assert_true(
+    object_mutation_response_projection_json(binding, request, 412, b"{}", 1024)
+    .unwrap()
+    .contains("typed-failure-response"),
+  )
+  assert_true(
+    object_mutation_response_projection_json(binding, request, 404, b"{}", 1024)
+    .unwrap()
+    .contains("provider-response"),
+  )
+}
+
+///|
+test "GCS mutation outcome bounds raw response and control projection before classification" {
+  let binding = mutation_binding()
+  let request = mutation_outcome_request(binding)
+  assert_eq(
+    classify_object_mutation_response(
+      binding,
+      request,
+      412,
       Bytes::make(metadata_limits().max_bytes + 1, 32),
     ),
     Err(CapacityExceeded),
   )
   assert_eq(
-    object_mutation_response_projection_json(
+    classify_object_mutation_response(mutation_binding(), request, 412, b"{}"),
+    Err(ForeignBinding),
+  )
+  for maximum in [0, 1] {
+    assert_true(
+      object_mutation_response_projection_json(
+        binding,
+        request,
+        200,
+        @utf8.encode(mutation_outcome_body()),
+        maximum,
+      )
+      is Err(CapacityExceeded),
+    )
+  }
+  let patch = mutation_outcome_request(binding)
+  assert_eq(
+    classify_object_mutation_response(binding, patch, 204, b""),
+    Ok(Unknown),
+  )
+}
+
+///|
+test "GCS mutation outcome accepts newly reported optional checksums and storage class" {
+  let binding = mutation_binding()
+  let request = mutation_outcome_request(binding)
+  // These properties were absent from the original provider observation.
+  // Their appearance must not strengthen the accepted response predicate.
+  let response =
+    #|{"bucket":"bucket","name":"in/é%2F.csv","generation":"9007199254740993","metageneration":"3","size":"7","storageClass":"STANDARD","md5Hash":"AAAAAAAAAAAAAAAAAAAAAA==","crc32c":"AAAAAA==","contentType":"text/csv","metadata":{"keep":"kept","new":"=é\r\n","actql-request":"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"}}
+  assert_eq(
+    classify_object_mutation_response(
       binding,
       request,
       200,
-      mutation_answer(),
-      0,
+      @utf8.encode(response),
     ),
-    Err(CapacityExceeded),
+    Ok(Applied),
   )
-  for status in [0, 201, 204, 308, 400, 401, 403, 404, 429, 500, 503] {
+}
+
+///|
+test "GCS mutation outcome preserves observed content checksums storage class and encoding" {
+  let binding = mutation_binding()
+  let original =
+    #|{"bucket":"bucket","name":"in/é%2F.csv","generation":"9007199254740993","metageneration":"2","size":"7","contentEncoding":"gzip","storageClass":"STANDARD","md5Hash":"AAAAAAAAAAAAAAAAAAAAAA==","crc32c":"AAAAAA==","metadata":{"drop":"old","keep":"kept"}}
+  let request = prepare_object_metadata_patch(
+    binding,
+    metadata_read(original).unwrap(),
+    mutation_changes(),
+    mutation_marker(),
+  ).unwrap()
+  let response =
+    #|{"bucket":"bucket","name":"in/é%2F.csv","generation":"9007199254740993","metageneration":"3","size":"7","contentEncoding":"gzip","storageClass":"STANDARD","md5Hash":"AAAAAAAAAAAAAAAAAAAAAA==","crc32c":"AAAAAA==","contentType":"text/csv","metadata":{"keep":"kept","new":"=é\r\n","actql-request":"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"}}
+  assert_eq(
+    classify_object_mutation_response(
+      binding,
+      request,
+      200,
+      @utf8.encode(response),
+    ),
+    Ok(Applied),
+  )
+  for
+    (old, replacement) in [
+      ("gzip", "identity"),
+      ("STANDARD", "COLDLINE"),
+      ("AAAAAA==", "crxyRA=="),
+      ("AAAAAAAAAAAAAAAAAAAAAA==", "AQAAAAAAAAAAAAAAAAAAAA=="),
+    ] {
     assert_eq(
       classify_object_mutation_response(
         binding,
         request,
-        status,
-        mutation_answer(),
+        200,
+        @utf8.encode(response.replace(old~, new=replacement)),
       ),
       Ok(Unknown),
     )

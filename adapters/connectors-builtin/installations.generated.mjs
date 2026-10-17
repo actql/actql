@@ -11,6 +11,7 @@ export const installedConnectors = Object.freeze([
       Object.freeze({path: "adapters/connectors/gcs/host/gcs-source-declaration.mjs", href: new URL("../connectors/gcs/host/gcs-source-declaration.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/gcs/host/gcs-upload-declaration.mjs", href: new URL("../connectors/gcs/host/gcs-upload-declaration.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/gcs/host/installed-gcs-source.mjs", href: new URL("../connectors/gcs/host/installed-gcs-source.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/gcs/site/gcs-credential-site.mjs", href: new URL("../connectors/gcs/site/gcs-credential-site.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/gcs/site/gcs-file-listing.mjs", href: new URL("../connectors/gcs/site/gcs-file-listing.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/gcs/site/gcs-keyed-content.mjs", href: new URL("../connectors/gcs/site/gcs-keyed-content.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/gcs/site/gcs-object-listing.mjs", href: new URL("../connectors/gcs/site/gcs-object-listing.mjs", import.meta.url).href}),

@@ -44,7 +44,8 @@ function fixture(t) {
 
 test('real declared providers supply runtime, adapter and static asset inventory', () => {
   const inputs = localNodePackageInputs(repository);
-  assert.deepEqual(inputs.providerBundles.map(entry => entry.name), ['gcs', 'github', 'salesforce', 'sheets']);
+  assert.deepEqual(inputs.providerBundles.map(entry => entry.name),
+    ['gcs', 'github', 'hubspot', 'salesforce', 'sheets']);
   for (const provider of inputs.providerBundles) {
     assert.ok(inputs.runtimePackages.includes(provider.package));
     assert.ok(inputs.runtimeFiles.includes(provider.file));
@@ -56,7 +57,8 @@ test('real declared providers supply runtime, adapter and static asset inventory
   assert.ok(inputs.adapterEntries.includes('adapters/connectors/snowflake/host/installed-snowflake-source.mjs'));
   // Root entries and their transitive implementation inputs are distinct.
   const table = readFileSync(join(repository, 'adapters/connectors-builtin/installations.generated.mjs'), 'utf8');
-  for (const path of ['adapters/connectors/gcs/host/gcs-collection-target.mjs',
+  for (const path of ['adapters/connectors/gcs/site/gcs-credential-site.mjs',
+    'adapters/connectors/gcs/host/gcs-collection-target.mjs',
     'adapters/connectors/gcs/host/gcs-upload-declaration.mjs',
     'adapters/connectors/snowflake/site/snowflake-sql-read.mjs']) {
     assert.ok(table.includes(`path: ${JSON.stringify(path)}`));

@@ -2,20 +2,13 @@
 // the existing installed Source/Effect, credential and Store own physical work.
 
 ///|
-pub enum GcsFailure {
-  Metadata(@catalog.ObjectMetadataIssue)
-  Request(@catalog.ObjectRequestIssue)
-  TargetRead(@catalog.ObjectTargetReadIssue)
-}
-
-///|
 #export_name("gcsObjectResponseMatches")
 pub fn gcs_object_response_matches(
   binding : @catalog.ObjectMutationBinding,
   request : @catalog.ObjectMutationRequest,
-  response : @catalog.ObjectMetadata,
+  observed : @catalog.ObjectMetadata,
 ) -> Bool {
-  @catalog.object_mutation_response_matches(binding, request, response)
+  @catalog.object_mutation_response_matches(binding, request, observed)
 }
 
 ///|
@@ -30,6 +23,13 @@ pub fn gcs_object_response_projection(
   @catalog.object_mutation_response_projection_json(
     binding, request, status, body, max_bytes,
   ).map_err(issue => Request(issue))
+}
+
+///|
+pub enum GcsFailure {
+  Metadata(@catalog.ObjectMetadataIssue)
+  Request(@catalog.ObjectRequestIssue)
+  TargetRead(@catalog.ObjectTargetReadIssue)
 }
 
 ///|
