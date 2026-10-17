@@ -9,6 +9,7 @@ import {join} from 'node:path';
 import * as moon from '../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {openInstalledRemoteHttpHost} from '../embedded-local.mjs';
 import {canonicalJson} from '../../../packages/sdk/host-port.mjs';
+import {createResultFactory} from '../../../packages/sdk/internal/result-read.mjs';
 import {validNamedSubmissionAttempt} from '../../../packages/client-wire/index.mjs';
 
 const input = JSON.parse(await new Promise(resolve => {
@@ -41,10 +42,10 @@ const server = createServer((request, response) => {
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const endpoint = `http://127.0.0.1:${server.address().port}/actql/client/0.1/`;
 const connection = {mode: 'remote', owner: 'remote', durability: 'durable', consentRefs: [], runners: []};
-const post = async (operation, body) => {
+const post = async (operation, body, signal = AbortSignal.timeout(10000)) => {
   const response = await fetch(endpoint + operation, {method: 'POST',
     headers: {'content-type': 'application/json', authorization: 'Bearer fixture-owner'},
-    body: JSON.stringify({connection, ...body}), signal: AbortSignal.timeout(10000)});
+    body: JSON.stringify({connection, ...body}), signal});
   assert.equal(response.status, 200, `${operation}: ${await (response.status === 200
     ? Promise.resolve('') : response.text())}`);
   return response;
@@ -88,9 +89,17 @@ try {
     const value = await (await post('status', {ref})).json();
     return value.status === 'succeeded' ? value : undefined;
   });
-  const response = await post('read', {ref, resultName: 'answer', format: 'jsonl', attemptId: randomUUID()});
-  const rows = (await response.text()).trim().split('\n').map(line => JSON.parse(line));
+  // Consume the existing SDK reader, including the payload-end marker and
+  // confirmed EOF. A successful JSONL payload is not the whole HTTP body.
+  const activeReaders = new Set(), readerCleanups = new Set();
+  const result = createResultFactory({ref, limits: profile.limits}, {
+    runRequest: (operation, body, signal) => post(operation, {ref, ...body}, signal),
+    responseValue: response => response.json(),
+  }, {activeReaders, readerCleanups}, () => undefined)('answer');
+  const rows = await result.all();
   assert.deepEqual(rows, [{id: 1}]);
+  assert.equal(activeReaders.size, 0);
+  assert.equal(readerCleanups.size, 0);
   await writeFile(join(root, phase + '.json'), JSON.stringify({pid: process.pid, request,
     answer, outcome, state, rows, computes, unknown, lost}, null, 2) + '\n', {flag: 'wx'});
 } finally {
