@@ -32,7 +32,7 @@ const database=()=>({object:'database',id:'db',data_sources:[{id:'s',name:'tasks
 const schema=()=>({object:'data_source',id:'s',parent:{type:'database_id',database_id:'db'},
   properties:{text:{id:'t',name:'text',type:'rich_text',rich_text:{}}}});
 
-export async function metadataDiscoveryFixture(t){
+export async function metadataDiscoveryFixture(t,{publication}={}){
   const parent=join(process.cwd(),'_build','notion-metadata-discovery-fixtures');
   await mkdir(parent,{recursive:true,mode:0o700});const root=await mkdtemp(join(parent,'original-'));
   execFileSync('openssl',['req','-x509','-newkey','rsa:2048','-nodes','-keyout','tls.key','-out','tls.crt',
@@ -52,8 +52,8 @@ export async function metadataDiscoveryFixture(t){
   const keys=generateKeyPairSync('ed25519');
   await writeFile(join(root,'issuer-private.pem'),keys.privateKey.export({type:'pkcs8',format:'pem'}),{mode:0o600});
   await writeFile(join(root,'issuer-public.pem'),keys.publicKey.export({type:'spki',format:'pem'}),{mode:0o600});
-  const journal=openSqliteCredentialJournal(join(root,'journal'),{credentialAuthorities:
-    new Map([['notion-metadata-fixture',new Map([['key',keys.publicKey]])]]),maxGrants:16,maxUses:16});
+  const journal=publication===undefined?openSqliteCredentialJournal(join(root,'journal'),{credentialAuthorities:
+    new Map([['notion-metadata-fixture',new Map([['key',keys.publicKey]])]]),maxGrants:16,maxUses:16}):undefined;
   const accountWire=canonicalJson({version:'actql-execution-account-config/0.1',account_id:'metadata-fixture',
     entries:[{entry_id:'metadata-read',outcome:'allow',principal:{all:true},connection:{any_of:['notion:fixture']},
       resource:{any_of:['database:db']},operation:{any_of:['read']},exclusions:[]}]});
@@ -66,7 +66,7 @@ export async function metadataDiscoveryFixture(t){
   let binding;
   const f={root,state,journal,declaration,origin,profilePath,accountPath,provider};
   t.after(async()=>{
-    if(binding)assert.equal(closeHttpsCredentialBinding(binding),'closed');journal.close();
+    if(binding)assert.equal(closeHttpsCredentialBinding(binding),'closed');journal?.close();
     await new Promise((resolve,reject)=>server.close(cause=>cause?reject(cause):resolve()));
     await writeFile(join(root,'physical-observation.json'),JSON.stringify({requests:state.requests,
       responseCharges:state.charges.length,retainedObservations:state.observations.length,
@@ -78,6 +78,7 @@ export async function metadataDiscoveryFixture(t){
       identityParts(){assert.fail('Metadata publication cannot recompute identity');},
       load(){assert.fail('Metadata publication cannot create a query Run');},
       async publish(profile,options){
+        if(publication!==undefined)return publication({...f,profile,options,resolveSecret,gate,cert,declarationBytes},callback);
         const request=options.publicationRequest,originals={...options,profile};
         const view=runtimeCore(common).installationPreparationMetadata();
         const subject=view.prepareSubject({accountConfigurationCid:contentCid(JSON.parse(accountWire)),accountId:'metadata-fixture',
