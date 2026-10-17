@@ -98,6 +98,8 @@ try:
         process.current()
         # No child has been prepared/spawned. Only the existing original Owner
         # may confirm this unstarted process cleanup and return its references.
+        process.restrict_transport()
+        process.return_transport()
         process.close_unstarted()
         assert process._closed and parent.domain._installed_process_original is None
     parent.close_unstarted()

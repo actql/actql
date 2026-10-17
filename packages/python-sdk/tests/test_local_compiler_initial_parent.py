@@ -102,7 +102,11 @@ class InitialCompilerParentTests(unittest.TestCase):
         projected.assert_called_once()
         self.assertEqual(native.preparations, [(19, 0, 32768)])
         self.assertIs(process._domain, parent.domain)
+        process.restrict_transport()
+        process.return_transport()
         process.close_unstarted()
+        self.assertEqual([event for event in native.events if event[0] == 'operate'],
+                         [('operate', 4), ('operate', 5), ('operate', 7)])
         parent.close_unstarted()
         self.assertTrue(parent._closed)
 
