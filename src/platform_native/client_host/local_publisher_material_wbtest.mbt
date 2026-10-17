@@ -16,7 +16,7 @@ test "Publisher predicate material preserves all three scope and Account current
       store,
     )
     .unwrap()
-  let calls = Ref::new(0)
+  let calls = Ref(0)
   let material = @host.bind_client_local_adopted_host_material(host.database, () => {
     calls.val += 1
     host.current_adoption_material()
@@ -64,8 +64,8 @@ test "Publisher shared material refuses original custody lost in final Account c
       store,
     )
     .unwrap()
-  let calls = Ref::new(0)
-  let removed = Ref::new(false)
+  let calls = Ref(0)
+  let removed = Ref(false)
   let material = @host.bind_client_local_adopted_host_material(host.database, () => {
     calls.val += 1
     if calls.val == 6 {
@@ -110,7 +110,7 @@ test "Publisher shared material cannot use another Host or foreign request scope
     request,
     ReadResultPolicy("answer"),
   ).unwrap()
-  let calls = Ref::new(0)
+  let calls = Ref(0)
   let foreign = @host.bind_client_local_adopted_host_material(other.database, () => {
     calls.val += 1
     other.current_adoption_material()
