@@ -4215,7 +4215,7 @@
             "responsibility": [
               {
                 "path": "packages/sdk/host-port.d.ts",
-                "anchor": "import type {Client, Durability} from './index.d.ts';"
+                "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -4225,7 +4225,7 @@
             "inputsOutputs": [
               {
                 "path": "packages/sdk/host-port.d.ts",
-                "anchor": "import type {Client, Durability} from './index.d.ts';"
+                "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
               },
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mjs",
@@ -4243,7 +4243,7 @@
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
-                "anchor": "import type {Client, Durability} from './index.d.ts';"
+                "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
               },
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mjs",
@@ -4261,7 +4261,7 @@
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
-                "anchor": "import type {Client, Durability} from './index.d.ts';"
+                "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
@@ -4279,7 +4279,7 @@
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
-                "anchor": "import type {Client, Durability} from './index.d.ts';"
+                "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
               },
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mjs",
@@ -4297,7 +4297,7 @@
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
-                "anchor": "import type {Client, Durability} from './index.d.ts';"
+                "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
               },
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mjs",
@@ -4315,7 +4315,7 @@
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
-                "anchor": "import type {Client, Durability} from './index.d.ts';"
+                "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
               },
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mjs",
@@ -4333,7 +4333,7 @@
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
-                "anchor": "import type {Client, Durability} from './index.d.ts';"
+                "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -4347,7 +4347,7 @@
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
-                "anchor": "import type {Client, Durability} from './index.d.ts';"
+                "anchor": "import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
