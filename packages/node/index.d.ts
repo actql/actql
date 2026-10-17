@@ -37,7 +37,8 @@ export type EmbeddedHostInstallation = Readonly<{
 
 export type EmbeddedLocalOptions = Readonly<{
   mode: 'local';
-  owner: 'local';
+  /** Embedded Local selects its existing Local Host when omitted. */
+  owner?: 'local';
   runtime?: 'embedded';
   endpoint?: never;
   token?: never;
