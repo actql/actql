@@ -832,7 +832,13 @@ test('invalid diagnostics retain an acquired source and its failed cleanup',
           'InvalidDiagnosticObserver');
         assert.equal(error.cleanupPending, true);
         assert.equal(error.cleanupErrors[0].error, cleanup);
-        assert.ok(error.cleanupHandle.status().owners.includes(
+        // Runtime retirement wraps the same original initializer; the Source
+        // remains with that child until its original journal close succeeds.
+        assert.deepEqual(error.cleanupHandle.status().owners,
+          ['initialization', 'runtime']);
+        assert.equal(error.cause.primaryFailure, error.primaryFailure);
+        assert.equal(error.cause.cleanupPending, true);
+        assert.ok(error.cause.cleanupHandle.status().owners.includes(
           'source-profile'));
         return true;
       });
