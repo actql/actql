@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub fn calendar_list_column_names() -> Array[String]
+
 pub fn calendar_list_metadata_json(@catalog.CalendarListPage) -> String
 
 pub fn calendar_list_relation_facts_wire() -> String

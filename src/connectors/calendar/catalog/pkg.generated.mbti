@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub fn calendar_list_column_names() -> Array[String]
+
 pub fn calendar_list_facts_wire() -> String
 
 pub fn calendar_list_ids(CalendarListPage) -> Array[String]
