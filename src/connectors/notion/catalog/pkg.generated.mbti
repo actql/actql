@@ -250,6 +250,7 @@ pub(all) enum NotionQueryIssue {
   SchemaChanged(String)
   InvalidProperty(String)
   UnsupportedEntry(String)
+  IncompleteQuery
 } derive(Eq, @debug.Debug)
 
 pub(all) struct NotionQueryLimits {
