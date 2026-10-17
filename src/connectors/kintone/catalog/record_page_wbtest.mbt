@@ -49,9 +49,14 @@ fn record_test_field(
   record : OriginalRecord,
   code : String,
 ) -> OriginalRecordField {
-  original_record_fields(record)
-  .find(field => field.metadata.code == code)
-  .unwrap()
+  let mut found = None
+  for field in original_record_fields(record) {
+    if field.metadata.code == code {
+      found = Some(field)
+      break
+    }
+  }
+  found.unwrap()
 }
 
 ///|
