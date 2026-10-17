@@ -1,5 +1,5 @@
 {
-  "source": "2a3160d8ae98ed9f19c36010b34537a473ad40d8",
+  "source": "0a9ffa28608976fe94039baaeb3dfffd06f82d96",
   "qualification": "Operational functional reference supply; no product edit, authority transfer, representation promotion or runtime verification",
   "input": {
     "file": "c-r1-functional-primary-references-2a316.json",
@@ -4133,7 +4133,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "26481ec41f95fbfd0575e8cd9a83d455067866bf633ec66b76e64a66b3dbf68a",
+      "sha256": "291efe69f7c82ece1e489c781a2b9bb6eed8861b15871d596332fdcf86b07e77",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -4528,6 +4528,27 @@
           "name": "createRowEffectStage/basePreflight/basePreflight/basePreflight",
           "parameters": [
             "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/basePreflight/basePreflight/basePreflight/basePreflight",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/basePreflight/basePreflight/basePreflight/versioned/versioned",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/basePreflight/basePreflight/basePreflight/versioned/versioned#2",
+          "parameters": [
+            "row"
           ],
           "async": false
         },
@@ -5968,6 +5989,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Responsibility: the existing installed Row Effect retains the original"
               }
             ],
             "inputsOutputs": [
@@ -5990,6 +6015,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Inputs and outputs: `observeTargets` retains the original present"
               }
             ],
             "identity": [
@@ -6012,6 +6041,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Identity: original request target and observation identity must match; the"
               }
             ],
             "ownership": [
@@ -6038,6 +6071,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Ownership: existing capture/request children retain original reads and their"
               }
             ],
             "synchronization": [
@@ -6064,6 +6101,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Synchronization: insert-side UPSERT emits before absent and a not-applicable"
               }
             ],
             "failure": [
@@ -6090,6 +6131,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The ordinary caller uses its existing finite Host `maxWork`"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Failure: absent observations with before/version fields, unknown presence,"
               }
             ],
             "cancellation": [
@@ -6112,6 +6157,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Cancellation: observation completion is not physical stop or release. Original"
               }
             ],
             "resources": [
@@ -6142,6 +6191,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The ordinary caller uses its existing finite Host `maxWork`"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Resources: bounded observation envelope copies, original before references,"
               }
             ],
             "extension": [
@@ -6164,6 +6217,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Extension: the additive public driver union restricts absence to UPSERT and"
               }
             ],
             "verification": [
@@ -6214,6 +6271,10 @@
               {
                 "path": "adapters/host-node/command-original-grouping-budget.test.mjs",
                 "anchor": "ordinary capture uses finite Host grouping work"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Verification: `installed-row-upsert-absence.integration.test.mjs` uses actual"
               }
             ]
           }
@@ -6692,6 +6753,76 @@
               {
                 "path": "adapters/host-node/installed-row-delete.integration.test.mjs",
                 "anchor": "actual Common captures the original DELETE full-diff"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createRowEffectStage/basePreflight/basePreflight/basePreflight/basePreflight",
+            "createRowEffectStage/basePreflight/basePreflight/basePreflight/versioned/versioned",
+            "createRowEffectStage/basePreflight/basePreflight/basePreflight/versioned/versioned#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Responsibility: the existing installed Row Effect retains the original"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Inputs and outputs: `observeTargets` retains the original present"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Identity: original request target and observation identity must match; the"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Ownership: existing capture/request children retain original reads and their"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Synchronization: insert-side UPSERT emits before absent and a not-applicable"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Failure: absent observations with before/version fields, unknown presence,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Cancellation: observation completion is not physical stop or release. Original"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Resources: bounded observation envelope copies, original before references,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Extension: the additive public driver union restricts absence to UPSERT and"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Verification: `installed-row-upsert-absence.integration.test.mjs` uses actual"
               }
             ]
           }
