@@ -118,7 +118,9 @@ test('Gmail lost authenticated label reply keeps the original API Unknown withou
   assert.equal(reopened.recover().find(x => x.useId === 'original-labels').outcome, 'unknown');
   reopened.close();
   await assert.rejects(reader.read(), {code: 'GmailLabelListReaderAlreadyStarted'});
-  await assert.rejects(f.reader().read(), error => error.cause.code === 'RemoteCredentialUseAlreadyClaimed');
+  // The original physical Owner rejects an Unknown parent before it can
+  // attempt another claim; no replay is promoted into a fresh API permit.
+  await assert.rejects(f.reader().read(), error => error.cause.code === 'InvalidRemoteCredentialAuthenticationParent');
   assert.equal(f.state.authRequests, 1); assert.equal(f.state.apiRequests, 1);
   assert.equal(f.state.materialResolutions, 1); assert.equal(f.state.legacyResolutions, 0);
   f.row.assertNoCapture(); assert.equal(reader.observe().cleanupConfirmed, false);
