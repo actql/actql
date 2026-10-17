@@ -1,13 +1,6 @@
 ///|
-// Construction metadata for one closed Command input. The authored ID is
-// correspondence, not mutation identity, a KeySet or permission to execute.
-priv struct ShortCommandCapture {
-  input_key : String
-  target : String?
-  input : Array[(String, String)]
-}
-
-///|
+// Selection precedes expression lowering. The target value, input ID and
+// payload cannot choose a different Command, installation or interpretation.
 fn resolve_short_command_effect_target(
   clause : @query.ShortCommandEffectClause,
   publication : CommandTargetPublication?,
@@ -16,24 +9,24 @@ fn resolve_short_command_effect_target(
   guard publication is Some(publication) else { raise Abort(UnsupportedEffect) }
   let selected = match
     resolve_command_target_binding(publication, clause.operation, max_work) {
-    Ok(selected) => selected
+    Ok(value) => value
     Err(issue) => raise Abort(CommandTargetBinding(issue))
   }
-  let target_required = match resolved_command_target_binding(selected) {
-    Some(binding) =>
-      @environment.published_command_binding_mode(binding) is Identifier
+  let needs_target = match resolved_command_target_binding(selected) {
     None => true
+    Some(binding) =>
+      @environment.published_command_binding_mode(binding) == Identifier
   }
-  if target_required != (clause.target is Some(_)) {
+  if needs_target != (clause.target is Some(_)) {
     raise Abort(InvalidQuery)
   }
   selected
 }
 
 ///|
-// Evaluate TARGET/INPUT through the ordinary Relation expression owner once,
-// while the original immutable range scope is still present. Only demanded
-// fields cross the private Result; no Ref or target identity is manufactured.
+// The ordinary Relation lowerer evaluates computed values once before the
+// closed private Result. This creates neither a target Reference nor a key
+// proof; the original Command input owner checks their distinct obligations.
 fn lower_short_command_capture(
   construction : Construction,
   clause : @query.ShortCommandEffectClause,
@@ -46,14 +39,11 @@ fn lower_short_command_capture(
   expression_columns? : Array[(String, String)]? = None,
   value_ranges? : Array[@query.NamePart] = [],
 ) -> (RetainedResult, Array[Array[(String, @builder.Node)]]) raise Abort {
-  guard pipe_slot(clause.id, visible, ranges) is Some(input_key) else {
-    raise Abort(UnknownColumn)
-  }
   let expression_visible = expression_columns.unwrap_or(visible)
   let resolve = path => {
     pipe_expression_slot(path, expression_visible, ranges, value_ranges~)
   }
-  let fields = [input_key]
+  let fields : Array[String] = []
   let reserved = physical.copy()
   let derives : Array[(String, @builder.Node)] = []
   let capture_value = fn(expression : @query.Expression) -> String raise Abort {
@@ -64,11 +54,11 @@ fn lower_short_command_capture(
     while root.kind is Parenthesized(child) {
       root = @query.expression_node(expression, child).unwrap()
     }
-    let slot = match root.kind {
+    let direct = match root.kind {
       Reference(path) => resolve(path)
       _ => None
     }
-    let slot = match slot {
+    let slot = match direct {
       Some(slot) => slot
       None => {
         let slot = pipe_physical_name(reserved, "aql_command_value_")
@@ -94,13 +84,24 @@ fn lower_short_command_capture(
     }
     slot
   }
-  let target = clause.target.map(expression => capture_value(expression))
-  let input : Array[(String, String)] = []
+  // Retain the parser's original field-path expression. A nested property
+  // uses the same checked Relation projection, not a reparsed/synthetic ID.
+  let id = capture_value(clause.id_expression)
+  let target = match clause.target {
+    Some(expression) => Some(capture_value(expression))
+    None => None
+  }
+  let assignments : Array[(String, @builder.Node)] = []
   for (field, expression) in clause.input {
-    if input.any(entry => same_name({ value: entry.0, quoted: false, }, field)) {
+    if assignments.any(entry => {
+        same_name({ value: entry.0, quoted: false, }, field)
+      }) {
       raise Abort(DuplicateOutput)
     }
-    input.push((field.value, capture_value(expression)))
+    let slot = capture_value(expression)
+    assignments.push(
+      (field.value, construction.object([("field", construction.text(slot))])),
+    )
   }
   let body : Array[Array[(String, @builder.Node)]] = []
   let start = [("from", construction.text(producer))]
@@ -125,14 +126,14 @@ fn lower_short_command_capture(
   (
     {
       name: "",
-      port: capture,
+      port: "aql_private_command",
       from: capture,
       fields,
       terminal: false,
       carrier_complete: false,
       update: None,
       store: false,
-      short_command: Some({ input_key, target, input, }),
+      command: Some((id, target, assignments)),
     },
     body,
   )
@@ -146,33 +147,30 @@ fn lower_short_command_effect(
   default_port : String,
   retained : Array[RetainedResult],
 ) -> (String, @builder.Node) raise Abort {
-  let captures = retained.filter(result => result.short_command is Some(_))
+  let captures = retained.filter(result => result.command is Some(_))
   guard captures.length() == 1 else { raise Abort(UnsupportedEffect) }
-  let result = captures[0]
-  let capture = result.short_command.unwrap()
-  let (target_ref, contract) = resolved_command_target(selected)
+  let capture = captures[0]
+  let (id, target_field, assignments) = capture.command.unwrap()
+  let (target_ref, command_ref) = resolved_command_target(selected)
   let target = match resolved_command_target_binding(selected) {
+    None => {
+      guard target_field is Some(field) else { raise Abort(InvalidQuery) }
+      construction.object([("field", construction.text(field))])
+    }
     Some(binding) => {
       let fields = [("target_ref", construction.text(target_ref))]
       match @environment.published_command_binding_mode(binding) {
-        Installation =>
-          if capture.target is Some(_) {
-            raise Abort(InvalidQuery)
-          }
+        Installation => if target_field is Some(_) { raise Abort(InvalidQuery) }
         Identifier => {
-          guard capture.target is Some(field) else { raise Abort(InvalidQuery) }
+          guard target_field is Some(field) else { raise Abort(InvalidQuery) }
           fields.push(("identifier_field", construction.text(field)))
         }
       }
       construction.object([("published_command", construction.object(fields))])
     }
-    None => {
-      guard capture.target is Some(field) else { raise Abort(InvalidQuery) }
-      construction.object([("field", construction.text(field))])
-    }
   }
   let name = clause.name.map(part => part.value).unwrap_or("aql_command_effect")
-  guard !name.is_empty() else { raise Abort(UnsupportedEffect) }
+  guard name != "" else { raise Abort(UnsupportedEffect) }
   (
     name,
     construction.object([
@@ -185,25 +183,15 @@ fn lower_short_command_effect(
               (
                 "result",
                 construction.text(
-                  retained_result_port(default_port, result.port),
+                  retained_result_port(default_port, capture.port),
                 ),
               ),
             ]),
           ),
           ("target", target),
-          ("contract", construction.text(contract)),
-          ("input_key", construction.text(capture.input_key)),
-          (
-            "input",
-            construction.object(
-              capture.input.map(entry => {
-                (
-                  entry.0,
-                  construction.object([("field", construction.text(entry.1))]),
-                )
-              }),
-            ),
-          ),
+          ("contract", construction.text(command_ref)),
+          ("input_key", construction.text(id)),
+          ("input", construction.object(assignments)),
         ]),
       ),
     ]),
