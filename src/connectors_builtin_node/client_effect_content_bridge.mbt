@@ -71,6 +71,15 @@ pub fn client_program_effect_command_content_wire(
 }
 
 ///|
+#export_name("clientProgramEffectCommandContentMatchesIssued")
+pub fn client_program_effect_command_content_matches_issued(
+  value : @publication_host.ClientEffectCommandContent,
+  issued : @admitted.CheckedValue,
+) -> Bool {
+  @publication_host.client_effect_command_content_matches_issued(value, issued)
+}
+
+///|
 #export_name("clientProgramEffectCommandContentRelease")
 pub fn client_program_effect_command_content_release(
   value : @publication_host.ClientEffectCommandContent,

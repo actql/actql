@@ -4133,7 +4133,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "ef9b365023b6b7c276b888af5a23d197fc16f211e801ae3dc6b6f4466f60d2fd",
+      "sha256": "e3343b912004c6510990c318b4380ab52184077101525ad560bbed1f4cabbe30",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -4215,12 +4215,24 @@
           "async": false
         },
         {
-          "name": "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#2",
+          "name": "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#3",
           "parameters": [],
           "async": false
         },
         {
+          "name": "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#2",
+          "parameters": [
+            "issued"
+          ],
+          "async": false
+        },
+        {
           "name": "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#4",
           "parameters": [],
           "async": false
         },
@@ -6247,6 +6259,8 @@
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#2",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#2",
+            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#3",
+            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#4",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#3",
             "commandContentBorrower/init:borrow/init:borrow/prior/prior",
             "commandContentBorrower/init:release/init:release",

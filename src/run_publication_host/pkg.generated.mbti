@@ -385,6 +385,8 @@ pub fn client_effect_command_content_current(ClientEffectCommandContent) -> Bool
 
 pub fn client_effect_command_content_matches(ClientEffectCommandContent, PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, Int, String) -> Bool
 
+pub fn client_effect_command_content_matches_issued(ClientEffectCommandContent, @value_admission.CheckedValue) -> Bool
+
 pub fn client_effect_command_content_wire(ClientEffectCommandContent) -> Result[String, ClientEffectCommandContentIssue]
 
 pub fn client_effect_compilation_compiled_plan(ClientEffectCompilation) -> @run_publication.PublicationContract
