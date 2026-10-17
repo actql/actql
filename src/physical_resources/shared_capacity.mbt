@@ -40,6 +40,28 @@ pub fn reserve_shared_capacity(
 }
 
 ///|
+/// Byte-only execution workspace on the same original Ledger. Unlike the
+/// existing resident/send-attempt entry, this consumes no attempt, transfer
+/// or quantity allowance. The original phase supplier must still select and
+/// retain the complete envelope before allocation; free bytes or this token
+/// alone establish neither phase assignment nor permission to read or send.
+pub fn reserve_shared_workspace_capacity(
+  ledger : Ledger,
+  bytes : Int64,
+) -> Result[SharedCapacity, LedgerIssue] {
+  if bytes <= 0L {
+    return Err(InvalidCharge)
+  }
+  reserve_capacity(ledger, 0L, bytes).map(read => {
+    ledger,
+    reservation: read.reservation,
+    capacity: bytes,
+    allocated: 0L,
+    closing: false,
+  })
+}
+
+///|
 pub fn allocate_shared_capacity(
   owner : SharedCapacity,
   bytes : Int64,
