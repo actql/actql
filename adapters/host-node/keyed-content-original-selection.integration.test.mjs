@@ -17,7 +17,7 @@ async function fixture(t, {matcher = moon.clientProgramEffectCommandContentMatch
   const generated = await createGeneratedContentFixture(t);
   await generated.store.commitPhysicalHolding(generated.holding, [generated.physical.prepared]);
   const compiled = {}, preparedProgram = {}, acquisition = {}, ledger = {}, reservation = {};
-  let execution, issued, releases = 0, matcherCalls = 0;
+  let execution, issued, releases = 0, matcherCalls = 0, sourceAvailable = true;
   const counters = {matches: () => matcherCalls, releases: () => releases};
   const control = {...generatedContentFixtureControl,
     reserveWorkspace(original) { assert.equal(original, ledger); return reservation; },
@@ -56,7 +56,8 @@ async function fixture(t, {matcher = moon.clientProgramEffectCommandContentMatch
     authorityScopeCid: generated.description.workspaceScopeCid,
     storeAuthorityCid: generated.description.storeCid,
     principalId: 'fixture', ownerPrincipal: 'fixture', now: () => '2026-10-17T00:00:00.000Z',
-    authorize: () => true, retainExecution(value) { execution = value; }});
+    authorize: () => true, inputAvailable: () => sourceAvailable,
+    retainExecution(value) { execution = value; }});
   t.after(async () => { assert.equal(await execution.cleanup(), true); });
   const recover = () => owner.recover({keyedAcquisition: acquisition,
     verifyRead: async () => {}, referenceWire: generated.description.wire,
@@ -64,7 +65,7 @@ async function fixture(t, {matcher = moon.clientProgramEffectCommandContentMatch
   assert.equal(owner.issuedForContent(undefined), undefined);
   await recover();
   return {scratch, generated, owner, issued: () => issued, recover, counters,
-    execution: () => execution};
+    execution: () => execution, retireAvailability() { sourceAvailable = false; }};
 }
 
 async function runAtPreparation(t, f, value, inspect, expectedStatus = 'waiting_checkpoint') {
@@ -152,6 +153,27 @@ test('stored original handoff refuses cleanup begun by the original matcher call
   assert.equal(await cleanupFlight, true);
   assert.equal(f.counters.releases(), 1);
   assert.equal(f.generated.store.status().storedBytes, 3);
+  await f.generated.store.retirePhysicalHolding(f.generated.holding.holding_cid);
+  f.scratch.passed();
+});
+
+test('stored original handoff refences Source availability after the original matcher callback', async t => {
+  let retire;
+  const f = await fixture(t, {matcher(binding, issued) {
+    const matched = moon.clientProgramEffectCommandContentMatchesIssued(binding, issued);
+    if (matched && retire !== undefined) retire();
+    return matched;
+  }});
+  retire = () => f.retireAvailability();
+  await runAtPreparation(t, f, f.issued(), view => {
+    assert.equal(f.owner.storageForContent(view.binding), undefined,
+      'prior match is not a current Source holding handoff');
+    assert.equal(f.owner.issuedForContent(view.binding), undefined);
+    assert.equal(f.execution().cleanupPending(), true,
+      'availability refusal does not acknowledge Source cleanup');
+  });
+  assert.equal(f.generated.store.status().storedBytes, 3);
+  assert.equal(await f.execution().cleanup(), true);
   await f.generated.store.retirePhysicalHolding(f.generated.holding.holding_cid);
   f.scratch.passed();
 });
