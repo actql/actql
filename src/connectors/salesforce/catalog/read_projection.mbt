@@ -60,6 +60,11 @@ fn read_field_contract(field : FieldMetadata) -> @contract.Contract? {
           @contract.decimal_contract(precision, scale, nullable=field.nullable)
         None => None
       }
+    "multipicklist" =>
+      return @contract.array_contract(
+        @contract.primitive(@contract.StringType, nullable=false),
+        nullable=field.nullable,
+      )
     "date" => @contract.DateType
     "datetime" => @contract.TimestampType
     _ => return None
