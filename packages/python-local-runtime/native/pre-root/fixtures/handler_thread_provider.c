@@ -19,6 +19,9 @@ static _Unwind_Reason_Code record_frame(struct _Unwind_Context *context, void *a
 int actql_native_owned_allocate(actql_owned_capacity *owner, size_t bytes,
                                 size_t alignment, void **out) {
     int code = actql_test_original_allocate_body(owner, bytes, alignment, out);
+    if (code != 0)
+        fprintf(stderr, "original allocation refusal code=%d bytes=%zu alignment=%zu\n",
+                code, bytes, alignment);
     /* Original Rust header32 + observed payload64. Capture only this contact;
      * no allocation quantity/meaning is changed and no alternative provider runs. */
     if (code == 0 && bytes == 96 && trace_count < 64) {

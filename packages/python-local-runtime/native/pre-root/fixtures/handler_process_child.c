@@ -24,7 +24,9 @@ static size_t size_argument(const char *value) {
 }
 
 int main(int argc, char **argv) {
-    assert(argc == 7);
+    assert(argc == 8);
+    const bool retained_panic = strcmp(argv[7], "retained-panic") == 0;
+    assert(retained_panic || strcmp(argv[7], "all-original") == 0);
     int descriptor = open(argv[1], O_RDWR | O_NOFOLLOW | O_CLOEXEC);
     assert(descriptor >= 0);
     long selected_page = sysconf(_SC_PAGESIZE); assert(selected_page > 0);
@@ -59,7 +61,11 @@ int main(int argc, char **argv) {
     void *(*address)(void) = NULL;
     assert(sizeof(address) == sizeof(symbol)); memcpy(&address, &symbol, sizeof(address));
     assert(address != NULL && address() == dlsym(RTLD_DEFAULT, "actql_native_owned_current"));
-    for (int index = 0; index < 4; index++) {
+    /* The retained-panic case proves normal process retirement with the real
+     * std mutex still live. The full original sequence separately exercises
+     * its bounded-domain OOM; a signaled child is never business success. */
+    const int selected_cases = retained_panic ? 2 : 4;
+    for (int index = 0; index < selected_cases; index++) {
         assert(run(index) == 0);
         actql_test_original_extent_observation(original, index + 1);
     }
@@ -72,8 +78,8 @@ int main(int argc, char **argv) {
      * still process-retained. This is not a holding-close success. The Native
      * parent must confirm process/IPC stop and actually clean its original
      * exclusive view and descriptor before reporting region retirement. */
-    puts("{\"handler_cases\":4,\"thread_joins\":3,\"RuntimeRetained\":true,"
-         "\"borrow_return\":\"refused\",\"holding_closed\":false}");
+    printf("{\"handler_cases\":%d,\"RuntimeRetained\":true,"
+         "\"borrow_return\":\"refused\",\"holding_closed\":false}\n", selected_cases);
     assert(fflush(stdout) == 0 && close(descriptor) == 0);
     return 0;
 }
