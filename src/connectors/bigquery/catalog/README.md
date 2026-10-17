@@ -78,3 +78,44 @@ and [unenforced primary/foreign keys](https://docs.cloud.google.com/bigquery/doc
 - Verification: independent metadata and canonical-schema vectors exercise exact
   target binding, Common declaration issuance, nested modes, decimal constraints,
   duplicate keys, key claims, unsupported fields and aggregate bounds.
+
+## Query-result page admission
+
+`project_query_page` admits a bounded `jobs.query` / `jobs.getQueryResults`
+response against the **same original** `ReadProjection` and explicitly selected
+Job project/id/location. Its `QueryJob` is routing DATA, not an adopted Job,
+request, credential, current authorization, launch permit or durable record.
+Missing Job location has only the provider's documented `US` default; it does
+not borrow another region. The returned page retains nominal projection/Job
+identity, exact response digest, declared total and opaque next-page token.
+A complete page is not completion of all pages, physical stop or a Store ACK.
+
+The result schema must match selected names/types and recursive structure.
+Query nullability metadata cannot widen the original Common contract. Numeric
+parameters omitted from result metadata use the original contract, never a
+new decimal default; explicit parameters must match that effective contract.
+`f`/`v` wrappers preserve SQL NULL versus missing cells, JSON null, string data,
+RECORD field order and REPEATED element boundaries. Common admits exact decimal
+text, finite floats, dates, booleans and recursive objects/arrays. There is no
+binary64 decimal conversion, schema replacement or partial-schema acceptance.
+
+JSON data uses the existing Common JSON-literal rules, including first-key
+retention and bounds on discarded duplicate values. Machine response/object
+keys remain duplicate-rejecting. Pending responses and nonempty diagnostics
+have separate typed refusals; diagnostic presence alone is not Job failure.
+The physical caller keeps the original response/custody and must interpret the
+actual Job observation. Input, recursive schema, aggregate value nodes/text,
+row/total counts, Job text and page-token bytes all have finite caller bounds.
+Those are logical limits, not physical reservations or a normal funding profile.
+
+This page parser does not create, retry, poll or cancel a Job, send an HTTP
+request, issue a Source grant, charge an unobserved body, publish a Result or
+acknowledge physical cleanup. The same existing Row/Host Owner must still bind
+its original request/charge/RowRun, accumulate pages and confirm their end.
+Unsupported Common types listed above remain unfinished rather than being
+advertised as strings or floats. Full physical/public BigQuery acceptance and
+Python Local remain separate unfinished work.
+
+Sources: [query results](https://docs.cloud.google.com/bigquery/docs/reference/rest/v2/jobs/getQueryResults),
+[JobReference](https://docs.cloud.google.com/bigquery/docs/reference/rest/v2/JobReference),
+and [JSON type](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-types#json_type).
