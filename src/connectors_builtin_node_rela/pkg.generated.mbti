@@ -764,6 +764,14 @@ pub fn client_program_kintone_delete_mapping_matches_request(@actql/actql/connec
 
 pub fn client_program_kintone_delete_observation_body(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, Int, Int, Int, Int) -> Result[String, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
 
+pub fn client_program_kintone_delete_preview_before(@actql/actql/connectors/kintone/host.RecordDeletePreview) -> String
+
+pub fn client_program_kintone_delete_preview_identity(@actql/actql/connectors/kintone/host.RecordDeletePreview) -> String
+
+pub fn client_program_kintone_delete_preview_matches(@actql/actql/connectors/kintone/host.RecordDeletePreview, @actql/actql/connectors/kintone/host.RecordDeleteMapping, @actql/actql/connectors/kintone/catalog.OriginalRecordTarget) -> Bool
+
+pub fn client_program_kintone_delete_preview_version_cid(@actql/actql/connectors/kintone/host.RecordDeletePreview) -> String
+
 pub fn client_program_kintone_delete_recheck_form(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, Bytes, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> Result[Unit, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
 
 pub fn client_program_kintone_delete_recheck_records(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, Bytes, @actql/actql/connectors/kintone/catalog.RecordPageLimits, Int, Int) -> Result[Unit, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
@@ -789,6 +797,8 @@ pub fn client_program_kintone_page_next_cursor(@actql/actql/connectors/kintone/h
 pub fn client_program_kintone_page_request_body(@actql/actql/connectors/kintone/host.PreparedRecordRead, Array[String], Int, Int) -> Result[String, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
 pub fn client_program_kintone_prepare_delete_mapping(@actql/actql/connectors/kintone/host.RecordDeclaration, String, String, @client_row_source_host.RowDeclarationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordDeleteMapping, @client_row_source_host.RowMappingIssue]
+
+pub fn client_program_kintone_prepare_delete_preview(@actql/actql/connectors/kintone/host.RecordDeleteMapping, @actql/actql/connectors/kintone/catalog.OriginalRecordTarget, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordDeletePreview, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
 pub fn client_program_kintone_prepare_read(@actql/actql/connectors/kintone/host.RecordDeclaration, @query_planning.QueryRequirement, String, String) -> Result[@actql/actql/connectors/kintone/host.PreparedRecordRead, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
