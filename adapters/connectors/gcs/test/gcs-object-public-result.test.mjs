@@ -137,7 +137,8 @@ test('public GCS Named Result preserves exact Decimal and JSON contracts across 
   client = await open();
   const program = {version: 'actql/0.1', id: 'gcs-public-typed-result', stages: [{id: 'scan',
     inputs: {objects: {connector: 'storage', resource: 'objects', view: 'records', request: {prefix: null}}},
-    steps: [{from: 'objects', select: fields, as: 'rows'},
+    steps: [{from: 'objects', filter: 'true', as: 'listed'},
+      {from: 'listed', select: fields, as: 'rows'},
       {from: 'rows', assert_rows: {unique_by: ['name']}, as: 'unique_names'},
       {from: 'unique_names', sort: [{name: 'asc'}], as: 'ordered'}],
     results: {r: {from: 'ordered', fields}}}], results: {r: {from: {stage: 'scan', result: 'r'}}}};
