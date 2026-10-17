@@ -307,6 +307,11 @@ fn check_source_findings(
     Ok(value) => value
     Err(_) => return Failed("check_context_invalid")
   }
+  let update_targets = match
+    @publication.published_update_targets(environment, visible_publication) {
+    Ok(value) => value
+    Err(_) => return Failed("check_context_invalid")
+  }
   let store_targets = match
     @publication.published_store_targets(environment, visible_publication) {
     Ok(value) => value
@@ -323,6 +328,7 @@ fn check_source_findings(
       selected,
       Some(context),
       table_writes~,
+      update_targets~,
       store_targets~,
       command_targets~,
     ) {
@@ -659,6 +665,7 @@ fn check_source_findings(
             supplied,
             [],
             @host.client_standard_effect_computation_limits(),
+            update_targets=lowered.update_targets,
             store_targets=lowered.store_targets,
             command_targets=lowered.command_targets,
           ) {
