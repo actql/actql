@@ -163,20 +163,26 @@ test('actual issued Content match rechecks retirement after its original availab
   let observe = () => true;
   const issued = await generated.issue({available: () => observe()});
   let borrowed;
+  let callbacks = 0;
   const host = await openContentCommandHost({scratch, generated, originalContentValue: issued,
     keys: generateKeyPairSync('ed25519'), entrance: 'Local',
     onPrepareContent({originalContent}) {
       borrowed = originalContent('content');
       assert.equal(borrowed.matchesIssued(issued), true);
+      // This synchronous preparation still owns its original input pin. Once
+      // waiting is published, that pin may already have retired normally.
+      observe = () => { callbacks++; borrowed.release(); return true; };
+      assert.equal(borrowed.matchesIssued(issued), false,
+        'a Host callback cannot keep a just-retired original projection current');
+      assert.ok(callbacks > 0);
+      assert.equal(borrowed.current(), false);
+      assert.equal(borrowed.matchesIssued(issued), false);
+      observe = () => true;
     }});
   t.after(host.close);
   const run = await host.client.start(host.fixture.program);
   assert.equal((await run.wait({signal: AbortSignal.timeout(15000)})).status,
     'waiting_checkpoint');
-  let callbacks = 0;
-  observe = () => { callbacks++; borrowed.release(); return true; };
-  assert.equal(borrowed.matchesIssued(issued), false,
-    'a Host callback cannot keep a just-retired original projection current');
   assert.ok(callbacks > 0);
   assert.equal(borrowed.current(), false);
   assert.equal(borrowed.matchesIssued(issued), false);
