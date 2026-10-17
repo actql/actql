@@ -19,3 +19,12 @@ def sync_check(client: Client) -> dict[str, Any]:
 async def async_check(client: AsyncClient) -> str:
     outcome = await client.check({}, kind='program', scope='template_only')
     return outcome.outcome
+
+
+def existing_observation_compatibility(outcome: CheckObservation) -> dict[str, Any]:
+    from actql_sdk import Observation, get_check_input, get_check_fixes
+    from actql_sdk._types import CheckOutcome
+    legacy: Observation[CheckOutcome] = outcome
+    original = get_check_input(outcome, 'source')
+    fixes = get_check_fixes(outcome)
+    return {'wire': legacy.to_dict(), 'input': original, 'fixes': fixes}
