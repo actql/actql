@@ -66,7 +66,7 @@ pub fn ClientLocalSigningBootstrapPolicy::cid(
 /// never a new CID domain or proof of installation/issuer authority. The Host
 /// must obtain this input from its same authenticated initialization original.
 pub fn ClientLocalSigningBootstrapPolicy::issuer_identity(
-  self : ClientLocalSigningBootstrapPolicy,
+  _self : ClientLocalSigningBootstrapPolicy,
   initialization_intent_cid : String,
 ) -> Result[String, ClientLocalSigningBootstrapIssueError] {
   if !valid_client_request_cid(initialization_intent_cid) {
@@ -81,7 +81,7 @@ pub fn ClientLocalSigningBootstrapPolicy::issuer_identity(
 /// trusted Host samples once inside its original durable issue, and supplies
 /// the applicable earlier original key/authorization bound, if one exists.
 pub fn ClientLocalSigningBootstrapPolicy::prepare_first_issue(
-  self : ClientLocalSigningBootstrapPolicy,
+  _self : ClientLocalSigningBootstrapPolicy,
   trusted_sample_ms : Int64,
   original_valid_until_ms : Int64?,
 ) -> Result[
@@ -115,7 +115,7 @@ pub fn ClientLocalSigningBootstrapPolicy::prepare_first_issue(
 ///|
 /// Finite original selected policy, not usage availability or an ordinal claim.
 pub fn ClientLocalSigningBootstrapPolicy::max_uses(
-  self : ClientLocalSigningBootstrapPolicy,
+  _self : ClientLocalSigningBootstrapPolicy,
 ) -> Int {
   client_local_default_signing_max_uses()
 }
