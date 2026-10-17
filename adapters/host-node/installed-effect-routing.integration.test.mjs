@@ -84,8 +84,14 @@ async function installation(t, {loseSheetsReply}) {
       try { await close(); } catch (error) { failures.push(error); }
     }
     setDefaultCACertificates(originalCAs);
-    if (failures.length === 0) await rm(root, {recursive: true, force: true});
-    else throw new AggregateError(failures, 'EffectRoutingFixtureCleanupFailed');
+    if (failures.length > 0) {
+      throw new AggregateError(failures, 'EffectRoutingFixtureCleanupFailed');
+    }
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      console.error(`Effect routing original custody retained: ${root}`);
+    } else {
+      await rm(root, {recursive: true, force: true});
+    }
   });
   await mkdir(join(root, 'tls'));
   const tls = await fixtureCertificates(join(root, 'tls'));
