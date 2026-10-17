@@ -52,6 +52,22 @@ funding. A physical key/use supplier must cover its own additional lifetime.
 
 ## Original public Host signer selections
 
+The Node Host's private Local-signing metadata view delegates exact grant/use
+wire admission, identities, finite limits and full expected-scope comparison to
+the existing Credential Owner. It retains that runtime's opaque values behind
+view-local references; copied or foreign references cannot cross the seam.
+Callbacks and their runtime receiver are captured once. Expected scope is an
+explicit original argument, never inferred as current permission from the
+candidate grant. The view issues no grant and claims no use ordinal.
+
+Retiring this metadata view cuts its own references and refuses escaped
+operations. It does not stop signing, forget a pending claim, acknowledge key
+cleanup or discharge Unknown. The installation must retain physical key,
+Account/issuer, request/Checkpoint/Run, durable original-use and outcome duties
+independently. Its private maps/tokens/callbacks, decoded metadata and writer
+overlap still belong to the original Host/Run resource inventory; no numerical
+coverage follows from bounded metadata or reference retirement.
+
 The existing Common Host configuration boundary projects the `signers` portion
 of an explicitly selected `actql-host/0.1` original. It retains the exact input
 wire and private-constructor selections for each original name, principal, key
