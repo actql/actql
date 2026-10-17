@@ -33,7 +33,8 @@ const limits = Object.freeze({maxResponseBytes: 8192, maxRequestBytes: 4096,
   maxColumns: 8, maxCells: 64, maxTableRows: 16, maxComparisonWork: 10000, maxIdentityBytes: 10000});
 
 
-export async function writeFixture(t, {kind = 'update', guestSpaceId, effect = 'allow', faults = []} = {}) {
+export async function writeFixture(t, {kind = 'update', guestSpaceId, effect = 'allow', faults = [],
+  formDocument = originalForm} = {}) {
   const parent = new URL('../../../../_build/kintone-write-fixtures/', import.meta.url);
   await mkdir(parent, {recursive: true});
   const root = await mkdtemp(join(parent.pathname, kind + '-'));
@@ -57,7 +58,7 @@ export async function writeFixture(t, {kind = 'update', guestSpaceId, effect = '
         state.forms++;
         assert.equal(exchange.headers['x-http-method-override'], 'GET');
         assert.deepEqual(body, {app: '12'});
-        return {body: await state.form?.() ?? originalForm};
+        return {body: await state.form?.() ?? formDocument};
       }
       if (kind === 'target') {
         state.targets++;
@@ -158,7 +159,7 @@ export async function writeFixture(t, {kind = 'update', guestSpaceId, effect = '
   binding = openHttpsCredentialBinding({...site.credential, scope: initialAuthorization.scope,
     maxSecretBytes: 128, secretPresentation: 'kintone-api-token'});
   const formLimits = common.clientProgramKintoneFormLimits(8192, 2000, 20, 16, 512);
-  const catalog = checked(common.clientProgramKintoneProjectForm(bytes(originalForm), '12', formLimits));
+  const catalog = checked(common.clientProgramKintoneProjectForm(bytes(formDocument), '12', formLimits));
   const pageLimits = common.clientProgramKintonePageLimits(8192, 2000, 20, 2, 8, 64, 16);
   const page = checked(common.clientProgramKintoneProjectRecordPage(bytes({records: ids.map(id => record(id)),
     totalCount: null}), catalog, fields, pageLimits));
@@ -188,7 +189,7 @@ export async function writeFixture(t, {kind = 'update', guestSpaceId, effect = '
     assert.equal(state.active, false); state.active = true;
     try {return await sendRawKintoneWrite({...options, ...overrides});} finally {state.active = false;}
   };
-  return {root, tls, state, site, binding, row, options, common, request, send, writeAccount,
+  return {root, tls, state, site, binding, row, options, common, catalog, request, send, writeAccount,
     closeRoot: () => {state.closing = true; return row.close();},
     journal: site.credential.journal, authorizationFor, operation};
 }
