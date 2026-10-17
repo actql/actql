@@ -22961,7 +22961,7 @@
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "39c395b4b8b5bb43889c6a11a6c5917380c8abacf7003cb732f774c07f07f651",
+      "sha256": "fc590adb688523a465da93342355425b6c5a87b4806998f034b149378952c436",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -23075,11 +23075,6 @@
           "async": false
         },
         {
-          "name": "installedHostShutdown/init:close/init:close",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "installedHostShutdown/shutdown/shutdown",
           "parameters": [],
           "async": false
@@ -23093,6 +23088,11 @@
           "name": "installedHostShutdown/shutdown/shutdown#11",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "installedHostShutdown/shutdown/shutdown#12",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "installedHostShutdown/shutdown/shutdown#2",
@@ -23156,7 +23156,6 @@
             "createEmbeddedHostRegistry/init:connect/init:connect/seal",
             "createEmbeddedHostRegistry/init:connect/init:connect/status/status",
             "installedHostShutdown",
-            "installedHostShutdown/init:close/init:close",
             "installedHostShutdown/shutdown/shutdown",
             "installedHostShutdown/shutdown/shutdown#10",
             "installedHostShutdown/shutdown/shutdown#11",
@@ -23167,7 +23166,8 @@
             "installedHostShutdown/shutdown/shutdown#6",
             "installedHostShutdown/shutdown/shutdown#7",
             "installedHostShutdown/shutdown/shutdown#8",
-            "installedHostShutdown/shutdown/shutdown#9"
+            "installedHostShutdown/shutdown/shutdown#9",
+            "installedHostShutdown/shutdown/shutdown#12"
           ],
           "exports": [
             "createEmbeddedHostRegistry",
@@ -23205,7 +23205,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "// close retains its retry state and the original runtime view unchanged."
+                "anchor": "// A failed/partial retirement still owns the original callback."
               },
               {
                 "path": "docs/spec/execution.md",
@@ -31073,12 +31073,13 @@
     {
       "module": "adapters/host-node/installed-host-cleanup.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "757e9025bbe4ccee30ec52a2c36189d391c1361c4eaa2145f2ea862c4ee8c925",
+      "sha256": "d382b4b8feebefc0349d83a62dc1e317678bea81371062f3ebf94f51f4c71def",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
         "createInstalledHostShutdown",
-        "retainInstalledHostInitializationFailure"
+        "retainInstalledHostInitializationFailure",
+        "retainInstalledHostRuntimeFailure"
       ],
       "operations": [
         {
@@ -31094,7 +31095,8 @@
             "store",
             "diagnostic",
             "observation",
-            "ownerViews"
+            "ownerViews",
+            "finalize"
           ],
           "async": false
         },
@@ -31247,6 +31249,49 @@
         },
         {
           "name": "retainInstalledHostInitializationFailure/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledHostRuntimeFailure",
+          "parameters": [
+            "cause",
+            "retire"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainInstalledHostRuntimeFailure/observeChild/observeChild",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledHostRuntimeFailure/retireOnce/retireOnce",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledHostRuntimeFailure/retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledHostRuntimeFailure/retry/retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "retainInstalledHostRuntimeFailure/retry/retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledHostRuntimeFailure/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledHostRuntimeFailure/update/update",
           "parameters": [],
           "async": false
         }
@@ -31422,6 +31467,115 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "retainInstalledHostRuntimeFailure",
+            "retainInstalledHostRuntimeFailure/observeChild/observeChild",
+            "retainInstalledHostRuntimeFailure/retireOnce/retireOnce",
+            "retainInstalledHostRuntimeFailure/retry",
+            "retainInstalledHostRuntimeFailure/retry/retry",
+            "retainInstalledHostRuntimeFailure/retry/retry#2",
+            "retainInstalledHostRuntimeFailure/status/status",
+            "retainInstalledHostRuntimeFailure/update/update"
+          ],
+          "exports": [
+            "retainInstalledHostRuntimeFailure"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "export function retainInstalledHostRuntimeFailure(cause, retire) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "failure.cleanupHandle = Object.freeze({status, retry});"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const observed = Reflect.apply(childStatus, child, []);"
+              },
+              {
+                "path": "adapters/host-node/installed-runtime-retirement-unit.test.mjs",
+                "anchor": "test('same original child methods and receiver remain captured across retry'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "child = childStatus = childRetry = undefined;"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "finalize = undefined;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "if (flight !== undefined) return flight;"
+              },
+              {
+                "path": "adapters/host-node/installed-runtime-retirement-unit.test.mjs",
+                "anchor": "assert.equal(first, failure.cleanupHandle.retry());"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "primaryFailure: cause?.primaryFailure ?? cause,"
+              },
+              {
+                "path": "adapters/host-node/installed-runtime-retirement-unit.test.mjs",
+                "anchor": "test('failed child retry retains primary facts and only its latest local failure'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "if (observed?.pending !== false) return false;"
+              },
+              {
+                "path": "adapters/host-node/infer-trusted-store-lifetime.test.mjs",
+                "anchor": "assert.equal(retired, 0);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "let retirementComplete = false, finalize = retire, flight, lastError;"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "let childErrors = Array.isArray(originalErrors) ? originalErrors : [];"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "Never mutate a borrowed/frozen exception"
+              },
+              {
+                "path": "adapters/host-node/installed-runtime-retirement-unit.test.mjs",
+                "anchor": "test('missing cleanup owner cannot become a successful runtime retirement'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-runtime-retirement-unit.test.mjs",
+                "anchor": "test('runtime retirement failure does not repeat confirmed child cleanup'"
+              },
+              {
+                "path": "adapters/host-node/installed-runtime-retirement.test.mjs",
+                "anchor": "installed Host retains original runtime cleanup after"
               }
             ]
           }
