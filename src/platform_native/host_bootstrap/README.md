@@ -228,4 +228,3 @@ original stub object and archive through the ordinary incremental build. This
 does not change C contents, optimization flags or runtime ownership. Imported
 provider sources still require their existing separate producer correspondence;
 local header discovery does not establish that external input closure.
-
