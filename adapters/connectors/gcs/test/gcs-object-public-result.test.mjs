@@ -8,6 +8,7 @@ import {readFile, writeFile} from 'node:fs/promises';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import {inspect} from 'node:util';
 import * as moon from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as provider from '../../../../_build/js/release/build/connectors/gcs/host_node/host_node.js';
 import {createOwnedScratch} from '../../../../scripts/owned-scratch.mjs';
@@ -140,7 +141,13 @@ test('public GCS Named Result preserves exact Decimal and JSON contracts across 
       {from: 'rows', sort: [{name: 'asc'}], as: 'ordered'}],
     results: {r: {from: 'ordered', fields}}}], results: {r: {from: {stage: 'scan', result: 'r'}}}};
   const run = await client.startSource(JSON.stringify(program), {format: 'json',
-    submissionRef: client.newSubmission({nonce: 'gcs-public-original'})});
+    submissionRef: client.newSubmission({nonce: 'gcs-public-original'})}).catch(error => {
+    // All observed values belong to this nonsecret fresh fixture. Retain the
+    // exact refusal; diagnostic presentation does not replace that failure.
+    t.diagnostic(inspect({error, events, acquisitions, calls},
+      {depth: 10, maxArrayLength: 20, maxStringLength: 1000}).slice(0, 12000));
+    throw error;
+  });
   const state = await run.wait({signal: AbortSignal.timeout(15000)});
   assert.equal(state.status, 'succeeded', JSON.stringify({state, events}));
   assert.equal(state.control.physical_stop, 'confirmed');
