@@ -7,6 +7,91 @@ source id or select the first source, a matching display name or a compatible
 schema. Selection takes an explicit occurrence of the original inventory.
 Empty inventories and repeated display names remain valid metadata.
 
+## Original property write encoding
+
+The Catalog's property write codec accepts one original selected data-source
+observation, its property occurrence and a Common CheckedValue. The opaque
+result retains all three originals with a bounded encoded document. An equal
+reparsed schema or copied equal checked value cannot replace them in its
+correspondence check. Aggregation uses original property ids, preserves encoded
+ids and Unicode, rejects duplicate properties and refuses foreign sources
+before returning a body. This operation does not create a Mapping, write
+capability, target Reference, key evidence or mutation identity.
+
+Decimal uses Common's exact scalar spelling and the bounded Encoder's decimal
+number operation. No binary floating-point intermediate, rounding or text
+relabel is used. Exact request bytes alone do not establish the vendor's storage
+domain or a successful mutation; the physical Effect must independently retain
+its original contract, before/version/overwrite guards, actual response and
+after-value correspondence. It must refuse a missing exact physical supplier.
+
+Title and rich text are plain-text objects split at complete Unicode scalar
+boundaries, retaining the full original text and the vendor's per-object and
+array bounds. Empty text remains an empty rich-text array. URL/email/phone null
+is distinct from empty Text and false. Select/status selects only an exact
+existing label's original option id, checking and charging unselected options
+too; it cannot implicitly create options. A null status write is refused here
+because the vendor can replace it with its default option. That operation needs
+the actual default original, rather than claiming a null value was preserved.
+People/relation arrays carry original checked identifier text, never
+manufactured ResourceRefs or permissions. People, relation and multi-select
+writes each require both the actual supplied item bound and the vendor's
+100-entry request bound. A larger supplied bound cannot bypass the vendor
+limit; a smaller supplied bound remains effective. That request bound does not
+limit reads, property pagination, the logical Array type, permission or numerical
+resource supply. Multi-select checks the complete original option inventory once,
+including for an empty selection; every exact supplied label selects an
+existing option id. Unknown or normalized-equivalent names cannot create an
+option. The encoded request retains supplied order and repeated occurrences;
+this is not a claim that vendor storage preserves an ordered multiset. An
+empty array clears the property, whereas null is rejected for multi-select.
+
+A single original Common Date or Timestamp encodes the date object's `start`;
+the codec never parses Text as a temporal value, chooses a named timezone or
+rounds precision. Common's canonical checked scalar spelling remains intact.
+Explicit null clears a date. A supplied range Object is not silently reduced
+to its start: range fields need their original typed Mapping projection and
+remain unavailable through this single-scalar codec. Computed and audit
+properties refuse encoding. A separate range projection receives both original
+checked start and end from the consuming Mapping. Both contracts must have the
+same Date or Timestamp shape, the start must be present, and a null end must be
+an explicit original of that same nullable temporal shape. The bounded Encoder
+emits both fields without parsing Text, dropping an end, choosing a timezone,
+rounding or manufacturing midnight. The range matcher requires the same source,
+property occurrence and both original CheckedValues; the scalar matcher cannot
+accept it on the start alone. The scalar constructor and its absent-end bytes
+remain unchanged. The codec does not establish that the two originals belong
+to the same captured input row or approved Mapping: the existing Effect owner
+must supply and retain that correspondence. Temporal range and Content/file
+writes still need their actual typed physical suppliers; this is an
+implementation boundary, not a new public language restriction.
+
+Codec work and output limits cover string/option/identifier scans, property
+membership, duplicate detection and bounded Encoder depth/nodes/bytes. Original
+source/decode graphs, property definitions, CheckedValue/contracts, Text slices,
+option maps, per-property encoded documents, aggregate output and caller aliases
+can overlap. The multi-select label-to-original-id map shares its original
+strings but retains its own bounded map backing; duplicate input labels are
+still charged, and no selected option is free because another occurrence used
+it. Single-scalar temporal emission retains the original CheckedValue and text
+alongside its encoded document. Every property-write record also has an optional
+end slot, including the legacy None case; a range retains the original end and
+contract graph alongside start/source/property, the writer and encoded body.
+The matcher/constructor callback and aggregate-body overlap remain part of the
+same caller lifetime. An extra alias or absent slot is not zero-cost or a
+cleanup acknowledgement. Those holdings require the existing Effect/resource
+supplier;
+structural limits do not reserve capacity, acknowledge physical retirement or
+prove normal numerical funding. Approval/current authority, original captured
+Mapping/input, Run materials, dispatch, Unknown/nonresend and cleanup remain
+with their existing owners.
+
+The physical shapes and limits follow the selected vendor's
+[page properties](https://developers.notion.com/reference/page-property-values),
+[page update](https://developers.notion.com/reference/patch-page) and
+[request limits](https://developers.notion.com/reference/request-limits).
+No API version or ActQL canonical preimage changes here.
+
 ## Original selection and identity
 
 `project_notion_database` admits the original database response. Its opaque
@@ -342,6 +427,36 @@ and [retrieve property endpoint](https://developers.notion.com/reference/retriev
 under the already selected vendor API version. No ActQL version or identity domain
 changes for this implementation.
 
+### Original dependent property authorization
+
+A complete-row reader may retain the existing early property grant, or capture
+one `propertyAuthorizationFor` callback before I/O. These choices are exclusive.
+The callback is entered only after the same original query response and checked
+row identify a pending original property request. It receives that request,
+original declaration/source/checked-contract binding, column and query/row
+occurrences. No query scope is retargeted and no grant is inferred from that
+DATA. Every property use still passes the existing Credential and Site owners;
+query/property remain separate operations of the same original Run/acquisition.
+This is unrelated to the earlier installation-metadata subject.
+
+Before and after the awaited selection, retain current/abort checks. The
+returned property operation and complete existing invocation bindings must
+match, and Common must still recognize the same request/checked-column pair.
+A missing, foreign or failed supplier cannot fall back to the query grant or
+repeat preparation. If no property is pending, no supplier is called. The old
+early-property path retains its bytes and behavior.
+
+The reader keeps the callback and the actual immutable argument record through
+selection; that record references the existing request, declaration, source and
+contracts, rather than cloning their inventories. The pending Promise and
+continuation overlap the query response, original ticket, row and checked
+schema; a callback may retain its escaped argument after returning. These
+references/records/workspaces are not zero-cost and limits are not funding.
+Do not consume the pending query ticket for row delivery or release its custody
+before the selected original/current checks finish. Failed selection retains
+its original cause, raw response and ticket. Reader/Site close, Promise
+settlement and GC are not raw retirement or a cleanup ACK.
+
 ### Provider-declared query incompleteness
 
 The selected query response's optional `request_status` is admitted by the
@@ -413,3 +528,109 @@ SQLite/local-TLS tests exercise singleton/explicit selection through typed rows,
 foreign/missing schema contracts, original charges, current denial, Unknown,
 nonresend, bounded output and nominal handles. They do not establish a pristine
 installed or live Notion profile.
+
+### Original schema occurrence and delayed authorization
+
+The Catalog captures the declaration's exact bounded UTF-8 bytes before parsing
+and hashing them. `notion_database_read_declaration_source_cid` identifies this
+SOURCE, including whitespace, CRLF, key order and Unicode. It is not a semantic
+Contract identity, installation identity, credential issuer or permission.
+Equal source CIDs do not replace the retained declaration original.
+
+`select_notion_read_source` checks bounded comparison work and retains the same
+declaration, observed database and selected occurrence in an opaque
+`NotionReadSourceSelection`. Its match operation requires those physical
+originals; schema projection and Contract binding retain that database and index.
+The original singleton/explicit-id selection rule remains authoritative. There
+is no first-entry, display-name or compatible-schema selection.
+
+An optional `sourceAuthorizationFor` supplier is captured before I/O and is
+mutually exclusive with the existing early `sourceAuthorization`. After the
+actual database observation and Common selection, it receives the same opaque
+selection, declaration and database plus the exact selected GET origin/path and
+empty-body fact. Its returned original operation authorization is checked before
+schema I/O. Missing, foreign or wrong-operation authorization refuses without
+falling back to the database grant or the generic authorization callback.
+Provider methods and the supplier are snapshotted before awaiting. Current
+authorization and stop are rechecked before and after the awaited supplier.
+
+The earlier Run-scoped discovery route retains its existing grant/use checks.
+The delayed supplier is a sequencing seam, not an installation-preparation
+grant. A pre-schema installation action additionally needs the original trusted
+Host publication request, Account/Site/credential originals, the closed
+preparation subject and separately scoped database/schema uses in their existing
+owners. Callback DATA, selection shape and SOURCE CID cannot issue these
+originals. Query/property operations keep their actual Run scopes. Offline
+EXPLAIN does not discover metadata, and restore must retain the original
+declaration/schema instead of rediscovering them from current configuration.
+
+A supplier rejection or post-await current/stop refusal retains the first
+response and its actual charge on the same one-shot reader. Unknown/nonresend,
+failure aliases and `cleanupConfirmed: false` remain unchanged. There is no
+physical retirement acknowledgement from selection, callback completion or GC.
+
+The input Buffer and its private byte snapshot may overlap with decoded cursors,
+Contracts and the cached SOURCE hash. The selection adds two original graph
+references and an index; its returned aliases extend those original lifetimes.
+The frozen supplier descriptor, captured callback/receiver, provider methods,
+pending Promise/handlers and returned authorization may overlap the retained
+response, charge and later schema. Hashing/copying and all inventory comparisons
+remain bounded work, not free shared storage or numerical funding. Existing
+byte/work limits do not establish a complete physical metadata capacity supply.
+
+Independent exact-byte and selection-work vectors exercise these Catalog
+boundaries. Actual Common/Account/Credential/SQLite/local-TLS cases exercise the
+delayed original/path, separate operations, absent/foreign refusal, method
+snapshotting and post-await current/stop custody. Those cases use explicit
+Run-scoped fixture grants and observation tickets; they do not establish the new
+preparation subject's authority, installed publication or normal funding.
+
+## Original Source system columns
+
+The public database Source includes the original page's `id`, `url`,
+`created_time`, `created_by`, `last_edited_time`, `last_edited_by`, `resource` and
+`version` alongside its properties. The existing property-only projection is
+still useful as a component and retains its exact schema bytes. It is not a
+complete public Source schema. The same Catalog owner explicitly augments its
+opaque property binding with the eight fixed system contracts and constructs
+one complete checked Object schema. It retains the original declaration,
+selected data-source occurrence, property metadata and checked Contracts;
+no reparsed schema, invented property or matching CID replaces them.
+
+System `resource` is exactly the original page id and `version` is exactly the
+original `last_edited_time` String spelling. They are correlation DATA, not an
+issued ResourceRef/ContentRef, a version capability or mutation identity.
+The two logical Timestamp columns use the existing ValueAdmission physical
+normalizer and checked Timestamp contract. A known offset is converted exactly
+to UTC milliseconds; the original response and version coordinate retain its
+spelling. Unknown offsets, nonzero submillisecond digits and malformed times
+refuse. User columns require the actual returned partial User object/id; no
+missing identity, nullable value or lookup is synthesized. All eight fields
+must be present and admitted before a full Source row can finish.
+
+An original property's chosen column cannot overwrite a system column. The
+existing checked Object constructor refuses duplicate names; the existing
+explicit read declaration can choose a distinct property column. Standard
+columns never become property-item requests or replace a paginated property
+completion. The same original row, complete Value builder and whole-page
+admission check every property and system cell together. Field count/name
+bytes, schema and row bounds, original response scans, conversion, validation,
+canonical output and cancellation remain charged and fail closed.
+
+The augmented binding adds a bounded system-contract vector, tuple records and
+complete schema graph sharing original property references. Row assembly adds
+system CheckedValues, decoded/normalized timestamp backing and input/output
+text, with all original page/decode/property history, metadata and pending
+completion arrays still live. Shared aliases do not remove layout or overlap
+costs. The complete graph and physical reader still require their actual
+installation, original Run/funding and confirmed retirement suppliers.
+
+The thin discovery caller requests this full schema explicitly for Source
+preparation and forwards that same opaque binding to query/property assembly.
+No JS schema reconstruction, authority, second parser, wire version, permission
+or numeric profile is introduced. Actual private Account/Credential/SQLite/TLS
+coverage remains separate from ordinary installed and live Notion acceptance.
+The vendor metadata fields are defined by the existing selected
+[Page object](https://developers.notion.com/reference/page) and
+[data-source query](https://developers.notion.com/reference/query-a-data-source)
+contracts; this implementation does not migrate the selected API version.

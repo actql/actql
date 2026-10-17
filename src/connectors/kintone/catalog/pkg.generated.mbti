@@ -53,6 +53,8 @@ pub fn prepare_record_delete_request(Array[OriginalRecordTarget], RecordMutation
 
 pub fn prepare_record_text_key_lookup(FormFieldCatalog, String, String, Array[String], RecordLookupLimits) -> Result[RecordLookupRequest, RecordLookupIssue]
 
+pub fn prepare_record_write_values(FormFieldCatalog, Array[(String, @value_admission.CheckedValue)], RecordWriteLimits) -> Result[RecordWriteValues, RecordWriteIssue]
+
 pub fn project_checked_record_page(OriginalRecordPage, AppNumberSettings?, RecordValueLimits) -> Result[CheckedRecordPage, RecordValueIssue]
 
 pub fn project_form_fields(Bytes, String, FormFieldLimits) -> Result[FormFieldCatalog, FormFieldIssue]
@@ -68,6 +70,8 @@ pub fn project_record_page(Bytes, FormFieldCatalog, Array[String], RecordPageLim
 pub fn recheck_record_delete_form(RecordDeleteRequest, Bytes, FormFieldLimits) -> Result[Unit, RecordMutationIssue]
 
 pub fn recheck_record_delete_records(RecordDeleteRequest, Bytes, RecordPageLimits, Int, Int) -> Result[Unit, RecordMutationIssue]
+
+pub fn recheck_record_lookup_form(RecordLookupRequest, Bytes, FormFieldLimits) -> Result[Unit, RecordLookupIssue]
 
 pub fn record_delete_acknowledgement_request(RecordDeleteAcknowledgement) -> RecordDeleteRequest
 
@@ -85,6 +89,8 @@ pub fn record_key_lookup_page(RecordLookupObservation) -> OriginalRecordPage
 
 pub fn record_key_lookup_uses_request(RecordLookupObservation, RecordLookupRequest) -> Bool
 
+pub fn record_lookup_request_app_id(RecordLookupRequest) -> String
+
 pub fn record_lookup_request_body(RecordLookupRequest) -> String
 
 pub fn record_lookup_request_uses_catalog(RecordLookupRequest, FormFieldCatalog) -> Bool
@@ -96,6 +102,12 @@ pub fn record_page_records(OriginalRecordPage) -> Array[OriginalRecord]
 pub fn record_page_uses_catalog(OriginalRecordPage, FormFieldCatalog) -> Bool
 
 pub fn record_schema_wire(FormFieldCatalog, AppNumberSettings?, Array[String], RecordValueLimits, Int) -> Result[String, RecordValueIssue]
+
+pub fn record_write_values_body(RecordWriteValues) -> String
+
+pub fn record_write_values_fields(RecordWriteValues) -> Array[String]
+
+pub fn record_write_values_match_catalog(RecordWriteValues, FormFieldCatalog) -> Bool
 
 pub fn require_form_unique_key(FormFieldCatalog, String) -> Result[FormFieldMetadata, FormFieldIssue]
 
@@ -208,6 +220,7 @@ pub(all) enum RecordLookupIssue {
   UnexpectedStatus
   IncompleteResponse
   ForeignRecord
+  ForeignCatalog
   ForeignRequest
   ChangedObservation
 } derive(Eq, @debug.Debug)
@@ -293,6 +306,29 @@ pub(all) struct RecordValueLimits {
   max_nodes : Int
   max_depth : Int
   max_text_bytes : Int
+}
+
+pub(all) enum RecordWriteIssue {
+  InvalidLimits
+  BudgetExceeded
+  EmptyWrite
+  DuplicateField(String)
+  FieldUnavailable(String)
+  InvalidValue(String)
+  UnrepresentableValue(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RecordWriteLimits {
+  max_fields : Int
+  max_name_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_text_bytes : Int
+  max_output_bytes : Int
+}
+
+pub struct RecordWriteValues {
+  // private fields
 }
 
 // Type aliases

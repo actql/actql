@@ -288,3 +288,27 @@ declare const originalCommandOptions: Parameters<typeof createInstalledRowEffect
 const publicCommandFactory = createInstalledRowEffect({...originalCommandOptions, driver: commandDriver});
 void [commandDriver, originalCommandWithoutRead, originalCommandWithRead, absentCommandFacts,
   publicDeleteFactory, publicCommandFactory];
+
+
+// Presence is original observation DATA, not a missing before-value convention.
+type UpsertObservation = import('./connector-installation.js').RowEffectTargetObservation<'upsert'>;
+type UpdateObservation = import('./connector-installation.js').RowEffectTargetObservation<'update'>;
+type DeleteObservation = import('./connector-installation.js').RowEffectTargetObservation<'delete'>;
+const originalAbsence: UpsertObservation = {identity: 'original-key', state: 'absent'};
+const originalPresence: UpsertObservation = {identity: 'original-key',
+  versionCid: bindingCid, before: {id: 'original-key'}};
+const explicitPresence: UpdateObservation = {...originalPresence, state: 'present'};
+// @ts-expect-error UPSERT: Missing before-data/version is not explicit absence.
+const missingPresence: UpsertObservation = {identity: 'original-key'};
+// @ts-expect-error UPSERT: Null is not a before row or an absence observation.
+const nullBefore: UpsertObservation = {identity: 'original-key', state: 'absent', before: null};
+// @ts-expect-error UPSERT: Empty-object placeholders cannot accompany explicit absence.
+const placeholderBefore: UpsertObservation = {identity: 'original-key', state: 'absent', before: {}};
+// @ts-expect-error UPSERT: An absent row cannot carry a fabricated version.
+const absentVersion: UpsertObservation = {identity: 'original-key', state: 'absent', versionCid: bindingCid};
+// @ts-expect-error UPSERT: UPDATE cannot accept the insert-side absence variant.
+const absentUpdate: UpdateObservation = {identity: 'original-key', state: 'absent'};
+// @ts-expect-error UPSERT: DELETE cannot accept the insert-side absence variant.
+const absentDelete: DeleteObservation = {identity: 'original-key', state: 'absent'};
+void [originalAbsence, originalPresence, explicitPresence, missingPresence, nullBefore,
+  placeholderBefore, absentVersion, absentUpdate, absentDelete];

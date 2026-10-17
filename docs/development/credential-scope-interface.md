@@ -480,3 +480,96 @@ The component TLS fixture routes the fixed Google HTTP/TLS server name only to
 its own local server; it uses actual RSA, Common, signed Journal and SQLite while
 issuing no live Google request or installed material authority. That qualification
 does not establish ordinary installed or public authentication acceptance.
+
+### Same-journal installation metadata admission
+
+The existing SQLite Credential Journal selects the closed
+`installation-metadata` control explicitly. Its frozen named grant projection
+retains the same control's original Subject and Scope tokens. The Common
+control checks their membership and same-Subject correspondence; JSON, equal
+CIDs, inherited fields, copied tokens or a legacy array do not substitute those
+originals. The original Run control still uses its exact 17-member projection,
+and both controls retain the existing four-member use projection. Unknown
+control purposes are refused, rather than interpreted as the Run layout.
+
+Signature admission still uses the existing configured issuer/public-key map
+and canonical Common signature reader. The existing tables, bounds,
+transactions, use ordinals, revocation, outcome and close protocol do not
+change. The actual signature-admitted claim grant remains beside its original
+use. Reopening the same Journal does not refund an already claimed or Unknown
+use or make a replay eligible for another physical send. A lost COMMIT reply
+retains the existing typed uncertainty and original cause; it does not trigger
+an automatic second acceptance or claim.
+
+This admission is not an operational Host preparation, Account authorization,
+current Site/material observation, egress decision or resource grant. Each
+metadata operation still needs its own original occurrence and actual current
+authority. The trusted Host must retain the actual publication request and
+original declaration/database selection; later query/property reads use their
+own authority. Retaining signed DATA does not restore a retired preparation or
+create a new request for an old Run.
+
+The named projection, its own-property descriptors, six-field snapshot and
+Common Subject/Scope field projections overlap the original grant/wire,
+signature, original tokens and prepared transaction state. These are bounded
+DATA workspaces, not an adopted normal numerical profile. The existing
+Journal remains the sole persistence/claim Owner; the actual Host/Site and
+resource suppliers retain their independent duties.
+
+The actual Common/SQLite counters are in
+`adapters/site-node/installation-metadata-credential-journal.integration.test.mjs`.
+They exercise original operation correspondence, copied/foreign refusal,
+purpose separation, durable claim/Unknown/reopen, expiry/revocation and COMMIT
+uncertainty. Explicit fixture Subjects and signing keys do not prove physical
+metadata acquisition, installed authentication or the complete publication to
+Run recovery path.
+
+### Original installation metadata HTTPS binding
+
+The existing scoped invocation envelope retains an installation Scope token
+through its original Common control. `ownInvocationAuthorization` and
+`invocationBindingsMatch` accept that control explicitly; the latter checks
+both tokens against the same retained Subject. `invocationScopeFields` provides
+only the original request DATA needed by the driver. It neither clones a token
+into a primitive record nor interprets an empty opaque object as absent legacy
+Run fields. Existing Run scope envelopes retain their primitive snapshot rules.
+
+The same HTTPS Credential binding retains that control, journal, resolver and
+the Subject fields projected with the generated declaration vector. Every
+metadata call still has its own signed grant, exact operation/occurrence,
+GET/origin/path/empty-body correspondence and nominal journal use. A missing
+binding, foreign Scope, substituted request or unsupported authentication
+dependency refuses before sending. No metadata operation falls back to a Run
+grant or to an unavailable authentication exchange.
+
+A metadata binding requires the original private synchronous `assertCurrent`
+fence in addition to the awaited `currentBeforeSend` observation. The Host/Site
+supplier must bind these to the actual publication request, checked profile,
+current Account/issuer/Site/material/egress and original resource preparation.
+The publication request alone proves none of those permissions or resources.
+The physical boundary checks the synchronous fence after awaited observations,
+immediately before claim, after secret resolution and before request
+construction, and after the response/socket acknowledgement before disclosure.
+Promise and boolean returns are refusals. Reentrant retirement and cancellation
+are checked again after the fence; its return value never issues authority.
+
+The first selected secret stays private in that original binding. Later calls
+re-observe the same resolver under current authority and refuse replacement
+material rather than sending it or re-probing another account. Response-loss
+and post-response current refusal retain the original Unknown use. A fallible
+outcome COMMIT is not repeated by the exception path; the original failure is
+retained and blocks another send through that binding. Retirement closes new
+admission and retains active work until the existing physical request/socket
+and invocation release protocol acknowledges it.
+
+The simultaneous inventory adds only an original Scope/control alias in the
+owned invocation, the generated Subject-field snapshot and synchronous callback
+in the existing binding, and its original pending-outcome error reference. A
+resolver call overlaps its grant CID, Subject and request DATA envelope with
+the original bounded secret. The response body/header backing survives the
+awaited current check; original socket/callback cleanup remains independent.
+This inventory does not establish a numerical reservation, material provenance
+or a normal profile. Component fixtures use actual Host publication selection,
+Common, SQLite and controlled loopback TLS with explicit private fixture
+Account/current/signing material; they are not operational installation or
+live-provider acceptance.

@@ -644,9 +644,10 @@
     {
       "module": "adapters/host-common/owned-invocation-context.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "706d38e795608b668b2573ba6567cbbff9f5e4d9029dfa31b3a9bb676f3cd9e5",
+      "sha256": "e01af6e4b9bff2152fddeb89fe08bd7f93a7be8d1f40324f8aa9e47ccfebdc5e",
       "exports": [
         "invocationBindingsMatch",
+        "invocationScopeFields",
         "invokeScopedCredentialOperation",
         "ownInvocationAuthorization",
         "ownInvocationContext",
@@ -662,7 +663,8 @@
           "name": "invocationBindingsMatch",
           "parameters": [
             "scope",
-            "original"
+            "original",
+            "control"
           ],
           "async": false
         },
@@ -670,6 +672,14 @@
           "name": "invocationBindingsMatch/invocationBindingsMatch",
           "parameters": [
             "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "invocationScopeFields",
+          "parameters": [
+            "scope",
+            "control"
           ],
           "async": false
         },
@@ -695,9 +705,17 @@
           "async": false
         },
         {
+          "name": "metadataControl/metadataControl",
+          "parameters": [
+            "control"
+          ],
+          "async": false
+        },
+        {
           "name": "ownInvocationAuthorization",
           "parameters": [
-            "authorization"
+            "authorization",
+            "control"
           ],
           "async": false
         },
@@ -742,7 +760,9 @@
             "fail/fail",
             "invocationBindingsMatch",
             "invocationBindingsMatch/invocationBindingsMatch",
+            "invocationScopeFields",
             "invokeScopedCredentialOperation",
+            "metadataControl/metadataControl",
             "ownInvocationAuthorization",
             "ownInvocationContext",
             "ownInvocationLimits",
@@ -751,6 +771,7 @@
           ],
           "exports": [
             "invocationBindingsMatch",
+            "invocationScopeFields",
             "invokeScopedCredentialOperation",
             "ownInvocationAuthorization",
             "ownInvocationContext",
@@ -765,6 +786,10 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "# Scoped HTTP body ownership"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "inputsOutputs": [
@@ -775,6 +800,10 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "## Two explicit shapes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "identity": [
@@ -785,6 +814,10 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "## Original use and currentness"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "ownership": [
@@ -795,6 +828,10 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "## Simultaneous inventory"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "synchronization": [
@@ -805,6 +842,10 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "secret-resolution await."
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "failure": [
@@ -815,6 +856,10 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "Lost responses retain the same nominal Unknown use."
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "cancellation": [
@@ -825,6 +870,10 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "Bound\ncleanup retains its existing pending state"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "resources": [
@@ -835,6 +884,10 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "two distinct dedicated N-byte backings"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "extension": [
@@ -845,6 +898,10 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "not public JSON wire"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "verification": [
@@ -863,6 +920,14 @@
               {
                 "path": "adapters/host-common/http-exchange.test.mjs",
                 "anchor": "byte length/backing properties cannot disguise"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "adapters/site-node/installation-metadata-https.integration.test.mjs",
+                "anchor": "test('metadata actual publication sends"
               }
             ]
           }
@@ -4362,6 +4427,13 @@
           "async": false
         },
         {
+          "name": "acquireBinding/acquireBinding#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "authenticationCurrent",
           "parameters": [
             "state",
@@ -4565,6 +4637,20 @@
           "async": false
         },
         {
+          "name": "metadataCurrent",
+          "parameters": [
+            "binding",
+            "scope",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "metadataCurrent/metadataCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openHttpsCredentialBinding",
           "parameters": [
             "scope",
@@ -4573,6 +4659,7 @@
             "resolveSecret",
             "maxSecretBytes",
             "authentication",
+            "assertCurrent",
             "secretPresentation"
           ],
           "async": false
@@ -4777,6 +4864,7 @@
             "<module>",
             "acquireBinding",
             "acquireBinding/acquireBinding",
+            "acquireBinding/acquireBinding#2",
             "authenticationCurrent",
             "authenticationDependency",
             "authenticationDependency/authenticationDependency",
@@ -4799,6 +4887,8 @@
             "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication#3",
             "exchangeHttpsCredentialAuthentication/expires/expires",
             "fail/fail",
+            "metadataCurrent",
+            "metadataCurrent/metadataCurrent",
             "openHttpsCredentialBinding",
             "openHttpsCredentialBinding/openHttpsCredentialBinding",
             "openHttpsCredentialBinding/original/original",
@@ -4850,6 +4940,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "inputsOutputs": [
@@ -4872,6 +4966,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Private kintone API-token presentation"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "identity": [
@@ -4890,6 +4988,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "ownership": [
@@ -4908,6 +5010,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "synchronization": [
@@ -4926,6 +5032,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "failure": [
@@ -4944,6 +5054,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "cancellation": [
@@ -4962,6 +5076,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "resources": [
@@ -4980,6 +5098,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "extension": [
@@ -4998,6 +5120,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
               }
             ],
             "verification": [
@@ -5044,16 +5170,25 @@
               {
                 "path": "adapters/site-node/https-credential-resource.test.mjs",
                 "anchor": "kintone lost response retains the original Unknown use"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original installation metadata HTTPS binding"
+              },
+              {
+                "path": "adapters/site-node/installation-metadata-https.integration.test.mjs",
+                "anchor": "test('metadata actual publication sends"
               }
             ]
           }
         }
       ],
-      "sha256": "37b7662283a6b77f62944aba9556e88b0b6626c30af6847b5cc8ee7ed2e361b7",
+      "sha256": "d8d3821912b2779d544730120749787256194bdb57d4349218654325415fbf4f",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",
         "../host-common/http-exchange.mjs",
+        "../host-common/installation-preparation-fields.generated.mjs",
         "../host-common/runtime-result.mjs",
         "./google-service-account-assertion.mjs",
         "node:https",
@@ -5065,7 +5200,7 @@
     {
       "module": "adapters/site-node/sqlite-credential-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a53884f7d10eedfb5f295f0a43df4ff38179e64f714a5ab7b7e3f9332b3e417b",
+      "sha256": "b60e24a25350f2cf4360e417e8df3ef8f3d88a9b39eabcf103ab7900409f8f1d",
       "exports": [
         "openSqliteCredentialJournal"
       ],
@@ -5255,6 +5390,36 @@
             "value"
           ],
           "async": false
+        },
+        {
+          "name": "validJournalGrantProjection",
+          "parameters": [
+            "control",
+            "projection",
+            "grantCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "validJournalGrantProjection/validJournalGrantProjection",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "validJournalGrantProjection/validJournalGrantProjection#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "validJournalGrantProjection/values/values",
+          "parameters": [
+            "key"
+          ],
+          "async": false
         }
       ],
       "role": "physical-io",
@@ -5289,7 +5454,11 @@
             "openSqliteCredentialJournal/record/record/record",
             "openSqliteCredentialJournal/requireControl/requireControl",
             "syncDirectory",
-            "text/text"
+            "text/text",
+            "validJournalGrantProjection",
+            "validJournalGrantProjection/validJournalGrantProjection",
+            "validJournalGrantProjection/validJournalGrantProjection#2",
+            "validJournalGrantProjection/values/values"
           ],
           "exports": [
             "openSqliteCredentialJournal"
@@ -5315,6 +5484,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original grant of an authentication claim"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Same-journal installation metadata admission"
               }
             ],
             "ownership": [
@@ -5361,6 +5534,10 @@
               {
                 "path": "adapters/site-node/credential-authentication-journal.test.mjs",
                 "anchor": "the actual signature-admitted claim grant binds only its own original authentication use"
+              },
+              {
+                "path": "adapters/site-node/installation-metadata-credential-journal.integration.test.mjs",
+                "anchor": "metadata original signed grant enters the existing Journal with the same original claim"
               }
             ]
           }

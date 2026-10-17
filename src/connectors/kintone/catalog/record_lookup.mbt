@@ -21,6 +21,7 @@ pub(all) enum RecordLookupIssue {
   UnexpectedStatus
   IncompleteResponse
   ForeignRecord
+  ForeignCatalog
   ForeignRequest
   ChangedObservation
 } derive(Eq, Debug)
@@ -213,6 +214,37 @@ pub fn prepare_record_text_key_lookup(
 ///|
 pub fn record_lookup_request_body(request : RecordLookupRequest) -> String {
   @encode.document_text(request.document)
+}
+
+///|
+pub fn record_lookup_request_app_id(request : RecordLookupRequest) -> String {
+  request.catalog.app_id
+}
+
+///|
+/// Recheck the original Form DATA around the physical query. Equal metadata
+/// does not issue a new Catalog/request, current grant or permission.
+pub fn recheck_record_lookup_form(
+  request : RecordLookupRequest,
+  bytes : Bytes,
+  limits : FormFieldLimits,
+) -> Result[Unit, RecordLookupIssue] {
+  let original = request.catalog
+  let observed = match project_form_fields(bytes, original.app_id, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(Form(issue))
+  }
+  let paths = form_field_paths(original)
+  if original.revision != observed.revision ||
+    paths.length() != form_field_paths(observed).length() {
+    return Err(ForeignCatalog)
+  }
+  for path in paths {
+    if !form_field_definition_matches(original, observed, path) {
+      return Err(ForeignCatalog)
+    }
+  }
+  Ok(())
 }
 
 ///|

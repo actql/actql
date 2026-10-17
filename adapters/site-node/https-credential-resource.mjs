@@ -7,6 +7,8 @@ import {runtimeIsBoxedSome, runtimeIsBoxedNone, runtimeField}
   from '../host-common/compiler-binding.generated.mjs';
 import {credentialInvocationBindingKeys} from
   '../host-common/credential-scope-fields.generated.mjs';
+import {installationPreparationSubjectKeys} from
+  '../host-common/installation-preparation-fields.generated.mjs';
 import {checkHttpRequestMethodBody, observeResponseHeaders, ownHttpByteRequest, ownRequestHeaders,
   ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
 
@@ -56,19 +58,35 @@ function ownAuthenticationRegistration(value) {
 }
 
 export function openHttpsCredentialBinding({scope, control, journal,
-  resolveSecret, maxSecretBytes, authentication, secretPresentation = 'bearer'}) {
+  resolveSecret, maxSecretBytes, authentication, assertCurrent,
+  secretPresentation = 'bearer'}) {
+  const purpose = control === null || typeof control !== 'object' ? undefined
+    : Object.getOwnPropertyDescriptor(control, 'kind');
+  if (purpose !== undefined && (!Object.hasOwn(purpose, 'value') ||
+      purpose.value !== 'installation-metadata')) fail('InvalidRemoteCredentialBinding');
+  const metadata = purpose?.value === 'installation-metadata';
   if (!scope || typeof scope !== 'object' ||
       typeof control?.identity !== 'function' ||
       typeof journal?.claim !== 'function' ||
       typeof journal?.authorize !== 'function' ||
       typeof journal?.finish !== 'function' ||
       typeof resolveSecret !== 'function' || !count(maxSecretBytes) ||
-      maxSecretBytes === 0 || credentialInvocationBindingKeys.some(key =>
-        !['string', 'number', 'bigint'].includes(typeof scope[key]))) {
+      maxSecretBytes === 0 || (!metadata && credentialInvocationBindingKeys.some(key =>
+        !['string', 'number', 'bigint'].includes(typeof scope[key])))) {
     fail('InvalidRemoteCredentialBinding');
   }
+  if (metadata && (!Object.isFrozen(control) ||
+      typeof control.subjectFields !== 'function' ||
+      typeof control.scopeFields !== 'function' ||
+      typeof assertCurrent !== 'function')) fail('InvalidRemoteCredentialBinding');
+  // The Run authentication pair does not admit a metadata Subject. An explicit
+  // dependency must not silently fall back to a static bearer acquisition.
+  if (metadata && authentication !== undefined) fail('RemoteCredentialAuthenticationUnavailable');
+  const originalScope = metadata ? control.subjectFields() : scope;
+  if (metadata) control.scopeFields(scope);
   const original = Object.freeze(Object.fromEntries(
-    credentialInvocationBindingKeys.map(key => [key, scope[key]])));
+    (metadata ? installationPreparationSubjectKeys : credentialInvocationBindingKeys)
+      .map(key => [key, originalScope[key]])));
   // Installation selects a closed presentation inside this original binding.
   // It grants no operation and cannot expose a secret to the provider driver.
   if (secretPresentation !== 'bearer' &&
@@ -78,6 +96,8 @@ export function openHttpsCredentialBinding({scope, control, journal,
   }
   const binding = Object.freeze(Object.create(null));
   bindings.set(binding, {original, control, journal, resolveSecret,
+    metadata, assertCurrent: metadata ? assertCurrent : undefined,
+    pendingOutcome: undefined,
     maxSecretBytes, secretPresentation, secret: undefined, active: false, retiring: false,
     closed: false, changed: false, request: undefined,
     authentication: ownAuthenticationRegistration(authentication),
@@ -414,19 +434,48 @@ export function closeHttpsCredentialBinding(binding) {
 }
 
 function acquireBinding(binding, {scope, control, journal, resolveSecret}) {
-  if (binding === undefined) return undefined;
+  if (binding === undefined) {
+    if (control?.kind === 'installation-metadata') fail('InvalidRemoteCredentialBinding');
+    return undefined;
+  }
   const state = bindings.get(binding);
   if (!state || state.control !== control || state.journal !== journal ||
-      state.resolveSecret !== resolveSecret ||
-      credentialInvocationBindingKeys.some(key =>
-        scope?.[key] !== state.original[key])) {
+      state.resolveSecret !== resolveSecret) {
+    fail('ForeignRemoteCredentialBinding');
+  }
+  if (state.metadata) {
+    control.scopeFields(scope);
+    const subject = control.subjectFields();
+    if (installationPreparationSubjectKeys.some(key => subject[key] !== state.original[key])) {
+      fail('ForeignRemoteCredentialBinding');
+    }
+  } else if (credentialInvocationBindingKeys.some(key => scope?.[key] !== state.original[key])) {
     fail('ForeignRemoteCredentialBinding');
   }
   if (state.retiring) fail('RemoteCredentialBindingRetiring');
   if (state.changed) fail('RemoteCredentialBindingChanged');
+  if (state.pendingOutcome !== undefined) throw state.pendingOutcome;
   if (state.active) fail('RemoteCredentialBindingBusy');
   state.active = true;
   return state;
+}
+
+function metadataCurrent(binding, scope, signal) {
+  if (binding.retiring) fail('RemoteCredentialBindingRetiring');
+  if (binding.changed) fail('RemoteCredentialBindingChanged');
+  signal?.throwIfAborted();
+  binding.control.scopeFields(scope);
+  // Captured from the original private Host/Site preparation. It must finish
+  // synchronously after the awaited current observation, before claim/send or
+  // disclosure. A Promise/boolean is not a current authorization certificate.
+  const result = Reflect.apply(binding.assertCurrent, undefined, []);
+  if (result !== undefined) {
+    if (typeof result?.then === 'function') void Promise.resolve(result).catch(() => {});
+    fail('InvalidInstallationMetadataCurrentFence');
+  }
+  if (binding.retiring) fail('RemoteCredentialBindingRetiring');
+  if (binding.changed) fail('RemoteCredentialBindingChanged');
+  signal?.throwIfAborted();
 }
 
 function exactRequestTarget(path) {
@@ -641,7 +690,15 @@ async function callCredentialResource({
       (currentBeforeSend !== undefined && typeof currentBeforeSend !== 'function')) {
     fail('InvalidRemoteCredentialCall');
   }
-  const operation = operationFor(operations, scope, maxRequestBytes);
+  const metadata = binding?.metadata === true;
+  const selectedScope = metadata ? control.scopeFields(scope) : scope;
+  const operation = operationFor(operations, selectedScope, maxRequestBytes);
+  if (metadata && (typeof currentBeforeSend !== 'function' ||
+      selectedScope.requestMethod !== 'GET' || operation.method !== 'GET' ||
+      selectedScope.requestPath !== operation.path || operation.requestBytes !== 0 ||
+      selectedScope.requestBodyCid !== 'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')) {
+    fail('InvalidRemoteCredentialOperation');
+  }
   signal?.throwIfAborted();
   const authenticated = binding?.authentication !== undefined;
   const original = authenticated ? binding.authenticationMaterial : undefined;
@@ -653,6 +710,11 @@ async function callCredentialResource({
     if (token.pendingOutcome !== undefined) throw token.pendingOutcome;
     const trustedNow = authenticationCurrent(binding, original, scope, control, journal, now, signal);
     if (token.expires <= BigInt(trustedNow)) fail('RemoteCredentialAuthenticationMaterialExpired');
+  }
+  if (metadata) {
+    metadataCurrent(binding, scope, signal);
+    await currentBeforeSend();
+    metadataCurrent(binding, scope, signal);
   }
   // The first API call consumes the already claimed original parent use. It
   // must not claim a second use or turn a replay into permission to send.
@@ -667,7 +729,9 @@ async function callCredentialResource({
   if (claimed.replayed) fail('RemoteCredentialUseAlreadyClaimed');
   let requestStarted = false, finishing = false;
   try {
-    const currentSecret = authenticated ? token.value : await resolveSecret(Object.freeze({
+    const currentSecret = authenticated ? token.value : await resolveSecret(Object.freeze(metadata ? {
+      grantCid: claimed.record.grantCid, ...binding.original, ...selectedScope,
+    } : {
       grantCid: claimed.record.grantCid,
       principal: scope.principal,
       namespaceId: scope.namespaceId,
@@ -704,6 +768,7 @@ async function callCredentialResource({
       fail('RemoteCredentialBindingChanged');
     }
     signal?.throwIfAborted();
+    if (metadata) metadataCurrent(binding, scope, signal);
     if (authenticated) {
       const trustedNow = authenticationCurrent(binding, original, scope, control, journal, now, signal);
       if (token.expires <= BigInt(trustedNow)) fail('RemoteCredentialAuthenticationMaterialExpired');
@@ -730,7 +795,13 @@ async function callCredentialResource({
       maxResponseBytes,
       binding,
     });
-    if (authenticated) {
+    if (metadata) {
+      // Known retirement/cancellation closes even further configuration reads.
+      metadataCurrent(binding, scope, signal);
+      await currentBeforeSend();
+      metadataCurrent(binding, scope, signal);
+      journal.authorize(claimed.use, BigInt(now()), scope, control);
+    } else if (authenticated) {
       await currentBeforeSend();
       const trustedNow = authenticationCurrent(binding, original, scope, control, journal, now, signal);
       if (token.expires <= BigInt(trustedNow)) fail('RemoteCredentialAuthenticationMaterialExpired');
@@ -765,8 +836,9 @@ async function callCredentialResource({
   } catch (error) {
     // Do not repeat a fallible outcome COMMIT on the new auth path. The
     // existing Journal and its original unknown claim retain responsibility.
-    if (authenticated && finishing) {
-      token.pendingOutcome = error;
+    if ((authenticated || metadata) && finishing) {
+      if (metadata) binding.pendingOutcome = error;
+      else token.pendingOutcome = error;
       throw error;
     }
     const outcome = requestStarted &&
@@ -775,11 +847,13 @@ async function callCredentialResource({
         error?.code !== 'RemoteCredentialResourceRejected'
         ? 'unknown'
         : 'failed';
-    if (authenticated) {
+    if (authenticated || metadata) {
       try { journal.finish(claimed.record.useCid, outcome); }
       catch (outcomeFailure) {
-        token.pendingOutcome = authenticationOutcomeFailure(error, outcomeFailure, claimed.record.useCid);
-        throw token.pendingOutcome;
+        const pending = authenticationOutcomeFailure(error, outcomeFailure, claimed.record.useCid);
+        if (metadata) binding.pendingOutcome = pending;
+        else token.pendingOutcome = pending;
+        throw pending;
       }
     } else journal.finish(claimed.record.useCid, outcome);
     throw error;

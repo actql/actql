@@ -10,16 +10,38 @@ const fail = () => {
 const primitive = value => value === null || value === undefined ||
   ['string', 'number', 'boolean', 'bigint'].includes(typeof value);
 
+const metadataControl = control => {
+  const kind = control === null || typeof control !== 'object' ? undefined
+    : Object.getOwnPropertyDescriptor(control, 'kind');
+  if (kind === undefined) return false;
+  if (!Object.hasOwn(kind, 'value') || kind.value !== 'installation-metadata' ||
+      !Object.isFrozen(control) || typeof control.scopeFields !== 'function' ||
+      typeof control.subjectFields !== 'function') fail();
+  return true;
+};
+
+// Only the original Common control can project an installation Scope. This
+// DATA view does not replace its token, authorize a use or supply Host custody.
+export function invocationScopeFields(scope, control) {
+  return metadataControl(control) ? control.scopeFields(scope) : scope;
+}
+
 // Own only the JS envelope. Opaque MoonBit values, grants, journals and
 // callbacks retain their exact identity; current authorization is still
 // rechecked by the physical credential boundary for every operation.
-export function ownInvocationAuthorization(authorization) {
+export function ownInvocationAuthorization(authorization, control) {
   if (!authorization || typeof authorization !== 'object' ||
       Array.isArray(authorization) ||
       typeof authorization.useId !== 'string' ||
       authorization.useId.length === 0 || !authorization.scope ||
       typeof authorization.scope !== 'object' ||
       Array.isArray(authorization.scope)) fail();
+  if (metadataControl(control)) {
+    control.subjectFields();
+    control.scopeFields(authorization.scope);
+    return Object.freeze({grant: authorization.grant,
+      useId: authorization.useId, scope: authorization.scope});
+  }
   const scope = Object.create(null);
   for (const key of Object.keys(authorization.scope)) {
     const value = authorization.scope[key];
@@ -33,7 +55,15 @@ export function ownInvocationAuthorization(authorization) {
   });
 }
 
-export function invocationBindingsMatch(scope, original) {
+export function invocationBindingsMatch(scope, original, control) {
+  if (metadataControl(control)) {
+    // Both lookups enforce this same original Subject. Equal fields or CID
+    // cannot turn a foreign/copied Scope into the acquisition's original.
+    control.subjectFields();
+    control.scopeFields(scope);
+    control.scopeFields(original);
+    return true;
+  }
   return bindingKeys.every(key => scope?.[key] === original?.[key]);
 }
 
@@ -50,7 +80,8 @@ export function ownInvocationContext({authorization, credential, limits,
       Array.isArray(credential) || !callbacks || typeof callbacks !== 'object' ||
       Array.isArray(callbacks)) fail();
   const ownedCredential = {...credential};
-  const ownedAuthorization = ownInvocationAuthorization(authorization);
+  const ownedAuthorization = ownInvocationAuthorization(authorization,
+    ownedCredential.control);
   return Object.freeze({
     authorization: ownedAuthorization,
     scope: ownedAuthorization.scope,
@@ -96,7 +127,7 @@ export function invokeScopedCredentialOperation({
     limits: {maxRequestBytes, maxResponseBytes},
     callbacks: {callResource},
   });
-  if (context.scope.operation !== operation) fail();
+  if (invocationScopeFields(context.scope, context.credential.control)?.operation !== operation) fail();
   return context.callbacks.callResource({
     ...context.credential,
     ...context.authorization,
