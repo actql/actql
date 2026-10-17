@@ -1484,7 +1484,7 @@
     },
     {
       "module": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-      "sha256": "7a9143be70d76dc3c7200ebc00faf877c68a7cf557c95923eca0e16f726f3aaa",
+      "sha256": "f0cb7c4141f93985c8c24b515b506ae4db44c7ec8275b9d1f8ce34dedcf08294",
       "exports": [
         "CALENDAR_FREE_BUSY_OPERATION",
         "CalendarFreeBusyReadFailure",
