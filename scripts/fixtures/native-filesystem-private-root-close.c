@@ -63,6 +63,13 @@ int main(int argc, char **argv) {
     actql_native_filesystem_open_private_root_with_diagnostics(path, (int32_t)strlen(directory), 128);
   moonbit_decref(path);
   assert(actql_native_filesystem_root_ready(root) == success);
+  if (!success && !missing) {
+    const char *expected = "Host root is not user-owned and private";
+    moonbit_bytes_t primary = actql_native_filesystem_root_acquisition_error(root);
+    assert(Moonbit_array_length(primary) == (int32_t)strlen(expected));
+    assert(memcmp(primary, expected, strlen(expected)) == 0);
+    moonbit_decref(primary);
+  }
   if (success) {
     assert(close_calls == 0 && root->fd >= 0);
     assert(actql_native_filesystem_root_close(root) == 0);

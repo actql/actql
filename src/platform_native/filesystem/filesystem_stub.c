@@ -1522,6 +1522,15 @@ moonbit_bytes_t actql_native_filesystem_root_error(
     root == NULL ? 0 : root->diagnostic_ceiling);
 }
 
+// Constructor refusal is separate from a later/unconfirmed cleanup outcome.
+// The same Root remains retained; this projection admits no usable directory.
+moonbit_bytes_t actql_native_filesystem_root_acquisition_error(
+  actql_native_filesystem_root *root
+) {
+  return actql_copy_diagnostic(root == NULL ? "invalid Store root" : root->error,
+    root == NULL ? 0 : root->diagnostic_ceiling);
+}
+
 // Same opaque Lock close path for successful and rejected acquisition.
 int32_t actql_native_filesystem_lock_close_checked(actql_native_filesystem_lock *lock);
 

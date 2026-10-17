@@ -298,6 +298,14 @@ rejection close is idempotent. An unconfirmed close retains the original Root
 and diagnostics, stays pending and never closes a reused descriptor. Neither
 result admits the rejected directory as a current or authorized Host Root.
 
+The additive private-Root custody entrance returns the existing
+`NativeRootOpenFailure`, retaining its constructor refusal independently of any
+cleanup diagnostic. Its `retry_cleanup` acts only on that same rejected Root;
+a missing descriptor or confirmed close clears that reference, while an
+unconfirmed close keeps it. The legacy private-Root entrance and its successful
+privacy/containment checks remain unchanged. The failure object issues neither
+a usable Root nor Host adoption, and cleanup cannot retry acquisition.
+
 ## Direct Local credential grant/use scope
 
 ### Explicit post-adoption issuer acquisition
