@@ -45,7 +45,8 @@ export async function originalFieldCommandKeyFixture({duplicate = false, inputKe
   assert(environment, 'original command Catalog plus actual Source declaration');
   const program = {version: 'actql/0.1', id: 'original-field-command-key', stages: [{id: 'capture',
     inputs: {original: {connector: 'field-target-source', resource: 'rows', view: 'records'}},
-    steps: [{from: 'original', select: ['resource', 'id', 'value'], as: 'selected'}],
+    steps: [{from: 'original', filter: "id = 'one'", as: 'matching'},
+      {from: 'matching', select: ['resource', 'id', 'value'], as: 'selected'}],
     results: {out: {from: 'selected', fields: ['resource', 'id', 'value']}},
   }, {id: 'save', inputs: {original: {result: {stage: 'capture', result: 'out'}}},
     steps: [{from: 'original', select: ['resource', 'id', 'value'], as: 'selected'}],
