@@ -1,25 +1,88 @@
 // Existing bounded Checkpoint review and signed resolution operations.
 import {checkedSigner, reviewBytesMatchCid, signedAnswer} from '../checkpoints.mjs';
-import {positive} from './data.mjs';
+import {captureResponse, freezeInput, positive} from './data.mjs';
 import {ClientError, fail} from './errors.mjs';
 import {reviewEnvelopeBytes} from './transport-response.mjs';
-import {checkpointLimits, validCheckpointPage, validCheckpointReview, validResolveItem,
+import {checkpointLimits, validCheckpointLookup, validCheckpointPage, validCheckpointReview, validResolveItem,
   validResolveResults} from '@actql/client-wire';
 
-export function createCheckpointOperations(connection, exchange, responseValue) {
-  const selected = {wire: connection};
-  return {
-    checkpoints: async ({after, limit = 50, signal} = {}) => {
+export function createCheckpointOperations(connection, exchange, responseValue,
+  {answerOriginal, isClosed = () => false} = {}) {
+  const current = signal => {
+    if (isClosed()) fail('ClientClosed');
+    signal?.throwIfAborted();
+  };
+  const answerById = async (checkpointId, decision, {signer, signal} = {}) => {
+    current(signal);
+    if (!validCheckpointLookup({items: []}, checkpointId)) {
+      fail('InvalidCheckpointReference');
+    }
+    let selectedSigner;
+    if (signer !== undefined) {
+      // Own the original application callback and receiver before lookup.
+      // Neither lookup nor an awaited callback may switch the selected key.
+      try {
+        if (signer === null || typeof signer !== 'object') {
+          fail('InvalidCheckpointSigner');
+        }
+        const keyId = signer.keyId, reviewerId = signer.reviewerId;
+        const authorityScopeCid = signer.authorityScopeCid, sign = signer.sign;
+        if (typeof sign !== 'function') fail('InvalidCheckpointSigner');
+        selectedSigner = checkedSigner(Object.freeze({keyId, reviewerId,
+          authorityScopeCid, sign(bytes) {
+            current(signal);
+            return Reflect.apply(sign, signer, [bytes]);
+          }}));
+      } catch { fail('InvalidCheckpointSigner'); }
+    } else if (answerOriginal === undefined) {
+      // Missing original Local signing custody is not permission to use a
+      // Host-attestation key, create a key or send an unsigned approval.
+      fail('CheckpointSignerUnavailable');
+    }
+    const page = await operations.checkpoints({checkpointId, limit: 1, signal});
+    current(signal);
+    if (page.items.length !== 1) fail('CheckpointUnavailable');
+    const summary = freezeInput(page.items[0]);
+    let answer;
+    if (selectedSigner !== undefined) {
+      answer = await signedAnswer(summary, decision, selectedSigner,
+        new Date().toISOString());
+    } else {
+      // The installed provider must independently bind this DATA to its
+      // actual original Checkpoint/key/use and current authority. This
+      // callback returns an existing signed answer, never a generic signer.
+      answer = await answerOriginal(summary, decision, signal);
+    }
+    current(signal);
+    try { answer = freezeInput(captureResponse(answer)); }
+    catch { fail('InvalidCheckpointAnswer'); }
+    if (!validResolveItem(answer) || answer.checkpointCid !== summary.checkpointCid) {
+      fail('InvalidCheckpointAnswer');
+    }
+    // Retain the existing response-loss contract: ResolutionUnknown carries
+    // these exact signed bytes. No automatic re-sign, retry or resend occurs.
+    return operations.resolveCheckpoints([answer], {signal});
+  };
+  const operations = {
+    checkpoints: async ({after, limit, checkpointId, signal} = {}) => {
+      if (limit === undefined) limit = checkpointId === undefined ? 50 : 1;
+      const lookup = checkpointId !== undefined;
       if (after !== undefined && (typeof after !== 'string' || !after) ||
           !positive(limit) || limit > checkpointLimits.maxPageItems) {
         fail('InvalidCheckpointPage');
       }
+      if (lookup && (after !== undefined || limit !== 1 ||
+          !validCheckpointLookup({items: []}, checkpointId))) {
+        fail('InvalidCheckpointReference');
+      }
       const response = await exchange('checkpoints',
-        {after: after ?? '', limit}, signal);
+        {after: after ?? '', limit,
+          ...(lookup ? {checkpointId} : {})}, signal);
       let page;
       try { page = await responseValue(response); }
       catch (cause) { throw new ClientError('InvalidHostCheckpointPage', {cause}); }
-      if (!validCheckpointPage(page, limit)) fail('InvalidHostCheckpointPage');
+      if (!(lookup ? validCheckpointLookup(page, checkpointId)
+        : validCheckpointPage(page, limit))) fail('InvalidHostCheckpointPage');
       return Object.freeze({items: Object.freeze(page.items.map(item =>
         Object.freeze(structuredClone(item)))),
       ...(page.next === undefined ? {} : {next: page.next})});
@@ -113,5 +176,8 @@ export function createCheckpointOperations(connection, exchange, responseValue) 
         signed: frozen,
       });
     },
+    approve: (checkpointId, options) => answerById(checkpointId, 'approved', options),
+    reject: (checkpointId, options) => answerById(checkpointId, 'rejected', options),
   };
+  return operations;
 }
