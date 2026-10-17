@@ -511,10 +511,22 @@ test "Local signing and preparation cannot borrow the same original descriptor i
       fail("independent Account fixture changed")
     }
     let signing_entry = "{\"entry_id\":\"original-host-key-sign\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"host-signer\"]},\"connection\":{\"any_of\":[\"host-cli\"]},\"resource\":{\"any_of\":[\"key/host-attestation-2026\"]},\"operation\":{\"any_of\":[\"sign\"]},\"exclusions\":[]}"
-    let account = original_account[0:original_account.length() - 2].to_owned() +
+    let original_permutation = original_account[0:original_account.length() - 2].to_owned() +
       "," +
       signing_entry +
       "]}"
+    assert_eq(
+      @authorization.admit_account_configuration_json(original_permutation).map(_ => {
+          ()
+        },
+      ),
+      Err(@authorization.NonCanonicalOrder("$.entries[2].entry_id")),
+    )
+    // Keep the same three original tuples in the existing Account order.
+    let account = original_account.replace_all(
+      old="\"entries\":[",
+      new="\"entries\":[" + signing_entry + ",",
+    )
     signing_original_write(account_file, @utf8.encode(account))
     let crypto = @crypto.load_library(
       @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY").unwrap(),
