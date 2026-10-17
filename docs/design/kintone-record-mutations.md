@@ -289,3 +289,49 @@ existing Effect Owner must recheck the original target/version before claim.
   before values, array order/duplicates, separate equal originals, wide
   revision changes and finite refusal. They do not establish actual provider
   observations, approved physical deletion, reconciliation or installed support.
+
+### Original key lookup physical boundary
+
+- Responsibility: `kintone-key-lookup.mjs` borrows the existing Account,
+  Credential Site and private secret binding for two Form observations around
+  one original unique Text-key lookup. The Catalog alone interprets its DATA;
+  this port neither chooses an Effect nor issues an absence/create grant.
+- Inputs and outputs: the original opaque lookup request, original App, complete
+  generated invocation scope, independent nominal read authorizations, positive
+  limits and original response charge/consume callbacks yield an original
+  observation with retained physical responses, or a cause-bearing failure.
+- Identity: the same original private binding and request span all three reads.
+  Both Form observations must match the complete original metadata and revision.
+  Every separately counted operation preserves all generated scope fields;
+  lookup ID and revision remain exact API strings, not display Record Number.
+- Ownership: existing acquisition custody retains original request/Form, private
+  material, transport frame, response bytes and pending response tickets. The
+  caller supplies its original response Owner; this port creates no RowRun,
+  Ledger, cleanup Owner or independent reservation and performs no release.
+- Synchronization: current Account/Site is checked before authorization, after
+  awaits and secret resolution, after each response and after final Form before
+  disclosure of target DATA. Binding equality does not replace current access,
+  expiry or generation. Resolver rotation cannot substitute replacement secret.
+- Failure: non-200, malformed, incomplete, duplicate or foreign-key responses
+  do not become absence; Form drift refuses the observation. Every received
+  body is synchronously charged before an awaited check or decode. Failure
+  retains original bytes/cause; lost reply keeps the original claim Unknown.
+- Cancellation: abort or failed current does not acknowledge physical stop or
+  return a holding. The original binding and caller custody remain pending
+  until their real physical frame and original cleanup dependencies retire.
+  No automatic retries or replacement lookup are introduced.
+- Resources: original Catalog/request and body, Form and lookup response bytes,
+  JSON/decode trees and retained page can overlap the private secret, TLS frame,
+  journal state, charge tickets and failure observations. Existing positive
+  request/response/decode limits bound individual work; a physical caller must
+  supply its same-phase funded holding and retain it through confirmed cleanup.
+- Extension: the private Node/RelA bridge forwards the same Catalog originals;
+  missing matching runtime exports refuse before physical I/O. The generic
+  Effect child still needs its original Effect response supplier. Source RowRun
+  fixture units are not that supplier, normal funding or installed UPSERT.
+- Verification: `kintone-key-lookup.test.mjs` drives actual Common, Account,
+  Credential Site, SQLite and loopback TLS for original present/empty responses,
+  refusal, scope/current/rotation, lost reply and cleanup. Its independent
+  request and locator expectations do not derive from product output. The
+  shared response fixture has separate explicit component units; it confers no
+  Preview, approved write, live service or normal-profile acceptance.
