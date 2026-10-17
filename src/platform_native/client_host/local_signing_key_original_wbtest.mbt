@@ -98,12 +98,22 @@ fn signing_original_binding(
 }
 
 ///|
+// The custody census verifies exact existing reservations through the caller's
+// transaction. Preserve the same observation without allowing a new reservation
+// or weakening the SQLite transaction precondition in production.
+fn signing_original_custody(host : NativeLocalHostConnection) -> (Int, Int64) {
+  host.journal
+  .transaction(() => host.installation_custody().map_err(_ => CustodyLost))
+  .unwrap()
+}
+
+///|
 test "Local signing missing restore never installs and replay reopen keep the same HMAC row" {
   let name = "signing-original-reopen"
   let (host, file) = signing_original_host(name)
   let binding = signing_original_binding(host, file)
   assert_true(binding.restore_signing_key_original() is Err(_))
-  assert_eq(host.installation_custody().unwrap().0, 0)
+  assert_eq(signing_original_custody(host).0, 0)
   let original = binding.capture_signing_key_original().unwrap()
   let row = host.database
     .read("client_local_installation_originals", file)
@@ -148,7 +158,7 @@ test "Local signing missing restore never installs and replay reopen keep the sa
     restored.database.read("client_local_installation_originals", file).unwrap().body,
     row.body,
   )
-  assert_eq(restored.installation_custody().unwrap().0, 1)
+  assert_eq(signing_original_custody(restored).0, 1)
   restored.close().unwrap()
 }
 
@@ -281,7 +291,7 @@ test "Local signing byte identical file replacement cannot become the old key ge
     host.database.read("client_local_installation_originals", file).unwrap().body,
     before.body,
   )
-  assert_eq(host.installation_custody().unwrap().0, 1)
+  assert_eq(signing_original_custody(host).0, 1)
   host.close().unwrap()
 }
 
@@ -377,14 +387,7 @@ test "Local signing roles reject same raw32 across differently encoded public or
     let result = binding.capture_signing_key_original()
     assert_eq(result is Ok(_), expected)
     assert_true(original.require_current_key() is Ok(_))
-    assert_eq(
-      host.installation_custody().unwrap().0,
-      if expected {
-        2
-      } else {
-        1
-      },
-    )
+    assert_eq(signing_original_custody(host).0, if expected { 2 } else { 1 })
     host.close().unwrap()
   }
 }
@@ -496,7 +499,7 @@ test "Local signing and preparation cannot borrow the same original descriptor i
         is Err(SigningJournal(ChangedIntent)),
       )
     }
-    assert_eq(host.installation_custody().unwrap().0, 1)
+    assert_eq(signing_original_custody(host).0, 1)
     assert_eq(
       host.database.capacity_usage("client_local_settings").unwrap().reserved_bytes,
       8192L,
@@ -573,7 +576,7 @@ test "legacy authenticated signing row remains immutable and cannot recapture pu
     }
   })
   .unwrap()
-  assert_eq(host.installation_custody().unwrap().0, 1)
+  assert_eq(signing_original_custody(host).0, 1)
   assert_eq(
     read_local_installation_projection(host, binding.file, packet).unwrap(),
     projection,
@@ -589,7 +592,7 @@ test "legacy authenticated signing row remains immutable and cannot recapture pu
     .unwrap()
   assert_eq(retained.revision, 0L)
   assert_eq(retained.body, packet)
-  assert_eq(host.installation_custody().unwrap().0, 1)
+  assert_eq(signing_original_custody(host).0, 1)
   let usage = host.database.capacity_usage("client_local_settings").unwrap()
   assert_eq(usage.reserved_bytes, 8192L)
   assert_eq(usage.reserved_objects, 1L)
