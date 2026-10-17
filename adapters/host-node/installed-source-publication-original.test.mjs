@@ -216,7 +216,9 @@ test('publication failed physical cleanup holds the request but never reopens se
   allowClose = true;
   await failure.cleanupHandle.retry();
   assert.equal(failure.cleanupHandle.status().pending, false);
-  assert.equal(retries, 2); assert.equal(reads, 1);
+  // The same original status already acknowledges closure. Do not retry an
+  // acknowledged child merely to retire the parent's reference.
+  assert.equal(retries, 1); assert.equal(reads, 1);
   assert.throws(() => installedSourcePublicationRequestId(original.request), foreign);
   assert.equal(f.counters().publishes, 1);
 });
