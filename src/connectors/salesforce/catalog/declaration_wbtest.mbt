@@ -119,7 +119,7 @@ test "declaration types each field by an existing exact contract or excludes it"
   ])
   // The declaration admits the described Number's exact reply text domain;
   // this does not recover values already rounded by the provider. The other
-  // native types below remain independent, unsupported declaration decisions.
+  // missing precision/scale and unsupported types remain independent refusals.
   assert_eq(declaration.exclusions, [
     {
       resource: "Record__c",
@@ -179,7 +179,15 @@ test "declaration types each field by an existing exact contract or excludes it"
       "\"Amount__c\":{\"nullable\":true,\"precision\":16,\"scale\":2,\"type\":\"decimal\"}",
     ),
   )
-  assert_false(json.contains("\"kind\":\"unsupported_precision\""))
+  for native_type in ["currency", "percent"] {
+    assert_true(
+      json.contains(
+        "\"kind\":\"unsupported_precision\",\"native_type\":\"" +
+        native_type +
+        "\",\"precision\":null,\"scale\":null",
+      ),
+    )
+  }
   for name in ["Opens_At__c", "Rate__c", "Price__c"] {
     assert_false(catalog.contains("\"" + name + "\""))
   }
