@@ -140,6 +140,23 @@ test "public run returns the original portable State and Result across Host reop
     ClientStop(kind) => fail("public.status: " + kind)
   }
   assert_eq(observed, state)
+  let watch = command().parse(
+    argv=[
+      "--mode", "local", "status", run_id, "--watch", "--timeout", "30s", "--json",
+    ],
+    env=Map([]),
+  )
+  normalize_native_status_arguments(watch)
+  let watched = local_saved_run_status_command(
+    host,
+    settings,
+    crypto,
+    "must-not-open",
+    watch.subcommand.unwrap().1,
+  ) catch {
+    ClientStop(kind) => fail("public.watch: " + kind)
+  }
+  assert_eq(watched, state)
   let human_status = command().parse(
     argv=["--mode", "local", "status", run_id],
     env=Map([]),
