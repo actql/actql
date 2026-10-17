@@ -136,7 +136,10 @@ pub fn project_notion_database(
   bytes : Bytes,
   limits : NotionDatabaseLimits,
 ) -> Result[NotionDatabaseCatalog, NotionDatabaseIssue] {
-  let original = database_cursor(bytes, limits)?
+  let original = match database_cursor(bytes, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   guard @decode.open_object(original) is Ok(root) &&
     text_is(root, "object", "database") &&
     @decode.lookup(root, "id") is Some(id) &&
@@ -144,23 +147,38 @@ pub fn project_notion_database(
     @decode.array_length(sources) is Some(count) else {
     return Err(InvalidResponse)
   }
-  let id = metadata_text(id, limits.max_identity_bytes, true)?
-  if count > limits.max_data_sources { return Err(BudgetExceeded) }
+  let id = match metadata_text(id, limits.max_identity_bytes, true) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if count > limits.max_data_sources {
+    return Err(BudgetExceeded)
+  }
   let selected = []
   let seen : Map[String, Bool] = Map([])
   for index in 0..<count {
-    guard @decode.open_object(@decode.element_at(sources, index).unwrap()) is Ok(entry) &&
+    guard @decode.open_object(@decode.element_at(sources, index).unwrap())
+      is Ok(entry) &&
       @decode.lookup(entry, "id") is Some(source_id) &&
       @decode.lookup(entry, "name") is Some(name) else {
       return Err(InvalidResponse)
     }
-    let source_id = metadata_text(source_id, limits.max_identity_bytes, true)?
-    let name = metadata_text(name, limits.max_name_bytes, false)?
-    if seen.contains(source_id) { return Err(DuplicateIdentity) }
+    let source_id = match
+      metadata_text(source_id, limits.max_identity_bytes, true) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let name = match metadata_text(name, limits.max_name_bytes, false) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if seen.contains(source_id) {
+      return Err(DuplicateIdentity)
+    }
     seen[source_id] = true
     selected.push((source_id, name))
   }
-  Ok({ id, response_sha256: @sha.hex(bytes), original, sources: selected })
+  Ok({ id, response_sha256: @sha.hex(bytes), original, sources: selected, })
 }
 
 ///|
@@ -196,11 +214,16 @@ pub fn project_notion_data_source(
   bytes : Bytes,
   limits : NotionDatabaseLimits,
 ) -> Result[NotionDataSourceCatalog, NotionDatabaseIssue] {
-  if !database_limits_valid(limits) { return Err(InvalidLimits) }
+  if !database_limits_valid(limits) {
+    return Err(InvalidLimits)
+  }
   guard notion_database_source_at(database, source_index) is Some((selected, _)) else {
     return Err(InvalidSelection)
   }
-  let original = database_cursor(bytes, limits)?
+  let original = match database_cursor(bytes, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   guard @decode.open_object(original) is Ok(root) &&
     text_is(root, "object", "data_source") &&
     @decode.lookup(root, "id") is Some(id) &&
@@ -211,9 +234,18 @@ pub fn project_notion_data_source(
     @decode.object_length(properties) is Some(count) else {
     return Err(InvalidResponse)
   }
-  let id = metadata_text(id, limits.max_identity_bytes, true)?
-  let database_id = metadata_text(database_id, limits.max_identity_bytes, true)?
-  if id != selected || database_id != database.id { return Err(ForeignDatabase) }
+  let id = match metadata_text(id, limits.max_identity_bytes, true) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let database_id = match
+    metadata_text(database_id, limits.max_identity_bytes, true) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if id != selected || database_id != database.id {
+    return Err(ForeignDatabase)
+  }
   // Externally synced sources may have another data source as their direct
   // parent. Its containing database must still be the exact selected database.
   if !text_is(parent_view, "type", "database_id") {
@@ -221,9 +253,14 @@ pub fn project_notion_data_source(
       @decode.lookup(parent_view, "data_source_id") is Some(parent_id) else {
       return Err(InvalidResponse)
     }
-    ignore(metadata_text(parent_id, limits.max_identity_bytes, true)?)
+    match metadata_text(parent_id, limits.max_identity_bytes, true) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
   }
-  if count > limits.max_properties { return Err(BudgetExceeded) }
+  if count > limits.max_properties {
+    return Err(BudgetExceeded)
+  }
   let fields = []
   let seen : Map[String, Bool] = Map([])
   for index in 0..<count {
@@ -234,20 +271,39 @@ pub fn project_notion_data_source(
       @decode.lookup(field, "type") is Some(kind) else {
       return Err(InvalidProperty(name))
     }
-    let declared_name = metadata_text(declared_name, limits.max_name_bytes, false)?
-    let property_id = metadata_text(property_id, limits.max_identity_bytes, true)?
-    let kind = metadata_text(kind, limits.max_name_bytes, true)?
+    let declared_name = match
+      metadata_text(declared_name, limits.max_name_bytes, false) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let property_id = match
+      metadata_text(property_id, limits.max_identity_bytes, true) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let kind = match metadata_text(kind, limits.max_name_bytes, true) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
     guard declared_name == name &&
       @decode.lookup(field, kind) is Some(body) &&
       @decode.open_object(body) is Ok(_) else {
       return Err(InvalidProperty(name))
     }
-    if seen.contains(property_id) { return Err(DuplicateIdentity) }
+    if seen.contains(property_id) {
+      return Err(DuplicateIdentity)
+    }
     seen[property_id] = true
-    fields.push({ id: property_id, name, kind, definition })
+    fields.push({ id: property_id, name, kind, definition, })
   }
-  Ok({ id, response_sha256: @sha.hex(bytes), database, source_index,
-    original, properties: fields })
+  Ok({
+    id,
+    response_sha256: @sha.hex(bytes),
+    database,
+    source_index,
+    original,
+    properties: fields,
+  })
 }
 
 ///|

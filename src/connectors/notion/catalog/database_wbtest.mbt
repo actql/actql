@@ -109,8 +109,8 @@ test "Notion property inventory preserves exact names ids Unicode and future ord
   assert_eq(@decode.object_length(definition), Some(4))
   let future = notion_data_source_property_at(schema, 2).unwrap()
   assert_eq((future.name, future.kind), ("", "new_vendor_kind"))
-  assert_eq(notion_data_source_property_at(schema, -1), None)
-  assert_eq(notion_data_source_property_at(schema, 3), None)
+  assert_true(notion_data_source_property_at(schema, -1) is None)
+  assert_true(notion_data_source_property_at(schema, 3) is None)
 }
 
 ///|
