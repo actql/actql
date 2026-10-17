@@ -237,3 +237,44 @@ test "watch uses the actual monotonic clock and restores its original signal han
   assert_true(local_status_watch_begin_ffi())
   assert_true(local_status_watch_end_ffi())
 }
+
+///|
+test "watch refuses unavailable backwards clock and post-progress current loss" {
+  let missing = local_status_watch_probe([run_display_minimal])
+  missing.clock.val = -1L
+  assert_eq(
+    local_status_watch_issue(local_watch_test_options, missing.operations),
+    "LocalStatusClockUnavailable",
+  )
+  assert_eq(missing.reads.val, 0)
+  let probe = local_status_watch_probe([run_display_minimal])
+  let calls = Ref(0)
+  let backwards = {
+    ..probe.operations,
+    now_ms: () => {
+      calls.val += 1
+      if calls.val < 3 {
+        1L
+      } else {
+        0L
+      }
+    },
+  }
+  assert_eq(
+    local_status_watch_issue(local_watch_test_options, backwards),
+    "LocalStatusClockUnavailable",
+  )
+  let invalidated = local_status_watch_probe([run_display_minimal])
+  let operations = {
+    ..invalidated.operations,
+    progress: _ => {
+      invalidated.current.val = false
+      true
+    },
+  }
+  assert_eq(
+    local_status_watch_issue(local_watch_test_options, operations),
+    "LocalRunStateReadAuthorizationDenied",
+  )
+  assert_eq(invalidated.reads.val, 1)
+}
