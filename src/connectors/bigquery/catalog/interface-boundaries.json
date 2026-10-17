@@ -188,7 +188,7 @@
     },
     {
       "module": "src/connectors/bigquery/catalog/pkg.generated.mbti",
-      "sha256": "b0e3592e2bf7b265db3df18bcbf32488c0cce9166ef79166de5faa61febbaa2f",
+      "sha256": "a1e63035655d3a6114586cee430a1c7dcd25da8df64d8b166a365fd02fbec996",
       "exports": [
         "pub fn column_children(ColumnDescription) -> Array[ColumnDescription]",
         "pub fn column_constraints(ColumnDescription) -> (Int64?, Int64?, Int64?, String?)",
@@ -203,12 +203,22 @@
         "pub fn description_original(TableDescription) -> (String, String, String)",
         "pub fn generate_read_declaration(ReadProjection, String, String, String, @client_row_source_host.RowDeclarationLimits) -> Result[@client_row_source_host.RowDeclaration, @client_row_source_host.RowHostIssue]",
         "pub fn prepare_read_projection(TableDescription, Array[String], DescriptionLimits) -> Result[ReadProjection, DescriptionIssue]",
+        "pub fn project_query_page(ReadProjection, QueryJob, Bytes, QueryLimits) -> Result[QueryPage, QueryIssue]",
         "pub fn project_table_description(TableTarget, Bytes, DescriptionLimits) -> Result[TableDescription, DescriptionIssue]",
+        "pub fn query_job(String, String, String, Int) -> Result[QueryJob, QueryIssue]",
+        "pub fn query_page_cell(QueryPage, Int, Int) -> @value_admission.CheckedValue?",
+        "pub fn query_page_matches_original(QueryPage, ReadProjection, QueryJob) -> Bool",
+        "pub fn query_page_next_token(QueryPage) -> String?",
+        "pub fn query_page_response_sha256(QueryPage) -> String",
+        "pub fn query_page_row_count(QueryPage) -> Int",
+        "pub fn query_page_total_rows(QueryPage) -> Int64",
         "pub fn read_projection_fields(ReadProjection) -> Array[String]",
         "pub fn read_projection_matches_description(ReadProjection, TableDescription) -> Bool",
         "pub fn read_projection_schema(ReadProjection) -> (String, String)",
         "pub fn table_target(String, String, String, Int) -> Result[TableTarget, DescriptionIssue]",
         "pub struct ColumnDescription {",
+        "pub struct QueryJob {",
+        "pub struct QueryPage {",
         "pub struct ReadProjection {",
         "pub struct TableDescription {",
         "pub struct TableTarget {"
@@ -267,8 +277,40 @@
           "declaration": "pub fn prepare_read_projection(TableDescription, Array[String], DescriptionLimits) -> Result[ReadProjection, DescriptionIssue]"
         },
         {
+          "name": "project_query_page",
+          "declaration": "pub fn project_query_page(ReadProjection, QueryJob, Bytes, QueryLimits) -> Result[QueryPage, QueryIssue]"
+        },
+        {
           "name": "project_table_description",
           "declaration": "pub fn project_table_description(TableTarget, Bytes, DescriptionLimits) -> Result[TableDescription, DescriptionIssue]"
+        },
+        {
+          "name": "query_job",
+          "declaration": "pub fn query_job(String, String, String, Int) -> Result[QueryJob, QueryIssue]"
+        },
+        {
+          "name": "query_page_cell",
+          "declaration": "pub fn query_page_cell(QueryPage, Int, Int) -> @value_admission.CheckedValue?"
+        },
+        {
+          "name": "query_page_matches_original",
+          "declaration": "pub fn query_page_matches_original(QueryPage, ReadProjection, QueryJob) -> Bool"
+        },
+        {
+          "name": "query_page_next_token",
+          "declaration": "pub fn query_page_next_token(QueryPage) -> String?"
+        },
+        {
+          "name": "query_page_response_sha256",
+          "declaration": "pub fn query_page_response_sha256(QueryPage) -> String"
+        },
+        {
+          "name": "query_page_row_count",
+          "declaration": "pub fn query_page_row_count(QueryPage) -> Int"
+        },
+        {
+          "name": "query_page_total_rows",
+          "declaration": "pub fn query_page_total_rows(QueryPage) -> Int64"
         },
         {
           "name": "read_projection_fields",
@@ -399,6 +441,172 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "project_query_page",
+            "query_job",
+            "query_page_cell",
+            "query_page_matches_original",
+            "query_page_next_token",
+            "query_page_response_sha256",
+            "query_page_row_count",
+            "query_page_total_rows"
+          ],
+          "exports": [
+            "pub fn project_query_page(ReadProjection, QueryJob, Bytes, QueryLimits) -> Result[QueryPage, QueryIssue]",
+            "pub fn query_job(String, String, String, Int) -> Result[QueryJob, QueryIssue]",
+            "pub fn query_page_cell(QueryPage, Int, Int) -> @value_admission.CheckedValue?",
+            "pub fn query_page_matches_original(QueryPage, ReadProjection, QueryJob) -> Bool",
+            "pub fn query_page_next_token(QueryPage) -> String?",
+            "pub fn query_page_response_sha256(QueryPage) -> String",
+            "pub fn query_page_row_count(QueryPage) -> Int",
+            "pub fn query_page_total_rows(QueryPage) -> Int64",
+            "pub struct QueryJob {",
+            "pub struct QueryPage {"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/bigquery/catalog/README.md",
+                "anchor": "## Query-result page admission"
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response.mbt",
+                "anchor": "pub fn project_query_page("
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response_wbtest.mbt",
+                "anchor": "test \"query page binds original projection and exact Job without treating a page as full result\""
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/bigquery/catalog/README.md",
+                "anchor": "## Query-result page admission"
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response.mbt",
+                "anchor": "pub fn project_query_page("
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response_wbtest.mbt",
+                "anchor": "test \"query page binds original projection and exact Job without treating a page as full result\""
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/bigquery/catalog/README.md",
+                "anchor": "## Query-result page admission"
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response.mbt",
+                "anchor": "pub fn project_query_page("
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response_wbtest.mbt",
+                "anchor": "test \"query page binds original projection and exact Job without treating a page as full result\""
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/bigquery/catalog/README.md",
+                "anchor": "## Query-result page admission"
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response.mbt",
+                "anchor": "pub fn project_query_page("
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response_wbtest.mbt",
+                "anchor": "test \"query page binds original projection and exact Job without treating a page as full result\""
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/bigquery/catalog/README.md",
+                "anchor": "## Query-result page admission"
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response.mbt",
+                "anchor": "pub fn project_query_page("
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response_wbtest.mbt",
+                "anchor": "test \"query page binds original projection and exact Job without treating a page as full result\""
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/bigquery/catalog/README.md",
+                "anchor": "## Query-result page admission"
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response.mbt",
+                "anchor": "pub fn project_query_page("
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response_wbtest.mbt",
+                "anchor": "test \"query page binds original projection and exact Job without treating a page as full result\""
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/bigquery/catalog/README.md",
+                "anchor": "## Query-result page admission"
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response.mbt",
+                "anchor": "pub fn project_query_page("
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response_wbtest.mbt",
+                "anchor": "test \"query page binds original projection and exact Job without treating a page as full result\""
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/bigquery/catalog/README.md",
+                "anchor": "## Query-result page admission"
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response.mbt",
+                "anchor": "pub fn project_query_page("
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response_wbtest.mbt",
+                "anchor": "test \"query page binds original projection and exact Job without treating a page as full result\""
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/bigquery/catalog/README.md",
+                "anchor": "## Query-result page admission"
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response.mbt",
+                "anchor": "pub fn project_query_page("
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response_wbtest.mbt",
+                "anchor": "test \"query page binds original projection and exact Job without treating a page as full result\""
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/bigquery/catalog/README.md",
+                "anchor": "## Query-result page admission"
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response.mbt",
+                "anchor": "pub fn project_query_page("
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response_wbtest.mbt",
+                "anchor": "test \"query page binds original projection and exact Job without treating a page as full result\""
+              }
+            ]
+          }
         }
       ]
     },
@@ -506,6 +714,244 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/connectors/bigquery/catalog/query_response.mbt",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "converted_query_cell",
+            "find_query_original",
+            "native_kind",
+            "project_query_page",
+            "query_cell_value",
+            "query_checked",
+            "query_column",
+            "query_job",
+            "query_page_cell",
+            "query_page_matches_original",
+            "query_page_next_token",
+            "query_page_response_sha256",
+            "query_page_row_count",
+            "query_page_total_rows",
+            "query_root",
+            "valid_query_limits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/bigquery/catalog/README.md",
+                "anchor": "## Query-result page admission"
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response.mbt",
+                "anchor": "pub fn project_query_page("
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response_wbtest.mbt",
+                "anchor": "test \"query page binds original projection and exact Job without treating a page as full result\""
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/bigquery/catalog/README.md",
+                "anchor": "## Query-result page admission"
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response.mbt",
+                "anchor": "pub fn project_query_page("
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response_wbtest.mbt",
+                "anchor": "test \"query page binds original projection and exact Job without treating a page as full result\""
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/bigquery/catalog/README.md",
+                "anchor": "## Query-result page admission"
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response.mbt",
+                "anchor": "pub fn project_query_page("
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response_wbtest.mbt",
+                "anchor": "test \"query page binds original projection and exact Job without treating a page as full result\""
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/bigquery/catalog/README.md",
+                "anchor": "## Query-result page admission"
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response.mbt",
+                "anchor": "pub fn project_query_page("
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response_wbtest.mbt",
+                "anchor": "test \"query page binds original projection and exact Job without treating a page as full result\""
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/bigquery/catalog/README.md",
+                "anchor": "## Query-result page admission"
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response.mbt",
+                "anchor": "pub fn project_query_page("
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response_wbtest.mbt",
+                "anchor": "test \"query page binds original projection and exact Job without treating a page as full result\""
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/bigquery/catalog/README.md",
+                "anchor": "## Query-result page admission"
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response.mbt",
+                "anchor": "pub fn project_query_page("
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response_wbtest.mbt",
+                "anchor": "test \"query page binds original projection and exact Job without treating a page as full result\""
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/bigquery/catalog/README.md",
+                "anchor": "## Query-result page admission"
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response.mbt",
+                "anchor": "pub fn project_query_page("
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response_wbtest.mbt",
+                "anchor": "test \"query page binds original projection and exact Job without treating a page as full result\""
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/bigquery/catalog/README.md",
+                "anchor": "## Query-result page admission"
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response.mbt",
+                "anchor": "pub fn project_query_page("
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response_wbtest.mbt",
+                "anchor": "test \"query page binds original projection and exact Job without treating a page as full result\""
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/bigquery/catalog/README.md",
+                "anchor": "## Query-result page admission"
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response.mbt",
+                "anchor": "pub fn project_query_page("
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response_wbtest.mbt",
+                "anchor": "test \"query page binds original projection and exact Job without treating a page as full result\""
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/bigquery/catalog/README.md",
+                "anchor": "## Query-result page admission"
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response.mbt",
+                "anchor": "pub fn project_query_page("
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/query_response_wbtest.mbt",
+                "anchor": "test \"query page binds original projection and exact Job without treating a page as full result\""
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "076f9a6fb68a322362dd3adca138918e3f720d6521b5288cc5471e9666863499",
+      "exports": [],
+      "operations": [
+        {
+          "name": "converted_query_cell",
+          "declaration": "converted_query_cell ( node : @ source . Node , contract : @ contract . Contract , name : String , budget : QueryValueBudget , ) - > Result [ @ admitted . CheckedValue , QueryIssue ]"
+        },
+        {
+          "name": "find_query_original",
+          "declaration": "find_query_original ( columns : Array [ ColumnDescription ] , name : String , ) - > ColumnDescription ?"
+        },
+        {
+          "name": "native_kind",
+          "declaration": "native_kind ( kind : String ) - > String"
+        },
+        {
+          "name": "project_query_page",
+          "declaration": "project_query_page ( projection : ReadProjection , job : QueryJob , bytes : Bytes , limits : QueryLimits , ) - > Result [ QueryPage , QueryIssue ]"
+        },
+        {
+          "name": "query_cell_value",
+          "declaration": "query_cell_value ( cursor : @ decode . Cursor , column : QueryColumn , contract : @ contract . Contract , repeated : Bool , budget : QueryValueBudget , depth : Int , limits : QueryLimits , ) - > Result [ @ admitted . CheckedValue , QueryIssue ]"
+        },
+        {
+          "name": "query_checked",
+          "declaration": "query_checked ( cursor : @ decode . Cursor , contract : @ contract . Contract , name : String , budget : QueryValueBudget , ) - > Result [ @ admitted . CheckedValue , QueryIssue ]"
+        },
+        {
+          "name": "query_column",
+          "declaration": "query_column ( cursor : @ decode . Cursor , original : ColumnDescription , budget : DescriptionBudget , depth : Int , limits : DescriptionLimits , ) - > Result [ QueryColumn , QueryIssue ]"
+        },
+        {
+          "name": "query_job",
+          "declaration": "query_job ( project : String , job_id : String , location : String , max_bytes : Int , ) - > Result [ QueryJob , QueryIssue ]"
+        },
+        {
+          "name": "query_page_cell",
+          "declaration": "query_page_cell ( page : QueryPage , row : Int , column : Int , ) - > @ admitted . CheckedValue ?"
+        },
+        {
+          "name": "query_page_matches_original",
+          "declaration": "query_page_matches_original ( page : QueryPage , projection : ReadProjection , job : QueryJob , ) - > Bool"
+        },
+        {
+          "name": "query_page_next_token",
+          "declaration": "query_page_next_token ( page : QueryPage ) - > String ?"
+        },
+        {
+          "name": "query_page_response_sha256",
+          "declaration": "query_page_response_sha256 ( page : QueryPage ) - > String"
+        },
+        {
+          "name": "query_page_row_count",
+          "declaration": "query_page_row_count ( page : QueryPage ) - > Int"
+        },
+        {
+          "name": "query_page_total_rows",
+          "declaration": "query_page_total_rows ( page : QueryPage ) - > Int64"
+        },
+        {
+          "name": "query_root",
+          "declaration": "query_root ( bytes : Bytes , limits : QueryLimits , ) - > Result [ @ decode . Cursor , QueryIssue ]"
+        },
+        {
+          "name": "valid_query_limits",
+          "declaration": "valid_query_limits ( limits : QueryLimits ) - > Bool"
+        }
+      ]
     }
-  ]
+  ],
+  "source": "541141d45496adf1a564cc2c904683d1c4b4c0d3"
 }
