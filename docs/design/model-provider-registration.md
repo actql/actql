@@ -204,3 +204,42 @@ Task material is not by itself an installed Environment, saved Run, execution
 contract, physical supplier, permission or send admission. Those existing Host
 assembly and Run owners must consume the same originals and retain them until
 their original duties retire; recovery never regenerates them from current files.
+
+### Project Task Host assembly
+
+The existing embedded Local entry discovers the original project before its
+Host registry lookup. Configuration and registry bytes, their project directory,
+and the actual registration callback are part of that existing installation
+identity. Equal bytes do not manufacture an opaque project or Task. A live Host
+retains the admitted Task files; another connection cannot replace its materials
+by changing a file. A newly opened generation must acquire and admit its own
+originals. This is not a filesystem watcher or a fresh current-file assertion.
+
+The same Common runtime receives the actual Provider registration, resolves its
+original profile, and projects those normalized Task members into the original
+outer Check Environment. Common owns member ordering, complete member hashes,
+Task emission and the outer evidence identity. The Host does not parse/rebuild
+Task preimages. It applies this projection after existing Host policy encoding
+so exact Task identifiers and instructions are not normalized by configuration
+encoding. The existing complete Environment checker then admits the result;
+the projection itself does not accept duplicate Task selectors or issue a Run.
+
+The initial Local reader selection is explicit: at most 128 Task files, each
+at most 65536 UTF8 bytes, 4096 decode nodes, depth 64 and 256 members; each
+contract uses at most 4096 nodes, depth 64 and 65536 text bytes. Each bounded
+normalization/projection has a 2097152 work ceiling. These are installation
+reader ceilings, not Model execution fuel, capacity reservations or normal
+numerical profile admission. The final aggregate Environment retains its own
+existing limits, which may refuse a collection of individually admitted files.
+
+The installation inventory additionally retains the project membership record,
+one Provider reference in each normalized Task, captured runtime/current
+callbacks, the full Task inventory and the existing Host backreferences.
+Projection overlaps the old Environment, sorted member references/CIDs, hash
+UTF8 workspace, canonical preimage, final wire and ordinary Environment decode.
+The project identity index's V8 backing and all managed controls remain explicit
+Host/runtime responsibilities, not zero-byte or physical-release claims.
+The existing Host shutdown drops project/Task aliases only after its original
+child duties complete; Unknown or pending child cleanup retains responsibility.
+This connection supplies static checked materials, not execution dependencies,
+same-Run recovery, a physical Model supplier, permission or whole-phase funding.
