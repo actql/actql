@@ -157,6 +157,71 @@ export async function installRowSourceAuthorization({accountConfiguration,
 // current/entry authority. The returned Site accepts that original decision
 // with `admitCheckpointEffectTargetRead(decision, binding, operation)`.
 // Each such approval adds a seven-field record, the bounded canonical binding
+// One physical credential-journal/signing implementation for installed Row
+// Sites. The existing Site validates its selected profile/key and authorizes
+// each operation before calling sign; this private Host port is not a grant.
+// Preserve the original scope members/task attempt and same journal custody.
+export function openRowSourceCredentialCustody({profile, principalId,
+  connectorRegistration, connectorRevision, runtimeBundleCid, commonMoon,
+  privateKey, resolveSecret, ca, now, grantLifetimeMs,
+  openCredentialJournal, credentialFacts,
+  closedCode = 'RowSourceSiteClosed',
+  grantCode = 'InvalidRowSourceGrantRequest'}) {
+  const control = runtimeCore(commonMoon).remoteCredentialControl;
+  const journal = openCredentialJournal(profile.journalRoot, {
+    credentialAuthorities: new Map([[profile.credentialAuthorityId,
+      new Map([[profile.credentialKeyId, createPublicKey(privateKey)]])]]),
+  });
+  let closing = false;
+  let released = false;
+  const credential = Object.freeze({...credentialFacts,
+    control, journal, resolveSecret, ca, now});
+  const ensureOpen = () => {
+    if (closing) fail(closedCode);
+  };
+  function checkGrantRequest(runInvocationCid, dispatchRequestCid, maxUses,
+    taskAttempt = 1) {
+    if (!cidPattern.test(runInvocationCid ?? '') ||
+        !cidPattern.test(dispatchRequestCid ?? '') ||
+        !Number.isSafeInteger(taskAttempt) || taskAttempt < 1 ||
+        !Number.isSafeInteger(maxUses) || maxUses < 1 || maxUses > 10_000) {
+      fail(grantCode);
+    }
+  }
+  function sign({operation, runInvocationCid, taskAttempt = 1,
+    dispatchRequestCid, maxUses}) {
+    ensureOpen();
+    checkGrantRequest(runInvocationCid, dispatchRequestCid, maxUses, taskAttempt);
+    const scope = Object.freeze({
+      issuerAuthority: profile.credentialAuthorityId, principal: principalId,
+      namespaceId: profile.namespaceId, environment: profile.environment,
+      siteKey: profile.siteKey, siteGeneration: profile.siteGeneration,
+      runtimeBundleCid, connectorRegistration, connectorRevision,
+      resourceOrigin: profile.resourceOrigin, operation, runInvocationCid,
+      taskAttempt, dispatchRequestCid,
+      expiresUnixMilliseconds: BigInt(now() + grantLifetimeMs), maxUses,
+    });
+    const grant = control.prepare(scope);
+    journal.acceptGrant(signRemoteCredentialGrant(grant, control, {
+      keyId: profile.credentialKeyId, privateKey}), control);
+    return Object.freeze({grant, scope});
+  }
+  function close() {
+    closing = true;
+    journal.close();
+    released = true;
+  }
+  return Object.freeze({credential, sign, checkGrantRequest, ensureOpen,
+    referenceCurrent: () => !closing,
+    // The existing generic entry calls its original journal close on every
+    // close call. The Salesforce entry already skips an acknowledged close.
+    // Both paths share this same physical close and never infer an ACK.
+    close,
+    closeOnce() { if (!released) close(); },
+    cleanupPending: () => closing && !released,
+  });
+}
+
 // String and original binding/fence aliases in this Site's existing WeakMap.
 // Canonical comparison and signing overlap the original bounded inventory;
 // these controls do not supply a numerical reservation or physical close ACK.
@@ -194,40 +259,11 @@ export async function openRowSourceCredentialSite({profile, principalId,
   if (privateKey.asymmetricKeyType !== 'ed25519') {
     fail('InvalidRowSourceCredentialSite');
   }
-  const control = runtimeCore(commonMoon).remoteCredentialControl;
-  const journal = openCredentialJournal(profile.journalRoot, {
-    credentialAuthorities: new Map([[profile.credentialAuthorityId,
-      new Map([[profile.credentialKeyId, createPublicKey(privateKey)]])]]),
-  });
-  let closing = false;
-  const credential = Object.freeze({control, journal, resolveSecret, ca, now});
+  const custody = openRowSourceCredentialCustody({profile, principalId,
+    connectorRegistration, connectorRevision, runtimeBundleCid, commonMoon,
+    privateKey, resolveSecret, ca, now, grantLifetimeMs, openCredentialJournal});
+  const {credential, ensureOpen, checkGrantRequest, sign} = custody;
   const approvals = new WeakMap();
-  const ensureOpen = () => {
-    if (closing) fail('RowSourceSiteClosed');
-  };
-  function checkGrantRequest(runInvocationCid, dispatchRequestCid, maxUses) {
-    if (!cidPattern.test(runInvocationCid ?? '') ||
-        !cidPattern.test(dispatchRequestCid ?? '') ||
-        !Number.isSafeInteger(maxUses) || maxUses < 1 || maxUses > 10_000) {
-      fail('InvalidRowSourceGrantRequest');
-    }
-  }
-  function sign({operation, runInvocationCid, dispatchRequestCid, maxUses}) {
-    checkGrantRequest(runInvocationCid, dispatchRequestCid, maxUses);
-    const scope = Object.freeze({
-      issuerAuthority: profile.credentialAuthorityId, principal: principalId,
-      namespaceId: profile.namespaceId, environment: profile.environment,
-      siteKey: profile.siteKey, siteGeneration: profile.siteGeneration,
-      runtimeBundleCid, connectorRegistration, connectorRevision,
-      resourceOrigin: profile.resourceOrigin, operation, runInvocationCid,
-      taskAttempt: 1, dispatchRequestCid,
-      expiresUnixMilliseconds: BigInt(now() + grantLifetimeMs), maxUses,
-    });
-    const grant = control.prepare(scope);
-    journal.acceptGrant(signRemoteCredentialGrant(grant, control, {
-      keyId: profile.credentialKeyId, privateKey}), control);
-    return Object.freeze({grant, scope});
-  }
   const callResource = options => {
     for (const operation of options?.operations?.values?.() ?? []) {
       for (const name of operation?.responseHeaders ?? []) {
@@ -265,7 +301,7 @@ export async function openRowSourceCredentialSite({profile, principalId,
     credential, connection, callResource,
     // Borrowed references observe this same Site's lifecycle, not a caller's
     // permission Boolean. False means closing, not physical cleanup ACK.
-    referenceCurrent: () => !closing,
+    referenceCurrent: custody.referenceCurrent,
     // Admit a resumed Checkpoint approval only for this installation's own
     // physical target of the same Resource.
     admitCheckpointReadApproval(decision) {
@@ -375,10 +411,7 @@ export async function openRowSourceCredentialSite({profile, principalId,
       return sign({operation, runInvocationCid, dispatchRequestCid,
         maxUses: 1});
     },
-    close() {
-      closing = true;
-      journal.close();
-    },
+    close: custody.close,
   });
 }
 

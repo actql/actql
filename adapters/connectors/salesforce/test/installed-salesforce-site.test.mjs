@@ -51,7 +51,11 @@ async function installed(t, {entries, profile = {}, secret,
   const sites = [];
   t.after(async () => {
     for (const site of sites) site.close();
-    await rm(root, {recursive: true, force: true});
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      console.error(`Salesforce installed Site custody retained: ${root}`);
+    } else {
+      await rm(root, {recursive: true, force: true});
+    }
   });
   const authority = generateKeyPairSync('ed25519');
   await writeFile(join(root, 'credential.key'), authority.privateKey.export({
@@ -1077,3 +1081,43 @@ for (const closeFailures of [0, 1]) {
     });
 }
 
+
+
+test('shared credential custody preserves every original Salesforce scope member and nondefault task attempt', async t => {
+  const setup = await installed(t);
+  const now = 1_700_000_000_000;
+  let accepted = 0;
+  const site = await setup.load({now: () => now, grantLifetimeMs: 123_456,
+    openCredentialJournal(root, options) {
+      const journal = openSqliteCredentialJournal(root, options);
+      return {...journal, acceptGrant(...args) {
+        accepted++;
+        return journal.acceptGrant(...args);
+      }};
+    }});
+  const decision = await site.authorization.authorize('acquisition', {
+    connection: site.connection, resource: 'Test_Record__c', operation: 'read'},
+  {subjectCid: cid('5')});
+  const request = {operation: 'salesforce:record:observe', decision,
+    resource: 'Test_Record__c', runInvocationCid: cid('3'),
+    dispatchRequestCid: cid('4'), taskAttempt: 7, maxUses: 3};
+  const result = site.issueGrant(request);
+  assert.deepEqual(result.scope, {
+    issuerAuthority: 'host-credential-authority', principal: 'principal-a',
+    namespaceId: 'namespace-a', environment: 'test', siteKey: 'salesforce-site',
+    siteGeneration: 1, runtimeBundleCid: cid('b'),
+    connectorRegistration: 'salesforce', connectorRevision: 'salesforce/0.1',
+    resourceOrigin: setup.org.origin, operation: request.operation,
+    runInvocationCid: cid('3'), taskAttempt: 7, dispatchRequestCid: cid('4'),
+    expiresUnixMilliseconds: 1_700_000_123_456n, maxUses: 3,
+  });
+  assert.equal(Object.isFrozen(result.scope), true);
+  assert.equal(site.credential.orgId, setup.org.orgId);
+  assert.equal(accepted, 1);
+  for (const taskAttempt of [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+    assert.throws(() => site.issueGrant({...request, taskAttempt}),
+      {code: 'InvalidSalesforceCredentialGrantRequest'});
+  }
+  assert.equal(accepted, 1);
+  assert.equal(setup.org.seen.length, 0, 'signing is not provider I/O');
+});
