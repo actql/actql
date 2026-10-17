@@ -16,6 +16,7 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {signedAnswer} from '../../packages/sdk/checkpoints.mjs';
+import {checkpointEffectReviewDouble} from './fixtures/checkpoint-effect-review.fixture.mjs';
 import {authorizationDispatchFacts} from
   '../host-common/authorization-gate.mjs';
 
@@ -187,6 +188,7 @@ test('a stale terminal preparation claim retains settlement responsibility',
 const continuation = beforeDefer => ({runId: 'run-a',
   runDefinitionCid: cid('1'), unitId: 'unit-a', declaredResults: ['answer'],
   reviewWire: canonicalJson({message: 'Review the whole Effect Set'}),
+  projectReview: checkpointEffectReviewDouble(runtimeCore(moon).publicationControl,cid('2')),
   continuationWire: canonicalJson({requestId: 'request-a'}), beforeDefer});
 
 test('an acquired Effect Source wait retains its capture and resumes only the exact read',
@@ -483,8 +485,12 @@ test('Effect review and signed answer survive installed service restart',
       {requestId: 'request-a'});
     const review = await installed.reviewCheckpoint({principalId: 'reviewer',
       checkpointCid: summary.checkpointCid, maxBytes: 4096});
-    assert.deepEqual(JSON.parse(Buffer.from(review.contentBase64, 'base64')),
-      {message: 'Review the whole Effect Set'});
+    const projected=JSON.parse(Buffer.from(review.contentBase64, 'base64'));
+    assert.equal(projected.version,'actql-review-projection/0.1');
+    assert.equal(projected.effect_preview_cid,cid('2'));
+    assert.equal(projected.review_projection_cid,review.artifactCid);
+    assert.equal(projected.displayed_rows[0].before.value.Name,'Before');
+    assert.equal(projected.displayed_rows[0].after.value.Name,'After');
     const signer = {keyId: 'reviewer-key', reviewerId: 'reviewer',
       authorityScopeCid: cid('3'),
       sign: bytes => sign(null, bytes, reviewer.privateKey)};

@@ -188,6 +188,7 @@ for (const [empty, sparseTableInput] of [[false, false], [true, false], [false, 
           const continuation = () => ({runId: 'source-set-run',
             runDefinitionCid: moon.strategyPublicationContractIdentity(f.definition),
             unitId: 'unit-1', declaredResults: ['rows'], reviewWire: f.authored._0,
+            projectReview:(policy,limits)=>control.projectEffectComputationReview(publicationPreview,policy,limits),
             continuationWire: JSON.stringify({request_cids: f.operations.map(value => value.request_cid)}),
             beforeDefer: () => retained.commit()});
           gate = await installed.effectAuthorization(continuation());

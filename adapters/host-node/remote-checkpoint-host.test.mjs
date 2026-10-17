@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import {execFileSync, spawnSync} from 'node:child_process';
 import {nodeTestArguments} from '../../scripts/test-execution.mjs';
 import {assertPartialEffectSeedExit} from './fixtures/effect-crash-evidence.mjs';
+import {checkpointEffectReviewDouble} from './fixtures/checkpoint-effect-review.fixture.mjs';
 import {createHash, createPrivateKey, createPublicKey, generateKeyPairSync, sign} from 'node:crypto';
 import {chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile} from
   'node:fs/promises';
@@ -2536,6 +2537,7 @@ test('installed Effect commit resumes the same Run without resending',
           runDefinitionCid: runDefinition.identity, unitId: 'values',
           declaredResults: ['answer'],
           reviewWire: canonicalJson({effect: 'save', rows: 2}),
+          projectReview: checkpointEffectReviewDouble(control,subjectCid),
           continuationWire: canonicalJson({subjectCid}),
           beforeDefer: () => execution.close()});
         try {

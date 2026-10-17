@@ -4091,6 +4091,18 @@ function publicationControl(moon) {
       }
       return wire;
     },
+    projectEffectComputationReview(preview, policy, limits) {
+      issuanceLimits(limits, 'Effect review projection');
+      const original = computationPreviewTokens.get(preview);
+      const wire = computationPreviewWires.get(preview);
+      if (original === undefined || wire === undefined) {
+        throw new TypeError('Foreign Effect computation Preview');
+      }
+      return inspectEvidence(checked(moon.clientProgramProjectEffectReview(
+        original, wire, policy.authorityScopeCid, policy.approvalClaims,
+        policy.redactionPolicyCid, limits.maxWireBytes, limits.maxNodes,
+        limits.maxDepth)));
+    },
     // Private original Client/Checkpoint binding. These operations accept the
     // Common-issued opaque view, never a wire/CID reconstructed substitute.
     requestedEffectStopLifetime(original) {

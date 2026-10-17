@@ -1,5 +1,38 @@
 # OSS Host authorization behavior
 
+## Original public Host signer selections
+
+The existing Common Host configuration boundary projects the `signers` portion
+of an explicitly selected `actql-host/0.1` original. It retains the exact input
+wire and private-constructor selections for each original name, principal, key
+ID, two key-file locators and declared Checkpoint kinds. The existing
+Checkpoint Owner decodes kind names. Paths and data strings are not resolved,
+normalized or rewritten by this projection, and it issues no new CID.
+
+This is a bounded structural projection, not complete Host configuration
+admission. `account_config`, `run_policy` and `effect_policy` still require their
+own original admission and current checks. Project discovery cannot supply this
+Host original or add signers. Absent `signers` and an explicitly empty map stay
+distinct; neither produces an implicit signer, default key or signing grant.
+Exact name selection never chooses the first available signer as a fallback.
+
+The trusted Host installer must bind the same selected configuration and key
+files to its original adoption/generation, authenticated principal and current
+Account. A parsed path, public key, equal wire or copied selection does not
+establish key custody, public/private correspondence or resolve permission.
+Default Local key creation belongs to the original initialization, not a
+recovery read that discovers a missing key. Host-attestation keys cannot stand
+in for reviewer authority. Signing still requires the original Checkpoint,
+Run/request, approval scope, exact preimage, original use claim and independently
+current role/key checks; Unknown never allocates a replacement use.
+
+Read limits bound UTF-8 input, parser nodes/depth and selected signer count.
+They do not fund the original String, byte conversion, parser workspace,
+selection records, key-file reads, signing work or their overlap. Those costs
+and reference retirement remain with the original Host/Run resource lifetime.
+The private Node/RelA bridges expose only this DATA projection, not an approval
+or a physical signing endpoint.
+
 ## Original sealed Effect review evidence
 
 The existing Common Preview/publication Owner projects an admitted private
@@ -24,6 +57,19 @@ its own root field; a Store byte digest includes the complete wire and is not
 that self CID. Approval binds the review actually shown and cannot discharge
 another Preview, scope, claim set or redaction policy. Neither projection nor
 physical persistence issues an Account grant, apply permit or cleanup ACK.
+
+The existing private continuation ledger keeps those two identities on the
+same review holding: its historical `semantic_cid` still addresses complete
+plaintext bytes, while optional `artifact_cid` names the Common self-addressed
+review. The latter is allowed only for the review role. It is not a second
+index, a new custody issuer or permission to read an arbitrary Store object.
+The original Run/request, installation key, holding derivation, retained state,
+full-byte digest and Common review/Checkpoint correspondence remain required.
+The original continuation bytes and their requested-stop binding do not change.
+Historical unassociated holdings keep their old byte-addressed behavior; no
+pending Checkpoint is upgraded or reissued. The added metadata String, serialized
+entry, bounded parser node and saved/read response overlap remain in the same
+Host/Run inventory; structural parser allowance is not numerical funding.
 
 The projection overlaps the original private wire, bounded parser/readmission
 workspace, original identity inventories, member/row traversal, output writer,

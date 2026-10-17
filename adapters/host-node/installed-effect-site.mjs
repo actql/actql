@@ -139,6 +139,10 @@ function authorization(facts, stage, beforeDefer) {
     unitId: effectUnitId(facts),
     declaredResults,
     reviewWire: facts.control.effectComputationPreviewWire(stage.preview),
+    // Capture the same actual Preview, not its public CID or a restored DATA
+    // substitute. The Checkpoint Owner supplies its original policy/claims.
+    projectReview: (policy, limits) =>
+      facts.control.projectEffectComputationReview(stage.preview, policy, limits),
     continuationWire: continuation(facts, stage, false, requestedStop),
     ...(requestedStop === undefined ? {} : {requestedStop,
       assertRequestedStopCurrent: stage.assertRequestedStopCurrent ??
