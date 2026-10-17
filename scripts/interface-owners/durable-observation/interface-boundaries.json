@@ -4326,6 +4326,7 @@
       "exports": [
         "callHttpsCredentialResource",
         "closeHttpsCredentialBinding",
+        "exchangeHttpsCredentialAuthentication",
         "openHttpsCredentialBinding",
         "prepareHttpsCredentialAuthenticationMaterial"
       ],
@@ -4345,6 +4346,75 @@
           "name": "acquireBinding/acquireBinding",
           "parameters": [
             "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "authenticationCurrent",
+          "parameters": [
+            "state",
+            "original",
+            "scope",
+            "control",
+            "journal",
+            "now",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "authenticationDependency",
+          "parameters": [
+            "state",
+            "parentScope",
+            "grant",
+            "scope",
+            "control",
+            "journal",
+            "trustedNow"
+          ],
+          "async": false
+        },
+        {
+          "name": "authenticationDependency/authenticationDependency",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "authenticationTokenReader",
+          "parameters": [
+            "registration",
+            "maxSecretBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "authenticationTokenReader/authenticationTokenReader",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "authenticationTokenReader/authenticationTokenReader#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "authenticationTokenReader/init:read/init:read",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "authenticationTokenReader/init:read/init:read/init:read",
+          "parameters": [
+            "scope"
           ],
           "async": false
         },
@@ -4412,6 +4482,56 @@
           "name": "exactRequestTarget",
           "parameters": [
             "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "exchangeHttpsCredentialAuthentication",
+          "parameters": [
+            "binding",
+            "material",
+            "scope",
+            "control",
+            "journal",
+            "resolveSecret",
+            "authGrant",
+            "authScope",
+            "useId",
+            "currentBeforeSend",
+            "now",
+            "signal",
+            "ca",
+            "cert",
+            "key"
+          ],
+          "async": true
+        },
+        {
+          "name": "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "exchangeHttpsCredentialAuthentication/expires/expires",
+          "parameters": [
+            "minimum",
+            "value"
           ],
           "async": false
         },
@@ -4489,6 +4609,8 @@
             "resolveSecret",
             "parentClaim",
             "currentBeforeSign",
+            "authenticationGrant",
+            "authenticationScope",
             "now",
             "signal"
           ],
@@ -4523,6 +4645,7 @@
             "bodyMediaType",
             "requestBytes",
             "secret",
+            "authenticationForm",
             "headers",
             "ca",
             "cert",
@@ -4632,6 +4755,14 @@
             "<module>",
             "acquireBinding",
             "acquireBinding/acquireBinding",
+            "authenticationCurrent",
+            "authenticationDependency",
+            "authenticationDependency/authenticationDependency",
+            "authenticationTokenReader",
+            "authenticationTokenReader/authenticationTokenReader",
+            "authenticationTokenReader/authenticationTokenReader#2",
+            "authenticationTokenReader/init:read/init:read",
+            "authenticationTokenReader/init:read/init:read/init:read",
             "callCredentialResource",
             "callHttpsCredentialResource",
             "checkAuthenticationSelection",
@@ -4639,6 +4770,11 @@
             "closeHttpsCredentialBinding",
             "count/count",
             "exactRequestTarget",
+            "exchangeHttpsCredentialAuthentication",
+            "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication",
+            "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication#2",
+            "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication#3",
+            "exchangeHttpsCredentialAuthentication/expires/expires",
             "fail/fail",
             "openHttpsCredentialBinding",
             "openHttpsCredentialBinding/openHttpsCredentialBinding",
@@ -4670,6 +4806,7 @@
           "exports": [
             "callHttpsCredentialResource",
             "closeHttpsCredentialBinding",
+            "exchangeHttpsCredentialAuthentication",
             "openHttpsCredentialBinding",
             "prepareHttpsCredentialAuthenticationMaterial"
           ],
@@ -4686,6 +4823,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
               }
             ],
             "inputsOutputs": [
@@ -4700,6 +4841,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
               }
             ],
             "identity": [
@@ -4714,6 +4859,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
               }
             ],
             "ownership": [
@@ -4728,6 +4877,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
               }
             ],
             "synchronization": [
@@ -4742,6 +4895,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
               }
             ],
             "failure": [
@@ -4756,6 +4913,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
               }
             ],
             "cancellation": [
@@ -4770,6 +4931,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
               }
             ],
             "resources": [
@@ -4784,6 +4949,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
               }
             ],
             "extension": [
@@ -4798,6 +4967,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Native authentication material in the original binding"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
               }
             ],
             "verification": [
@@ -4824,15 +4997,25 @@
               {
                 "path": "adapters/site-node/credential-authentication-material.test.mjs",
                 "anchor": "a reentrant material-current revocation still reaches final Journal authorization before signing"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "adapters/site-node/credential-authentication-exchange.test.mjs",
+                "anchor": "lost outcome COMMIT reply publishes no token and never repeats the confirmed SQLite write"
               }
             ]
           }
         }
       ],
-      "sha256": "46f37ab39f081eacf44997765cffed649ce35328734df8e5b465fff7731aa427",
+      "sha256": "97f689a747f6aa45dea8fede541f3250fc86e584ee948bd0d0ec015041ffe698",
       "imports": [
+        "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",
         "../host-common/http-exchange.mjs",
+        "../host-common/runtime-result.mjs",
         "./google-service-account-assertion.mjs",
         "node:https",
         "node:util"
