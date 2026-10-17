@@ -224,9 +224,19 @@ fn short_command_target_field(header : @program.EffectHeader) -> String? {
 ///|
 test "Source lowering retains the same original Command publication and never attaches it to structured old input" {
   let publication = command_publication_bind("installation")
-  for format in [@frontend.Sql, @frontend.Text] {
+  for
+    (format, text) in [
+      (
+        @frontend.Sql,
+        "SELECT x, y FROM pair |> EFFECT COMMAND mail.send ID x INPUT (body = 'original')",
+      ),
+      (
+        @frontend.Text,
+        "FROM pair |> EFFECT COMMAND mail.send ID x INPUT (body = 'original')",
+      ),
+    ] {
     let lowered = @frontend.lower(
-      "FROM pair |> EFFECT COMMAND mail.send ID x INPUT (body = 'original')",
+      text,
       format,
       Some(pair_context()),
       command_targets=Some(publication),
@@ -265,10 +275,12 @@ test "short COMMAND original ID range survives local SET and never becomes mutat
   )
   let header = store_capture_header(program)
   let key = @program.effect_header_command_input_key(header).unwrap()
-  assert_true(
-    key != "x",
-    msg="the immutable original range must not follow the new visible x",
-  )
+  // SET writes a new private slot; the immutable range retains original x.
+  assert_eq(key, "x")
+  let derived = store_capture_steps(program).filter(step => {
+    @wire.lookup(@wire.open_object(step).unwrap(), "derive") is Some(_)
+  })
+  assert_eq(derived.length(), 2)
   assert_true(semantic(program).contains("\"input_key\""))
   assert_true(!semantic(program).contains("\"mutation_identity\""))
   let renamed = short_command_program(
@@ -286,7 +298,7 @@ test "short COMMAND CTE and set inputs use only their actual completed exported 
   for
     text in [
       "WITH original AS (FROM pair) FROM original |> EFFECT COMMAND mail.send ID x INPUT (body = 'same')",
-      "(FROM pair UNION ALL FROM pair) |> EFFECT COMMAND mail.send ID x INPUT (body = 'same')",
+      "FROM pair |> UNION ALL (FROM pair) |> EFFECT COMMAND mail.send ID x INPUT (body = 'same')",
     ] {
     let program = short_command_program(text, "installation")
     assert_true(
