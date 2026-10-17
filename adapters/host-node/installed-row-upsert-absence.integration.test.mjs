@@ -6,6 +6,7 @@ import {createHash, generateKeyPairSync} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import test from 'node:test';
+import {inspect} from 'node:util';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {canonicalJson} from './local-account-config.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
@@ -124,7 +125,11 @@ async function fixture(t, {kind = 'upsert', observation = 'absent', targetSubsti
 
 test('actual Common captures original explicit UPSERT absence without a synthetic before value or version', async t => {
   const f = await fixture(t);
-  const result = await f.host.run(program(f.mapping), 'original-upsert-absent');
+  const result = await f.host.run(program(f.mapping), 'original-upsert-absent').catch(async cause => {
+    await writeFile(join(f.root, 'original-capture-failure.txt'), inspect(cause, {depth: 20}) + '\n', {mode: 0o600});
+    t.diagnostic(inspect(cause.cause, {depth: 8}));
+    throw cause;
+  });
   assert.equal(result.started.value.status, 'captured');
   const stage = f.host.outcomes[0].stage;
   const preview = JSON.parse(f.host.control.effectComputationPreviewWire(stage.preview));
