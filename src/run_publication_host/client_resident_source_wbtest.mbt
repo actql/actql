@@ -4,6 +4,24 @@ let resident_source_program : String =
   #|{"version":"actql/0.1","id":"fixture.resident-source-filter-select","stages":[{"id":"acquire","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0","as":"filtered"},{"select":["id","amount"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id","amount"]}}}],"results":{"answer":{"from":{"stage":"acquire","result":"rows"}}}}
 
 ///|
+test "resident Source fixture has canonical ordered Environment evidence" {
+  match
+    @environment.read(
+      @utf8.encode(multi_source_environment),
+      "sha256:806cd2ad9e32c71ac2a5879c896385a55d9ce388e7b782cb79209d93e556c771",
+      {
+        max_bytes: 65536,
+        max_nodes: 4096,
+        max_depth: 64,
+        max_members: 256,
+      },
+    ) {
+    Ok(_) => ()
+    Err(issue) => fail("fixture Environment admission: \{issue}")
+  }
+}
+
+///|
 test "resident Source Result compiles its exact acquisition task without Compute" {
   let prepared = multi_source_prepared(resident_source_program)
   let graph = prepared_client_graph(prepared)
