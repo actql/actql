@@ -202,6 +202,29 @@ test('generated family refences cancellation begun during the original matcher c
   t.diagnostic(`Fresh needs-reconciliation Run/DB/key/holding retained: ${f.scratch.path}`);
 });
 
+test('explicit family close refuses new original handoffs after temporary generation cleanup', async t => {
+  const f = await fixture(t, {retainCustody: true});
+  await f.generate();
+  assert.equal(f.owner.cleanupPending(), false);
+  let closing;
+  await withConsumer(t, f, f.issued(), view => {
+    const original = f.owner.storageForContent(view.binding);
+    assert.ok(original);
+    closing = f.owner.close();
+    // Temporary encoder cleanup was already acknowledged, but explicit parent
+    // close must still forbid new borrowers of this original occurrence.
+    assert.equal(f.owner.storageForContent(view.binding), undefined);
+    assert.equal(f.owner.issuedForContent(view.binding), undefined);
+    assert.equal(f.owner.storageCurrentForContent(original, view.binding), false);
+  }, 'needs_reconciliation');
+  assert.equal(await closing, true);
+  assert.equal(await f.owner.cleanup(), true);
+  assert.equal(f.generated.store.status().storedBytes, 3);
+  assert.ok(await f.generated.store.inspectPhysicalHolding(f.holdingCid),
+    'family close is not retirement of the original durable holding');
+  t.diagnostic(`Fresh close-refused Run/DB/key/holding retained: ${f.scratch.path}`);
+});
+
 test('failed generation retains its original cleanup and exports no durable stored binding', async t => {
   const primary = new Error('ControlledFamilyCompletionFailure');
   const f = await fixture(t, {failCompletion: primary});
