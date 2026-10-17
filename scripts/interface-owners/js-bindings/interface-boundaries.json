@@ -57623,7 +57623,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "26c1320e7280daf75db75cc314d9c884c866a25f7fd6fada5e7b00dc03bf6977",
+      "sha256": "da6c3fff7a710b94d4b81eb11a447ba31d8c72dce0ccad17284e4bd0792b0a3f",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -58524,20 +58524,6 @@
           "async": false
         },
         {
-          "name": "prepareInstallationMetadataSite/ensureCurrent/ensureCurrent/ensureCurrent",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstallationMetadataSite/ensureCurrent/ensureCurrent/ensureCurrent#2",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareInstallationMetadataSite/factsFor/factsFor",
           "parameters": [
             "target"
@@ -58595,6 +58581,11 @@
           "async": false
         },
         {
+          "name": "prepareInstallationMetadataSite/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareInstallationMetadataSite/invalid/invalid",
           "parameters": [],
           "async": false
@@ -58630,6 +58621,18 @@
         {
           "name": "prepareInstallationMetadataSite/prepareInstallationMetadataSite#3",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/profileCurrent/profileCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/profileCurrent/profileCurrent/profileCurrent",
+          "parameters": [
+            "key"
+          ],
           "async": false
         },
         {
@@ -60193,8 +60196,6 @@
             "prepareInstallationMetadataSite/data/data/data",
             "prepareInstallationMetadataSite/data/data/data#2",
             "prepareInstallationMetadataSite/ensureCurrent/ensureCurrent",
-            "prepareInstallationMetadataSite/ensureCurrent/ensureCurrent/ensureCurrent",
-            "prepareInstallationMetadataSite/ensureCurrent/ensureCurrent/ensureCurrent#2",
             "prepareInstallationMetadataSite/factsFor/factsFor",
             "prepareInstallationMetadataSite/init:attach/init:attach",
             "prepareInstallationMetadataSite/init:attach/init:attach/site/init:close/init:close",
@@ -60212,7 +60213,10 @@
             "prepareInstallationMetadataSite/prepareInstallationMetadataSite#3",
             "prepareInstallationMetadataSite/selectedProfile/selectedProfile",
             "prepareInstallationMetadataSite/synchronous/synchronous",
-            "prepareInstallationMetadataSite/synchronous/synchronous/synchronous"
+            "prepareInstallationMetadataSite/synchronous/synchronous/synchronous",
+            "prepareInstallationMetadataSite/init:close/init:close",
+            "prepareInstallationMetadataSite/profileCurrent/profileCurrent",
+            "prepareInstallationMetadataSite/profileCurrent/profileCurrent/profileCurrent"
           ],
           "exports": [],
           "attributes": {
