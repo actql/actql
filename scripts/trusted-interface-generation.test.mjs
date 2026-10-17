@@ -25,7 +25,8 @@ test('genuine checked generator outputs qualify original compiler and action pro
   assert(checked.checked.includes('native-cli-default-assets.mjs'));
   assert(checked.checked.includes('compilation-manifests.mjs'));
   for (const name of ['query-acquisition-contract.mjs', 'query-process-evidence.mjs',
-    'query-two-receipt.mjs', 'query-resource-scopes.mjs', 'check-query-evidence-fixtures.mjs']) {
+    'query-two-receipt.mjs', 'query-resource-scopes.mjs', 'check-query-evidence-fixtures.mjs',
+    'fixed-compute-capacity.mjs', 'managed-runtime-vectors.mjs']) {
     assert(checked.checked.includes(name));
   }
   const original = interfaceOwnerDeclarations(process.cwd()).find(owner =>
@@ -104,4 +105,30 @@ test('ordinary genuine freshness refuses an older actual query verifier pin', t 
   assert.notEqual(changed, source);
   writeFileSync(path, changed);
   assert.throws(() => interfaceGenerationFreshness(scratch), /Stale actual verifier pin/u);
+});
+
+test('ordinary genuine freshness refuses a stale fixed-input fragment dependency', t => {
+  const root = process.env.ACTQL_I6_INPUT_ROOT ?? process.cwd();
+  const relative = 'spec/contracts/actql-fixed-compute-capacity.json';
+  const scratch = shadowOriginal(root, relative);
+  t.after(() => rmSync(scratch, {recursive: true}));
+  const path = join(scratch, relative), body = JSON.parse(readFileSync(path));
+  body.dependencies.fragment.cid = 'sha256:b924311d35a118ab7ba0944690f6175606d8fcea0fdb89ad8bb8071fa7f589e3';
+  writeFileSync(path, JSON.stringify(body));
+  assert.throws(() => interfaceGenerationFreshness(scratch), error => {
+    assert.match(String(error), /fixed-compute-capacity\.mjs/u);
+    assert.match(String(error), /fragment/u);
+    return true;
+  });
+});
+
+test('ordinary genuine freshness refuses a stale managed-profile dependency before proof', t => {
+  const root = process.env.ACTQL_I6_INPUT_ROOT ?? process.cwd();
+  const relative = 'spec/contracts/actql-managed-retained-execution.json';
+  const scratch = shadowOriginal(root, relative);
+  t.after(() => rmSync(scratch, {recursive: true}));
+  const path = join(scratch, relative), body = JSON.parse(readFileSync(path));
+  body.dependencies.fixed_compute_capacity.cid = 'sha256:65d84800fb462f842e4ba38118c3e23b2441a7d1620fbf979705439d8b9dad8d';
+  writeFileSync(path, JSON.stringify(body));
+  assert.throws(() => interfaceGenerationFreshness(scratch), /fixed-compute capacity dependency is stale/u);
 });
