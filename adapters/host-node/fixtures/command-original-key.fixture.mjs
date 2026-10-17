@@ -3,6 +3,8 @@
 // numerical supplier, authenticated Preview or physical Effect permission.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {canonicalText} from '../../../scripts/check-canonical-json.mjs';
 import * as moon from '../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../../host-common/runtime-result.mjs';
 import {runCapturedEffectComputation} from '../entry.mjs';
@@ -51,9 +53,13 @@ export async function originalCommandKeyFixture({rows = [{id:'one',value:'origin
   const environmentBody = literals.find(value=>Array.isArray(value.command_contracts));
   const program = literals.find(value=>value.id==='published-store-capture');
   assert(environmentBody && program);
+  const base=JSON.parse(await readFile(new URL('../../../spec/local-check-environment.json',import.meta.url),'utf8'));
+  environmentBody.host_policy_profile=base.host_policy_profile;
+  delete environmentBody.evidence_bundle_cid;
+  environmentBody.evidence_bundle_cid=`sha256:${createHash('sha256').update(canonicalText(environmentBody)).digest('hex')}`;
   program.stages[0].steps[0].values.rows = rows;
   if(inputKey) program.stages[0].effects.save.command.input_key='id';
-  const environment = moon.clientProgramCheckEnvironment(JSON.stringify(environmentBody),
+  const environment = moon.clientProgramCheckEnvironment(canonicalText(environmentBody),
     environmentBody.evidence_bundle_cid,false,false,true,false,false,false,false);
   assert(environment,'original Common environment admitted');
   const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
@@ -75,9 +81,9 @@ export async function originalCommandKeyFixture({rows = [{id:'one',value:'origin
   const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(bound,registry,values,1n,0n,0n,0n);
   assert(owned);
   const execution = await runCapturedEffectComputation(owned);
-  assert.equal(execution.status,'host-tasks-completed');
   let inputs;
   try {
+    assert.equal(execution.status,'host-tasks-completed');
     inputs=checked(moon.clientProgramPinEffectSources(owned,2));
     const limits=moon.clientProgramEffectInputExportLimits(
       10,1000,10000,100,100,10000,100000,64,100000,
