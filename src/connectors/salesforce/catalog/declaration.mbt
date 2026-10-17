@@ -870,8 +870,8 @@ fn same_field_meaning(
   declared.case_sensitive == current.case_sensitive &&
   declared.reference_to == current.reference_to &&
   declared.precision == current.precision &&
-  declared.scale == current.scale
-  && declared.compound_field_name == current.compound_field_name
+  declared.scale == current.scale &&
+  declared.compound_field_name == current.compound_field_name
 }
 
 ///|
