@@ -30,10 +30,12 @@ for (const variant of ['status unavailable', 'handle replaced during retry']) {
     });
     const original = Object.freeze({
       status() {
+        assert.equal(this, original);
         if (!statusAvailable) throw observationFailure;
         return {pending: !readerClosed, errors: []};
       },
       async retry() {
+        assert.equal(this, original);
         retries++;
         if (variant === 'handle replaced during retry') primary.cleanupHandle = replacement;
         if (permitClose && !readerClosed) {
@@ -74,7 +76,11 @@ for (const variant of ['status unavailable', 'handle replaced during retry']) {
     assert.deepEqual(journal.recover(), []);
     assert.equal(retries, 1);
     if (variant === 'status unavailable') {
-      assert.ok(failure.cleanupHandle.status().errors.some(item => item.error === observationFailure));
+      const errors = failure.cleanupHandle.status().errors;
+      assert.ok(errors.some(item => item.error === observationFailure));
+      for (let poll = 0; poll < 20; poll++) {
+        assert.equal(failure.cleanupHandle.status().errors.length, errors.length);
+      }
     } else assert.equal(primary.cleanupHandle, replacement);
     statusAvailable = true;
     assert.equal((await failure.cleanupHandle.retry()).pending, true);

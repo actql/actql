@@ -3,8 +3,13 @@
 export async function retainInstalledHostInitializationFailure(cause,
   {journal, store, checkpoints, dispatchOwner, sourceProfile,
     installedEffect, observation, ownerViews}) {
+  // Retain the original receiver and methods before the first cleanup await.
+  // A changed error property cannot acknowledge a different physical owner.
+  const originalCleanup = cause?.cleanupHandle;
+  const originalRetry = originalCleanup?.retry;
+  const originalStatus = originalCleanup?.status;
   const pending = new Set();
-  if (cause?.cleanupHandle !== undefined || cause?.cleanupPending === true) {
+  if (originalCleanup !== undefined || cause?.cleanupPending === true) {
     pending.add('initialization');
   }
   if (checkpoints !== undefined) pending.add('checkpoint-stop');
@@ -20,10 +25,28 @@ export async function retainInstalledHostInitializationFailure(cause,
   const failure = Object.assign(new Error('InstalledHostInitializationFailed',
     {cause}), {code: 'InstalledHostInitializationFailed',
     primaryFailure: cause?.primaryFailure ?? cause});
-  const status = () => Object.freeze({pending: pending.size !== 0,
-    owners: Object.freeze([...pending]), errors: Object.freeze([
-      ...(cause?.cleanupHandle?.status?.().errors ??
-        cause?.cleanupErrors ?? []), ...errors])});
+  let originalErrors = cause?.cleanupErrors ?? [];
+  let observationFailure;
+  function observeOriginalCleanup() {
+    try {
+      const observed = originalStatus?.call(originalCleanup);
+      const observedPending = observed?.pending !== false;
+      originalErrors = [...(observed?.errors ?? cause?.cleanupErrors ?? [])];
+      return observedPending;
+    } catch (error) {
+      // Observation is not an ACK. Retain one diagnostic rather than growing
+      // the error history on every status poll, and keep the original owner.
+      observationFailure ??= Object.freeze({owner: 'initialization', error});
+      return true;
+    }
+  }
+  const status = () => {
+    if (pending.has('initialization')) observeOriginalCleanup();
+    return Object.freeze({pending: pending.size !== 0,
+      owners: Object.freeze([...pending]), errors: Object.freeze([
+        ...originalErrors, ...(observationFailure === undefined ? [] :
+          [observationFailure]), ...errors])});
+  };
   async function attempt(name, close) {
     if (!pending.has(name)) return;
     try {
@@ -34,12 +57,12 @@ export async function retainInstalledHostInitializationFailure(cause,
   let flight;
   async function drain() {
     await attempt('initialization', async () => {
-      if (typeof cause.cleanupHandle?.retry !== 'function' ||
-          typeof cause.cleanupHandle?.status !== 'function') {
+      if (typeof originalRetry !== 'function' ||
+          typeof originalStatus !== 'function') {
         throw new Error('InstalledHostInitializationCleanupOwnerMissing');
       }
-      await cause.cleanupHandle.retry();
-      if (cause.cleanupHandle.status().pending !== false) {
+      await originalRetry.call(originalCleanup);
+      if (observeOriginalCleanup()) {
         throw new Error('InstalledHostInitializationCleanupPending');
       }
     });
