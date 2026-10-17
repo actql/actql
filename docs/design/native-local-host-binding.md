@@ -149,6 +149,24 @@ lengths and a diagnostic ceiling are not numerical funding.
 
 ### Writer close custody
 
+The original initial-signing installation payload has a typed DATA codec in
+the existing Common Local original-record Owner. Its thirteen String fields
+keep the Native field order, spelling, escaping and existing record budgets.
+Both creation and restoration use that same closed record definition; a
+consumer need not maintain a second key vector or interpret positional fields
+outside this Owner. Nested policy/public-key original bytes and PEM text are
+retained exactly, not normalized by the codec.
+
+The decoded field record is not the Native opaque initial-signing original.
+It authenticates no Store, epoch/HMAC, actor, physical file generation or
+current installation. Existing policy/public-key admission, PEM/raw-key
+correspondence, native projection-layout checks, purpose separation and the
+original transaction/current fence remain mandatory in the physical consumer.
+A missing legacy original still cannot be filled from today's configuration.
+The field record, thirteen String references, codec arrays and decode/encode
+workspace belong to the existing installation/Host inventory; they supply no
+funding, grant, claim, key use or cleanup acknowledgement.
+
 The existing filesystem Writer records its original close outcome separately
 from later diagnostics. A consumed but unconfirmed close remains pending through
 seal/cancel retries and finalization; it never closes a reused descriptor or
