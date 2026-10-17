@@ -158,3 +158,47 @@ test "quick query payload routes do not append a second response or newline" {
   ])
   assert_false(local_payload_already_streamed(legacy))
 }
+
+///|
+test "literal SQL and Pipe quick queries read the actual same Host published Result" {
+  for operation in ["sql", "aql"] {
+    let (host, settings, crypto, _) = effect_finite_cli_host(
+      "literal-quick-" + operation,
+      ttl_ms=86400000.0,
+      observed_at=local_utc_now(),
+      managed_root=true,
+    )
+    defer host.close() |> ignore
+    let sqlite = effect_finite_cli_ok(
+      @local_sqlite.load_library(settings.sqlite_library),
+      "quick.sqlite",
+    )
+    let assets = @run_host.client_local_product_assets()
+    let fields = @decode.open_object(local_input_cursor(assets.environment)).unwrap()
+    let environment = @run_host.admit_client_check_environment(
+      assets.environment,
+      run_text(fields, "evidence_bundle_cid"),
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    ).unwrap()
+    let selected = quick_query_arguments([
+      "--mode", "local", operation, "SELECT 1 AS id", "--format", "jsonl",
+    ])
+    result_fresh_host_marker("ACTQL_QUICK_" + operation + "_BEGIN")
+    let reply = local_quick_query(
+      host,
+      settings,
+      crypto,
+      sqlite,
+      environment,
+      "/never-read-query-file",
+      operation,
+      selected.subcommand.unwrap().1,
+    ) catch {
+      ClientStop(issue) => fail("quick." + operation + ": " + issue)
+    }
+    result_fresh_host_marker("ACTQL_QUICK_" + operation + "_END")
+    assert_eq(reply, "")
+    effect_finite_cli_ok(host.close(), "quick.host.close")
+  }
+}
