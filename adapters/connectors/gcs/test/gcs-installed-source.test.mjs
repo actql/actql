@@ -190,6 +190,14 @@ test(`public ${entrance} GCS acceptance keyed Programs check against the install
       'json', environment, undefined);
     assert.ok(moon.clientProgramPreparationReady(prepared),
       inspect(moon.clientProgramPreparationIssue(prepared), {depth: 8, maxStringLength: 3000}));
+    // The private typed Owner projection is DATA, not an enum-layout read or
+    // a release/minifier-dependent constructor name. Other outcomes are None.
+    assert.equal(typeof moon.clientProgramPreparationDecodedResponseLimitJson, 'function');
+    assert.equal(moon.clientProgramPreparationDecodedResponseLimitJson(prepared), undefined);
+    const invalidFormat = moon.clientProgramPrepareEffectFreeWithParameters(JSON.stringify(program),
+      'not-a-program-format', environment, undefined);
+    assert.equal(moon.clientProgramPreparationReady(invalidFormat), undefined);
+    assert.equal(moon.clientProgramPreparationDecodedResponseLimitJson(invalidFormat), undefined);
     // A single missing decoded byte must still refuse the admitted extent.
     // Neither exact path literals nor an empty result can narrow its declared
     // capacity; the independent 3 * 2 * 8192 obligation remains unchanged.
@@ -202,8 +210,10 @@ test(`public ${entrance} GCS acceptance keyed Programs check against the install
     const insufficient = moon.clientProgramPrepareEffectFreeWithParameters(JSON.stringify(program),
       'json', insufficientEnvironment, undefined);
     assert.equal(moon.clientProgramPreparationReady(insufficient), undefined);
-    assert.match(inspect(moon.clientProgramPreparationIssue(insufficient), {depth: 12}),
-      /DecodedResponseLimit/u);
+    const limit = moon.clientProgramPreparationDecodedResponseLimitJson(insufficient);
+    assert.equal(typeof limit, 'string');
+    assert.equal(limit, '{"stageIndex":0,"stepIndex":2}',
+      'the same checked Program must retain its exact original stage and join-step cause');
     const checked = await client.check(program, {kind: 'program', scope: 'bound_input'});
     assert.equal(checked.report?.verdict, 'verified', inspect(checked, {depth: 8, maxStringLength: 3000}));
     // The original failing input remains a real protected-boundary regression;
