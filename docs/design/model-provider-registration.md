@@ -56,6 +56,45 @@ the returned runtime-check closure and any unresolved cleanup handle also
 remain in the same Host inventory. A byte intake ceiling does not reserve this
 overlap; the original startup/Run funding supplier must cover it separately.
 
+## Original generation profiles and public Task normalization
+
+The original installed Provider configuration may explicitly select a closed
+`model_defaults` subrecord: an ordered `models` array of `{model,
+generation_config}` and an optional `default_model` that names one entry.
+Generation uses the existing Task reader's finite settings and safe integer
+rules. Every entry, including unused models, is checked. The containing
+configuration's own contract still has to admit the subrecord; this grammar is
+not permission to extend an arbitrary closed Provider configuration.
+
+Common's private-constructor profile is configuration DATA, not a registered
+Provider or authority. Its resolution retains the exact profile original;
+projecting selected generation with a separately read equal-wire profile is
+refused. Byte, node and work usage is reported even when defaults are absent.
+The transient configuration cursor is not retained by that profile; Host wire,
+revision, contract, registration and currentness remain the original Host's
+responsibility. This does not claim GC, physical release or a funded envelope.
+
+An explicit public provider/model pair is atomic. Omission selects the original
+registry default provider and only that actual registration's explicit default
+model. Temperature/top-p/seed come from its applicable profile, never an SDK
+default. An explicit Task token count replaces a default, even if larger;
+independent hard ceilings still belong to original bound execution admission.
+Current settings do not rewrite canonical Task identity or saved Run settings.
+
+The public input/output field maps normalize through the existing ValueContract
+Owner. Their checked schema, not the shorthand text, supplies schema identity.
+Neither normalization path manufactures missing data-handling policy, a prompt,
+an installed Provider, a request reservation or mock answers. Candidate DATA can
+precede actual Host registration where the original factory needs the resulting
+Task identity, but the existing original registration and Task admission must
+then bind the same captured configuration/revision, not a replacement.
+
+Records, per-model generation values, selection references, bounded parser and
+decoder workspace, temporary name index, normalized wire and checked Contract
+holdings remain in the existing Host/Run phase inventory. The default profile
+does not define prices or supply a numerical lease. Physical preflight, Store
+custody, Journal settlement, current authority and final send remain separate.
+
 ## Exclusive invocation mode
 
 The existing ModelProvider Owner distinguishes a synchronous fixture callback
