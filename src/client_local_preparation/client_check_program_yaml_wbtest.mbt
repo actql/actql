@@ -192,15 +192,45 @@ test "original YAML pointers preserve plain quoted Unicode keys and missing pare
     @host.client_standard_program_preparation_limits().checking.input,
     format=Yaml,
   ).unwrap()
-  // A literal/default object's key is original value data, not a contract name.
+  // Declaration defaults keep the original parser's identifier-key domain.
   assert_eq(
     check_program_original_pointer(
       literal,
-      [Key("params"), Key("x"), Key("default"), Key("é/😀~")],
+      [Key("params"), Key("x"), Key("default"), Key("é/😀~")],
       format=Yaml,
       original_body=Some(@syntax.program_body(parsed)),
     ),
     Some("/params/x/default/é~1😀~0"),
+  )
+  let effect = yaml_check_values.replace(
+    old="    results:",
+    new="    effects: {write: {update: {set: {n: {literal: {\"é/😀~\": 1}}}}}}\n    results:",
+  )
+  let parsed = @syntax.parse(
+    effect,
+    @host.client_standard_program_preparation_limits().checking.input,
+    format=Yaml,
+  ).unwrap()
+  // Only the existing Program Owner's declared Effect literal slots preserve
+  // value-data keys. Parsing syntax here neither checks nor authorizes an Effect.
+  assert_eq(
+    check_program_original_pointer(
+      effect,
+      [
+        Key("stages"),
+        Index(0),
+        Key("effects"),
+        Key("write"),
+        Key("update"),
+        Key("set"),
+        Key("n"),
+        Key("literal"),
+        Key("é/😀~"),
+      ],
+      format=Yaml,
+      original_body=Some(@syntax.program_body(parsed)),
+    ),
+    Some("/stages/0/effects/write/update/set/n/literal/é~1😀~0"),
   )
 }
 
