@@ -256,7 +256,7 @@ export async function exchangeHttpsCredentialAuthentication({binding, material,
   currentBeforeSend, now = Date.now, signal, ca, cert, key}) {
   const state = acquireBinding(binding, {scope, control, journal, resolveSecret});
   if (state === undefined) fail('InvalidRemoteCredentialBinding');
-  let started = false, finishing = false;
+  let started = false, finishing = false, claimedHere;
   try {
     const original = state.authenticationMaterial, registration = state.authentication;
     if (registration === undefined || original === undefined ||
@@ -297,6 +297,7 @@ export async function exchangeHttpsCredentialAuthentication({binding, material,
     // check. A failed pair still belongs to this original Journal/use.
     const exchange = {claim, scope: selectedScope, body};
     state.authenticationExchange = exchange;
+    claimedHere = exchange;
     const grantExpiry = BigInt(JSON.parse(control.json(claim.grant)).expires_unix_ms);
     const deadline = grantExpiry < BigInt(request.expiresAtUnixSeconds) * 1000n
       ? grantExpiry : BigInt(request.expiresAtUnixSeconds) * 1000n;
@@ -330,7 +331,9 @@ export async function exchangeHttpsCredentialAuthentication({binding, material,
       physicalResponse: response, expires, parentAvailable: true};
     return Object.freeze({useCid: claim.record.useCid});
   } catch (error) {
-    const exchange = state.authenticationExchange;
+    // A refusal before this invocation acquired a claim must not settle an
+    // earlier completed/Unknown operation retained by the same binding.
+    const exchange = claimedHere;
     if (exchange !== undefined && !finishing) {
       finishing = true;
       try {
