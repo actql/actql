@@ -17764,6 +17764,13 @@
         },
         {
           "async": false,
+          "name": "_selected_engine_settings",
+          "parameters": [
+            "recipe"
+          ]
+        },
+        {
+          "async": false,
           "name": "_verify_loaded_runtime",
           "parameters": [
             "image",
@@ -17798,7 +17805,7 @@
           ]
         }
       ],
-      "sha256": "28f22f8d29a2dd1c06ad3dddeb364126fadbf36884327077901c206cfe561f6a",
+      "sha256": "29f14d0692bfb5b3b6d09053c5d2a6539e22d4c6e3d27c8b7cacbf22f885f286",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -19237,6 +19244,118 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
                 "anchor": "\"\"\"Pinned physical Engine configuration shared by image producer and runtime."
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "_selected_engine_settings"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "def _selected_engine_settings(recipe:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private compiler's C configuration is projected from the same validated"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "def _selected_engine_settings(recipe:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private compiler's C configuration is projected from the same validated"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "def _selected_engine_settings(recipe:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private compiler's C configuration is projected from the same validated"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "def _selected_engine_settings(recipe:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private compiler's C configuration is projected from the same validated"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "def _selected_engine_settings(recipe:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private compiler's C configuration is projected from the same validated"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "def _selected_engine_settings(recipe:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private compiler's C configuration is projected from the same validated"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "def _selected_engine_settings(recipe:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private compiler's C configuration is projected from the same validated"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "def _selected_engine_settings(recipe:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private compiler's C configuration is projected from the same validated"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
+                "anchor": "def _selected_engine_settings(recipe:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The private compiler's C configuration is projected from the same validated"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_image_compiler.py",
+                "anchor": "def test_c_projection_keeps_original_target_policy_and_pool_width("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_image_compiler.py",
+                "anchor": "def test_c_projection_rejects_invalid_original_before_output("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_installed_image.py",
+                "anchor": "def test_exact_config_and_unused_pools_without_new_limits("
               }
             ]
           }
