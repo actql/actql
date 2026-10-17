@@ -99,6 +99,22 @@ class WorkerProcessTests(unittest.TestCase):
         self.assertTrue(all(fd.closed for fd in self.process._descriptors))
         self.os_posix_spawn.assert_not_called()
 
+    def test_spawn_current_callback_cannot_reenter_original_spawn_or_preparation(self):
+        original = self.case.case.supplier.require_launch_originals
+        entered = False
+        def current(*args):
+            nonlocal entered
+            original(*args)
+            if not entered:
+                entered = True
+                with self.assertRaises(RuntimeError): self.process.spawn()
+                with self.assertRaises(RuntimeError): self.process.prepare_original_descriptors()
+        self.case.case.supplier.require_launch_originals = current
+        self.process.spawn()
+        self.os_posix_spawn.assert_called_once()
+        self.assertEqual(self.os_pipe.call_count, 3)
+        self.assert_no_execution_ack()
+
     def test_prepare_descriptors_is_not_spawn_and_launch_reuses_original_pairs(self):
         self.process.prepare_original_descriptors()
         pairs = (self.process._stdin, self.process._stdout, self.process._stderr)
