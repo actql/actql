@@ -118,7 +118,7 @@ export async function deleteFixture(t, {effect = 'allow', faults = []} = {}) {
     catch (cause) {failures.push(cause);}
     try {site?.close();} catch (cause) {failures.push(cause);}
     await writeFile(join(root, 'original-observations.json'), JSON.stringify({
-      exchanges: tls.seen(), fixtureFailures: state.fixtureFailures,
+      tlsCertificatePath: tls.caPath, exchanges: tls.seen(), fixtureFailures: state.fixtureFailures,
       charges: state.charges, consumed: state.consumed}, null, 2) + '\n', {mode: 0o600});
     t.diagnostic(`Retained owned kintone delete fixture: ${root}`);
     if (failures.length) throw new AggregateError(failures, 'KintoneDeleteFixtureCleanupUnconfirmed');
