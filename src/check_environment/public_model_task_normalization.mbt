@@ -7,6 +7,7 @@ struct NormalizedPublicModelTask {
   defaults : ModelProviderDefaults
   resolved : ResolvedModelProviderDefaults
   handling : ModelProviderHandling
+  provider : String
   task_wire : String
   task_cid : String
   prompt_wire : String
@@ -251,6 +252,7 @@ pub fn normalize_public_model_task(
       defaults,
       resolved,
       handling,
+      provider,
       task_wire,
       task_cid,
       prompt_wire,

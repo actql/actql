@@ -34,6 +34,10 @@ from actql_sdk._local_distribution import _closed, _pairs  # noqa: E402
 from actql_sdk._local_native_control_custody import _OriginalControlCustody, _OriginalControlFunctions  # noqa: E402
 from actql_sdk._local_native_backing_custody import _OriginalBackingCustody, _OriginalBackingFunctions  # noqa: E402
 from actql_sdk._local_native_domain_custody import _OriginalDomainCustody, _OriginalDomainFunctions  # noqa: E402
+from actql_sdk._local_native_process_custody import (  # noqa: E402
+    _OriginalInstalledProcessCustody, _OriginalInstalledProcessFunctions,
+    _OriginalInstalledProcessError,
+)
 from actql_sdk._local_worker_slot import _OriginalDescriptor  # noqa: E402
 
 spec = importlib.util.spec_from_file_location('image_component_assembly', ROOT / 'scripts/produce-python-local-runtime.py')
@@ -133,9 +137,9 @@ class CompilerParentAcquisitionError(RuntimeError):
 class _CompilerParent:
     """Private assembly of existing Native owners, not OriginalWorkerFunding.
 
-    Preparing/closing an unstarted domain does not cover a process, DLL, Mach
-    handler or VM. A later worker must use the actual original child/delegation
-    owner and keep its process/descriptor/region confirmation independently.
+    Process preparation uses this same domain and its original child budget.
+    It does not fund independent DLL/loader/Python/VM domains. Native keeps the
+    actual child/delegation and process/descriptor/region confirmations.
     """
 
     def __init__(self, original: _CompilerParentOriginal, library: CDLL,
@@ -156,8 +160,32 @@ class _CompilerParent:
     def __reduce__(self) -> Any:
         raise TypeError('Original compiler parent cannot be serialized')
 
+    def prepare_process(self, *, path: str, nonce: int) -> _OriginalInstalledProcessCustody:
+        """Bind the selected child to its original Native process Owner.
+
+        No caller-supplied quota, reconstructed Ledger or separate POSIX owner
+        is introduced. The existing domain registers partial process custody
+        before the first foreign call. A lost reply retains it on this parent.
+        """
+        domain = self.domain
+        if (self._closed or type(domain) is not _OriginalDomainCustody
+                or domain._owner is not self.host or domain._scope is not self.backing
+                or domain._descriptor is not self.descriptor
+                or domain._functions.library is not self.library):
+            raise ValueError('Original compiler parent domain is unavailable')
+        functions = _OriginalInstalledProcessFunctions(self.library)
+        try:
+            return _OriginalInstalledProcessCustody._prepare_original(domain, functions,
+                path=path, nonce=nonce, retained=self.original.child[5],
+                execution=self.original.child[6])
+        except _OriginalInstalledProcessError as primary:
+            # The same domain already holds the original process, including a
+            # partial/Unknown reply. Do not replay preparation or release its
+            # backing when reporting this parent-level assembly failure.
+            raise self.failure from primary
+
     def close_unstarted(self) -> None:
-        """No process/holding is issued here. Retire only these same originals.
+        """Retire only after any original process has confirmed its cleanup.
 
         Known pending retries stay in the existing Native owners. Lost replies
         remain sticky there. FD is borrowed: this assembly never closes it.
@@ -167,7 +195,8 @@ class _CompilerParent:
         for carrier in (self.host, self.backing, self.domain):
             if carrier is not None and carrier._unknown is not None:
                 raise carrier._unknown
-        if self.domain is not None and self.domain._worker_process_original is not None:
+        if (self.domain is not None and (self.domain._worker_process_original is not None
+                or self.domain._installed_process_original is not None)):
             raise ValueError('Original compiler domain still has process custody')
         if self.backing is not None:
             self.backing.return_after_stop()

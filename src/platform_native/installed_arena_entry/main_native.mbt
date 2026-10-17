@@ -702,6 +702,65 @@ fn description(reply : @control.InstalledArenaReply) -> String {
 }
 
 ///|
+/// Code roots only. Matching regular C emission establishes the exact private
+/// prototypes and borrowed/owned references before any shim is implemented.
+extern "C" fn register_original_process_roots(
+  prepare : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaDomain,
+      String,
+      Int,
+      Int64,
+      Int64,
+      Int64,
+    ) -> @control.InstalledArenaProcessReply,
+  ],
+  operate : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaDomain,
+      @control.InstalledArenaProcess,
+      Int,
+    ) -> @control.InstalledArenaProcessReply,
+  ],
+  prepare_child : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaDomain,
+      @control.InstalledArenaProcess,
+      String,
+      Bytes,
+      Bytes,
+    ) -> @control.InstalledArenaProcessReply,
+  ],
+  host : FuncRef[
+    (@control.InstalledArenaProcessReply) -> @control.InstalledArenaHost,
+  ],
+  domain : FuncRef[
+    (@control.InstalledArenaProcessReply) -> @control.InstalledArenaDomain,
+  ],
+  process : FuncRef[
+    (@control.InstalledArenaProcessReply) -> @control.InstalledArenaProcess?,
+  ],
+  channel : FuncRef[
+    (@control.InstalledArenaProcessReply) -> @bootstrap.NativeBackedLiveChannel[
+      @control.InstalledArenaHost,
+      @control.InstalledArenaDomain,
+    ]?,
+  ],
+  frame : FuncRef[
+    (@control.InstalledArenaProcessReply) -> @resources.ImportedChildLedger?,
+  ],
+  operation : FuncRef[(@control.InstalledArenaProcessReply) -> Int],
+  issue : FuncRef[(@control.InstalledArenaProcessReply) -> Int],
+  descriptor : FuncRef[(@control.InstalledArenaProcessReply, Int) -> Int],
+  backing_descriptor : FuncRef[(@control.InstalledArenaProcessReply) -> Int],
+  stop : FuncRef[(@control.InstalledArenaProcessReply) -> Int],
+  description : FuncRef[(@control.InstalledArenaProcessReply) -> String],
+) -> Unit = "actql_native_control_register_process_roots"
+
+///|
 /// This initializes code references only. Registration is not supplier adoption,
 /// original arena acquisition, Root creation, Run admission or VM permission.
 fn main {
@@ -946,6 +1005,34 @@ fn main {
     fn(reply) { reply.operation_tag() },
     fn(reply) { reply.issue_family() },
     fn(reply, ordinal) { reply.limit(ordinal) },
+    fn(reply) { reply.issue_description() },
+  )
+  register_original_process_roots(
+    fn(host, domain, path, descriptor, nonce, retained, execution) {
+      @control.prepare_installed_arena_process_reply(
+        host, domain, path, descriptor, nonce, retained, execution,
+      )
+    },
+    fn(host, domain, process, operation) {
+      @control.operate_installed_arena_process_reply(
+        host, domain, process, operation,
+      )
+    },
+    fn(host, domain, process, executable, arguments, environment) {
+      @control.prepare_installed_arena_process_child_bytes_reply(
+        host, domain, process, executable, arguments, environment,
+      )
+    },
+    fn(reply) { reply.original_host() },
+    fn(reply) { reply.original_domain() },
+    fn(reply) { reply.original_process() },
+    fn(reply) { reply.original_channel() },
+    fn(reply) { reply.original_frame() },
+    fn(reply) { reply.operation_tag() },
+    fn(reply) { reply.issue_family() },
+    fn(reply, ordinal) { reply.descriptor(ordinal) },
+    fn(reply) { reply.backing_descriptor() },
+    fn(reply) { reply.stop_observation() },
     fn(reply) { reply.issue_description() },
   )
   register_original_worker_selection_roots(
