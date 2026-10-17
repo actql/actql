@@ -1,6 +1,6 @@
 {
-  "source": "181666eb6ef4e2ae2370dd1a1ca0a5704f81cb40",
-  "syntaxProjectionSha256": "e05f187d6c9556f0798481278d1a0878782d7211076a8f2c5ed8257d44520c32",
+  "source": "e58c51323f28289bf5fea4b2b0d7c6091d7fe160",
+  "syntaxProjectionSha256": "2bb4ceba038d76b3bc37f7dd4362c2f2bd665fe286db601ed48be9377f26c3b4",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -29,7 +29,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_memory_abi.py",
-      "sha256": "cf3b792e125cc0e3100ce7ff2c142354809154269ab5e27de268d61aec45802f",
+      "sha256": "a54b70f881535458d1ecf7733039f2eb373f06fb615d1fc76f786dd931ee1d3a",
       "generator": {
         "path": "scripts/generate-local-native-memory-binding.py",
         "anchor": "def outputs("
@@ -33866,7 +33866,7 @@
           ]
         }
       ],
-      "sha256": "cf3b792e125cc0e3100ce7ff2c142354809154269ab5e27de268d61aec45802f",
+      "sha256": "a54b70f881535458d1ecf7733039f2eb373f06fb615d1fc76f786dd931ee1d3a",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -33980,6 +33980,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "### Rust storage within the original holding"
               }
             ],
             "extension": [
@@ -34012,6 +34016,10 @@
               {
                 "path": "packages/python-local-runtime/native/pre-root/fixtures/thread.c",
                 "anchor": "static void thread_destructors(void) {"
+              },
+              {
+                "path": "packages/python-local-runtime/native/pre-root/fixtures/rust_heap.c",
+                "anchor": "\"stale token refuses\""
               }
             ]
           }
@@ -34102,6 +34110,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_memory_abi.py",
                 "anchor": "\"\"\"Generated private C/Rust memory declarations; do not edit.\"\"\""
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "### Rust storage within the original holding"
               }
             ],
             "extension": [
@@ -34126,6 +34138,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_memory_abi.py",
                 "anchor": "\"\"\"Generated private C/Rust memory declarations; do not edit.\"\"\""
+              },
+              {
+                "path": "packages/python-local-runtime/native/pre-root/fixtures/rust_heap.c",
+                "anchor": "\"stale token refuses\""
               }
             ]
           }
