@@ -105,46 +105,40 @@ fn command_key_preview(
   let raw =
     #|{"version":"actql-effect-preview/0.1","sensitivity":"private","retention_class":"authority-evidence","encryption_required":true,"program_semantics_cid":"@SEM@","program_definition_cid":"@DEF@","invocation_cid":"@INV@","run_identity_cid":"@RUN@","compiled_plan_cid":"@PLAN@","check_environment_cid":"@ENV@","authoring_context":{"version":"actql-authoring-context/0.1","program_definition_cid":"@DEF@","annotations":[],"authoring_context_cid":"@AUTHOR@"},"barrier_provenance_cids":[],"model_derived":false,"model_task_contract_cids":[],"model_invocation_evidence_cids":[],"model_response_artifact_cids":[],"effects":[{"effect_id":"save","effect_kind":"command","target":"Object","contract":"command:fixture.upload.v1","resolved_command_contract_cid":"sha256:3768a016ccb69b496ebed661020966ce09ca6d836a89331937e131f891123853","source_result":"out","result_artifact_cid":"@P@","effect_identity_cid":"@P@","preview_strength":"full_diff","source_binding_cid":"@P@","capability_evidence_cid":"@P@","authority_scope_cid":"@P@","write_footprint":{"kind":"exact_targets","resource_identity_scheme_cid":"@P@","provider_namespace":"fixture","provider_boundary_cid":"@P@","resource_kind":"Object","provider_object_identity_cids":[]},"count":1,"max_items":1,"required_permissions":["scope:write"],"approval":"required","on_item_failure":"halt","changes":[{"after":{"state":"not_applicable"},"before":{"state":"not_applicable"},"intended_changes":{"state":"present","value":{"id":"one","value":"original"}},"row_idempotency_key":"@P@","row_preview_cid":"@P@","target_guard":{"state":"not_applicable"},"target_row_identity":@SELECTOR@}],"row_order":["@P@"],"effect_member_preview_cid":"@P@","executed":false}],"executed":false,"effect_preview_cid":"@P@"}
   let raw = raw
-    .replace(
+    .replace_all(
       old="@SEM@",
       new=@publication_host.prepared_client_effect_computation_semantics_cid(
         prepared,
       ),
     )
-    .replace(old="@DEF@", new=definition)
-    .replace(
+    .replace_all(old="@DEF@", new=definition)
+    .replace_all(
       old="@INV@",
       new=@publication.publication_contract_identity(invocation),
     )
-    .replace(old="@RUN@", new=run)
-    .replace(
+    .replace_all(old="@RUN@", new=run)
+    .replace_all(
       old="@PLAN@",
       new=@publication.run_publication_compiled_plan_cid(
         @effect_binding.effect_program_run_admission(owner),
       ),
     )
-    .replace(
+    .replace_all(
       old="@ENV@",
       new=@publication_host.prepared_client_effect_computation_environment_cid(
         prepared,
       ),
     )
-    .replace(old="@AUTHOR@", new=authoring)
-    .replace(
+    .replace_all(old="@AUTHOR@", new=authoring)
+    .replace_all(
       old="@P@",
       new=native_publication_cid("command-key-preview-placeholder"),
     )
-    .replace(old="@SELECTOR@", new=selector)
+    .replace_all(old="@SELECTOR@", new=selector)
   let canonical = match
     @publication.canonical_effect_preview_draft_wire(raw, 65536, 4096, 32) {
     Ok(value) => value
-    Err(issue) =>
-      fail(
-        "Command key Preview shape: " +
-        @debug.to_string(issue) +
-        " public fixture draft=" +
-        raw,
-      )
+    Err(issue) => fail("Command key Preview shape: " + @debug.to_string(issue))
   }
   let (_, preview) = match
     @publication.author_effect_preview_semantic_wire(
