@@ -72,8 +72,13 @@ export function installEffectContentFamily({moon, control, publications, bodies,
     return true;
   };
   const cleanup = async () => {
-    if (cleaned) return true;
+    // Successful encoder cleanup may precede this explicit parent close. It
+    // must not let the completed temporary-duty flag preserve a new borrower.
     cancelled = true;
+    if (cleaned) {
+      storedOriginal = undefined;
+      return true;
+    }
     if (flight !== undefined) await flight.catch(() => {});
     if (cleaned) return true;
     if (failureCleanup !== undefined) {
@@ -97,7 +102,9 @@ export function installEffectContentFamily({moon, control, publications, bodies,
         if (child.status().pending) return false;
       }
     }
-    if (!durable) storedOriginal = undefined;
+    // Retire this family's selection alias, not the durable Store holding or
+    // any escaped original/borrower still retained by its existing owner.
+    storedOriginal = undefined;
     cleaned = true;
     return true;
   };

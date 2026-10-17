@@ -25,7 +25,10 @@ async function fixture(t, {restored = false, omitRestoredOriginal = false, after
     ? Object.freeze({path: await mkdtemp(join(parent, 'generated-original-unknown-'))})
     : await createOwnedScratch({parent, prefix: 'generated-original-selection-',
       label: 'Generated Content original selection'});
-  if (retainCustody) assert.equal((await stat(scratch.path)).mode & 0o777, 0o700);
+  if (retainCustody) {
+    assert.equal((await stat(scratch.path)).mode & 0o777, 0o700);
+    t.diagnostic(`Fresh original custody root retained on failure or Unknown: ${scratch.path}`);
+  }
   const generatedCleanups = [];
   let owner, holdingCid;
   const generated = await createGeneratedContentFixture({after: fn => generatedCleanups.push(fn)},

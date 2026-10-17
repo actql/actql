@@ -28197,7 +28197,7 @@
     {
       "module": "adapters/host-node/installed-content-family.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5ce0d5f06c914dd904e545cfa617b7bfcd1c8ac93d11310c91b10b54de251e95",
+      "sha256": "9be635f315352b243e5940d0cd94518ed786c6fc844c4553a976b4b2463e8fe8",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -28544,6 +28544,10 @@
               {
                 "path": "adapters/host-node/installed-content-family.mjs",
                 "anchor": "const current = () => durable && !cancelled && flight === undefined &&"
+              },
+              {
+                "path": "docs/design/execution-completion-storage.md",
+                "anchor": "Explicit parent close is distinct from successful temporary encoder cleanup."
               }
             ],
             "resources": [
@@ -28598,6 +28602,10 @@
               {
                 "path": "adapters/host-node/generated-content-original-selection.integration.test.mjs",
                 "anchor": "test('generated family refences cancellation begun during the original matcher callback'"
+              },
+              {
+                "path": "adapters/host-node/generated-content-original-selection.integration.test.mjs",
+                "anchor": "test('explicit family close refuses new original handoffs after temporary generation cleanup'"
               }
             ]
           }
