@@ -715,8 +715,8 @@ extern "C" fn register_original_process_roots(
   ],
   prepare_child : FuncRef[
     (@control.InstalledArenaHost, @control.InstalledArenaDomain,
-      @control.InstalledArenaProcess, String, Array[String],
-      Array[(String, String)]) -> @control.InstalledArenaProcessReply,
+      @control.InstalledArenaProcess, String, Bytes,
+      Bytes) -> @control.InstalledArenaProcessReply,
   ],
   host : FuncRef[(@control.InstalledArenaProcessReply) -> @control.InstalledArenaHost],
   domain : FuncRef[(@control.InstalledArenaProcessReply) -> @control.InstalledArenaDomain],
@@ -987,7 +987,7 @@ fn main {
       @control.operate_installed_arena_process_reply(host, domain, process, operation)
     },
     fn(host, domain, process, executable, arguments, environment) {
-      @control.prepare_installed_arena_process_child_reply(host, domain, process,
+      @control.prepare_installed_arena_process_child_bytes_reply(host, domain, process,
         executable, arguments, environment)
     },
     fn(reply) { reply.original_host() },

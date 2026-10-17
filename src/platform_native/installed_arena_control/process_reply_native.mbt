@@ -219,3 +219,53 @@ pub fn prepare_installed_arena_process_child_reply(
     operation: 10, issue, descriptors: None, backing_descriptor: -1,
     stop_observation: 0, }
 }
+
+///|
+// Private transport DATA only: NUL-terminated UTF-8 fields, with an empty
+// block denoting no fields. D's original Holder still validates argv/env and
+// owns their immutable snapshot; no managed Array layout is copied into C.
+fn decode_process_fields(block : Bytes, maximum : Int) -> Array[String]? {
+  let fields = []
+  let mut start = 0
+  for index = 0; index < block.length(); index = index + 1 {
+    if block[index] == (0 : Byte) {
+      if fields.length() >= maximum { return None }
+      let field = @utf8.decode(block[start:index]) catch { _ => return None }
+      fields.push(field)
+      start = index + 1
+    }
+  }
+  if start != block.length() { None } else { Some(fields) }
+}
+
+///|
+/// Decode only the private argument/environment transport into the same
+/// original Holder. Invalid transport is a known pre-operation refusal, not
+/// Unknown and not authority. Environment fields alternate name then value.
+pub fn prepare_installed_arena_process_child_bytes_reply(
+  host : InstalledArenaHost,
+  domain : InstalledArenaDomain,
+  process : InstalledArenaProcess,
+  executable : String,
+  arguments : Bytes,
+  environment : Bytes,
+) -> InstalledArenaProcessReply {
+  let result = match host.require_process_current(domain, process) {
+    Err(issue) => Err(issue)
+    Ok(_) => {
+      match (decode_process_fields(arguments, 255), decode_process_fields(environment, 8)) {
+        (Some(arguments), Some(fields)) if fields.length() % 2 == 0 => {
+          let environment = []
+          for index = 0; index < fields.length(); index = index + 2 {
+            environment.push((fields[index], fields[index + 1]))
+          }
+          host.prepare_process_child(domain, process, executable, arguments, environment)
+        }
+        _ => Err(@bootstrap.Process(@executor.InvalidConfiguration))
+      }
+    }
+  }
+  { host: process.domain.host, domain: process.domain, process: Some(process),
+    operation: 10, issue: match result { Ok(_) => None; Err(issue) => Some(issue) },
+    descriptors: None, backing_descriptor: -1, stop_observation: 0, }
+}
