@@ -11,6 +11,7 @@ import importlib.util
 import json
 from pathlib import Path
 import platform
+import shlex
 import stat
 import subprocess
 import sys
@@ -19,7 +20,7 @@ from typing import Any, cast
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
-from actql_sdk._local_core import LOCAL_CORE_ABI  # noqa: E402
+from actql_sdk._local_wasm_abi import LOCAL_CORE_ABI  # noqa: E402
 from actql_sdk._local_distribution import WASMTIME_VERSION, _pairs, _read_file, _valid_image_header  # noqa: E402
 from actql_sdk._local_image_recipe import _recipe_from_original  # noqa: E402
 
@@ -64,10 +65,137 @@ def copy_original(path: Path, target: Path, maximum: int, digest: str) -> None:
     target.write_bytes(raw)
 
 
+MODULE_SCOPE = 'compile_only_module_inputs'
+MODULE_FIELDS = {'scope', 'source_sha', 'compiled_source_sha', 'module', 'module_sha256',
+                 'moonc', 'source_inputs_sha256', 'toolchain', 'generated_abi',
+                 'moon_home', 'compiler', 'link_response', 'link_inputs', 'link_output'}
+
+
+def _original(path: Path, maximum: int) -> dict[str, Any]:
+    require(path.is_absolute(), 'Select an absolute original module input')
+    require(stat.S_ISREG(path.lstat().st_mode), 'Module input must be an original regular file')
+    size = path.stat().st_size
+    raw = _read_file(path, maximum=maximum, expected=size)
+    return {'path': str(path), 'bytes': size, 'sha256': hashlib.sha256(raw).hexdigest()}
+
+
+def _source_inputs(root: Path, source: str) -> str:
+    require(type(source) is str and len(source) == 40
+            and all(c in '0123456789abcdef' for c in source), 'Invalid original module source')
+    selected = ['src', 'moon.mod', 'toolchain.json', 'scripts/generate-local-wasm-abi.py',
+                'packages/python-sdk/src/actql_sdk/_local_wasm_abi.py']
+    listing = subprocess.check_output(['git', 'ls-tree', '-rz', source, '--', *selected], cwd=root)
+    require(bool(listing), 'Original module source membership is unavailable')
+    records = []
+    for entry in listing.split(b'\0')[:-1]:
+        identity, raw_path = entry.split(b'\t', 1)
+        mode, kind, blob = identity.decode('ascii').split()
+        require(kind == 'blob' and mode in ('100644', '100755'), 'Nonregular module source member')
+        path = raw_path.decode('utf-8')
+        raw = _read_file(root / path, maximum=16 * 1024 * 1024)
+        # Git identity is correspondence, not a new signing authority. Keep a
+        # strong byte digest in the complete selected membership as well.
+        actual = hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest()
+        require(actual == blob, 'Original module source member changed: ' + path)
+        records.append([mode, blob, path, hashlib.sha256(raw).hexdigest()])
+    return hashlib.sha256(json.dumps(records, ensure_ascii=False,
+        separators=(',', ':')).encode()).hexdigest()
+
+
+def _compiler_originals(root: Path, moon_home: Path, pin: dict[str, Any]) -> dict[str, Any]:
+    require(moon_home.is_absolute(), 'Select the original pinned compiler directory')
+    marker = json.loads(_read_file(moon_home / 'installed.json', maximum=65536), object_pairs_hook=_pairs)
+    require(type(marker) is dict and set(marker) == {'pin', 'platform'}
+            and marker['pin'] == pin and marker['platform'] in pin['archives'],
+            'Original module compiler pin mismatch')
+    commands = {'moon': [str(moon_home / 'bin/moon'), 'version'],
+                'moonc': [str(moon_home / 'bin/moonc'), '-v']}
+    result = {name: _original(Path(command[0]), 128 * 1024 * 1024)
+              for name, command in commands.items()}
+    for name, command in commands.items():
+        observed = subprocess.check_output(command, cwd=root, text=True, timeout=10).strip().splitlines()
+        require(bool(observed) and observed[0] == ('moon ' if name == 'moon' else '') + pin[name],
+                'Original module pinned compiler version mismatch')
+    result['installed'] = _original(moon_home / 'installed.json', 65536)
+    return result
+
+
+def record_original_module(root: Path, source: str, compiled_source: str, module: Path,
+                           link_response: Path, moon_home: Path) -> dict[str, Any]:
+    """Inspect actual compiler inputs; no physical/Runtime/Run acceptance.
+
+    The normal caller retains its genuine build result and original compiled
+    source. Hashing inputs is not a compiler read trace. Input-equivalent reuse
+    keeps that source explicitly, rather than relabelling an old build.
+    """
+    require(subprocess.check_output(['git', 'status', '--porcelain'], cwd=root) == b'',
+            'Use committed clean module producer source')
+    require(subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, text=True).strip() == source,
+            'Original module must belong to the exact producer source')
+    membership = _source_inputs(root, source)
+    require(_source_inputs(root, compiled_source) == membership,
+            'Original compiled module source inputs differ')
+    pin = json.loads(_read_file(root / 'toolchain.json', maximum=65536), object_pairs_hook=_pairs)
+    compiler = _compiler_originals(root, moon_home, pin)
+    declaration = root / 'packages/python-sdk/src/actql_sdk/_local_wasm_abi.py'
+    generator_path = root / 'scripts/generate-local-wasm-abi.py'
+    generator_spec = importlib.util.spec_from_file_location('original_module_abi', generator_path)
+    require(generator_spec is not None and generator_spec.loader is not None,
+            'Original generated ABI is unavailable')
+    assert generator_spec is not None and generator_spec.loader is not None
+    generator = importlib.util.module_from_spec(generator_spec)
+    generator_spec.loader.exec_module(generator)
+    require(_read_file(declaration, maximum=1024 * 1024) == generator.render(root).encode(),
+            'Original generated module ABI is stale')
+    response = _original(link_response, 128 * 1024)
+    args = shlex.split(_read_file(link_response, maximum=128 * 1024).decode())
+    require(bool(args) and args[0] == 'link-core', 'Select the actual module link response')
+    start = next((i for i in range(1, len(args)) if args[i].startswith('-')), len(args))
+    inputs = args[1:start]
+    require(bool(inputs) and len(inputs) <= 4096 and len(set(inputs)) == len(inputs)
+            and all(Path(value).is_absolute() and value.endswith('.core') for value in inputs),
+            'Invalid original module link inputs')
+    def option(name: str) -> str:
+        require(args.count(name) == 1 and args.index(name) + 1 < len(args),
+                'Invalid original module link option: ' + name)
+        return args[args.index(name) + 1]
+    require(option('-target') == 'wasm' and option('-memory-limits-max') == '256',
+            'Original module link target or memory limit differs')
+    output = Path(option('-o'))
+    original = _original(module, 32 * 1024 * 1024)
+    linked = _original(output, 32 * 1024 * 1024)
+    require(original['sha256'] == linked['sha256'] and original['bytes'] == linked['bytes'],
+            'Retained original module differs from actual link output')
+    require(_read_file(module, maximum=32 * 1024 * 1024, prefix=8) == b'\0asm\x01\0\0\0',
+            'Original module binary header differs')
+    result = {'scope': MODULE_SCOPE, 'source_sha': source, 'compiled_source_sha': compiled_source,
+        'module': str(module), 'module_sha256': original['sha256'], 'moonc': pin['moonc'],
+        'source_inputs_sha256': membership, 'moon_home': str(moon_home), 'compiler': compiler,
+        'toolchain': _original(root / 'toolchain.json', 65536),
+        'generated_abi': [_original(generator_path, 1024 * 1024), _original(declaration, 1024 * 1024)],
+        'link_response': response, 'link_inputs': [_original(Path(value), 64 * 1024 * 1024)
+                                                for value in inputs], 'link_output': linked}
+    require(len(json.dumps(result, indent=2).encode()) <= 65536, 'Original module receipt exceeds its envelope')
+    return result
+
+
+def verify_original_module(root: Path, original: dict[str, Any], source: str) -> str:
+    require(set(original) == MODULE_FIELDS and original['scope'] == MODULE_SCOPE,
+            'Select the closed compile-only module original')
+    require(original['source_sha'] == source, 'Module original does not belong to exact producer source')
+    component(Path(original['module']), original['module_sha256'],
+              32 * 1024 * 1024, 'client_host_wasm.wasm')
+    actual = record_original_module(root, source, original['compiled_source_sha'],
+        Path(original['module']), Path(original['link_response']['path']), Path(original['moon_home']))
+    require(original == actual, 'Original module/compiler/ABI/link inputs changed')
+    return cast(str, actual['module_sha256'])
+
+
 def verify_original_core(root: Path, core: dict[str, Any], source: str) -> str:
     require(set(core) == {'source_sha', 'module', 'module_sha256', 'scope', 'moonc', 'python',
                          'result', 'physical', 'workspace', 'positive_native_result_acceptance',
-                         'public_local_acceptance'}, 'Select the original physical-boundary Core receipt')
+                         'public_local_acceptance', 'module_original', 'contract'},
+            'Select the original physical-boundary Core receipt')
     require(core['source_sha'] == source,
             'Physical receipts must belong to this exact producer source')
     require(core['scope'] == 'physical_buffer_bridge_workspace_only'
@@ -85,6 +213,12 @@ def verify_original_core(root: Path, core: dict[str, Any], source: str) -> str:
                 and value.get('module_sha256') == digest
                 and type(value.get('cases')) is list and bool(value['cases']),
                 'Core physical receipt did not confirm the same module')
+    contract = core['contract']
+    require(type(contract) is dict and contract.get('success') is True
+            and contract.get('module_sha256') == digest, 'Core contract receipt did not confirm the same module')
+    original = core['module_original']
+    require(type(original) is dict and verify_original_module(root, original, source) == digest
+            and original['module'] == core['module'], 'Core physical receipt module original differs')
     return cast(str, digest)
 
 
@@ -199,9 +333,35 @@ def produce(core_receipt: Path, duckdb_receipt: Path, image_receipt: Path, desti
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--core-receipt', type=Path, required=True)
-    parser.add_argument('--duckdb-receipt', type=Path, required=True)
-    parser.add_argument('--image-receipt', type=Path, required=True)
+    parser.add_argument('--core-receipt', type=Path)
+    parser.add_argument('--duckdb-receipt', type=Path)
+    parser.add_argument('--image-receipt', type=Path)
     parser.add_argument('--destination', type=Path, required=True)
+    parser.add_argument('--record-module-original', action='store_true')
+    parser.add_argument('--source')
+    parser.add_argument('--compiled-source')
+    parser.add_argument('--module', type=Path)
+    parser.add_argument('--link-response', type=Path)
+    parser.add_argument('--moon-home', type=Path)
     args = parser.parse_args()
-    print(json.dumps(produce(args.core_receipt, args.duckdb_receipt, args.image_receipt, args.destination)))
+    if args.record_module_original:
+        if (not all((args.source, args.compiled_source, args.module, args.link_response, args.moon_home))
+                or any((args.core_receipt, args.duckdb_receipt, args.image_receipt))):
+            parser.error('Select only the exact source/module/compiler/link originals')
+        record = record_original_module(ROOT, args.source, args.compiled_source,
+                                        args.module, args.link_response, args.moon_home)
+        wire = json.dumps(record, indent=2) + '\n'
+        try:
+            with args.destination.open('x') as output:
+                output.write(wire)
+        except FileExistsError:
+            previous, _ = read_receipt(args.destination)
+            require(previous == record, 'Do not replace an existing original module receipt')
+        print(json.dumps({'scope': record['scope'], 'source_sha': record['source_sha'],
+            'compiled_source_sha': record['compiled_source_sha'], 'module_sha256': record['module_sha256'],
+            'physical_acceptance': False, 'runtime_executed': False, 'public_local_acceptance': False}))
+    else:
+        if (not all((args.core_receipt, args.duckdb_receipt, args.image_receipt))
+                or any((args.source, args.compiled_source, args.module, args.link_response, args.moon_home))):
+            parser.error('Select all three original physical/component receipts')
+        print(json.dumps(produce(args.core_receipt, args.duckdb_receipt, args.image_receipt, args.destination)))

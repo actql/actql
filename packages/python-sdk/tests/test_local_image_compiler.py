@@ -40,6 +40,19 @@ class ImageCompilerTests(unittest.TestCase):
         self.assertEqual(checked['recipe'].source_sha, self.case.head)
         self.assertFalse(self.destination.exists())
 
+    def test_compile_only_original_verifies_without_claiming_physical_success(self):
+        with patch.object(compiler, 'import_module', side_effect=AssertionError('Native engine')):
+            checked = compiler.verify(self.case.module_file, self.case.head)
+        self.assertEqual(checked['module_sha256'], self.case.core['module_sha256'])
+        self.assertEqual(checked['source'], self.case.head)
+        self.assertFalse(self.destination.exists())
+
+    def test_compile_scope_does_not_relax_the_original_holding_requirement(self):
+        with patch.object(compiler, 'import_module', side_effect=AssertionError('Native engine')):
+            with self.assertRaisesRegex(ValueError, 'original native compiler holding'):
+                compiler.compile_image(self.case.module_file, self.case.head, self.destination)
+        self.assertFalse(self.destination.exists())
+
     def test_missing_or_modified_provider_is_refused_before_engine_import(self):
         self.provider.unlink()
         with patch.object(compiler, 'import_module', side_effect=AssertionError('Native engine')):

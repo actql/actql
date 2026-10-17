@@ -153,6 +153,27 @@ before importing Wasmtime. A declaration or CLI byte count cannot replace that
 supplier. Maintainer compiler budgets and eventual product bootstrap funding
 are separate; neither verify-only nor scalar custody tests establish either.
 
+Module preparation precedes physical acceptance. The existing component
+producer can record `--record-module-original --source SOURCE --compiled-source
+BUILD_SOURCE --module MODULE --link-response ACTUAL_RSP --moon-home PINNED_HOME
+--destination MODULE_RECEIPT`. Run it after the normal pinned module build and
+retain that build's result. Its closed `compile_only_module_inputs` scope binds
+the regular module, complete selected source membership, toolchain/installed
+marker and executable versions/bytes, generated ABI freshness, actual link
+response/output and every original `.core` input. It records correspondence;
+it does not reconstruct a compiler read trace or assert physical success.
+Input-equivalent reuse retains the actual `compiled_source_sha` separately
+from the current selected source. Added or changed selected inputs refuse it.
+
+The image compiler's existing `--core-receipt` accepts that verified compile-only
+original or the stronger physical receipt through one shared module verifier.
+It still requires the same recipe, runtime/provider libraries and original
+holding. Final component assembly only accepts the physical receipt: it must
+embed that same module original and successful contract/result/physical/workspace
+observations for the exact source/module. A compile-only receipt, renamed scope
+or missing physical cases cannot form an artifact. Neither stage changes the
+installed image-only loader or supplies a normal numerical capacity profile.
+
 Private ABI73 projects a separately declared physical Host baseline into the
 same initial Core Root as the existing16MiB VM and12MiB transfer pool. It keeps
 that reservation through native Store/Engine destruction; logical pool close

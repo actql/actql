@@ -44,7 +44,10 @@ def verify(core_receipt: Path, expected_source: str) -> dict[str, Any]:
     if sys.platform != 'darwin' or platform.machine() != 'arm64':
         raise ValueError('Image compiler requires the selected darwin-arm64 profile')
     core, receipt_hash = assembly.read_receipt(core_receipt)
-    digest = assembly.verify_original_core(ROOT, core, source)
+    if core.get('scope') == assembly.MODULE_SCOPE:
+        digest = assembly.verify_original_module(ROOT, core, source)
+    else:
+        digest = assembly.verify_original_core(ROOT, core, source)
     module = Path(core['module'])
     if not module.is_absolute():
         raise ValueError('Original image compiler module path is unavailable')

@@ -659,6 +659,25 @@ instruction fuel, retry the interrupted operation or dispose a pending Run.
 
 ## Installed Host root capacity
 
+Module compilation inputs and physical acceptance are distinct evidence.
+The maintainer component producer's closed compile-only module original binds
+the selected clean source and original compiled source, pinned toolchain,
+generated ABI, actual regular module and link input/output identities through
+one shared verifier. Equal-input reuse retains its original compiled source;
+it does not relabel an old build or imply a complete compiler read trace.
+The image compiler may consume that preparation before physical probes, but
+must hold the original provider-backed scope through Config, pool, Engine,
+module serialization and confirmed cleanup. Preparation is not a capacity,
+Runtime, Run or authority admission.
+
+Final component assembly requires the stronger physical receipt for that
+exact selected source/module, including the same verified module original and
+successful contract, result, physical and workspace observations. Missing
+physical cases or a compile-only scope refuse assembly. This order avoids
+requiring physical image execution before the image can be prepared while
+preserving the final physical gate, original recipe/library/image bindings,
+normal funding refusal and image-only installed loader.
+
 The installed Host requires explicit trusted Host resource limits when opening the
 instance. The existing Ledger reserves the fixed 16 MiB linear-memory allowance
 and the configured transfer pool. Physical workspace loans reserve against
