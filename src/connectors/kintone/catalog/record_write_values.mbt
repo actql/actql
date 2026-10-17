@@ -30,9 +30,7 @@ pub struct RecordWriteValues {
 }
 
 ///|
-fn write_value_contract(
-  field : FormFieldMetadata,
-) -> @contract.Contract? {
+fn write_value_contract(field : FormFieldMetadata) -> @contract.Contract? {
   let text = @contract.primitive(@contract.StringType, nullable=false)
   match field.native_type {
     "SINGLE_LINE_TEXT" | "MULTI_LINE_TEXT" | "RICH_TEXT" | "LINK" => Some(text)
@@ -46,7 +44,8 @@ fn write_value_contract(
     | "USER_SELECT"
     | "ORGANIZATION_SELECT"
     | "GROUP_SELECT" => @contract.array_contract(text, nullable=false)
-    // Read-only/process fields cannot become ordinary record writes. Number
+    // Read-only/process fields and privileged create-only metadata are not
+    // regular record-update candidates. Number
     // storage, Time, original table rows and issued Content need their own
     // existing carrier/original connections, never a String/Double fallback.
     _ => None
@@ -69,7 +68,8 @@ fn write_native_value(
       @encode.string_value(writer, text[:19].to_owned() + "Z")
     @admitted.Array(values) => {
       @encode.begin_array(writer)
-      for value in values.values {
+      for index in 0..<@admitted.element_count(values) {
+        let value = @admitted.element_at(values, index).unwrap()
         let text = match value {
           @admitted.Text(text) => text
           _ => abort("checked string-array invariant")
@@ -133,8 +133,7 @@ pub fn prepare_record_write_values(
       write_value_contract(field) is Some(contract) else {
       return Err(FieldUnavailable(code))
     }
-    guard
-      @admitted.recheck_runtime_value_usage(value.value, contract, {
+    guard @admitted.recheck_runtime_value_usage(value.value, contract, {
         max_nodes: nodes,
         max_depth: limits.max_depth,
         max_text_bytes: text_bytes,
@@ -148,13 +147,15 @@ pub fn prepare_record_write_values(
       @admitted.Null if field.native_type == "RADIO_BUTTON" =>
         return Err(UnrepresentableValue(code))
       @admitted.Text(text) if text.is_empty() &&
-        (field.native_type == "RADIO_BUTTON" || field.native_type == "DROP_DOWN") =>
-        return Err(UnrepresentableValue(code))
+        (
+          field.native_type == "RADIO_BUTTON" ||
+          field.native_type == "DROP_DOWN"
+        ) => return Err(UnrepresentableValue(code))
       @admitted.Date(text) if text < "1000-01-01" =>
         return Err(UnrepresentableValue(code))
       @admitted.Timestamp(text) if text < "1000-01-01T00:00:00.000Z" ||
-        text.length() != 24 || text[19:24] != ".000Z" =>
-        return Err(UnrepresentableValue(code))
+        text.length() != 24 ||
+        text[19:24] != ".000Z" => return Err(UnrepresentableValue(code))
       _ => ()
     }
     originals.push((code, value))
