@@ -20,6 +20,8 @@ pub fn admit_object_upload_target_observation(ObjectUploadBinding, String, Int, 
 
 pub fn check_object_collection_binding(ObjectCollectionBinding, ObjectCollectionBinding, String, String) -> Result[Unit, ObjectCollectionIssue]
 
+pub fn check_object_metadata_patch_input(ObjectMutationBinding, Bytes, String, Bool) -> Result[Unit, ObjectRequestIssue]
+
 pub fn classify_object_upload_response(ObjectUploadBinding, ObjectUploadRequest, Int, Bytes) -> Result[ObjectUploadOutcome, ObjectUploadIssue]
 
 pub fn content_metadata_json(Bytes, String, String, String, Int64, ObjectMetadataLimits) -> Result[String, ContentMetadataIssue]
@@ -105,6 +107,8 @@ pub fn prepare_object_collection_binding(String, String, String, String, String,
 pub fn prepare_object_delete(ObjectMutationBinding, ObjectMetadata) -> Result[ObjectMutationRequest, ObjectRequestIssue]
 
 pub fn prepare_object_metadata_patch(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]
+
+pub fn prepare_object_metadata_patch_value_wire(ObjectMutationBinding, ObjectMetadata, Bytes, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]
 
 pub fn prepare_object_multipart_upload(ObjectUploadBinding, ObjectUploadObservation, Bytes, String, String, String, Bool?, String) -> Result[ObjectUploadRequest, ObjectUploadIssue]
 

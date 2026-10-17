@@ -185,6 +185,42 @@ same pending FD child blocks input/Result/Source retirement. It checks that
 law's current source equality; it is not a fresh whole-Common build or proof
 that all compiler inputs match the latest installed product cohort.
 
+### Effect metadata Value wire
+
+Common's checked Effect row emits a JSON-typed field through the existing
+`{"$json":payload}` Value wire. The explicit private
+`prepareOwnedGcsEffectMetadataPatch` and
+`prepare_object_metadata_patch_value_wire` entrypoints admit that field through
+the existing Value owner and then the same GCS string-map checks. They keep the
+typed envelope in authored request facts so the original capture can compare
+the exact row, while producing the same physical PATCH body/path/CID as the
+equivalent raw metadata input. Node does not unwrap the field or infer a mode.
+The older raw provider JSON entrypoints retain their original meaning and bytes.
+
+The preparation child selects this entrance only with the explicit private
+`valueEncoding: 'effect_value'`; absence retains the original `source_json`
+mode. Unknown modes and missing selected ABI refuse. Both modes check the
+authored input before asking for approval or opening a before-GET, including
+the exact reserved `actql-request` collision. Static checks do not prove that
+the original read or metadata has been acquired. Preparation checks the same
+input again against the original observation before sealing the conditional
+request. No read/write authority or reservation follows from this projection.
+
+Omission preserves the logical user metadata, an empty map replaces it with
+an empty user map, and SQL NULL/JSON null/non-string entries refuse rather than
+becoming empty. A user's literal `$json` key lives inside the payload and is
+not a second envelope. Exact NFD/NFC keys and CR/LF values remain distinct.
+The private marker stays in physical requests and retained evidence only.
+
+The bounded preserving parse/cursor, transient checked Json Value graph,
+declared/logical metadata array and maps, re-encoding writer/String/Buffer,
+original row and retained raw response/request overlap the existing preparation
+envelope. Repeated preflight and post-read validation are real work and do not
+reuse a free budget or expand the byte/node/depth/entry ceilings. The private
+encoding selector and its retained configuration field are also managed
+controls, not a new capability or a numerical profile. This connection alone
+does not install the same-Site Effect, fund a Content loan, or close Run recovery.
+
 ### Retained upload target observations
 
 The upload-target receiver consumes the complete retained before-GET response,
