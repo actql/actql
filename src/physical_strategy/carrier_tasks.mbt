@@ -863,7 +863,10 @@ fn captured_segment_prefix_end(
     }
     if pure_projection {
       match @lower.payload(node) {
-        @lower.Derive(_) | @lower.Select(_) => ()
+        // A row assertion is a separately checked operation, not completion
+        // of the acquisition prefix. Preserve its own port and selected
+        // provider so the later Result cannot impersonate the capture.
+        @lower.Derive(_) | @lower.Select(_) | @lower.AssertRows(_) => ()
         _ => return None
       }
     }
