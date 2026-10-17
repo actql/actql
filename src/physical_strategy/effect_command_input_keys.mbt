@@ -7,11 +7,15 @@ struct CapturedEffectCommandKeyValidation {
   member_index : Int
   input : CapturedEffectInput
   command : @results.EffectCommandInputBinding
-  exported : CapturedEffectLocalResultExport
-  field : @schema.Field
-  validation : @execution.CompletedResultKeyValidation
+  local_index : Int
+  original_result : CapturedEffectLocalResult
+  mut exported : CapturedEffectLocalResultExport?
+  mut field : @schema.Field?
+  mut validation : @execution.CompletedResultKeyValidation?
   mut terminal : Bool
   mut revoked : Bool
+  mut retained : Bool
+  mut retaining : Bool
 }
 
 ///|
@@ -28,17 +32,42 @@ fn captured_effect_command_key_origin(
   value : CapturedEffectCommandKeyValidation,
 ) -> Bool {
   if value.revoked ||
-    !captured_effect_local_result_export_retained(value.inputs, value.exported) ||
+    !captured_effect_command_key_original_retained(value) ||
     captured_effect_input_at(value.inputs, value.member_index).map(input => {
       physical_equal(input, value.input)
     }) !=
     Some(true) {
     return false
   }
-  let available = captured_any_result_borrow_available(value.input.borrow)
+  let available = captured_any_result_borrow_available(value.input.borrow) &&
+    captured_any_result_borrow_available(value.original_result.borrow)
   available &&
   !value.revoked &&
-  captured_effect_local_result_export_retained(value.inputs, value.exported)
+  captured_effect_command_key_original_retained(value)
+}
+
+///|
+/// Callback-free original-capture fence. The original Result and member
+/// bindings survive temporary export-view retirement; their pins do not.
+fn captured_effect_command_key_original_retained(
+  value : CapturedEffectCommandKeyValidation,
+) -> Bool {
+  if !value.inputs.live ||
+    !value.inputs.pins.live ||
+    !value.inputs.table_pins.live ||
+    value.inputs.local_results
+    .get(value.local_index)
+    .map(result => physical_equal(result, value.original_result)) !=
+    Some(true) ||
+    !captured_any_result_borrow_retained(value.input.borrow) ||
+    !captured_any_result_borrow_retained(value.original_result.borrow) {
+    return false
+  }
+  match value.exported {
+    Some(exported) =>
+      captured_effect_local_result_export_retained(value.inputs, exported)
+    None => value.retained
+  }
 }
 
 ///|
@@ -101,11 +130,15 @@ pub fn start_captured_effect_command_key_validation(
     member_index,
     input,
     command,
-    exported,
-    field,
-    validation,
+    local_index,
+    original_result: exported.result,
+    exported: Some(exported),
+    field: Some(field),
+    validation: Some(validation),
     terminal: false,
     revoked: false,
+    retained: false,
+    retaining: false,
   })
 }
 
@@ -119,15 +152,15 @@ pub fn advance_captured_effect_command_key_validation(
   @bounded.Observation[Int, @execution.CompletedResultKeyIssue],
   CapturedEffectCommandKeyIssue,
 ] {
+  guard value.validation is Some(validation) else {
+    return Err(Control(@bounded.Terminal))
+  }
   if !captured_effect_command_key_origin(value) {
     value.revoked = true
-    @execution.cancel_completed_result_key_validation(value.validation)
+    @execution.cancel_completed_result_key_validation(validation)
   }
   let poll = match
-    @execution.advance_completed_result_key_validation(
-      value.validation,
-      quantum,
-    ) {
+    @execution.advance_completed_result_key_validation(validation, quantum) {
     Ok(poll) => poll
     Err(issue) => return Err(Control(issue))
   }
@@ -136,7 +169,7 @@ pub fn advance_captured_effect_command_key_validation(
   }
   if !captured_effect_command_key_origin(value) {
     value.revoked = true
-    @execution.cancel_completed_result_key_validation(value.validation)
+    @execution.cancel_completed_result_key_validation(validation)
   }
   Ok(poll)
 }
@@ -147,15 +180,16 @@ pub fn advance_captured_effect_command_key_validation(
 pub fn cleanup_captured_effect_command_key_validation(
   value : CapturedEffectCommandKeyValidation,
 ) -> Result[Bool, CapturedEffectCommandKeyIssue] {
+  guard value.validation is Some(validation) else { return Ok(value.retained) }
   if !value.terminal {
     value.revoked = true
-    @execution.cancel_completed_result_key_validation(value.validation)
+    @execution.cancel_completed_result_key_validation(validation)
     match advance_captured_effect_command_key_validation(value, 1) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
   }
-  match @execution.cleanup_completed_result_key_validation(value.validation) {
+  match @execution.cleanup_completed_result_key_validation(validation) {
     Ok(done) => Ok(done)
     Err(issue) => Err(Control(issue))
   }
@@ -168,18 +202,73 @@ pub fn captured_effect_command_key_validation_matches(
   member_index : Int,
   command : @results.EffectCommandInputBinding,
 ) -> Bool {
-  if !physical_equal(value.inputs, inputs) ||
+  if value.retaining ||
+    !physical_equal(value.inputs, inputs) ||
     value.member_index != member_index ||
     !physical_equal(value.command, command) ||
     !captured_effect_command_key_origin(value) {
     return false
   }
-  let complete = @execution.completed_result_key_validation_matches(
-    value.validation,
-    value.exported.preparation,
-    value.field,
-  )
+  let complete = if value.retained {
+    value.terminal
+  } else {
+    match (value.validation, value.exported, value.field) {
+      (Some(validation), Some(exported), Some(field)) =>
+        @execution.completed_result_key_validation_matches(
+          validation,
+          exported.preparation,
+          field,
+        )
+      _ => false
+    }
+  }
   complete && captured_effect_command_key_origin(value)
+}
+
+///|
+/// Move completed immutable correspondence into the same captured Owner
+/// before the temporary re-admission bridge closes. Original pins/current
+/// remain mandatory. This transfers no reader, KeySet, durable receipt or
+/// send authority; it drops the private traversal and its derived-view refs.
+pub fn retain_captured_effect_command_key_validation(
+  value : CapturedEffectCommandKeyValidation,
+) -> Result[Unit, CapturedEffectCommandKeyIssue] {
+  if value.retaining {
+    return Err(ForeignOrigin)
+  }
+  value.retaining = true
+  let result = retain_completed_captured_effect_command_key_validation(value)
+  value.retaining = false
+  result
+}
+
+///|
+fn retain_completed_captured_effect_command_key_validation(
+  value : CapturedEffectCommandKeyValidation,
+) -> Result[Unit, CapturedEffectCommandKeyIssue] {
+  guard !value.retained &&
+    !value.revoked &&
+    value.terminal &&
+    value.validation is Some(validation) &&
+    value.exported is Some(exported) &&
+    value.field is Some(field) &&
+    captured_effect_command_key_origin(value) else {
+    return Err(ForeignOrigin)
+  }
+  if !@execution.completed_result_key_validation_matches(
+      validation,
+      exported.preparation,
+      field,
+    ) ||
+    !captured_effect_command_key_original_retained(value) ||
+    !@execution.release_completed_result_key_validation(validation) {
+    return Err(ForeignOrigin)
+  }
+  value.retained = true
+  value.validation = None
+  value.exported = None
+  value.field = None
+  Ok(())
 }
 
 ///|
@@ -216,6 +305,6 @@ fn captured_effect_optional_command_key_retained(
       !value.revoked &&
       value.terminal &&
       physical_equal(value.inputs, inputs) &&
-      captured_effect_local_result_export_retained(inputs, value.exported)
+      captured_effect_command_key_original_retained(value)
   }
 }
