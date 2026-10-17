@@ -34,4 +34,3 @@ export function metadataBody() {
       ['PRODUCT', 'USAGE', 'USAGE_30D', 'ACTIVE_USERS', '2', 'NO', 'NUMBER', '38', '0', null],
       ['PRODUCT', 'USAGE', 'USAGE_30D', 'TREND', '3', 'YES', 'TEXT', null, null, '256']]}));
 }
-
