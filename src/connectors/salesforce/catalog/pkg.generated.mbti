@@ -570,6 +570,7 @@ pub struct FieldMetadata {
   unique : Bool
   case_sensitive : Bool?
   reference_to : Array[String]
+  compound_field_name : String?
   precision : Int?
   scale : Int?
 }
@@ -690,6 +691,7 @@ pub struct ReadProjection {
   binding : CatalogExecutionBinding
   resource : String
   fields : Array[FieldMetadata]
+  field_components : Array[Array[(String, FieldMetadata)]]
   contracts : Array[@value_contract.Contract]
   soql : String
   max_soql_bytes : Int

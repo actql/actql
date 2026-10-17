@@ -932,3 +932,34 @@ test('unrepresentable multi-select singleton empty or separator item refuses bef
     assert.equal(writesOf(installation.org).length, 0);
   }
 });
+
+
+test('approved geolocation component decimals preserve original Preview and physical PATCH bytes', async t => {
+  const installation = await installedEffect(t, {writes: [{
+    resource: 'Test_Record__c', kind: 'update',
+    fields: ['Location__Latitude__s', 'Location__Longitude__s']}],
+  org: {geolocationFields: true,
+    patchFields: ['Location__Latitude__s', 'Location__Longitude__s']}});
+  const host = await effectHost(t, installation, join(installation.root, 'host'));
+  const [mapping] = host.installed.mappings;
+  const rows = [{id: ids[0], latitude: '37.750000000000000',
+    longitude: '-122.500000000000000'}];
+  const program = effectProgram({save: {update: {
+    target: mapping.target, mapping: mapping.mappingRef, from: {result: 'rows'},
+    id: 'id', set: {Location__Latitude__s: {field: 'latitude'},
+      Location__Longitude__s: {field: 'longitude'}}}}}, rows,
+  {id: {type: 'string', nullable: false},
+    latitude: {type: 'decimal', precision: 18, scale: 15, nullable: false},
+    longitude: {type: 'decimal', precision: 18, scale: 15, nullable: false}});
+  const {started} = await host.run(program, 'geolocation-components-update');
+  assert.equal(started.value.status, 'published');
+  assert.deepEqual(writesOf(installation.org).map(item => [
+    item.path.split('/').at(-1), item.body]), [[ids[0],
+    '{"Location__Latitude__s":37.750000000000000,"Location__Longitude__s":-122.500000000000000}']]);
+  const preview = JSON.parse(host.control.effectComputationPreviewWire(host.outcomes[0].stage.preview));
+  assert.deepEqual(preview.effects[0].changes.map(change => change.before), [
+    {state: 'present', value: {Location__Latitude__s: '37.500000000000000',
+      Location__Longitude__s: '-122.250000000000000'}}]);
+  assert.deepEqual(preview.effects[0].changes.map(change => change.after.value), [
+    {Location__Latitude__s: rows[0].latitude, Location__Longitude__s: rows[0].longitude}]);
+});
