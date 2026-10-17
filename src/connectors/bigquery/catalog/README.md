@@ -27,6 +27,11 @@ JSON, representable NUMERIC/DECIMAL and BIGNUMERIC/BIGDECIMAL parameters, and
 recursive RECORD/STRUCT and REPEATED fields composed entirely of supported
 contracts. Unparameterized NUMERIC is decimal(38,9); a declared precision without
 scale has scale zero. Invalid parameter combinations refuse rather than widen.
+For parameterized metadata, GoogleSQL's domain admits `P=S` when `S>0`:
+`0<=S<=9, max(1,S)<=P<=S+29` for NUMERIC and
+`0<=S<=38, max(1,S)<=P<=S+38` for BIGNUMERIC. The narrower `P-S>=1`
+REST field-reference wording does not become an extra read restriction. This
+interpretation does not establish live REST acceptance or increase Common's cap.
 An unparameterized BIGNUMERIC or parameterized precision beyond the existing
 Common decimal38 law has no substitute contract. Full INT64, BYTES, TIME,
 DATETIME, microsecond TIMESTAMP and provider-formatted read-only types also remain

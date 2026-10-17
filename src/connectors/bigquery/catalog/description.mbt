@@ -151,7 +151,9 @@ fn numeric_contract(
       Ok(if big { None } else { @contract.decimal_contract(38, 9, nullable~) })
     (Some(p), s) => {
       let s = s.unwrap_or(0L)
-      if s > max_scale || p < s + 1L || p - s > integer_digits {
+      // GoogleSQL defines the value domain and permits P=S when S>0. The
+      // REST field reference's P-S>=1 wording is not a new read restriction.
+      if s > max_scale || p < 1L || p < s || p - s > integer_digits {
         return Err(InvalidColumn(column))
       }
       Ok(
