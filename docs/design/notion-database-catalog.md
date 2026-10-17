@@ -680,3 +680,68 @@ operational Site issuer, publication persistence or final declaration/Run
 adoption. Those consumers must retain the actual original declaration and
 selected schema; static checking never fetches missing metadata and same-Run
 restoration never rediscovers it from current configuration.
+
+## Exact original page observation
+
+The existing Catalog admits one bounded original Page response for the exact
+requested page id. It snapshots the response bytes before decoding and retains
+the original cursor, properties, response digest and raw version spelling in
+one private-constructor observation. Parent admission preserves the returned
+discriminant and actual coordinates: a data-source parent may also contain its
+database id, while a workspace parent has its actual `true` marker and no
+invented id. Page, database, block and agent parents remain distinct.
+The original `in_trash` and legacy `archived` aliases must be Boolean and agree
+when both occur; absence or malformed metadata never becomes `false`.
+
+The checked metadata projection retains the page id as correlation DATA, the
+original last-edited spelling as version, and exact normalized UTC millisecond
+timestamps using the existing ValueAdmission normalizer. Unknown offsets and
+nonzero submillisecond digits refuse. Properties remain original vendor DATA:
+this observation does not complete paginated titles/properties, infer their
+logical Contracts or issue a ResourceRef, current-version guard or mutation
+identity. The private metadata wire is a bounded projection, not a new public
+Source schema, canonical identity domain or authority-bearing preimage.
+
+The thin exact-page reader captures its original compiled methods and receiver,
+Credential control/scope, current callback and response/observation callbacks
+once. The existing physical Credential port admits only the separately
+authorized page operation, exact GET path and empty body. The original current
+and stop checks surround asynchronous work, secret resolution, response charge
+and observation consumption. An Account change, abort, malformed response,
+foreign page or output-budget refusal preserves the same response and charge.
+Lost replies retain the original use's journal Unknown; neither another reader
+nor repeated `read` can resend that use. Copied JS handles are not originals.
+
+The reader retains its original failure and all raw response aliases after
+success or failure. Its cleanup observation remains unconfirmed; response,
+callback or Promise completion, transport close and GC do not acknowledge
+physical retirement. The bounded raw snapshot, decoded node/key/property
+graph, parent variant, optional database coordinate, normalized timestamp
+backings, digest and opaque observation coexist. Metadata encoding also holds
+a bounded pair vector, Encoder key inventory, text/output backing and the
+original graph. The JS reader adds its request record, compiled methods and
+receiver, Credential/current/callback references, composite signal, abort
+controller, pending Promises and handlers, original error and response/charge
+aliases. Layout, shared references and empty/optional arms are not free.
+Actual installation lifetime funding and confirmed cleanup must cover this
+overlap; parser/transport bounds and fixture observation tickets are not that
+supply.
+
+This exact-page prerequisite does not prove complete workspace membership.
+The vendor [search limitations](https://developers.notion.com/reference/search-optimizations-and-limitations)
+provide no exhaustive or stable workspace index, including trash. A configured
+root traversal proves only its selected collection unless an actual
+authoritative original inventory establishes full membership and coverage,
+including archived pages. The public all-visible-pages target still requires
+that supplier; missing coverage is Unavailable at that boundary. Terminal
+search pagination, first-page selection and this single-page observation do
+not replace it. The selected [Page](https://developers.notion.com/reference/page)
+and [parent](https://developers.notion.com/reference/parent-object) contracts
+also do not issue permission, installation currentness or a write target.
+
+Verification separates bounded portable Catalog cases from the actual
+Common/Account/Credential/SQLite/TLS caller cases. The latter use explicit
+private fixture issuer/material and observation tickets, preserving original
+Unknown journals and keys. They do not establish a normal operational issuer,
+complete page inventory, numerical funding, installed publication or live
+Notion acceptance.

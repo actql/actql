@@ -1,5 +1,5 @@
 {
-  "source": "4032b5e23d4434e94e27455dda1eff05b96c7d23",
+  "source": "0396bdeee33999c56fe52209c0cd837ee0700205",
   "qualification": "Lead-reviewed existing Owner references and syntax coverage only; not normal funding, raw retirement, installation, actual Notion service or release acceptance",
   "declarations": [
     {
@@ -1815,6 +1815,302 @@
               {
                 "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
                 "anchor": "installed Notion optional TLS authority is bounded original PEM before native transport"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/notion/site/page-read.mjs",
+      "sha256": "2635fce8b7a24223059c68850647f04287017ffc42bb009eaf02421e9e100e53",
+      "exports": [
+        "NOTION_PAGE_READ_OPERATION",
+        "NotionPageReadFailure",
+        "createNotionPageReader"
+      ],
+      "operations": [
+        {
+          "name": "count/count",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionPageReader",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionPageReader/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNotionPageReader/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createNotionPageReader/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "NotionPageReadFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause",
+            "observation",
+            "responseCharge"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReader",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare",
+          "parameters": [
+            "moon",
+            "pageId",
+            "initialAuthorization",
+            "credential",
+            "current",
+            "chargeResponse",
+            "consumeObservation",
+            "limits",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare/prepare",
+          "parameters": [
+            "x"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare/prepare#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare/prepare#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare/prepare#4",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "readPage",
+          "parameters": [
+            "state"
+          ],
+          "async": true
+        },
+        {
+          "name": "readPage/readPage",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "readPage/verify/verify",
+          "parameters": [],
+          "async": true
+        }
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "./property-item-read.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Notion Catalog and physical reader; Common Contract/Value, Account, Credential/Site and Resource retain original authority, capture, accounting and physical cleanup",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "count/count",
+            "createNotionPageReader",
+            "createNotionPageReader/handle/init:observe/init:observe",
+            "createNotionPageReader/handle/init:read/init:read",
+            "createNotionPageReader/handle/init:requestStop/init:requestStop",
+            "fail/fail",
+            "NotionPageReadFailure/constructor:constructor/constructor:constructor",
+            "originalReader",
+            "positive/positive",
+            "prepare",
+            "prepare/prepare",
+            "prepare/prepare#2",
+            "prepare/prepare#3",
+            "prepare/prepare#4",
+            "prepare/provider/provider",
+            "readPage",
+            "readPage/readPage",
+            "readPage/verify/verify"
+          ],
+          "exports": [
+            "NOTION_PAGE_READ_OPERATION",
+            "NotionPageReadFailure",
+            "createNotionPageReader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "## Exact original page observation"
+              },
+              {
+                "path": "src/connectors/notion/catalog/page_observation.mbt",
+                "anchor": "pub fn project_notion_page("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/notion/site/page-read.mjs",
+                "anchor": "function prepare({moon,pageId,initialAuthorization,credential,current,chargeResponse,"
+              },
+              {
+                "path": "adapters/connectors/notion/site/page-read.mjs",
+                "anchor": "return Object.freeze({page,metadataWire,observation:state.observation,responseCharge:state.charge});"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The original `in_trash` and legacy `archived` aliases must be Boolean and agree"
+              },
+              {
+                "path": "adapters/connectors/notion/site/page-read.mjs",
+                "anchor": "const scope=invocationScopeFields(context.scope,context.credential.control);"
+              },
+              {
+                "path": "src/connectors/notion/catalog/page_observation.mbt",
+                "anchor": "if id != expected_page_id {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/notion/site/page-read.mjs",
+                "anchor": "const readers=new WeakMap();"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The reader retains its original failure and all raw response aliases after"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/notion/site/page-read.mjs",
+                "anchor": "const verify=async()=>{signal.throwIfAborted();await context.callbacks.current(request);signal.throwIfAborted();};"
+              },
+              {
+                "path": "adapters/connectors/notion/site/page-read.mjs",
+                "anchor": "await context.callbacks.consumeObservation(state.charge);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/notion/site/page-read.mjs",
+                "anchor": "state.failure=new NotionPageReadFailure(cause,state.observation,state.charge);throw state.failure;"
+              },
+              {
+                "path": "adapters/connectors/notion/test/page-read.test.mjs",
+                "anchor": "actual Notion lost page reply keeps the original use Unknown across another reader without resend"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/notion/site/page-read.mjs",
+                "anchor": "requestStop(reason){originalReader(this).stop.abort(reason);},"
+              },
+              {
+                "path": "adapters/connectors/notion/test/page-read.test.mjs",
+                "anchor": "actual Notion page current or stop refusal after response retains raw custody without publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The bounded raw snapshot, decoded node/key/property"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Actual installation lifetime funding and confirmed cleanup must cover this"
+              },
+              {
+                "path": "adapters/connectors/notion/site/page-read.mjs",
+                "anchor": "receivedBodyBytes:BigInt(state.observation?.body.byteLength??0),cleanupConfirmed:false"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "This exact-page prerequisite does not prove complete workspace membership."
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The private metadata wire is a bounded projection, not a new public"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/notion/test/page-read.test.mjs",
+                "anchor": "actual Notion exact-page GET retains the original response parent version and checked UTC metadata"
+              },
+              {
+                "path": "adapters/connectors/notion/test/page-read.test.mjs",
+                "anchor": "actual Notion rejected page identity malformed response and output exhaustion retain the original body and charge"
+              },
+              {
+                "path": "src/connectors/notion/catalog/page_observation_wbtest.mbt",
+                "anchor": "test \""
               }
             ]
           }
