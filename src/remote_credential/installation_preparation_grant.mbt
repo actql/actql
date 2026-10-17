@@ -151,6 +151,9 @@ pub fn admit_installation_preparation_credential_grant_json(
   body : String,
   expected_cid : String,
 ) -> Result[InstallationPreparationCredentialGrant, RemoteCredentialIssue] {
+  if body.length() > 16384 {
+    return Err(InvalidCredentialGrant)
+  }
   try {
     let source = match
       @source.parse_json_bytes_preserving(@utf8.encode(body), {
@@ -167,8 +170,8 @@ pub fn admit_installation_preparation_credential_grant_json(
           @decode.admit(source, {
             max_nodes: 32,
             max_depth: 2,
-            max_string_bytes: 2048,
-            max_total_string_bytes: 8192,
+            max_string_bytes: 6144,
+            max_total_string_bytes: 16384,
           }),
         ),
         [

@@ -410,3 +410,71 @@ test "installation signature uses existing exact envelope domain without old Run
     is Err(InvalidCredentialSignature),
   )
 }
+
+///|
+test "installation UTF16 field bounds preserve UTF8 roundtrip and refuse before oversized encoding" {
+  let fields = {
+    ..installation_subject_fields(),
+    principal: "水".repeat(512),
+  }
+  let subject = prepare_installation_preparation_subject(fields).unwrap()
+  assert_eq(
+    admit_installation_preparation_subject_json(
+      subject.original_wire(),
+      subject.cid(),
+    )
+    .unwrap()
+    .fields(),
+    fields,
+  )
+  let scope = {
+    ..installation_scope(),
+    subject,
+    request_path: "/" + "水".repeat(2047),
+  }
+  let grant = installation_grant(scope)
+  let decoded = admit_installation_preparation_credential_grant_json(
+    subject,
+    grant.original_wire().unwrap(),
+    grant.cid(),
+  ).unwrap()
+  assert_eq(decoded.scope().request_path, scope.request_path)
+  let value = prepare_installation_preparation_credential_use(
+    grant,
+    "水".repeat(256),
+    1L,
+    0,
+    false,
+    scope,
+  ).unwrap()
+  assert_eq(
+    admit_installation_preparation_credential_use_json(
+      grant,
+      value.original_wire().unwrap(),
+      value.cid(),
+    )
+    .unwrap()
+    .projection(),
+    value.projection(),
+  )
+  assert_true(
+    admit_installation_preparation_subject_json(" ".repeat(8193), subject.cid())
+    is Err(_),
+  )
+  assert_true(
+    admit_installation_preparation_credential_grant_json(
+      subject,
+      " ".repeat(16385),
+      grant.cid(),
+    )
+    is Err(_),
+  )
+  assert_true(
+    admit_installation_preparation_credential_use_json(
+      grant,
+      " ".repeat(4097),
+      value.cid(),
+    )
+    is Err(_),
+  )
+}
