@@ -48,7 +48,10 @@ fn duplex_test_finish(
   scoped_test_ok(stop.require_current(holder), "duplex.stop.current")
   assert_true(stop.close())
   assert_true(holder.cleanup())
-  assert_true(slot.close())
+  // Successful spawn already consumed the parent's Slot descriptor. That
+  // moved handle cannot issue another close acknowledgement.
+  assert_false(slot.is_open())
+  assert_false(slot.close())
 }
 
 ///|
@@ -221,7 +224,8 @@ test "duplex descriptor close Unknown cannot close an independently reused numbe
   assert_eq(duplex_test_read_ffi(independent_reader), payload)
   assert_eq(slot_close_ffi(writer), 0)
   assert_eq(slot_close_ffi(independent_reader), 0)
-  assert_true(slot.close())
+  assert_false(slot.is_open())
+  assert_false(slot.close())
   scoped_test_pending.push(holder)
 }
 
@@ -246,7 +250,8 @@ test "duplex current loss forbids use but permits original borrow withdrawal and
   assert_eq(duplex_test_open_ffi(descriptors.0), 0)
   assert_eq(duplex_test_open_ffi(descriptors.1), 0)
   assert_false(holder.cleanup())
-  assert_true(slot.close())
+  assert_false(slot.is_open())
+  assert_false(slot.close())
   scoped_test_pending.push(holder)
 
   let (unstarted_slot, unstarted, _, unstarted_borrow) = duplex_test_prepare(
