@@ -2146,7 +2146,7 @@
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "99561c228b553fff5b5a987c47854f45dc0b2f5071d0a78b2e6f8da58e363b02",
+      "sha256": "6e76d39ff96987a99afafc358fc00a9235f4db151e49e156c5939098e1981499",
       "role": "physical-io",
       "owner": "Existing Model execution authority and Node Store/publication custody; F functional contract with A generated representation projection",
       "exports": [
@@ -2706,6 +2706,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/infer-async-response-custody.md",
+                "anchor": "## Retired raw persistence aliases"
               }
             ],
             "synchronization": [
@@ -2762,6 +2766,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/infer-async-response-custody.md",
+                "anchor": "## Retired raw persistence aliases"
               }
             ],
             "extension": [
@@ -2798,6 +2806,10 @@
               {
                 "path": "adapters/host-node/infer-raw-capture.test.mjs",
                 "anchor": "raw tuple projection preserves field roles"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-port-retirement.test.mjs",
+                "anchor": "saved raw caller weakens only its retired Call alias"
               }
             ]
           }
@@ -4715,7 +4727,7 @@
     {
       "module": "adapters/site-node/sqlite-credential-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5d626b85cd0dac3e08181fa331e82c4cc912367272df1dba9c96009bfee8746f",
+      "sha256": "a53884f7d10eedfb5f295f0a43df4ff38179e64f714a5ab7b7e3f9332b3e417b",
       "exports": [
         "openSqliteCredentialJournal"
       ],
@@ -4961,6 +4973,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Identity |"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Original grant of an authentication claim"
               }
             ],
             "ownership": [
@@ -5003,11 +5019,24 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "| Verification |"
+              },
+              {
+                "path": "adapters/site-node/credential-authentication-journal.test.mjs",
+                "anchor": "the actual signature-admitted claim grant binds only its own original authentication use"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/sqlite-transaction.mjs",
+        "./remote-credential-signature.mjs",
+        "node:fs",
+        "node:path",
+        "node:sqlite"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/site-node/sqlite-dispatch-journal.mjs",

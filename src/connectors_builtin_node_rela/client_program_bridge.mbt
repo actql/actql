@@ -260,6 +260,28 @@ pub fn client_program_preparation_issue_code(
 }
 
 ///|
+/// Read only the original preparation's named lookup-byte rejection. This
+/// private diagnostic is DATA, not a new check, capacity or acquisition grant.
+/// The coordinates retain the Source Owner's stage and logical join step.
+#export_name("clientProgramPreparationDecodedResponseLimitJson")
+pub fn client_program_preparation_decoded_response_limit_json(
+  outcome : ClientProgramBridgeOutcome,
+) -> String? {
+  guard outcome is Rejected(Preparation(Check(diagnostic))) else { return None }
+  guard @program_check.diagnostic_cause(diagnostic)
+    is Source(Requests(Capacity(Stage(stage, DecodedResponseLimit(step))))) else {
+    return None
+  }
+  Some(
+    "{\"stageIndex\":" +
+    stage.to_string() +
+    ",\"stepIndex\":" +
+    step.to_string() +
+    "}",
+  )
+}
+
+///|
 /// Retain the original no-Parameter convenience bridge entry for existing installed
 /// hosts. New submit paths must use the typed preparation entry above.
 #export_name("clientProgramPrepareEffectFree")
@@ -2859,36 +2881,13 @@ fn client_program_input(
   format : String,
   parameters : String?,
 ) -> Result[(@stage_syntax.Format, @decode.Cursor?), ClientProgramBridgeIssue] {
-  let selected = match format {
-    "json" => @stage_syntax.Json
-    "yaml" => @stage_syntax.Yaml
-    _ => return Err(InvalidFormat)
-  }
-  let supplied = match parameters {
-    None => None
-    Some(body) => {
-      let parsed = match
-        @source.parse_json_bytes(
-          @utf8.encode(body),
-          { max_input_bytes: 65536, max_nodes: 8192, max_depth: 64, },
-          source_path="Client Parameters",
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(SuppliedSyntax(issue))
-      }
-      match
-        @decode.admit(parsed, {
-          max_nodes: 8192,
-          max_depth: 64,
-          max_string_bytes: 65536,
-          max_total_string_bytes: 65536,
-        }) {
-        Ok(value) => Some(value)
-        Err(issue) => return Err(SuppliedAdmission(issue))
-      }
+  @local_preparation.admit_local_program_input(format, parameters).map_err(issue => {
+    match issue {
+      InvalidFormat => InvalidFormat
+      SuppliedSyntax(issue) => SuppliedSyntax(issue)
+      SuppliedAdmission(issue) => SuppliedAdmission(issue)
     }
-  }
-  Ok((selected, supplied))
+  })
 }
 
 ///|
