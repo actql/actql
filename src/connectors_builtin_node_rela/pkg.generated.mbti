@@ -750,9 +750,31 @@ pub fn client_program_kintone_declaration_limits(Int, Int, Int, Int, Int) -> @cl
 
 pub fn client_program_kintone_declare_records(@actql/actql/connectors/kintone/catalog.FormFieldCatalog, @actql/actql/connectors/kintone/catalog.AppNumberSettings?, Array[String], String, String, String, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @client_row_source_host.RowDeclarationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordDeclaration, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
+pub fn client_program_kintone_delete_app(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest) -> String
+
+pub fn client_program_kintone_delete_body(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest) -> String
+
+pub fn client_program_kintone_delete_count(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest) -> Int
+
+pub fn client_program_kintone_delete_observation_body(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, Int, Int, Int, Int) -> Result[String, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_delete_recheck_form(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, Bytes, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> Result[Unit, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_delete_recheck_records(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, Bytes, @actql/actql/connectors/kintone/catalog.RecordPageLimits, Int, Int) -> Result[Unit, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_delete_request(Array[@actql/actql/connectors/kintone/catalog.OriginalRecordTarget], @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_delete_response(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, Int, Bytes, Int, Int, Int) -> Result[@actql/actql/connectors/kintone/catalog.RecordDeleteAcknowledgement, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_delete_response_request(@actql/actql/connectors/kintone/catalog.RecordDeleteAcknowledgement) -> @actql/actql/connectors/kintone/catalog.RecordDeleteRequest
+
 pub fn client_program_kintone_form_limits(Int, Int, Int, Int, Int) -> @actql/actql/connectors/kintone/catalog.FormFieldLimits
 
 pub fn client_program_kintone_form_request_body(@actql/actql/connectors/kintone/host.PreparedRecordRead, Int) -> Result[String, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_mutation_limits(Int, Int, Int, Int, Int, Int) -> @actql/actql/connectors/kintone/catalog.RecordMutationLimits
+
+pub fn client_program_kintone_original_record_target(@actql/actql/connectors/kintone/catalog.OriginalRecordPage, Int, Int) -> Result[@actql/actql/connectors/kintone/catalog.OriginalRecordTarget, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
 
 pub fn client_program_kintone_page_limits(Int, Int, Int, Int, Int, Int, Int) -> @actql/actql/connectors/kintone/catalog.RecordPageLimits
 
@@ -763,6 +785,8 @@ pub fn client_program_kintone_page_request_body(@actql/actql/connectors/kintone/
 pub fn client_program_kintone_prepare_read(@actql/actql/connectors/kintone/host.RecordDeclaration, @query_planning.QueryRequirement, String, String) -> Result[@actql/actql/connectors/kintone/host.PreparedRecordRead, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
 pub fn client_program_kintone_project_form(Bytes, String, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> Result[@actql/actql/connectors/kintone/catalog.FormFieldCatalog, @actql/actql/connectors/kintone/catalog.FormFieldIssue]
+
+pub fn client_program_kintone_project_record_page(Bytes, @actql/actql/connectors/kintone/catalog.FormFieldCatalog, Array[String], @actql/actql/connectors/kintone/catalog.RecordPageLimits) -> Result[@actql/actql/connectors/kintone/catalog.OriginalRecordPage, @actql/actql/connectors/kintone/catalog.RecordPageIssue]
 
 pub fn client_program_kintone_read_acquisition(@actql/actql/connectors/kintone/host.PreparedRecordRead) -> @client_row_source_host.RowAcquisition
 

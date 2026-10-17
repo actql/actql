@@ -59,9 +59,19 @@ pub fn project_record_delete_acknowledgement(RecordDeleteRequest, Int, Bytes, In
 
 pub fn project_record_page(Bytes, FormFieldCatalog, Array[String], RecordPageLimits) -> Result[OriginalRecordPage, RecordPageIssue]
 
+pub fn recheck_record_delete_form(RecordDeleteRequest, Bytes, FormFieldLimits) -> Result[Unit, RecordMutationIssue]
+
+pub fn recheck_record_delete_records(RecordDeleteRequest, Bytes, RecordPageLimits, Int, Int) -> Result[Unit, RecordMutationIssue]
+
 pub fn record_delete_acknowledgement_request(RecordDeleteAcknowledgement) -> RecordDeleteRequest
 
+pub fn record_delete_observation_body(RecordDeleteRequest, Int, Int, Int, Int) -> Result[String, RecordMutationIssue]
+
+pub fn record_delete_request_app_id(RecordDeleteRequest) -> String
+
 pub fn record_delete_request_body(RecordDeleteRequest) -> String
+
+pub fn record_delete_request_count(RecordDeleteRequest) -> Int
 
 pub fn record_delete_request_targets(RecordDeleteRequest) -> Array[OriginalRecordTarget]
 
@@ -185,6 +195,9 @@ pub(all) enum RecordMutationIssue {
   InvalidRequest
   UnexpectedStatus
   InvalidResponse
+  Form(FormFieldIssue)
+  Page(RecordPageIssue)
+  UncorrelatedResult
 } derive(Eq, @debug.Debug)
 
 pub(all) struct RecordMutationLimits {
