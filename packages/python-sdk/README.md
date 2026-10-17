@@ -50,6 +50,54 @@ Sync calls reject with `SyncClientInRunningEventLoop` before I/O when a caller's
 event loop is running. Use the async facade there. The sync facade owns a private,
 persistent Runner; it does not stop or nest an application loop.
 
+## Lazy short queries
+
+Both clients expose `sql(text, parameters)` and `aql(text, parameters)`. A
+query captures the original input immediately, but sends nothing until its
+first `all()` or reader iteration:
+
+```python
+with Client.connect(endpoint, token) as client:
+    query = client.sql("SELECT @n AS n", {"n": 1})
+    rows = query.all(max_rows=10)
+    with client.aql("FROM crm.accounts |> LIMIT 10").rows() as reader:
+        for row in reader:
+            print(row)
+# Async: query = client.sql(...); rows = await query.all()
+# async with query.rows(schema=Account) as reader: ...
+```
+
+The same original submission carries `readOnly: true`. The Common admission
+Owner checks the complete checked Effect inventory of that same preparation
+before Source, Model, Preview or Effect work. This is a restriction, not an
+authorization grant or `stop_before="commit"`; even a zero-row or unreachable
+Effect requires the general `start_source` surface. An older Host that cannot
+admit the restriction refuses it; the SDK never removes it or sends a separate
+check as a substitute.
+
+Use `request_id=` or `submission_ref=` to select the existing original identity
+(not both). Changing the query or restriction under that identity is a conflict.
+Omission on general `start`/`start_source` preserves their original behavior;
+their explicit `read_only=True` selects the same restriction. `False` and `None`
+are invalid choices. No restriction is inferred when attaching to a Run.
+
+After one submission and one stable wait, the query selects an available named
+Result. If more than one Result exists, pass `result="name"`; it does not guess.
+`schema=` and read limits use the existing Result reader. Explicit subsequent
+reads share the same Run and open distinct delivery attempts. A held admission,
+lost reply, cancellation, blocked state or failed observation never causes a
+second submission, approval, reconciliation or status polling. Inspect
+`query.execution` and `get_submission_input(query)` for the retained original
+materials; an observation error also retains that execution and observation.
+Query handles cannot be copied or serialized as fresh operations. Save the
+existing Run reference and use `attach` for explicit observation after restart.
+
+Closing an unused query reader sends nothing. Closing a started reader only
+releases its existing local resources; failed cleanup remains with that reader
+and Client for an explicit retry. It is neither Run cancellation nor Host ACK.
+This lightweight Remote composition does not complete the unfinished installed
+Local funding supplier or prove an ordinary Local wheel execution.
+
 `run.status()` and `run.wait()` return immutable `RunState` values. To wait
 for a later stable observation, pass the original state revision:
 

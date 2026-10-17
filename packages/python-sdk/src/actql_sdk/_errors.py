@@ -15,5 +15,7 @@ class ClientError(Exception):
         self.original_error = None
         self.cleanup_error = None
         self.validation_error = None
+        self.execution = None
+        self.observation = None
         for key, value in facts.items():
             setattr(self, key, value)
