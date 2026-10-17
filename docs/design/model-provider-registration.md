@@ -206,6 +206,26 @@ public Provider package or live Model support. Host-specific layout and all
 simultaneous holdings still require the original resource supplier. Public
 execution and package acceptance remain separate from private registration.
 
+### Per-request raw persistence binding
+
+The original Common execution prepares its finite request/cursor inventory
+before issuing the complete prepared CallSet. A selected raw SDK cursor retains
+one synchronous callback during its own preflight constructor; one execution
+can therefore retain several such callbacks. The installed continuation binds
+all of them once to its same original raw registration and physical Store port.
+That port still checks each actual Call against the Common registration. This
+is callback fanout, not another slot scheduler, send gate, registration or Call.
+
+The original preparation envelope must cover the callback-reference array and
+per-preflight setter/cell overlap before preparation. Neither the later CallSet
+nor a successful binding supplies that funding. Copied/foreign persistence
+still refuses before any callback. A partial binding failure is one-shot: it
+cannot retry already bound children, and unbound cursors remain with Common's
+same cleanup census. The auxiliary callbacks are dropped after the binding
+attempt or original cleanup, without claiming raw, SDK, Store or physical
+retirement. A directly supplied legacy callback retains its exclusive route;
+it cannot mix with deferred per-request callbacks.
+
 ## Public Task originals and applicable handling
 
 Public Task admission retains the original decoded document, exact identifier,
