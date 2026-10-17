@@ -41,6 +41,15 @@ The next cursor is the exact last original ID. Duplicate, reordered or repeated
 IDs abort that acquisition. Only a short original page ends this traversal;
 `totalCount`, transport completion and timeout cannot substitute for it.
 
+The original App declaration carries the existing conditional relation key
+`["$id"]`. This lets the Common publication-order Owner order typed Results
+without trying to order an Array-valued data column. It is not a new lookup
+permission, uniqueness observation or completion acknowledgement. The actual
+reader must still reject duplicate/reordered API IDs, and a native
+`RECORD_NUMBER` field is never substituted for that key. Public query aliases
+are projected only from this admitted declaration's original view/schema
+evidence; the submitted SQL cannot fabricate them.
+
 The private Node bridge uses a closed zero-or-one-element array for cursor
 presence. Its same-owner validation is DATA projection only, independent of
 compiler Option representation. It supplies no permission, current fence,
