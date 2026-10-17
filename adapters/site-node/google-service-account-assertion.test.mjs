@@ -132,3 +132,13 @@ test('Google assertion requires own original required materials and all explicit
   assert.throws(()=>prepareGoogleServiceAccountAssertion(Object.create(base())),{code:'InvalidGoogleAssertionPreparation'});
   assert.throws(()=>prepareGoogleServiceAccountAssertion({...base(),limits:Object.create(limits)}),{code:'InvalidGoogleAssertionLimits'});
 });
+
+test('Google assertion rejects Proxy key options limits and scopes before invoking any trap',()=>{
+  let calls=0;const traps={get(){calls++;throw new Error('untrusted get');},
+    ownKeys(){calls++;throw new Error('untrusted keys');},getOwnPropertyDescriptor(){calls++;throw new Error('untrusted descriptor');}};
+  assert.throws(()=>prepareGoogleServiceAccountAssertion({...base(),privateKey:new Proxy(privateKey,traps)}),{code:'InvalidGoogleAssertionKey'});
+  assert.throws(()=>prepareGoogleServiceAccountAssertion(new Proxy(base(),traps)),{code:'InvalidGoogleAssertionPreparation'});
+  assert.throws(()=>prepareGoogleServiceAccountAssertion({...base(),limits:new Proxy(limits,traps)}),{code:'InvalidGoogleAssertionLimits'});
+  assert.throws(()=>prepareGoogleServiceAccountAssertion({...base(),scopes:new Proxy(base().scopes,traps)}),{code:'InvalidGoogleAssertionScopes'});
+  assert.equal(calls,0);
+});

@@ -13,8 +13,11 @@ const limitKeys = ['maxScopes', 'maxScopeBytes', 'maxIdentityBytes', 'maxClaimBy
   'maxAssertionBytes', 'maxRequestBytes', 'maxKeyBits'];
 const optionKeys = ['privateKey', 'clientEmail', 'privateKeyId', 'scopes',
   'delegate', 'issuedAtUnixSeconds', 'lifetimeSeconds', 'limits'];
-const exactKeys = (object, keys) => object !== null && typeof object === 'object' &&
-  !Array.isArray(object) && Object.keys(object).every(key => keys.includes(key));
+const requiredOptions = ['privateKey', 'clientEmail', 'scopes',
+  'issuedAtUnixSeconds', 'lifetimeSeconds', 'limits'];
+const exactKeys = (object, keys, required = keys) => object !== null && typeof object === 'object' &&
+  !types.isProxy(object) && !Array.isArray(object) &&
+  required.every(key => Object.hasOwn(object, key)) && Object.keys(object).every(key => keys.includes(key));
 const identityText = (value, maxBytes) => typeof value === 'string' && value.length > 0 &&
   value.isWellFormed() && !/[\s\u0000-\u001f\u007f]/u.test(value) && Buffer.byteLength(value) <= maxBytes;
 const scopeToken = value => typeof value === 'string' && value.length > 0 && /^[\x21\x23-\x5b\x5d-\x7e]+$/u.test(value);
@@ -25,13 +28,14 @@ const base64 = value => Buffer.from(value).toString('base64url');
 // Google/ActQL permission. Values or a public-key fingerprint cannot substitute
 // for that existing owner's checked original relationship.
 export function prepareGoogleServiceAccountAssertion(options) {
-  if (!exactKeys(options, optionKeys)) fail('InvalidGoogleAssertionPreparation');
+  if (!exactKeys(options, optionKeys, requiredOptions)) fail('InvalidGoogleAssertionPreparation');
   const {privateKey, clientEmail, privateKeyId, scopes, delegate,
-    issuedAtUnixSeconds, lifetimeSeconds, limits} = options;
+    issuedAtUnixSeconds, lifetimeSeconds, limits} = Object.fromEntries(
+      optionKeys.filter(key => Object.hasOwn(options, key)).map(key => [key, options[key]]));
   if (!exactKeys(limits, limitKeys)) fail('InvalidGoogleAssertionLimits');
   const bound = Object.freeze(Object.fromEntries(limitKeys.map(name => [name, limits[name]])));
   if (!limitKeys.every(name => positive(bound[name]))) fail('InvalidGoogleAssertionLimits');
-  if (!types.isKeyObject(privateKey) || privateKey.type !== 'private' ||
+  if (types.isProxy(privateKey) || !types.isKeyObject(privateKey) || privateKey.type !== 'private' ||
       privateKey.asymmetricKeyType !== 'rsa' ||
       !Number.isSafeInteger(privateKey.asymmetricKeyDetails?.modulusLength) ||
       privateKey.asymmetricKeyDetails.modulusLength > bound.maxKeyBits) fail('InvalidGoogleAssertionKey');
@@ -44,7 +48,7 @@ export function prepareGoogleServiceAccountAssertion(options) {
   if (!Number.isSafeInteger(issuedAtUnixSeconds) || issuedAtUnixSeconds < 0 ||
       !Number.isSafeInteger(lifetimeSeconds) || lifetimeSeconds < 1 || lifetimeSeconds > 3600 ||
       !Number.isSafeInteger(issuedAtUnixSeconds + lifetimeSeconds)) fail('InvalidGoogleAssertionLifetime');
-  if (!Array.isArray(scopes) || scopes.length === 0 || scopes.length > bound.maxScopes) fail('InvalidGoogleAssertionScopes');
+  if (types.isProxy(scopes) || !Array.isArray(scopes) || scopes.length === 0 || scopes.length > bound.maxScopes) fail('InvalidGoogleAssertionScopes');
   const selectedScopes = [], seen = new Set();
   let scopeBytes = 0;
   for (let index = 0; index < scopes.length; index++) {
