@@ -105,8 +105,8 @@ async function fixture(t) {
       await callback({...f, control, view, subject, scopes, authorization, call});
       return Object.freeze({fixtureOnly: true});
     }};
-    const connectorTable = createInstalledConnectorTable([{name: 'fixture-notion', registration: 'notion',
-      revision: 'fixture/0.1', source: {profileVersion: version, load: async () => module}}]);
+    const connectorTable = createInstalledConnectorTable([{name: 'notion', registration: 'notion',
+      revision: 'notion/fixture-0.1', source: {profileVersion: version, load: async () => module}}]);
     return publishInstalledSourceProfile(profilePath, {root, principalId: 'fixture-actor', moon,
       runtimeUrl, resolveSecret, connectorTable});
   };
