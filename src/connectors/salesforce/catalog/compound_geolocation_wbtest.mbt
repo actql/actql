@@ -66,3 +66,101 @@ test "compound geolocation admits original number lexemes without binary64 round
     wire, "{\"latitude\":\"37.123456789012345\",\"longitude\":\"-122.123456789012345\"}",
   )
 }
+
+///|
+test "geolocation names without original parent metadata do not supply a contract" {
+  let missing = geolocation_describe().replace_all(
+    old=",\"compoundFieldName\":\"Location__c\"",
+    new="",
+  )
+  let (observation, binding) = declared_observation(missing)
+  assert_true(
+    prepare_read_projection(
+      observation,
+      binding,
+      "Record__c",
+      ["Location__c"],
+      256,
+    )
+    is Err(UnsupportedReadType("Location__c")),
+  )
+  assert_true(!declared_for(missing).views[0].fields.contains("Location__c"))
+  // The original scalar component remains independently usable.
+  assert_true(
+    prepare_read_projection(
+      observation,
+      binding,
+      "Record__c",
+      ["Location__Latitude__s"],
+      256,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "geolocation refuses missing component digits and changed original component meaning" {
+  let (observation, binding) = declared_observation(geolocation_describe())
+  let plan = prepare_read_projection(
+    observation,
+    binding,
+    "Record__c",
+    ["Location__c"],
+    256,
+  ).unwrap()
+  for
+    changed in [
+      geolocation_describe().replace_all(old=",\"scale\":15", new=""),
+      geolocation_describe().replace_all(old="\"scale\":15", new="\"scale\":14"),
+      geolocation_describe().replace_all(
+        old="\"compoundFieldName\":\"Location__c\"",
+        new="\"compoundFieldName\":\"Other__c\"",
+      ),
+    ] {
+    let (current, _) = declared_observation(changed)
+    assert_true(
+      recheck_read_projection(plan, current)
+      is Err(SchemaChanged("Location__c")),
+    )
+  }
+}
+
+///|
+test "geolocation provider cells preserve null and refuse incomplete extra or coerced values" {
+  let (observation, binding) = declared_observation(geolocation_describe())
+  let plan = prepare_read_projection(
+    observation,
+    binding,
+    "Record__c",
+    ["Location__c"],
+    256,
+  ).unwrap()
+  let prefix = "{\"totalSize\":1,\"done\":true,\"records\":[{\"Location__c\":"
+  let suffix = "}]}"
+  for value in ["null", "{\"latitude\":null,\"longitude\":null}"] {
+    assert_true(
+      project_query_page(
+        @utf8.encode(prefix + value + suffix),
+        plan,
+        "v62.0",
+        query_test_limits(),
+      )
+      is Ok(_),
+    )
+  }
+  for
+    value in [
+      "{\"latitude\":1}", "{\"latitude\":1,\"longitude\":2,\"altitude\":3}", "{\"latitude\":\"1\",\"longitude\":2}",
+      "{\"latitude\":1000,\"longitude\":2}", "{\"latitude\":1.0000000000000001,\"longitude\":2}",
+    ] {
+    assert_true(
+      project_query_page(
+        @utf8.encode(prefix + value + suffix),
+        plan,
+        "v62.0",
+        query_test_limits(),
+      )
+      is Err(_),
+    )
+  }
+}
