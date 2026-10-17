@@ -7,6 +7,56 @@ fn geolocation_describe() -> String {
 }
 
 ///|
+fn geolocation_test_plan() -> ReadProjection {
+  let (observation, binding) = declared_observation(geolocation_describe())
+  prepare_read_projection(
+    observation,
+    binding,
+    "Record__c",
+    ["Location__c"],
+    256,
+  ).unwrap()
+}
+
+///|
+test "geolocation declared contract is admitted by the actual checked Contract reader" {
+  let plan = geolocation_test_plan()
+  let wire = read_field_contract_json(
+    plan.fields[0],
+    components=plan.field_components[0],
+  ).unwrap().stringify()
+  let parsed = @source.parse_json_bytes_preserving(@utf8.encode(wire), {
+    max_input_bytes: 4096,
+    max_nodes: 100,
+    max_depth: 8,
+  }).unwrap()
+  let cursor = @decode.admit(parsed, {
+    max_nodes: 100,
+    max_depth: 8,
+    max_string_bytes: 4096,
+    max_total_string_bytes: 4096,
+  }).unwrap()
+  assert_true(
+    @contract.read_checked(cursor, {
+      max_nodes: 100,
+      max_depth: 8,
+      max_text_bytes: 4096,
+    })
+    is Ok(_),
+  )
+}
+
+///|
+test "geolocation binds the original caller Object and both Decimal component contracts" {
+  let plan = geolocation_test_plan()
+  let caller = geolocation_contract(
+    plan.fields[0],
+    plan.field_components[0],
+  ).unwrap()
+  assert_true(bind_read_projection_contracts(plan, [caller]) is Some(_))
+}
+
+///|
 test "compound geolocation declaration keeps the original component decimal contracts" {
   let declaration = declared_for(geolocation_describe())
   assert_true(declaration.views[0].fields.contains("Location__c"))
