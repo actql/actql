@@ -1,0 +1,5 @@
+{
+  "max_issue_interval_ms": 300000,
+  "max_uses": 1,
+  "version": "actql-local-signing-bootstrap-policy/0.1"
+}

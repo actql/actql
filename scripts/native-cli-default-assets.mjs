@@ -8,6 +8,18 @@ import {fileURLToPath} from 'node:url';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const policy = '{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}';
 
+// A distinct original for explicit initial signing adoption, not an execution
+// profile, Submission TTL, generic issue permission or initialization itself.
+export function nativeLocalDefaultSigningPolicy(sourceRoot = root) {
+  const value = JSON.parse(readFileSync(resolve(sourceRoot,
+    'spec/contracts/local-signing-bootstrap-policy.json'), 'utf8'));
+  assert.deepEqual(Object.keys(value), ['max_issue_interval_ms', 'max_uses', 'version']);
+  assert.equal(value.max_issue_interval_ms, 300000);
+  assert.equal(value.max_uses, 1);
+  assert.equal(value.version, 'actql-local-signing-bootstrap-policy/0.1');
+  return value;
+}
+
 export function nativeLocalDefaultAssets(sourceRoot = root) {
   const read = path => readFileSync(resolve(sourceRoot, path));
   const aoa = JSON.parse(read('spec/contracts/actql-aoa.json'));
@@ -40,6 +52,7 @@ export function nativeLocalDefaultFixture(sourceRoot = root) {
 
 export function localProductDefaultAssets(sourceRoot = root) {
   const assets = nativeLocalDefaultAssets(sourceRoot);
+  const signing = nativeLocalDefaultSigningPolicy(sourceRoot);
   const fields = ['environment', 'registry', 'values', 'fragment'];
   // Embed the same original recipe bytes for installed portable Hosts. This
   // getter issues no authority and must not replace retained adoption originals.
@@ -50,7 +63,14 @@ export function localProductDefaultAssets(sourceRoot = root) {
     fields.map(role => `    ${role}: ${JSON.stringify(assets.get(role).toString('utf8'))},\n`).join('') +
     `    ordered: Some(\n      ${JSON.stringify(assets.get('ordered').toString('utf8'))},\n    ),\n` +
     `    result_policy: ${JSON.stringify(assets.get('result-policy').toString('utf8'))},\n` +
-    '  }\n}\n';
+    '  }\n}\n' +
+    '\n///|\n// Packaged DATA only; the actual Host retains authenticated first-adoption custody.\n' +
+    'fn client_local_default_signing_policy_wire() -> String {\n  ' +
+    JSON.stringify(JSON.stringify(signing)) + '\n}\n' +
+    '\n///|\nfn client_local_default_signing_issue_interval() -> Int64 {\n  ' +
+    signing.max_issue_interval_ms + 'L\n}\n' +
+    '\n///|\nfn client_local_default_signing_max_uses() -> Int {\n  ' +
+    signing.max_uses + '\n}\n';
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

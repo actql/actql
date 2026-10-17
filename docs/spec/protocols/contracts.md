@@ -2599,6 +2599,89 @@ The distinct closed grant body and typed reader select this alternative;
 existing Run/Local preparation bodies and their readers remain unchanged.
 These records are DATA and do not acknowledge physical completion or cleanup.
 Static parsing and offline EXPLAIN do not perform metadata acquisition.
+<a id="initial-local-signing-issuer"></a>
+
+## Initial Local signing issuer admission
+
+<!-- requirement-block: initial-local-signing-issuer.authenticated-original -->
+The existing trusted Local Host/installation Owner MUST admit private
+LocalSigning issuance responsibility only from authenticated original explicit
+initialization/adoption for the same physical Store and original installed key
+generation, retaining or durably authenticating the actual installation issuer
+identity and explicit original finite expiry/use policy, refusing general Host
+adoption, signer metadata, PEM, public-key CID, path or current file hash as
+substitutes, and leaving missing originals unavailable without cold
+initialization or reconstruction.
+
+<!-- requirement-block: initial-local-signing-issuer.exact-operation -->
+The admission MUST be confined to the same original Client request, Submission,
+Run definition/invocation, attempt/unit, current Checkpoint/kind, purpose,
+selected key configuration/generation, exact preimage and finite use.
+
+<!-- requirement-block: initial-local-signing-issuer.independent-current-authority -->
+Current actor, Account, Reviewer or Host-attestation purpose, Run-read and
+physical key/sign authority MUST remain independent requirements, refusing
+cancellation, denial, retired/replaced originals and wrong-purpose substitution.
+
+<!-- requirement-block: initial-local-signing-issuer.original-default-identity -->
+Default machine-user identity MUST come from the actual trusted
+installation/current actor, without a named selection falling back to the
+default.
+
+<!-- requirement-block: initial-local-signing-issuer.no-authority-expansion -->
+The admission MUST exclude generic issuance, Source/Model/Effect/dispatch
+grants, changes to the explicit Native issuer route and policy inferred from
+Submission expiry.
+
+<!-- requirement-block: initial-local-signing-issuer.original-durable-use -->
+The existing journal/custody MUST persist/adopt the original grant and durably
+claim its original use before physical signing, with current rechecks around
+asynchronous key access and callbacks, retained original duty on commit/signature
+uncertainty without replacement grant, ordinal, attempt, key, signer, re-signing
+or resend, recovery/saved-outcome authentication of the same original
+key/issuer/grant/use/outcome and current return authority without initialization
+or reissuance, and separate ReviewerProof/HostAttestation key/purpose originals.
+
+The [existing Local signing Owner](../../../spec/contracts/local-signing-credential.md)
+defines the unchanged closed grant/use bodies. This private operational
+extension introduces no public signer field, new Owner, Ledger or approval
+mechanism; structural DATA admission is not operational acceptance.
+
+<a id="local-signing-bootstrap-policy"></a>
+
+## Default Local signing bootstrap policy
+
+<!-- machine-import: ../../../spec/contracts/actql-local-signing-bootstrap-policy.schema.json# sha256:85f15f3cfab03c1cc4e2ea64541027cd9cfa3218e1d430041fd8d04d2cd7cc88 -->
+<!-- machine-import: ../../../spec/contracts/local-signing-bootstrap-policy.json# sha256:8fe727ecd855e06e0bcb07262c31f9b4e2f211292c3393b5e3f4b7e5cf1501e1 -->
+
+<!-- requirement-block: local-signing-bootstrap-policy.pinned-initial-original -->
+Explicit first initialization of the default Local signer MUST retain and
+authenticate the selected closed policy original with max_uses 1 and
+max_issue_interval_ms 300000 through the existing packaged bootstrap assets,
+bound to the same original initialization intent, physical Store, original key
+generation and Host adoption, without treating these values as Submission TTL,
+execution funding or generic issue permission.
+
+<!-- requirement-block: local-signing-bootstrap-policy.original-issuer-identity -->
+The existing Common/Host Owner MUST format the issuer identity as exactly
+`local-signing/` followed by the authenticated original initialization intent CID
+including `sha256:`, retaining its nonce/Store/account/configuration binding
+without a new CID domain, later-Host identity, replacement initialization or
+authority from the identifier string alone.
+
+<!-- requirement-block: local-signing-bootstrap-policy.first-durable-issue -->
+The first durable issue MUST persist its actual trusted current sample and
+absolute expiry capped by the earlier of sample plus 300000 milliseconds or an
+applicable earlier original key/authorization bound, checking arithmetic and
+refusing negative/uncertain time, overflow and expired bounds, with the same
+original policy/grant/use/claim retained without renewal or replacement on
+restore, repeated answer, expiry or Unknown.
+
+<!-- requirement-block: local-signing-bootstrap-policy.default-only-and-no-backfill -->
+Only absent configured signers MUST select this default policy, with missing
+legacy originals unavailable, no cold initialization or backfill from a getter,
+and no configured named signer falling back to the default or changing the
+existing explicit generic Native issuer route.
 
 <a id="machine-contracts"></a>
 

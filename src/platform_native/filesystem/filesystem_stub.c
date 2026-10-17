@@ -95,6 +95,7 @@ typedef struct {
   bool cleanup_requested;
   bool cancelled;
   bool create_conflict;
+  bool preserve_names;
   // 0: not attempted, 1: retired, -1: consumed/unconfirmed; never reclose.
   int32_t close_result;
   char *close_error;
@@ -649,7 +650,8 @@ static void actql_native_filesystem_writer_finalize(void *value) {
   (void)actql_close_writer_file(writer);
   // An unconfirmed close cannot authorize unlinking partial material. Keep
   // the original names for inspection even when this handle is dropped.
-  if (writer->close_result >= 0 && writer->root != NULL && writer->root->fd >= 0) {
+  if (!writer->preserve_names && writer->close_result >= 0 &&
+      writer->root != NULL && writer->root->fd >= 0) {
     if (writer->final_present && writer->final_name != NULL &&
         (!writer->sealed || writer->cleanup_requested)) {
       struct stat status;
@@ -1695,16 +1697,14 @@ void *actql_native_filesystem_create_writer(
   struct stat status;
   if (fstat(writer->fd, &status) != 0) {
     int stat_error = errno;
-    close(writer->fd);
-    writer->fd = -1;
-    unlinkat(root->fd, writer->staging_name, 0);
+    // Retain the actual rejected constructor and descriptor. Its caller must
+    // acknowledge that original close; unknown metadata cannot authorize unlink.
+    writer->preserve_names = true;
     actql_replace_errno_error(&writer->error, "inspect staging file", stat_error);
     return writer;
   }
   if (!S_ISREG(status.st_mode) || status.st_size != 0) {
-    close(writer->fd);
-    writer->fd = -1;
-    unlinkat(root->fd, writer->staging_name, 0);
+    writer->preserve_names = true;
     actql_replace_error(&writer->error, "staging file is not empty and regular");
     return writer;
   }
@@ -1989,10 +1989,33 @@ int32_t actql_native_filesystem_writer_adopt_name(
   return 0;
 }
 
+// Retire only this descriptor while retaining all owned names for inspection.
+// No contents/seal/publication/whole-cleanup acknowledgement is issued here.
+int32_t actql_native_filesystem_writer_close_retaining_files(
+  actql_native_filesystem_writer *writer
+) {
+  if (writer == NULL) return 0;
+  writer->preserve_names = true;
+  writer->cleanup_requested = true;
+  if (actql_close_writer_file(writer) != 0) return -1;
+  if (writer->close_result != 0 &&
+      (writer->root == NULL || writer->root->fd < 0)) {
+    actql_replace_error(&writer->error, "retained partial Store root is unavailable");
+    return -1;
+  }
+  if (writer->close_result != 0 && actql_sync_root(writer->root) != 0) {
+    actql_replace_errno_error(&writer->error, "sync retained partial files", errno);
+    return -1;
+  }
+  return 0;
+}
+
 int32_t actql_native_filesystem_writer_cancel(
   actql_native_filesystem_writer *writer
 ) {
-  if (writer == NULL || !writer->ready) return 0;
+  if (writer == NULL) return 0;
+  if (writer->close_result < 0) return -1;
+  if (!writer->ready) return 0;
   if (writer->cancelled) return 0;
   writer->cleanup_requested = true;
   writer->sealed = false;
@@ -2036,8 +2059,10 @@ int32_t actql_native_filesystem_writer_sealed(
 int32_t actql_native_filesystem_writer_pending_cleanup(
   actql_native_filesystem_writer *writer
 ) {
-  if (writer == NULL || !writer->ready || writer->cancelled) return 0;
+  if (writer == NULL) return 0;
   if (writer->close_result < 0) return 1;
+  if (writer->preserve_names && writer->fd >= 0) return 1;
+  if (!writer->ready || writer->cancelled) return 0;
   if (writer->cleanup_requested) {
     return writer->staging_present || writer->final_present;
   }
