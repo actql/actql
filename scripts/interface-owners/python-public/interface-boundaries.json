@@ -4651,7 +4651,6 @@
             "ClientError",
             "Observation",
             "bind_check",
-            "check_outcome",
             "explain_check_reason",
             "freeze",
             "get_check_fixes",
