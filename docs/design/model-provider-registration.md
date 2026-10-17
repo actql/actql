@@ -229,8 +229,8 @@ synchronous attempt; escaped constructor callbacks cannot mint more ports.
 Each child keeps its own raw/Store/read cleanup, and an unstarted or retired
 child cannot retire a sibling. The parent keeps all original holding aliases
 until Common confirms the entire operation's cleanup; dropping these aliases
-is not Store data deletion, GC, capacity release or a physical ACK. Neither the later CallSet
-nor a successful binding supplies that funding. Copied/foreign persistence
+is not Store data deletion, GC, capacity release or a physical ACK. Neither the
+later CallSet nor a successful binding supplies that funding. Copied/foreign persistence
 still refuses before any callback. A partial binding failure is one-shot: it
 cannot retry already bound children, and unbound cursors remain with Common's
 same cleanup census. The auxiliary callbacks are dropped after the binding
