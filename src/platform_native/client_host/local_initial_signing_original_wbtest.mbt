@@ -143,10 +143,11 @@ test "initial Signing legacy host custody never backfills a current key or polic
     )
     is Err(AmbiguousInitialization),
   )
-  assert_eq(
-    host.database.read("client_local_installation_custody", "host").unwrap(),
-    prior,
-  )
+  let retained = host.database
+    .read("client_local_installation_custody", "host")
+    .unwrap()
+  assert_eq(retained.body, prior.body)
+  assert_eq(retained.revision, prior.revision)
   assert_eq(host.installation_custody().unwrap(), (0, 0L))
   host.close().unwrap()
 }
@@ -348,4 +349,43 @@ test "initial Signing packet keeps exact existing payload bound and changed cont
   assert_true(original.require_current() is Err(CustodyLost))
   assert_true(host.restore_initial_signing_original() is Err(_))
   host.close().unwrap()
+}
+
+///|
+test "initial Signing original rejects identical replacement file and foreign epoch without rewriting custody" {
+  let host = initial_signing_original_fixture("initial-original-replaced")
+  let original = host.restore_initial_signing_original().unwrap()
+  let row = host.database
+    .read("client_local_installation_custody", "host")
+    .unwrap()
+  let root = host.session.root
+  let (private_key, generation) = local_adoption_read(
+    root, "local-signing-key.pem", 119L,
+  ).unwrap()
+  root.reclaim_generation("local-signing-key.pem", generation).unwrap()
+  let writer = root.create_writer("replacement-key.stage", 119L).unwrap()
+  writer.append(private_key).unwrap()
+  writer.seal("local-signing-key.pem").unwrap() |> ignore
+  assert_true(original.require_current() is Err(_))
+  assert_true(host.restore_initial_signing_original() is Err(_))
+  assert_eq(
+    host.database.read("client_local_installation_custody", "host").unwrap().body,
+    row.body,
+  )
+  host.close().unwrap()
+  let other = initial_signing_original_fixture("initial-original-epoch")
+  let original = other.restore_initial_signing_original().unwrap()
+  let foreign = initial_signing_original_fixture("initial-original-other-epoch")
+  let epoch = foreign.database
+    .read("client_submission_epoch", "authority")
+    .unwrap().body
+  let own = other.database.read("client_submission_epoch", "authority").unwrap()
+  other.database
+  .compare_exchange("client_submission_epoch", "authority", own.revision, epoch)
+  .unwrap()
+  |> ignore
+  assert_true(original.require_current() is Err(_))
+  assert_true(other.restore_initial_signing_original() is Err(_))
+  foreign.close().unwrap()
+  other.close().unwrap()
 }
