@@ -551,7 +551,11 @@ test "kintone changed current Form refuses with original charge and cleanup resp
         original.replace(old="\"revision\":\"7\"", new="\"revision\":\"8\"")
       "native" =>
         original.replace(old="SINGLE_LINE_TEXT", new="MULTI_LINE_TEXT")
-      "field" => original.replace(old="\"Subject\"", new="\"Foreign\"")
+      "field" =>
+        original.replace(
+          old="\"Subject\":{\"code\":\"Subject\"",
+          new="\"Foreign\":{\"code\":\"Foreign\"",
+        )
       "malformed" => "{"
       _ => original
     }
