@@ -1,7 +1,7 @@
 # Native preRoot allocation preparation
 
-This directory is an **uncompiled, unadopted source candidate**, excluded from
-the runtime wheel. It changes no installed loader, public API, capacity profile,
+This directory is a **source candidate, not an adopted installed runtime**,
+excluded from the runtime wheel. It changes no installed loader, public API, capacity profile,
 fuel, buffer limit, Core ABI or currently selected Wasmtime library. It does not
 provide the complete preRoot supplier. Do not enable or build the proposed
 Wasmtime patch as an installed runtime recipe yet.
@@ -443,3 +443,11 @@ custody and cannot be acknowledged by ordinary Engine close. New linked library
 bytes require new source/recipe/current/provider provenance. The earlier compiler
 abort and its unconfirmed original holding ACK remain unchanged; neither this
 adapter nor a successful compile adopts normal capacity or physical acceptance.
+
+The destructor binding relies on the selected Darwin thread contract, not an
+assumed destructor order. Apple's [pthread TSD cleanup implementation](https://github.com/apple-oss-distributions/libpthread/blob/main/src/pthread_tsd.c)
+clears a key before invoking its destructor, even when that destructor is NULL.
+The private key therefore reinstalls its original alias on each pass rather than
+relying on a NULL destructor or C thread-local storage surviving all other TLS
+cleanup. Matching-target conformance includes allocation in a real pthread
+key destructor; it does not establish every upstream Rust thread origin.
