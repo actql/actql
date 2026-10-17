@@ -196,7 +196,7 @@ fn admit_multipicklist_cell(
     return Err(BudgetExceeded)
   }
   let span = @decode.cursor_span(cursor)
-  let nodes = []
+  let nodes : Array[@source.Node] = []
   for part in text.split(";") {
     let value = part.to_owned()
     // Empty-value representation is handled by the same vendor codec below.
