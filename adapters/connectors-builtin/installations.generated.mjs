@@ -124,6 +124,21 @@ export const installedConnectors = Object.freeze([
     }),
   }),
   Object.freeze({
+    name: "notion", registration: "notion",
+    revision: "notion/0.1",
+    implementationFiles: Object.freeze([
+      Object.freeze({path: "adapters/connectors/notion/host/installed-notion-source.mjs", href: new URL("../connectors/notion/host/installed-notion-source.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/notion/site/user-list-read.mjs", href: new URL("../connectors/notion/site/user-list-read.mjs", import.meta.url).href}),
+    ]),
+    providerBundle: "connectors/notion/host_node",
+    responseHeaders: Object.freeze([]),
+    source: Object.freeze({
+      profileVersion: "actql-installed-notion-source/0.1",
+      load: () => import("../connectors/notion/host/installed-notion-source.mjs")
+        .then(module => Object.freeze({check: module.checkInstalledNotionSourceProfile, identityParts: module.installedNotionSourceIdentityParts, load: module.loadInstalledNotionSource})),
+    }),
+  }),
+  Object.freeze({
     name: "salesforce", registration: "salesforce",
     revision: "salesforce/0.1",
     implementationFiles: Object.freeze([
