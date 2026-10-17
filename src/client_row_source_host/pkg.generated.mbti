@@ -131,6 +131,8 @@ pub fn prepare_keyed_row_acquisition(@lowering_relation.BoundPrepared, @sourcevi
 
 pub fn prepare_keyed_row_capacity(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, RowDeclaration, RowKeyedLimits) -> Result[RowKeyedCapacity, RowHostIssue]
 
+pub fn prepare_relation_row_write_mapping(RowDeclaration, String, String, RowRelationWriteSpec, Array[RowMappingSource], RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]
+
 pub fn prepare_row_acquisition(RowDeclaration, @query_planning.QueryRequirement, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]
 
 pub fn prepare_row_delete_mapping(RowDeclaration, String, String, String, String, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]
@@ -182,6 +184,8 @@ pub fn row_declaration_catalog_cid(RowDeclaration) -> String
 pub fn row_declaration_evidence_members(RowDeclaration) -> (Array[String], Array[String]) raise @encode_core.EncodeFailure
 
 pub fn row_declaration_view(RowDeclaration, String) -> RowDeclaredView?
+
+pub fn row_mapping_target_fields(RowMapping, RowDeclarationLimits) -> Result[Array[String], RowMappingIssue]
 
 pub fn row_observation_cid(RowObservation) -> String
 
@@ -396,6 +400,19 @@ pub(all) struct RowRelationViewSpec {
   facts_wire : String?
   acquisition_wire : String?
 }
+
+pub(all) enum RowRelationWriteKind {
+  RelationCreate
+  RelationUpdate
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RowRelationWriteSpec {
+  kind : RowRelationWriteKind
+  writable_fields : Array[String]
+  required_fields : Array[String]
+  permission : String
+  approval : String
+} derive(Eq, @debug.Debug)
 
 type RowRestoredOriginalInput
 
