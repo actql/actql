@@ -25,8 +25,8 @@ static void retained_writer(const char *directory, bool unknown) {
   assert(actql_native_filesystem_writer_close_retaining_files(&w) == (unknown ? -1 : 0));
   assert(close_calls == 1 && fcntl(original, F_GETFD) == -1 && errno == EBADF);
   moonbit_bytes_t final = text("object"), body = text("x");
-  assert(actql_native_filesystem_writer_append(&w, body, 1) < 0);
-  assert(actql_native_filesystem_writer_seal(&w, final, 6) < 0);
+  assert(actql_native_filesystem_writer_append(&w, body, 1) == 2);
+  assert(actql_native_filesystem_writer_seal(&w, final, 6) == (unknown ? -1 : 3));
   assert(actql_native_filesystem_writer_pending_cleanup(&w) == 1);
   if (unknown) assert(actql_native_filesystem_writer_cancel(&w) == -1);
   struct stat s; assert(fstatat(root.fd, "stage", &s, AT_SYMLINK_NOFOLLOW) == 0 && s.st_size == 3);
