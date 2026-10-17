@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f69f2dbf1db4dc3237c1a532809f3e3bf2a6fb38bc301b69705fc00164e2fe19",
+      "sha256": "8067a19113fe63efa81203a074050ae30ab1dc66a7a3105072ecf7f98108aaf3",
       "exports": [
         "PublicationStoreError",
         "openLocalPublicationStore",
@@ -7426,6 +7426,10 @@
               {
                 "path": "adapters/store-local/physical-holding-atomic-record.test.mjs",
                 "anchor": "an already corrupt final holding remains refused"
+              },
+              {
+                "path": "adapters/store-local/physical-reader-close-ack.test.mjs",
+                "anchor": "setter cannot discard the original Content FD responsibility"
               }
             ]
           }

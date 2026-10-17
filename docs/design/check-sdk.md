@@ -1985,6 +1985,14 @@ acceptance or execution success. Direct Program preparation classifications
 require their own disclosure connection and are not covered by this Source
 projection.
 
+The private Node preparation bridge may project an original typed
+`DecodedResponseLimit` rejection as bounded diagnostic DATA containing its
+stage index and logical join-step index. It reads the same rejected preparation;
+it does not recheck a Program, interpret compiler-generated constructor names,
+or turn a private rejection into a public input violation. Unrelated refusals
+and successful preparations have no such diagnostic. These coordinates are
+neither an acquisition ordinal nor capacity, authority or execution evidence.
+
 This connection uses the request journal's existing bounded intent custody.
 It adds no stored field, public input hash, retention period or input retrieval
 endpoint. The installed checker handles original text and supplied values
