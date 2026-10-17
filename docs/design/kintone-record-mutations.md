@@ -402,3 +402,56 @@ until actual cleanup acknowledgement. Numeric history, Time, issued Content,
 subtable originals, physical write dispatch, approval/reconciliation and the
 original Effect response funding supplier remain separate required connections.
 No installed write support or numerical profile is issued by these codecs.
+
+### Original create/update physical boundary
+
+- Write responsibility: `kintone-record-write.mjs` uses the existing Account,
+  Credential Site, binding and Journal for raw CREATE/UPDATE transport. The
+  existing Effect Owner chooses the approved operation and owns its durable
+  claim, sealed Preview and reconciliation; no second execution Owner exists.
+- Write inputs and outputs: one original create/update request, exact App,
+  initial Form authorization, independently authorized operations, positive
+  limits and the caller's original response custody yield retained raw replies
+  or a cause-bearing failure. Typed response DATA is a separate projection.
+- Write identity: the same original Form and checked cells remain captured.
+  UPDATE reuses the original target observation with every API ID/revision;
+  it explicitly sends `upsert:false`. CREATE cannot be inferred from a 404,
+  empty object, missing target, revision conflict or failed UPDATE. Guest-space
+  routing does not change original App or record identity.
+- Write ownership: the original request, private material binding, Journal use,
+  transport frame, response bytes, charge tickets and failure observations stay
+  under the existing caller's acquisition/capture cleanup. The raw port creates
+  no Ledger, holding, cleanup queue, grant issuer or release operation.
+- Write synchronization: current Account/Site and abort checks surround awaited
+  authorization, resolver/transport and final disclosure. Every operation keeps
+  all generated invocation binding fields; token equality does not replace
+  current authorization. The original private material cannot rotate into a
+  replacement token between reads and the mutation.
+- Write failure: Form or target revision drift refuses before the mutation.
+  Read Allow cannot grant write dispatch. Every returned body is synchronously
+  charged before decode or awaited checks; rejected or uncorrelated replies
+  remain original observations rather than applied Effects. A lost reply keeps
+  the same original nominal Unknown and cannot trigger resend or replacement
+  lookup. Matching response IDs are neither a commit nor proof of final values.
+- Write cancellation: stop or a pending binding close is not release. Original
+  response custody remains held through the real request/socket and async-frame
+  retirement; parent cleanup cannot acknowledge an active child. The raw port
+  neither acknowledges physical stop nor closes the caller's holding itself.
+- Write resources: original Form/pages, checked cell matrices, paired request
+  arrays, encoded documents and target-observation document overlap private
+  secret/Journal state, TLS frames, response chunks, bounded Source/Decode
+  trees, identity comparisons and pending charge tickets. JS retains its owned
+  scope/limits/callback envelope, selected runtime functions and receiver; the
+  closed operation table also creates a temporary field array and record. These
+  individual bounds do not fund the simultaneous lifetime or a normal profile.
+- Write extension: same-runtime Node/RelA forwards original typed Catalog
+  objects using the generated compiler binding. Missing matching ports refuse
+  before entry. This raw boundary does not supply the generic Effect response
+  holding, enforced-unique conditional-create decision, original Content/table
+  carriers, process-action permissions or historical numeric representation.
+- Write verification: the actual Common/Account/Credential/SQLite/loopback-TLS
+  component checks exact methods/bodies and request correspondence, current and
+  rotation refusal, original Unknown/no-resend and held-to-ACK cleanup. Private
+  fixture response units and same-source workspace packages are explicit test
+  preparation; they are not normal Effect funding, pristine installed or live
+  service acceptance. Full approved Preview/apply/recovery remains required.
