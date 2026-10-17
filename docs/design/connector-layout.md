@@ -85,10 +85,23 @@ creating new product-specific top-level platform packages.
 
 ## Original Effect selection boundary
 
-UPDATE and `command.target.published_store` use the same existing selection
+UPDATE, checked DELETE and `command.target.published_store` use the same existing selection
 Owner. Field-target Commands and canonical relation STORE do not acquire this
 selection context. Valid mixed occurrences retain their separate original
 Stage/Effect/header bindings; equal target strings do not merge purposes.
+
+DELETE intentionally extends this existing selection scope without adding a
+kind field or another identity domain. Its eight-field bytes may equal those
+of an UPDATE with the same occurrence and original installation. Consequently,
+the original checked Header, selector and Mapping determine the required
+operation support. Complete original Run admission remains mandatory in
+addition to the selection-CID facet; that facet alone cannot prove purpose.
+Saved material admission checks the retained Program and environment rather
+than resolving current aliases. The concrete DELETE binding inspects that same
+publication's complete original Mapping inventory, not UPDATE-only shorthand
+candidates. Short UPDATE resolution and all old instance bytes are unchanged.
+This static connection issues no physical DELETE capability, before/version
+observation, absent-after Preview, conditional-send or cleanup acknowledgement.
 
 `run_publication_host/client_effect_target_selections.mbt` and its package-local
 original-data projection retain the checked selection, its original prepared
