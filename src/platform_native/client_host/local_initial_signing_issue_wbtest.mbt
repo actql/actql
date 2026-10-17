@@ -436,3 +436,71 @@ test "initial issue lost COMMIT ACK fences original grant and claim without anot
   assert_true(unknown && fenced && again)
   assert_eq(samples.val, 1)
 }
+
+///|
+test "initial issue changed preimage and operation cannot bypass original claimed or Unknown custody" {
+  for unknown in [false, true] {
+    let (key, request, scope) = initial_issue_storage_fixture(
+      if unknown {
+        "initial-issue-changed-preimage-unknown"
+      } else {
+        "initial-issue-changed-preimage-claimed"
+      },
+    )
+    let host = key.original.host
+    let original = initial_issue_storage_original(
+      initial_issue_storage_transaction(key, request, scope, () => 10000L).unwrap(),
+    )
+    let cid = local_original_grant_cid(original.grant)
+    if unknown {
+      host.database
+      .insert(
+        "native-credential-outcome:" + cid,
+        scope.attempt_id,
+        b"unknown\n",
+      )
+      .unwrap()
+      |> ignore
+    }
+    let original_clock = host.database
+      .read("credential-clock-v1", "host-lower-bound")
+      .unwrap()
+    let replacement_scope = {
+      ..scope,
+      attempt_id: "another-attempt-and-decision",
+      preimage: "sha256:" + "9".repeat(64),
+    }
+    let refused = initial_issue_storage_transaction(
+        key,
+        request,
+        replacement_scope,
+        () => 20000L,
+        operation="another-operation-and-decision",
+      )
+      is Err(InitialStorageJournal(Checkpoint(NeedsOriginalContinuation)))
+    let count = host.database
+      .read("client_local_grant_custody", "issued")
+      .unwrap()
+    let clock = host.database
+      .read("credential-clock-v1", "host-lower-bound")
+      .unwrap()
+    let original_use = host.database
+      .read("native-credential-use:" + cid, scope.attempt_id)
+      .unwrap()
+    let no_replacement_use = host.database.read(
+        "native-credential-use:" + cid,
+        replacement_scope.attempt_id,
+      )
+      is Err(@sqlite.NotFound)
+    let history_only = initial_issue_storage_transaction(key, request, scope, () => {
+        900000L
+      }).unwrap()
+      is InitialStorageHistory(_, _)
+    host.close().unwrap()
+    assert_true(refused && no_replacement_use && history_only)
+    assert_eq(count.revision, 1L)
+    assert_eq(clock.body, original_clock.body)
+    assert_eq(clock.revision, original_clock.revision)
+    assert_eq(original_use.revision, 0L)
+  }
+}

@@ -230,6 +230,10 @@ fn NativeLocalReviewerSigningGrantOperation::require_current_locked(
 ///|
 // A different operation name must not replace an entered/unknown original for
 // the same original signing subject. Explicit replacement is not a retry path.
+// Two authenticated default originals additionally retain their first operation
+// for that same Submission/Checkpoint/purpose: changing the decision/preimage,
+// attempt or initialization cannot bypass its prior claimed/Unknown duty.
+// Configured issuer-file operations keep their existing exact-key/preimage rule.
 fn NativeLocalHostConnection::same_signing_operation_locked(
   self : NativeLocalHostConnection,
   original : NativeLocalGrantOriginal,
@@ -258,10 +262,15 @@ fn NativeLocalHostConnection::same_signing_operation_locked(
       if saved.submission_scope_cid == scope.submission_scope_cid &&
         saved.checkpoint_cid == scope.checkpoint_cid &&
         saved.purpose == scope.purpose &&
-        saved.preimage == scope.preimage &&
-        saved.key_configuration_cid == scope.key_configuration_cid &&
-        saved.key_generation_cid == scope.key_generation_cid &&
-        prior.operation_id != original.operation_id {
+        prior.operation_id != original.operation_id &&
+        (
+          (original.initial_issue is Some(_) && prior.initial_issue is Some(_)) ||
+          (
+            saved.preimage == scope.preimage &&
+            saved.key_configuration_cid == scope.key_configuration_cid &&
+            saved.key_generation_cid == scope.key_generation_cid
+          )
+        ) {
         return Err(Checkpoint(NeedsOriginalContinuation))
       }
     }

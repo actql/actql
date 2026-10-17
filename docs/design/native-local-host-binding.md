@@ -246,7 +246,11 @@ reservation bounds apply without relaxation.
 
 That private storage phase reads an existing operation before sampling the
 clock. Its exact original use/outcome is history only; missing or corrupt use
-custody cannot select another sample, expiry, claim or ordinal. A first append,
+custody cannot select another sample, expiry, claim or ordinal. The first
+retained default operation also fences its same original Submission, Checkpoint
+and purpose; a different operation/attempt plus decision preimage cannot bypass
+claimed or Unknown custody. This default-only restriction leaves configured
+issuer-file operations' existing exact key/preimage rule intact. A first append,
 exact attempt-bound use claim and trusted-clock lower bound share the existing
 transaction and rollback. Lost COMMIT acknowledgement fences that original
 responsibility. Neither the private stored result nor authenticated metadata is
