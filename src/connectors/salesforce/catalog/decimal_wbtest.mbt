@@ -88,11 +88,11 @@ fn number_observation(
     #|{"name":"Units__c","type":"double","precision":15,"scale":0,"nillable":false,"defaultedOnCreate":false,"createable":true,"updateable":true},
     #|{"name":"Wide__c","type":"double","precision":16,"scale":2,"nillable":true,"defaultedOnCreate":false,"createable":true,"updateable":true}]}
   let describe_body = describe_body.replace_all(
-    "\"precision\":16,\"scale\":2",
-    "\"precision\":" +
-    wide_precision.to_string() +
-    ",\"scale\":" +
-    wide_scale.to_string(),
+    old="\"precision\":16,\"scale\":2",
+    new="\"precision\":" +
+      wide_precision.to_string() +
+      ",\"scale\":" +
+      wide_scale.to_string(),
   )
   catalog_sync_describe(sync, "Order__c", @utf8.encode(describe_body), {
     max_bytes: 4096,
