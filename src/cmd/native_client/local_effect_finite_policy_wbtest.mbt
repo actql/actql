@@ -13,6 +13,8 @@ fn[T, E] effect_finite_cli_ok(value : Result[T, E], phase : String) -> T raise {
 // belongs only to selected components; the Host still requires its DB/session ACK.
 fn effect_finite_cli_host(
   name : String,
+  ttl_ms? : Double = 100.0,
+  observed_at? : String = "2026-10-10T00:00:00.000Z",
 ) -> (
   @local_host.NativeLocalHostConnection,
   LocalHostSettings,
@@ -34,7 +36,7 @@ fn effect_finite_cli_host(
       root,
       sqlite_path,
       crypto_path,
-      "2026-10-10T00:00:00.000Z",
+      observed_at,
       @run_host.client_local_product_assets(),
     ),
     "originals",
@@ -76,7 +78,7 @@ fn effect_finite_cli_host(
         configuration_files=names,
       ),
       "adoption",
-    ).open_journal(sqlite, crypto, 100.0, 8, 8388608L),
+    ).open_journal(sqlite, crypto, ttl_ms, 8, 8388608L),
     "journal",
   )
   let settings : LocalHostSettings = {
@@ -89,7 +91,7 @@ fn effect_finite_cli_host(
     managed_root: root,
     sqlite_library: sqlite_path,
     signature_library: crypto_path,
-    ttl_ms: 100.0,
+    ttl_ms,
     record_limit: 8,
     snapshot_bytes: 8388608L,
     installation_files: names,
