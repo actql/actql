@@ -84,6 +84,19 @@ class ModuleOriginalTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'source member|source inputs differ'):
             self.record(compiled)
 
+    def test_empty_source_member_is_counted_without_becoming_an_empty_artifact(self):
+        c = self.case
+        compiled = c.head
+        (c.source / 'src/empty_member.mbt').write_bytes(b'')
+        c.commit()
+        original = self.record()
+        self.assertNotEqual(original['source_inputs_sha256'], c.module_original['source_inputs_sha256'])
+        with self.assertRaisesRegex(ValueError, 'source inputs differ'):
+            self.record(compiled)
+        c.module.write_bytes(b'')
+        with self.assertRaises(fixture.LocalInstallationError):
+            self.record()
+
     def test_changed_source_and_dirty_working_copy_cannot_reuse_original(self):
         c = self.case
         (c.source / 'src/client_host_wasm/version.mbt').write_text('not the admitted source\n')

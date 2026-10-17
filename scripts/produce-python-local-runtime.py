@@ -9,6 +9,7 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import platform
 import shlex
@@ -92,7 +93,23 @@ def _source_inputs(root: Path, source: str) -> str:
         mode, kind, blob = identity.decode('ascii').split()
         require(kind == 'blob' and mode in ('100644', '100755'), 'Nonregular module source member')
         path = raw_path.decode('utf-8')
-        raw = _read_file(root / path, maximum=16 * 1024 * 1024)
+        selected_path = root / path
+        if selected_path.lstat().st_size == 0:
+            # Empty source members are valid. Component _read_file deliberately
+            # requires nonempty artifacts, so inspect only this zero-byte case
+            # with the same no-follow/regular/stable-FD boundary, never an
+            # unbounded Path.read_bytes fallback.
+            with os.fdopen(os.open(selected_path, os.O_RDONLY | os.O_NOFOLLOW), 'rb') as selected_file:
+                before = os.fstat(selected_file.fileno())
+                require(stat.S_ISREG(before.st_mode) and before.st_size == 0
+                        and selected_file.read(1) == b'', 'Empty module source member changed')
+                after = os.fstat(selected_file.fileno())
+                require((before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns, before.st_ctime_ns)
+                        == (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns),
+                        'Empty module source member changed')
+                raw = b''
+        else:
+            raw = _read_file(selected_path, maximum=16 * 1024 * 1024)
         # Git identity is correspondence, not a new signing authority. Keep a
         # strong byte digest in the complete selected membership as well.
         actual = hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest()
