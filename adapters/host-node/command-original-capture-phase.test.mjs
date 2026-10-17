@@ -120,6 +120,36 @@ test('ordinary Source set duplicate input rejects before proposal or output and 
   } finally { await close(scope); await fixture.close(); }
 });
 
+test('acquired parent exports its producer but duplicate consumer IDs finish no key or payload', async () => {
+  const fixture = await originalFieldCommandKeyFixture({duplicate: true});
+  const control = runtimeCore(moon).publicationControl;
+  const doubled = publicationDoubles(control);
+  let scope, starts = 0, keys = 0, rows = 0;
+  const runtime = {...moon, clientProgramStartEffectCommandKeyWorkspace(...args) {
+    starts++;
+    return moon.clientProgramStartEffectCommandKeyWorkspace(...args);
+  }};
+  try {
+    scope = checked(moon.clientProgramPlanEffectCommandKeyWorkspace(fixture.owned,
+      fixture.inputs, 0, fixture.limits, 10000));
+    await assert.rejects(preparePinnedEffectSourceSet({
+      ...options(fixture, doubled, scope, () => keys++, () => rows++),
+      ...fixture.publicationContext(control), moon: runtime,
+    }), {code: 'MoonBitHostFailure'});
+    assert.equal(starts, 1, 'the original consumer reaches the actual whole-key cursor');
+    assert.equal(keys, 0);
+    assert.equal(rows, 0);
+    assert.equal(doubled.events.writers.length, 2);
+    assert.deepEqual(JSON.parse(doubled.events.writers[0].join('')), fixture.rows);
+    assert.equal(doubled.events.writers[1].length, 0);
+    assert.equal(doubled.events.releases, 1, 'the parent retains and releases the original producer');
+    assert.equal(moon.clientProgramEffectCommandKeyWorkspacePending(scope), true,
+      'failed key traversal does not release the capture-owned borrower');
+    await close(scope);
+    assert.equal(moon.clientProgramEffectCommandKeyWorkspacePending(scope), false);
+  } finally { await close(scope); await fixture.close(); }
+});
+
 
 test('completed key correspondence does not invent a missing original published target', async () => {
   const fixture = await originalCommandKeyFixture();
