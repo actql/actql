@@ -5,7 +5,7 @@
     {
       "module": "adapters/connectors-builtin/installations.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "63f1f4206048127efb682051d2ced0d6fec86174090b966b40eeeee9a3e16563",
+      "sha256": "fa7e1de7455c0f7241db31210effb5306fe86ca65135bd88062e0bdb494efaa0",
       "exports": [
         "installedConnectors"
       ],
@@ -159,6 +159,7 @@
         "../connectors/gcs/host/installed-gcs-source.mjs",
         "../connectors/github/host/installed-github-effect.mjs",
         "../connectors/github/host/installed-github-source.mjs",
+        "../connectors/gmail/host/installed-gmail-source.mjs",
         "../connectors/hubspot/host/installed-hubspot-source.mjs",
         "../connectors/local/host/installed-local-table.mjs",
         "../connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
