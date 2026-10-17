@@ -3,6 +3,7 @@
 // SERIALIZE Effect preparation, selected physical allocation or installed loan.
 import assert from 'node:assert/strict';
 import {createHash, generateKeyPairSync} from 'node:crypto';
+import {readFileSync} from 'node:fs';
 import {mkdir, mkdtemp, stat, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -12,11 +13,13 @@ import {createGeneratedContentFixture, generatedContentFixtureControl}
   from './fixtures/generated-content.fixture.mjs';
 import {openContentCommandHost} from './fixtures/content-command-host.fixture.mjs';
 import {installEffectContentFamily} from './installed-content-family.mjs';
+import {issueStoredGeneratedContent, retainGeneratedContentEvidence} from './generated-content-holding.mjs';
 
 const cid = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
 
 async function fixture(t, {restored = false, omitRestoredOriginal = false, afterMatch,
-  failCompletion, maxObjectBytes = 10000, retainCustody = false} = {}) {
+  failCompletion, maxObjectBytes = 10000, retainCustody = false,
+  familyFactory = installEffectContentFamily, afterRetained} = {}) {
   const parent = new URL('../../_build/', import.meta.url).pathname;
   await mkdir(parent, {recursive: true});
   // An intentionally unresolved custody counter must not use the ordinary
@@ -82,7 +85,7 @@ async function fixture(t, {restored = false, omitRestoredOriginal = false, after
       return generated.candidate;
     },
   };
-  owner = installEffectContentFamily({
+  owner = familyFactory({
     moon: {...moon, clientProgramEffectCommandContentMatchesIssued(binding, value) {
       const result = moon.clientProgramEffectCommandContentMatchesIssued(binding, value);
       afterMatch?.({result, owner, port});
@@ -102,6 +105,9 @@ async function fixture(t, {restored = false, omitRestoredOriginal = false, after
       binding: generated.binding}),
     referenceLimits: {maxBytes: 4096, maxNodes: 100, maxDepth: 8, maxTextUnits: 4096},
     completionLimits: {}, outputLimits: {maxColumns: 2},
+    ...(afterRetained === undefined ? {} : {faultInjection(name) {
+      if (name === 'effect_content_generation_retained') afterRetained({owner});
+    }}),
     ...(restored ? {restored: {generation, completion, recovery: {},
       ...(omitRestoredOriginal ? {} : {storedOriginal: original})}} : {}),
   });
@@ -112,6 +118,27 @@ async function fixture(t, {restored = false, omitRestoredOriginal = false, after
     await owner.handlePause({status: 'settling', slot: 1});
   };
   return {scratch, generated, owner, generate, issued: () => issued, holdingCid, generation, retainCustody};
+}
+
+// An explicit source probe observes only whether this private alias is absent
+// at cleanup's true return. It neither exposes a production getter nor treats
+// GC as retirement. The original family body is otherwise unchanged; actual
+// Common issuance and Store operations still execute under the fixture controls.
+function cleanupAliasSourceProbe(observe) {
+  const source = readFileSync(new URL('./installed-content-family.mjs', import.meta.url), 'utf8');
+  const first = source.indexOf('export function installEffectContentFamily(');
+  const start = source.indexOf('  const cleanup = async () => {', first);
+  const end = source.indexOf('  return Object.freeze({provider,', start);
+  assert.ok(first >= 0 && start > first && end > start);
+  const cleanup = source.slice(start, end);
+  assert.equal(cleanup.match(/\breturn true;/gu)?.length, 3);
+  assert.ok(cleanup.includes('await flight.catch(() => {})'));
+  const instrumented = source.slice(first, start).replace(/^export /u, '') +
+    cleanup.replace(/\breturn true;/gu,
+      'return (cleanupAliasObserved(storedOriginal === undefined), true);') + source.slice(end);
+  return new Function('issueStoredGeneratedContent', 'retainGeneratedContentEvidence',
+    'cleanupAliasObserved', `'use strict';\n${instrumented}\nreturn installEffectContentFamily;`)(
+    issueStoredGeneratedContent, retainGeneratedContentEvidence, observe);
 }
 
 async function withConsumer(t, f, issued, inspect, expectedStatus = 'waiting_checkpoint') {
@@ -226,6 +253,22 @@ test('explicit family close refuses new original handoffs after temporary genera
   assert.ok(await f.generated.store.inspectPhysicalHolding(f.holdingCid),
     'family close is not retirement of the original durable holding');
   t.diagnostic(`Fresh close-refused Run/DB/key/holding retained: ${f.scratch.path}`);
+});
+
+test('source probe retires the family alias when explicit close awaited the same completing flight', async t => {
+  const returns = [];
+  let closing;
+  const f = await fixture(t, {
+    familyFactory: cleanupAliasSourceProbe(absent => returns.push(absent)),
+    afterRetained({owner}) { closing = owner.close(); },
+  });
+  await f.generate();
+  assert.equal(await closing, true);
+  assert.deepEqual(returns, [true], 'the post-flight cleaned return drops its own selection alias');
+  assert.equal(f.owner.cleanupPending(), false);
+  assert.equal(f.generated.store.status().storedBytes, 3);
+  assert.ok(await f.generated.store.inspectPhysicalHolding(f.holdingCid));
+  f.scratch.passed();
 });
 
 test('failed generation retains its original cleanup and exports no durable stored binding', async t => {
