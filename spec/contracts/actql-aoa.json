@@ -26,7 +26,7 @@
   "sga_identity_law_manifest_cid": "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4",
   "graph_law_manifest_cid": "sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34",
   "pipeline_registry_file": "spec/dependencies/aoa-pipeline-registry.json",
-  "pipeline_registry_cid": "sha256:ee56c009fc4983ae885fb6f7ed414f12de46b6b68de38ebe52d95d33dd931cb7",
+  "pipeline_registry_cid": "sha256:e22e68346562f75943e37453469d40c378bfe6994b124977f73addc1c23e76b6",
   "target_module_contract_cid": "sha256:ae21e53e9cd0727435f707f49efb2ffc9fa1665abda9adde0ff57312265e06e1",
   "local_family_execution_profile": {
     "version": "actql-local-family-execution/0.1",
@@ -106,7 +106,7 @@
       "output": "relation",
       "execution_contract": {
         "pointer": "/execution_contracts/REL.values",
-        "cid": "sha256:6ba2e474f48d744fa3bd0c261af196467360fb8d8e3bb5e37751e32c06ade3e7"
+        "cid": "sha256:493be37a957c68a479a4f91c2b9028d04b7320cfaa64414328d6af38df3d2f64"
       }
     },
     "REL.except_rows": {
@@ -359,7 +359,7 @@
         "canonical_value_contract": {
           "path": "spec/contracts/actql-protocol-schemas.json",
           "pointer": "/schemas/canonical_value_contract",
-          "cid": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
+          "cid": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
         }
       },
       "params_schema": {
@@ -1175,6 +1175,12 @@
                     "type": "integer",
                     "minimum": 0,
                     "maximum": 9007199254740991
+                  },
+                  "enum": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
                   }
                 }
               },
@@ -1318,6 +1324,7 @@
         "strings": "preserve_well_formed_unicode_scalar_sequence_without_NFC_or_line_break_repair",
         "object_member_names": "NFC_then_LF_reject_noncanonical_names_and_collisions",
         "string_extents": "retained_unicode_scalars_and_UTF8_bytes",
+        "text_enumeration": "exact_original_vector_membership_intersected_with_retained_extents_preserve_nullable_and_empty_duplicates_order_no_constraint_stripping_or_authority",
         "decimal": "canonical_fixed_scale_string_under_declared_precision_and_scale",
         "empty_rows": "retain_declared_schema",
         "row_order": "retain_occurrence_order",

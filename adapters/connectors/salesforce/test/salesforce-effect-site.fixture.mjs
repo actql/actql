@@ -92,9 +92,19 @@ export async function openSalesforceEffectSiteFixture(t, {
   // The body fields every single-record PATCH must carry exactly.
   patchFields = ['Name'],
   // A nullable, writable Number(15,2) `Amount__c` on Test_Record__c, and a
-  // Number(16,2) `Wide_Amount__c` that is not declared. Stored records and
+  // Number(16,2) `Wide_Amount__c` in the same Decimal Contract domain. Stored records and
   // target reads carry `numberValues`.
   numberFields = false,
+  // Original Describe native kind; the default Number fixture is unchanged.
+  numberNativeType = 'double',
+  // Original multi-select text; no post-install metadata mutation.
+  multiPicklistFields = false,
+  // Original compound association and digit metadata; components stay writable.
+  geolocationFields = false,
+  // Standard/custom Address variants selected before publication.
+  addressFields = false,
+  addressCodes = false,
+  addressCustom = false,
   // The Host's logical connection id the Site declares under.
   connectorId = 'crm-main',
   // An HTTP status selected query requests answer with instead of rows.
@@ -304,13 +314,41 @@ export async function openSalesforceEffectSiteFixture(t, {
             nillable: true, defaultedOnCreate: false, createable: true,
             updateable: true}] : []),
           ...(numberFields ? [
-            {name: 'Amount__c', type: 'double', precision: 15, scale: 2,
+            {name: 'Amount__c', type: numberNativeType, precision: 15, scale: 2,
               nillable: true, defaultedOnCreate: false, createable: true,
               updateable: true},
-            {name: 'Wide_Amount__c', type: 'double', precision: 16,
+            {name: 'Wide_Amount__c', type: numberNativeType, precision: 16,
               scale: 2, nillable: true, defaultedOnCreate: false,
               createable: true, updateable: true},
           ] : []),
+          ...(multiPicklistFields ? [{name: 'Choices__c', type: 'multipicklist',
+            nillable: true, defaultedOnCreate: false, createable: true,
+            updateable: true}] : []),
+          ...(geolocationFields ? [
+            {name: 'Location__c', type: 'location', nillable: true,
+              createable: false, updateable: false},
+            ...['Latitude', 'Longitude'].map(component => ({
+              name: `Location__${component}__s`, type: 'double',
+              precision: 18, scale: 15, compoundFieldName: 'Location__c',
+              nillable: true, defaultedOnCreate: false, createable: true,
+              updateable: true})),
+          ] : []),
+          ...(addressFields ? (() => {
+            const parent = addressCustom ? 'Address__c' : 'BillingAddress';
+            const components = [['City', 'string'], ['GeocodeAccuracy', 'picklist'],
+              ['Latitude', 'double'], ['Longitude', 'double'],
+              ['PostalCode', 'string'], ['Street', 'textarea']];
+            if (!addressCustom) components.push(['Country', 'string'], ['State', 'string']);
+            if (addressCodes || addressCustom) components.push(
+              ['CountryCode', 'picklist'], ['StateCode', 'picklist']);
+            return [{name: parent, type: 'address', nillable: true,
+              createable: false, updateable: false},
+            ...components.map(([role, type]) => ({
+              name: addressCustom ? `Address__${role}__s` : `Billing${role}`,
+              type, compoundFieldName: parent, nillable: true,
+              defaultedOnCreate: false, createable: true, updateable: true,
+              ...(type === 'double' ? {precision: 18, scale: 15} : {})}))];
+          })() : []),
           ...(temporalFields ? [
             {name: 'Due_Date__c', type: 'date', nillable: true,
               defaultedOnCreate: false, createable: true, updateable: true},
@@ -361,7 +399,13 @@ export async function openSalesforceEffectSiteFixture(t, {
         Name: observedNames.get(record) ?? observedName,
         External_Key__c: target,
         ...(temporalFields ? temporalValues[1] : {}),
-        ...(numberFields ? numberValues[1] : {})}));
+        ...(numberFields ? numberValues[1] : {}),
+        ...(multiPicklistFields ? {Choices__c: 'old;元'} : {}),
+        ...(geolocationFields ? {Location__Latitude__s: numberText('37.5'),
+          Location__Longitude__s: numberText('-122.25')} : {}),
+        ...(addressFields ? (addressCustom
+          ? {Address__CountryCode__s: 'JP', Address__StateCode__s: '13'}
+          : {BillingCity: 'old city', BillingStreet: 'old street'}) : {})}));
       return;
     }
     if (request.method === 'POST' && record !== undefined &&

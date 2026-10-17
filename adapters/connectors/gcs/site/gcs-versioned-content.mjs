@@ -53,7 +53,8 @@ function checkedTarget(target) {
       // names. The physical encoder escapes controls; CR/LF remain forbidden.
       typeof target.objectName !== 'string' || target.objectName.length === 0 ||
       !target.objectName.isWellFormed() || /[\r\n]/u.test(target.objectName) ||
-      Buffer.byteLength(target.objectName) > 1024 || !exactText(target.prefix, 1024, true) ||
+      Buffer.byteLength(target.objectName) > 1024 || typeof target.prefix !== 'string' ||
+      !target.prefix.isWellFormed() || Buffer.byteLength(target.prefix) > 1024 ||
       !target.objectName.startsWith(target.prefix) || !token(target.generation)) {
     fail('InvalidGcsContentRead');
   }

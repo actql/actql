@@ -1,0 +1,162 @@
+# Short Command original input capture
+
+The authored short `EFFECT COMMAND` form selects through the existing checked
+Command publication. The original Catalog, Command contract, Environment and
+installation selection remain together; resolving an operation name neither
+issues a Reference nor grants permission to execute it.
+
+An installation target omits `TARGET`. An identifier target requires `TARGET`
+and captures its expression as an ordinary Relation value. The legacy field
+target retains the existing typed ResourceRef route. These modes do not coerce
+an identifier, literal or equal-CID value into a Reference. No Mapping is
+invented for a Mapping-free Command.
+
+`ID` identifies input correspondence separately from the mutation identity.
+The lowerer captures its original physical slot before public projection, using
+the same immutable range and visible-column scope as other Relation operations.
+After `SET`, a qualified original column retains its old slot while the current
+column selects the replacement slot. Completed set and CTE inputs expose only
+their actual exported scope. `TARGET` and `INPUT` expressions use the ordinary
+bounded expression lowerer once and cross a private Result as fields. Public
+Results and explicit Effect postludes retain their own names and roles.
+
+Source lowering retains the same nominal Command publication alongside the
+Program. Structured JSON/YAML input keeps its original document and does not
+inherit a query-only publication. Public checking treats an incomplete visible
+Command namespace as unresolved; it cannot infer absence, uniqueness or hidden
+installation identities from that subset.
+
+Static capture is not the whole-input key proof, actual installed issuer or
+current target-read authority. Captured proposal verification continues to
+refuse an explicit `input_key` until the existing captured-input owner has
+validated every original row with its type, duplicate, work and cleanup rules.
+The installed preparation owner must consume the original publication and
+issuer through compilation, Run materials, Preview, apply and restore; it must
+not recover these from selector DATA or current configuration. Approval,
+Unknown, nonresend and cleanup responsibilities stay with their existing owners.
+
+The Common Effect preparation accepts the optional nominal Command publication
+from that same frontend handoff and requires the exact checked Environment
+object, not merely its CID. Its read-only projection returns the identical
+publication; it neither resolves an alias again nor reconstructs the value from
+saved DATA. The absent option retains prior preparation and identity behavior.
+This retained reference is distinct from the eight-field UPDATE/published-STORE
+selection codec. It does not extend that codec to installation or identifier
+Commands, prove whole-input uniqueness, authenticate durable capture, or grant
+target read or dispatch authority. A later capture/restoration boundary must
+still consume the corresponding original issuer and saved material.
+
+## Whole-input correspondence evidence
+
+The captured-input owner admits key validation only from the same member's
+checked Command binding and existing local Result export. Cells and acquired
+Sources use their original borrowed export; a resident result uses its existing
+managed publication bridge. That bridge preserves the original completion and
+Result occurrence. A caller's row array, JSON, field name, equal schema or CID
+cannot issue this evidence.
+
+The Result's bounded projection and order are prepared by the existing Result
+view owner. The existing input-key cursor then validates the entire view with
+its typed key atoms, tuple equality, duplicate detection, UTF-8 work charges and
+incremental workspace retirement. An explicit Command ID does not declare a
+KeySet or prove a new Source key. Type comparison uses the existing bounded
+ValueContract comparison. The legacy supplied-KeySet path retains its original
+charges and ordering. Cancellation or failure does not promote partial work;
+completion alone does not acknowledge cleanup.
+
+Proposal and retained-Preview payload verification require completion and
+private workspace retirement for the exact captured input set, member, Command
+binding and export. They retain that evidence through row projection,
+finalization and payload-proof use, rechecking availability and the original
+retention fence after callbacks. Retiring the original capture revokes it.
+Neither target identity nor mutation identity is derived from the input ID.
+
+The validation retains references to the original capture, Command field,
+export and bounded session. Result row/column maps overlap key columns, type
+comparison frames, the current tuple, retained tuples, map entries and UTF-8
+charge state. Those controls, references and transient value wrappers remain
+part of the existing holding inventory. Structural work/frame/entry limits are
+not a numerical byte-capacity supplier. Retiring this private workspace neither
+retires the Result reader nor releases its physical raw/Artifact custody,
+permits dispatch or confirms cleanup. Existing current authorization, original
+installed issuer, approved Preview and saved-material checks remain necessary.
+
+The Host's managed re-admission bridge is a temporary view of the original
+immutable captured Result. After the entire key traversal completes and its
+private workspace retires, the same captured owner can retain the checked
+correspondence once, before that bridge closes. The transfer requires the exact
+original export, member, Command and local Result occurrence. It drops the
+derived export, field and traversal-session references; it cannot transfer
+partial work or revive a closed bridge. Subsequent proposal and private Preview
+payload verification keep the original capture's pins and current checks. An
+untransferred validation still requires its derived view to remain available.
+
+The private Node receiver starts only from that existing managed completion,
+retained material and exact local Result export. Its explicit-key proposal and
+Preview import entries require already completed original correspondence; they
+do not automatically begin key work at the ordinary Host entrance. Whole-key
+work and incremental private cleanup must precede proposal or payload rows.
+Abortion and refusal retain the same private cleanup callback until its
+workspace is retired. Import cancellation, promise completion and private
+cleanup do not acknowledge physical reader retirement. The retained capture
+references, import controls, key owners, callbacks and promise handlers overlap
+the existing holding inventory.
+
+Normal key preparation remains unavailable until the existing capacity owner
+supplies the exact key-phase allocation for that captured Run and scope. A
+structural entry ceiling, an unrelated Content reservation, or a same-Ledger
+borrow predicate cannot establish allocation adequacy. The original allocation
+and borrow must enter child custody before callbacks, survive current refusal,
+and remain held until the actual tuple/map/alias workspace retires. Component
+diagnostics using explicit structural fixtures do not establish that normal
+supplier or change the ordinary missing-key refusal.
+
+## Original Local key-phase byte custody
+
+The private Local Effect Host can plan one key phase only from its original
+prepared Run, generated task sequence and captured member. It retains those
+originals, not a reconstructed sequence, caller Ledger or equal-CID capacity.
+The selected allowance composes the existing Local allocation policy: one full
+row/key executor envelope, one managed re-admission envelope and both canonical
+export envelopes simultaneously. The key cursor is the same implementation
+used by that row executor. Its actual type-frame limit is selected from the
+original export value-node limit, rather than Local's smaller default. Logical
+wire framing is quoted at its own declared depth, not silently clamped to the
+payload depth. Values, row maps/order, key columns/tuples/map/type frames and
+encoding state remain overlapping; an entry ceiling is never converted directly
+into bytes. These are the existing conservative allocation units, not a V8/RSS
+theorem or a numerical Model profile. The full Local metadata/control allowance
+is retained, including bounded-session/key/import controls; a sampled small
+Result does not discount that allowance. Host planning records, original aliases
+and asynchronous caller controls remain in the enclosing Host inventory too.
+
+Before managed import or key construction, the same private phase uses the
+existing Ledger's byte-only reservation path, then its SharedCapacity,
+SharedAllocation and SharedBorrow. Each original token enters the retained
+phase view before the next fallible operation or callback. This path consumes
+no new send/Compute attempt, transfer, holding or quantity allowance. Both
+retained and execution allowances remain reserved until that same allocation
+and all borrowers retire. Insufficient original Ledger capacity refuses before
+materialization; the Host does not increase a cap, replace a reservation or
+retry preparation with smaller declared limits.
+
+The private exporter accepts that original phase view only for the matching
+managed member and complete snapshotted limits. Temporary import/receipt close
+does not return its borrower: completed key evidence and the captured payload
+can outlive those views. The existing capture cleanup must retain the phase
+before calling preparation and through payload/proof retirement. Closing it
+revokes new work first; a reentrant close during a synchronous operation stays
+pending. Private caller `finally` releases only its own synchronous stack entry,
+including refused nested calls, never a physical borrower. Existing bounded key
+cleanup, import cancellation, exact borrower return, allocation retirement and
+reservation settlement then drive the original debt. Refusal/throw retains that
+same view for cleanup; it does not acquire a replacement or acknowledge raw,
+Content, FD, Store or Source retirement. Borrow return invalidates the funded
+key evidence even while an escaped proof alias still exists.
+
+The explicit legacy component entrance remains available without this phase;
+its structural fixtures do not thereby become funded normal preparation. The
+ordinary automatic caller must install and retain the original private supplier
+before choosing this entrance. Physical Content allocation, current permission,
+installed distribution and the four-role Model supplier are separate obligations;
+neither this Local phase nor a matching Ledger supplies them implicitly.

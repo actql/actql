@@ -3692,6 +3692,1362 @@ const schemas = {
       }
     ]
   },
+  "submission_name": {
+    "type": "string",
+    "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+    "minLength": 1,
+    "maxLength": 256
+  },
+  "named_submission_attempt": {
+    "oneOf": [
+      {
+        "type": "object",
+        "required": [
+          "kind",
+          "requestName",
+          "intentCid",
+          "attemptRef",
+          "outcome"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "observed"
+          },
+          "requestName": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "intentCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "attemptRef": {
+            "type": "object",
+            "required": [
+              "operation",
+              "attemptId"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "operation": {
+                "const": "submit"
+              },
+              "attemptId": {
+                "type": "string",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          "outcome": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "submissionRef",
+                  "intentCid",
+                  "admission"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "ready"
+                  },
+                  "submissionRef": {
+                    "type": "object",
+                    "required": [
+                      "epoch",
+                      "nonce"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "epoch": {
+                        "type": "object",
+                        "required": [
+                          "version",
+                          "authorityScopeCid",
+                          "epochNonce",
+                          "notBefore",
+                          "expiresAt",
+                          "authenticator"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "version": {
+                            "const": "actql-submission-epoch/0.1"
+                          },
+                          "authorityScopeCid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "epochNonce": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$"
+                          },
+                          "notBefore": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "expiresAt": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991
+                          },
+                          "authenticator": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$"
+                          }
+                        }
+                      },
+                      "nonce": {
+                        "type": "string",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                        "minLength": 1,
+                        "maxLength": 256
+                      }
+                    }
+                  },
+                  "intentCid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "admission": {
+                    "type": "object",
+                    "required": [
+                      "ref",
+                      "durability",
+                      "revision"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "ref": {
+                        "type": "object",
+                        "required": [
+                          "namespaceId",
+                          "authorityScopeCid",
+                          "runDefinitionCid"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "namespaceId": {
+                            "type": "string",
+                            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                            "minLength": 1,
+                            "maxLength": 256
+                          },
+                          "authorityScopeCid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "runDefinitionCid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          }
+                        }
+                      },
+                      "durability": {
+                        "enum": [
+                          "volatile",
+                          "durable"
+                        ]
+                      },
+                      "revision": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    }
+                  },
+                  "unresolvedHistory": {
+                    "type": "object",
+                    "required": [
+                      "submissionRef",
+                      "acknowledgement"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "submissionRef": {
+                        "type": "object",
+                        "required": [
+                          "epoch",
+                          "nonce"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "epoch": {
+                            "type": "object",
+                            "required": [
+                              "version",
+                              "authorityScopeCid",
+                              "epochNonce",
+                              "notBefore",
+                              "expiresAt",
+                              "authenticator"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "version": {
+                                "const": "actql-submission-epoch/0.1"
+                              },
+                              "authorityScopeCid": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "epochNonce": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                              },
+                              "notBefore": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              "expiresAt": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 9007199254740991
+                              },
+                              "authenticator": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                              }
+                            }
+                          },
+                          "nonce": {
+                            "type": "string",
+                            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                            "minLength": 1,
+                            "maxLength": 256
+                          }
+                        }
+                      },
+                      "acknowledgement": {
+                        "const": "possible_prior_execution_and_effects"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "submissionRef",
+                  "intentCid",
+                  "held"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "held"
+                  },
+                  "submissionRef": {
+                    "type": "object",
+                    "required": [
+                      "epoch",
+                      "nonce"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "epoch": {
+                        "type": "object",
+                        "required": [
+                          "version",
+                          "authorityScopeCid",
+                          "epochNonce",
+                          "notBefore",
+                          "expiresAt",
+                          "authenticator"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "version": {
+                            "const": "actql-submission-epoch/0.1"
+                          },
+                          "authorityScopeCid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "epochNonce": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$"
+                          },
+                          "notBefore": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "expiresAt": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991
+                          },
+                          "authenticator": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$"
+                          }
+                        }
+                      },
+                      "nonce": {
+                        "type": "string",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                        "minLength": 1,
+                        "maxLength": 256
+                      }
+                    }
+                  },
+                  "intentCid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "held": {
+                    "type": "object",
+                    "required": [
+                      "kind",
+                      "requestId",
+                      "prepareAttemptId",
+                      "state",
+                      "durability",
+                      "lookupExpiresAt"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "held"
+                      },
+                      "requestId": {
+                        "type": "string",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                        "minLength": 1,
+                        "maxLength": 256
+                      },
+                      "prepareAttemptId": {
+                        "type": "string",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                        "minLength": 1,
+                        "maxLength": 256
+                      },
+                      "state": {
+                        "enum": [
+                          "waiting_checkpoint",
+                          "resuming",
+                          "ended"
+                        ]
+                      },
+                      "durability": {
+                        "const": "durable"
+                      },
+                      "lookupExpiresAt": {
+                        "type": "string",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                        "minLength": 1,
+                        "maxLength": 256
+                      },
+                      "checkpoint": {
+                        "type": "object",
+                        "required": [
+                          "checkpointId",
+                          "checkpointCid",
+                          "kind",
+                          "expiresAt"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "checkpointId": {
+                            "type": "string",
+                            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                            "minLength": 1,
+                            "maxLength": 256
+                          },
+                          "checkpointCid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "kind": {
+                            "enum": [
+                              "run_scope",
+                              "read_access",
+                              "data_egress",
+                              "cost_scope",
+                              "effect_set"
+                            ]
+                          },
+                          "expiresAt": {
+                            "type": "string",
+                            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                            "minLength": 1,
+                            "maxLength": 256
+                          }
+                        }
+                      },
+                      "endReason": {
+                        "type": "string",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                        "minLength": 1,
+                        "maxLength": 256
+                      },
+                      "terminalErrorCode": {
+                        "type": "string",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                        "minLength": 1,
+                        "maxLength": 256
+                      }
+                    },
+                    "allOf": [
+                      {
+                        "oneOf": [
+                          {
+                            "required": [
+                              "checkpoint"
+                            ],
+                            "properties": {
+                              "state": {
+                                "const": "waiting_checkpoint"
+                              }
+                            },
+                            "allOf": [
+                              {
+                                "not": {
+                                  "required": [
+                                    "endReason"
+                                  ]
+                                }
+                              },
+                              {
+                                "not": {
+                                  "required": [
+                                    "terminalErrorCode"
+                                  ]
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "properties": {
+                              "state": {
+                                "const": "resuming"
+                              }
+                            },
+                            "allOf": [
+                              {
+                                "not": {
+                                  "required": [
+                                    "endReason"
+                                  ]
+                                }
+                              },
+                              {
+                                "not": {
+                                  "required": [
+                                    "terminalErrorCode"
+                                  ]
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "required": [
+                              "endReason"
+                            ],
+                            "properties": {
+                              "state": {
+                                "const": "ended"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "unresolvedHistory": {
+                    "type": "object",
+                    "required": [
+                      "submissionRef",
+                      "acknowledgement"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "submissionRef": {
+                        "type": "object",
+                        "required": [
+                          "epoch",
+                          "nonce"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "epoch": {
+                            "type": "object",
+                            "required": [
+                              "version",
+                              "authorityScopeCid",
+                              "epochNonce",
+                              "notBefore",
+                              "expiresAt",
+                              "authenticator"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "version": {
+                                "const": "actql-submission-epoch/0.1"
+                              },
+                              "authorityScopeCid": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "epochNonce": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                              },
+                              "notBefore": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              "expiresAt": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 9007199254740991
+                              },
+                              "authenticator": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                              }
+                            }
+                          },
+                          "nonce": {
+                            "type": "string",
+                            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                            "minLength": 1,
+                            "maxLength": 256
+                          }
+                        }
+                      },
+                      "acknowledgement": {
+                        "const": "possible_prior_execution_and_effects"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "submissionRef",
+                  "intentCid"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "preparing"
+                  },
+                  "submissionRef": {
+                    "type": "object",
+                    "required": [
+                      "epoch",
+                      "nonce"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "epoch": {
+                        "type": "object",
+                        "required": [
+                          "version",
+                          "authorityScopeCid",
+                          "epochNonce",
+                          "notBefore",
+                          "expiresAt",
+                          "authenticator"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "version": {
+                            "const": "actql-submission-epoch/0.1"
+                          },
+                          "authorityScopeCid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "epochNonce": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$"
+                          },
+                          "notBefore": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "expiresAt": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991
+                          },
+                          "authenticator": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$"
+                          }
+                        }
+                      },
+                      "nonce": {
+                        "type": "string",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                        "minLength": 1,
+                        "maxLength": 256
+                      }
+                    }
+                  },
+                  "intentCid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "unresolvedHistory": {
+                    "type": "object",
+                    "required": [
+                      "submissionRef",
+                      "acknowledgement"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "submissionRef": {
+                        "type": "object",
+                        "required": [
+                          "epoch",
+                          "nonce"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "epoch": {
+                            "type": "object",
+                            "required": [
+                              "version",
+                              "authorityScopeCid",
+                              "epochNonce",
+                              "notBefore",
+                              "expiresAt",
+                              "authenticator"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "version": {
+                                "const": "actql-submission-epoch/0.1"
+                              },
+                              "authorityScopeCid": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "epochNonce": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                              },
+                              "notBefore": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              "expiresAt": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 9007199254740991
+                              },
+                              "authenticator": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                              }
+                            }
+                          },
+                          "nonce": {
+                            "type": "string",
+                            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                            "minLength": 1,
+                            "maxLength": 256
+                          }
+                        }
+                      },
+                      "acknowledgement": {
+                        "const": "possible_prior_execution_and_effects"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "submissionRef",
+                  "intentCid",
+                  "problem"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "not_accepted"
+                  },
+                  "submissionRef": {
+                    "type": "object",
+                    "required": [
+                      "epoch",
+                      "nonce"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "epoch": {
+                        "type": "object",
+                        "required": [
+                          "version",
+                          "authorityScopeCid",
+                          "epochNonce",
+                          "notBefore",
+                          "expiresAt",
+                          "authenticator"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "version": {
+                            "const": "actql-submission-epoch/0.1"
+                          },
+                          "authorityScopeCid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "epochNonce": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$"
+                          },
+                          "notBefore": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "expiresAt": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991
+                          },
+                          "authenticator": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$"
+                          }
+                        }
+                      },
+                      "nonce": {
+                        "type": "string",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                        "minLength": 1,
+                        "maxLength": 256
+                      }
+                    }
+                  },
+                  "intentCid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "checkObservation": {
+                    "allOf": [
+                      {
+                        "$ref": "check_outcome"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "report": {
+                            "type": "object",
+                            "properties": {
+                              "scope": {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "const": "bound_input"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "partial_report": {
+                            "type": "object",
+                            "properties": {
+                              "scope": {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "const": "bound_input"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "problem": {
+                    "type": "object",
+                    "required": [
+                      "code",
+                      "classification"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "code": {
+                        "type": "string",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                        "minLength": 1,
+                        "maxLength": 256
+                      },
+                      "classification": {
+                        "enum": [
+                          "invalid_input",
+                          "requirements",
+                          "implementation_limit",
+                          "authorization",
+                          "operation_failed"
+                        ]
+                      }
+                    }
+                  },
+                  "unresolvedHistory": {
+                    "type": "object",
+                    "required": [
+                      "submissionRef",
+                      "acknowledgement"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "submissionRef": {
+                        "type": "object",
+                        "required": [
+                          "epoch",
+                          "nonce"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "epoch": {
+                            "type": "object",
+                            "required": [
+                              "version",
+                              "authorityScopeCid",
+                              "epochNonce",
+                              "notBefore",
+                              "expiresAt",
+                              "authenticator"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "version": {
+                                "const": "actql-submission-epoch/0.1"
+                              },
+                              "authorityScopeCid": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "epochNonce": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                              },
+                              "notBefore": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              "expiresAt": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 9007199254740991
+                              },
+                              "authenticator": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                              }
+                            }
+                          },
+                          "nonce": {
+                            "type": "string",
+                            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                            "minLength": 1,
+                            "maxLength": 256
+                          }
+                        }
+                      },
+                      "acknowledgement": {
+                        "const": "possible_prior_execution_and_effects"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "submissionRef",
+                  "intentCid",
+                  "problem"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "preparation_failed"
+                  },
+                  "submissionRef": {
+                    "type": "object",
+                    "required": [
+                      "epoch",
+                      "nonce"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "epoch": {
+                        "type": "object",
+                        "required": [
+                          "version",
+                          "authorityScopeCid",
+                          "epochNonce",
+                          "notBefore",
+                          "expiresAt",
+                          "authenticator"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "version": {
+                            "const": "actql-submission-epoch/0.1"
+                          },
+                          "authorityScopeCid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "epochNonce": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$"
+                          },
+                          "notBefore": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "expiresAt": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991
+                          },
+                          "authenticator": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$"
+                          }
+                        }
+                      },
+                      "nonce": {
+                        "type": "string",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                        "minLength": 1,
+                        "maxLength": 256
+                      }
+                    }
+                  },
+                  "intentCid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "checkObservation": {
+                    "allOf": [
+                      {
+                        "$ref": "check_outcome"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "report": {
+                            "type": "object",
+                            "properties": {
+                              "scope": {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "const": "bound_input"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "partial_report": {
+                            "type": "object",
+                            "properties": {
+                              "scope": {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "const": "bound_input"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "problem": {
+                    "type": "object",
+                    "required": [
+                      "code",
+                      "classification"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "code": {
+                        "type": "string",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                        "minLength": 1,
+                        "maxLength": 256
+                      },
+                      "classification": {
+                        "enum": [
+                          "invalid_input",
+                          "requirements",
+                          "implementation_limit",
+                          "authorization",
+                          "operation_failed"
+                        ]
+                      }
+                    }
+                  },
+                  "unresolvedHistory": {
+                    "type": "object",
+                    "required": [
+                      "submissionRef",
+                      "acknowledgement"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "submissionRef": {
+                        "type": "object",
+                        "required": [
+                          "epoch",
+                          "nonce"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "epoch": {
+                            "type": "object",
+                            "required": [
+                              "version",
+                              "authorityScopeCid",
+                              "epochNonce",
+                              "notBefore",
+                              "expiresAt",
+                              "authenticator"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "version": {
+                                "const": "actql-submission-epoch/0.1"
+                              },
+                              "authorityScopeCid": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "epochNonce": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                              },
+                              "notBefore": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              "expiresAt": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 9007199254740991
+                              },
+                              "authenticator": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                              }
+                            }
+                          },
+                          "nonce": {
+                            "type": "string",
+                            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                            "minLength": 1,
+                            "maxLength": 256
+                          }
+                        }
+                      },
+                      "acknowledgement": {
+                        "const": "possible_prior_execution_and_effects"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "submissionRef",
+                  "problem"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "unresolvable"
+                  },
+                  "submissionRef": {
+                    "type": "object",
+                    "required": [
+                      "epoch",
+                      "nonce"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "epoch": {
+                        "type": "object",
+                        "required": [
+                          "version",
+                          "authorityScopeCid",
+                          "epochNonce",
+                          "notBefore",
+                          "expiresAt",
+                          "authenticator"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "version": {
+                            "const": "actql-submission-epoch/0.1"
+                          },
+                          "authorityScopeCid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "epochNonce": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$"
+                          },
+                          "notBefore": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "expiresAt": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991
+                          },
+                          "authenticator": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$"
+                          }
+                        }
+                      },
+                      "nonce": {
+                        "type": "string",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                        "minLength": 1,
+                        "maxLength": 256
+                      }
+                    }
+                  },
+                  "problem": {
+                    "type": "object",
+                    "required": [
+                      "code"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "code": {
+                        "type": "string",
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                        "minLength": 1,
+                        "maxLength": 256
+                      }
+                    }
+                  },
+                  "unresolvedHistory": {
+                    "type": "object",
+                    "required": [
+                      "submissionRef",
+                      "acknowledgement"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "submissionRef": {
+                        "type": "object",
+                        "required": [
+                          "epoch",
+                          "nonce"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "epoch": {
+                            "type": "object",
+                            "required": [
+                              "version",
+                              "authorityScopeCid",
+                              "epochNonce",
+                              "notBefore",
+                              "expiresAt",
+                              "authenticator"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "version": {
+                                "const": "actql-submission-epoch/0.1"
+                              },
+                              "authorityScopeCid": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "epochNonce": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                              },
+                              "notBefore": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              "expiresAt": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 9007199254740991
+                              },
+                              "authenticator": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                              }
+                            }
+                          },
+                          "nonce": {
+                            "type": "string",
+                            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                            "minLength": 1,
+                            "maxLength": 256
+                          }
+                        }
+                      },
+                      "acknowledgement": {
+                        "const": "possible_prior_execution_and_effects"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "type": "object",
+        "required": [
+          "kind",
+          "requestName",
+          "intentCid",
+          "attemptRef",
+          "guarantee",
+          "reason"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "refused"
+          },
+          "requestName": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "intentCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "attemptRef": {
+            "type": "object",
+            "required": [
+              "operation",
+              "attemptId"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "operation": {
+                "const": "submit"
+              },
+              "attemptId": {
+                "type": "string",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          "guarantee": {
+            "const": "attempt_uncommitted_unconsumed"
+          },
+          "reason": {
+            "enum": [
+              "authorization",
+              "admission_capacity",
+              "epoch_expired",
+              "epoch_not_yet_valid"
+            ]
+          }
+        }
+      },
+      {
+        "type": "object",
+        "required": [
+          "kind",
+          "requestName",
+          "intentCid",
+          "attemptRef",
+          "reason"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "conflict"
+          },
+          "requestName": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "intentCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "attemptRef": {
+            "type": "object",
+            "required": [
+              "operation",
+              "attemptId"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "operation": {
+                "const": "submit"
+              },
+              "attemptId": {
+                "type": "string",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          "reason": {
+            "const": "intent"
+          }
+        }
+      }
+    ]
+  },
   "run_ref": {
     "type": "object",
     "required": [
@@ -8116,7 +9472,7 @@ const schemas = {
                               "additionalProperties": false,
                               "properties": {
                                 "contract_schema_cid": {
-                                  "const": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
+                                  "const": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
                                 },
                                 "kind": {
                                   "const": "parameter_declaration"
@@ -10001,7 +11357,7 @@ const schemas = {
                               "additionalProperties": false,
                               "properties": {
                                 "contract_schema_cid": {
-                                  "const": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
+                                  "const": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
                                 },
                                 "kind": {
                                   "const": "parameter_declaration"
@@ -11809,7 +13165,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742"
+            "const": "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -12397,7 +13753,7 @@ const schemas = {
                               "additionalProperties": false,
                               "properties": {
                                 "contract_schema_cid": {
-                                  "const": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
+                                  "const": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
                                 },
                                 "kind": {
                                   "const": "parameter_declaration"
@@ -14282,7 +15638,7 @@ const schemas = {
                               "additionalProperties": false,
                               "properties": {
                                 "contract_schema_cid": {
-                                  "const": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
+                                  "const": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
                                 },
                                 "kind": {
                                   "const": "parameter_declaration"
@@ -16108,7 +17464,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742"
+            "const": "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -16154,7 +17510,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742"
+            "const": "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -16942,6 +18298,12 @@ const schemas = {
           "max_utf8_bytes": {
             "type": "integer",
             "minimum": 0
+          },
+          "enum": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -17649,6 +19011,16 @@ const operationKeys = {
     "parameters",
     "attemptRef"
   ],
+  "submit-named-intent": [
+    "connection",
+    "requestName",
+    "submissionRef",
+    "intentCid",
+    "kind",
+    "input",
+    "parameters",
+    "attemptRef"
+  ],
   "restart-intent": [
     "connection",
     "submissionRef",
@@ -17823,6 +19195,14 @@ const optionalRequestFields = {
       "const": true
     }
   },
+  "submit-named-intent": {
+    "stopBefore": {
+      "const": "commit"
+    },
+    "readOnly": {
+      "const": true
+    }
+  },
   "restart-intent": {
     "stopBefore": {
       "const": "commit"
@@ -17833,8 +19213,8 @@ const optionalRequestFields = {
   }
 };
 
-export const checkReasonSchemaCid = "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742";
-export const checkOutcomeSchemaCid = "sha256:b82a51998a31b6b6cb469fa366a497cea1b48a8b92ac73a5046dffb622b8bdce";
+export const checkReasonSchemaCid = "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e";
+export const checkOutcomeSchemaCid = "sha256:988a8893ede0e64a351f077f28c7b7c82a9b2988467b8eb8a02755ad3530ca7b";
 export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
 export const runStateProtocol = Object.freeze({version: "actql-run-state/0.1", statuses: Object.freeze(["preparing","running","waiting_checkpoint","resuming","needs_reconciliation","succeeded","failed","cancelled"])});
 function finiteWireNumber(value) {
@@ -17900,6 +19280,8 @@ export const validSubmissionOutcomeShape = value => valid(value, schemas.submiss
 export const validSubmissionLookupShape = value => valid(value, schemas.submission_lookup);
 export const validSubmissionRestartShape = value => valid(value, schemas.submission_restart);
 export const validSubmissionAttemptShape = value => valid(value, schemas.submission_attempt);
+export const validSubmissionNameShape = value => valid(value, schemas.submission_name);
+export const validNamedSubmissionAttemptShape = value => valid(value, schemas.named_submission_attempt);
 export const validRunRefShape = value => valid(value, schemas.run_ref);
 export const validConnectionShape = value => valid(value, schemas.connection);
 export const validProfileShape = value => valid(value, schemas.profile);

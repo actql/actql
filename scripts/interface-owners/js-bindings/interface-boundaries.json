@@ -8115,7 +8115,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "7611563530b47dd8b093349911ff78f51cbd6d6dafaea566426da0053f5d740b",
+      "sha256": "33659da72fb6dc7a1caa4fd6aba48915e2c8471a10e463d12f6f5e1ecea9f647",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -8163,47 +8163,55 @@
             "site",
             "authorization",
             "declaration",
+            "declared",
             "recover",
             "discovery",
-            "queryContract",
-            "evidenceContract",
             "environment",
             "generationCid",
             "catalogCid",
-            "connectorId",
-            "sourceRefs",
-            "views"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSalesforceAdapter/acquire",
-          "parameters": [
-            "state",
-            "preparedProgram",
-            "preparedEffect",
-            "registry",
-            "values",
-            "fragment",
-            "ordered",
-            "access",
-            "signal",
-            "preparedSource",
-            "retainedRelationOutput",
-            "occurrence",
-            "ledger"
+            "connectorId"
           ],
           "async": true
         },
         {
-          "name": "installedSalesforceAdapter/acquire/acquire",
+          "name": "installedSalesforceAdapter/directReadIdentity/directReadIdentity",
           "parameters": [
-            "body"
+            "prepared"
           ],
           "async": false
         },
         {
-          "name": "installedSalesforceAdapter/acquire/acquire#2",
+          "name": "installedSalesforceAdapter/directReadIdentity/directReadIdentity#2",
+          "parameters": [
+            "prepared",
+            "nonce"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSalesforceAdapter/directReadIdentity/directReadIdentity#3",
+          "parameters": [
+            "nonce",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSalesforceAdapter/source/source",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSalesforceAdapter/source/source/describe/describe",
+          "parameters": [
+            "suffix"
+          ],
+          "async": true
+        },
+        {
+          "name": "installedSalesforceAdapter/source/source/source",
           "parameters": [
             "page",
             "charge"
@@ -8211,7 +8219,7 @@
           "async": false
         },
         {
-          "name": "installedSalesforceAdapter/acquire/acquire#3",
+          "name": "installedSalesforceAdapter/source/source/source#2",
           "parameters": [
             "_path",
             "index"
@@ -8219,93 +8227,55 @@
           "async": true
         },
         {
-          "name": "installedSalesforceAdapter/acquire/acquire#4",
+          "name": "installedSalesforceAdapter/source/source/source#3",
           "parameters": [],
           "async": false
         },
         {
-          "name": "installedSalesforceAdapter/acquire/acquire#5",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installedSalesforceAdapter/acquire/describe/describe",
+          "name": "installedSalesforceAdapter/source/source#2",
           "parameters": [
-            "suffix"
+            "decision"
           ],
-          "async": true
+          "async": false
         },
         {
-          "name": "installedSalesforceAdapter/currentRead/currentRead",
+          "name": "installedSalesforceAdapter/source/source#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedSalesforceAdapter/source/source#4",
+          "parameters": [
+            "resource",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSalesforceAdapter/source/source#5",
           "parameters": [
             "prepared",
-            "access",
+            "acquisition",
+            "decision",
+            "granted",
+            "resource",
+            "nonce",
+            "runInvocationCid",
+            "dispatchRequestCid",
             "signal"
           ],
           "async": true
         },
         {
-          "name": "installedSalesforceAdapter/decideRead/decideRead",
+          "name": "installedSalesforceAdapter/source/source#6",
           "parameters": [
-            "prepared",
-            "access",
+            "preparedRead",
+            "authorizationFor",
+            "chargePage",
+            "rowRun",
             "signal"
           ],
-          "async": false
-        },
-        {
-          "name": "installedSalesforceAdapter/init:ledgerCapacity/init:ledgerCapacity",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSalesforceAdapter/installedSalesforceAdapter",
-          "parameters": [
-            "sourceRef"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSalesforceAdapter/installedSalesforceAdapter#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installedSalesforceAdapter/open",
-          "parameters": [
-            "options"
-          ],
           "async": true
-        },
-        {
-          "name": "installedSalesforceAdapter/prepare",
-          "parameters": [
-            "preparedProgram",
-            "preparedEffect",
-            "registry",
-            "values",
-            "fragment",
-            "ordered",
-            "access",
-            "occurrence"
-          ],
-          "async": true
-        },
-        {
-          "name": "installedSalesforceAdapter/prepare/prepare",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSalesforceAdapter/sourceReadAccesses/sourceReadAccesses",
-          "parameters": [
-            "view"
-          ],
-          "async": false
         },
         {
           "name": "installedSalesforceSourceIdentityParts",
@@ -8330,20 +8300,6 @@
             "openCredentialJournal"
           ],
           "async": true
-        },
-        {
-          "name": "loadInstalledSalesforceSource/loadInstalledSalesforceSource",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSalesforceSource/loadInstalledSalesforceSource#2",
-          "parameters": [
-            "view"
-          ],
-          "async": false
         },
         {
           "name": "loadInstalledSalesforceSource/recover/recover",
@@ -8882,22 +8838,19 @@
         {
           "operations": [
             "installedSalesforceAdapter",
-            "installedSalesforceAdapter/acquire",
-            "installedSalesforceAdapter/acquire/acquire",
-            "installedSalesforceAdapter/acquire/acquire#2",
-            "installedSalesforceAdapter/acquire/acquire#3",
-            "installedSalesforceAdapter/acquire/acquire#4",
-            "installedSalesforceAdapter/acquire/acquire#5",
-            "installedSalesforceAdapter/acquire/describe/describe",
-            "installedSalesforceAdapter/currentRead/currentRead",
-            "installedSalesforceAdapter/decideRead/decideRead",
-            "installedSalesforceAdapter/init:ledgerCapacity/init:ledgerCapacity",
-            "installedSalesforceAdapter/installedSalesforceAdapter",
-            "installedSalesforceAdapter/installedSalesforceAdapter#2",
-            "installedSalesforceAdapter/open",
-            "installedSalesforceAdapter/prepare",
-            "installedSalesforceAdapter/prepare/prepare",
-            "installedSalesforceAdapter/sourceReadAccesses/sourceReadAccesses"
+            "installedSalesforceAdapter/directReadIdentity/directReadIdentity",
+            "installedSalesforceAdapter/directReadIdentity/directReadIdentity#2",
+            "installedSalesforceAdapter/directReadIdentity/directReadIdentity#3",
+            "installedSalesforceAdapter/source/source",
+            "installedSalesforceAdapter/source/source/describe/describe",
+            "installedSalesforceAdapter/source/source/source",
+            "installedSalesforceAdapter/source/source/source#2",
+            "installedSalesforceAdapter/source/source/source#3",
+            "installedSalesforceAdapter/source/source#2",
+            "installedSalesforceAdapter/source/source#3",
+            "installedSalesforceAdapter/source/source#4",
+            "installedSalesforceAdapter/source/source#5",
+            "installedSalesforceAdapter/source/source#6"
           ],
           "exports": [],
           "attributes": {
@@ -9124,8 +9077,6 @@
         {
           "operations": [
             "loadInstalledSalesforceSource",
-            "loadInstalledSalesforceSource/loadInstalledSalesforceSource",
-            "loadInstalledSalesforceSource/loadInstalledSalesforceSource#2",
             "loadInstalledSalesforceSource/recover/recover"
           ],
           "exports": [
@@ -9804,7 +9755,20 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/compiler-binding.generated.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-row-source.mjs",
+        "../site/salesforce-query-read.mjs",
+        "./installed-salesforce-site.mjs",
+        "./salesforce-publication.mjs",
+        "./salesforce-resource-service.mjs",
+        "node:crypto",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-effect-preview.mjs",
@@ -15654,7 +15618,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "f73abdd901b99690fdc0a3a516d0aa14b0a21b67ac75b087c51d5628e4b71dc3",
+      "sha256": "f0ecc5e65f628590f0d12e1a8005975a398b3b8ce4a967a45fe4edd48d83c704",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -17314,6 +17278,13 @@
           "name": "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:borrowEffectCommandContent",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:matchesIssued/init:matchesIssued",
+          "parameters": [
+            "issued"
           ],
           "async": false
         },
@@ -20472,6 +20443,13 @@
           "async": false
         },
         {
+          "name": "remoteCredentialControl/remoteCredentialControl#10",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
           "name": "remoteCredentialControl/remoteCredentialControl#2",
           "parameters": [
             "grant"
@@ -20513,6 +20491,20 @@
           "name": "remoteCredentialControl/remoteCredentialControl#7",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "remoteCredentialControl/remoteCredentialControl#8",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "remoteCredentialControl/remoteCredentialControl#9",
+          "parameters": [
+            "args"
           ],
           "async": false
         },
@@ -23621,12 +23613,15 @@
             "remoteCredentialControl/init:authorizeUse/init:authorizeUse",
             "remoteCredentialControl/init:prepareUse/init:prepareUse",
             "remoteCredentialControl/remoteCredentialControl",
+            "remoteCredentialControl/remoteCredentialControl#10",
             "remoteCredentialControl/remoteCredentialControl#2",
             "remoteCredentialControl/remoteCredentialControl#3",
             "remoteCredentialControl/remoteCredentialControl#4",
             "remoteCredentialControl/remoteCredentialControl#5",
             "remoteCredentialControl/remoteCredentialControl#6",
-            "remoteCredentialControl/remoteCredentialControl#7"
+            "remoteCredentialControl/remoteCredentialControl#7",
+            "remoteCredentialControl/remoteCredentialControl#8",
+            "remoteCredentialControl/remoteCredentialControl#9"
           ],
           "exports": [],
           "attributes": {
@@ -23638,6 +23633,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "### Original authentication dependencies"
               }
             ],
             "inputsOutputs": [
@@ -23648,6 +23647,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "src/remote_credential/authentication.mbt",
+                "anchor": "pub fn[Material] prepare_credential_authentication_request("
               }
             ],
             "identity": [
@@ -23658,6 +23661,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "src/remote_credential/authentication.mbt",
+                "anchor": "!physical_equal(request.parent, parent)"
               }
             ],
             "ownership": [
@@ -23668,6 +23675,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The installed\nCredential supplier must admit the real material"
               }
             ],
             "synchronization": [
@@ -23678,6 +23689,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "src/remote_credential/authentication.mbt",
+                "anchor": "after\n/// awaits."
               }
             ],
             "failure": [
@@ -23688,6 +23703,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-common/remote-credential-control.test.mjs",
+                "anchor": "actual authentication bridge rejects equal-data original substitution"
               }
             ],
             "cancellation": [
@@ -23698,6 +23717,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "An uncertain auth\nresponse retains the original use"
               }
             ],
             "resources": [
@@ -23708,6 +23731,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The pair adds two retained records"
               }
             ],
             "extension": [
@@ -23718,6 +23745,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Canonical grant/use bodies and their initial identities are\nunchanged."
               }
             ],
             "verification": [
@@ -23732,6 +23763,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-common/remote-credential-control.test.mjs",
+                "anchor": "actual authentication bridge refuses changed body expiry and pre-hash limits"
+              },
+              {
+                "path": "src/remote_credential/authentication_wbtest.mbt",
+                "anchor": "authentication rejects every foreign parent scope and grant retarget"
               }
             ]
           }
@@ -24618,6 +24657,7 @@
             "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/current/current",
             "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:borrowEffectCommandContent",
             "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:release/init:release",
+            "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:matchesIssued/init:matchesIssued",
             "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:wire/init:wire"
           ],
           "exports": [],
@@ -24842,7 +24882,16 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../packages/client-wire/index.mjs",
+        "./compiler-binding.generated.mjs",
+        "./publication-action.mjs",
+        "./result-output-limits.mjs",
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -29893,9 +29942,174 @@
       ]
     },
     {
+      "module": "adapters/host-node/effect-command-key.mjs",
+      "sha256": "aaab7bedc83c35a58871e4ee94265e0892216308782384553aa8a3b6bbcbbf89",
+      "exports": [
+        "advanceEffectCommandKey",
+        "retireEffectCommandKeyWorkspace"
+      ],
+      "operations": [
+        {
+          "name": "advanceEffectCommandKey",
+          "parameters": [
+            "moon",
+            "key",
+            "signal",
+            "quantum"
+          ],
+          "async": true
+        },
+        {
+          "name": "retireEffectCommandKeyWorkspace",
+          "parameters": [
+            "cleanup",
+            "cause"
+          ],
+          "async": true
+        },
+        {
+          "name": "retireEffectCommandKeyWorkspace/retireEffectCommandKeyWorkspace",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retireEffectCommandKeyWorkspace/retry/retry",
+          "parameters": [],
+          "async": true
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "responsibilityFacet": "supplemental",
+      "owner": "A — existing JS/Core projection boundary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "advanceEffectCommandKey",
+            "retireEffectCommandKeyWorkspace",
+            "retireEffectCommandKeyWorkspace/retireEffectCommandKeyWorkspace",
+            "retireEffectCommandKeyWorkspace/retry/retry"
+          ],
+          "exports": [
+            "advanceEffectCommandKey",
+            "retireEffectCommandKeyWorkspace"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "import {runtimeField}"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "import {runtimeField}"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "import {runtimeField}"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "import {runtimeField}"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "import {runtimeField}"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "import {runtimeField}"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "import {runtimeField}"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "import {runtimeField}"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "import {runtimeField}"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/effect-command-key.mjs",
+                "anchor": "import {runtimeField}"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/host-node/effect-input-export.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "c334db7fe27376f9db92a304a96004e01e2e74c686bc6e4f580bb028335b41a4",
+      "sha256": "e4b995cad2b3719d4ca641cfd4f61aef12cbe6285709ab0c301361238f1b7046",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -29958,6 +30172,8 @@
             "onReceipt",
             "onCanonicalRow",
             "canonicalRowLimits",
+            "prepareProposal",
+            "commandWorkspace",
             "signal",
             "advanceQuantum",
             "localResultIndex"
@@ -32321,7 +32537,17 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/completed-run-publication.mjs",
+        "../host-common/effect-preparation-result.mjs",
+        "../host-common/runtime-result.mjs",
+        "node:crypto",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/effect-plan-verify.mjs",
@@ -32598,7 +32824,14 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/effect-run-apply.mjs",
@@ -34878,7 +35111,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "300259c200b5ae36a4b7bce3f16d520e577b8627cefbda9d8af39ad3d48a7ac4",
+      "sha256": "b21dd346c3c71dba8805e60a3e9fdd91f20e0a893969bb34922e30718bcaab1d",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -35403,11 +35636,6 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "openInstalledHost/init:stopModelRuntime/init:stopModelRuntime",
           "parameters": [],
           "async": false
@@ -35549,11 +35777,6 @@
         },
         {
           "name": "openInstalledHost/openInstalledHost#11",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/openInstalledHost#12",
           "parameters": [],
           "async": false
         },
@@ -37840,7 +38063,6 @@
             "openInstalledHost/hostOperations/hostOperations#2",
             "openInstalledHost/hostOperations/hostOperations#3",
             "openInstalledHost/ingress/ingress",
-            "openInstalledHost/init:retry/init:retry",
             "openInstalledHost/init:stopModelRuntime/init:stopModelRuntime",
             "openInstalledHost/inspectAcquisition/inspectAcquisition",
             "openInstalledHost/inspectAcquisition/inspectAcquisition/inspectAcquisition",
@@ -39443,7 +39665,6 @@
             "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
             "openInstalledHost/executeEffectComputation/executeEffectComputation/init:assertUpdateSelectionCurrent/init:assertUpdateSelectionCurrent",
             "openInstalledHost/openEffectTargetReads/openEffectTargetReads/assertCurrent/assertCurrent",
-            "openInstalledHost/openInstalledHost#12",
             "openInstalledHost/prepareCapturedSubmission/prepareCapturedSubmission",
             "openInstalledHost/prepareInferSelection/prepareInferSelection/prepareInferSelection",
             "openInstalledHost/prepareInferSelection/prepareInferSelection/prepareInferSelection#2",
@@ -43758,7 +43979,7 @@
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "99561c228b553fff5b5a987c47854f45dc0b2f5071d0a78b2e6f8da58e363b02",
+      "sha256": "6e76d39ff96987a99afafc358fc00a9235f4db151e49e156c5939098e1981499",
       "role": "physical-io",
       "owner": "A — existing Model raw custody projection",
       "exports": [
@@ -44214,6 +44435,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/infer-async-response-custody.md",
+                "anchor": "## Retired raw persistence aliases"
               }
             ],
             "synchronization": [
@@ -44254,6 +44479,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/infer-async-response-custody.md",
+                "anchor": "## Retired raw persistence aliases"
               }
             ],
             "extension": [
@@ -44278,6 +44507,10 @@
               {
                 "path": "adapters/host-node/infer-raw-capture.test.mjs",
                 "anchor": "raw tuple projection preserves field roles"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-port-retirement.test.mjs",
+                "anchor": "saved raw caller weakens only its retired Call alias"
               }
             ]
           }
@@ -45571,7 +45804,7 @@
     {
       "module": "adapters/host-node/installed-keyed-content-capture.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "0cc651f48b43c9e29685e7d7d4d9ce5e4425443c2747aef49890314d92b885ca",
+      "sha256": "ed59d3b180595a40d021bd3c70ffd66ab517065fb37c10a8bba5cad53daad8b6",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -45628,6 +45861,13 @@
           "name": "installRunKeyedContentCapture/capture/capture/capture/retained/retained",
           "parameters": [
             "handles"
+          ],
+          "async": false
+        },
+        {
+          "name": "installRunKeyedContentCapture/capture/capture/capture/retained/retained#2",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -45710,6 +45950,13 @@
           "async": false
         },
         {
+          "name": "installRunKeyedContentCapture/issuedForContent/issuedForContent",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
           "name": "installRunKeyedContentCapture/live/live",
           "parameters": [],
           "async": false
@@ -45726,6 +45973,13 @@
           "name": "installRunKeyedContentCapture/recover/recover/recover",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "installRunKeyedContentCapture/recover/recover/recover/value/value",
+          "parameters": [
+            "original"
+          ],
+          "async": false
         },
         {
           "name": "installRunKeyedContentCapture/recover/recover/recover#2",
@@ -45781,6 +46035,33 @@
           "name": "installRunKeyedContentCapture/remember/remember",
           "parameters": [
             "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "installRunKeyedContentCapture/selectedForContent/selectedForContent",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "installRunKeyedContentCapture/selectionCurrent/selectionCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installRunKeyedContentCapture/storageCurrentForContent/storageCurrentForContent",
+          "parameters": [
+            "stored",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "installRunKeyedContentCapture/storageForContent/storageForContent",
+          "parameters": [
+            "binding"
           ],
           "async": false
         }
@@ -45905,6 +46186,7 @@
             "installRunKeyedContentCapture/capture/capture",
             "installRunKeyedContentCapture/capture/capture/capture",
             "installRunKeyedContentCapture/capture/capture/capture/retained/retained",
+            "installRunKeyedContentCapture/capture/capture/capture/retained/retained#2",
             "installRunKeyedContentCapture/capture/capture/capture#2",
             "installRunKeyedContentCapture/capture/capture/capture#3",
             "installRunKeyedContentCapture/checkInventoryRoom/checkInventoryRoom",
@@ -45919,9 +46201,11 @@
             "installRunKeyedContentCapture/installRunKeyedContentCapture#3",
             "installRunKeyedContentCapture/installRunKeyedContentCapture#4",
             "installRunKeyedContentCapture/installRunKeyedContentCapture#5",
+            "installRunKeyedContentCapture/issuedForContent/issuedForContent",
             "installRunKeyedContentCapture/live/live",
             "installRunKeyedContentCapture/recover/recover",
             "installRunKeyedContentCapture/recover/recover/recover",
+            "installRunKeyedContentCapture/recover/recover/recover/value/value",
             "installRunKeyedContentCapture/recover/recover/recover#2",
             "installRunKeyedContentCapture/recoverInventory/recoverInventory",
             "installRunKeyedContentCapture/recoverInventory/recoverInventory/closed/closed",
@@ -45930,7 +46214,11 @@
             "installRunKeyedContentCapture/recoverInventory/recoverInventory/recoverInventory#2",
             "installRunKeyedContentCapture/referenceIssuer/referenceIssuer",
             "installRunKeyedContentCapture/releaseCurrent/releaseCurrent",
-            "installRunKeyedContentCapture/remember/remember"
+            "installRunKeyedContentCapture/remember/remember",
+            "installRunKeyedContentCapture/selectedForContent/selectedForContent",
+            "installRunKeyedContentCapture/selectionCurrent/selectionCurrent",
+            "installRunKeyedContentCapture/storageCurrentForContent/storageCurrentForContent",
+            "installRunKeyedContentCapture/storageForContent/storageForContent"
           ],
           "exports": [
             "installRunKeyedContentCapture"
@@ -45944,6 +46232,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "inputsOutputs": [
@@ -45954,6 +46246,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "identity": [
@@ -45964,6 +46260,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "ownership": [
@@ -45974,6 +46274,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "synchronization": [
@@ -45984,6 +46288,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "failure": [
@@ -45994,6 +46302,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "cancellation": [
@@ -46004,6 +46316,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "resources": [
@@ -46014,6 +46330,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "extension": [
@@ -46024,6 +46344,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "verification": [
@@ -46038,6 +46362,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ]
           }
@@ -49250,7 +49578,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "527b7a8a998648cf6250dbb18752f4e21660ec7817f7d46b268bc37ba465b005",
+      "sha256": "e3343b912004c6510990c318b4380ab52184077101525ad560bbed1f4cabbe30",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -49331,12 +49659,24 @@
           "async": false
         },
         {
-          "name": "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#2",
+          "name": "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#3",
           "parameters": [],
           "async": false
         },
         {
+          "name": "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#2",
+          "parameters": [
+            "issued"
+          ],
+          "async": false
+        },
+        {
           "name": "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#4",
           "parameters": [],
           "async": false
         },
@@ -49818,6 +50158,11 @@
             "member",
             "index"
           ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/context/context",
+          "parameters": [],
           "async": false
         },
         {
@@ -51777,19 +52122,24 @@
             "createRowEffectStage/captureStage/captureStage#5",
             "createRowEffectStage/captureStage/captureStage#6",
             "createRowEffectStage/captureStage/captureStage#7",
+            "createRowEffectStage/captureStage/childrenPending/childrenPending",
+            "createRowEffectStage/captureStage/childrenPending/childrenPending/childrenPending",
             "createRowEffectStage/captureStage/claims/claims",
             "createRowEffectStage/captureStage/computation/computation",
             "createRowEffectStage/captureStage/computation/computation#2",
             "createRowEffectStage/captureStage/connectorRecovery/connectorRecovery",
+            "createRowEffectStage/captureStage/context/context",
             "createRowEffectStage/captureStage/entries/entries",
             "createRowEffectStage/captureStage/entries/entries/entries",
             "createRowEffectStage/captureStage/footprints/footprints",
             "createRowEffectStage/captureStage/holdings/holdings",
             "createRowEffectStage/captureStage/payloads/payloads",
             "createRowEffectStage/captureStage/preflight/preflight",
+            "createRowEffectStage/captureStage/preparedRequest/preparedRequest",
             "createRowEffectStage/captureStage/proposals/proposals",
             "createRowEffectStage/captureStage/releaseInputs/releaseInputs",
             "createRowEffectStage/captureStage/route/route",
+            "createRowEffectStage/captureStage/rows/rows",
             "createRowEffectStage/captureStage/sourceSet/init:onProposalRow/init:onProposalRow",
             "createRowEffectStage/captureStage/sourceSet/sourceSet",
             "createRowEffectStage/captureStage/verified/verified",
@@ -51833,7 +52183,9 @@
             "createRowEffectStage/prepareCaptured/prepareCaptured",
             "createRowEffectStage/prepareCaptured/prepareCaptured#2",
             "createRowEffectStage/prepareCaptured/prepareCaptured#3",
+            "createRowEffectStage/prepareCaptured/prepareCaptured#4",
             "createRowEffectStage/prepareRecovered",
+            "createRowEffectStage/prepareRecovered/assertRequestedStopCurrent/assertRequestedStopCurrent",
             "createRowEffectStage/prepareRecovered/dispatches/dispatches",
             "createRowEffectStage/prepareRecovered/ledgerOwner/init:cleanup/init:cleanup",
             "createRowEffectStage/prepareRecovered/ledgerOwner/init:close/init:close",
@@ -51863,6 +52215,7 @@
             "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers/command/command",
             "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers/mapping/mapping",
             "createRowEffectStage/recoveryCid/recoveryCid",
+            "createRowEffectStage/requestEntry/requestEntry",
             "createRowEffectStage/requestsOf/requestsOf",
             "createRowEffectStage/requestsOf/requestsOf/requestsOf",
             "createRowEffectStage/requireApproval/requireApproval",
@@ -51876,14 +52229,7 @@
             "createRowEffectStage/scopes/scopes/scopes",
             "createRowEffectStage/selectOwner/selectOwner",
             "createRowEffectStage/selectOwner/selectOwner/route/route",
-            "createRowEffectStage/settle/settle",
-            "createRowEffectStage/prepareRecovered/assertRequestedStopCurrent/assertRequestedStopCurrent",
-            "createRowEffectStage/captureStage/childrenPending/childrenPending",
-            "createRowEffectStage/captureStage/childrenPending/childrenPending/childrenPending",
-            "createRowEffectStage/captureStage/preparedRequest/preparedRequest",
-            "createRowEffectStage/captureStage/rows/rows",
-            "createRowEffectStage/prepareCaptured/prepareCaptured#4",
-            "createRowEffectStage/requestEntry/requestEntry"
+            "createRowEffectStage/settle/settle"
           ],
           "exports": [],
           "attributes": {
@@ -51903,6 +52249,10 @@
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
                 "anchor": "// The existing capture retains this original child before any fallible current"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Owned guarded request preparation"
               }
             ],
             "inputsOutputs": [
@@ -51921,6 +52271,10 @@
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
                 "anchor": "export async function prepareInstalledRowCaptureChild({children, create,"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "rowIndex, authorizationForRow, assertCurrent})` (command or guarded write)"
               }
             ],
             "identity": [
@@ -51939,6 +52293,10 @@
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
                 "anchor": "let child = create();"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "fail('ForeignInstalledRowEffectRequest')"
               }
             ],
             "ownership": [
@@ -51961,6 +52319,10 @@
               {
                 "path": "adapters/host-common/completed-run-publication.mjs",
                 "anchor": "export async function releasePreparedResults(exported, primary, control)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "children.push({prepared: Object.freeze"
               }
             ],
             "synchronization": [
@@ -51983,6 +52345,10 @@
               {
                 "path": "src/run_publication/cleanup_progress.mbt",
                 "anchor": "pub fn publication_cleanup_owner_action_code("
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "authorizationForRow: () => reads[index].authorizationForRow(rowIndex)"
               }
             ],
             "failure": [
@@ -52001,6 +52367,10 @@
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
                 "anchor": "const invalid = () => Object.assign(new TypeError('InvalidInstalledRowRequestChild'),"
+              },
+              {
+                "path": "adapters/host-node/installed-row-json.test.mjs",
+                "anchor": "guarded request child preparation failure retains its original cleanup and sends nothing"
               }
             ],
             "cancellation": [
@@ -52019,6 +52389,10 @@
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
                 "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
+                "anchor": "signal?.throwIfAborted()"
               }
             ],
             "resources": [
@@ -52041,6 +52415,10 @@
               {
                 "path": "adapters/host-node/installed-row-capture-cleanup.mjs",
                 "anchor": "if (childPending()) return false;"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Children, pending prepare/read/close state, request/before aliases and callback"
               }
             ],
             "extension": [
@@ -52059,6 +52437,10 @@
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "// - `prepareRequestChild({member, value, selector, current, content, signal,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "Pure synchronous preparation and the existing Command child path are unchanged"
               }
             ],
             "verification": [
@@ -52089,6 +52471,14 @@
               {
                 "path": "adapters/host-node/effect-content-original-borrow.integration.test.mjs",
                 "anchor": "test('actual Content capture keeps the same original parent through an async preparation child'"
+              },
+              {
+                "path": "adapters/host-node/installed-row-json.test.mjs",
+                "anchor": "guarded child cleanup pending retains the same failure and original cleanup handle"
+              },
+              {
+                "path": "adapters/host-node/installed-row-json.test.mjs",
+                "anchor": "the child cannot substitute another row index into its read use"
               }
             ]
           }
@@ -53581,6 +53971,8 @@
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#2",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#2",
+            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#3",
+            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#4",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#3",
             "commandContentBorrower/init:borrow/init:borrow/prior/prior",
             "commandContentBorrower/init:release/init:release",
@@ -53837,7 +54229,7 @@
     {
       "module": "adapters/host-node/installed-row-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "d61623b468c6334d266dfd6d282e8a218db0c22d5130dcc5cec5a1a4ca92f4df",
+      "sha256": "f18ab580c3fe35e6eaa2ba15241588bc99d492be99b2e81d1cecc944ab5059ea",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -53957,6 +54349,34 @@
           "async": false
         },
         {
+          "name": "startInstalledRowRun/readerRetired/readerRetired",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/readProvider",
+          "parameters": [
+            "prepare",
+            "receiver",
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "startInstalledRowRun/readProvider/readProvider",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/readProvider/readProvider#2",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
           "name": "startInstalledRowRun/run/run",
           "parameters": [
             "attempt"
@@ -53986,6 +54406,37 @@
           "name": "startInstalledRowRun/run/run#5",
           "parameters": [
             "attempt"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/run/run#6",
+          "parameters": [
+            "attempt"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/startInstalledRowRun",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/stopReader/stopReader",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/stopReader/stopReader/stopReader",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/stopReader/stopReader/stopReader#2",
+          "parameters": [
+            "error"
           ],
           "async": false
         }
@@ -54235,7 +54686,16 @@
             "startInstalledRowRun/run/run#2",
             "startInstalledRowRun/run/run#3",
             "startInstalledRowRun/run/run#4",
-            "startInstalledRowRun/run/run#5"
+            "startInstalledRowRun/run/run#5",
+            "startInstalledRowRun/readProvider",
+            "startInstalledRowRun/readProvider/readProvider",
+            "startInstalledRowRun/readProvider/readProvider#2",
+            "startInstalledRowRun/readerRetired/readerRetired",
+            "startInstalledRowRun/run/run#6",
+            "startInstalledRowRun/startInstalledRowRun",
+            "startInstalledRowRun/stopReader/stopReader",
+            "startInstalledRowRun/stopReader/stopReader/stopReader",
+            "startInstalledRowRun/stopReader/stopReader/stopReader#2"
           ],
           "exports": [
             "startInstalledRowRun"
@@ -54249,6 +54709,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original installed row reader custody"
               }
             ],
             "inputsOutputs": [
@@ -54259,6 +54723,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "async function readProvider({prepare, receiver, options})"
               }
             ],
             "identity": [
@@ -54269,6 +54737,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "src/client_local_host/provider_capture_capacity.mbt",
+                "anchor": "physical_equal(original, selected)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
               }
             ],
             "ownership": [
@@ -54279,6 +54755,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "@resources.reserve_attempt"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
               }
             ],
             "synchronization": [
@@ -54289,6 +54773,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceBindResponseCleanup(borrow, readerRetired)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "await Reflect.apply(verifyRead, options, [])"
               }
             ],
             "failure": [
@@ -54299,6 +54791,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
+                "anchor": "throwing factory or method getter retains the installed original borrow without retry"
               }
             ],
             "cancellation": [
@@ -54309,6 +54805,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerStopRequested = true"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "pending read and stop Promises"
               }
             ],
             "resources": [
@@ -54319,6 +54823,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "Supplemental provider retention and workspace remain reserved through capture"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "provider_retained"
               }
             ],
             "extension": [
@@ -54329,6 +54841,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "foreign preparation and unsupported listing/keyed profile combinations refuse"
               }
             ],
             "verification": [
@@ -54343,21 +54859,37 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-common.test.mjs",
+                "anchor": "actual Common provider projection and original reader retain one reservation through capture"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
+                "anchor": "current refusal after factory keeps the same reader for cleanup and sends nothing"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "27e0938340ef1d82971c27088b4797cd498ef10d3f088837c30033411195cd85",
+      "sha256": "52a77e2461feaa8cb08edff9302ff2d60d1e3e4ccb98afbaeecbd0902f6abd7e",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowSource",
         "installRowSourceAuthorization",
+        "openRowSourceCredentialCustody",
         "openRowSourceCredentialSite",
         "rowSourceCheckEnvironment",
         "rowSourceMapping"
@@ -54413,7 +54945,12 @@
             "listingPolicy",
             "captureContent",
             "listingReportCapacity",
-            "prepareAcquisition"
+            "prepareAcquisition",
+            "directReadIdentity",
+            "prepareRead",
+            "grantBeforeBegin",
+            "originalSourceAccess",
+            "providerReader"
           ],
           "async": true
         },
@@ -54438,38 +54975,6 @@
           "async": true
         },
         {
-          "name": "createInstalledRowSource/acquire/acquire",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/acquire#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/acquire#3",
-          "parameters": [
-            "index"
-          ],
-          "async": true
-        },
-        {
-          "name": "createInstalledRowSource/acquire/acquire#4",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/acquire/acquire#5",
-          "parameters": [
-            "rows",
-            "charge"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstalledRowSource/acquire/complete/complete",
           "parameters": [],
           "async": true
@@ -54480,28 +54985,86 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/acquire/consumeObservation",
+          "name": "createInstalledRowSource/acquire/issueGrant/issueGrant",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/consumeObservation",
           "parameters": [
             "charge"
           ],
           "async": false
         },
         {
-          "name": "createInstalledRowSource/createInstalledRowSource",
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#3",
           "parameters": [
-            "name"
+            "index"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#4",
+          "parameters": [
+            "body"
           ],
           "async": false
         },
         {
-          "name": "createInstalledRowSource/createInstalledRowSource#2",
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
+          "parameters": [
+            "rows",
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/captureCapacity/captureCapacity",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
+          "name": "createInstalledRowSource/createInstalledRowSource#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledRowSource/createInstalledRowSource#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#4",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#5",
           "parameters": [
             "resource",
             "operation"
@@ -54509,14 +55072,14 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/createInstalledRowSource#4",
+          "name": "createInstalledRowSource/createInstalledRowSource#6",
           "parameters": [
             "sourceRef"
           ],
           "async": false
         },
         {
-          "name": "createInstalledRowSource/createInstalledRowSource#5",
+          "name": "createInstalledRowSource/createInstalledRowSource#7",
           "parameters": [],
           "async": false
         },
@@ -54793,6 +55356,13 @@
           "async": false
         },
         {
+          "name": "createInstalledRowSource/ordinarySubject/ordinarySubject",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledRowSource/prepare",
           "parameters": [
             "preparedProgram",
@@ -54804,6 +55374,11 @@
             "access",
             "occurrence"
           ],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation",
+          "parameters": [],
           "async": true
         },
         {
@@ -54895,7 +55470,9 @@
             "accountConfiguration",
             "principalId",
             "root",
-            "connectorRegistration"
+            "connectorRegistration",
+            "originalContext",
+            "gateOptions"
           ],
           "async": true
         },
@@ -54924,6 +55501,73 @@
           "name": "installRowSourceAuthorization/own/own",
           "parameters": [
             "decision"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody",
+          "parameters": [
+            "profile",
+            "principalId",
+            "connectorRegistration",
+            "connectorRevision",
+            "runtimeBundleCid",
+            "commonMoon",
+            "privateKey",
+            "resolveSecret",
+            "ca",
+            "now",
+            "grantLifetimeMs",
+            "openCredentialJournal",
+            "credentialFacts",
+            "closedCode",
+            "grantCode"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/checkGrantRequest",
+          "parameters": [
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "maxUses",
+            "taskAttempt"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/ensureOpen/ensureOpen",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/init:closeOnce/init:closeOnce",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/sign",
+          "parameters": [
+            "operation",
+            "runInvocationCid",
+            "taskAttempt",
+            "dispatchRequestCid",
+            "maxUses"
           ],
           "async": false
         },
@@ -54964,15 +55608,6 @@
           "async": false
         },
         {
-          "name": "openRowSourceCredentialSite/checkGrantRequest",
-          "parameters": [
-            "runInvocationCid",
-            "dispatchRequestCid",
-            "maxUses"
-          ],
-          "async": false
-        },
-        {
           "name": "openRowSourceCredentialSite/currentEffectRead",
           "parameters": [
             "approved"
@@ -54981,11 +55616,6 @@
         },
         {
           "name": "openRowSourceCredentialSite/currentEffectRead/currentEffectRead",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/ensureOpen/ensureOpen",
           "parameters": [],
           "async": false
         },
@@ -55010,11 +55640,6 @@
           "parameters": [
             "decision"
           ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/init:close/init:close",
-          "parameters": [],
           "async": false
         },
         {
@@ -55050,21 +55675,6 @@
           "name": "openRowSourceCredentialSite/openRowSourceCredentialSite#2",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/openRowSourceCredentialSite#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openRowSourceCredentialSite/sign",
-          "parameters": [
-            "operation",
-            "runInvocationCid",
-            "dispatchRequestCid",
-            "maxUses"
           ],
           "async": false
         },
@@ -55118,8 +55728,7 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
-            "createInstalledRowSource/acquire/acquire#5"
+            "<module>"
           ],
           "exports": [],
           "attributes": {
@@ -55459,10 +56068,6 @@
           "operations": [
             "createInstalledRowSource",
             "createInstalledRowSource/acquire",
-            "createInstalledRowSource/acquire/acquire",
-            "createInstalledRowSource/acquire/acquire#2",
-            "createInstalledRowSource/acquire/acquire#3",
-            "createInstalledRowSource/acquire/acquire#4",
             "createInstalledRowSource/acquire/complete/complete",
             "createInstalledRowSource/acquire/complete/complete/verifyRead/verifyRead",
             "createInstalledRowSource/createInstalledRowSource",
@@ -55519,7 +56124,18 @@
             "createInstalledRowSource/sourceRefs/sourceRefs",
             "createInstalledRowSource/verifyKeyedRead",
             "createInstalledRowSource/verifyKeyedRead/recheck/recheck",
-            "createInstalledRowSource/acquire/consumeObservation"
+            "createInstalledRowSource/acquire/issueGrant/issueGrant",
+            "createInstalledRowSource/createInstalledRowSource#6",
+            "createInstalledRowSource/ordinarySubject/ordinarySubject",
+            "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation",
+            "createInstalledRowSource/acquire/readerOptions/consumeObservation",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#2",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#3",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#4",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
+            "createInstalledRowSource/captureCapacity/captureCapacity",
+            "createInstalledRowSource/createInstalledRowSource#7"
           ],
           "exports": [
             "createInstalledRowSource"
@@ -55533,6 +56149,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original installed row reader custody"
               }
             ],
             "inputsOutputs": [
@@ -55543,6 +56163,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "async function readProvider({prepare, receiver, options})"
               }
             ],
             "identity": [
@@ -55553,6 +56177,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "src/client_local_host/provider_capture_capacity.mbt",
+                "anchor": "physical_equal(original, selected)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
               }
             ],
             "ownership": [
@@ -55563,6 +56195,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "@resources.reserve_attempt"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
               }
             ],
             "synchronization": [
@@ -55573,6 +56213,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceBindResponseCleanup(borrow, readerRetired)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "await Reflect.apply(verifyRead, options, [])"
               }
             ],
             "failure": [
@@ -55583,6 +56231,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
+                "anchor": "throwing factory or method getter retains the installed original borrow without retry"
               }
             ],
             "cancellation": [
@@ -55593,6 +56245,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerStopRequested = true"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "pending read and stop Promises"
               }
             ],
             "resources": [
@@ -55603,6 +56263,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "Supplemental provider retention and workspace remain reserved through capture"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "provider_retained"
               }
             ],
             "extension": [
@@ -55613,6 +56281,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "foreign preparation and unsupported listing/keyed profile combinations refuse"
               }
             ],
             "verification": [
@@ -55627,6 +56299,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-common.test.mjs",
+                "anchor": "actual Common provider projection and original reader retain one reservation through capture"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
+                "anchor": "current refusal after factory keeps the same reader for cleanup and sends nothing"
               }
             ]
           }
@@ -55857,6 +56537,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/row-source-authorization-installation.test.mjs",
+                "anchor": "shared installer retains its default context"
               }
             ]
           }
@@ -55866,25 +56550,29 @@
             "openRowSourceCredentialSite",
             "openRowSourceCredentialSite/bindingWire/bindingWire",
             "openRowSourceCredentialSite/callResource/callResource",
-            "openRowSourceCredentialSite/checkGrantRequest",
             "openRowSourceCredentialSite/currentEffectRead",
             "openRowSourceCredentialSite/currentEffectRead/currentEffectRead",
-            "openRowSourceCredentialSite/ensureOpen/ensureOpen",
             "openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
             "openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
             "openRowSourceCredentialSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval",
-            "openRowSourceCredentialSite/init:close/init:close",
             "openRowSourceCredentialSite/init:issueEffectGrant/init:issueEffectGrant",
             "openRowSourceCredentialSite/init:issueReadGrant/init:issueReadGrant",
             "openRowSourceCredentialSite/openRowSourceCredentialSite",
             "openRowSourceCredentialSite/openRowSourceCredentialSite#2",
-            "openRowSourceCredentialSite/openRowSourceCredentialSite#3",
-            "openRowSourceCredentialSite/sign",
             "openRowSourceCredentialSite/synchronous",
-            "openRowSourceCredentialSite/synchronous/synchronous"
+            "openRowSourceCredentialSite/synchronous/synchronous",
+            "openRowSourceCredentialCustody",
+            "openRowSourceCredentialCustody/checkGrantRequest",
+            "openRowSourceCredentialCustody/close",
+            "openRowSourceCredentialCustody/ensureOpen/ensureOpen",
+            "openRowSourceCredentialCustody/init:closeOnce/init:closeOnce",
+            "openRowSourceCredentialCustody/openRowSourceCredentialCustody",
+            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#2",
+            "openRowSourceCredentialCustody/sign"
           ],
           "exports": [
-            "openRowSourceCredentialSite"
+            "openRowSourceCredentialSite",
+            "openRowSourceCredentialCustody"
           ],
           "attributes": {
             "responsibility": [
@@ -55965,6 +56653,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "## Installed Row Site physical custody"
               }
             ],
             "extension": [

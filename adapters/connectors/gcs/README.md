@@ -48,6 +48,15 @@ completion. The existing Source/Credential owns current read admission before
 each send, original physical response charges, RowRun capture and cleanup.
 Flat scans request no delimiter; unexpected nonempty prefix pages still refuse.
 
+Installed and physical prefixes use the same opaque Unicode scope: bounded
+UTF-8 and well-formed scalars, without header/identifier control-character
+restrictions. The original query encoder percent-escapes them; it does not
+normalize, decode percent text or widen a prefix. Object names still separately
+reject CR/LF. The returned name and generation, original page/body charges,
+credential scope and exact prefix containment remain unchanged. This repairs
+prefixes containing otherwise legal object-name controls, not a new grant,
+reservation or installed/live-service acceptance.
+
 The portable parser checks every item and preserves exact Int64 generation,
 metageneration and size before projection. `objects` declares these fields with
 the existing Decimal(19,0) carrier, not Number or String: the provider's narrower
@@ -104,6 +113,170 @@ physical release ACK. A failed/cancelled handoff retains the same Content
 custody and pending media charge rather than manufacturing a partial row.
 
 ## Original object request
+
+### Original mutation target observations
+
+Metadata PATCH and DELETE use a current complete target metadata GET under
+their original, separate read approval. The bounded path preserves the exact
+object name, including NFD and literal percent text. Before acquisition the
+portable provider checks the installed prefix/path ceiling; the physical call
+uses the existing metadata response ceiling and identity encoding. No write
+grant is reused as read authority, and no local retry is issued.
+
+The caller retains the same raw body and selected headers before admission.
+Only a complete 200 representation with the exact bucket/name and matching
+generation/metageneration headers yields before-observation DATA. Missing,
+partial, refused, malformed, encoded or contradictory responses cannot invent
+a before row. Existing conditional request bytes/CIDs remain unchanged; an
+admitted observation is not apply evidence, permission or physical cleanup ACK.
+
+The original raw response, three header tuple wrappers and borrowed Strings,
+bounded metadata parser/tree, detached metadata fields, path encoding/output,
+version text projections and before-observation aliases may coexist with the
+request preparation workspace. Their lifetime belongs to the original read,
+capture and Effect reservation, including pending failure/cleanup. A clamp or
+successful callback is not that reservation. The installed same-Site adapter,
+actual original read admission, Content byte borrow and saved Run restoration
+remain separate required connections; this primitive does not publish them.
+
+### Original mutation preparation child
+
+The private `createGcsMutationRequestChild` is an I/O-free synchronous factory
+for the existing capture cleanup protocol. Capture must retain it before
+`prepare()`. Its original caller supplies the justified preparation envelope,
+separate same-row read approval, original Credential/Site and synchronous
+current fence. Selected `maxSecretBytes` is mandatory; it has no default and is
+not funding. This unit does not install a normal supplier, add a permission or
+turn a DATA capacity declaration into a reservation.
+
+Preparation validates the selected binding kind/path/ABI and snapshots the
+admitted changes before the first await. It requests the original read approval
+once, creates one existing Credential binding and retains the original GET
+before the provider builds its exact conditional request. Repeated prepare
+calls share that same Promise; no failure or release starts another read.
+Parent capture must still compare the request's facts/CID with the original
+Program and hold all downstream borrowers through apply/Unknown/recovery.
+The generic guarded preparation receiver remains a separate connection.
+
+Release first invalidates use of this child's request, then drives only the
+same Credential binding and any original failure's cleanup handle. A pending
+prepare, invalid asynchronous fence, pending Credential close, false/rejected
+same-handle cleanup or malformed cleanup facet stays with the child. The
+primary error is never rewritten, including frozen/read-only diagnostics and
+ordinary null/undefined throws. There is no reacquisition or resend. Only after
+those duties retire are this child's raw response, request/preparation Promise,
+original configuration and method aliases detached; the old request can no
+longer be sent through its private original map. Escaped status snapshots are
+immutable. This is component custody, not a claim of heap/GC ACK or retirement
+of a later write, an escaped caller alias or a numerical Store loan.
+
+The new child/control/lifetime records, original configuration/fence/callbacks,
+single preparation/release/fence Promises and handlers, pre-await changes wire
+and Buffer, raw GET, parsed before metadata, conditional request/body and
+failure/cleanup/method references overlap the existing capture envelope.
+No body/secret clamp, callback return or weak-map deletion prices that overlap.
+Focused controls use the actual GCS compiler bridge, a fresh real FD failure,
+and the actual existing Credential binding before TCP. The success response
+ports and Credential claim controls are explicit doubles, not genuine Account
+approval, normal installed metadata/update/delete acceptance or live GCS.
+An additional actual capture-receiver counter executes the unchanged Common
+cleanup progress law from the qualified retained runtime and proves that the
+same pending FD child blocks input/Result/Source retirement. It checks that
+law's current source equality; it is not a fresh whole-Common build or proof
+that all compiler inputs match the latest installed product cohort.
+
+### Effect metadata Value wire
+
+Common's checked Effect row emits a JSON-typed field through the existing
+`{"$json":payload}` Value wire. The explicit private
+`prepareOwnedGcsEffectMetadataPatch` and
+`prepare_object_metadata_patch_value_wire` entrypoints admit that field through
+the existing Value owner and then the same GCS string-map checks. They keep the
+typed envelope in authored request facts so the original capture can compare
+the exact row, while producing the same physical PATCH body/path/CID as the
+equivalent raw metadata input. Node does not unwrap the field or infer a mode.
+The older raw provider JSON entrypoints retain their original meaning and bytes.
+
+The preparation child selects this entrance only with the explicit private
+`valueEncoding: 'effect_value'`; absence retains the original `source_json`
+mode. Unknown modes and missing selected ABI refuse. Both modes check the
+authored input before asking for approval or opening a before-GET, including
+the exact reserved `actql-request` collision. Static checks do not prove that
+the original read or metadata has been acquired. Preparation checks the same
+input again against the original observation before sealing the conditional
+request. No read/write authority or reservation follows from this projection.
+
+Omission preserves existing user keys, an empty map replaces them with
+an empty user map, and SQL NULL/JSON null/non-string entries refuse rather than
+becoming empty. A user's literal `$json` key lives inside the payload and is
+not a second envelope. Exact NFD/NFC keys and CR/LF values remain distinct.
+The private marker stays in physical requests and retained evidence only.
+When provider metadata was absent, assigning that marker makes the effective
+logical user map present and empty. This NULL-to-empty change is not an
+authored metadata assignment and must be included separately in Preview.
+
+The bounded preserving parse/cursor, transient checked Json Value graph,
+declared/logical metadata array and maps, re-encoding writer/String/Buffer,
+original row and retained raw response/request overlap the existing preparation
+envelope. Repeated preflight and post-read validation are real work and do not
+reuse a free budget or expand the byte/node/depth/entry ceilings. The private
+encoding selector and its retained configuration field are also managed
+controls, not a new capability or a numerical profile. This connection alone
+does not install the same-Site Effect, fund a Content loan, or close Run recovery.
+
+### Original PATCH target Preview
+
+`projectOwnedGcsMetadataPatchTarget` borrows the same private request and its
+retained original metadata GET. The portable GCS owner returns the target
+identity, original response-byte CID, checked `before`, effective `after` and
+unchanged authored typed request value. Initial capture can use that detached
+row without doing a second GET. This is not the currentness/read decision
+required again at apply, and the original generation and metageneration still
+guard the physical request. A metadata-only change changes the response guard
+and fails the original conditional recheck even when generation is unchanged.
+
+The PATCH's authored fields and additional effective logical metadata change
+are projected separately. A content-type-only PATCH on absent metadata has
+`before.metadata: null` and `after.metadata: {"$json":{}}`, while its authored
+`value` still contains only `content_type`. An already-present empty user map
+is not substituted with NULL; an unchanged omitted field need not be added.
+The effective values come from the same sealed request/before, not a second
+read or a proposed row's self-reported `after`. Missing
+`content_type` becomes its nullable field value, missing metadata is SQL NULL,
+and present empty metadata is `{"$json":{}}`; none of these states invents a
+provider value. JSON metadata remains the existing typed Value wire, and its
+exact private marker is excluded from logical fields. The projection declares
+the existing marker-assignment behavior but does not export the marker value.
+The original request now retains that same marker String as one optional field
+for the bounded projection; DELETE retains None. This adds no identity field
+or permission and does not alter original request body/path/CID bytes.
+
+`borrowOwnedGcsMetadataPatchTarget` supplies a private original projection view
+only for a request retained by the existing preparation child. Its `readFor`
+requires the same original request and view receiver, then checks that child's
+saved current/lifetime closure before and after the bounded projection. A copy,
+equal-CID request, missing actual current closure or retired child cannot be
+used instead. `retire` only drops the view's request/binding references; it
+does not close the child, acknowledge raw/FD retirement or release capacity.
+The extra current callback, view/self/method closures and aliases remain in
+the original preparation inventory through their actual lifetime.
+
+These facts alone do not bind a full-diff approval. The existing installed
+Preview/capture/restore owner must bind effective before/after separately from
+unchanged authored intended changes, and check original Mapping/operation/field
+permission, request, occurrence and current installation. A description string
+or this view is not permission. Until that same-owner connection is complete,
+the unsupported installed path remains unavailable before dispatch.
+
+Foreign binding/request copies, unsupported raw-map representation, DELETE
+purpose, missing selected ABI and an insufficient projection bound refuse.
+The original child retirement fence also applies to this read-only projection.
+Its additional preserving input cursor/checked Value/map/encoded String and
+detached before/after/value objects overlap the retained original request and
+all escaped capture aliases. They remain in the same preparation inventory;
+reusing the GET, a bounded output or dropping a local projection is not free
+workspace, a reservation or a physical cleanup ACK. The generic same-Site
+driver/capture/Run recovery and normal funding remain separate connections.
 
 ### Retained upload target observations
 
@@ -532,7 +705,68 @@ metadata byte clamp plus 256, not another response allowance or reservation.
 These are managed components in the existing read envelope; no new numerical
 grant or zero-cost/GC/physical-cleanup conclusion follows from this admission.
 
+### Same-Site collection target read
+
+The ordinary GCS loader opens its existing credential Site through
+`openGcsCredentialSite`. The published collection's preparation may admit an
+original Effect-target read only for `objects` and `gcs:file:read`, using the
+same exact project/bucket/prefix/scope/Catalog/Resource/field predicate as the
+installed Source. No name normalization, new target packet or write-to-read
+permission conversion is introduced. Source-only installations without an
+objects declaration continue to refuse this admission.
+
+The existing Site still authenticates the original Checkpoint decision,
+principal/configuration/context, connection, physical binding and current
+fence, then consumes its original one-shot entry before signing a read grant.
+A copied decision, foreign purpose or a closed Site cannot substitute for
+that custody. Neither this predicate nor a successful signature proves a
+Content byte loan, physical cleanup, Account permission or numerical funding.
+The generic Command target-read selection and the actual same-Store Content
+borrow remain separate incomplete connections; no installed STORE or service
+acceptance is claimed here.
+
+The added predicate closure and captured original installation callback stay
+with the existing Site/module lifetime. The temporary options/spread record
+and Site-opening Promise also overlap the original opening responsibility.
+Its comparisons overlap the original
+physical binding and bounded canonical String; approved records, current/entry
+callbacks, grant/signature/journal work and pending cleanup retain their
+existing Owner inventory. They are not a new reservation, zero-cost component
+or physical retirement acknowledgement.
+
 ## Verification boundary
+
+### Original metadata and delete responses
+
+The existing GCS Owner classifies only the authenticated retained direct
+response of its original conditional metadata PATCH or DELETE. A PATCH needs
+the same bucket/name/generation and byte size, advancing metageneration, exact
+intended user properties and the new marker extracted from its own sealed
+request. Available original storage class/checksums/encoding remain consistent.
+Optional storage class and checksum facts absent from the original observation
+may appear in the response; their earlier absence is not an expected value.
+Facts supplied by the original observation are still checked for equality.
+Case, NFD user text, omission and explicit empty metadata maps are not merged.
+
+An original empty 204 DELETE response confirms the provider operation. A later
+404, matching fields, missing reply, nonempty response or unrelated status is
+not a delete receipt; the existing Effect retains Unknown and cannot resend.
+Only an original direct 412 selects conditional conflict. The API's logical
+deletion is not a claim of permanent physical erasure in a versioned or
+soft-delete bucket, and no resource/Store cleanup ACK is inferred.
+
+The same binding/request remains nominal across the private Node projection.
+Response bytes and original request body overlap bounded parsed trees, decode
+indexes, marker String, sorted logical-map arrays, output tree/writer/String
+and Node JSON view. They remain the original read/capture envelope's managed
+inventory, not zero-cost workspace or a new numerical grant. Original response
+backing/failure and pending cleanup are not replaced by this interpretation.
+
+Provider protocol references:
+[metadata PATCH](https://docs.cloud.google.com/storage/docs/json_api/v1/objects/patch)
+and [object DELETE](https://docs.cloud.google.com/storage/docs/json_api/v1/objects/delete).
+The actual installed registration, original capture/approval, same-Run restore,
+normal funding and live-service acceptance are still separate obligations.
 
 The catalog white-box tests execute the portable semantics with independent
 request byte/CID expectations. The Node tests consume the actual compiled GCS

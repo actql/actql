@@ -21,10 +21,13 @@ _MISSING = object()
 
 
 def get_submission_input(result):
-    from ._sync import Execution
+    from ._sync import Execution, Query
+    from ._query import AsyncQuery
     if isinstance(result, Execution):
         result = result._execution
-    return _submission_inputs.get(result) if isinstance(result, (ClientError, AsyncExecution)) else None
+    if isinstance(result, Query):
+        result = result._query
+    return _submission_inputs.get(result) if isinstance(result, (ClientError, AsyncExecution, AsyncQuery)) else None
 
 
 class _ExchangeFailure(ClientError):
@@ -357,25 +360,54 @@ class AsyncClient:
         value = await self._request('check', body)
         return bind_check(value, body)
 
-    def start(self, program, *, submission_ref, parameters=None, attempt_id=None, stop_before=_MISSING):
-        return self._prepare_start('program', program, submission_ref, parameters, attempt_id, stop_before)
+    def start(self, program, *, submission_ref, parameters=None, attempt_id=None, stop_before=_MISSING, read_only=_MISSING):
+        return self._prepare_start('program', program, submission_ref, parameters, attempt_id, stop_before, read_only)
 
-    def start_source(self, text, *, format, submission_ref, parameters=None, parameter_declarations=_MISSING, attempt_id=None, stop_before=_MISSING):
+    def start_source(self, text, *, format, submission_ref, parameters=None, parameter_declarations=_MISSING, attempt_id=None, stop_before=_MISSING, read_only=_MISSING):
         item = {'text': text, 'format': format}
         if parameter_declarations is not _MISSING:
             item['parameterDeclarations'] = parameter_declarations
-        return self._prepare_start('aql', item, submission_ref, parameters, attempt_id, stop_before)
+        return self._prepare_start('aql', item, submission_ref, parameters, attempt_id, stop_before, read_only)
 
-    def _prepare_start(self, kind, input, reference, parameters, attempt_id, stop_before):
+    def _prepare_start(self, kind, input, reference, parameters, attempt_id, stop_before, read_only=_MISSING):
+        return self._start(self._capture_start(kind, input, reference, parameters, attempt_id, stop_before, read_only))
+
+    def _capture_start(self, kind, input, reference, parameters, attempt_id, stop_before, read_only):
         body = snapshot({'kind': kind, 'input': input, 'submissionRef': thaw(reference), 'parameters': parameters,
                          'attemptRef': {'operation': 'submit', 'attemptId': str(uuid.uuid4()) if attempt_id is None else attempt_id}})
         intent = {key: body[key] for key in ('kind', 'input', 'parameters')}
         if stop_before is not _MISSING:
             body['stopBefore'] = intent['stopBefore'] = snapshot(stop_before)
+        if read_only is not _MISSING:
+            body['readOnly'] = intent['readOnly'] = snapshot(read_only)
         body['intentCid'] = content_cid({'version': 'actql-submitted-intent/0.1',
                                       'intent': intent}, data_keys=True)
         self._body('submit-intent', body)
-        return self._start(body)
+        return body
+
+    def sql(self, text, parameters=None, **options):
+        return self._source_query('sql', text, parameters, **options)
+
+    def aql(self, text, parameters=None, **options):
+        return self._source_query('aql-text', text, parameters, **options)
+
+    def _source_query(self, format, text, parameters, *, submission_ref=None, request_id=None,
+                      attempt_id=None, parameter_declarations=_MISSING, result=None):
+        from ._query import AsyncQuery
+        if result is not None and not wire.bounded_text(result):
+            raise ClientError('InvalidResultName')
+        if parameters is not None and type(parameters) is not dict:
+            raise ClientError('InvalidQueryParameters')
+        if submission_ref is not None and request_id is not None:
+            raise ClientError('ConflictingSubmissionIdentity')
+        reference = self.new_submission(nonce=request_id) if submission_ref is None else submission_ref
+        item = {'text': text, 'format': format}
+        if parameter_declarations is not _MISSING:
+            item['parameterDeclarations'] = parameter_declarations
+        body = self._capture_start('aql', item, reference, parameters, attempt_id, _MISSING, True)
+        query = AsyncQuery(self, body, result)
+        _submission_inputs[query] = freeze(snapshot(body))
+        return query
 
     async def _start(self, body):
         context = {'submission_ref': freeze(body['submissionRef']), 'attempt_ref': freeze(body['attemptRef'])}

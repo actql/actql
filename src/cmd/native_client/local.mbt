@@ -120,7 +120,8 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
     }
     return execute_native_local_product(matches, operation)
   }
-  if operation == "adopt" ||
+  if operation == "check" ||
+    operation == "adopt" ||
     operation == "connect" ||
     operation == "upgrade-policy" ||
     operation == "lookup-policy-upgrade" ||
@@ -135,6 +136,7 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
     operation == "cancel" ||
     operation == "delivery-attempt" ||
     operation == "read" ||
+    operation == "result" ||
     operation == "start" ||
     operation == "aql" {
     return execute_native_local_adoption(matches, operation, child)
@@ -206,40 +208,6 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
     Ok(value) => value
     Err(_) => stop("LocalPreparationNotReady")
   }
-  if operation == "explain" {
-    let wire = local_static_plan_view(prepared)
-    if child.flags.get("json").unwrap_or(false) {
-      return wire
-    }
-    return "Local static Plan; no Run has been admitted.\n" + wire
-  }
-  // Only static identity is returned. No Run or Result grant is fabricated.
-  let (identity, effectful) = match prepared {
-    Computation(value) => (@run_host.prepared_client_identity(value), false)
-    EffectComputation(value) =>
-      (@run_host.prepared_client_effect_identity(value), true)
-  }
-  if !child.flags.get("json").unwrap_or(false) {
-    return "Local Program prepared; no Run has been admitted.\n" +
-      "Program: " +
-      identity.program_definition_cid +
-      "\n" +
-      "Parameters: " +
-      identity.parameter_values_cid +
-      "\n" +
-      "Effectful: " +
-      effectful.to_string()
-  }
-  encode_request_json(
-    Json::object(
-      Map([
-        ("kind", Json::string("prepared")),
-        ("mode", Json::string("local")),
-        ("programDefinitionCid", Json::string(identity.program_definition_cid)),
-        ("parameterValuesCid", Json::string(identity.parameter_values_cid)),
-        ("effectful", Json::boolean(effectful)),
-      ]),
-    ),
-    4096,
-  )
+  let wire = local_static_plan_view(prepared)
+  local_explain_reply(wire, child.flags.get("json").unwrap_or(false))
 }

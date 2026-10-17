@@ -4106,7 +4106,7 @@
     {
       "module": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fd3db0ec5923f84cccbab83232f812070500189b3cb34907b96763352dcd5710",
+      "sha256": "057db483489a22fbc4038e5e21fd2ae027efb034d650ba9e5546106b4f4017a1",
       "role": "connector-semantics",
       "owner": "GCS profile and declaration inputs; Common RowSource declaration seals catalogs/schema/capabilities",
       "exports": [
@@ -4426,7 +4426,7 @@
     {
       "module": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "21d1164da74903e0dc7e63bb811cd9fdf1e799833f5fc7359fdea92c261c776e",
+      "sha256": "aad351e41024d6445f90e4d4104a4fc9edb36561a3c0f05561160dfbb546bdf8",
       "role": "connector-semantics",
       "owner": "Installed GCS Resource/Source wiring; Common acquisition/ReferenceIssuer/authorization remain authoritative",
       "exports": [
@@ -4933,6 +4933,8 @@
         "../../../../packages/sdk/host-port.mjs",
         "../../../host-node/installed-host-cleanup.mjs",
         "../../../host-node/installed-row-source.mjs",
+        "../../../host-node/source-profile-json.mjs",
+        "../site/gcs-credential-site.mjs",
         "../site/gcs-file-listing.mjs",
         "../site/gcs-keyed-content.mjs",
         "../site/gcs-object-listing.mjs",
@@ -4940,7 +4942,6 @@
         "./gcs-source-declaration.mjs",
         "./gcs-upload-declaration.mjs",
         "node:crypto",
-        "node:fs/promises",
         "node:path"
       ],
       "compilerFields": [],
@@ -4949,7 +4950,7 @@
     {
       "module": "adapters/connectors/gcs/site/gcs-file-listing.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f61c0f731236407d346e887f93bfc19379ff1a18255a4474ad4a60ade370c0b0",
+      "sha256": "c5d9aea71f2f24f8a59fb1ed8f8ef573b384a8e1e0f75a6b1e5fe7ad005db41b",
       "role": "physical-io",
       "owner": "Scoped flat GCS listing transport; Common selector/cursor/duplicate/completion owner is not replaced",
       "exports": [
@@ -5327,7 +5328,7 @@
     {
       "module": "adapters/connectors/gcs/site/gcs-versioned-content.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c9153f2fea378c340a797ee28c86b3c3995d9b02198eb0f6c9195605ea65d5aa",
+      "sha256": "1fd7a85a0b55fcbc54ef81dc9b60c1b16f08ecb65f44be0cdcb40610dfdfc3fc",
       "role": "physical-io",
       "owner": "Exact GCS generation/metageneration bytes and checksums; original capture owns ContentRef issuance",
       "exports": [
@@ -5642,7 +5643,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4bfa9c71baffa0aa9dc44d759241ee1568d3164bdc4c57e0218d1b3a3f9c70a2",
+      "sha256": "00c4346bdf43d38c6cc3f92d304963abdb7e8273bacc5762eb6bea4170e42c6d",
       "role": "connector-semantics",
       "owner": "GitHub comment installation and Mapping/subject wiring under Common row Effect, Preview and Ledger",
       "exports": [
@@ -5972,6 +5973,10 @@
               {
                 "path": "adapters/connectors/github/test/github-comment-effect.integration.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/connector-configuration-bounds.test.mjs",
+                "anchor": "GitHub Source and Effect identity"
               }
             ]
           }
@@ -5981,7 +5986,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "55ae0545ced3a141714db6af8bb785b823a3f8559425e1da73677f141f38c93b",
+      "sha256": "a565181cb1ec181524f0968b8c17106632632b223b7fd90bd48da253f2253d5e",
       "role": "connector-semantics",
       "owner": "Published stable repository identity and installed Issue Source; Host RowSource owns capture and disclosure",
       "exports": [
@@ -6283,6 +6288,10 @@
               {
                 "path": "adapters/connectors/github/test/github-publication-cleanup.test.mjs",
                 "anchor": "GitHub publication retains its original journal after successful publication close fails"
+              },
+              {
+                "path": "adapters/host-node/connector-configuration-bounds.test.mjs",
+                "anchor": "GitHub Source and Effect identity"
               }
             ]
           }
@@ -8247,7 +8256,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "28338bda1759ffc5f0a7e87885847b1e2cd0c338747bbd0ca1dcd0a52f0ae0be",
+      "sha256": "0206537351753ffdb51636258c69ae77c96b66d5e2969d9d3ce0795329a62c07",
       "role": "connector-semantics",
       "owner": "Salesforce factory entries in the generated Host connector table, not an independent Effect runtime",
       "exports": [
@@ -8403,6 +8412,10 @@
               {
                 "path": "adapters/connectors/salesforce/test/installed-salesforce-effect.host.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/connector-configuration-bounds.test.mjs",
+                "anchor": "Salesforce Source and Effect identity"
               }
             ]
           }
@@ -8412,7 +8425,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "95a73c51369c3553bb9cb666491f727a126060ef07e6bd8e0c8551c88bbbfef0",
+      "sha256": "d93de7869b5250b37f8beb0705dcb32d15091a9c6b06dbfc3474d26d131ca1dd",
       "role": "connector-semantics",
       "owner": "Exact installed Salesforce org/Site binding with existing account gate, credential journal and release custody",
       "exports": [
@@ -8441,30 +8454,6 @@
           "async": false
         },
         {
-          "name": "handOverSiteRelease",
-          "parameters": [
-            "site",
-            "primary",
-            "errors"
-          ],
-          "async": false
-        },
-        {
-          "name": "handOverSiteRelease/earlierStatus/earlierStatus",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "handOverSiteRelease/handle/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "handOverSiteRelease/status/status",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "installedSalesforceSiteBinding",
           "parameters": [
             "site",
@@ -8481,27 +8470,6 @@
             "gateOptions"
           ],
           "async": true
-        },
-        {
-          "name": "installSalesforceAuthorization/authorization/authorization",
-          "parameters": [
-            "args"
-          ],
-          "async": true
-        },
-        {
-          "name": "installSalesforceAuthorization/authorization/authorization#2",
-          "parameters": [
-            "args"
-          ],
-          "async": true
-        },
-        {
-          "name": "installSalesforceAuthorization/own/own",
-          "parameters": [
-            "decision"
-          ],
-          "async": false
         },
         {
           "name": "loadInstalledSalesforceSite",
@@ -8673,11 +8641,6 @@
           "async": true
         },
         {
-          "name": "loadInstalledSalesforceSite/ensureOpen/ensureOpen",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "loadInstalledSalesforceSite/generate/generate",
           "parameters": [
             "observation",
@@ -8685,11 +8648,6 @@
             "resources",
             "limits"
           ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSalesforceSite/init:close/init:close",
-          "parameters": [],
           "async": false
         },
         {
@@ -8716,11 +8674,6 @@
           "parameters": [
             "declaration"
           ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSalesforceSite/loadInstalledSalesforceSite#3",
-          "parameters": [],
           "async": false
         },
         {
@@ -8819,17 +8772,6 @@
           "async": false
         },
         {
-          "name": "loadInstalledSalesforceSite/sign",
-          "parameters": [
-            "operation",
-            "runInvocationCid",
-            "taskAttempt",
-            "dispatchRequestCid",
-            "maxUses"
-          ],
-          "async": false
-        },
-        {
           "name": "loadInstalledSalesforceSite/siteBinding/siteBinding",
           "parameters": [],
           "async": false
@@ -8898,15 +8840,8 @@
             "<module>",
             "cid/cid",
             "fail/fail",
-            "handOverSiteRelease",
-            "handOverSiteRelease/earlierStatus/earlierStatus",
-            "handOverSiteRelease/handle/init:retry/init:retry",
-            "handOverSiteRelease/status/status",
             "installedSalesforceSiteBinding",
             "installSalesforceAuthorization",
-            "installSalesforceAuthorization/authorization/authorization",
-            "installSalesforceAuthorization/authorization/authorization#2",
-            "installSalesforceAuthorization/own/own",
             "loadInstalledSalesforceSite",
             "loadInstalledSalesforceSite/admitCheckpointEffectTargetRead",
             "loadInstalledSalesforceSite/admitCheckpointEffectTargetRead/admitCheckpointEffectTargetRead",
@@ -8925,13 +8860,10 @@
             "loadInstalledSalesforceSite/describeForAcquisition",
             "loadInstalledSalesforceSite/describeNamed",
             "loadInstalledSalesforceSite/describeNamed/describeNamed",
-            "loadInstalledSalesforceSite/ensureOpen/ensureOpen",
             "loadInstalledSalesforceSite/generate/generate",
-            "loadInstalledSalesforceSite/init:close/init:close",
             "loadInstalledSalesforceSite/issueGrant",
             "loadInstalledSalesforceSite/loadInstalledSalesforceSite",
             "loadInstalledSalesforceSite/loadInstalledSalesforceSite#2",
-            "loadInstalledSalesforceSite/loadInstalledSalesforceSite#3",
             "loadInstalledSalesforceSite/peek",
             "loadInstalledSalesforceSite/peek/describe/describe",
             "loadInstalledSalesforceSite/peek/result/result",
@@ -8944,7 +8876,6 @@
             "loadInstalledSalesforceSite/refreshCatalog",
             "loadInstalledSalesforceSite/restoreDeclaration",
             "loadInstalledSalesforceSite/restoreDeclaration/mismatch/mismatch",
-            "loadInstalledSalesforceSite/sign",
             "loadInstalledSalesforceSite/siteBinding/siteBinding",
             "releaseSalesforceSite",
             "retainSalesforceSiteCleanup",
@@ -8993,16 +8924,24 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
-                "anchor": "handOverSiteRelease"
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "handOverCredentialSiteRelease"
               },
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
               }
             ],
             "synchronization": [
@@ -9013,6 +8952,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
               }
             ],
             "failure": [
@@ -9023,6 +8966,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
               }
             ],
             "cancellation": [
@@ -9035,6 +8982,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "DEFAULT_SALESFORCE_CATALOG_LIMITS"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "## Installed Row Site physical custody"
               }
             ],
             "extension": [
@@ -9059,11 +9010,44 @@
               {
                 "path": "adapters/connectors/salesforce/test/installed-salesforce-site-cleanup.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/connector-configuration-bounds.test.mjs",
+                "anchor": "Salesforce Site close failure"
+              },
+              {
+                "path": "adapters/host-node/row-source-authorization-installation.test.mjs",
+                "anchor": "Salesforce compatibility installer preserves original context"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/installed-salesforce-site.test.mjs",
+                "anchor": "shared credential custody preserves every original Salesforce scope member"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/authorization-gate.mjs",
+        "../../../host-common/checkpoint-approval.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-row-source.mjs",
+        "../../../host-node/local-account-config.mjs",
+        "../../../host-node/source-profile-json.mjs",
+        "../../../site-node/sqlite-credential-journal.mjs",
+        "../site/salesforce-catalog-sync.mjs",
+        "../site/salesforce-cli-secret.mjs",
+        "../site/salesforce-effect-capability.mjs",
+        "../site/salesforce-named-describe.mjs",
+        "../site/salesforce-query-read.mjs",
+        "node:crypto",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-effect-write.mjs",
@@ -9471,7 +9455,7 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c1bcb5aff4ed979a0c6f939000a2104c8475fefbf4db4b4f9d674fd70304b8d7",
+      "sha256": "9fc0fb589969ea837ce3220585d8f94a2935d32dbf8f39b0d7280f4de2b18041",
       "role": "connector-semantics",
       "owner": "Atomic installed declaration generation and retained historical describe bytes, not current authorization",
       "exports": [
@@ -9709,6 +9693,10 @@
               {
                 "path": "adapters/connectors/salesforce/test/salesforce-resource-service.test.mjs",
                 "anchor": "a published generation is replaced whole and checked against its targets"
+              },
+              {
+                "path": "adapters/host-node/connector-configuration-bounds.test.mjs",
+                "anchor": "Salesforce publication keeps exact UTF8"
               }
             ]
           }

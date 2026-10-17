@@ -4,7 +4,7 @@ import {readFileSync, writeFileSync} from 'node:fs';
 import {execFileSync, spawnSync} from 'node:child_process';
 import {mutationAcceptance} from './check-disclosure-mutations.mjs';
 const file = 'adapters/host-node/client-check.test.mjs';
-const core = 'src/connectors_builtin_node/client_check.mbt';
+const core = 'src/client_local_preparation/client_check.mbt';
 const factsCase = 'numeric profile requirements preserve the common checking frontier';
 const protectedCase = 'protected source resolution hides numeric profile requirements';
 const targets = (name, id, operator) => ['local', 'http'].map(entrance => ({

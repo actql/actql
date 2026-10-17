@@ -190,3 +190,59 @@ test "value contract corpus: dot-after-newline" {
 test "value contract corpus: reserved-field" {
   assert_eq(error_name(@value_contract.read_author(cursor("{\"type\":\"object\",\"nullable\":false,\"fields\":{\"__actql_internal\":{\"type\":\"string\",\"nullable\":false}}}"), limits())), "InvalidFieldName")
 }
+
+///|
+test "value contract corpus: text-enum-author" {
+  let value = @value_contract.read_author(cursor("{\"type\":\"string\",\"nullable\":false,\"enum\":[\"low\",\"medium\",\"high\"]}"), limits()).unwrap()
+  assert_eq(render(value), "{\"enum\":[\"low\",\"medium\",\"high\"],\"nullable\":false,\"type\":\"string\"}")
+  let checked = @value_contract.read_checked(cursor("{\"enum\":[\"low\",\"medium\",\"high\"],\"nullable\":false,\"type\":\"string\"}"), limits()).unwrap()
+  assert_true(@value_contract.type_equal(value, checked, 1000))
+}
+
+///|
+test "value contract corpus: text-enum-empty" {
+  let value = @value_contract.read_checked(cursor("{\"type\":\"string\",\"nullable\":false,\"enum\":[]}"), limits()).unwrap()
+  assert_eq(render(value), "{\"enum\":[],\"nullable\":false,\"type\":\"string\"}")
+  let checked = @value_contract.read_checked(cursor("{\"enum\":[],\"nullable\":false,\"type\":\"string\"}"), limits()).unwrap()
+  assert_true(@value_contract.type_equal(value, checked, 1000))
+}
+
+///|
+test "value contract corpus: text-enum-nullable-empty" {
+  let value = @value_contract.read_author(cursor("{\"type\":\"string\",\"nullable\":true,\"enum\":[]}"), limits()).unwrap()
+  assert_eq(render(value), "{\"enum\":[],\"nullable\":true,\"type\":\"string\"}")
+  let checked = @value_contract.read_checked(cursor("{\"enum\":[],\"nullable\":true,\"type\":\"string\"}"), limits()).unwrap()
+  assert_true(@value_contract.type_equal(value, checked, 1000))
+}
+
+///|
+test "value contract corpus: text-enum-repetitions-and-order" {
+  let value = @value_contract.read_author(cursor("{\"type\":\"string\",\"nullable\":false,\"enum\":[\"high\",\"low\",\"high\"]}"), limits()).unwrap()
+  assert_eq(render(value), "{\"enum\":[\"high\",\"low\",\"high\"],\"nullable\":false,\"type\":\"string\"}")
+  let checked = @value_contract.read_checked(cursor("{\"enum\":[\"high\",\"low\",\"high\"],\"nullable\":false,\"type\":\"string\"}"), limits()).unwrap()
+  assert_true(@value_contract.type_equal(value, checked, 1000))
+}
+
+///|
+test "value contract corpus: text-enum-unicode-exact" {
+  let value = @value_contract.read_author(cursor("{\"type\":\"string\",\"nullable\":false,\"enum\":[\"\u{e9}\",\"e\u{301}\",\"\u{1f600}\"]}"), limits()).unwrap()
+  assert_eq(render(value), "{\"enum\":[\"\u{e9}\",\"e\u{301}\",\"\u{1f600}\"],\"nullable\":false,\"type\":\"string\"}")
+  let checked = @value_contract.read_checked(cursor("{\"enum\":[\"\u{e9}\",\"e\u{301}\",\"\u{1f600}\"],\"nullable\":false,\"type\":\"string\"}"), limits()).unwrap()
+  assert_true(@value_contract.type_equal(value, checked, 1000))
+}
+
+///|
+test "value contract corpus: text-enum-extent-intersection" {
+  let value = @value_contract.read_checked(cursor("{\"type\":\"string\",\"nullable\":false,\"enum\":[\"x\",\"large\"],\"max_codepoints\":1}"), limits()).unwrap()
+  assert_eq(render(value), "{\"enum\":[\"x\",\"large\"],\"max_codepoints\":1,\"nullable\":false,\"type\":\"string\"}")
+  let checked = @value_contract.read_checked(cursor("{\"enum\":[\"x\",\"large\"],\"max_codepoints\":1,\"nullable\":false,\"type\":\"string\"}"), limits()).unwrap()
+  assert_true(@value_contract.type_equal(value, checked, 1000))
+}
+
+///|
+test "value contract corpus: text-enum-array" {
+  let value = @value_contract.read_author(cursor("{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"string\",\"nullable\":true,\"enum\":[\"high\"]}}"), limits()).unwrap()
+  assert_eq(render(value), "{\"items\":{\"enum\":[\"high\"],\"nullable\":true,\"type\":\"string\"},\"nullable\":false,\"type\":\"array\"}")
+  let checked = @value_contract.read_checked(cursor("{\"items\":{\"enum\":[\"high\"],\"nullable\":true,\"type\":\"string\"},\"nullable\":false,\"type\":\"array\"}"), limits()).unwrap()
+  assert_true(@value_contract.type_equal(value, checked, 1000))
+}

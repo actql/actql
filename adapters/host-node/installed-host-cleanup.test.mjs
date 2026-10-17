@@ -142,10 +142,14 @@ for (const phase of ['schema', 'prepare']) {
         failure = error;
         assert.equal(error.code, 'InstalledHostInitializationFailed');
         assert.equal(error.primaryFailure, fault.primary);
-        assert.equal(error.cause.cause, fault.primary);
+        assert.equal(error.cause.code, 'InstalledHostInitializationFailed');
+        assert.equal(error.cause.primaryFailure, fault.primary);
+        assert.equal(error.cause.cause.code, 'SqliteJournalInitializationCleanupPending');
+        assert.equal(error.cause.cause.primaryFailure, fault.primary);
+        assert.equal(error.cause.cause.cause, fault.primary);
         assert.equal(error.cleanupPending, true);
         assert.ok(error.cleanupErrors.some(item => item.error === fault.cleanup));
-        assert.deepEqual(error.cleanupHandle.status().owners, ['initialization']);
+        assert.deepEqual(error.cleanupHandle.status().owners, ['initialization', 'runtime']);
         return true;
       });
       assert.equal(fault.calls.close, 2);
@@ -750,10 +754,11 @@ for (const kind of ['frozen', 'undefined']) {
           assert.equal(Object.hasOwn(error, 'primaryFailure'), true);
           assert.equal(error.primaryFailure, primary);
           assert.equal(error.cleanupPending, true);
-          // Diagnostic delivery is a real child of this installed Host and
-          // remains owned until Checkpoint shutdown has completed.
+          // Diagnostic delivery and final runtime retirement remain owned
+          // until the original Checkpoint and resource shutdown acknowledge.
           assert.deepEqual(error.cleanupHandle.status().pending,
-            ['checkpoint', 'journal', 'source', 'effect', 'store', 'diagnostic']);
+            ['checkpoint', 'journal', 'source', 'effect', 'store', 'diagnostic',
+              'finalize']);
           return true;
         });
         await failure.cleanupHandle.retry();
