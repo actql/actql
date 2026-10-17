@@ -21,6 +21,7 @@ import {connect, getSubmissionOutcome} from '../../../../packages/sdk/index.mjs'
 import {openInstalledRemoteHttpHost, publishInstalledEffect} from
   '../../../host-node/embedded-local.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
+import {splitSourceAliasProfile} from '../../../host-node/source-alias-publication.mjs';
 import {INSTALLED_SALESFORCE_SITE_VERSION} from
   '../host/installed-salesforce-site.mjs';
 import {INSTALLED_SALESFORCE_SOURCE_VERSION, loadInstalledSalesforceSource,
@@ -165,17 +166,28 @@ async function installation(t, {readable = ['Test_Record__c'],
       connectorId: 'crm-other', resources: ['Other_Record__c']}));
   }
   const hostRoot = join(root, 'state');
+  const publishAliases = async (value, path, published) => {
+    // Visible aliases are explicit trusted installation metadata projected
+    // from this same original publication, never guessed from a Program.
+    value.queryAliases = published.declared.views.map(view => ({
+      name: `${value.connectorId}.${view.resource}`, sourceRef: view.source_ref,
+      sourceViewContractCid: view.view_cid, schemaContractCid: view.carrier_schema_cid,
+    }));
+    await writeFile(path, JSON.stringify(value));
+  };
   const publish = async () => {
-    const first = await publishInstalledSalesforceSource(profile, {
+    const first = await publishInstalledSalesforceSource(splitSourceAliasProfile(profile).providerProfile, {
       root: hostRoot, principalId: owner, moon: commonMoon,
       providerMoon: salesforceMoon,
       runtimeBundleCid, resolveSecret: secret});
+    await publishAliases(profile, profilePath, first);
     if (secondInstallation) {
       const second = JSON.parse(await readFile(secondProfilePath, 'utf8'));
-      await publishInstalledSalesforceSource(second, {
+      const publishedSecond = await publishInstalledSalesforceSource(splitSourceAliasProfile(second).providerProfile, {
         root: hostRoot, principalId: owner, moon: commonMoon,
         providerMoon: salesforceMoon,
         runtimeBundleCid, resolveSecret: secret});
+      await publishAliases(second, secondProfilePath, publishedSecond);
     }
     return first;
   };
@@ -213,6 +225,34 @@ async function installation(t, {readable = ['Test_Record__c'],
   return {org, root, profile, profilePath, sitePath, siteDocument, publish,
     open, queries, connection: `salesforce:${org.orgId}`};
 }
+
+test('published Salesforce original views explicitly supply visible query aliases for Check', async t => {
+  const setup = await installation(t, {numberFields: true});
+  const publication = await setup.publish();
+  const profile = JSON.parse(await readFile(setup.profilePath, 'utf8'));
+  assert.deepEqual(profile.queryAliases.map(alias => [alias.sourceRef,
+    alias.sourceViewContractCid, alias.schemaContractCid]),
+  publication.declared.views.map(view => [view.source_ref, view.view_cid, view.carrier_schema_cid]));
+  const {client} = await setup.open();
+  const before = setup.org.seen.length;
+  const checked = await client.check(JSON.parse(numberProgram), {kind: 'program', scope: 'bound_input'});
+  assert.equal(checked.report.verdict, 'verified');
+  assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+  assert.equal(setup.org.seen.length, before);
+  assert.equal(setup.queries().length, 0);
+});
+
+test('a Salesforce publication without explicit visible aliases remains protected at Check', async t => {
+  const setup = await installation(t, {numberFields: true});
+  await setup.publish();
+  await writeFile(setup.profilePath, JSON.stringify({...setup.profile, queryAliases: []}));
+  const {client} = await setup.open();
+  const before = setup.org.seen.length;
+  const checked = await client.check(JSON.parse(numberProgram), {kind: 'program', scope: 'bound_input'});
+  assert.equal(checked.report.verdict, 'unresolved_protected');
+  assert.equal(setup.org.seen.length, before);
+  assert.equal(setup.queries().length, 0);
+});
 
 test('public Client reads a published Salesforce source to a Named Result',
   async t => {
