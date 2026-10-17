@@ -323,12 +323,12 @@ test "multi-select expanded Array limits cover each row and target observation" 
 test "multi-select approved values do not escape the original body byte node or depth bounds" {
   let plan = choices_write()
   let bytes = @utf8.encode("{\"Choices__c\":[\"東京\",\"a\"]}")
-  for
-    limits in [
-      { max_bytes: 4, max_nodes: 100, max_depth: 5, },
-      { max_bytes: 4096, max_nodes: 3, max_depth: 5, },
-      { max_bytes: 4096, max_nodes: 100, max_depth: 1, },
-    ] {
+  let cases : Array[WriteBodyLimits] = [
+    { max_bytes: 4, max_nodes: 100, max_depth: 5, },
+    { max_bytes: 4096, max_nodes: 3, max_depth: 5, },
+    { max_bytes: 4096, max_nodes: 100, max_depth: 1, },
+  ]
+  for limits in cases {
     assert_true(prepare_write_body(plan, bytes, limits) is Err(BudgetExceeded))
   }
 }
