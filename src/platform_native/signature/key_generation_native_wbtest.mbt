@@ -43,7 +43,7 @@ test "generated PEM has the exact Ed25519 RFC 8410 structures without logging se
   // output. The independent prefixes are RFC 8410, not product-derived values.
   assert_true(private_key.length() == 119)
   assert_true(public_key.length() == 113)
-  let private_text = @utf8.decode(private_key).unwrap()
+  let private_text = @utf8.decode(private_key)
   let private_lines = private_text.split("\n").to_array()
   let public_lines = public_key.split("\n").to_array()
   assert_true(private_lines.length() == 4 && public_lines.length() == 4)
