@@ -66,7 +66,11 @@ fn record_lookup_field_token(code : String) -> Bool {
     return false
   }
   for unit in code {
-    if unit <= ' ' || unit == '\u007f' || unit == '\u3000' {
+    if unit <= ' ' || unit == '\u007f' || unit == '\u0085' ||
+      unit == '\u00a0' || unit == '\u1680' ||
+      (unit >= '\u2000' && unit <= '\u200a') ||
+      unit == '\u2028' || unit == '\u2029' || unit == '\u202f' ||
+      unit == '\u205f' || unit == '\u3000' {
       return false
     }
     if unit < '\u0080' &&
@@ -138,7 +142,7 @@ pub fn prepare_record_text_key_lookup(
   }
   // Provider query escaping and JSON escaping are separate layers. Only the
   // exact original value is matched; no guessed case/Unicode normalization.
-  let literal = value.replace(old="\\", new="\\\\").replace(
+  let literal = value.replace_all(old="\\", new="\\\\").replace_all(
     old="\"",
     new="\\\"",
   )

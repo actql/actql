@@ -90,6 +90,13 @@ test "unique Text lookup pins exact original value with separate query and JSON 
   ).unwrap()
   assert_true(record_lookup_request_body(request).contains("顧客_Ａ·コード"))
   assert_eq(request.value, "é")
+  let request = lookup_test_request(value="\\\\\"\"")
+  assert_eq(
+    record_lookup_request_body(request),
+    (
+      #|{"app":"12","fields":["$id","$revision","memo","customer_code"],"query":"customer_code = \"\\\\\\\\\\\"\\\"\" limit 2","totalCount":true}
+    ),
+  )
 }
 
 ///|
@@ -241,12 +248,12 @@ test "positive byte column comparison request and page bounds refuse without par
 
 ///|
 test "query field-code syntax is neither caller query text nor a normalized alias" {
-  for code in ["key or other", "key=other", "key\"", "key\\", "key\n", "key\u3000other", "1key"] {
+  for code in ["key or other", "key=other", "key\"", "key\\", "key\n", "key\u3000other", "key\u2028other", "key\u00a0other", "1key"] {
     let original = form_test_catalog()
     let field = original.fields[0]
     // Whitebox adversarial original metadata exercises the interpolation
     // fence without inventing a public Catalog constructor.
-    let catalog : FormFieldCatalog = { ..original, fields: [{ ..field, code, }], }
+    let catalog : FormFieldCatalog = { ..original, fields: [{ ..field, code, path: [code], }], }
     assert_true(prepare_record_text_key_lookup(catalog, code, "a", [], lookup_test_limits()) is Err(InvalidKey))
   }
 }
