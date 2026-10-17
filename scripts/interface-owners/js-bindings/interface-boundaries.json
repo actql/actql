@@ -15618,7 +15618,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "f73abdd901b99690fdc0a3a516d0aa14b0a21b67ac75b087c51d5628e4b71dc3",
+      "sha256": "8507967a97c7e21b24451f6e19e700c817b132a0e026f469a6412df8da8d1b89",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -20436,6 +20436,13 @@
           "async": false
         },
         {
+          "name": "remoteCredentialControl/remoteCredentialControl#10",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
           "name": "remoteCredentialControl/remoteCredentialControl#2",
           "parameters": [
             "grant"
@@ -20477,6 +20484,20 @@
           "name": "remoteCredentialControl/remoteCredentialControl#7",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "remoteCredentialControl/remoteCredentialControl#8",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "remoteCredentialControl/remoteCredentialControl#9",
+          "parameters": [
+            "args"
           ],
           "async": false
         },
@@ -23585,12 +23606,15 @@
             "remoteCredentialControl/init:authorizeUse/init:authorizeUse",
             "remoteCredentialControl/init:prepareUse/init:prepareUse",
             "remoteCredentialControl/remoteCredentialControl",
+            "remoteCredentialControl/remoteCredentialControl#10",
             "remoteCredentialControl/remoteCredentialControl#2",
             "remoteCredentialControl/remoteCredentialControl#3",
             "remoteCredentialControl/remoteCredentialControl#4",
             "remoteCredentialControl/remoteCredentialControl#5",
             "remoteCredentialControl/remoteCredentialControl#6",
-            "remoteCredentialControl/remoteCredentialControl#7"
+            "remoteCredentialControl/remoteCredentialControl#7",
+            "remoteCredentialControl/remoteCredentialControl#8",
+            "remoteCredentialControl/remoteCredentialControl#9"
           ],
           "exports": [],
           "attributes": {
@@ -23602,6 +23626,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "### Original authentication dependencies"
               }
             ],
             "inputsOutputs": [
@@ -23612,6 +23640,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "src/remote_credential/authentication.mbt",
+                "anchor": "pub fn[Material] prepare_credential_authentication_request("
               }
             ],
             "identity": [
@@ -23622,6 +23654,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "src/remote_credential/authentication.mbt",
+                "anchor": "!physical_equal(request.parent, parent)"
               }
             ],
             "ownership": [
@@ -23632,6 +23668,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The installed\nCredential supplier must admit the real material"
               }
             ],
             "synchronization": [
@@ -23642,6 +23682,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "src/remote_credential/authentication.mbt",
+                "anchor": "after\n/// awaits."
               }
             ],
             "failure": [
@@ -23652,6 +23696,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-common/remote-credential-control.test.mjs",
+                "anchor": "actual authentication bridge rejects equal-data original substitution"
               }
             ],
             "cancellation": [
@@ -23662,6 +23710,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "An uncertain auth\nresponse retains the original use"
               }
             ],
             "resources": [
@@ -23672,6 +23724,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The pair adds two retained records"
               }
             ],
             "extension": [
@@ -23682,6 +23738,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Canonical grant/use bodies and their initial identities are\nunchanged."
               }
             ],
             "verification": [
@@ -23696,6 +23756,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-common/remote-credential-control.test.mjs",
+                "anchor": "actual authentication bridge refuses changed body expiry and pre-hash limits"
+              },
+              {
+                "path": "src/remote_credential/authentication_wbtest.mbt",
+                "anchor": "authentication rejects every foreign parent scope and grant retarget"
               }
             ]
           }
@@ -24806,7 +24874,16 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../packages/client-wire/index.mjs",
+        "./compiler-binding.generated.mjs",
+        "./publication-action.mjs",
+        "./result-output-limits.mjs",
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",

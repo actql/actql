@@ -2503,6 +2503,12 @@ pub fn strategy_check_effect_member_receipt_row_partition_evidence(@run_publicat
 
 pub fn strategy_committed_publication_finalization_action(@run_publication.PublicationContract?) -> Int
 
+pub fn strategy_credential_authentication_operation_check(@remote_credential.CredentialAuthenticationOperation[OriginalCredentialAuthenticationMaterial], @remote_credential.CredentialAuthenticationRequest[OriginalCredentialAuthenticationMaterial], @remote_credential.RemoteCredentialUse, @remote_credential.RemoteCredentialUse, OriginalCredentialAuthenticationMaterial, String, String, String, Bytes, Int64) -> Unit raise NodeHostFailure
+
+pub fn strategy_credential_authentication_request(@remote_credential.RemoteCredentialUse, @remote_credential.RemoteCredentialGrant, OriginalCredentialAuthenticationMaterial, String, String, String, Bytes, Int, Int64) -> @remote_credential.CredentialAuthenticationRequest[OriginalCredentialAuthenticationMaterial] raise NodeHostFailure
+
+pub fn strategy_credential_authentication_use_bind(@remote_credential.CredentialAuthenticationRequest[OriginalCredentialAuthenticationMaterial], @remote_credential.RemoteCredentialUse, @remote_credential.RemoteCredentialUse, OriginalCredentialAuthenticationMaterial, String, String, String, Bytes, Int64) -> @remote_credential.CredentialAuthenticationOperation[OriginalCredentialAuthenticationMaterial] raise NodeHostFailure
+
 pub fn strategy_delivery_failure_terminal_action(Bool) -> Int
 
 pub fn strategy_delivery_record_retry_action(Int, Int) -> Int
@@ -4102,6 +4108,8 @@ pub(all) enum ClientSourcePreparationIssue {
   Frontend(@source_frontend.Issue)
   ArrayProfile(@source_frontend.ArrayProfileIssue)
 }
+
+type OriginalCredentialAuthenticationMaterial
 
 type OriginalModelJournalReference
 

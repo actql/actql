@@ -1611,6 +1611,15 @@ function remoteCredentialControl(moon) {
       ));
     },
     useProjection: moon.strategyRemoteCredentialUseProjection,
+    prepareAuthenticationRequest: (...args) => checked(
+      moon.strategyCredentialAuthenticationRequest(...args),
+    ),
+    bindAuthenticationUse: (...args) => checked(
+      moon.strategyCredentialAuthenticationUseBind(...args),
+    ),
+    checkAuthenticationOperation: (...args) => checked(
+      moon.strategyCredentialAuthenticationOperationCheck(...args),
+    ),
   });
   remoteCredentialControls.set(moon, control);
   return control;
