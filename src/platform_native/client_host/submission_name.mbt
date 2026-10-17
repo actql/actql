@@ -37,10 +37,18 @@ fn initialize_native_client_submitted_names(
       Err(issue) => return Err(Physical(issue))
     }
   }
-  database
-  .insert("client_submission_name_custody", "issued", b"0")
-  .map(_ => ())
-  .map_err(issue => Physical(issue))
+  match database.insert("client_submission_name_custody", "issued", b"0") {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  match database.insert("client_submission_name_custody", "retained", b"0") {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  if !submission_name_install_ffi(database) {
+    return Err(CustodyLost)
+  }
+  Ok(())
 }
 
 ///|
@@ -88,46 +96,10 @@ fn NativeClientRunJournal::submitted_name_custody(
   self : NativeClientRunJournal,
   authority : NativeClientEpochAuthority,
 ) -> Result[(Int, Int64), NativeClientRunJournalIssue] {
-  let custody = match
-    self.database.scan_after("client_submission_name_custody", "") {
-    Ok(row) if row.key == "issued" => row
-    Err(@sqlite.NotFound) => return Err(NamedSubmission(OriginalUnavailable))
-    Err(issue) => return Err(Physical(issue))
-    _ => return Err(CustodyLost)
+  if !physical_equal(self.database, authority.database) {
+    return Err(InvalidSubmission)
   }
-  match self.database.scan_after("client_submission_name_custody", "issued") {
-    Err(@sqlite.NotFound) => ()
-    Err(issue) => return Err(Physical(issue))
-    _ => return Err(CustodyLost)
-  }
-  let count = match
-    @host.client_journal_issuance_count(custody.body, self.max_records) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
-  }
-  let mut cursor = ""
-  let mut observed = 0
-  while true {
-    let row = match
-      self.database.scan_after("client_submission_names", cursor) {
-      Ok(value) => value
-      Err(@sqlite.NotFound) => break
-      Err(issue) => return Err(Physical(issue))
-    }
-    observed = observed + 1
-    if observed > count {
-      return Err(CustodyLost)
-    }
-    match self.authenticated_name_row(authority, row.key, row.body) {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
-    }
-    cursor = row.key
-  }
-  if observed != count {
-    return Err(CustodyLost)
-  }
-  Ok((count, custody.revision))
+  self.submitted_name_control()
 }
 
 ///|

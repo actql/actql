@@ -9,7 +9,9 @@ fn named_test_setup(
   NativeClientSubmissionReference,
 ) {
   let setup = submitted_test_setup(name, max_records~)
+  setup.0.begin_immediate().unwrap()
   initialize_native_client_submitted_names(setup.0).unwrap()
+  setup.0.commit().unwrap()
   setup
 }
 
@@ -492,5 +494,261 @@ test "Native named current deny and foreign physical authority leave original ro
   assert_eq(journal.submitted_intent_custody().unwrap().0, 0)
   assert_eq(journal.submitted_name_custody(authority).unwrap().0, 0)
   other.close_checked().unwrap()
+  database.close_checked().unwrap()
+}
+
+///|
+#borrow(database)
+extern "C" fn named_test_scan_refusal(
+  database : @sqlite.Database,
+  refuse : Bool,
+) -> Unit = "actql_native_client_test_submission_name_scan_refusal"
+
+///|
+#borrow(database)
+extern "C" fn named_test_drop_trigger(database : @sqlite.Database) -> Bool = "actql_native_client_test_submission_name_drop_trigger"
+
+///|
+#borrow(database)
+extern "C" fn named_test_replace_trigger(database : @sqlite.Database) -> Bool = "actql_native_client_test_submission_name_replace_trigger"
+
+///|
+test "Native ordinary named lookup has no name-wide scan while startup retains the full audit" {
+  let (database, journal, authority, reference) = named_test_setup(
+    "named-exact-no-scan",
+  )
+  let scope = "sha256:" + "a".repeat(64)
+  let intent = submitted_test_intent("SELECT 1 AS n")
+  journal
+  .resolve_or_bind_submitted_name(
+    authority,
+    "workspace",
+    "actor",
+    "name",
+    intent,
+    Some(reference),
+    scope,
+    true,
+    1001.0,
+  )
+  .unwrap()
+  |> ignore
+  named_test_scan_refusal(database, true)
+  // This exact physical port now refuses ANY scan_after of the names namespace.
+  assert_true(database.scan_after("client_submission_names", "") is Err(_))
+  assert_true(
+    journal.resolve_or_bind_submitted_name(
+      authority,
+      "workspace",
+      "actor",
+      "name",
+      intent,
+      None,
+      scope,
+      true,
+      1002.0,
+    )
+    is Ok(NamedSubmission(false, _)),
+  )
+  assert_true(
+    journal.transaction(() => journal.audit_submitted_names(authority))
+    is Err(Physical(_)),
+  )
+  named_test_scan_refusal(database, false)
+  journal.transaction(() => journal.audit_submitted_names(authority)).unwrap()
+  database.close_checked().unwrap()
+}
+
+///|
+test "Native named trigger or closed-control corruption refuses without repair" {
+  for kind in 0..<4 {
+    let (database, journal, authority, reference) = named_test_setup(
+      "named-trigger-corrupt-" + kind.to_string(),
+    )
+    let scope = "sha256:" + "a".repeat(64)
+    let intent = submitted_test_intent("SELECT 1 AS n")
+    journal
+    .resolve_or_bind_submitted_name(
+      authority,
+      "workspace",
+      "actor",
+      "name",
+      intent,
+      Some(reference),
+      scope,
+      true,
+      1001.0,
+    )
+    .unwrap()
+    |> ignore
+    if kind == 0 {
+      assert_true(named_test_drop_trigger(database))
+    } else if kind == 1 {
+      assert_true(named_test_replace_trigger(database))
+    } else if kind == 2 {
+      let ns = b"client_submission_name_custody"
+      let key = b"retained"
+      assert_true(
+        submitted_test_remove_record(
+          database,
+          ns,
+          ns.length(),
+          key,
+          key.length(),
+        ),
+      )
+    } else {
+      database
+      .insert("client_submission_name_custody", "unknown", b"1")
+      .unwrap()
+      |> ignore
+    }
+    assert_true(
+      journal.resolve_or_bind_submitted_name(
+        authority,
+        "workspace",
+        "actor",
+        "name",
+        intent,
+        None,
+        scope,
+        true,
+        1002.0,
+      )
+      is Err(CustodyLost),
+    )
+    assert_true(
+      journal.transaction(() => journal.audit_submitted_names(authority))
+      is Err(CustodyLost),
+    )
+    database.close_checked().unwrap()
+  }
+}
+
+///|
+test "Native named startup compares actual indexed census with retained and issued controls" {
+  let (database, journal, authority, reference) = named_test_setup(
+    "named-startup-census",
+  )
+  let scope = "sha256:" + "a".repeat(64)
+  journal
+  .resolve_or_bind_submitted_name(
+    authority,
+    "workspace",
+    "actor",
+    "name",
+    submitted_test_intent("SELECT 1 AS n"),
+    Some(reference),
+    scope,
+    true,
+    1001.0,
+  )
+  .unwrap()
+  |> ignore
+  for key in ["issued", "retained"] {
+    let original = database.read("client_submission_name_custody", key).unwrap()
+    database
+    .compare_exchange(
+      "client_submission_name_custody",
+      key,
+      original.revision,
+      b"0",
+    )
+    .unwrap()
+    |> ignore
+  }
+  assert_eq(journal.submitted_name_control().unwrap().0, 0)
+  assert_true(
+    journal.transaction(() => journal.audit_submitted_names(authority))
+    is Err(CustodyLost),
+  )
+  assert_true(database.scan_after("client_submission_names", "") is Ok(_))
+  database.close_checked().unwrap()
+}
+
+///|
+test "Native named retained trigger update rolls back with the exact original row" {
+  let (database, journal, authority, reference) = named_test_setup(
+    "named-trigger-rollback",
+  )
+  let scope = "sha256:" + "a".repeat(64)
+  journal
+  .resolve_or_bind_submitted_name(
+    authority,
+    "workspace",
+    "actor",
+    "name",
+    submitted_test_intent("SELECT 1 AS n"),
+    Some(reference),
+    scope,
+    true,
+    1001.0,
+  )
+  .unwrap()
+  |> ignore
+  let original = database.scan_after("client_submission_names", "").unwrap()
+  database.begin_immediate().unwrap()
+  database
+  .remove_exact(
+    "client_submission_names",
+    original.key,
+    original.revision,
+    original.body,
+  )
+  .unwrap()
+  assert_eq(
+    database.read("client_submission_name_custody", "retained").unwrap().body,
+    b"0",
+  )
+  assert_eq(
+    database.read("client_submission_name_custody", "issued").unwrap().body,
+    b"1",
+  )
+  database.rollback().unwrap()
+  assert_eq(
+    database.read("client_submission_names", original.key).unwrap().body,
+    original.body,
+  )
+  journal.transaction(() => journal.audit_submitted_names(authority)).unwrap()
+  assert_eq(journal.submitted_name_control().unwrap().0, 1)
+  database.close_checked().unwrap()
+}
+
+///|
+test "Native legacy issued-only name extension cannot initialize or replace missing trigger originals" {
+  let (database, journal, authority, reference) = submitted_test_setup(
+    "named-issued-only",
+  )
+  database.insert("client_submission_name_custody", "issued", b"0").unwrap()
+  |> ignore
+  let scope = "sha256:" + "a".repeat(64)
+  assert_true(
+    journal.resolve_or_bind_submitted_name(
+      authority,
+      "workspace",
+      "actor",
+      "name",
+      submitted_test_intent("SELECT 1 AS n"),
+      Some(reference),
+      scope,
+      true,
+      1001.0,
+    )
+    is Err(CustodyLost),
+  )
+  assert_true(
+    journal.transaction(() => journal.inspect_submitted_name_startup(authority))
+    is Err(CustodyLost),
+  )
+  database.begin_immediate().unwrap()
+  assert_true(
+    initialize_native_client_submitted_names(database) is Err(CustodyLost),
+  )
+  database.rollback().unwrap()
+  assert_true(
+    database.read("client_submission_name_custody", "retained")
+    is Err(@sqlite.NotFound),
+  )
+  assert_eq(submission_name_schema_ffi(database), 0)
   database.close_checked().unwrap()
 }

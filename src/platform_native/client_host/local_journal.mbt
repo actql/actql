@@ -282,6 +282,13 @@ fn NativeLocalAdoptionSession::bind_journal(
     Ok(_) => ()
     Err(issue) => return Err(Journal(issue))
   }
+  // Keep the inherited Run/Policy custody transaction. Only the new name
+  // extension's full census/HMAC scan belongs here at startup, not each lookup.
+  match
+    journal.transaction(() => journal.inspect_submitted_name_startup(epoch)) {
+    Ok(_) => ()
+    Err(issue) => return Err(Journal(issue))
+  }
   match self.check_original() {
     Ok(_) => ()
     Err(issue) => return Err(issue)
