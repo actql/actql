@@ -379,7 +379,8 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       // The original name and intent are already committed before preparation.
       // Another connection may only observe this original, never replay it or
       // replace its epoch because its first outcome is still preparing/unknown.
-      const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission(bound);
+      const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission({
+        principalId: value.principalId, connection: value.connection, submissionRef: retained.submissionRef});
       const current = await authorize(value);
       if (current.authorityScopeCid !== fields.authorityScopeCid ||
           current.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');

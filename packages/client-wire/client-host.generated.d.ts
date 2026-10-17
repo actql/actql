@@ -866,6 +866,18 @@ export type WireNamedSubmissionAttemptShape = Readonly<{
   nonce: string;
 }>;
   intentCid: string;
+  checkObservation?: (WireCheckOutcomeShape) & (Readonly<{
+  report?: Readonly<{
+  scope?: Readonly<{
+  kind?: "bound_input";
+}>;
+}>;
+  partial_report?: Readonly<{
+  scope?: Readonly<{
+  kind?: "bound_input";
+}>;
+}>;
+}>);
   problem: Readonly<{
   code: string;
   classification: "invalid_input" | "requirements" | "implementation_limit" | "authorization" | "operation_failed";
@@ -898,6 +910,18 @@ export type WireNamedSubmissionAttemptShape = Readonly<{
   nonce: string;
 }>;
   intentCid: string;
+  checkObservation?: (WireCheckOutcomeShape) & (Readonly<{
+  report?: Readonly<{
+  scope?: Readonly<{
+  kind?: "bound_input";
+}>;
+}>;
+  partial_report?: Readonly<{
+  scope?: Readonly<{
+  kind?: "bound_input";
+}>;
+}>;
+}>);
   problem: Readonly<{
   code: string;
   classification: "invalid_input" | "requirements" | "implementation_limit" | "authorization" | "operation_failed";

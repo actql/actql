@@ -216,8 +216,9 @@ export function validNamedSubmissionAttempt(value, selected, name, candidate, in
   const original = value.outcome.submissionRef;
   return validSubmissionRef(original) &&
     original.epoch.authorityScopeCid === candidate.epoch.authorityScopeCid &&
-    validSubmissionLookup(value.outcome, selected, original) &&
-    (value.outcome.kind === 'unresolvable' || value.outcome.intentCid === intentCid);
+    (value.outcome.kind === 'unresolvable'
+      ? validSubmissionLookup(value.outcome, selected, original)
+      : validSubmissionOutcome(value.outcome, selected, original, intentCid));
 }
 
 // This is one existing Engine-owned Run-state component. The public Client

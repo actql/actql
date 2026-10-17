@@ -4447,6 +4447,44 @@ const schemas = {
                     "type": "string",
                     "pattern": "^sha256:[0-9a-f]{64}$"
                   },
+                  "checkObservation": {
+                    "allOf": [
+                      {
+                        "$ref": "check_outcome"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "report": {
+                            "type": "object",
+                            "properties": {
+                              "scope": {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "const": "bound_input"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "partial_report": {
+                            "type": "object",
+                            "properties": {
+                              "scope": {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "const": "bound_input"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
                   "problem": {
                     "type": "object",
                     "required": [
@@ -4613,6 +4651,44 @@ const schemas = {
                   "intentCid": {
                     "type": "string",
                     "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "checkObservation": {
+                    "allOf": [
+                      {
+                        "$ref": "check_outcome"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "report": {
+                            "type": "object",
+                            "properties": {
+                              "scope": {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "const": "bound_input"
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "partial_report": {
+                            "type": "object",
+                            "properties": {
+                              "scope": {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "const": "bound_input"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
                   },
                   "problem": {
                     "type": "object",
