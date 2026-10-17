@@ -2341,3 +2341,20 @@ backing FD and process-lifetime Runtime remain separately owned. Deadline,
 partial response, failed spawn or uncertain cleanup retains the same parent
 and process carrier; transport never substitutes PID absence, relaunches the
 compiler, closes borrowed pipe FDs directly or manufactures a cleanup result.
+
+The ordinary image producer can prepare that C executable independently of
+executing it. This preparation uses the same exact original module receipt,
+private two-library staging, binding/license/target checks and Engine Owner
+configuration projection. The C API header closure is fixed to the selected
+upstream/default-feature output, including its generated configuration; extra
+headers, precompiled replacements and symlinks refuse. Compilation uses a
+closed tool environment, records actual MD dependencies and original link
+inputs, and checks the complete generated module ABI projection before linking.
+No Config, Engine, native initializer or compiler child runs during this step.
+
+The executable receipt remains correspondence DATA. Its caller must retain the
+original prepared files and recheck the same module, recipe, toolchain, header,
+object, executable and library bytes before execution through the original
+funded parent. This preparation neither admits arbitrary user executables nor
+supplies normal resources or the stronger same-module physical acceptance
+required by the final producer and loader.

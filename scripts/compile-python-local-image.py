@@ -814,6 +814,46 @@ def compile_image(core_receipt: Path, expected_source: str, destination: Path, *
     return result
 
 
+def prepare_compiler_executable(core_receipt: Path, expected_source: str,
+                                destination: Path, *, bindings_source: Path | None,
+                                native_libraries: Path | None, preparation: Path | None,
+                                c_api_headers: Path | None, clang: Path | None,
+                                sdk: Path | None, seconds: float) -> dict[str, object]:
+    """Ordinary producer preparation, with no native import or compiler child.
+
+    This shares the exact original module, private binding/library staging,
+    Engine configuration and generated ABI paths with image production. No
+    physical acceptance receipt or invented LocalComponents is needed to
+    compile the producer's own executable. Actual execution still needs the
+    original Native parent/domain and its selected physical backing.
+    """
+    from python_compiler_program import prepare_program, verify_program
+
+    original = verify(core_receipt, expected_source)
+    if any(value is None for value in (bindings_source, native_libraries, preparation,
+                                       c_api_headers, clang, sdk)):
+        raise ValueError('Select original compiler binding/library/header/toolchain inputs')
+    assert bindings_source is not None and native_libraries is not None and preparation is not None
+    assert c_api_headers is not None and clang is not None and sdk is not None
+    prepared = prepare_compiler_runtime(original, bindings_source, native_libraries, preparation)
+    selected = _runtime_original(original, prepared)
+    program = prepare_program(selected, headers=c_api_headers, clang=clang, sdk=sdk,
+                              destination=destination, seconds=seconds)
+    final = _runtime_original(verify(core_receipt, expected_source), prepared)
+    if final['recipe'] != original['recipe']:
+        raise ValueError('Original compiler preparation changed')
+    verify_program(final, program)
+    result: dict[str, object] = {'scope': 'original_compiler_executable_inputs_only',
+        'source_sha': expected_source, 'module_sha256': original['module_sha256'],
+        'core_receipt_sha256': original['core_receipt_sha256'],
+        'executable': {'path': program.executable[0], 'bytes': program.executable[1],
+                       'sha256': program.executable[2]},
+        'program_receipt': str(destination / 'program-receipt.json'),
+        'native_loaded': False, 'Config': False, 'Engine': False, 'Module': False,
+        'image_compiled': False, 'physical_acceptance': False, 'normal_profile': None}
+    return result
+
+
 def compile_from_original(core_receipt: Path, expected_source: str,
                           destination: Path, *, bindings_source: Path | None = None,
                           native_libraries: Path | None = None,
@@ -856,9 +896,14 @@ if __name__ == '__main__':
     parser.add_argument('--bindings-source', type=Path)
     parser.add_argument('--native-libraries', type=Path)
     parser.add_argument('--preparation', type=Path)
+    parser.add_argument('--c-api-headers', type=Path)
+    parser.add_argument('--clang', type=Path)
+    parser.add_argument('--sdk', type=Path)
+    parser.add_argument('--seconds', type=float, default=50)
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument('--verify-only', action='store_true')
     mode.add_argument('--prepare-c-config', action='store_true')
+    mode.add_argument('--prepare-c-program', action='store_true')
     mode.add_argument('--compile', action='store_true')
     args = parser.parse_args()
     if args.verify_only:
@@ -871,6 +916,11 @@ if __name__ == '__main__':
             'native_engine_started': False, 'compiled': False, 'public_local_acceptance': False}))
     elif args.prepare_c_config:
         print(json.dumps(prepare_compiler_configuration(args.core_receipt, args.source, args.destination)))
+    elif args.prepare_c_program:
+        print(json.dumps(prepare_compiler_executable(args.core_receipt, args.source, args.destination,
+            bindings_source=args.bindings_source, native_libraries=args.native_libraries,
+            preparation=args.preparation, c_api_headers=args.c_api_headers,
+            clang=args.clang, sdk=args.sdk, seconds=args.seconds)))
     else:
         print(json.dumps(compile_from_original(args.core_receipt, args.source, args.destination,
             bindings_source=args.bindings_source, native_libraries=args.native_libraries,
