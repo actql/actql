@@ -9,7 +9,7 @@ test "managed profile admits only the complete pinned contract within budget" {
   let profile = admit_managed_execution_profile(body, registry_limits()).unwrap()
   assert_eq(
     managed_execution_profile_cid(profile),
-    "sha256:4fbaedc48f7386a6b379b8190d9526c8950ea505defe24115baad2cce7810077",
+    "sha256:0c727bf78c1ab4cb1a62243e35ee49cd841e49b1fa3d66aa2f381f4222b17573",
   )
   assert_true(
     admit_managed_execution_profile(body, {
@@ -27,6 +27,35 @@ test "managed profile admits only the complete pinned contract within budget" {
   )
   assert_true(
     admit_managed_execution_profile(registered_body(), registry_limits())
+    is Err(UnsupportedProfile),
+  )
+}
+
+///|
+test "previous complete managed dependency body is not the current profile" {
+  let wire = @identity.stringify_value(
+    managed_profile_body(),
+    100000,
+    10000,
+    100,
+  )
+  let original = @json.parse(wire)
+  guard original is Json::Object(root) &&
+    root.get("dependencies") is Some(Json::Object(dependencies)) &&
+    dependencies.get("fixed_compute_capacity") is Some(Json::Object(fixed)) else {
+    fail("the original profile must retain its exact fixed-input dependency")
+  }
+  fixed["cid"] = Json::string(
+    "sha256:65d84800fb462f842e4ba38118c3e23b2441a7d1620fbf979705439d8b9dad8d",
+  )
+  let body = @identity.from_json(original, 10000, 100, 100000)
+  // Independently retained pre-change complete body, not a digest claim.
+  assert_eq(
+    @identity.cid_value(body, 100000, 10000, 100),
+    "sha256:4fbaedc48f7386a6b379b8190d9526c8950ea505defe24115baad2cce7810077",
+  )
+  assert_true(
+    admit_managed_execution_profile(body, registry_limits())
     is Err(UnsupportedProfile),
   )
 }

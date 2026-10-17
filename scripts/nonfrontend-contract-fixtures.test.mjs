@@ -73,7 +73,7 @@ test('current Program roots pin the normative closed source schema', () => {
 
 test('managed completion fixture pins the complete normative profile', () => {
   const expected = cid(json('spec/contracts/actql-managed-retained-execution.json'));
-  assert.equal(expected, 'sha256:4fbaedc48f7386a6b379b8190d9526c8950ea505defe24115baad2cce7810077');
+  assert.equal(expected, 'sha256:0c727bf78c1ab4cb1a62243e35ee49cd841e49b1fa3d66aa2f381f4222b17573');
   hasPin('src/execution_relation/managed_completion_wbtest.mbt', expected);
 });
 

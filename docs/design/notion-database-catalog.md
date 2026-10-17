@@ -176,3 +176,240 @@ all simultaneously retained work, and keep actual cleanup responsibility.
 There is no I/O, current capability, release ACK or normal numerical supplier in
 this typed projection. Complete property pagination and the installed original
 configuration/Run path are still consuming implementation obligations.
+
+## Original property-item completion
+
+The existing Catalog creates a private property-item request from the same
+original query row, original property and checked column. A copied or reparsed
+schema cannot replace that pair. The first request and every continuation retain
+the immutable prior response chain. The physical caller obtains bounded page id,
+property id and opaque cursor DATA from that original request; it cannot replace
+them with a name-selected property or a representative row. This DATA does not
+issue a Site grant, installation/currentness, Run binding or transport ACK.
+
+Each issued request and response has a private one-time self seal. All consumers
+check the physical original before trusting copied control fields, including
+completion, continuation, request DATA and original-response projection. A copied
+record cannot remove a nonterminal cursor and upgrade a partial response into a
+completed cell. The seal is ordinary original correspondence, not authority.
+
+Title, rich text, people and relation values use the vendor property-item list
+protocol. Every response and item must match the original property id and kind.
+The shared property id is not a unique item key. Repeated values and their order
+are retained. A nonterminal list, even an empty one, cannot produce a completed
+cell. Continuation cursors are opaque and cycles refuse. The metadata's
+`next_url` is retained as untrusted response DATA and never followed as an origin
+or resource selection. The original page/property request supplies the fixed
+path; existing percent escapes in returned ids are not encoded a second time.
+Physical dot-segment ambiguity refuses instead of dispatching another path.
+
+Only a terminal chain can flatten title/rich-text `plain_text` segments or form
+ordered people/relation id arrays. Common then checks the entire resulting Value
+against the original checked Contract, including enum, extents and nullability;
+individual text chunks need not themselves be enum members. Empty complete text
+and arrays remain distinct from missing, null or incomplete values. Rollup
+calculation and complete file/Content projection need their own actual supplier;
+this four-kind reader does not pretend an unsupported result is a value.
+
+Every response uses a bounded independent byte snapshot and preserving decode.
+Limits bound each response and cumulative pages, items, raw bytes, actual decoded
+nodes/string bytes, cursor history and remaining work. Checked subtraction
+precedes every cumulative addition. Selection, response copying, original decode
+usage, item projection, cursor comparisons and complete-value construction are
+charged. Output/node/text exhaustion refuses without emitting partial typed
+values. Writer failures cancel the existing writer. These are finite structural
+bounds, not normal physical capacity or a second Ledger.
+
+The request/response records retain the original row/property/schema and prior
+chain, raw/decode graph, selected cursor/string aliases and per-item UTF-8 counts.
+Each request/page also retains one private seal cell and its original self
+reference; this cyclic control backing remains part of the same retained chain.
+Completion overlaps that history with a bounded reverse-page inventory,
+StringBuilder or Source-node array, converted decode graph, Common validation
+frames/CheckedValue and writer/output. The JS reader also holds the immutable
+provider functions, original request/contract/column, credential/context/current
+callbacks, stop signal, request target/query, await/Promise state and every raw
+response observation. Aliases do not remove distinct backings or record costs.
+
+The physical reader snapshots its functions, receiver and limits before await.
+It rechecks current Account/authorization before every operation and through the
+existing Credential boundary before send. Each page uses its own original
+journal use and the same selected token binding; a changed operation, parent
+binding or resolved token refuses. A lost reply remains the original journal
+Unknown and the reader cannot resend it or resolve new material for that use.
+No response can grant another operation. Prefix charges go to observation
+consumption; a completed value carries the terminal response's original charge
+to its parent, which still owns complete-row assembly/admission. Synthetic
+canonical output bytes are not transferred input. Callback failure retains the
+original response and cleanup responsibility; it does not issue a value/ACK.
+
+Cancellation/stop and failed current checks retain this same reader's original
+raw observations and pending custody. Read/stop Promise completion, Site close,
+GC, dropping an opaque page or an exported value is not physical retirement.
+The reader reports `cleanupConfirmed:false`; its consuming actual Source phase
+must supply original capacity and confirmed retirement before returning holdings.
+The tests' observation tickets are explicit doubles, not RowRun funding. Actual
+installation/configuration revision supply, full Source rows, query/Run restore
+and normal numerical acceptance remain separate required implementation work.
+
+## Original complete property rows
+
+The existing Catalog assembles every property column under the same original
+query row and complete checked property schema. Scalar admission runs before
+dependent property I/O. Pending title, rich-text, people and relation columns
+accept only completed property-item originals for that exact row occurrence and
+column. Another observation with the same page id, an equal schema/value or a
+copied assembly cannot replace the original. Missing columns and incomplete
+chains never produce a complete row. There is no JS contract evaluator or
+wire-to-original factory.
+
+The row uses the existing Common object builder in canonical field order and
+rechecks the complete Value against the original schema. Aggregate nodes, text,
+depth, columns and bounded work apply to that entire object, including names.
+Original input work and logical runtime usage remain distinct: Decimal input
+punctuation is charged as input, while Common measures the retained exact
+coefficient in the logical object. Neither representation passes through a
+rounded JS Number. Writer exhaustion returns no partial row and a completed
+read-only Value may be projected again without replacing its original schema.
+
+Common also aggregates the exact complete row inventory for a query page, in
+the original order and with no missing, duplicated or foreign row occurrence.
+The outer array and every row contribute to whole-page nodes, depth, text, work
+and encoded output bounds. The same Value builder, runtime recheck and Encoder
+make this decision; individually bounded rows never imply a bounded full page.
+
+The physical caller queries the exact selected data-source id with the existing
+vendor POST operation. It checks cross-page ids, opaque cursor progress and
+aggregate page/row/response/output bounds before delivering each complete page.
+An empty nonterminal query is not completion; duplicates, cycles, malformed
+native values, changed discriminants and whole-contract failures refuse. This
+caller obtains property values through the existing original property reader,
+never by treating truncated inline arrays as complete. The selected vendor
+protocol remains [query a data source](https://developers.notion.com/reference/query-a-data-source).
+
+Query and property operations require separately scoped original grants/uses
+from the same declared Site/request relationship. A query grant is never
+retargeted to authorize a property read. Original Credential binding and current
+Account/authorization remain independently checked before and through each
+physical send. Token replacement, foreign parent bindings and missing property
+authority refuse; completing a typed row grants no additional operation. A lost
+dependent reply retains its original journal Unknown and the same child reader;
+neither the parent nor child may resend that use.
+
+Earlier actual response charges are consumed as observations. Exactly the last
+actual response ticket is retained for the complete page's row delivery, after
+every required cell has been checked. No charge is fabricated for canonical
+output bytes. Failed callback/current/stop paths retain the same parent/child
+and original observation responsibility. Already delivered complete pages do
+not turn a later failed acquisition into a completed Run.
+
+The assembly retains the original binding/schema/query-row graph, one private
+self-seal cell and cycle, a bounded array of CheckedValue aliases, aggregate
+counters and a cached complete Common object. Canonical field selection,
+object-builder storage, runtime recheck frames and output overlap those cells.
+Each query page also retains raw/decode/row metadata, per-page original assembly
+references, JSON wire/parsed output and callback aliases. The parent holds all
+child readers before awaiting them, child results/failures and original property
+chains, pending actual charges, response observations, cross-page id/cursor sets,
+provider/current callbacks and Promise/abort state. Distinct backings and escaped
+aliases remain holdings even where immutable Values share their original data.
+
+Cancellation aborts the same original readers. Query/child Promise completion,
+Schema/Value equality, Site close and GC are not physical retirement. The parent
+and children continue to report `cleanupConfirmed:false`. Actual installed
+configuration/revision/current-schema suppliers, ordinary Source/Run integration,
+standard system columns, saved-Run recovery, confirmed raw retirement and normal
+numerical funding remain required; this property-row caller does not claim those
+capabilities from a private Catalog pair or explicit fixture observation tickets.
+
+Every returned response charge is also retained by the parent and on its result
+or error, even after a later admission/output/current/callback failure. This
+inventory contains original tickets, including ones already passed to callbacks;
+only the original RowRun/Ledger determines their actual disposition. It cannot
+be read as consumption, an ACK, a new charge or permission to retry consumption.
+
+The private Node bridge forwards the same originals and existing checked writer;
+no compiler representation fields, new shim, issuer or public wire are exposed.
+Common tests cover complete/incomplete/empty chains, original/foreign columns,
+whole-value enum admission, repeated shared property ids, cycles, native mismatch
+and exact cumulative bounds. Actual Common Credential/SQLite/Account/local-TLS
+cases exercise original paged token/current checks, bounded value delivery and
+Unknown/nonresend. Their success is not pristine installed or live Notion proof.
+
+The reviewed wrapper and completion protocol is the existing
+[Notion property-item reference](https://developers.notion.com/reference/property-item-object)
+and [retrieve property endpoint](https://developers.notion.com/reference/retrieve-a-page-property),
+under the already selected vendor API version. No ActQL version or identity domain
+changes for this implementation.
+
+### Provider-declared query incompleteness
+
+The selected query response's optional `request_status` is admitted by the
+existing Common query-page Owner before any row is exposed. Absent status remains
+valid. A present status has the documented `complete` or `incomplete` type and
+only the optional known `query_result_limit_reached` reason. Unknown or malformed
+status is refused. A declared incomplete result is refused on every page, even
+with `has_more: false` and a null cursor. The vendor may cap a query while
+reporting cursor exhaustion; cursor exhaustion by itself is not completeness.
+The official SDK permits the known reason with either status type, so the
+reason is validated without manufacturing a contradiction or replacing type.
+
+The physical caller consumes only successfully admitted original pages. Failure
+keeps the actual response, original charge tickets, previous child readers and
+unconfirmed cleanup custody. Earlier successful page observations remain
+retained, but a later incomplete response cannot finish the whole acquisition
+or publish that page. This correction introduces no automatic partitioning,
+retry, replacement authorization or permanent product-wide row ceiling. A future
+complete partition strategy still requires its original planning/acquisition
+contract; it is not supplied by rejecting a capped query.
+
+## Original database discovery requests
+
+The private `createNotionDatabaseDiscovery` caller connects the existing Catalog
+selection to actual database and data-source retrieval. It receives the original
+checked alias declaration, reads its bounded database id through the private
+Common bridge and retains that same declaration. After the first response,
+`notion_database_read_source_index` alone chooses a singleton or the explicit
+id's occurrence in that original database inventory. The second request uses
+only that occurrence's id. Duplicate display names, first position, a matching
+schema or a compatible replacement do not select a source. The selected original
+schema and declaration then form the same `NotionDataSourceReadContracts` used
+by typed query and property completion; JS does not reconstruct their Contracts.
+
+Database retrieval and data-source retrieval have separate original operation
+grants/uses. Both belong to the same Site/runtime/connector/Run/task/dispatch
+scope, and current Account authorization is checked before, through and after
+each request. The caller cannot retarget one operation's grant to the other.
+The fixed GET paths and existing selected Notion API version do not come from
+response URLs. Dot-segment coordinates and overlong encoded targets refuse.
+No retries, redirect authority, public CID grant or second selection Owner is
+introduced. A current refusal or lost reply retains the same reader; a lost
+reply remains the original Credential journal's Unknown and is never resent.
+
+Every response is retained before charging/admission/current callbacks. Every
+actually returned charge remains on the same success or failure along with the
+original response, including the body that exceeds an aggregate limit. The
+existing observation callback does not retire the Catalog or grant a release.
+The reader is one-shot and has nominal methods; copied handles cannot dispatch.
+Stop aborts the same pending operation. `cleanupConfirmed` remains false on
+success, failure and stop: transport completion and protocol completion are not
+physical retirement or reservation release.
+
+The declaration/checked Contract graph, both response bodies and decode/Catalog
+graphs, original inventory, bounded metadata writer/String and parsed coordinate
+array, selected schema/property array, canonical schema writer/output, current
+and charge callbacks, credential/material references, pending Promise/handlers,
+original failure and returned aliases can overlap. Existing per-response and
+aggregate byte, metadata, Contract and output limits bound this work; they are
+not a numerical supplier, transfer allowance, lease or complete heap price.
+Aliases still extend the original lifetime and do not cost zero by sharing.
+
+This path supplies original remote observations to the existing selection and
+row readers. Trusted installation/configuration-revision membership, saved Run
+originals, standard system columns, Source/RowRun funding and physical retirement
+remain independent required integration. A discovery result is not permission,
+a currentness certificate or an installed Source. Actual Account/Credential/
+SQLite/local-TLS tests exercise singleton/explicit selection through typed rows,
+foreign/missing schema contracts, original charges, current denial, Unknown,
+nonresend, bounded output and nominal handles. They do not establish a pristine
+installed or live Notion profile.

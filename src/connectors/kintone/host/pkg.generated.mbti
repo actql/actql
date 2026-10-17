@@ -17,11 +17,29 @@ pub fn borrow_record_read(PreparedRecordRead, @client_row_source_host.RowRun, @c
 
 pub fn declare_records(@catalog.FormFieldCatalog, @catalog.AppNumberSettings?, Array[String], String, String, String, @catalog.RecordValueLimits, @client_row_source_host.RowDeclarationLimits) -> Result[RecordDeclaration, RecordReadIssue]
 
+pub fn prepare_record_delete_mapping(RecordDeclaration, String, String, @client_row_source_host.RowDeclarationLimits) -> Result[RecordDeleteMapping, @client_row_source_host.RowMappingIssue]
+
+pub fn prepare_record_delete_preview(RecordDeleteMapping, @catalog.OriginalRecordTarget, @catalog.RecordValueLimits, @catalog.RecordMutationLimits) -> Result[RecordDeletePreview, RecordReadIssue]
+
 pub fn prepare_record_read(RecordDeclaration, @query_planning.QueryRequirement, String, String) -> Result[PreparedRecordRead, RecordReadIssue]
 
 pub fn recheck_record_read_form(RecordRead, Bytes, @catalog.FormFieldLimits) -> Result[Unit, RecordReadIssue]
 
 pub fn record_declaration(RecordDeclaration) -> @client_row_source_host.RowDeclaration
+
+pub fn record_delete_mapping(RecordDeleteMapping) -> @client_row_source_host.RowMapping
+
+pub fn record_delete_mapping_matches_declaration(RecordDeleteMapping, RecordDeclaration) -> Bool
+
+pub fn record_delete_mapping_matches_request(RecordDeleteMapping, @catalog.RecordDeleteRequest) -> Bool
+
+pub fn record_delete_preview_before_wire(RecordDeletePreview) -> String
+
+pub fn record_delete_preview_identity(RecordDeletePreview) -> String
+
+pub fn record_delete_preview_matches(RecordDeletePreview, RecordDeleteMapping, @catalog.OriginalRecordTarget) -> Bool
+
+pub fn record_delete_preview_version_cid(RecordDeletePreview) -> String
 
 pub fn record_form_request_body(PreparedRecordRead, Int) -> Result[String, RecordReadIssue]
 
@@ -53,6 +71,14 @@ pub struct PreparedRecordRead {
 }
 
 pub struct RecordDeclaration {
+  // private fields
+}
+
+pub struct RecordDeleteMapping {
+  // private fields
+}
+
+pub struct RecordDeletePreview {
   // private fields
 }
 

@@ -96,7 +96,7 @@ async function installedReadFixture(directory, outcome = 'allow') {
   // as well as native two-receipt acquisition. Do not infer that capability
   // from a native-only saved declaration.
   environment.connector_capabilities[0].capability_contract_cids.push(
-    'sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89');
+    'sha256:cdaab753fd3c01709fbd9ae32022a8462bc8200edf1e9c93d533a293989f8a3b');
   environment.connector_capabilities[0].capability_contract_cids.sort();
   environment.evidence_bundle_cid = withoutCid(environment,
     'evidence_bundle_cid');

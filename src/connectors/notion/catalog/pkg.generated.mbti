@@ -9,9 +9,19 @@ import {
 }
 
 // Values
+pub fn admit_notion_completed_property(NotionDataSourceReadContracts, NotionPropertyItemPage, Int, @value_admission.Limits) -> Result[(@value_admission.CheckedValue, Int, Int), NotionPropertyItemIssue]
+
 pub fn admit_notion_property_read_cell(NotionDataSourceReadContracts, OriginalNotionQueryRow, Int, @value_admission.Limits, Int) -> Result[(@value_admission.CheckedValue, Int, Int), NotionReadCellIssue]
 
 pub fn bind_notion_data_source_read_contracts(NotionDatabaseReadDeclaration, NotionDataSourceCatalog, NotionReadContractLimits) -> Result[NotionDataSourceReadContracts, NotionReadContractIssue]
+
+pub fn complete_notion_read_row_property(NotionReadRow, Int, NotionPropertyItemPage) -> Result[Unit, NotionReadRowIssue]
+
+pub fn finish_notion_read_row(NotionReadRow) -> Result[(@value_admission.CheckedValue, Int, Int), NotionReadRowIssue]
+
+pub fn next_notion_property_item_request(NotionPropertyItemPage) -> NotionPropertyItemRequest?
+
+pub fn notion_completed_property_wire(NotionDataSourceReadContracts, NotionPropertyItemPage, Int, @value_admission.Limits, Int, Int, Int) -> Result[String, NotionPropertyItemIssue]
 
 pub fn notion_data_source_database(NotionDataSourceCatalog) -> NotionDatabaseCatalog
 
@@ -51,6 +61,18 @@ pub fn notion_database_source_count(NotionDatabaseCatalog) -> Int
 
 pub fn notion_property_definition(NotionPropertyMetadata) -> @decode_core.Cursor
 
+pub fn notion_property_item_page_complete(NotionPropertyItemPage) -> Bool
+
+pub fn notion_property_item_page_original(NotionPropertyItemPage) -> Result[@decode_core.Cursor, NotionPropertyItemIssue]
+
+pub fn notion_property_item_page_original_wire(NotionPropertyItemPage, Int) -> Result[String, NotionPropertyItemIssue]
+
+pub fn notion_property_item_request_matches(NotionPropertyItemRequest, OriginalNotionQueryRow, Int) -> Bool
+
+pub fn notion_property_item_request_matches_binding(NotionPropertyItemRequest, NotionDataSourceReadContracts, Int) -> Bool
+
+pub fn notion_property_item_request_wire(NotionPropertyItemRequest, Int, Int, Int) -> Result[String, NotionPropertyItemIssue]
+
 pub fn notion_property_read_cell_wire(NotionDataSourceReadContracts, OriginalNotionQueryRow, Int, @value_admission.Limits, Int, Int, Int, Int) -> Result[String, NotionReadCellIssue]
 
 pub fn notion_property_read_original(NotionPropertyReadColumn) -> NotionPropertyMetadata
@@ -83,6 +105,12 @@ pub fn notion_query_row_property_at(OriginalNotionQueryRow, Int) -> OriginalNoti
 
 pub fn notion_query_row_property_count(OriginalNotionQueryRow) -> Int
 
+pub fn notion_read_page_rows_wire(NotionDataSourceReadContracts, OriginalNotionQueryPage, Array[NotionReadRow], @value_admission.Limits, Int, Int, Int, Int) -> Result[String, NotionReadRowIssue]
+
+pub fn notion_read_row_pending_wire(NotionReadRow, Int, Int, Int) -> Result[String, NotionReadRowIssue]
+
+pub fn notion_read_row_wire(NotionReadRow, Int, Int, Int) -> Result[String, NotionReadRowIssue]
+
 pub fn notion_user_list_column_names() -> Array[String]
 
 pub fn notion_user_list_ids(NotionUserListPage) -> Array[String]
@@ -99,11 +127,19 @@ pub fn project_notion_data_source(NotionDatabaseCatalog, Int, Bytes, NotionDatab
 
 pub fn project_notion_database(Bytes, NotionDatabaseLimits) -> Result[NotionDatabaseCatalog, NotionDatabaseIssue]
 
+pub fn project_notion_property_item_page(NotionPropertyItemRequest, Bytes) -> Result[NotionPropertyItemPage, NotionPropertyItemIssue]
+
 pub fn project_notion_query_page(NotionDataSourceCatalog, Bytes, NotionQueryLimits) -> Result[OriginalNotionQueryPage, NotionQueryIssue]
 
 pub fn project_notion_user_list(Bytes, NotionUserListLimits) -> Result[NotionUserListPage, NotionUserListIssue]
 
 pub fn read_notion_database_read_declaration(Bytes, NotionReadContractLimits) -> Result[NotionDatabaseReadDeclaration, NotionReadContractIssue]
+
+pub fn start_notion_column_property_item_request(NotionDataSourceReadContracts, OriginalNotionQueryRow, Int, NotionPropertyItemLimits) -> Result[NotionPropertyItemRequest, NotionPropertyItemIssue]
+
+pub fn start_notion_property_item_request(OriginalNotionQueryRow, Int, NotionPropertyItemLimits) -> Result[NotionPropertyItemRequest, NotionPropertyItemIssue]
+
+pub fn start_notion_read_row(NotionDataSourceReadContracts, OriginalNotionQueryPage, Int, NotionReadRowLimits) -> Result[NotionReadRow, NotionReadRowIssue]
 
 // Errors
 
@@ -150,6 +186,39 @@ pub struct NotionDatabaseReadDeclaration {
   // private fields
 }
 
+pub(all) enum NotionPropertyItemIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidSelection
+  ForeignOriginal
+  UnsupportedProperty(String)
+  InvalidResponse
+  InvalidItem
+  InvalidCursor
+  RepeatedCursor
+  Incomplete
+  Admission(@value_admission.Issue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct NotionPropertyItemLimits {
+  metadata : NotionDatabaseLimits
+  max_pages : Int
+  max_items : Int
+  max_total_bytes : Int
+  max_total_nodes : Int
+  max_total_text_bytes : Int
+  max_cursor_bytes : Int
+  max_work : Int
+}
+
+pub struct NotionPropertyItemPage {
+  // private fields
+}
+
+pub struct NotionPropertyItemRequest {
+  // private fields
+}
+
 pub struct NotionPropertyMetadata {
   id : String
   name : String
@@ -181,6 +250,7 @@ pub(all) enum NotionQueryIssue {
   SchemaChanged(String)
   InvalidProperty(String)
   UnsupportedEntry(String)
+  IncompleteQuery
 } derive(Eq, @debug.Debug)
 
 pub(all) struct NotionQueryLimits {
@@ -219,6 +289,28 @@ pub(all) enum NotionReadContractIssue {
 pub(all) struct NotionReadContractLimits {
   metadata : NotionDatabaseLimits
   contracts : @value_contract.Limits
+  max_columns : Int
+  max_work : Int
+}
+
+pub struct NotionReadRow {
+  // private fields
+}
+
+pub(all) enum NotionReadRowIssue {
+  InvalidLimits
+  ForeignOriginal
+  InvalidColumn
+  AlreadySupplied
+  Incomplete
+  BudgetExceeded
+  Cell(NotionReadCellIssue)
+  Property(NotionPropertyItemIssue)
+  InvalidValue
+} derive(Eq, @debug.Debug)
+
+pub(all) struct NotionReadRowLimits {
+  values : @value_admission.Limits
   max_columns : Int
   max_work : Int
 }

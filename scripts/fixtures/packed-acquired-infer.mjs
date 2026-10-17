@@ -43,7 +43,7 @@ for (const capability of environment.connector_capabilities) {
   capability.source_contract_cid = view.contract_cid;
   capability.source_view_contract_cid = view.contract_cid;
   capability.capability_contract_cids.push(
-    'sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89');
+    'sha256:cdaab753fd3c01709fbd9ae32022a8462bc8200edf1e9c93d533a293989f8a3b');
   capability.capability_contract_cids.sort();
 }
 for (const snapshot of environment.schema_snapshots) {

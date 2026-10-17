@@ -1,6 +1,6 @@
 {
   "version": "actql-grammar-manifest/0.1",
-  "source_grammar_cid": "sha256:a9c215ed563145ccdad4f7fc5786b604ca3b721ad087ea8c32d6e25b65f463c9",
+  "source_grammar_cid": "sha256:3c2bcdf221d106d543805f41974b49fe6a2cf453fa213066e0a2abe21f3bbb8c",
   "operations": [
     "analytic",
     "append",
@@ -81,6 +81,6 @@
   "structural_text_grammar_sha256": "0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56",
   "structural_text_rules_sha256": "5d2f2432181664678b364fc97c3545d1740b004cd7b073c4bf0d8181c30dcaae",
   "query_text_grammar_sha256": "ff92bcbac8e2ccfce40e2f126b132bf78b8b041d36c7c1a312bdb785b16c57ca",
-  "query_text_rules_sha256": "1e53dda622409a5c1d9a141baa00c315ad0c64ba0ece2fb100c4d3cff1cfdf1b",
-  "grammar_manifest_cid": "sha256:4c7d029f8d10ab674c4471ab7f7f4841ad5c92630862c74f832941c4ee8f12cb"
+  "query_text_rules_sha256": "ab575a584e72c283f39287e3e0831bf53793ed8690ce6acee4f19321ff5d0ea9",
+  "grammar_manifest_cid": "sha256:916836fbd589fc79af6750919e7ae459a69f6bf404c1d3daffc49f2578f80018"
 }

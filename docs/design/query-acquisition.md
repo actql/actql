@@ -132,3 +132,36 @@ receipt totals count both transfers once, while retention and engine work remain
 separate. Existing single-broad receipts remain unchanged. Supporting this
 profile requires its selected verifier and adapter implementation; the original
 single-receipt verifier cannot silently accept the new observation.
+
+## Current dependency bodies and historical identities
+
+The acquisition, process-evidence and two-receipt verifiers select complete
+canonical contract bodies, including their declared dependencies. The canonical
+ValueContract dependency therefore advances when its existing checked grammar
+changes, even when the query requirement and evidence record schemas do not.
+The selected process-evidence and two-receipt bodies must advance together with
+the original acquisition body. The ordered-row codec advertises that same
+current acquisition contract; an older complete body is not an alias for it.
+
+Existing generators produce the machine contracts and projected filesystem-free
+inputs. Ordinary interface freshness checks those generators, the complete
+query fixture bodies and the actual verifier pins before issuing generation
+qualification. This is source consistency, not execution evidence, physical
+authority, numerical funding or durable recovery. Current Host capability
+inputs retain their complete newly hashed environment preimages; saved Run
+materials are not rewritten to use current configuration.
+
+Historical independent preimages keep their original bodies and CIDs. Regression
+checks resolve today's exact dependency pointers and separately compare the
+original historical bodies after restoring only the old dependency identities.
+Record schemas, receipt roles, resource limits and legacy canonical values remain
+unchanged by a dependency-only adoption. A public digest or matching version
+still cannot admit an execution record or replace an original opaque issuer.
+
+The fixed-input compute contract has the same requirement for its exact selected
+fragment-schema dependency. Its resource measures and limits do not change when
+that schema's original identity advances. The existing managed-retained profile
+then retains the new complete fixed-input contract identity; its generated
+Common body and pin move together. Both existing generators run in ordinary
+interface freshness. This updates interpretation inputs, not a numerical
+reservation, source lifetime, successful completion or execution permission.

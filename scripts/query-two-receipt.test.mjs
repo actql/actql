@@ -3,6 +3,7 @@ import {generateQueryEvidenceVectors} from './query-evidence-vectors.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync,writeFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
 import {machineCid as cid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 import {contract} from './query-two-receipt.mjs';
@@ -182,8 +183,19 @@ if(process.argv.includes('--write'))writeFileSync(path,JSON.stringify(vectors,nu
 test('fixed preimages remain independent of product output and old profile identities remain pinned',()=>{
   assert.deepEqual(read(path),vectors);
   assert.equal(cid(read('spec/contracts/actql-query-acquisition.json')),contract.dependencies.query_acquisition.cid);
-  assert.equal(contract.dependencies.query_acquisition.cid,'sha256:4bb69dfaade0a15952fe23a8202a9475ff450c9f0fab93f9dd5cef1b82045ab1');
-  assert.equal(contract.dependencies.process_evidence.cid,'sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89');
+  for (const [key,name,pin] of [
+    ['query_acquisition','actql-query-acquisition','sha256:4bb69dfaade0a15952fe23a8202a9475ff450c9f0fab93f9dd5cef1b82045ab1'],
+    ['process_evidence','actql-query-process-evidence','sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89'],
+  ]) {
+    const path=`spec/contracts/${name}.json`;
+    const historical=JSON.parse(execFileSync('git',['show',`0c3c561f45356f74cac8af1bf83c94d58770dfba:${path}`],{encoding:'utf8'}));
+    assert.equal(cid(historical),pin);
+    assert.equal(contract.dependencies[key].cid,cid(read(path)));
+    assert.notEqual(contract.dependencies[key].cid,pin);
+    const original=structuredClone(read(path));
+    original.dependencies=historical.dependencies;
+    assert.deepEqual(original,historical,'only declared dependency identities changed');
+  }
 });
 test('closed shapes do not replace receipt content, role, ordering and ownership checks',()=>{
   for(const [schema,items] of [[contract.schemas.receipt,data.receipts],
