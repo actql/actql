@@ -147,7 +147,8 @@ fn form_field_metadata(
 /// Project only a complete original live-app Form Fields response. Unknown
 /// native types remain metadata; this does not advertise a readable carrier
 /// or a writable field. No number goes through binary64 and no display scale
-/// is promoted to precision. A pre-live response is not selected here.
+/// is promoted to precision. Only the physical caller can attest which live
+/// or pre-live endpoint supplied these bytes; this projection cannot do so.
 pub fn project_form_fields(
   bytes : Bytes,
   app_id : String,
