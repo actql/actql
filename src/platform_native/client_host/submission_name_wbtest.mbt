@@ -34,6 +34,10 @@ test "Native named original resolves before candidate and survives expired same-
     fail("fresh name not committed")
   }
   assert_eq(original.reference.wire, reference.wire)
+  assert_eq(
+    database.scan_after("client_submission_names", "").unwrap().key,
+    "5b9ce7e8e1535986637f6f707370308f5ad9603f97f05a212bbb3fd5c1c80b23",
+  )
   // A candidate never selects the existing name's epoch or nonce.
   let unrelated = prepare_native_client_submission_reference(
     reference.epoch,

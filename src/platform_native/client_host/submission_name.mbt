@@ -55,7 +55,11 @@ fn NativeClientRunJournal::authenticated_name_row(
     Err(issue) => return Err(NamedSubmission(issue))
   }
   let (key, _, _, _) = @host.client_submitted_name_binding_fields(row.binding)
-  if named_submission_index(key) != Ok(index) {
+  let expected_index = match named_submission_index(key) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if expected_index != index {
     return Err(CustodyLost)
   }
   let (secret, _, _) = match read_epoch_custody(self.database) {
