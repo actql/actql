@@ -34,30 +34,30 @@ export async function installedKintoneFixture(t, {formRead = 'allow', recordsRea
     form: undefined, page: undefined, fixtureFailures: []};
   const serve = async (exchange, kind) => {
     try {
-    assert.equal(exchange.method, 'POST');
-    assert.equal(exchange.headers['x-http-method-override'], 'GET');
-    assert.equal(exchange.authorized, true);
-    const parameters = JSON.parse(exchange.body);
-    assert.equal(parameters.app, '12');
-    let body;
-    if (kind === 'form') {
-      state.forms++;
-      assert.deepEqual(parameters, {app: '12'});
-      body = await state.form?.(state.forms, exchange) ?? originalForm;
-    } else {
-      state.pages++;
-      // The original checked carrier orders its field map canonically. Keep
-      // this independent literal projection, not an expectation generated
-      // from the driver or copied from the observed request.
-      assert.deepEqual(parameters.fields, ['$id', '$revision', 'RecordNumber', 'Subject', 'Tags']);
-      assert.equal(parameters.query, state.pages === 1 ? 'order by $id asc limit 2'
-        : '$id > 9007199254740993 order by $id asc limit 2');
-      body = await state.page?.(state.pages, exchange) ?? {records: state.pages === 1
-        ? [record('9007199254740992'), record('9007199254740993', 'APP-8')]
-        : [record('9007199254740994', 'APP-9')], totalCount: '999999'};
-    }
-    state.responseBodies.push(Buffer.from(JSON.stringify(body)));
-    return {body};
+      assert.equal(exchange.method, 'POST');
+      assert.equal(exchange.headers['x-http-method-override'], 'GET');
+      assert.equal(exchange.authorized, true);
+      const parameters = JSON.parse(exchange.body);
+      assert.equal(parameters.app, '12');
+      let body;
+      if (kind === 'form') {
+        state.forms++;
+        assert.deepEqual(parameters, {app: '12'});
+        body = await state.form?.(state.forms, exchange) ?? originalForm;
+      } else {
+        state.pages++;
+        // The original checked carrier orders its field map canonically. Keep
+        // this independent literal projection, not an expectation generated
+        // from the driver or copied from the observed request.
+        assert.deepEqual(parameters.fields, ['$id', '$revision', 'RecordNumber', 'Subject', 'Tags']);
+        assert.equal(parameters.query, state.pages === 1 ? 'order by $id asc limit 2'
+          : '$id > 9007199254740993 order by $id asc limit 2');
+        body = await state.page?.(state.pages, exchange) ?? {records: state.pages === 1
+          ? [record('9007199254740992'), record('9007199254740993', 'APP-8')]
+          : [record('9007199254740994', 'APP-9')], totalCount: '999999'};
+      }
+      state.responseBodies.push(Buffer.from(JSON.stringify(body)));
+      return {body};
     } catch (cause) {
       // Private original harness evidence only. The HTTP fixture still loses
       // this response and the product still observes its original transport

@@ -52,12 +52,59 @@ Official provider boundaries:
 - [Get Records request and limits](https://kintone.dev/en/docs/kintone/rest-api/records/get-records/)
 - [Get Form Fields](https://kintone.dev/en/docs/kintone/rest-api/apps/form/get-form-fields/)
 
-## Remaining physical obligations
+## Installed Credential Site
 
-These projections do not implement the physical installer by themselves. That
-caller must bind the original App and Form to the actual current Site, obtain
-the separately authorized read uses, retain one original credential binding,
-charge every response including refusals and preserve Unknown/no-resend.
-The generic Host remains responsible for finish, capture and root cleanup.
+`installed-kintone-source.mjs` is the installed source entry. One configured
+App/resource keeps its exact original metadata, native field codes, API origin,
+optional guest-space route and Site generation. Multiple installations remain
+the existing Host composition's responsibility. The bounded metadata file
+contains original Form bytes, not fabricated checked values or read permission.
+The live authenticated Form must match before the first record page and after
+every page, including the final one.
+
+The installer delegates Account/Credential Site/current/grant issuance to the
+existing Row Source mechanisms. Form access uses its separately configured
+read Resource; the record grant and App identity observation cannot supply it.
+`prepareAcquisition` retains the same typed original preparation by its exact
+acquisition handle. The vendor driver borrows that already-accounted RowRun;
+the generic Host keeps finish, capture and root cleanup.
+
+`readKintoneRecords` retains one opaque credential binding for the acquisition.
+Each metadata/page request has its own counted nominal use. Current read
+authorization, full generated scope correspondence and original material are
+checked for every send. Credential replacement refuses without using the new
+token or probing another App. Secret material is applied only by the existing
+HTTPS boundary's private kintone token presentation, never exposed to the
+Connector or represented by a digest/public token reference.
+
+Complete response bytes are charged before another awaited current callback.
+Non-200 bodies consume an observation charge and refuse; they do not become
+rows. A lost reply remains Unknown without request retry. Cancellation cannot
+acknowledge the driver's still-active response/current frame. The bound Core
+cleanup observer needs the actual original socket retirement and frame exit
+before the generic Host can return that Root's reservation.
+
+All decoder/request/page/request-count and secret ceilings are explicit
+positive installer inputs. They are finite physical preparation bounds, not a
+language restriction, read grant, default fuel or adopted normal numerical
+profile. API-ID/RECORD_NUMBER separation and original field codes stay intact.
 Normal numeric-column history, unsupported carriers and whole-phase funding
 remain separate obligations; no default numerical profile is inferred here.
+
+## Interface responsibility references
+
+These are references to the existing contracts and owners, not another
+execution contract or proof of an installed artifact's provenance.
+
+| Attribute | Existing boundary |
+| --- | --- |
+| Responsibility | `loadInstalledKintoneSource` delegates to `createInstalledRowSource`; `readKintoneRecords` supplies vendor I/O only. |
+| Inputs/outputs | `checkInstalledKintoneSourceProfile`, original metadata `inputs`, typed `client_kintone_read_bridge.mbt` and `RecordDeclaration`/`PreparedRecordRead`. |
+| Identity | Original App/Form/resource/native field codes, Site/runtime binding, nominal acquisition handle and generated `invocationBindingsMatch`. |
+| Ownership | Same original `RecordRead`/`RowRunResponseBorrow`, private credential binding and generic Host root; partial initialization returns existing cleanup custody. |
+| Synchronization | Separate Form/data read decisions, pre-send/current-after-await fences and final Form recheck precede generic finish/capture. |
+| Failure | Changed Form, typed decode/order failure and HTTP refusal stop capture; transport loss preserves `AcquisitionOpenError` Unknown and original credential journal. |
+| Cancellation | Original signal aborts the actual HTTPS request; processing-frame exit and original binding close are both needed for retirement. |
+| Resources | Complete response charge on the same RowRun; positive caller bounds and retained pending reservation; no normal numeric funding claim. |
+| Extension | Existing host manifest/table generator, canonical Node/RelA bridge generator and existing Source/Scope owners; no second reader/ledger/scheduler. |
+| Verification | `installed-kintone-source.test.mjs` uses actual Common, Account, SQLite and loopback TLS for success, refusal, credential change, loss, cancel and charged error responses. |
