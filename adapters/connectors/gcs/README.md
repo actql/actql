@@ -114,6 +114,46 @@ custody and pending media charge rather than manufacturing a partial row.
 
 ## Original object request
 
+### Original ordered composition
+
+The existing portable GCS Owner seals a bounded composition from the original
+collection/Command DATA binding, observed destination and original source
+metadata. The same bucket/scope, source order, repetitions, exact generations
+and destination generation/metageneration stay in the physical request. The
+new operation marker replaces only the reserved protocol key. No source is
+deleted. The expected size remains Int64, and CRC32C is composed algebraically
+from the exact source checksums/lengths without downloading their payloads.
+One request contains at most 32 sources and the provider's 5 TiB object ceiling;
+smaller explicit Host/body/path/identity clamps remain independently enforced.
+
+The [finite metadata profile](../../../docs/spec/protocols/contracts.md#gcs-compose-destination-profile)
+selects captured destination user metadata/content type for replacement, or
+the first original source's content type and an empty user map for an observed
+absence. It is not provider-default inheritance. The original raw responses
+and exact marker remain in the private request identity; the logical projection
+omits only the private marker value and declares its assignment. This unit does
+not preserve ACL, encryption or retention fields, support arbitrary encoded
+representations, or infer absent objects from failed reads.
+
+The three-field composition binding borrows the same existing collection/Command
+binding. Its request retains original destination/source handles, a copied
+source-reference Array, selected user-metadata Array, body/path/CID Strings,
+marker, size/checksum and exact intended properties. Temporary JSON/maps,
+bounded writers, permission/source-response views, decoded checksum bytes and
+two 32-element UInt matrices can overlap the original metadata/response and
+subsequent physical body/Promise. Neither scalar clamps nor a bounded matrix
+count is a resource reservation, native exemption, byte price or normal Model
+four-role profile. Original acquisition/capture funding and real retirement
+remain obligations of the installed caller.
+
+The method's [explicit preconditions](https://docs.cloud.google.com/storage/docs/json_api/v1/objects/compose)
+and [composition/integrity semantics](https://docs.cloud.google.com/storage/docs/composite-objects)
+are selected without a live service call. Pure consistency or a matching
+response does not authenticate the existing Effect's retained dispatch claim.
+Installed Command declaration/capture, actual Site read/write admission,
+saved same-Run recovery and normal-distribution/live acceptance remain separate
+requirements; this primitive does not advertise those unfinished boundaries.
+
 ### Retained upload target observations
 
 The upload-target receiver consumes the complete retained before-GET response,

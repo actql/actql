@@ -38,11 +38,13 @@ pub fn prepare_object_compose_binding(
   max_sources : Int,
   max_result_bytes : Int64,
 ) -> Result[ObjectComposeBinding, ObjectUploadIssue] {
-  if max_sources < 1 || max_sources > 32 || max_result_bytes < 0L ||
+  if max_sources < 1 ||
+    max_sources > 32 ||
+    max_result_bytes < 0L ||
     max_result_bytes > 5497558138880L {
     return Err(InvalidBinding)
   }
-  Ok({ target, max_sources, max_result_bytes })
+  Ok({ target, max_sources, max_result_bytes, })
 }
 
 ///|
@@ -101,7 +103,9 @@ fn compose_crc_join(first : UInt, second : UInt, length : Int64) -> UInt {
     remaining = remaining >> 1
     if remaining > 0L {
       let original = matrix
-      matrix = Array::makei(32, index => compose_matrix_apply(original, original[index]))
+      matrix = Array::makei(32, index => {
+        compose_matrix_apply(original, original[index])
+      })
     }
   }
   value ^ second
@@ -116,7 +120,11 @@ fn compose_properties(
 ) -> Result[(ObjectComposeProperties, Json), ObjectUploadIssue] {
   let original = before.original.unwrap_or(first)
   guard original.fields.content_type is Some(content_type) &&
-    @contract.admit_content_media_type_descriptor(content_type, limits.max_bytes) is Ok(_) else {
+    @contract.admit_content_media_type_descriptor(
+      content_type,
+      limits.max_bytes,
+    )
+    is Ok(_) else {
     return Err(InvalidInput)
   }
   // This finite profile does not promise preservation of a separate encoded
@@ -139,10 +147,7 @@ fn compose_properties(
   let destination : Map[String, Json] = Map([])
   destination["metadata"] = Json::object(metadata)
   destination["contentType"] = content_type.to_json()
-  Ok((
-    { content_type, metadata: entries },
-    Json::object(destination),
-  ))
+  Ok(({ content_type, metadata: entries, }, Json::object(destination)))
 }
 
 ///|
@@ -179,7 +184,8 @@ pub fn prepare_object_compose(
       return Err(InvalidInput)
     }
     guard fields.storage_class is Some(observed_class) &&
-      fields.crc32c is Some(crc) && compose_crc_value(crc) is Some(crc) else {
+      fields.crc32c is Some(crc) &&
+      compose_crc_value(crc) is Some(crc) else {
       return Err(InvalidInput)
     }
     if !upload_text(observed_class, 128) {
@@ -209,7 +215,9 @@ pub fn prepare_object_compose(
     })
   }
   let storage_class = storage_class.unwrap()
-  guard destination is Object(destination) else { abort("internal compose destination") }
+  guard destination is Object(destination) else {
+    abort("internal compose destination")
+  }
   destination["name"] = before.name.to_json()
   destination["storageClass"] = storage_class.to_json()
   let body = match
@@ -231,10 +239,14 @@ pub fn prepare_object_compose(
   }
   let path = metadata_path +
     "/compose?ifGenerationMatch=" +
-    before.original.map(value => value.fields.generation.to_string()).unwrap_or("0") +
-    before.original.map(value => {
+    before.original
+    .map(value => value.fields.generation.to_string())
+    .unwrap_or("0") +
+    before.original
+    .map(value => {
       "&ifMetagenerationMatch=" + value.fields.metageneration.to_string()
-    }).unwrap_or("")
+    })
+    .unwrap_or("")
   if @scalar.admit_utf8_length(path, target.limits.max_path_bytes) is Err(_) {
     return Err(CapacityExceeded)
   }
@@ -250,15 +262,32 @@ pub fn prepare_object_compose(
     "command_cid": target.command_cid.to_json(),
     "permissions": Json::array(target.permissions.map(value => value.to_json())),
     "original_response_sha256": before.response_sha256.to_json(),
-    "source_responses_sha256": Json::array(sources.map(value => value.response_sha256.to_json())),
+    "source_responses_sha256": Json::array(
+      sources.map(value => value.response_sha256.to_json()),
+    ),
   }
-  let wire = match upload_json(preimage, target.limits.max_identity_bytes, target.limits.metadata) {
+  let wire = match
+    upload_json(
+      preimage,
+      target.limits.max_identity_bytes,
+      target.limits.metadata,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  Ok({ binding, before, sources: sources.copy(), properties, storage_class,
-    path, body, marker, size, crc32c: compose_crc_text(checksum),
-    cid: "sha256:" + @sha.hex(@utf8.encode(wire)) })
+  Ok({
+    binding,
+    before,
+    sources: sources.copy(),
+    properties,
+    storage_class,
+    path,
+    body,
+    marker,
+    size,
+    crc32c: compose_crc_text(checksum),
+    cid: "sha256:" + @sha.hex(@utf8.encode(wire)),
+  })
 }
 
 ///|
@@ -272,7 +301,8 @@ pub fn recheck_object_compose(
     !physical_equal(binding.target, current.binding) {
     return Err(ForeignBinding)
   }
-  if current.name != request.before.name || sources.length() != request.sources.length() {
+  if current.name != request.before.name ||
+    sources.length() != request.sources.length() {
     return Err(StaleObservation)
   }
   match (request.before.original, current.original) {
@@ -287,9 +317,12 @@ pub fn recheck_object_compose(
   for index in 0..<sources.length() {
     let before = request.sources[index].fields
     let now = sources[index].fields
-    if before.bucket != now.bucket || before.name != now.name ||
-      before.generation != now.generation || before.metageneration != now.metageneration ||
-      before.size != now.size || before.crc32c != now.crc32c ||
+    if before.bucket != now.bucket ||
+      before.name != now.name ||
+      before.generation != now.generation ||
+      before.metageneration != now.metageneration ||
+      before.size != now.size ||
+      before.crc32c != now.crc32c ||
       before.storage_class != now.storage_class {
       return Err(StaleObservation)
     }
@@ -302,11 +335,87 @@ pub fn object_compose_body_for(
   binding : ObjectComposeBinding,
   request : ObjectComposeRequest,
 ) -> Result[String, ObjectUploadIssue] {
-  if !physical_equal(binding, request.binding) { Err(ForeignBinding) } else { Ok(request.body) }
+  if !physical_equal(binding, request.binding) {
+    Err(ForeignBinding)
+  } else {
+    Ok(request.body)
+  }
 }
 
 ///|
-pub fn object_compose_cid(request : ObjectComposeRequest) -> String { request.cid }
+pub fn object_compose_cid(request : ObjectComposeRequest) -> String {
+  request.cid
+}
+
+///|
+// Targeted Preview/control DATA. Original response hashes and the private
+// marker stay in the sealed physical request, not the human metadata map.
+pub fn object_compose_projection_json(
+  binding : ObjectComposeBinding,
+  request : ObjectComposeRequest,
+  max_bytes : Int,
+) -> Result[String, ObjectUploadIssue] {
+  if !physical_equal(binding, request.binding) {
+    return Err(ForeignBinding)
+  }
+  if max_bytes < 1 {
+    return Err(CapacityExceeded)
+  }
+  let metadata : Map[String, Json] = Map([])
+  for (key, value) in request.properties.metadata {
+    metadata[key] = value.to_json()
+  }
+  let body_bytes = match
+    @scalar.admit_utf8_length(
+      request.body,
+      binding.target.limits.max_body_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(CapacityExceeded)
+  }
+  let sources : Array[Json] = request.sources.map(value => {
+    let fields = value.fields
+    {
+      "name": fields.name.to_json(),
+      "generation": fields.generation.to_string().to_json(),
+      "metageneration": fields.metageneration.to_string().to_json(),
+      "size_bytes": fields.size.to_string().to_json(),
+      "crc32c": fields.crc32c.unwrap().to_json(),
+    }
+  })
+  upload_json(
+    {
+      "origin": "https://storage.googleapis.com",
+      "operation": "gcs:object:compose",
+      "method": "POST",
+      "path": request.path.to_json(),
+      "request_cid": request.cid.to_json(),
+      "body_media_type": "application/json",
+      "body_byte_length": body_bytes.to_json(),
+      "bucket": binding.target.bucket.to_json(),
+      "name": request.before.name.to_json(),
+      "before": request.before.original
+      .map(value => metadata_fields_json(object_metadata_fields(value)))
+      .unwrap_or(Json::null()),
+      "after": {
+        "content_type": request.properties.content_type.to_json(),
+        "metadata": Json::object(metadata),
+        "size_bytes": request.size.to_string().to_json(),
+        "storage_class": request.storage_class.to_json(),
+        "crc32c": request.crc32c.to_json(),
+      },
+      "sources": Json::array(sources),
+      "protocol_behavior": "assign_original_request_marker:actql-request",
+      "property_selection": (if request.before.original is Some(_) {
+        "captured_destination"
+      } else {
+        "first_source_type_empty_user_metadata"
+      }).to_json(),
+    },
+    max_bytes,
+    binding.target.limits.metadata,
+  )
+}
 
 ///|
 // Correlation/consistency only. The existing original dispatch and retained
@@ -316,19 +425,87 @@ pub fn object_compose_response_matches(
   request : ObjectComposeRequest,
   response : ObjectMetadata,
 ) -> Bool {
-  if !physical_equal(binding, request.binding) { return false }
+  if !physical_equal(binding, request.binding) {
+    return false
+  }
   let fields = response.fields
   let original = request.before.original
-  let newer = original.map(value => fields.generation > value.fields.generation).unwrap_or(true)
+  let newer = original
+    .map(value => fields.generation > value.fields.generation)
+    .unwrap_or(true)
   let expected_metadata = request.properties.metadata.copy()
   expected_metadata.sort_by((left, right) => left.0.lexical_compare(right.0))
   let actual_metadata = logical_metadata(fields.metadata).unwrap_or([])
   actual_metadata.sort_by((left, right) => left.0.lexical_compare(right.0))
-  fields.bucket == binding.target.bucket && fields.name == request.before.name &&
-  newer && fields.metageneration == 1L && fields.size == request.size &&
-  fields.crc32c == Some(request.crc32c) && fields.storage_class == Some(request.storage_class) &&
+  fields.bucket == binding.target.bucket &&
+  fields.name == request.before.name &&
+  newer &&
+  fields.metageneration == 1L &&
+  fields.size == request.size &&
+  fields.crc32c == Some(request.crc32c) &&
+  fields.storage_class == Some(request.storage_class) &&
   fields.content_type == Some(request.properties.content_type) &&
-  (fields.content_encoding is None || fields.content_encoding == Some("identity")) &&
+  (
+    fields.content_encoding is None ||
+    fields.content_encoding == Some("identity")
+  ) &&
   expected_metadata == actual_metadata &&
-  fields.metadata.unwrap_or([]).any(entry => entry == ("actql-request", request.marker))
+  fields.metadata
+  .unwrap_or([])
+  .any(entry => entry == ("actql-request", request.marker))
+}
+
+///|
+// Only the existing Owner's original direct response can select a typed
+// failure. A failed later GET never proves non-apply or permits a resend.
+pub fn object_compose_response_projection_json(
+  binding : ObjectComposeBinding,
+  request : ObjectComposeRequest,
+  status : Int,
+  body : Bytes,
+  max_bytes : Int,
+) -> Result[String, ObjectUploadIssue] {
+  if !physical_equal(binding, request.binding) {
+    return Err(ForeignBinding)
+  }
+  if max_bytes < 1 || body.length() > binding.target.limits.metadata.max_bytes {
+    return Err(CapacityExceeded)
+  }
+  let unknown : Json = { "kind": "provider-response" }
+  let projection : Json = if status == 412 {
+    {
+      "kind": "typed-failure-response",
+      "outcome": {
+        "state": "failed",
+        "error": {
+          "code": "conflict",
+          "message": "The original GCS composition precondition failed",
+        },
+      },
+    }
+  } else if status == 200 {
+    match
+      admit_object_metadata(
+        body,
+        binding.target.bucket,
+        binding.target.prefix,
+        Some(request.before.name),
+        binding.target.limits.metadata,
+      ) {
+      Ok(value) =>
+        if object_compose_response_matches(binding, request, value) {
+          {
+            "kind": "typed-success-response",
+            "outcome": { "state": "applied", "result": {} },
+          }
+        } else {
+          unknown
+        }
+      Err(BudgetExceeded) => return Err(CapacityExceeded)
+      Err(_) => unknown
+    }
+  } else {
+    unknown
+  }
+  upload_json(projection, max_bytes, binding.target.limits.metadata)
 }
