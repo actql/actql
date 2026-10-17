@@ -10,7 +10,7 @@
   "patch": {
     "path": "wasmtime-owned-thread-review.patch",
     "bytes": 5444,
-    "sha256": "5ee455cebc012c9a11896f7798c13c3a29c5f9230668a93e7f4d1f70f23e27e8"
+    "sha256": "9837922c8e195d8bb51c4fe2f33f20ef655f54fab1306123d15a41ad411e3933"
   },
   "inputs": [
     {

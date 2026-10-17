@@ -30,14 +30,15 @@
 //   closes; on failure the adapter releases what it opened itself;
 // - optionally `discovery` ({resources, inspectResource, peekResource}) and
 //   `close()`.
-import {createHash} from 'node:crypto';
+import {createHash, randomUUID} from 'node:crypto';
 import {isAbsolute} from 'node:path';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {duckDBPhysicalTarget} from './duckdb-physical-target.mjs';
 import {loadDuckDBNativeRuntime} from '../connectors/duckdb/node/native-runtime.mjs';
 import {composeInstalledCheckEnvironment, verifyInstalledConnectorBindings} from
   './installed-check-environment.mjs';
-import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
+import {retainInstalledHostInitializationFailure, retainInstalledHostRuntimeFailure}
+  from './installed-host-cleanup.mjs';
 import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';
 import {readSourceProfileJson, installedRuntimeBundleCid} from './source-profile-json.mjs';
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
@@ -77,6 +78,75 @@ const installations = installedConnectorTable([duckdbInstallation,
 // Original adapters whose metadata generation was stable through installation.
 // This is process-local custody, not a second catalog or a durable certificate.
 const sourcePublications = new WeakMap();
+
+// Provenance of this explicit Host call, not a grant or a durable preparation.
+// Only publishInstalledSourceProfile issues a member. Cold DATA and another
+// publication with equal configuration cannot recreate the original request.
+const publicationRequests = new WeakMap();
+const publicationBindings = Object.freeze(['root', 'principalId', 'moon',
+  'installation', 'profile', 'resolveSecret', 'runtimeBundleCid', 'providerMoon']);
+
+const publicationFailure = code => {
+  throw Object.assign(new TypeError(code), {code});
+};
+
+function originalPublicationRequest(request) {
+  const original = request !== null && typeof request === 'object'
+    ? publicationRequests.get(request) : undefined;
+  if (original === undefined) publicationFailure('ForeignInstalledSourcePublication');
+  return original;
+}
+
+// Read-only lookup, including while original cleanup is pending. This UUID is
+// the Host's original request coordinate, never an issuer or a permission.
+export function installedSourcePublicationRequestId(request) {
+  return originalPublicationRequest(request).requestId;
+}
+
+// A synchronous fence for the exact trusted installer pair. In particular it
+// can follow an awaited Account/Site/egress/resource check immediately before
+// the same journal claim/send, with no new await or caller boolean admission.
+// Those checks and physical cleanup are independent duties of that Site.
+export function assertInstalledSourcePublicationRequest(request, originals) {
+  const original = originalPublicationRequest(request);
+  if (original.phase !== 'active') publicationFailure('InstalledSourcePublicationClosed');
+  original.signal?.throwIfAborted();
+  if (originals === null || typeof originals !== 'object') {
+    publicationFailure('ForeignInstalledSourcePublicationBinding');
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(originals);
+  for (const name of publicationBindings) {
+    const descriptor = descriptors[name];
+    // Optional runtime fields may be absent only when the original was too.
+    if (descriptor === undefined && original.bindings[name] === undefined) continue;
+    if (descriptor === undefined || !Object.hasOwn(descriptor, 'value') ||
+        descriptor.value !== original.bindings[name]) {
+      publicationFailure('ForeignInstalledSourcePublicationBinding');
+    }
+  }
+  original.used = true;
+}
+
+// Observe only this request's original Host profile. This is not Account,
+// issuer, Site generation, credential, egress or funding authorization. The
+// physical adapter must still check all of those, and then use the synchronous
+// original-pair fence above. No replacement profile is returned to the caller.
+export async function observeInstalledSourcePublicationCurrent(request, originals) {
+  assertInstalledSourcePublicationRequest(request, originals);
+  const original = originalPublicationRequest(request);
+  try {
+    const observed = await readProfile(original.path);
+    assertInstalledSourcePublicationRequest(request, originals);
+    if (JSON.stringify(observed) !== original.profileWire) {
+      publicationFailure('InstalledSourcePublicationChanged');
+    }
+  } catch (cause) {
+    // Observed replacement/failure cannot reopen this request if a caller later
+    // restores equal bytes. Keep the original aliases for its cleanup only.
+    original.phase = 'retiring';
+    throw cause;
+  }
+}
 
 export function installedSourcePublicationFacts(source) {
   return source !== null && typeof source === 'object'
@@ -224,15 +294,47 @@ async function readProfile(path) {
 // never runs it; it uses the same state root and principal the Host will.
 export async function publishInstalledSourceProfile(path, {root, principalId,
   moon, runtimeUrl, resolveSecret, signal, connectorTable}) {
-  const profile = await readProfile(path);
-  const {entry, module} = await selectInstallation(profile, connectorTable);
-  if (module.publish === undefined) {
-    throw Object.assign(new TypeError('InstalledSourcePublicationUnsupported'),
-      {code: 'InstalledSourcePublicationUnsupported'});
+  const request = Object.freeze({});
+  const original = {path, requestId: randomUUID(), signal, phase: 'preparing',
+    used: false, bindings: undefined, profileWire: undefined};
+  publicationRequests.set(request, original);
+  const retire = () => publicationRequests.delete(request);
+  try {
+    const profile = await readProfile(path);
+    // Preserve the parsed original before a trusted checker receives its own
+    // provider profile. This exact value observation has no new CID domain.
+    original.profileWire = JSON.stringify(profile);
+    const {entry, module} = await selectInstallation(profile, connectorTable);
+    const publish = module.publish, check = module.check;
+    if (publish === undefined) {
+      throw Object.assign(new TypeError('InstalledSourcePublicationUnsupported'),
+        {code: 'InstalledSourcePublicationUnsupported'});
+    }
+    const checked = Reflect.apply(check, module,
+      [splitSourceAliasProfile(profile).providerProfile]);
+    const runtime = await providerRuntime(entry, runtimeUrl);
+    original.bindings = Object.freeze({root, principalId, moon,
+      installation: entry, profile: checked, resolveSecret, ...runtime});
+    original.phase = 'active';
+    signal?.throwIfAborted();
+    const result = await Reflect.apply(publish, module, [checked,
+      {root, principalId, moon, resolveSecret, signal, installation: entry,
+        ...runtime, publicationRequest: request}]);
+    // Legacy installers that do not consume this seam retain their existing
+    // behavior. Operational metadata consumers also fence their own save and
+    // every protected call; this final check cannot replace those barriers.
+    if (original.used) {
+      await observeInstalledSourcePublicationCurrent(request, original.bindings);
+    }
+    original.phase = 'retiring';
+    retire();
+    return result;
+  } catch (cause) {
+    // Close new-operation admission immediately, but retain the same request
+    // and all original references until the child's real cleanup status ACK.
+    original.phase = 'retiring';
+    throw retainInstalledHostRuntimeFailure(cause, retire);
   }
-  const checked = module.check(splitSourceAliasProfile(profile).providerProfile);
-  return module.publish(checked, {root, principalId, moon, resolveSecret,
-    signal, installation: entry, ...await providerRuntime(entry, runtimeUrl)});
 }
 
 // Load the Host's installed source from `path`, or none. An unknown version
