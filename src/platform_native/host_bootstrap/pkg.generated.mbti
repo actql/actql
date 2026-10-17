@@ -3,6 +3,7 @@ package "actql/actql/platform_native/host_bootstrap"
 
 import {
   "actql/actql/physical_resources",
+  "actql/actql/platform_native/executor_slot",
   "moonbitlang/core/debug",
 }
 
@@ -68,6 +69,18 @@ pub(all) enum NativeBackedOriginalReadIssue {
   Child(@physical_resources.ImportedChildLedgerIssue)
 }
 
+type NativeBackedProcessRegion[T, C]
+
+pub(all) enum NativeBackedProcessRegionAcquisition[T, C] {
+  ProcessRegionReady(NativeBackedProcessRegion[T, C])
+  ProcessRegionPending(NativeBackedProcessRegion[T, C], NativeBackedProcessRegionIssue)
+}
+
+pub(all) enum NativeBackedProcessRegionIssue {
+  Domain(NativeBackedExecutionIssue)
+  Process(@executor_slot.NativeExecutorSlotIssue)
+} derive(Eq, @debug.Debug)
+
 pub(all) enum NativeBackedViewAcquisition[T, C] {
   Mapped(NativeBackedExecutionView[T, C])
   PendingView(NativeBackedExecutionView[T, C], NativeBackedExecutionIssue)
@@ -95,6 +108,7 @@ pub(all) enum NativeBootstrapIssue {
 } derive(Eq, @debug.Debug)
 
 type NativeHostBootstrap[T]
+pub fn[T, C] NativeHostBootstrap::abandon_prepared_process_region(Self[T], T, NativeBackedProcessRegion[T, C]) -> Result[Unit, NativeBackedProcessRegionIssue]
 pub fn[T, C] NativeHostBootstrap::acquire_backed_domain(Self[T], T, NativeBackedExecutionView[T, C], C) -> Result[NativeBackedDomainAcquisition[T, C], NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::admit_backed_live_channel(Self[T], T, NativeBackedLiveChannel[T, C]) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T, C, R] NativeHostBootstrap::admit_backed_live_child(Self[T], T, NativeBackedLiveChild[T, C, R], R) -> Result[Unit, NativeBackedExecutionIssue]
@@ -107,6 +121,7 @@ pub fn[T, C] NativeHostBootstrap::backed_live_channel_state(Self[T], T, NativeBa
 pub fn[T, C, R] NativeHostBootstrap::backed_live_child_limits(Self[T], T, NativeBackedLiveChild[T, C, R], R) -> Result[@physical_resources.LedgerLimits, NativeBackedExecutionIssue]
 pub fn[T, C, R] NativeHostBootstrap::backed_live_child_state(Self[T], T, NativeBackedLiveChild[T, C, R], R) -> Result[@physical_resources.BackedExecutionLiveState, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::bind_backed_live_channel_vm(Self[T], T, NativeBackedLiveChannel[T, C], Int64, Int64, Int64) -> Result[Unit, NativeBackedExecutionIssue]
+pub fn[T, C] NativeHostBootstrap::bind_prepared_process_region(Self[T], T, NativeBackedExecutionDomain[T, C], C, @executor_slot.NativeScopedExecutorHolder, Int) -> Result[NativeBackedProcessRegionAcquisition[T, C], NativeBackedProcessRegionIssue]
 pub fn[T] NativeHostBootstrap::borrow(Self[T], T, NativeBootstrapAllocation[T]) -> Result[NativeBootstrapBorrow[T], NativeBootstrapIssue]
 pub fn[T] NativeHostBootstrap::borrow_backing(Self[T], T) -> Result[NativeBootstrapBorrow[T], NativeBootstrapIssue]
 pub fn[T] NativeHostBootstrap::capacity_usage(Self[T]) -> @physical_resources.SharedCapacityUsage
@@ -146,6 +161,7 @@ pub fn[T] NativeHostBootstrap::require_current(Self[T], T) -> Result[Unit, Nativ
 pub fn[T] NativeHostBootstrap::retire(Self[T], T, NativeBootstrapAllocation[T]) -> Result[Unit, NativeBootstrapIssue]
 pub fn[T, C] NativeHostBootstrap::retire_backed_live_channel_after_owner_ack(Self[T], T, NativeBackedLiveChannel[T, C]) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T, C, R] NativeHostBootstrap::retire_backed_live_child_after_owner_ack(Self[T], T, NativeBackedLiveChild[T, C, R], R) -> Result[Unit, NativeBackedExecutionIssue]
+pub fn[T, C] NativeHostBootstrap::retire_stopped_process_region(Self[T], T, NativeBackedProcessRegion[T, C], @executor_slot.NativeScopedExecutorStop) -> Result[Unit, NativeBackedProcessRegionIssue]
 pub fn[T] NativeHostBootstrap::return_borrow(Self[T], T, NativeBootstrapBorrow[T]) -> Result[Unit, NativeBootstrapIssue]
 pub fn[T, C] NativeHostBootstrap::settle_backed_region_after_owner_ack(Self[T], T, NativeBackedExecutionLoan[T, C], C, @physical_resources.LedgerUsage?) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::stop_backed_live_channel(Self[T], T, NativeBackedLiveChannel[T, C]) -> Result[Unit, NativeBackedExecutionIssue]

@@ -267,19 +267,26 @@ fn process_fixture_rust_retirement(
 ) -> Unit raise {
   let value = process_fixture(label)
   let holder = process_fixture_holder(label)
-  let transport = value.host.project_prepared_domain(
-    value.original, value.domain, value.child,
-  ).unwrap()
+  let transport = value.host
+    .project_prepared_domain(value.original, value.domain, value.child)
+    .unwrap()
   let record = match
-    value.host.bind_prepared_process_region(
-      value.original, value.domain, value.child, holder, value.descriptor,
-    ).unwrap() {
+    value.host
+    .bind_prepared_process_region(
+      value.original,
+      value.domain,
+      value.child,
+      holder,
+      value.descriptor,
+    )
+    .unwrap() {
     ProcessRegionReady(record) => record
     _ => fail("original Rust process capture failed")
   }
   let executable = @env.get_env_var("ACTQL_TEST_NATIVE_HANDLER_PROCESS_CHILD").unwrap()
   let library = @env.get_env_var("ACTQL_TEST_NATIVE_HANDLER_LIBRARY").unwrap()
-  holder.spawn_with_channel(executable, [
+  holder
+  .spawn_with_channel(executable, [
     process_fixture_root() + "/" + label + ".backing",
     library,
     transport.extent.mapping_offset.to_string(),
@@ -287,7 +294,8 @@ fn process_fixture_rust_retirement(
     transport.extent.payload_offset.to_string(),
     transport.extent.payload_length.to_string(),
     selection,
-  ]).unwrap()
+  ])
+  .unwrap()
   assert_true(holder.poll_stop().unwrap() is None)
   assert_false(record.retired)
   assert_false(record.physical_retired)
@@ -301,7 +309,9 @@ fn process_fixture_rust_retirement(
   let stop = process_fixture_stop(holder)
   assert_eq(holder.child().unwrap().wait(false).unwrap(), Some(expected))
   assert_false(value.loan.physical_returned)
-  value.host.retire_stopped_process_region(value.original, record, stop).unwrap()
+  value.host
+  .retire_stopped_process_region(value.original, record, stop)
+  .unwrap()
   assert_true(record.retired && record.physical_retired)
   assert_true(value.domain.closed && value.domain.view.closed)
   assert_false(value.loan.physical_returned)
@@ -310,7 +320,11 @@ fn process_fixture_rust_retirement(
 
 ///|
 test "normal child with real retained Rust panic allocation requires original region retirement" {
-  process_fixture_rust_retirement("rust-handler", "retained-panic", @executor.Exited(0))
+  process_fixture_rust_retirement(
+    "rust-handler",
+    "retained-panic",
+    @executor.Exited(0),
+  )
 }
 
 ///|
@@ -318,5 +332,9 @@ test "aborted real retained Rust child stays signaled while physical region reti
   // A fresh explicit process fault follows the same actual retained mutex.
   // The old four-case root-only counter applied to a domain remains failed;
   // this is no capacity increase or conversion to handler/business success.
-  process_fixture_rust_retirement("rust-aborted", "retained-panic-abort", @executor.Signaled(6))
+  process_fixture_rust_retirement(
+    "rust-aborted",
+    "retained-panic-abort",
+    @executor.Signaled(6),
+  )
 }
