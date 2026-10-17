@@ -30109,7 +30109,7 @@
     {
       "module": "adapters/host-node/effect-input-export.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "40cb5516e2bec020011e01490ce21808c9316accdb74d6b8ec755e306c77ebaa",
+      "sha256": "496d5a612d6dd7429a43ba11c1e0ac8c9c72e477d48c2ffa23c19fbf41c2aef0",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
