@@ -551,9 +551,11 @@ export async function exportPinnedEffectLocalResult({resultIndex, ...options}) {
 async function exportPinnedResult({
   moon, execution, inputs, memberIndex, limits, onChunk,
   onReceipt, onCanonicalRow, canonicalRowLimits,
+  prepareProposal,
   signal, advanceQuantum = 256, localResultIndex,
 }) {
   if (typeof onChunk !== 'function' ||
+      (prepareProposal !== undefined && typeof prepareProposal !== 'function') ||
       (onReceipt !== undefined && typeof onReceipt !== 'function') ||
       (onCanonicalRow !== undefined &&
         (typeof onCanonicalRow !== 'function' ||
@@ -624,6 +626,9 @@ async function exportPinnedResult({
         throw new Error('EffectInputExportDidNotAdvance');
       }
       await yieldEventLoop(undefined, {signal});
+    }
+    if (prepareProposal !== undefined) {
+      await prepareProposal(exportOwner, importing);
     }
     stream = checked(table ? moon.clientProgramEffectTableInputExportReady(preparation)
       : moon.clientProgramEffectInputExportReady(preparation));

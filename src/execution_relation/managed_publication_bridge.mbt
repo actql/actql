@@ -246,3 +246,12 @@ pub fn[T] close_managed_publication_bridge(
     }
   }
 }
+
+///|
+/// Callback-free derived-view lifetime only. It does not observe physical
+/// availability, authorize a read, or acknowledge original reader cleanup.
+pub fn[T] managed_publication_bridge_retained(
+  bridge : ManagedPublicationBridge[T],
+) -> Bool {
+  bridge.live.val
+}
