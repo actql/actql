@@ -26,9 +26,15 @@ pub fn notion_database_metadata_json(@catalog.NotionDatabaseCatalog, Int, Int, I
 
 pub fn notion_next_property_request(@catalog.NotionPropertyItemPage) -> Result[@catalog.NotionPropertyItemRequest, @catalog.NotionPropertyItemIssue]
 
+pub fn notion_page_metadata_json(@catalog.OriginalNotionPage, Int, Int, Int) -> Result[String, @catalog.NotionPageIssue]
+
+pub fn notion_page_original_json(@catalog.OriginalNotionPage, Int) -> Result[String, @catalog.NotionPageIssue]
+
 pub fn notion_project_data_source(@catalog.NotionDatabaseCatalog, Int, Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionDataSourceCatalog, @catalog.NotionDatabaseIssue]
 
 pub fn notion_project_database(Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionDatabaseCatalog, @catalog.NotionDatabaseIssue]
+
+pub fn notion_project_page(Bytes, String, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.OriginalNotionPage, @catalog.NotionPageIssue]
 
 pub fn notion_project_property_item_page(@catalog.NotionPropertyItemRequest, Bytes) -> Result[@catalog.NotionPropertyItemPage, @catalog.NotionPropertyItemIssue]
 

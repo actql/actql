@@ -67,6 +67,14 @@ pub fn notion_database_source_count(NotionDatabaseCatalog) -> Int
 
 pub fn notion_date_range_property_write_matches(NotionPropertyWrite, NotionDataSourceCatalog, Int, @value_admission.CheckedValue, @value_admission.CheckedValue) -> Bool
 
+pub fn notion_page_metadata_wire(OriginalNotionPage, Int, Int, Int) -> Result[String, NotionPageIssue]
+
+pub fn notion_page_original(OriginalNotionPage) -> @decode_core.Cursor
+
+pub fn notion_page_original_json(OriginalNotionPage, Int) -> Result[String, NotionPageIssue]
+
+pub fn notion_page_properties_original(OriginalNotionPage) -> @decode_core.Cursor
+
 pub fn notion_page_properties_write_wire(NotionDataSourceCatalog, Array[NotionPropertyWrite], NotionPropertyWriteLimits) -> Result[String, NotionPropertyWriteIssue]
 
 pub fn notion_property_definition(NotionPropertyMetadata) -> @decode_core.Cursor
@@ -149,6 +157,8 @@ pub fn project_notion_data_source(NotionDatabaseCatalog, Int, Bytes, NotionDatab
 
 pub fn project_notion_database(Bytes, NotionDatabaseLimits) -> Result[NotionDatabaseCatalog, NotionDatabaseIssue]
 
+pub fn project_notion_page(Bytes, String, NotionPageLimits) -> Result[OriginalNotionPage, NotionPageIssue]
+
 pub fn project_notion_property_item_page(NotionPropertyItemRequest, Bytes) -> Result[NotionPropertyItemPage, NotionPropertyItemIssue]
 
 pub fn project_notion_query_page(NotionDataSourceCatalog, Bytes, NotionQueryLimits) -> Result[OriginalNotionQueryPage, NotionQueryIssue]
@@ -213,6 +223,29 @@ pub struct NotionDatabaseReadDeclaration {
   database_id : String
   // private fields
 }
+
+pub(all) enum NotionPageIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+  ForeignPage
+  InvalidParent
+  InvalidField(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct NotionPageLimits {
+  metadata : NotionDatabaseLimits
+  max_text_bytes : Int
+}
+
+pub(all) enum NotionPageParent {
+  Workspace
+  Page(String)
+  Database(String)
+  DataSource(String, String?)
+  Block(String)
+  Agent(String)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum NotionPropertyItemIssue {
   InvalidLimits
@@ -398,6 +431,20 @@ pub(all) struct NotionUserListLimits {
 pub struct NotionUserListPage {
   response_sha256 : String
   next_cursor : String?
+  // private fields
+}
+
+pub struct OriginalNotionPage {
+  id : String
+  response_sha256 : String
+  parent : NotionPageParent
+  url : String
+  created_by : String
+  last_edited_by : String
+  created_time : String
+  last_edited_time : String
+  version : String
+  archived : Bool
   // private fields
 }
 
