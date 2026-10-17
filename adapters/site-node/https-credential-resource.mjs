@@ -151,6 +151,8 @@ export async function prepareHttpsCredentialAuthenticationMaterial({binding,
     // Retain the same original material through a failed later fence until the
     // binding retires. Resolver failures propagate with their original custody.
     state.authenticationMaterial = original;
+    if (state.retiring) fail('RemoteCredentialBindingRetiring');
+    signal?.throwIfAborted();
     checkAuthenticationSelection(state, original);
     await currentBeforeSign();
     current();
@@ -530,6 +532,11 @@ async function callCredentialResource({
 export async function callHttpsCredentialResource(options) {
   const binding = acquireBinding(options.binding, options);
   try {
+    // An explicitly registered auth dependency cannot fall back to a static
+    // Bearer resolver while its separate original exchange is not connected.
+    if (binding?.authentication !== undefined) {
+      fail('RemoteCredentialAuthenticationUnavailable');
+    }
     return await callCredentialResource(options, binding);
   } finally {
     if (binding) {
