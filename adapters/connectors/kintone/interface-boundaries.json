@@ -2135,7 +2135,7 @@
         }
       ],
       "responsibilityFacet": "primary",
-      "role": "bridge",
+      "role": "common-semantics",
       "owner": "Existing kintone original Form, Row Mapping, Effect, Account and Credential Site Owners; intended values and original request correspondence, no new grant or cleanup Owner",
       "contracts": [
         {
@@ -2245,7 +2245,7 @@
         }
       ],
       "responsibilityFacet": "primary",
-      "role": "bridge",
+      "role": "common-semantics",
       "owner": "Existing kintone original Form, Row Mapping, Effect, Account and Credential Site Owners; intended values and original request correspondence, no new grant or cleanup Owner",
       "contracts": [
         {
@@ -2326,7 +2326,7 @@
     },
     {
       "module": "src/connectors/kintone/catalog/record_create_json.mbt",
-      "sha256": "736ceb960fb3b697b60d3960c757a73a3ebeae850c06984ecfbc618af3cc012c",
+      "sha256": "30c6ae580857d4ec7f5073db85af76aed0e415679d60fcfd14712a0a097b8d5b",
       "exports": [],
       "operations": [
         {
