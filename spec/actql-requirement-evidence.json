@@ -14083,6 +14083,94 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/notion-read-snapshot.closed-body",
+      "statement_sha256": "85be59d63aeda8f86bb487ac058eee71e1e8e68c8587ffe9c6b955ab07ab4864",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-read-snapshot",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-read-snapshot.exact-originals",
+      "statement_sha256": "8255a59e846f10a93022075cc9861b867b788566d98d29fa40686b11124c8fb1",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-read-snapshot",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-read-snapshot.system-binding",
+      "statement_sha256": "9221cd75090ab8c201918d47c09fe183fdd4c1329fe7416826b3148983681e9c",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-read-snapshot",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-read-snapshot.saved-only-restore",
+      "statement_sha256": "e662c0f9adedaf5f75a5319fde4c39a39ca312ee8083430fcc422b58e2b4062b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-read-snapshot",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-read-snapshot.canonical-identity",
+      "statement_sha256": "5a55a7a17b3cd4e9044248b417705e648eaa6759ce5a981cd821d724ab612e61",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-read-snapshot",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-read-snapshot.authenticated-custody",
+      "statement_sha256": "23537a3fcdbf4b53f60448d74b3d6f32a965df07bad9bc2b49b7c55d821aaa05",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-read-snapshot",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-read-snapshot.bounded-materials",
+      "statement_sha256": "d51500444e2e3c193b0ec3af8729548ba0dcddd15a8b3b4f3136b8978662374f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-read-snapshot",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-read-snapshot.legacy-compatibility",
+      "statement_sha256": "7d7e0e7b31edb552fbd8f08b01979ab28e101df0c8c90cd1c47f83206103a5f5",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-read-snapshot",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/mapping-contracts.host-admission-must-validate-the-inline-mapping-against-the-resolved",
       "statement_sha256": "642c4efd0f61fc6d2c32c2d38a5da7f47ee812d94a473a6a1a98265b1f109c92",
       "status": "pending",

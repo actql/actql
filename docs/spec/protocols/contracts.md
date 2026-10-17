@@ -1006,6 +1006,62 @@ exhaustion MUST refuse without partial typed rows. The original full response,
 parsed graph, declaration/schema aliases, converted values and output workspace
 remain retained until their actual consuming custody ends.
 
+<a id="notion-read-snapshot"></a>
+
+<!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/schemas/notion_database_read_snapshot sha256:06577e00887cc24dae6de8bc67156e9782b4c4516d01bf50c509060f78948cfc -->
+
+#### Saved original Notion database read material
+
+<!-- requirement-block: notion-read-snapshot.closed-body notion-read-snapshot.exact-originals notion-read-snapshot.system-binding notion-read-snapshot.saved-only-restore notion-read-snapshot.canonical-identity notion-read-snapshot.authenticated-custody notion-read-snapshot.bounded-materials notion-read-snapshot.legacy-compatibility -->
+A saved Notion database read snapshot MUST use the closed
+`actql-notion-database-read-snapshot/0.1` body with exactly
+`database_response`, `declaration_source`, `schema_cid`, `schema_wire`,
+`selected_data_source_response`, `system_columns` and `version`.
+The three original-source fields and checked schema are nonempty JSON text
+Strings, not reparsed objects; `schema_cid` is the exact checked schema identity.
+
+Capture MUST bind the same original database observation, declaration, selected
+data-source occurrence and checked read-contract binding. Exact source UTF-8,
+CRLF, Unicode, key order, escapes, unknown metadata and numeric lexemes remain
+unchanged inside the retained Strings. Equal JSON, ids, schema or response hashes
+do not replace those nominal originals.
+
+`system_columns` MUST be derived from the actual original property-only or
+complete eight-system-column binding. A false snapshot remains property-only;
+a caller flag or structural schema cannot upgrade it to the public Source.
+The saved checked schema contains the complete selected binding, including all
+original nullable, extent, enum, Decimal and temporal constraints.
+
+Restoration MUST re-admit only the saved declaration and metadata, reselect its
+original singleton or explicit occurrence, rebind every checked read contract
+and reproduce the exact saved complete schema and CID. Metadata discovery,
+replacement current configuration and inferred defaults are not restoration.
+Malformed, missing, extra, null or inconsistent fields refuse the snapshot.
+
+The snapshot SOURCE identity MUST hash the exact UTF-8 bytes of the complete
+checked canonical body using the existing initial-0.1 encoding and SHA-256
+rules. Canonical object-key order and escaping are checked after re-admission;
+the embedded original Strings are not normalized or re-encoded as metadata.
+The snapshot SOURCE identity is distinct from the checked schema identity.
+
+A consuming installation or same-Run recovery MUST independently verify its
+original saved custody and actual installation/configuration/Site/Account
+correspondence before adopting this DATA. A decoded body or expected public CID
+cannot authenticate its own provenance, issue a ResourceRef, current authority,
+credential use, acquisition permission, physical cleanup or resource funding.
+
+Snapshot input/output bytes, nodes, depth, every retained source and schema,
+selection/Contract work and simultaneous workspace MUST remain bounded and
+charged by the existing consuming owners. The finite restoration uses the
+existing declaration, metadata, selection, Contract and encoder limits without
+an unbounded discovery loop. Exhaustion returns no partial snapshot or adopted
+originals; structural limits do not themselves reserve capacity or retire raw
+response aliases.
+
+Legacy declaration forms, property-only metadata projection, checked schema
+bytes, query/row admission and existing initial-0.1 identities MUST remain
+unchanged when this separate snapshot representation is not selected.
+
 <a id="mapping-contracts"></a>
 
 #### Mapping contracts
