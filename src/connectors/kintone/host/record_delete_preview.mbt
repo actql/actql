@@ -1,7 +1,8 @@
 ///|
 /// Checked before DATA under the same original Mapping/Form and target. This
 /// is neither an authenticated observation, current permission nor an Effect
-/// outcome; the original Site/capture must establish and retain those facts.
+/// outcome or sealed Effect Preview; the original Site/capture must establish
+/// and retain those facts.
 pub struct RecordDeletePreview {
   priv mapping : RecordDeleteMapping
   priv target : @catalog.OriginalRecordTarget
