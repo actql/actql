@@ -94,9 +94,42 @@ test "actual original read consumer preserves its same loan and cannot start or 
   let (_, original_workspace) = host
     .borrow_domain_original_read(fixture.read)
     .unwrap()
+  // Asymmetric one-short cases distinguish the same-typed retained/execution
+  // arguments. Refusal must leave the original claim available and unconsumed.
+  assert_true(
+    host.prepare_domain_original_read_consumer(fixture.read, 16385L, 1L)
+    is Err(Read(@resources.Resource(@resources.RetentionLimit))),
+  )
+  assert_true(
+    host.prepare_domain_original_read_consumer(fixture.read, 1L, 32769L)
+    is Err(Read(@resources.Resource(@resources.ExecutionLimit))),
+  )
+  assert_true(fixture.read.consumer is None)
+  host.require_domain_original_read_current(fixture.read).unwrap()
   let consumer = host
     .prepare_domain_original_read_consumer(fixture.read, 8192L, 16384L)
     .unwrap()
+  let copied = { ..consumer, }
+  assert_true(
+    host.require_domain_original_read_consumer_current(copied)
+    is Err(Read(@resources.ForeignOrigin)),
+  )
+  assert_true(
+    host.borrow_domain_original_read_consumer_workspace(copied) is Err(_),
+  )
+  assert_true(host.enter_domain_original_read_consumer(copied) is Err(_))
+  assert_true(host.leave_domain_original_read_consumer(copied) is Err(_))
+  let other = domain_test_host()
+  assert_true(
+    other.require_domain_original_read_consumer_current(consumer) is Err(_),
+  )
+  assert_true(
+    other.borrow_domain_original_read_consumer_workspace(consumer) is Err(_),
+  )
+  assert_true(other.enter_domain_original_read_consumer(consumer) is Err(_))
+  assert_true(other.leave_domain_original_read_consumer(consumer) is Err(_))
+  other.try_close().unwrap()
+  host.require_domain_original_read_consumer_current(consumer).unwrap()
   assert_true(host.require_domain_original_read_current(fixture.read) is Err(_))
   assert_true(host.borrow_domain_original_read(fixture.read) is Err(_))
   assert_true(

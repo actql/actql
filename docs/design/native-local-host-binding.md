@@ -793,3 +793,36 @@ or funding claim. Unknown parents and unlisted empty directories are refused.
 Only the root descriptor path is self-hash-excluded; the same basename below
 a directory is an ordinary declared member. Exact selected npm dependency
 placement remains separate and does not exempt arbitrary node_modules content.
+
+
+## Consuming an original Native read
+
+The installed Arena Owner can claim an already prepared domain read once as an
+`InstalledArenaOriginalReadConsumer`. It validates the original Host, registered
+read, retained/execution envelope and original claim before allocating the
+consuming view. The view retains that same read and WorkspaceLoan; an equal
+descriptor, copied view or foreign Host cannot substitute for their nominal
+identity. This does not issue permission or select a normal numerical profile.
+
+Claiming transitions the existing Resource claim into its consuming phase. The
+old available-pair port consequently becomes unavailable and is not reinterpreted
+as another usable read. Consumer currentness uses the existing Resource
+consumer snapshot/token/phase checks and the same physical domain. Physical
+entry consumes the existing start transition once; a failed entry does not reset
+it or make another claim eligible. Leaving acknowledges only the original
+physical scope, including during cleanup, rather than final material retirement.
+
+The read retains its consumer through the existing close sequence: stop, actual
+C context and escaped-alias retirement, WorkspaceLoan close, original claim
+settlement, pair retirement and final context acknowledgement. Pending cleanup
+keeps that same carrier and loan. This is the existing read's cleanup authority,
+not a second controller or a raw Ledger export.
+
+A downstream material receiver must separately bind the actual Host/Store,
+original Result/schema/ordering/generation, current read policy and its complete
+simultaneous envelope before protected read or allocation. Package Root/Reader
+capacity, intake bounds and successful metadata comparison cannot supply this
+capacity. Retiring one managed alias does not establish that all row, schema,
+renderer or final Writer aliases have retired. Material transfer and final stdout
+write/flush require their own original receipts; without the actual supplier and
+complete profile the material path remains unavailable.
