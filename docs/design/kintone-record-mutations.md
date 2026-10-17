@@ -53,6 +53,70 @@ attachment custody, process-action metadata and their physical dispatch are
 independent unfinished parts of the same Connector outcome. This protocol
 material does not advertise installed write support or relax those obligations.
 
+## Original unique Text-key lookup
+
+`RecordLookupRequest` retains the original Form, its positively enforced
+top-level unique Text key, exact nonempty text value, selected fields and one
+bounded encoded request. It requests `$id`, `$revision`, the key and every
+selected field, with an equality query, `limit 2` and explicit `totalCount`.
+The provider's [query escaping](https://kintone.dev/en/docs/kintone/overview/query-string/)
+and JSON escaping are distinct layers; original Unicode and field codes are
+preserved. Query syntax cannot be supplied in place of a field-code token.
+See the provider's [saved field-code rules](https://us.kintone.help/k/en/app/form/autocalc/ref_data/fieldcode).
+
+`RecordLookupObservation` retains that same original request and the complete
+original page. Only HTTP 200 with an explicit total count of zero and no records,
+or one and exactly one complete record matching the original key, produces this
+DATA. A short page, missing/null count, 404, partial/error response, duplicate or
+different key cannot stand in for this observation. Exact API ID and revision
+strings remain separate from Record Number. A fresh observation must refer to
+the same physical request; changed presence, ID or revision refuses matching.
+The [Get Records contract](https://kintone.dev/en/docs/kintone/rest-api/records/get-records/)
+defines the count as matching query records, not a grant or global visibility.
+
+An empty visible result is not proof that no hidden or concurrently created
+record exists. The eventual conditional insertion must retain the positively
+enforced original key so a uniqueness conflict remains refusal/Unknown under
+the existing Effect Owner, never an automatic update, retry or new lookup.
+The physical Site must bind the response to the actual original authorized
+request and keep current checks around awaits. No public empty-object/scalar
+constructor, physical I/O or generic UPSERT create-side admission is added by
+this projection. Numeric keys remain unavailable here while the independent
+historical Number-domain obligation is unfinished; no Text/Double substitute or
+new numeric profile is used.
+
+### Key lookup interface responsibilities
+
+- Responsibility: the existing vendor Catalog projects request/response DATA;
+  existing Credential Site, Row capture and Effect Owners retain execution.
+- Inputs and outputs: one original Form, unique Text key/value, field selection
+  and positive limits produce an original lookup request; its complete response
+  produces a matched original page or a typed refusal without partial output.
+- Identity: request, Form and observed page remain physically associated;
+  equal request bytes or a new equal Form do not reconstruct the original.
+- Ownership: the original Form, field selection, query/document, retained page,
+  decode cursors and raw-response responsibility remain with the caller's same
+  capture child. No independent cleanup Owner is created.
+- Synchronization: synchronous matching is not current authorization. The same
+  acquisition/Site generation, read decision, Credential binding and original
+  Task/Run/attempt fences must surround actual calls and final disclosure.
+- Failure: absent/false uniqueness, empty key, unknown fields, malformed or
+  incomplete replies, foreign requests, changed targets and exhausted limits
+  return no usable observation; they do not select replacement credentials.
+- Cancellation: DATA completion neither stops transport nor acknowledges
+  physical retirement. Response loss keeps original Unknown without resend.
+- Resources: positive key/comparison/column/writer and original page limits
+  bound this projection. Original catalog/page/decode trees overlap selected
+  arrays, escaped query, encoded document, UTF-8 and response/hash workspace.
+  No whole-phase quote, reservation or normal numerical funding is issued.
+- Extension: this private Text-key projection introduces no public wire, grant,
+  Site, ledger or supported installed mutation claim. Number, physical lookup,
+  conditional write and cleanup supplier connections remain separate duties.
+- Verification: `record_lookup_wbtest.mbt` checks independent request bytes,
+  original nominal correspondence, Unicode/escape preservation, count/key/
+  selected-field failures, presence/revision drift and finite refusal. These
+  pure Catalog cases are not authenticated HTTP or installed acceptance.
+
 ## Original physical deletion port
 
 `sendRawKintoneDelete` borrows the caller's already-owned private kintone token
