@@ -393,7 +393,7 @@ pub fn[T, C] NativeHostBootstrap::abandon_prepared_process_region(
     return Err(Domain(Bootstrap(AlreadyConsumed)))
   }
   if !record.pin_closed {
-    match record.holder.require_prepared() {
+    match record.holder.prepare_unstarted_cleanup() {
       Err(issue) => return Err(Process(issue))
       Ok(_) => ()
     }

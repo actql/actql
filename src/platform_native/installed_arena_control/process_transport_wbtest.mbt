@@ -157,7 +157,7 @@ test "installed process bad region descriptor preserves original pending capture
 test "installed process known synchronous spawn refusal uses original unstarted cleanup without a stop" {
   let fixture = installed_process_fixture("installed-process-known-spawn-refusal")
   let process = installed_process_prepare(fixture, fixture.descriptor, 32L * page_bytes_ffi()).original_process().unwrap()
-  assert_true(process.holder.unwrap().spawn_duplex(fixture.path + "/absent-worker", []) is Err(_))
+  assert_true(process.holder.unwrap().spawn_duplex(fixture.path + "/absent-worker", []) is Err(@executor.SpawnFailed))
   assert_true(process.holder.unwrap().child() is Err(@executor.InvalidConfiguration))
   fixture.host.restrict_process_transport(fixture.domain, process).unwrap()
   fixture.host.return_process_transport(fixture.domain, process).unwrap()
