@@ -721,6 +721,8 @@ pub fn client_local_default_signing_bootstrap_policy() -> ClientLocalSigningBoot
 
 pub fn client_local_finite_read_selection_wire(String, ClientLocalRunPolicyProfile, String, String, String) -> Result[String, ClientLocalRunPolicyProfileIssue]
 
+pub fn client_local_initial_signing_payload_body(ClientLocalInitialSigningPayloadFields) -> Result[Bytes, ClientLocalOriginalCodecIssue]
+
 pub fn client_local_initialization_body(@execution_authorization.AdmittedAccountConfiguration, Bytes, Bytes, ClientLocalInitializationPhysical) -> Result[Bytes, ClientLocalOriginalCodecIssue]
 
 pub fn client_local_initialization_record_body(Array[String]) -> Result[Bytes, ClientLocalOriginalCodecIssue]
@@ -1823,6 +1825,8 @@ pub fn read_client_infer_occurrence_model_execution(ClientInferOccurrence, Bytes
 
 pub fn read_client_infer_saved_call_scope(ClientCompiledRun, @run_publication.PublicationContract, ClientInferOccurrence, ClientInferPlanGraph, String, String, () -> Bool) -> Result[ClientInferSavedCallScope, ClientInferCallScopeIssue]
 
+pub fn read_client_local_initial_signing_payload(Bytes) -> Result[ClientLocalInitialSigningPayloadFields, ClientLocalOriginalCodecIssue]
+
 pub fn read_client_local_runtime_successor_metadata(Bytes) -> Result[ClientLocalRuntimeSuccessorMetadata, ClientLocalRuntimeSuccessorIssue]
 
 pub fn read_client_model_provider_defaults(String, String, String, String, @check_environment.Limits, Int) -> Result[ClientModelProviderDefaults, ClientModelProviderDefaultsIssue]
@@ -2861,6 +2865,22 @@ pub(all) enum ClientLocalAdoptionCurrentObservation[Store] {
 pub(all) enum ClientLocalAuthorityScopeIssue {
   InvalidInput
   Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ClientLocalInitialSigningPayloadFields {
+  adoption_cid : String
+  initialization_intent_cid : String
+  issuer_authority : String
+  key_file : String
+  key_projection : String
+  policy_cid : String
+  policy_original : String
+  public_key_cid : String
+  public_key_original : String
+  public_key_pem : String
+  purpose : String
+  root_role : String
+  version : String
 } derive(Eq, @debug.Debug)
 
 pub(all) struct ClientLocalInitializationPhysical {
