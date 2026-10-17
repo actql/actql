@@ -180,3 +180,21 @@ test('generated Content rechecks holding authority after awaited Store confirmat
   await value.store.retirePhysicalHolding(value.holding.holding_cid);
   assert.equal(value.store.status().storedBytes, 0);
 });
+
+test('generated Content does not hand off an issued value after its issuer callback retires availability', async t => {
+  const value = await setup(t);
+  await value.store.commitPhysicalHolding(value.holding, [value.physical.prepared]);
+  let checks = 0;
+  await assert.rejects(value.issue({authorize() {
+    checks++;
+    value.invalidate();
+    return true;
+  }}), {code: 'GeneratedContentHoldingUnavailable'});
+  assert.equal(checks, 1);
+  // Issuance is not retirement or permission to discard the original bytes.
+  assert.equal(value.store.status().storedBytes, 3);
+  assert.equal(value.physical.prepared.status().pending, false);
+  assert.deepEqual(await value.store.inspectPhysicalHolding(value.holding.holding_cid), value.holding);
+  await value.store.retirePhysicalHolding(value.holding.holding_cid);
+  assert.equal(value.store.status().storedBytes, 0);
+});
