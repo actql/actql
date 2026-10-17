@@ -948,7 +948,7 @@
     },
     {
       "module": "src/connectors/kintone/host/record_delete_preview.mbt",
-      "sha256": "84a0f05654d9dbe16e4ece6c5739da9aff069ff407f5e05fd73afa7af0d32118",
+      "sha256": "03da9b6d3039b497aa70543b4110b895aff9e24e6a0b1d167d3ff99ad2cf3116",
       "exports": [],
       "operations": [
         {
