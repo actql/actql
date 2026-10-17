@@ -2506,7 +2506,8 @@ test('Salesforce multi-select arrays reach the same Named Result after Host reop
   assert.equal(setup.org.seen.length, before);
   const execution = await client.startSource(JSON.stringify(document), {format: 'json',
     submissionRef: client.newSubmission({nonce: 'multi-select-original'})});
-  assert.equal((await execution.wait({signal: AbortSignal.timeout(20_000)})).status, 'succeeded');
+  const state = await execution.wait({signal: AbortSignal.timeout(20_000)});
+  assert.equal(state.status, 'succeeded', JSON.stringify(state));
   assert.deepEqual((await execution.result('records').describe()).columns, [
     {name: 'Id', contract: {type: 'string', nullable: false}},
     {name: 'Choices__c', contract: {type: 'array', nullable: true,
