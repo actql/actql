@@ -6,6 +6,7 @@ import {originalFieldCommandKeyFixture} from './fixtures/command-original-field-
 import {preparePinnedEffectSourceSet} from './effect-input-export.mjs';
 import {retireEffectCommandKeyWorkspace} from './effect-command-key.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
 
 // Actual Common captured inputs, managed Result, key continuation and proposals.
 // The positive uses original acquisition and publication Owners. Its Store and
@@ -168,6 +169,41 @@ test('ordinary Source set duplicate input rejects before proposal or output and 
     await close(scope);
     assert.equal(moon.clientProgramEffectCommandKeyWorkspacePending(scope), false);
   } finally { await close(scope); await fixture.close(); }
+});
+
+test('original completed key reaches actual Preview import and retirement revokes its payload proof', async () => {
+  const fixture = await originalFieldCommandKeyFixture();
+  const control = runtimeCore(moon).publicationControl;
+  const doubled = publicationDoubles(control);
+  const context = fixture.publicationContext(control);
+  let scope, key, sources;
+  const planLimits = {maxFields: 10, maxWork: 10000, maxBytes: 100000,
+    maxNodes: 10000, maxDepth: 64, maxUtf16Units: 100000};
+  try {
+    scope = checked(moon.clientProgramPlanEffectCommandKeyWorkspace(fixture.owned,
+      fixture.inputs, 0, fixture.limits, 10000));
+    sources = await preparePinnedEffectSourceSet({
+      ...options(fixture, doubled, scope, (_member, original) => { key = original; }, () => {}),
+      ...context,
+    });
+    const previewInputs = await fixture.previewInputs(control, context, sources.members[0].payload);
+    const chunks = [];
+    const optionsForImport = {moon, execution: fixture.execution, previewInputs, previewIndex: 0,
+      limits: fixture.limits, planLimits, onChunk: chunk => { chunks.push(chunk); }};
+    await assert.rejects(verifyPinnedEffectPlan(optionsForImport), {code: 'MoonBitHostFailure'});
+    assert.equal(chunks.length, 0, 'absence does not start unaccounted key work');
+    const verified = await verifyPinnedEffectPlan({...optionsForImport, inputKey: key});
+    assert.deepEqual(JSON.parse(chunks.join('')), fixture.rows);
+    assert.equal(moon.clientProgramEffectPlanProofMatches(verified.proof, previewInputs, 0), true);
+    await close(scope);
+    assert.equal(moon.clientProgramEffectPlanProofMatches(verified.proof, previewInputs, 0), false);
+    const count = chunks.length;
+    await assert.rejects(verifyPinnedEffectPlan({...optionsForImport, inputKey: key}), {code: 'MoonBitHostFailure'});
+    assert.equal(chunks.length, count, 'retirement cannot be bypassed by an escaped key alias');
+  } finally {
+    if (sources) for (const payload of sources.payloads) await payload.prepared.release();
+    await close(scope); await fixture.close();
+  }
 });
 
 test('acquired parent exports its producer but duplicate consumer IDs finish no key or payload', async () => {

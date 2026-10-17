@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {inspect} from 'node:util';
 import {checked} from '../../host-common/runtime-result.mjs';
+import {runtimeField} from '../../host-common/compiler-binding.generated.mjs';
 import {rowSourceCheckEnvironment} from '../installed-row-source.mjs';
 import {runCapturedEffectComputation} from '../entry.mjs';
 import {canonical, cid, resource} from './file-listing-source.fixture.mjs';
@@ -140,19 +141,26 @@ export async function originalFieldCommandKeyFixture({duplicate = false, inputKe
             moon.strategyRunEvidenceJson(value), bounds));
         const compiledPlan = control.admit('compiled_plan',
           moon.strategyPublicationContractJson(evidence[3]), bounds);
-        const observation = control.sealRunEvidence('observation_set', canonical({
+        const observationWire = canonical({
           version: 'actql-observation-set/0.1', invocation_template_cid: template.identity,
           source_evidence_cids: [sourceEvidence.identity], captured_input_artifact_cids: [],
           consistency: 'independent_snapshots', capture_started_at: '2026-09-24T00:00:00.000Z',
           capture_completed_at: '2026-09-24T00:00:00.000Z',
           replayability: {materialized: false, availability_evidence_cids: []},
           data_policy_cid: dataPolicyCid,
-        }), bounds);
-        const invocation = control.issueRunInvocation(template, observation, bounds);
+        });
+        const originalObservation = checked(moon.strategyRunEvidenceSeal(
+          'observation_set', observationWire, bounds.maxWireBytes, bounds.maxNodes, bounds.maxDepth));
+        const observation = control.admitRunEvidence('observation_set',
+          moon.strategyRunEvidenceJson(originalObservation), bounds);
+        const originalInvocation = checked(moon.strategyIssueRunInvocation(evidence[0],
+          originalObservation, bounds.maxWireBytes, bounds.maxNodes, bounds.maxDepth));
+        const invocation = control.admit('run_invocation',
+          moon.strategyPublicationContractJson(originalInvocation), bounds);
         const acquiredEvidence = control.issueCheckedAcquiredEffectEvidence(prepared,
           source, identity, requirement, logicalInput, sourceEvidence,
           authorityScopeCid, dataPolicyCid, retention, bounds);
-        return {invocation, retention, sourceBindingCid: moon.clientProgramCapturedSourceLogicalCid(identity),
+        return {invocation, originalInvocation, retention, sourceBindingCid: moon.clientProgramCapturedSourceLogicalCid(identity),
           localEvidenceContext: Object.freeze({
             admission: control.admitCheckedClientEffectRunPublication(prepared,
               template, preparedEvidence, authorization, compiledPlan),
@@ -160,6 +168,46 @@ export async function originalFieldCommandKeyFixture({duplicate = false, inputKe
               moon.strategyPublicationContractJson(definition), bounds),
             runInvocation: invocation, observation, acquiredEvidence, retentionDependencies,
           })};
+      },
+      async previewInputs(control, context, payload) {
+        // Existing independent private Preview shape; placeholder capability
+        // fields are not authenticated authorization, current permission or
+        // installed acceptance. Actual original input/Run/key are still checked.
+        const source = await read('src/query_integration/command_original_key_capture_wbtest.mbt');
+        const template = source.split('\n').find(line => line.includes('#|') && line.includes('@SELECTOR@'))
+          .split('#|')[1];
+        const definitionCid = moon.clientProgramEffectDefinitionCid(prepared);
+        const authoringBody = {version: 'actql-authoring-context/0.1',
+          program_definition_cid: definitionCid, annotations: []};
+        const authoringCid = cid(authoringBody);
+        const replacements = {
+          '@SEM@': moon.clientProgramEffectSemanticsCid(prepared), '@DEF@': definitionCid,
+          '@INV@': context.invocation.identity, '@RUN@': moon.strategyPublicationContractIdentity(definition),
+          '@PLAN@': moon.strategyPublicationContractIdentity(evidence[3]),
+          '@ENV@': moon.clientProgramEffectEnvironmentCid(prepared),
+          '@AUTHOR@': authoringCid, '@P@': `sha256:${'8'.repeat(64)}`,
+          '@SELECTOR@': canonical(rows[0].resource),
+        };
+        let wire = template;
+        for (const [key, value] of Object.entries(replacements)) wire = wire.replaceAll(key, value);
+        const draft = JSON.parse(wire);
+        const descriptor = checked(moon.clientProgramEffectMemberDescriptor(prepared, 1, 'save', 10000));
+        const member = draft.effects[0];
+        member.target = runtimeField(descriptor, 3);
+        member.contract = runtimeField(descriptor, 4);
+        member.resolved_command_contract_cid = runtimeField(descriptor, 5);
+        member.result_artifact_cid = payload.localResultArtifact.identity;
+        member.effect_identity_cid = control.issueSourceFreeLocalEffectIdentity(
+          prepared, inputs, 0, payload.localResultArtifact,
+          {maxWork: 10000, maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64}).identity;
+        const scope = checked(moon.strategyEffectLogicalRequestScope(
+          `sha256:${'a'.repeat(64)}`, 'original-key-payload-verifier', 128));
+        const authored = checked(moon.clientProgramAuthorEffectPreview(canonical(draft),
+          draft.run_identity_cid, authoringCid, scope, 100000, 10000, 64, 1, 1, 4096, 100, 16));
+        const previewLimits = moon.clientProgramEffectPreviewInputLimits(
+          100000, 10000, 64, 10000, 10, 100000, 10000, 64, 1, 1, 10000, 10000);
+        return checked(moon.clientProgramBindEffectPreviewInputs(owned, inputs,
+          context.originalInvocation, 1, runtimeField(authored, 0), authoringCid, previewLimits));
       },
       async close() {
         moon.clientProgramReleaseEffectInputs(inputs);
