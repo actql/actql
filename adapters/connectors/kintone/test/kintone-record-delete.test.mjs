@@ -95,7 +95,7 @@ test('current loss during the resolver await refuses before physical DELETE', as
 });
 
 test('lost DELETE reply remains original nominal Unknown and is never automatically resent', async t => {
-  const f = await deleteFixture(t, {faults: [{method: 'DELETE', kind: 'apply-then-lose-reply'}]});
+  const f = await deleteFixture(t, {faults: [{method: 'POST', bodyIncludes: '"revisions"', kind: 'apply-then-lose-reply'}]});
   await assert.rejects(f.send(), error => {
     assert.equal(error.code, 'ECONNRESET'); assert.equal(error.observations.length, 2); return true;
   });

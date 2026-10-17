@@ -120,8 +120,10 @@ export async function sendRawKintoneDelete({moon, originalAppId, request,
       bytes => checked(moon.clientProgramKintoneDeleteRecheckRecords(request, bytes,
         pageLimits, context.limits.maxFields, context.limits.maxComparisonWork)));
     phase = 'delete';
+    // Kintone explicitly supports POST with this exact override on every
+    // REST route. Preserve the ordinary transport's bodyless DELETE policy.
     const {response, charge} = await receive(KINTONE_RECORD_DELETE_OPERATION, 2,
-      'records.json', 'DELETE', body);
+      'records.json', 'POST', body, [['x-http-method-override', 'DELETE']]);
     context.callbacks.consumeObservation(charge); await verify(KINTONE_RECORD_DELETE_OPERATION);
     return Object.freeze({observation: response, observations: Object.freeze(observations.slice())});
   } catch (cause) {

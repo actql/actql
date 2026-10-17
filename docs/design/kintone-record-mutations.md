@@ -60,6 +60,9 @@ binding and original request. It performs separately authorized Form and target
 observations before the single DELETE. Form revision/field definitions and every
 original API ID/revision are rechecked under the original Catalog. The bounded
 target query contains only original numeric IDs; it does not accept caller SQL.
+The [provider's documented method override](https://kintone.dev/en/docs/kintone/rest-api/overview/kintone-rest-api-overview/#x-http-method-override)
+uses POST with `X-HTTP-Method-Override: DELETE` for the exact original JSON body;
+the shared HTTP transport's bodyless DELETE rule stays unchanged.
 Every physical call uses the original Credential Site journal, full generated
 invocation binding, and current callback before send after the resolver await.
 The current callback must retain the original acquisition/Site/current authority,

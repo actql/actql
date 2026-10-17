@@ -53,9 +53,12 @@ async function rowOwner(catalog, stopped) {
   const prepared = checked(common.clientProgramKintonePrepareRead(original, requirement, query, evidence));
   // Explicit independent fixture units, never a normal physical funding quote.
   const ledger = checked(common.clientProgramAcquisitionLedger(1, 1, 65536n, 100000000n, 100000000n, 0));
+  const acquisition = common.clientProgramKintoneReadAcquisition(prepared);
   const run = checked(common.clientProgramRowSourceStartAccounted(
-    common.clientProgramKintoneReadAcquisition(prepared), randomUUID(), stopped, ledger, 65536n, 32768n));
+    acquisition, randomUUID(), stopped, ledger, 65536n, 32768n));
   checked(common.clientProgramRowSourceBegin(run, 8192, 2, 2, undefined));
+  const borrow = checked(common.clientProgramRowSourceBorrowResponses(run, acquisition));
+  checked(common.clientProgramRowSourceBindResponseCleanup(borrow, stopped));
   return {
     charge: body => checked(common.clientProgramRowSourceChargePage(run, body)),
     consume: charge => checked(common.clientProgramRowSourceConsumeObservationCharge(run, charge)),
@@ -76,8 +79,8 @@ export async function deleteFixture(t, {effect = 'allow', faults = []} = {}) {
     resolve: undefined, current: undefined, afterCharge: undefined};
   const tls = await openHttpsExchangeFixture(t, {faults, routes: [
     {method: 'POST', pathname: '/k/v1/app/form/fields.json', handle: exchange => serve(exchange, 'form')},
-    {method: 'POST', pathname: '/k/v1/records.json', handle: exchange => serve(exchange, 'target')},
-    {method: 'DELETE', pathname: '/k/v1/records.json', handle: exchange => serve(exchange, 'delete')},
+    {method: 'POST', pathname: '/k/v1/records.json', handle: exchange => serve(exchange,
+      exchange.headers['x-http-method-override'] === 'DELETE' ? 'delete' : 'target')},
   ]});
   async function serve(exchange, kind) {
     try {
@@ -97,7 +100,7 @@ export async function deleteFixture(t, {effect = 'allow', faults = []} = {}) {
         return {body: await state.records?.() ?? {records: ids.map(id => record(id)), totalCount: null}};
       }
       state.writes++;
-      assert.equal(exchange.headers['x-http-method-override'], undefined);
+      assert.equal(exchange.headers['x-http-method-override'], 'DELETE');
       assert.deepEqual(body, {app: '12', ids, revisions: ['9', '9']});
       return await state.reply?.() ?? {body: {}};
     } catch (cause) {
