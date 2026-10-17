@@ -31,6 +31,7 @@ pub(all) enum NotionPropertyItemIssue {
 /// does not authorize its HTTP path; the physical Site must bind its actual
 /// operation/result to this same original and current acquisition.
 pub struct NotionPropertyItemRequest {
+  priv original_self : Ref[NotionPropertyItemRequest?]
   priv row : OriginalNotionQueryRow
   priv property : OriginalNotionProperty
   priv limits : NotionPropertyItemLimits
@@ -42,6 +43,7 @@ pub struct NotionPropertyItemRequest {
 /// Immutable original response chain. Arrays and byte backing never escape.
 /// Terminal protocol pagination is not current authority or physical retirement.
 pub struct NotionPropertyItemPage {
+  priv original_self : Ref[NotionPropertyItemPage?]
   priv request : NotionPropertyItemRequest
   priv original : @decode.Cursor
   priv raw : Bytes
@@ -54,6 +56,43 @@ pub struct NotionPropertyItemPage {
   priv total_text : Int
   priv value_text_bytes : Int
   priv remaining_work : Int
+}
+
+///|
+/// The private one-time seal binds issued control to its own original record.
+/// It is not a grant and exposes no mutable backing to callers. Copying record
+/// fields cannot turn an incomplete original response into a terminal page.
+fn property_item_request_is_original(
+  request : NotionPropertyItemRequest,
+) -> Bool {
+  match request.original_self.val {
+    Some(original) => physical_equal(original, request)
+    None => false
+  }
+}
+
+///|
+fn property_item_page_is_original(page : NotionPropertyItemPage) -> Bool {
+  match page.original_self.val {
+    Some(original) =>
+      physical_equal(original, page) &&
+      property_item_request_is_original(page.request)
+    None => false
+  }
+}
+
+///|
+fn new_property_item_request(
+  row : OriginalNotionQueryRow,
+  property : OriginalNotionProperty,
+  limits : NotionPropertyItemLimits,
+  cursor : String?,
+  previous : NotionPropertyItemPage?,
+) -> NotionPropertyItemRequest {
+  let original_self : Ref[NotionPropertyItemRequest?] = Ref(None)
+  let request = { original_self, row, property, limits, cursor, previous, }
+  original_self.val = Some(request)
+  request
 }
 
 ///|
@@ -85,7 +124,7 @@ pub fn start_notion_property_item_request(
     ) {
     return Err(UnsupportedProperty(property.metadata.kind))
   }
-  Ok({ row, property, limits, cursor: None, previous: None, })
+  Ok(new_property_item_request(row, property, limits, None, None))
 }
 
 ///|
@@ -94,7 +133,8 @@ pub fn notion_property_item_request_matches(
   row : OriginalNotionQueryRow,
   property_index : Int,
 ) -> Bool {
-  if !physical_equal(request.row, row) {
+  if !property_item_request_is_original(request) ||
+    !physical_equal(request.row, row) {
     return false
   }
   match notion_query_row_property_at(row, property_index) {
@@ -113,6 +153,9 @@ pub fn notion_property_item_request_wire(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[String, NotionPropertyItemIssue] {
+  if !property_item_request_is_original(request) {
+    return Err(ForeignOriginal)
+  }
   let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
     _ => return Err(BudgetExceeded)
   }
@@ -193,6 +236,13 @@ pub fn project_notion_property_item_page(
   request : NotionPropertyItemRequest,
   bytes : Bytes,
 ) -> Result[NotionPropertyItemPage, NotionPropertyItemIssue] {
+  if !property_item_request_is_original(request) {
+    return Err(ForeignOriginal)
+  }
+  if request.previous is Some(previous) &&
+    !property_item_page_is_original(previous) {
+    return Err(ForeignOriginal)
+  }
   let limits = request.limits
   let (pages, total_items, total_bytes, total_nodes, total_text, work) = match
     request.previous {
@@ -333,7 +383,9 @@ pub fn project_notion_property_item_page(
     value_text_bytes += projected.2
     items.push(projected)
   }
-  Ok({
+  let original_self : Ref[NotionPropertyItemPage?] = Ref(None)
+  let page = {
+    original_self,
     request,
     original,
     raw,
@@ -346,23 +398,30 @@ pub fn project_notion_property_item_page(
     total_text: total_text + usage.total_string_bytes,
     remaining_work: work,
     value_text_bytes,
-  })
+  }
+  original_self.val = Some(page)
+  Ok(page)
 }
 
 ///|
 pub fn next_notion_property_item_request(
   page : NotionPropertyItemPage,
 ) -> NotionPropertyItemRequest? {
+  if !property_item_page_is_original(page) {
+    return None
+  }
   match page.next_cursor {
     None => None
     Some(cursor) =>
-      Some({
-        row: page.request.row,
-        property: page.request.property,
-        limits: page.request.limits,
-        cursor: Some(cursor),
-        previous: Some(page),
-      })
+      Some(
+        new_property_item_request(
+          page.request.row,
+          page.request.property,
+          page.request.limits,
+          Some(cursor),
+          Some(page),
+        ),
+      )
   }
 }
 
@@ -375,6 +434,9 @@ pub fn admit_notion_completed_property(
   column_index : Int,
   limits : @admitted.Limits,
 ) -> Result[(@admitted.CheckedValue, Int, Int), NotionPropertyItemIssue] {
+  if !property_item_page_is_original(terminal) {
+    return Err(ForeignOriginal)
+  }
   if terminal.next_cursor is Some(_) {
     return Err(Incomplete)
   }
@@ -405,6 +467,9 @@ pub fn admit_notion_completed_property(
   let pages = []
   let mut current = Some(terminal)
   while current is Some(page) {
+    if !property_item_page_is_original(page) {
+      return Err(ForeignOriginal)
+    }
     if pages.length() >= request.limits.max_pages {
       return Err(BudgetExceeded)
     }
@@ -500,8 +565,11 @@ pub fn notion_completed_property_wire(
 ///|
 pub fn notion_property_item_page_original(
   page : NotionPropertyItemPage,
-) -> @decode.Cursor {
-  page.original
+) -> Result[@decode.Cursor, NotionPropertyItemIssue] {
+  if !property_item_page_is_original(page) {
+    return Err(ForeignOriginal)
+  }
+  Ok(page.original)
 }
 
 ///|
@@ -509,6 +577,9 @@ pub fn notion_property_item_page_original_wire(
   page : NotionPropertyItemPage,
   max_bytes : Int,
 ) -> Result[String, NotionPropertyItemIssue] {
+  if !property_item_page_is_original(page) {
+    return Err(ForeignOriginal)
+  }
   if max_bytes < page.raw.length() {
     return Err(BudgetExceeded)
   }
@@ -560,6 +631,9 @@ pub fn notion_property_item_request_matches_binding(
   binding : NotionDataSourceReadContracts,
   column_index : Int,
 ) -> Bool {
+  if !property_item_request_is_original(request) {
+    return false
+  }
   guard notion_data_source_read_column_at(binding, column_index) is Some(column) else {
     return false
   }
@@ -572,5 +646,5 @@ pub fn notion_property_item_request_matches_binding(
 pub fn notion_property_item_page_complete(
   page : NotionPropertyItemPage,
 ) -> Bool {
-  page.next_cursor is None
+  property_item_page_is_original(page) && page.next_cursor is None
 }

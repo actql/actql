@@ -187,6 +187,12 @@ property id and opaque cursor DATA from that original request; it cannot replace
 them with a name-selected property or a representative row. This DATA does not
 issue a Site grant, installation/currentness, Run binding or transport ACK.
 
+Each issued request and response has a private one-time self seal. All consumers
+check the physical original before trusting copied control fields, including
+completion, continuation, request DATA and original-response projection. A copied
+record cannot remove a nonterminal cursor and upgrade a partial response into a
+completed cell. The seal is ordinary original correspondence, not authority.
+
 Title, rich text, people and relation values use the vendor property-item list
 protocol. Every response and item must match the original property id and kind.
 The shared property id is not a unique item key. Repeated values and their order
@@ -216,6 +222,8 @@ bounds, not normal physical capacity or a second Ledger.
 
 The request/response records retain the original row/property/schema and prior
 chain, raw/decode graph, selected cursor/string aliases and per-item UTF-8 counts.
+Each request/page also retains one private seal cell and its original self
+reference; this cyclic control backing remains part of the same retained chain.
 Completion overlaps that history with a bounded reverse-page inventory,
 StringBuilder or Source-node array, converted decode graph, Common validation
 frames/CheckedValue and writer/output. The JS reader also holds the immutable

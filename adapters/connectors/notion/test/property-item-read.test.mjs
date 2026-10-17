@@ -59,6 +59,24 @@ test('foreign original binding and copied reader cannot select another property 
   assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
 });
 
+test('compiled original property controls refuse copied requests and pages across the private Node port',()=>{
+  const original=propertyOriginals(),copiedRequest={...original.request};
+  assert.equal(provider.notionPropertyRequestMatchesBinding(copiedRequest,original.binding,0),false);
+  assert.throws(()=>checked(provider.notionPropertyRequestJson(copiedRequest,1024,16,4)),{code:'MoonBitHostFailure'});
+  const bytes=Buffer.from(JSON.stringify(propertyItemPage(['first'],'opaque+/= cursor')));
+  assert.throws(()=>checked(provider.notionProjectPropertyItemPage(copiedRequest,bytes)),{code:'MoonBitHostFailure'});
+  const first=checked(provider.notionProjectPropertyItemPage(original.request,bytes)),copiedFirst={...first};
+  assert.equal(provider.notionPropertyItemPageComplete(copiedFirst),false);
+  assert.throws(()=>checked(provider.notionNextPropertyRequest(copiedFirst)),{code:'MoonBitHostFailure'});
+  assert.throws(()=>checked(provider.notionPropertyItemOriginalJson(copiedFirst,8192)),{code:'MoonBitHostFailure'});
+  const next=checked(provider.notionNextPropertyRequest(first));
+  const terminal=checked(provider.notionProjectPropertyItemPage(next,Buffer.from(JSON.stringify(propertyItemPage(['second'])))));
+  assert.equal(provider.notionPropertyItemPageComplete(terminal),true);
+  assert.equal(provider.notionPropertyItemPageComplete({...terminal}),false);
+  assert.throws(()=>checked(provider.notionCompletedPropertyJson(original.binding,{...terminal},0,128,16,4096,8192,256,16)),{code:'MoonBitHostFailure'});
+  assert.equal(checked(provider.notionCompletedPropertyJson(original.binding,terminal,0,128,16,4096,8192,256,16)),'"firstsecond"');
+});
+
 test('actual property cursor cycles, response/item mismatch and nonterminal limits refuse before value delivery',async t=>{
   for(const mode of ['cycle','foreign','pair','limit','item','status']){
     const f=await propertyReadFixture(t);
