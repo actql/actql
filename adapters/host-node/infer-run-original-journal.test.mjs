@@ -31,7 +31,7 @@ const control = runtimeCore(moon).publicationControl;
 const cid = value => `sha256:${value.repeat(64)}`;
 const policyWire = '{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}';
 
-function original(runId = 'saved-infer', authored = program) {
+function original(runId = 'saved-infer', authored = program, originalRequest) {
   const installation = configuration(base);
   const body = JSON.parse(installation.environmentWire);
   const environment = moon.clientProgramCheckEnvironment(installation.environmentWire,
@@ -47,7 +47,7 @@ function original(runId = 'saved-infer', authored = program) {
   }, graph);
   const definition = control.defineCheckedClientCompiledRun(compiled, {namespaceId: 'original', runId,
     createdAt: '2026-10-18T00:00:00.000Z', validUntil: '2099-01-01T00:00:00.000Z'});
-  const request = moon.clientProgramRequestIdentity(prepared, cid('c'), 'original-request',
+  const request = originalRequest ?? moon.clientProgramRequestIdentity(prepared, cid('c'), 'original-request',
     moon.clientProgramSourceFreeInputIntentCid());
   assert.ok(request);
   const evidence = Object.freeze({prepared: compiled.preparedEvidence.wire,
@@ -186,7 +186,7 @@ test('legacy Infer material absence is not backfilled and changed originals do n
   assert.equal(f.lookup().runAdmissionEvidence.inferRunOriginal, undefined);
   const g = journalFixture(t);
   g.accept();
-  const different = original('different-original');
+  const different = original('different-original', program, g.value.request);
   assert.throws(() => g.journal.acceptDefinition(g.value.request, {...g.options,
     runDefinition: different.definition, runAdmissionEvidence: different.evidence,
     originalInferRun: different.ticket}, moon, control), {code: 'ClientRequestInferEvidenceMismatch'});
