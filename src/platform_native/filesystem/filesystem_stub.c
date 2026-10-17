@@ -1081,6 +1081,9 @@ void *actql_native_filesystem_open_private_root_with_diagnostics(
   );
   memset(root, 0, sizeof(*root));
   root->fd = -1;
+  // No descriptor has been acquired. Failed validation/open may retire only
+  // this rejected constructor; it must not fabricate a physical close.
+  root->close_result = 1;
   root->diagnostic_ceiling = diagnostic_ceiling;
   if (diagnostic_ceiling < 0) return root;
   if (length <= 1 || length > 4096) {
@@ -1108,12 +1111,14 @@ void *actql_native_filesystem_open_private_root_with_diagnostics(
   // dot/dot-dot as a containment escape. The supplied path remains unchanged.
   root->fd = actql_open_contained_directory(text);
   int open_error = errno;
+  if (root->fd >= 0) root->close_result = 0;
   free(text);
   if (root->fd < 0) {
     actql_replace_bounded_errno_error(&root->error, root->diagnostic_ceiling, "open private Host root", open_error);
   } else if (!actql_native_filesystem_private_root_identity(root)) {
-    close(root->fd);
-    root->fd = -1;
+    // Retain the original close outcome separately from the privacy refusal.
+    // An unconfirmed consumed fd must never be closed again by its number.
+    actql_native_filesystem_root_close(root);
   }
   return root;
 }
