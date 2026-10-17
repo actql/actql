@@ -2379,6 +2379,7 @@ fn check_original_pointer(
   body : String,
   root : @decode.Cursor,
   path : Array[@decode.PathSegment],
+  format? : @syntax.Format = Json,
 ) -> String? {
   guard path.length() <= 65 else { return None }
   let bytes = @utf8.encode(body)
@@ -2400,11 +2401,24 @@ fn check_original_pointer(
           return None
         }
         remaining -= span.end_byte - span.start_byte
-        guard @source.parse_json_bytes_preserving(
-            bytes[span.start_byte:span.end_byte].to_owned(),
-            { max_input_bytes: 65536, max_nodes: 1, max_depth: 0, },
-          )
-          is Ok({ value: String(name), .. }) else {
+        let key_bytes = bytes[span.start_byte:span.end_byte].to_owned()
+        let decoded = if format == Yaml {
+          // Read one original YAML scalar through the existing parser. Never
+          // treat its plain/quoted key spelling as JSON or as normalized text.
+          @source.parse_yaml_bytes(key_bytes, {
+            max_input_bytes: 65536,
+            max_nodes: 1,
+            max_depth: 0,
+          })
+        } else {
+          @source.parse_json_bytes_preserving(key_bytes, {
+            max_input_bytes: 65536,
+            max_nodes: 1,
+            max_depth: 0,
+          })
+        }
+        guard decoded is Ok({ value: String(name), .. }) else { return None }
+        if format == Yaml && @canonical.normalize_nfc_lf(name) != Ok(key) {
           return None
         }
         original.push(@source.Key(name))
