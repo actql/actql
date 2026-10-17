@@ -8,6 +8,7 @@ struct InstalledArenaProcessReply {
   operation : Int
   issue : @bootstrap.NativeBackedProcessRegionIssue?
   descriptors : (Int, Int)?
+  backing_descriptor : Int
   stop_observation : Int
 }
 
@@ -27,7 +28,7 @@ pub fn prepare_installed_arena_process_reply(
     Ok(PendingProcess(process, issue)) => (Some(process), Some(issue))
   }
   { host: domain.host, domain, process, operation: 1, issue,
-    descriptors: None, stop_observation: 0, }
+    descriptors: None, backing_descriptor: -1, stop_observation: 0, }
 }
 
 ///|
@@ -38,6 +39,7 @@ pub fn operate_installed_arena_process_reply(
   operation : Int,
 ) -> InstalledArenaProcessReply {
   let mut descriptors = None
+  let mut backing_descriptor = -1
   let mut stop_observation = 0
   let result = match operation {
     2 => host.require_process_current(domain, process)
@@ -56,11 +58,15 @@ pub fn operate_installed_arena_process_reply(
     }
     7 => host.close_prepared_process(domain, process)
     8 => host.retire_stopped_process(domain, process)
+    9 => match host.process_backing_descriptor(domain, process) {
+      Err(issue) => Err(issue)
+      Ok(value) => { backing_descriptor = value; Ok(()) }
+    }
     _ => Err(@bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.Unavailable)))
   }
   { host: process.domain.host, domain: process.domain, process: Some(process), operation,
     issue: match result { Ok(_) => None; Err(issue) => Some(issue) },
-    descriptors, stop_observation, }
+    descriptors, backing_descriptor, stop_observation, }
 }
 
 ///|
@@ -119,6 +125,11 @@ pub fn InstalledArenaProcessReply::descriptor(self : InstalledArenaProcessReply,
 ///|
 pub fn InstalledArenaProcessReply::stop_observation(self : InstalledArenaProcessReply) -> Int {
   self.stop_observation
+}
+
+///|
+pub fn InstalledArenaProcessReply::backing_descriptor(self : InstalledArenaProcessReply) -> Int {
+  self.backing_descriptor
 }
 
 ///|

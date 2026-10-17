@@ -228,6 +228,24 @@ pub fn InstalledArenaHost::process_descriptors(
 }
 
 ///|
+/// Borrowed original backing, before the same process Owner prepares spawn.
+/// The recipient must retain its own duplicate; this is not a close or grant.
+pub fn InstalledArenaHost::process_backing_descriptor(
+  self : InstalledArenaHost,
+  domain : InstalledArenaDomain,
+  process : InstalledArenaProcess,
+) -> Result[Int, @bootstrap.NativeBackedProcessRegionIssue] {
+  match self.require_process_current(domain, process) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard process.region is Some(region) else {
+    return Err(@bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.Unavailable)))
+  }
+  domain.backing.prepared_process_region_descriptor(self, region)
+}
+
+///|
 /// Logical restriction precedes return of the exact original endpoint borrow.
 /// An imported-child Unknown stays distinct from physical stop/cleanup.
 pub fn InstalledArenaHost::restrict_process_transport(
@@ -404,6 +422,9 @@ pub fn InstalledArenaHost::retire_stopped_process(
     }
   }
   process.closing = true
+  if process.slot_close_unknown {
+    return Err(@bootstrap.Process(@executor.LockFailed))
+  }
   guard process.region is Some(region) && process.stop is Some(stop) else {
     return Err(@bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)))
   }
@@ -415,6 +436,13 @@ pub fn InstalledArenaHost::retire_stopped_process(
   process.channel_retired = true
   process.holder_closed = true
   domain.live_channel = None
+  if process.slot is Some(slot) && slot.is_open() {
+    process.slot_close_unknown = true
+    if !slot.close() {
+      return Err(@bootstrap.Process(@executor.LockFailed))
+    }
+    process.slot_close_unknown = false
+  }
   process.closed = true
   Ok(())
 }
