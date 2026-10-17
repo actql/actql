@@ -220,3 +220,138 @@ fn short_command_target_field(header : @program.EffectHeader) -> String? {
     @wire.text(value).unwrap()
   })
 }
+
+///|
+test "Source lowering retains the same original Command publication and never attaches it to structured old input" {
+  let publication = command_publication_bind("installation")
+  for format in [@frontend.Sql, @frontend.Text] {
+    let lowered = @frontend.lower(
+      "FROM pair |> EFFECT COMMAND mail.send ID x INPUT (body = 'original')",
+      format,
+      Some(pair_context()),
+      command_targets=Some(publication),
+    ).unwrap()
+    assert_true(physical_equal(lowered.command_targets.unwrap(), publication))
+    assert_eq(
+      @program.effect_header_command_input_key(
+        store_capture_header(lowered.program.unwrap()),
+      ),
+      Some("x"),
+    )
+  }
+  for
+    (format, expected) in [
+      (@frontend.Json, @program.Json),
+      (@frontend.Yaml, @program.Yaml),
+    ] {
+    let original = "{\"unparsed\":true}"
+    let lowered = @frontend.lower(
+      original,
+      format,
+      None,
+      command_targets=Some(publication),
+    ).unwrap()
+    assert_eq(lowered.document, original)
+    assert_eq(lowered.format, expected)
+    assert_true(lowered.command_targets is None)
+  }
+}
+
+///|
+test "short COMMAND original ID range survives local SET and never becomes mutation identity" {
+  let program = short_command_program(
+    "FROM pair AS original |> SET x = x + 1 |> EFFECT COMMAND mail.send ID original.x INPUT (body = 'same')",
+    "installation",
+  )
+  let header = store_capture_header(program)
+  let key = @program.effect_header_command_input_key(header).unwrap()
+  assert_true(
+    key != "x",
+    msg="the immutable original range must not follow the new visible x",
+  )
+  assert_true(semantic(program).contains("\"input_key\""))
+  assert_true(!semantic(program).contains("\"mutation_identity\""))
+  let renamed = short_command_program(
+    "FROM pair |> SELECT x AS key, y |> EFFECT COMMAND mail.send ID key INPUT (body = 'same')",
+    "installation",
+  )
+  assert_eq(
+    @program.effect_header_command_input_key(store_capture_header(renamed)),
+    Some("key"),
+  )
+}
+
+///|
+test "short COMMAND CTE and set inputs use only their actual completed exported scope" {
+  for
+    text in [
+      "WITH original AS (FROM pair) FROM original |> EFFECT COMMAND mail.send ID x INPUT (body = 'same')",
+      "(FROM pair UNION ALL FROM pair) |> EFFECT COMMAND mail.send ID x INPUT (body = 'same')",
+    ] {
+    let program = short_command_program(text, "installation")
+    assert_true(
+      @program.effect_header_command_input_key(store_capture_header(program))
+      is Some(_),
+    )
+    assert_eq(
+      @program.effect_header_count(
+        @program.collect_effect_headers(program, 10, 10000).unwrap(),
+      ),
+      1,
+    )
+  }
+  let query = @query.parse_query(
+    "FROM pair |> SELECT y |> EFFECT COMMAND mail.send ID x INPUT (body = 'same')",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(
+      query,
+      pair_context(),
+      construction_limits(),
+      command_targets=Some(command_publication_bind("installation")),
+    )
+    is Err(UnknownColumn),
+  )
+}
+
+///|
+test "short COMMAND and declared postlude compose one effects object without name substitution" {
+  let script = @query.parse_query_script(
+    "FROM pair |> RESULT visible |> EFFECT sent COMMAND mail.send ID x INPUT (body = 'same'); EFFECT later COMMAND FROM RESULT visible AS t TARGET t.x CONTRACT `command:legacy.v1` INPUT ();",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile_query_script(
+    script,
+    pair_context(),
+    construction_limits(),
+    command_targets=Some(command_publication_bind("installation")),
+  ).unwrap()
+  let headers = @program.collect_effect_headers(program, 10, 10000).unwrap()
+  assert_eq(@program.effect_header_count(headers), 2)
+  assert_eq(
+    @program.effect_header_id(@program.effect_header_at(headers, 0).unwrap()),
+    "sent",
+  )
+  assert_eq(
+    @program.effect_header_id(@program.effect_header_at(headers, 1).unwrap()),
+    "later",
+  )
+}
+
+///|
+test "short COMMAND target selection honors its original expression work bound" {
+  let query = @query.parse_query(
+    "FROM pair |> EFFECT COMMAND mail.send ID x INPUT (body = 'same')",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile(
+      query,
+      pair_context(),
+      { ..construction_limits(), max_expression_work: 0, },
+      command_targets=Some(command_publication_bind("installation")),
+    )
+    is Err(CommandTargetBinding(WorkLimit)),
+  )
+}
