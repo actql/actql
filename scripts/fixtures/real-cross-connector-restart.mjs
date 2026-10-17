@@ -9,7 +9,7 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {observeInstalledGcsMetadata, observeInstalledDuckDbReads, observeInstalledTableWorkers}
   from './real-cross-connector-observation.mjs';
 import {selectRealCrossConnectorControl} from './real-cross-connector-control.mjs';
-import {checkRealRoutePreview} from './real-cross-connector-preview.mjs';
+import {checkRealRouteReviewProjection} from './real-cross-connector-preview.mjs';
 import {createServer} from 'node:https';
 import {connectRealRouteTransport, closeRealRouteTransport} from './real-cross-connector-transport.mjs';
 
@@ -41,7 +41,7 @@ try {
     assert.equal(checkpoints.length, 1);
     assert.equal(checkpoints[0].checkpointCid, input.approval.checkpointCid);
     const preview = await client.reviewCheckpoint(checkpoints[0], {maxBytes: 1000000});
-    reviewedPreview = checkRealRoutePreview(preview, {...input.approval.previewExpected,
+    reviewedPreview = checkRealRouteReviewProjection(preview, {...input.approval.previewExpected,
       original: input.approval.originalPreview});
     const ref = checkpoints[0];
     const answer = await client.resolveCheckpoints([{checkpoint: ref, decision: 'approved'}], {signer: {

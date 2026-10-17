@@ -1,0 +1,104 @@
+{
+  "qualification": "Independent literal display-envelope vector and preimages, not an issued Preview or authority. All present self CIDs were computed from this handwritten data with independent Python canonical JSON, not a product generator or checker.",
+  "body": {
+    "version": "actql-review-projection/0.1",
+    "effect_preview_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "authority_scope_cid": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "approval_claims": [
+      "effect_scope_approved"
+    ],
+    "authoring_context_cid": "sha256:2ef86e6dac51516a93739f9d7015b7227fc881b9b77e2e99772c0a6adf687444",
+    "redaction_policy_cid": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "sensitivity": "restricted",
+    "retention_class": "approval-evidence",
+    "encryption_required": true,
+    "displayed_scope": {
+      "effects": [
+        {
+          "effect_id": "save",
+          "kind": "store",
+          "target": "connector://table/catalog",
+          "count": 1
+        }
+      ]
+    },
+    "displayed_permissions": [
+      "scope:store"
+    ],
+    "displayed_rows": [
+      {
+        "effect_id": "save",
+        "row_preview_cid": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "target_row_identity": "sha256:04d8ddae3cd1d679e015c4ce2f1cf9a15512980be1723babe2cba97501b754eb",
+        "before": {
+          "state": "not_applicable"
+        },
+        "after": {
+          "state": "not_applicable"
+        },
+        "preview_strength": "full_diff",
+        "target_guard": {
+          "state": "not_applicable"
+        },
+        "intended_changes": {
+          "state": "present",
+          "value": {
+            "version": "actql-table-operation/0.1",
+            "logical_request_scope_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "effect_identity_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+            "action": "create",
+            "catalog_identity_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "namespace": [
+              "test"
+            ],
+            "table_name": "rows",
+            "expected_table": null,
+            "input_artifact_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "input_carrier": {
+              "kind": "relation",
+              "cid": "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+            },
+            "schema_cid": "sha256:443804f9662e5e0591f71c5159ac6b60eb227fe8fbb6d992359dc34d823e92c9",
+            "storage_mapping_cid": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+            "data_policy_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "request_cid": "sha256:04d8ddae3cd1d679e015c4ce2f1cf9a15512980be1723babe2cba97501b754eb"
+          }
+        }
+      }
+    ],
+    "displayed_authoring_context": [
+      {
+        "version": "actql-authoring-context/0.1",
+        "program_definition_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "annotations": [],
+        "authoring_context_cid": "sha256:2ef86e6dac51516a93739f9d7015b7227fc881b9b77e2e99772c0a6adf687444"
+      }
+    ],
+    "review_projection_cid": "sha256:df029ec5db85b4a87d8444497f713719d0253db7b72e6356a198bf534810ffa9"
+  },
+  "expected": {
+    "catalogCid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "checkpoint": {
+      "kind": "effect_set",
+      "subject": {
+        "kind": "run_unit",
+        "runDefinitionCid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "runId": "00000000-0000-4000-8000-000000000001"
+      },
+      "requiredArtifact": {
+        "type": "effect_set_preview",
+        "cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "reviewProjectionCid": "sha256:df029ec5db85b4a87d8444497f713719d0253db7b72e6356a198bf534810ffa9",
+      "requirements": [
+        "effect_scope_approved"
+      ],
+      "phase": "commit"
+    },
+    "runRef": {
+      "runDefinitionCid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "authorityScopeCid": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    "runId": "00000000-0000-4000-8000-000000000001"
+  }
+}
