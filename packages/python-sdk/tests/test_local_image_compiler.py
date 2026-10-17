@@ -30,7 +30,7 @@ class ImageCompilerTests(unittest.TestCase):
         self.provider = self.library.parent / 'libactql_native_control.dylib'
         self.provider.write_bytes(PROVIDER)
         self.destination = self.case.root / 'compiled'
-        self.preparation_root = self.case.root / 'prepared'
+        self.preparation_root = (self.case.root / 'prepared').resolve()
         (self.preparation_root / 'actql_local_runtime/_wasmtime/darwin-aarch64').mkdir(parents=True)
         for name in ('__init__.py', '_wasmtime/__init__.py'):
             (self.preparation_root / 'actql_local_runtime' / name).write_text('# Independent scalar namespace fixture\n')

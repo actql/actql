@@ -221,6 +221,9 @@ def prepare_compiler_runtime(original: dict[str, Any], bindings_source: Path,
     """
     if not destination.is_absolute() or destination.exists() or destination.is_symlink():
         raise ValueError('Select a fresh absolute compiler preparation directory')
+    destination = destination.resolve()
+    if destination.exists():
+        raise ValueError('Compiler preparation already exists at its canonical path')
     original_init = assembly.recipe._source_original(ROOT, original['source'],
         'packages/python-local-runtime/src/actql_local_runtime/__init__.py',
         'Original private runtime package')

@@ -23,7 +23,7 @@ class CompilerPrivateRuntimeTests(unittest.TestCase):
         self.root = self.fixture.root
         source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=image.ROOT, text=True).strip()
         self.original = {'source': source, 'recipe': replace(self.fixture.selected, source_sha=source)}
-        self.destination = self.root / 'compiler-preparation'
+        self.destination = (self.root / 'compiler-preparation').resolve()
         self.depth = 0
         self.imports = []
         @contextmanager
