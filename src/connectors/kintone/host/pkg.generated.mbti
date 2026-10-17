@@ -41,6 +41,8 @@ pub fn record_read_original(RecordRead) -> @catalog.OriginalRecordPage?
 
 pub fn record_read_page_ids(RecordRead) -> Result[Array[String], RecordReadIssue]
 
+pub fn record_request_cursor(Array[String]) -> Result[String?, RecordReadIssue]
+
 pub fn retire_record_read(RecordRead) -> Result[Unit, RecordReadIssue]
 
 // Errors
