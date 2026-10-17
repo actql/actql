@@ -305,3 +305,172 @@ test "an error empty reply partial object or non-success status is not a delete 
   )
   assert_eq(record_delete_request_targets(request).length(), 1)
 }
+
+///|
+test "delete target observation query retains original IDs and complete bounded fields" {
+  let page = mutation_page(record_test_catalog(), [
+    mutation_row("9007199254740992"),
+    mutation_row("9007199254740993"),
+  ])
+  let request = prepare_record_delete_request(
+    [
+      prepare_original_record_target(page, 0, 100).unwrap(),
+      prepare_original_record_target(page, 1, 100).unwrap(),
+    ],
+    mutation_limits(),
+  ).unwrap()
+  let body = record_delete_observation_body(request, 10, 1000, 100, 10).unwrap()
+  assert_eq(
+    body, "{\"app\":\"12\",\"fields\":[\"$id\",\"$revision\",\"number\",\"text\"],\"query\":\"$id in (9007199254740992,9007199254740993) order by $id asc limit 2\"}",
+  )
+  assert_eq(record_delete_request_app_id(request), "12")
+  assert_eq(record_delete_request_count(request), 2)
+  assert_true(
+    record_delete_observation_body(request, 0, 1000, 100, 10)
+    is Err(InvalidLimits),
+  )
+  assert_true(
+    record_delete_observation_body(request, 999, 1000, 100, 10)
+    is Err(InvalidLimits),
+  )
+  assert_true(
+    record_delete_observation_body(request, 1, 1000, 100, 10)
+    is Err(BudgetExceeded),
+  )
+  assert_true(
+    record_delete_observation_body(request, 10, 10, 100, 10)
+    is Err(BudgetExceeded),
+  )
+  let size = @utf8.encode(body).length()
+  assert_true(
+    record_delete_observation_body(request, 10, size - 1, 100, 10)
+    is Err(BudgetExceeded),
+  )
+  assert_eq(
+    record_delete_observation_body(request, 10, size, 100, 10).unwrap(),
+    body,
+  )
+}
+
+///|
+test "delete current Form requires the original revision and exact field definitions" {
+  let catalog = form_test_catalog(
+    body="{\"revision\":\"7\",\"properties\":{\"text\":{\"code\":\"text\",\"type\":\"SINGLE_LINE_TEXT\"},\"number\":{\"code\":\"number\",\"type\":\"RECORD_NUMBER\"}}}",
+  )
+  let page = mutation_page(catalog, [mutation_row("7")])
+  let request = prepare_record_delete_request(
+    [prepare_original_record_target(page, 0, 100).unwrap()],
+    mutation_limits(),
+  ).unwrap()
+  let body = "{\"revision\":\"7\",\"properties\":{\"number\":{\"code\":\"number\",\"type\":\"RECORD_NUMBER\"},\"text\":{\"code\":\"text\",\"type\":\"SINGLE_LINE_TEXT\"}}}"
+  assert_true(
+    recheck_record_delete_form(request, @utf8.encode(body), form_test_limits())
+    is Ok(_),
+  )
+  for
+    changed in [
+      body.replace(old="\"7\"", new="\"8\""),
+      body.replace(old="SINGLE_LINE_TEXT", new="MULTI_LINE_TEXT"),
+    ] {
+    assert_true(
+      recheck_record_delete_form(
+        request,
+        @utf8.encode(changed),
+        form_test_limits(),
+      )
+      is Err(ForeignCatalog),
+    )
+  }
+  assert_true(
+    recheck_record_delete_form(request, b"{", form_test_limits())
+    is Err(Form(_)),
+  )
+}
+
+///|
+test "delete current record correlation refuses omission substitution duplicate and revision drift" {
+  let catalog = record_test_catalog()
+  let first = mutation_row("9007199254740992", revision="7")
+  let second = mutation_row("9007199254740993", revision="8")
+  let page = mutation_page(catalog, [first, second])
+  let request = prepare_record_delete_request(
+    [
+      prepare_original_record_target(page, 0, 100).unwrap(),
+      prepare_original_record_target(page, 1, 100).unwrap(),
+    ],
+    mutation_limits(),
+  ).unwrap()
+  let envelope = fn(rows : Array[String]) {
+    @utf8.encode("{\"records\":[" + rows.join(",") + "],\"totalCount\":null}")
+  }
+  assert_true(
+    recheck_record_delete_records(
+      request,
+      envelope([second, first]),
+      record_test_limits(),
+      10,
+      1000,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    recheck_record_delete_records(
+      request,
+      envelope([first]),
+      record_test_limits(),
+      10,
+      1000,
+    )
+    is Err(UncorrelatedResult),
+  )
+  assert_true(
+    recheck_record_delete_records(
+      request,
+      envelope([first, second, mutation_row("9")]),
+      record_test_limits(),
+      10,
+      1000,
+    )
+    is Err(UncorrelatedResult),
+  )
+  assert_true(
+    recheck_record_delete_records(
+      request,
+      envelope([first, mutation_row("9")]),
+      record_test_limits(),
+      10,
+      1000,
+    )
+    is Err(MissingTarget),
+  )
+  assert_true(
+    recheck_record_delete_records(
+      request,
+      envelope([first, first]),
+      record_test_limits(),
+      10,
+      1000,
+    )
+    is Err(Page(_)),
+  )
+  assert_true(
+    recheck_record_delete_records(
+      request,
+      envelope([first, mutation_row("9007199254740993", revision="9")]),
+      record_test_limits(),
+      10,
+      1000,
+    )
+    is Err(ChangedRevision),
+  )
+  assert_true(
+    recheck_record_delete_records(
+      request,
+      envelope([first, second]),
+      record_test_limits(),
+      10,
+      1,
+    )
+    is Err(BudgetExceeded),
+  )
+}
