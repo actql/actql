@@ -333,7 +333,9 @@ function fixtures() {
     value: item.program, cid: item.cid});
   const commandKeys = read('portability/corpus/command-input-keys.json');
   result.push({id: 'Program source grammar with original Command input keys',
-    value: read('spec/contracts/actql-protocol-schemas.json').artifact_schemas.executable_plan.properties.execution_material.properties.program,
+    // Original 0976aca4 body: later CREATE-value and other Program extensions
+    // cannot replace this independent Command-key oracle's input.
+    value: read('portability/fixtures/program-grammar-before-create-values.json'),
     cid: commandKeys.program_cid});
   for (const item of commandKeys.programs) {
     result.push({id: 'Original Command without input key ' + item.mode,

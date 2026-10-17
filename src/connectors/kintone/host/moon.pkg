@@ -1,10 +1,11 @@
 supported_targets = "+js+wasm+native"
 
 import {
-  "actql/actql/connectors/kintone/catalog" @catalog,
+  "actql/actql/connectors/kintone/catalog",
   "actql/actql/client_row_source_host" @rows,
   "actql/actql/query_planning" @planning,
   "actql/actql/value_contract" @contract,
+  "actql/actql/value_admission" @admitted,
   "actql/actql/sha256" @sha,
   "actql/actql/encode_core" @encode,
   "moonbitlang/core/encoding/utf8",

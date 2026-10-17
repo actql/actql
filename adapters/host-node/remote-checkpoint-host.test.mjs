@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import {execFileSync, spawnSync} from 'node:child_process';
 import {nodeTestArguments} from '../../scripts/test-execution.mjs';
 import {assertPartialEffectSeedExit} from './fixtures/effect-crash-evidence.mjs';
+import {checkpointEffectReviewDouble} from './fixtures/checkpoint-effect-review.fixture.mjs';
 import {createHash, createPrivateKey, createPublicKey, generateKeyPairSync, sign} from 'node:crypto';
 import {chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile} from
   'node:fs/promises';
@@ -95,7 +96,7 @@ async function installedReadFixture(directory, outcome = 'allow') {
   // as well as native two-receipt acquisition. Do not infer that capability
   // from a native-only saved declaration.
   environment.connector_capabilities[0].capability_contract_cids.push(
-    'sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89');
+    'sha256:cdaab753fd3c01709fbd9ae32022a8462bc8200edf1e9c93d533a293989f8a3b');
   environment.connector_capabilities[0].capability_contract_cids.sort();
   environment.evidence_bundle_cid = withoutCid(environment,
     'evidence_bundle_cid');
@@ -2536,6 +2537,7 @@ test('installed Effect commit resumes the same Run without resending',
           runDefinitionCid: runDefinition.identity, unitId: 'values',
           declaredResults: ['answer'],
           reviewWire: canonicalJson({effect: 'save', rows: 2}),
+          projectReview: checkpointEffectReviewDouble(control,subjectCid),
           continuationWire: canonicalJson({subjectCid}),
           beforeDefer: () => execution.close()});
         try {

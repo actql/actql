@@ -1,6 +1,6 @@
 {
   "version": "actql-protocol-schema-registry/0.1",
-  "registry_cid": "sha256:7e59eb4f0e1b3c3e10c2c3224abe5db2b02ce50cc4e247bd583bcba9609f194d",
+  "registry_cid": "sha256:8735b44d60938b49b7c7cd71250bb2ca55eadb4660be0d1e50ba7557b759e008",
   "schema_cids": {
     "model_task": "sha256:f0b78bb09840a99b56f6fe910be33b9f51dfcc6349834aa44bcc1b5de1e87a7f",
     "contract_ref": "sha256:a149fa3216f6e15bfaca58a886f7a3e6a269b0109fe7b9ccca1c402c1a103e94",
@@ -19,7 +19,8 @@
     "content_ref": "sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d",
     "content_availability_evidence": "sha256:784203dbc5f95925f83f57c0ff3230abef8bac867768bbe90b26f622fb2d867d",
     "model_task_v02": "sha256:4d573d3b4ef25cfe72ad6d8c7bd1c9b13296e14801ea829f839f2461137c5734",
-    "model_provider_defaults": "sha256:35258db20dca538d6889ac34789becea8c4a62858127848b1419d19a93b144e6"
+    "model_provider_defaults": "sha256:35258db20dca538d6889ac34789becea8c4a62858127848b1419d19a93b144e6",
+    "notion_database_read_declaration": "sha256:39426e9830ffa735632156dcebdfd8d456c164f3087bd7e3697d0f41edc1bc55"
   },
   "schemas": {
     "model_task": {
@@ -13988,9 +13989,1014 @@
           }
         }
       }
+    },
+    "notion_database_read_declaration": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "unique": {
+              "type": "string",
+              "minLength": 1
+            },
+            "marker": {
+              "type": "string",
+              "minLength": 1
+            },
+            "data_source_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "read_contracts": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "minLength": 1
+              },
+              "additionalProperties": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 2,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "column",
+                    "projection",
+                    "contract"
+                  ],
+                  "properties": {
+                    "column": {
+                      "type": "string",
+                      "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+                    },
+                    "projection": {
+                      "enum": [
+                        "value",
+                        "start",
+                        "end"
+                      ]
+                    },
+                    "contract": {
+                      "$ref": "#/$defs/value_contract"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "$defs": {
+        "value_contract": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable",
+                "precision",
+                "scale"
+              ],
+              "properties": {
+                "type": {
+                  "const": "decimal"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "precision": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 38
+                },
+                "scale": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 38
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 1
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 2
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 2
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 3
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 3
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 4
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 4
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 5
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 5
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 6
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 6
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 7
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 7
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 8
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 8
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 9
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 9
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 10
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 10
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 11
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 11
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 12
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 12
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 13
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 13
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 14
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 14
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 15
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 15
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 16
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 16
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 17
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 17
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 18
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 18
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 19
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 19
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 20
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 20
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 21
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 21
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 22
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 22
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 23
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 23
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 24
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 24
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 25
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 25
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 26
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 26
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 27
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 27
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 28
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 28
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 29
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 29
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 30
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 30
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 31
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 31
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 32
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 32
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 33
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 33
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 34
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 34
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 35
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 35
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 36
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 36
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 37
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 37
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "precision": {
+                        "const": 38
+                      }
+                    },
+                    "required": [
+                      "precision"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "scale": {
+                        "maximum": 38
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "properties": {
+                "type": {
+                  "const": "string"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "min_length": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "max_codepoints": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "max_utf8_bytes": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "enum": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "number",
+                    "boolean",
+                    "timestamp",
+                    "date",
+                    "json"
+                  ]
+                },
+                "nullable": {
+                  "type": "boolean"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable",
+                "items"
+              ],
+              "properties": {
+                "type": {
+                  "const": "array"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "items": {
+                  "$ref": "#/$defs/value_contract"
+                },
+                "max_items": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable",
+                "additional_properties",
+                "fields"
+              ],
+              "properties": {
+                "type": {
+                  "const": "object"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "additional_properties": {
+                  "const": false
+                },
+                "fields": {
+                  "type": "object",
+                  "propertyNames": {
+                    "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+                  },
+                  "additionalProperties": {
+                    "$ref": "#/$defs/value_contract"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable",
+                "dimensions",
+                "element_type"
+              ],
+              "properties": {
+                "type": {
+                  "const": "vector"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "dimensions": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "element_type": {
+                  "const": "f32"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable",
+                "resource_kind"
+              ],
+              "properties": {
+                "type": {
+                  "const": "resource_ref"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "resource_kind": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "properties": {
+                "type": {
+                  "const": "content_ref"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "media_type": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          ]
+        }
+      }
     }
   },
-  "artifact_registry_cid": "sha256:76162cd46e2b4e58026d47e32b02b3773d9b588d98abd1a529f6ceae0ec76f07",
+  "artifact_registry_cid": "sha256:91849cecfa9c98be1bd43feea4072d21e9347b9a63977f086e0710713eaef277",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -14004,8 +15010,8 @@
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
-    "effect_preview": "sha256:83add51a9d2c3aa700d512b226f2931e0075304afab4a08e9b32c4da3a31c772",
-    "review_projection": "sha256:454fb9ff461949542c38af133e210912e3e9e4260e53a2dc25ae3de7b42160d2",
+    "effect_preview": "sha256:d61a28ce5eb88ef7195d0557114339c53af92d93878e1c816882f13720cb208d",
+    "review_projection": "sha256:99680abc66cdaa569fb44ac546fd1f814ed128e5d1ed3002d38d3a885acfe87b",
     "approval_attestation": "sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9",
     "effect_apply_receipt": "sha256:4f4aabc61bc08bf79ecfe89cf958906e99d5bde4e12b3e95f5ef6539c9964c62",
     "effect_set_apply_receipt": "sha256:311b168738be9062ba8ff88d5e3d3d1d7fbbfe3935ee334cb6216d92e0a4b9cb",
@@ -42858,6 +43864,52 @@
                         "minLength": 1
                       }
                     }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "$actql_ref",
+                      "version",
+                      "resource_kind",
+                      "provider_namespace",
+                      "provider_identity_cid",
+                      "authority_scope_cid",
+                      "boundary_cid",
+                      "identity_cid"
+                    ],
+                    "properties": {
+                      "$actql_ref": {
+                        "const": "resource"
+                      },
+                      "version": {
+                        "const": "actql-resource-ref/0.1"
+                      },
+                      "resource_kind": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "provider_namespace": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "provider_identity_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "authority_scope_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "boundary_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "identity_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      }
+                    }
                   }
                 ]
               },
@@ -43392,6 +44444,52 @@
                             "minLength": 1
                           }
                         }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "$actql_ref",
+                          "version",
+                          "resource_kind",
+                          "provider_namespace",
+                          "provider_identity_cid",
+                          "authority_scope_cid",
+                          "boundary_cid",
+                          "identity_cid"
+                        ],
+                        "properties": {
+                          "$actql_ref": {
+                            "const": "resource"
+                          },
+                          "version": {
+                            "const": "actql-resource-ref/0.1"
+                          },
+                          "resource_kind": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "provider_namespace": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "provider_identity_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "authority_scope_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "boundary_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "identity_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          }
+                        }
                       }
                     ]
                   },
@@ -43506,7 +44604,76 @@
                 ]
               },
               "before": {},
-              "after": {}
+              "after": {},
+              "preview_strength": {
+                "enum": [
+                  "full_diff",
+                  "targeted"
+                ]
+              },
+              "target_guard": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "state",
+                      "version_cid"
+                    ],
+                    "properties": {
+                      "state": {
+                        "const": "version"
+                      },
+                      "version_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "state"
+                    ],
+                    "properties": {
+                      "state": {
+                        "const": "not_applicable"
+                      }
+                    }
+                  }
+                ]
+              },
+              "intended_changes": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "state",
+                      "value"
+                    ],
+                    "properties": {
+                      "state": {
+                        "const": "present"
+                      },
+                      "value": {}
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "state"
+                    ],
+                    "properties": {
+                      "state": {
+                        "const": "not_applicable"
+                      }
+                    }
+                  }
+                ]
+              }
             }
           }
         },

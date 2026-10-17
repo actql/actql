@@ -46,6 +46,28 @@ import {
 }
 
 // Values
+pub fn client_host_signer_allows_kind(@run_publication_host.ClientHostSignerSelection, String) -> Bool
+
+pub fn client_host_signer_key_id(@run_publication_host.ClientHostSignerSelection) -> String
+
+pub fn client_host_signer_name(@run_publication_host.ClientHostSignerSelection) -> String
+
+pub fn client_host_signer_principal(@run_publication_host.ClientHostSignerSelection) -> String
+
+pub fn client_host_signer_private_key_file(@run_publication_host.ClientHostSignerSelection) -> String
+
+pub fn client_host_signer_public_key_file(@run_publication_host.ClientHostSignerSelection) -> String
+
+pub fn client_host_signers_admit(String, Int, Int, Int, Int) -> Result[@run_publication_host.ClientHostSignerConfiguration, @run_publication_host.ClientHostSignerConfigurationIssue]
+
+pub fn client_host_signers_count(@run_publication_host.ClientHostSignerConfiguration) -> Int
+
+pub fn client_host_signers_explicit(@run_publication_host.ClientHostSignerConfiguration) -> Bool
+
+pub fn client_host_signers_original_wire(@run_publication_host.ClientHostSignerConfiguration) -> String
+
+pub fn client_host_signers_select(@run_publication_host.ClientHostSignerConfiguration, String) -> @run_publication_host.ClientHostSignerSelection?
+
 pub fn client_program_acquired_effect_catalog_bodies(@run_publication_host.ClientEffectAcquiredEvidence, Int, Int, Int) -> Result[Array[(String, String, String)], @run_publication_host.ClientEffectAcquiredEvidenceIssue]
 
 pub fn client_program_acquired_effect_dependency_bodies(@run_publication_host.ClientEffectAcquiredEvidence) -> Array[(String, String)]
@@ -750,9 +772,45 @@ pub fn client_program_kintone_declaration_limits(Int, Int, Int, Int, Int) -> @cl
 
 pub fn client_program_kintone_declare_records(@actql/actql/connectors/kintone/catalog.FormFieldCatalog, @actql/actql/connectors/kintone/catalog.AppNumberSettings?, Array[String], String, String, String, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @client_row_source_host.RowDeclarationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordDeclaration, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
+pub fn client_program_kintone_delete_app(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest) -> String
+
+pub fn client_program_kintone_delete_body(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest) -> String
+
+pub fn client_program_kintone_delete_count(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest) -> Int
+
+pub fn client_program_kintone_delete_mapping_body(@actql/actql/connectors/kintone/host.RecordDeleteMapping) -> String
+
+pub fn client_program_kintone_delete_mapping_matches_declaration(@actql/actql/connectors/kintone/host.RecordDeleteMapping, @actql/actql/connectors/kintone/host.RecordDeclaration) -> Bool
+
+pub fn client_program_kintone_delete_mapping_matches_request(@actql/actql/connectors/kintone/host.RecordDeleteMapping, @actql/actql/connectors/kintone/catalog.RecordDeleteRequest) -> Bool
+
+pub fn client_program_kintone_delete_observation_body(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, Int, Int, Int, Int) -> Result[String, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_delete_preview_before(@actql/actql/connectors/kintone/host.RecordDeletePreview) -> String
+
+pub fn client_program_kintone_delete_preview_identity(@actql/actql/connectors/kintone/host.RecordDeletePreview) -> String
+
+pub fn client_program_kintone_delete_preview_matches(@actql/actql/connectors/kintone/host.RecordDeletePreview, @actql/actql/connectors/kintone/host.RecordDeleteMapping, @actql/actql/connectors/kintone/catalog.OriginalRecordTarget) -> Bool
+
+pub fn client_program_kintone_delete_preview_version_cid(@actql/actql/connectors/kintone/host.RecordDeletePreview) -> String
+
+pub fn client_program_kintone_delete_recheck_form(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, Bytes, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> Result[Unit, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_delete_recheck_records(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, Bytes, @actql/actql/connectors/kintone/catalog.RecordPageLimits, Int, Int) -> Result[Unit, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_delete_request(Array[@actql/actql/connectors/kintone/catalog.OriginalRecordTarget], @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_delete_response(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, Int, Bytes, Int, Int, Int) -> Result[@actql/actql/connectors/kintone/catalog.RecordDeleteAcknowledgement, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_delete_response_request(@actql/actql/connectors/kintone/catalog.RecordDeleteAcknowledgement) -> @actql/actql/connectors/kintone/catalog.RecordDeleteRequest
+
 pub fn client_program_kintone_form_limits(Int, Int, Int, Int, Int) -> @actql/actql/connectors/kintone/catalog.FormFieldLimits
 
 pub fn client_program_kintone_form_request_body(@actql/actql/connectors/kintone/host.PreparedRecordRead, Int) -> Result[String, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_mutation_limits(Int, Int, Int, Int, Int, Int) -> @actql/actql/connectors/kintone/catalog.RecordMutationLimits
+
+pub fn client_program_kintone_original_record_target(@actql/actql/connectors/kintone/catalog.OriginalRecordPage, Int, Int) -> Result[@actql/actql/connectors/kintone/catalog.OriginalRecordTarget, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
 
 pub fn client_program_kintone_page_limits(Int, Int, Int, Int, Int, Int, Int) -> @actql/actql/connectors/kintone/catalog.RecordPageLimits
 
@@ -760,9 +818,15 @@ pub fn client_program_kintone_page_next_cursor(@actql/actql/connectors/kintone/h
 
 pub fn client_program_kintone_page_request_body(@actql/actql/connectors/kintone/host.PreparedRecordRead, Array[String], Int, Int) -> Result[String, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
+pub fn client_program_kintone_prepare_delete_mapping(@actql/actql/connectors/kintone/host.RecordDeclaration, String, String, @client_row_source_host.RowDeclarationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordDeleteMapping, @client_row_source_host.RowMappingIssue]
+
+pub fn client_program_kintone_prepare_delete_preview(@actql/actql/connectors/kintone/host.RecordDeleteMapping, @actql/actql/connectors/kintone/catalog.OriginalRecordTarget, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordDeletePreview, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
 pub fn client_program_kintone_prepare_read(@actql/actql/connectors/kintone/host.RecordDeclaration, @query_planning.QueryRequirement, String, String) -> Result[@actql/actql/connectors/kintone/host.PreparedRecordRead, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
 pub fn client_program_kintone_project_form(Bytes, String, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> Result[@actql/actql/connectors/kintone/catalog.FormFieldCatalog, @actql/actql/connectors/kintone/catalog.FormFieldIssue]
+
+pub fn client_program_kintone_project_record_page(Bytes, @actql/actql/connectors/kintone/catalog.FormFieldCatalog, Array[String], @actql/actql/connectors/kintone/catalog.RecordPageLimits) -> Result[@actql/actql/connectors/kintone/catalog.OriginalRecordPage, @actql/actql/connectors/kintone/catalog.RecordPageIssue]
 
 pub fn client_program_kintone_read_acquisition(@actql/actql/connectors/kintone/host.PreparedRecordRead) -> @client_row_source_host.RowAcquisition
 
@@ -953,6 +1017,8 @@ pub fn client_program_prepare_single_captured_local_installed_ledger(@run_public
 pub fn client_program_prepare_source_computation_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?, Bool, Array[@pipeline_check_context.StageCapacityInput]) -> ClientSourceComputationBridgeOutcome
 
 pub fn client_program_prepare_source_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?) -> ClientProgramBridgeOutcome
+
+pub fn client_program_project_effect_review(@run_publication.EffectPreviewIdentity, String, String, Array[String], String, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, @run_publication.EffectReviewProjectionIssue]
 
 pub fn client_program_project_model_task_selection_for(@run_publication_host.ClientProjectModelTaskSelection, @run_publication_host.ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration) -> (String, String?, String)?
 

@@ -952,6 +952,59 @@ delivery,
 preview, or receipts. The non-secret reference itself is bound by the source
 contract so changing the host binding invalidates checked source evidence.
 
+<a id="notion-read-contracts"></a>
+
+<!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/schemas/notion_database_read_declaration sha256:39426e9830ffa735632156dcebdfd8d456c164f3087bd7e3697d0f41edc1bc55 -->
+
+#### Original Notion property read contracts
+
+<!-- requirement-block: notion-read-contracts.original-declaration notion-read-contracts.closed-declaration notion-read-contracts.singleton-selection notion-read-contracts.no-name-or-first-selection notion-read-contracts.complete-checked-grammar notion-read-contracts.absence-unavailable -->
+A Notion database alias MUST retain its original database declaration. The
+legacy nonempty database-id String and closed `{id, unique?, marker?}` forms
+remain unchanged. The closed object MAY additionally declare `data_source_id`
+and `read_contracts`; explicit null and unknown fields MUST be rejected.
+`data_source_id` identifies an exact occurrence in that database's original
+inventory. Without it, database shorthand MUST select an original singleton;
+a multiple-source inventory MUST NOT select by first occurrence or display name.
+`read_contracts` maps exact property ids to one or two closed
+`{column, projection, contract}` entries. `projection` is `value`, `start` or
+`end`; `contract` is a complete existing checked ValueContract, including its
+original nullability, Decimal precision/scale, temporal type and Text constraints.
+All declared contracts, including unused ones, MUST be admitted and charged.
+An absent read declaration MUST NOT imply a contract for ambiguous vendor data.
+
+<!-- requirement-block: notion-read-contracts.installed-original-supplier notion-read-contracts.original-property-pair notion-read-contracts.no-inferred-contract notion-read-contracts.exact-decimal notion-read-contracts.logical-values notion-read-contracts.temporal-projection notion-read-contracts.paired-range notion-read-contracts.no-dropped-range notion-read-contracts.exact-instant -->
+The consuming supported installation MUST supply each required original checked
+read contract, bound to the actual property id, original schema observation,
+selected data-source occurrence and installation/configuration revision. A
+matching id, CID or reparsed equal body MUST NOT replace those originals.
+Metadata-determined properties MAY use their exact existing logical projection;
+a display format, sample value, expression text or computed discriminant MUST
+NOT invent a promised logical shape. Numeric properties require an explicit
+Decimal contract; every exact native numeric token MUST pass that precision and
+scale without rounding or Number/String relabelling. Every returned value and
+computed discriminant MUST match the original contract. A date projection MUST
+explicitly select Date or Timestamp and its output column. Two projections MUST
+be one `start` and one `end` of the same temporal shape; a scalar start MUST NOT
+discard a supplied range end. Exact known offsets MAY normalize the same instant
+to canonical UTC while retaining the original source; unknown offsets, named
+zones without their admitted timezone supplier, nonzero submillisecond loss or
+out-of-range instants MUST be rejected rather than guessed or rounded.
+
+<!-- requirement-block: notion-read-contracts.retained-custody notion-read-contracts.no-acquisition-grant notion-read-contracts.bounded-completion notion-read-contracts.no-partial-exhaustion -->
+The same Run and its restoration MUST retain these original declarations,
+schemas and checked contracts rather than resolve them from replacement current
+configuration. Inline property arrays, one response, a structural schema or a
+public CID MUST NOT establish complete property acquisition, current permission,
+a Resource/Content reference, physical cleanup or funding. Property-item paging,
+cross-page identities and cursors, current authorization, response loss and
+cleanup remain the existing acquisition owners' duties. Byte/node/depth,
+column/property counts, every declaration occurrence, exact-token conversion,
+Unicode comparison and output work/retention MUST remain bounded and charged;
+exhaustion MUST refuse without partial typed rows. The original full response,
+parsed graph, declaration/schema aliases, converted values and output workspace
+remain retained until their actual consuming custody ends.
+
 <a id="mapping-contracts"></a>
 
 #### Mapping contracts
@@ -1603,7 +1656,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:e71858edb9b1a4aaa43e36697e4cf7f4b105f834cfde16123694902f1eacf141 -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:995e25a9bd1dbd1eb86fffe893e13ff40d93a8dfce400dbbf71dd44d9dadc61c -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:84f8c82ffb7476f57a3c4e1bef0e0dd8aa891e2ab0f1d79c203e907e91291b9b -->
 
 <a id="parameter-value-projection"></a>

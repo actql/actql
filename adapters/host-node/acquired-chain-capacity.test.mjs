@@ -66,7 +66,7 @@ async function fixture(t, transport, item, cancel) {
   const base = JSON.parse(await readFile(join(root, 'spec/local-check-environment.json'), 'utf8'));
   environment.host_policy_profile = base.host_policy_profile;
   environment.connector_capabilities[0].capability_contract_cids.push(
-    'sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89');
+    'sha256:cdaab753fd3c01709fbd9ae32022a8462bc8200edf1e9c93d533a293989f8a3b');
   environment.connector_capabilities[0].capability_contract_cids.sort();
   delete environment.evidence_bundle_cid;
   environment.evidence_bundle_cid = 'sha256:' + createHash('sha256')

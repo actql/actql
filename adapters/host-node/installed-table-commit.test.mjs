@@ -109,6 +109,7 @@ for (const partial of [false,true]) {
         const continuation = () => ({runId:'source-set-run', runDefinitionCid: plan.runDefinition.identity,
           unitId:'unit-1',declaredResults:['rows'],
           reviewWire: control.effectComputationPreviewWire(stage.preview),
+          projectReview:(policy,limits)=>control.projectEffectComputationReview(stage.preview,policy,limits),
           continuationWire: stage.continuationWire,
           beforeDefer: () => stage.apply.ledger.prepareCapturedSetIntents(stage.apply.capturedInputs,
             stage.apply.members, 100)});
