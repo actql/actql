@@ -207,3 +207,19 @@ there is no resend, fresh assertion or reconstruction from current config for
 that same use. Token issuance grants no API rights. A physical or installed
 acceptance receipt must prove these connections independently of the pure
 signature/reference controls.
+
+### Credential Site failure handoff
+
+The installed Host lifecycle module owns the synchronous Credential Site
+failure handoff used by Salesforce's compatibility entries. It keeps the
+original Site, primary failure and earlier cleanup handle; an unavailable
+observation remains pending. The Site's independent journal release may proceed
+while that earlier owner remains pending. This is the existing Site protocol,
+not the ordered Host initialization protocol that gates downstream resources.
+A completed Site or earlier owner is not closed again by this handoff.
+
+The compatibility entry supplies its original fallback diagnostic code. It
+neither retries provider work nor changes Checkpoint/current authority. The
+same original aliases, error snapshots and retry closure remain with the
+returned failure; relocation does not supply a reservation, numerical profile
+or whole-Host funding proof.
