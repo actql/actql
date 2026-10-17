@@ -7,6 +7,12 @@ let signing_original_public_a_body : String =
 let signing_original_public_a_cid : String = "sha256:e749b44f58f00aea7462fff44345be1406f64320d52984005ad478213afa4b74"
 
 ///|
+// Same original two permission tuples in the Account Owner's required lexical
+// entry order. The previous permutation remains an explicit refusal below.
+let signing_original_role_account_wire : String =
+  #|{"version":"actql-execution-account-config/0.1","account_id":"operator","entries":[{"entry_id":"independent-reviewer-resolve","outcome":"allow","principal":{"any_of":["reviewer"]},"connection":{"any_of":["review-cli"]},"resource":{"any_of":["run"]},"operation":{"any_of":["resolve"]},"exclusions":[]},{"entry_id":"original-host-key-sign","outcome":"allow","principal":{"any_of":["host-signer"]},"connection":{"any_of":["host-cli"]},"resource":{"any_of":["key/host-attestation-2026"]},"operation":{"any_of":["sign"]},"exclusions":[]}]}
+
+///|
 // Matching Native definitions only until explicitly allocated. Files contain
 // synthetic descriptor text, not private PEMs; no grant, claim or signature.
 let signing_original_public_a : String =
@@ -344,6 +350,16 @@ test "Local signing byte identical file replacement cannot become the old key ge
 
 ///|
 test "Local signing roles reject same raw32 across differently encoded public originals" {
+  let original_permutation = local_reviewer_account.replace_all(
+    old="\"original-client-read\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"cli\"]},\"resource\":{\"any_of\":[\"run\"]},\"operation\":{\"any_of\":[\"read\"]}",
+    new="\"original-host-key-sign\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"host-signer\"]},\"connection\":{\"any_of\":[\"host-cli\"]},\"resource\":{\"any_of\":[\"key/host-attestation-2026\"]},\"operation\":{\"any_of\":[\"sign\"]}",
+  )
+  assert_eq(
+    @authorization.admit_account_configuration_json(original_permutation).map(_ => {
+      ()
+    }),
+    Err(@authorization.NonCanonicalOrder("$.entries[1].entry_id")),
+  )
   for
     (name, public_key, same_file, expected) in [
       (
@@ -395,10 +411,7 @@ test "Local signing roles reject same raw32 across differently encoded public or
         reviewer_descriptor, b"synthetic-file-projection-only",
       )
     }
-    let account = local_reviewer_account.replace_all(
-      old="\"original-client-read\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"cli\"]},\"resource\":{\"any_of\":[\"run\"]},\"operation\":{\"any_of\":[\"read\"]}",
-      new="\"original-host-key-sign\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"host-signer\"]},\"connection\":{\"any_of\":[\"host-cli\"]},\"resource\":{\"any_of\":[\"key/host-attestation-2026\"]},\"operation\":{\"any_of\":[\"sign\"]}",
-    )
+    let account = signing_original_role_account_wire
     signing_original_write(account_file, @utf8.encode(account))
     let crypto = @crypto.load_library(
       @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY").unwrap(),
