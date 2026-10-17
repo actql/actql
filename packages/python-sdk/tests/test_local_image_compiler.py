@@ -10,6 +10,7 @@ import test_local_artifact_producer as originals
 import test_local_installed_image as native
 from image_fixture import PROVIDER
 from actql_sdk._local_distribution import LocalInstallationError
+from actql_sdk._local_native_holding import NativeHoldingScopeError
 
 ROOT = Path(__file__).resolve().parents[3]
 spec = importlib.util.spec_from_file_location('prepared_image_compiler', ROOT / 'scripts/compile-python-local-image.py')
@@ -66,13 +67,190 @@ class ImageCompilerTests(unittest.TestCase):
                 compiler.compile_image(self.case.core_file, self.case.head, self.destination)
         self.assertFalse(self.destination.exists())
 
-    def test_signature_refusal_closes_native_handles_without_instance_or_receipt(self):
+    def test_missing_original_holding_refuses_before_native_runtime_import(self):
+        calls = []
         case = native.InstalledImageTests(); case.setUp()
         case.ffi.filename = self.library; case.ffi.dll = SimpleNamespace(_name=str(self.library))
         case.wasmtime.Module = lambda engine, raw: case.module
-        with patch.object(compiler, 'import_module', side_effect=case.runtime):
-            with self.assertRaisesRegex(ValueError, 'physical imports'):
+        def runtime(name):
+            calls.append(name)
+            return case.runtime(name)
+        with patch.object(compiler, 'import_module', side_effect=runtime):
+            with self.assertRaisesRegex(ValueError, 'original native compiler holding'):
                 compiler.compile_image(self.case.core_file, self.case.head, self.destination)
+        self.assertEqual(calls, [])
+        self.assertEqual(case.events, [])
+        self.assertFalse(self.destination.exists())
+
+    def prepared_native(self, replies=None):
+        case = native.InstalledImageTests(); case.setUp()
+        case.ffi.filename = self.library; case.ffi.dll = SimpleNamespace(_name=str(self.library))
+        case.wasmtime.Module = lambda engine, raw: case.module
+        holding, provider = case._holding([(0, True)] if replies is None else replies)
+        # Independent scalar transport doubles replace only loaded-CDLL checks.
+        # No DLL, allocation, native compilation or nominal Core is created.
+        self.stack.enter_context(patch.object(compiler, '_verify_compiler_holding'))
+        self.stack.enter_context(patch.object(compiler, '_verify_selected_provider_link'))
+        self.stack.enter_context(patch.object(compiler, 'import_module', side_effect=case.runtime))
+        return case, holding, provider
+
+    def compile_prepared(self, holding):
+        return compiler.compile_image(self.case.core_file, self.case.head,
+                                      self.destination, _holding=holding)
+
+    def test_signature_refusal_closes_native_handles_without_instance_or_receipt(self):
+        case, holding, provider = self.prepared_native()
+        with self.assertRaisesRegex(ValueError, 'physical imports'):
+            self.compile_prepared(holding)
         self.assertEqual([event[1] for event in case.events if event[0] == 'close'], ['module', 'engine'])
+        self.assertEqual(provider.scope.depth, 0)
+        self.assertIsNone(holding._pointer.value)
         self.assertFalse(any(event[0] == 'fuel' for event in case.events))
+        self.assertFalse(self.destination.exists())
+
+    def test_scalar_compile_and_all_handle_cleanup_use_same_original_scope(self):
+        case, holding, provider = self.prepared_native()
+        state = provider.scope
+        def scoped(action):
+            def run(*args):
+                self.assertEqual(state.depth, 1)
+                return action(*args)
+            return run
+        case.wasmtime.Config = scoped(case.wasmtime.Config)
+        case.wasmtime.Engine = scoped(case.wasmtime.Engine)
+        case.wasmtime.Module = scoped(case.wasmtime.Module)
+        case.ffi.wasmtime_pooling_allocation_config_new = scoped(case.ffi.wasmtime_pooling_allocation_config_new)
+        case.ffi.wasmtime_pooling_allocation_config_delete = scoped(case.ffi.wasmtime_pooling_allocation_config_delete)
+        case.module.serialize = scoped(lambda: b'independent scalar image bytes')
+        for handle in (case.module, case.engine):
+            handle.close = scoped(handle.close)
+        with patch.object(compiler, '_validate_core_module'):
+            result = self.compile_prepared(holding)
+        self.assertTrue(result['compiled'])  # Scalar test result, not actual compilation evidence.
+        self.assertFalse(result['runtime_executed'])
+        self.assertFalse(result['public_local_acceptance'])
+        self.assertEqual(state.events, [('enter', 123), ('leave', 123)] * 2)
+        self.assertIsNone(holding._core_identity)
+        self.assertFalse(holding._transfer_attempted)
+        self.assertIsNone(holding._pointer.value)
+        self.assertEqual([event[1] for event in case.events if event[0] == 'close'], ['module', 'engine'])
+
+    def test_config_refusal_keeps_pending_pool_until_original_cleanup(self):
+        case, holding, _ = self.prepared_native()
+        case.ffi.fail_setting = 'wasmtime_config_target_set'
+        with self.assertRaisesRegex(RuntimeError, 'config setter failure'):
+            self.compile_prepared(holding)
+        self.assertEqual([event[1] for event in case.events if event[0] == 'close'], ['config'])
+        self.assertEqual(sum(event[0] == 'delete_pool' for event in case.events), 1)
+        self.assertIsNone(holding._pointer.value)
+        self.assertFalse(self.destination.exists())
+
+    def test_lost_module_close_retains_same_module_engine_and_holding_without_retry(self):
+        case, holding, provider = self.prepared_native()
+        case.module.failures = 1
+        with self.assertRaises(compiler.ImageCompilerCleanupError) as failure:
+            self.compile_prepared(holding)
+        cleanup = failure.exception.cleanup_compilation
+        self.assertIs(cleanup.module, case.module)
+        self.assertIs(cleanup.engine, case.engine)
+        self.assertIs(cleanup.holding, holding)
+        self.assertRegex(str(failure.exception.primary), 'physical imports')
+        self.assertEqual(provider.scope.depth, 0)
+        self.assertEqual(holding._pointer.value, 123)
+        before = list(case.events), list(provider.scope.events)
+        with self.assertRaises(OSError):
+            cleanup.close()
+        self.assertEqual((case.events, provider.scope.events), before)
+        self.assertFalse(self.destination.exists())
+
+    def test_pool_close_response_loss_is_sticky_and_does_not_release_its_config(self):
+        case, holding, provider = self.prepared_native()
+        case.ffi.delete_failures = 1
+        with self.assertRaises(compiler.ImageCompilerCleanupError) as failure:
+            self.compile_prepared(holding)
+        cleanup = failure.exception.cleanup_compilation
+        self.assertIs(cleanup.pool, case.ffi.pool)
+        self.assertIs(cleanup.config, case.config)
+        before = list(case.events), list(provider.scope.events)
+        with self.assertRaises(OSError):
+            cleanup.close()
+        self.assertEqual((case.events, provider.scope.events), before)
+        self.assertEqual(holding._pointer.value, 123)
+        self.assertFalse(any(event[0] == 'retire' for event in case.events))
+
+    def test_scope_leave_loss_keeps_all_handles_without_reentry_or_cleanup_guess(self):
+        case, holding, provider = self.prepared_native()
+        provider.scope.leave_replies = [-2]
+        with self.assertRaises(compiler.ImageCompilerCleanupError) as failure:
+            self.compile_prepared(holding)
+        cleanup = failure.exception.cleanup_compilation
+        self.assertIsInstance(failure.exception.__cause__, NativeHoldingScopeError)
+        self.assertIs(cleanup.module, case.module)
+        self.assertIs(cleanup.engine, case.engine)
+        before = list(case.events), list(provider.scope.events)
+        with self.assertRaises(NativeHoldingScopeError):
+            cleanup.close()
+        self.assertEqual((case.events, provider.scope.events), before)
+        self.assertEqual(holding._pointer.value, 123)
+
+    def test_scope_entry_refusal_never_imports_or_retires_the_original(self):
+        case, holding, provider = self.prepared_native()
+        provider.scope.enter_replies = [-3]
+        with patch.object(compiler, 'import_module', side_effect=AssertionError('Native import')):
+            with self.assertRaises(compiler.ImageCompilerCleanupError) as failure:
+                self.compile_prepared(holding)
+        self.assertIs(failure.exception.cleanup_compilation.holding, holding)
+        self.assertEqual(provider.scope.events, [('enter', 123)])
+        self.assertEqual(case.events, [])
+
+    def test_known_holding_retirement_refusal_retries_only_same_slot_after_handles_close(self):
+        case, holding, provider = self.prepared_native([(-2, False), (0, True)])
+        with self.assertRaises(compiler.ImageCompilerCleanupError) as failure:
+            self.compile_prepared(holding)
+        cleanup = failure.exception.cleanup_compilation
+        self.assertIsNone(cleanup.module)
+        self.assertIsNone(cleanup.engine)
+        scope_before = list(provider.scope.events)
+        cleanup.close(); cleanup.close()
+        self.assertEqual(provider.scope.events, scope_before)
+        self.assertEqual([event for event in case.events if event[0] == 'retire'], [('retire', 123)] * 2)
+        self.assertIsNone(holding._pointer.value)
+        self.assertFalse(self.destination.exists())
+
+    def test_original_holding_refuses_fake_bound_retired_and_foreign_provider_inputs(self):
+        case = native.InstalledImageTests(); case.setUp()
+        holding, _ = case._holding([(0, True)])
+        original = {'provider_library': self.provider}
+        with self.assertRaisesRegex(ValueError, 'original native compiler holding'):
+            compiler._verify_compiler_holding(original, object())
+        holding._core_identity = object()
+        with self.assertRaisesRegex(ValueError, 'original native compiler holding'):
+            compiler._verify_compiler_holding(original, holding)
+        holding._core_identity = None
+        with self.assertRaisesRegex(ValueError, 'different selected provider'):
+            compiler._verify_compiler_holding(original, holding)
+        holding.close()
+        with self.assertRaisesRegex(ValueError, 'original native compiler holding'):
+            compiler._verify_compiler_holding(original, holding)
+
+    def test_provider_linkage_refusal_precedes_config_and_releases_only_after_scope_stop(self):
+        case, holding, provider = self.prepared_native()
+        def mismatch(*args):
+            self.assertEqual(provider.scope.depth, 1)
+            raise LocalInstallationError('Independent foreign provider link')
+        with patch.object(compiler, '_verify_selected_provider_link', side_effect=mismatch):
+            with self.assertRaisesRegex(LocalInstallationError, 'foreign provider link'):
+                self.compile_prepared(holding)
+        self.assertEqual(case.events, [('retire', 123)])
+        self.assertEqual(provider.scope.events, [('enter', 123), ('leave', 123)])
+        self.assertIsNone(holding._pointer.value)
+
+    def test_image_overflow_closes_original_handles_without_writing(self):
+        case, holding, _ = self.prepared_native()
+        case.module.serialize = lambda: b'x' * 1025
+        with patch.object(compiler, '_validate_core_module'):
+            with self.assertRaisesRegex(ValueError, 'file envelope'):
+                self.compile_prepared(holding)
+        self.assertEqual([event[1] for event in case.events if event[0] == 'close'], ['module', 'engine'])
+        self.assertIsNone(holding._pointer.value)
         self.assertFalse(self.destination.exists())

@@ -133,9 +133,21 @@ or create an Engine. Compilation uses the same selected Engine adapter as the
 installed constructor, reuses the existing Core module signature validator,
 and serializes without creating a Wasm instance, Store, Run or Submission.
 Receipt issuance follows native cleanup and a second original-material fence.
+Compilation also requires the trusted maintainer supplier's already acquired,
+unbound holding from the same selected provider. Runtime import, Config, pool,
+Engine, module serialization and handle cleanup use that holding's scope.
+Provider correspondence reuses the installed constructor's exact imported
+addresses and file checks; it does not manufacture an installed image or Core
+identity. A failed or unconfirmed close retains the same handles and holding
+in `ImageCompilerCleanupError.cleanup_compilation`, emits no receipt, and does
+not repeat an unconfirmed call. Confirmed handle cleanup followed by a known
+holding-retirement refusal may retry only that original holding.
 The selected source-original recipe remains unavailable until reviewed; this
 script never supplies fixture values or runtime defaults for missing bounds.
-Actual `--compile` and wheel generation use the coordinator's finite lane.
+The standalone CLI has no original-holding supplier yet and refuses `--compile`
+before importing Wasmtime. A declaration or CLI byte count cannot replace that
+supplier. Maintainer compiler budgets and eventual product bootstrap funding
+are separate; neither verify-only nor scalar custody tests establish either.
 
 Private ABI73 projects a separately declared physical Host baseline into the
 same initial Core Root as the existing16MiB VM and12MiB transfer pool. It keeps
