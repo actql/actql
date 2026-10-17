@@ -911,10 +911,34 @@ class CompilerProcessAssemblyError(RuntimeError):
         self.response = b''
         self.primary: BaseException | None = None
         self.cleanup_error: BaseException | None = None
+        self.diagnostic_error: BaseException | None = None
         # Call progress only, never a physical ACK. Invoke's same Native owners
         # must independently have completed before descriptor-only cleanup.
         self.transport_returned = False
         super().__init__('Original compiler process assembly failed or is unconfirmed')
+
+
+def _record_failed_compiler_response(failure: CompilerProcessAssemblyError) -> None:
+    """Retain the original bounded bytes without admitting them or retrying I/O."""
+    if (type(failure) is not CompilerProcessAssemblyError
+            or type(failure.response) is not bytes or len(failure.response) > 4097):
+        raise ValueError('Original compiler failure response is unavailable')
+    # The existing transport can retain one overflow byte as rejection evidence.
+    # A partial/failed file write is not repeated and cannot replace the primary
+    # error or prevent the same original physical cleanup below.
+    with (failure.program.directory.parent / 'compiler-failure-response.bin').open('xb') as record:
+        record.write(failure.response)
+
+
+def _finish_failed_compiler_with_diagnostics(
+        failure: CompilerProcessAssemblyError, *, seconds: float) -> dict[str, Any]:
+    """Diagnostic storage cannot prevent the existing same-original cleanup."""
+    try:
+        _record_failed_compiler_response(failure)
+    except BaseException as diagnostic_error:
+        failure.diagnostic_error = diagnostic_error
+        failure.add_note('Original compiler diagnostic could not be fully retained; no retry')
+    return finish_failed_compilation(failure, seconds=seconds)
 
 
 class _CompilerImage(NamedTuple):
@@ -1154,7 +1178,7 @@ if __name__ == '__main__':
             # The compilation remains failed even when physical cleanup ends;
             # no report, partial image, new child or final receipt is accepted.
             try:
-                cleanup = finish_failed_compilation(failure, seconds=args.cleanup_seconds)
+                cleanup = _finish_failed_compiler_with_diagnostics(failure, seconds=args.cleanup_seconds)
                 with (args.destination / 'compiler-failure-cleanup.json').open('x') as record:
                     record.write(json.dumps(cleanup, indent=2) + '\n')
             except BaseException as cleanup_error:

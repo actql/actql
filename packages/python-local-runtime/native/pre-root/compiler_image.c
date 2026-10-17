@@ -47,8 +47,23 @@ struct compilation {
     wasm_engine_t *engine;
     wasmtime_module_t *module;
     wasmtime_error_t *error;
+    wasm_byte_vec_t diagnostic;
     wasm_byte_vec_t image;
 };
+
+/* Private maintainer diagnostics only. Wasmtime constructs this original
+ * message within the current holding; only a bounded prefix reaches stderr.
+ * It is not a control response, successful compilation or cleanup evidence. */
+static void describe_compiler_error(struct compilation *call) {
+    if (call->error == NULL || actql_native_owned_current() != call->owner) return;
+    wasmtime_error_message(call->error, &call->diagnostic);
+    static const char prefix[] = "actql compiler Wasmtime failure: ";
+    (void)write(STDERR_FILENO, prefix, sizeof(prefix) - 1);
+    size_t bytes = call->diagnostic.size < 4096 ? call->diagnostic.size : 4096;
+    if (bytes != 0 && call->diagnostic.data != NULL)
+        (void)write(STDERR_FILENO, call->diagnostic.data, bytes);
+    (void)write(STDERR_FILENO, "\n", 1);
+}
 
 static int close_descriptor(int *slot, bool *pending) {
     if (*slot < 0) return 0;
@@ -62,6 +77,10 @@ static int close_descriptor(int *slot, bool *pending) {
 
 static int close_compilation(struct compilation *call) {
     if (actql_native_owned_current() != call->owner) return -1;
+    if (call->diagnostic.data != NULL) {
+        wasm_byte_vec_delete(&call->diagnostic);
+        call->diagnostic = (wasm_byte_vec_t){0};
+    }
     if (call->image.data != NULL) {
         wasm_byte_vec_delete(&call->image);
         call->image = (wasm_byte_vec_t){0};
@@ -220,6 +239,7 @@ int main(int argc, char **argv) {
     struct compilation call = { .owner = original, .module_fd = -1, .output_fd = -1 };
     size_t image_bytes = 0;
     int result = compile_original(&call, argv[17], argv[18], &image_bytes);
+    if (result != 0) describe_compiler_error(&call);
     COMPILER_PHASE("compiler handle cleanup");
     int handles = close_compilation(&call);
     COMPILER_PHASE("original scope leave");

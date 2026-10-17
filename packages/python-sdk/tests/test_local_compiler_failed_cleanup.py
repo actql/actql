@@ -10,6 +10,7 @@ import tempfile
 import test_local_compiler_process as process_tests
 import test_local_compiler_parent as parent_tests
 import python_compiler_program as program
+from actql_sdk._local_distribution import LocalInstallationError
 
 compiler = parent_tests.compiler
 
@@ -113,6 +114,44 @@ class FailedCompilerCleanupTests(unittest.TestCase):
         self.assertEqual(self.original.native.events, before)
         self.assertFalse(self.parent.descriptor.close_attempted)
         self.assertFalse(self.parent._closed)
+
+    def test_failed_response_is_retained_verbatim_without_admitting_a_report(self):
+        self.failure.program = self.failure.program._replace(directory=self.original.root / 'program')
+        self.failure.response = b'{"compilation_status":11,"untrusted":"original"}\n'
+        original_response = self.failure.response
+        primary = self.failure.primary
+        result = compiler._finish_failed_compiler_with_diagnostics(self.failure, seconds=1)
+        self.assertEqual((self.original.root / 'compiler-failure-response.bin').read_bytes(),
+                         original_response)
+        self.assertIs(self.failure.primary, primary)
+        self.assertIsNone(self.failure.diagnostic_error)
+        self.assertFalse(result['image_accepted'])
+        self.assertFalse(result['process_runtime_retirement_ACK'])
+        self.assertTrue(self.parent.descriptor.closed)
+        with self.assertRaises((ValueError, LocalInstallationError)):
+            compiler._compiler_process_report(original_response, 4096)
+
+    def test_diagnostic_collision_keeps_original_bytes_and_still_cleans_original(self):
+        self.failure.program = self.failure.program._replace(directory=self.original.root / 'program')
+        target = self.original.root / 'compiler-failure-response.bin'
+        target.write_bytes(b'previous diagnostic; never overwrite')
+        self.failure.response = b'new refused report'
+        primary = self.failure.primary
+        result = compiler._finish_failed_compiler_with_diagnostics(self.failure, seconds=1)
+        self.assertEqual(target.read_bytes(), b'previous diagnostic; never overwrite')
+        self.assertIsInstance(self.failure.diagnostic_error, FileExistsError)
+        self.assertIs(self.failure.primary, primary)
+        self.assertTrue(self.parent.descriptor.closed)
+        self.assertFalse(result['image_accepted'])
+
+    def test_overbound_diagnostic_is_not_written_or_used_to_skip_original_cleanup(self):
+        self.failure.program = self.failure.program._replace(directory=self.original.root / 'program')
+        self.failure.response = b'x' * 4098
+        result = compiler._finish_failed_compiler_with_diagnostics(self.failure, seconds=1)
+        self.assertFalse((self.original.root / 'compiler-failure-response.bin').exists())
+        self.assertIsInstance(self.failure.diagnostic_error, ValueError)
+        self.assertTrue(self.parent.descriptor.closed)
+        self.assertFalse(result['image_accepted'])
 
 
 class CompilerCleanupCliTests(unittest.TestCase):
