@@ -233,6 +233,28 @@ projection and installed Reviewer throughout overlapping current callbacks;
 these references, record storage and read workspace are not free aliases or a
 physical cleanup acknowledgement.
 
+The default-only first-issue storage phase uses the same immutable grant packet
+and Journal transaction, with an additional closed authenticated installation
+payload. The original epoch HMAC binds the first clock sample, any earlier
+original validity bound, pinned policy, initialization, exact grant/operation
+and selected Host configuration/connection. The grant retains the absolute
+expiry and one-use limit. The existing full grant/Run custody census and original
+Submission authentication remain in place; the default branch additionally
+restores the same Store-root key generation. The configured issuer-file branch
+and its packet bytes are unchanged. Existing payload, packet, work and per-request
+reservation bounds apply without relaxation.
+
+That private storage phase reads an existing operation before sampling the
+clock. Its exact original use/outcome is history only; missing or corrupt use
+custody cannot select another sample, expiry, claim or ordinal. A first append,
+exact attempt-bound use claim and trusted-clock lower bound share the existing
+transaction and rollback. Lost COMMIT acknowledgement fences that original
+responsibility. Neither the private stored result nor authenticated metadata is
+a physical signing permit: the enclosing original operation must retain its
+paired Checkpoint, current Client/Reviewer/key gates, exact purpose/earlier bound
+and material custody through actual physical signature and final acknowledgement.
+No public default-signer or Node physical supplier follows from this storage port.
+
 ### Writer close custody
 
 The existing filesystem Writer records its original close outcome separately

@@ -224,8 +224,12 @@ test "initial issue existing operation with missing use refuses without resampli
   let bucket = "native-credential-use:" +
     local_original_grant_cid(original.grant)
   let use_row = host.database.read(bucket, scope.attempt_id).unwrap()
-  host.database
-  .remove_exact(bucket, scope.attempt_id, use_row.revision, use_row.body)
+  host.journal
+  .transaction(() => {
+    host.database
+    .remove_exact(bucket, scope.attempt_id, use_row.revision, use_row.body)
+    .map_err(issue => Physical(issue))
+  })
   .unwrap()
   let samples = Ref(0)
   let refused = initial_issue_storage_transaction(key, request, scope, () => {
