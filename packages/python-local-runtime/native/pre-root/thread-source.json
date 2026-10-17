@@ -9,8 +9,8 @@
   "runtime_build_executed": false,
   "patch": {
     "path": "wasmtime-owned-thread-review.patch",
-    "bytes": 5445,
-    "sha256": "7d591e62ff255cd58fb334f50c33911f199ebfcc2a15f1bc1d31b90d25399254"
+    "bytes": 5444,
+    "sha256": "5ee455cebc012c9a11896f7798c13c3a29c5f9230668a93e7f4d1f70f23e27e8"
   },
   "inputs": [
     {

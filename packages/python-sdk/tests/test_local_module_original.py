@@ -185,4 +185,3 @@ class ModuleOriginalTests(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 c.run_producer()
             self.assertFalse(c.output.exists())
-
