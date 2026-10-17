@@ -3557,7 +3557,7 @@
     {
       "module": "packages/sdk/checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9809d27dd256297e64d9d940ed087cc5746b6f005820f33caac5e3c4c54bd2c1",
+      "sha256": "06bd0b1d8a79c69592135cd1dcfe2d6ed6539671a1ea30cf6aeb68895290ed24",
       "exports": [
         "bytesCid",
         "canonicalJson",
@@ -3763,12 +3763,28 @@
               {
                 "path": "packages/sdk/checkpoints.mjs",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Original sealed Effect review evidence"
+              },
+              {
+                "path": "src/run_publication/effect_review_projection.mbt",
+                "anchor": "pub fn project_effect_review_projection("
               }
             ],
             "inputsOutputs": [
               {
                 "path": "packages/sdk/checkpoints.mjs",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "projectEffectComputationReview(preview, policy, limits)"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const originalReview = (subjectCid, claims) =>"
               }
             ],
             "identity": [
@@ -3779,6 +3795,18 @@
               {
                 "path": "packages/sdk/checkpoints.mjs",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const original = computationPreviewTokens.get(preview);"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "body.effect_preview_cid !== subjectCid"
+              },
+              {
+                "path": "packages/sdk/checkpoints.mjs",
+                "anchor": "value.review_projection_cid !== artifactCid"
               }
             ],
             "ownership": [
@@ -3789,6 +3817,14 @@
               {
                 "path": "packages/sdk/checkpoints.mjs",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
+              },
+              {
+                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "anchor": "async artifactBytes(name, artifactCid, options)"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "same review holding: its historical `semantic_cid` still addresses complete"
               }
             ],
             "synchronization": [
@@ -3799,6 +3835,14 @@
               {
                 "path": "packages/sdk/checkpoints.mjs",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "await beforeDefer();"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "facts.assertUpdateSelectionCurrent?.();"
               }
             ],
             "failure": [
@@ -3809,6 +3853,14 @@
               {
                 "path": "packages/sdk/checkpoints.mjs",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('OriginalEffectReviewUnavailable')"
+              },
+              {
+                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "anchor": "fail('ContinuationEvidenceRetired')"
               }
             ],
             "cancellation": [
@@ -3819,6 +3871,14 @@
               {
                 "path": "packages/sdk/checkpoints.mjs",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and cleanup custody remain with their existing Owners."
               }
             ],
             "resources": [
@@ -3829,6 +3889,18 @@
               {
                 "path": "packages/sdk/checkpoints.mjs",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "entry, bounded parser node and saved/read response overlap remain in the same"
+              },
+              {
+                "path": "src/run_publication_host/client_private_continuation_retention.mbt",
+                "anchor": "15L + 8L * max_entries.to_int64()"
+              },
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "anchor": "maxWireBytes: 256 * 1024"
               }
             ],
             "extension": [
@@ -3839,12 +3911,32 @@
               {
                 "path": "packages/sdk/checkpoints.mjs",
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Historical unassociated holdings keep their old byte-addressed behavior"
+              },
+              {
+                "path": "packages/sdk/checkpoints.mjs",
+                "anchor": "value?.version === 'actql-review-projection/0.1'"
               }
             ],
             "verification": [
               {
                 "path": "packages/sdk/checkpoints.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/sealed-effect-review-checkpoints.test.mjs",
+                "anchor": "test('copied and foreign Preview DATA"
+              },
+              {
+                "path": "adapters/host-node/sealed-effect-review-host.integration.test.mjs",
+                "anchor": "test('public Effect review keeps sealed original row evidence"
+              },
+              {
+                "path": "packages/sdk/effect-review-checkpoints.test.mjs",
+                "anchor": "test('Effect semantic review verification rejects"
               }
             ]
           }
