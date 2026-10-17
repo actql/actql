@@ -14,6 +14,33 @@ pub fn client_program_check_program(
   scope : String,
   selector_namespace : ClientCheckSourceSelectorNamespace?,
 ) -> String {
+  client_program_check_program_with_format(
+    document, "json", environment, visible_publication, parameters, context_ref,
+    program_revision, parameters_revision, correlation_ref, scope, selector_namespace,
+  )
+}
+
+///|
+/// The same checker observes the original JSON or YAML Program. The Host binds
+/// its admitted format and exact source bytes into the original check context;
+/// this port never serializes one syntax into another or issues a checked Run.
+pub fn client_program_check_program_with_format(
+  document : String,
+  format : String,
+  environment : @checked.CheckEnvironment,
+  visible_publication : String,
+  parameters : String?,
+  context_ref : String,
+  program_revision : String,
+  parameters_revision : String?,
+  correlation_ref : String,
+  scope : String,
+  selector_namespace : ClientCheckSourceSelectorNamespace?,
+) -> String {
+  let format = match admit_local_program_input(format, None) {
+    Ok((format, _)) => format
+    Err(_) => return check_failed_json("check_request_invalid", correlation_ref)
+  }
   let scope = match check_scope(scope) {
     Some(scope) => scope
     None => return check_failed_json("check_request_invalid", correlation_ref)
@@ -40,6 +67,7 @@ pub fn client_program_check_program(
     value => pointer = value,
     scope,
     selector_namespace,
+    format,
   )
   check_outcome_json(findings, stop, context_ref, correlation_ref, {
     scope,
@@ -66,6 +94,7 @@ fn check_program_findings(
   locate : (String?) -> Unit,
   scope : @checked.CheckScope,
   selector_namespace : ClientCheckSourceSelectorNamespace?,
+  format : @syntax.Format,
 ) -> CheckStop {
   let limits = @host.client_standard_program_preparation_limits().checking
   let supplied = match admit_local_program_input("json", parameters) {
@@ -92,7 +121,7 @@ fn check_program_findings(
     }
     Err(_) => return Failed("check_internal")
   }
-  let program = match @syntax.parse(document, limits.input, format=Json) {
+  let program = match @syntax.parse(document, limits.input, format~) {
     Ok(program) => program
     Err(_) => {
       // Classification remains the common checker's decision. Reuse its
@@ -102,13 +131,19 @@ fn check_program_findings(
           environment,
           supplied,
           limits,
-          format=Json,
+          format~,
         )
         is Rejected(diagnostic) else {
         return Failed("check_internal")
       }
       return check_program_diagnostic(
-        findings, diagnostic, document, supplied, parameters, locate,
+        findings,
+        diagnostic,
+        document,
+        supplied,
+        parameters,
+        locate,
+        format~,
       )
     }
   }
@@ -128,7 +163,14 @@ fn check_program_findings(
         return Failed("check_internal")
       }
       return check_program_diagnostic(
-        findings, diagnostic, document, supplied, parameters, locate,
+        findings,
+        diagnostic,
+        document,
+        supplied,
+        parameters,
+        locate,
+        format~,
+        original_body=Some(@syntax.program_body(program)),
       )
     }
   }
@@ -191,7 +233,14 @@ fn check_program_findings(
       }
       // An invalid authored Source declaration is proven without the Catalog.
       return check_program_diagnostic(
-        findings, diagnostic, document, supplied, parameters, locate,
+        findings,
+        diagnostic,
+        document,
+        supplied,
+        parameters,
+        locate,
+        format~,
+        original_body=Some(@syntax.program_body(program)),
       )
     }
   }
@@ -242,6 +291,8 @@ fn check_program_findings(
               check_program_original_pointer(
                 document,
                 @decode.cursor_path(cursor),
+                format~,
+                original_body=Some(@syntax.program_body(program)),
               ),
             ),
           )
@@ -287,7 +338,14 @@ fn check_program_findings(
       @checked.diagnostic_cause(diagnostic)
       is Source(UnsupportedBindings(_) | UnsupportedEffects(_)) {
       let _ = check_program_diagnostic(
-        findings, diagnostic, document, supplied, parameters, locate,
+        findings,
+        diagnostic,
+        document,
+        supplied,
+        parameters,
+        locate,
+        format~,
+        original_body=Some(@syntax.program_body(program)),
       )
     }
     findings.push(Unresolved("source_resolution"))
@@ -363,7 +421,14 @@ fn check_program_findings(
         }
       }
       check_program_diagnostic(
-        findings, diagnostic, document, supplied, parameters, locate,
+        findings,
+        diagnostic,
+        document,
+        supplied,
+        parameters,
+        locate,
+        format~,
+        original_body=Some(@syntax.program_body(program)),
       )
     }
   }
@@ -377,12 +442,19 @@ fn check_program_diagnostic(
   supplied : @decode.Cursor?,
   parameters : String?,
   locate : (String?) -> Unit,
+  format? : @syntax.Format = Json,
+  original_body? : @decode.Cursor? = None,
 ) -> CheckStop {
   let mut original_pointer = None
   if @checked.diagnostic_origin(diagnostic) is Some(ProgramDocument) &&
     @checked.diagnostic_location(diagnostic) is Some(location) &&
     @checked.diagnostic_location_path(location) is Some(path) {
-    original_pointer = check_program_original_pointer(document, path)
+    original_pointer = check_program_original_pointer(
+      document,
+      path,
+      format~,
+      original_body~,
+    )
   }
   match @checked.diagnostic_category(diagnostic) {
     InvalidInput => {
@@ -413,7 +485,8 @@ fn check_program_diagnostic(
         _ => None
       }
       if cause is Source(Declarations(Declarations(issue))) &&
-        admit_local_program_input("json", Some(document)) is Ok((_, Some(body))) &&
+        check_program_document_cursor(document, format, original_body)
+        is Some(body) &&
         @decode.open_object(body) is Ok(object) &&
         @decode.lookup(object, "params") is Some(params) {
         let location = @checked.diagnostic_location(diagnostic)
@@ -473,18 +546,54 @@ fn check_program_diagnostic(
 fn check_program_original_pointer(
   document : String,
   path : Array[@decode.PathSegment],
+  format? : @syntax.Format = Json,
+  original_body? : @decode.Cursor? = None,
 ) -> String? {
   guard path.length() <= 65 &&
-    admit_local_program_input("json", Some(document)) is Ok((_, Some(root))) else {
+    check_program_document_cursor(document, format, original_body) is Some(root) else {
     return None
   }
   for length = path.length(); length >= 0; length = length - 1 {
     let parent = path[:length].to_owned()
-    if check_original_pointer(document, root, parent) is Some(pointer) {
+    if check_original_pointer(document, root, parent, format~) is Some(pointer) {
       return Some(pointer)
     }
   }
   None
+}
+
+///|
+/// Keep the legacy JSON diagnostic admission unchanged. YAML findings use the
+/// original parsed Program when available; a failed envelope may only borrow a
+/// bounded tree from the same original source, never a reconstructed document.
+fn check_program_document_cursor(
+  document : String,
+  format : @syntax.Format,
+  original_body : @decode.Cursor?,
+) -> @decode.Cursor? {
+  if format == Json {
+    return match admit_local_program_input("json", Some(document)) {
+      Ok((_, body)) => body
+      Err(_) => None
+    }
+  }
+  if original_body is Some(_) {
+    return original_body
+  }
+  guard @source.parse_yaml_bytes(@utf8.encode(document), {
+      max_input_bytes: 65536,
+      max_nodes: 8192,
+      max_depth: 64,
+    })
+    is Ok(parsed) else {
+    return None
+  }
+  @decode.admit(parsed, {
+    max_nodes: 8192,
+    max_depth: 64,
+    max_string_bytes: 65536,
+    max_total_string_bytes: 65536,
+  }).to_option()
 }
 
 ///|

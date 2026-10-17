@@ -660,6 +660,21 @@ custody, current disclosure, context and source revisions remain Host obligation
 and no Run, Source acquisition, Model invocation, Preview or dispatch is performed
 by this projection. The separately bounded publication DATA reader is not proof
 of installation membership or current authorization.
+
+For an original structured JSON or YAML Program, the portable Host may select
+the existing source syntax explicitly through
+`client_program_check_program_with_format`. The original JSON convenience entry
+and Node facade retain their signatures and behavior. Both syntaxes enter the
+same Program parser, declaration/binding checks, Source inventory and static
+Effect closure; YAML is never rewritten as JSON before checking. Parameters
+remain a separately admitted JSON body. The Host binds the selected format,
+original source bytes and revisions into that same current reporting context.
+YAML diagnostic pointers borrow the original admitted Program and key spans;
+the existing scalar parser recovers plain or quoted key spelling, and the
+Canonical Value Owner confirms its correspondence to the admitted key. A missing
+node can locate its existing parent, but never a synthesized value or position.
+This syntax selection adds no wire field, schema/CID domain, Run or permission.
+
 Coordinated publication does not imply that consumers in other environments have
 updated. A closed-schema mismatch fails validation in that consumer, including
 responses with no diagnostic reasons, rather than returning an empty success.
