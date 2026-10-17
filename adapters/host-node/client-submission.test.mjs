@@ -50,7 +50,8 @@ async function fixture(t, callbacks = {}) {
   };
   const port = () => createNodeInProcessClientHost({authenticate: () => principalId,
     authorizeConnection: () => authorized, negotiate: () => undefined,
-    submitIntent: service.submitAttempt, lookupSubmission: service.lookupSubmission, maxRowBytes: 65536});
+    submitIntent: service.submitAttempt, submitNamedIntent: service.submitNamedAttempt,
+    lookupSubmission: service.lookupSubmission, maxRowBytes: 65536});
   return {root, ref, body, port, get journal() {return journal;}, get service() {return service;},
     get counts() {return {prepare: prepareCount, submit: submitCount};},
     authorize: value => {authorized = value;}, restart() {journal.close(); journal = openClientRequestJournal(root, callbacks.journalOptions); install();}};
@@ -91,6 +92,108 @@ function admitOriginal(f, value) {
     submission: value.submission}, moon, control);
   return {ref: accepted.ref, durability: accepted.durability, revision: accepted.revision};
 }
+
+test('named submission observes the same original Run after reopening without replaying preparation', async t => {
+  let f;
+  f = await fixture(t, {submit: value => admitOriginal(f, value), lookup(value) {
+    const saved = f.journal.lookup({...fields, requestId: value.requestId}, moon);
+    return saved === undefined ? {kind: 'not_found'} : {kind: 'found', ref: saved.ref};
+  }});
+  const {principalId: ignored, ...body} = f.body();
+  void ignored;
+  const request = {...body, requestName: 'same-original-run'};
+  const first = await f.port().perform('submit-named-intent', request);
+  assert.equal(first.kind, 'observed');
+  assert.equal(first.outcome.kind, 'ready');
+  assert.deepEqual(first.outcome.submissionRef, f.ref);
+  f.restart();
+  const candidate = {epoch: await f.service.issueEpoch({principalId, connection}), nonce: 'fresh-connection'};
+  assert.notDeepEqual(candidate.epoch, f.ref.epoch);
+  const repeated = await f.port().perform('submit-named-intent', {...request, submissionRef: candidate,
+    attemptRef: {operation: 'submit', attemptId: 'second-connection'}});
+  assert.equal(repeated.kind, 'observed');
+  assert.deepEqual(repeated.outcome, first.outcome);
+  assert.deepEqual(repeated.attemptRef, {operation: 'submit', attemptId: 'second-connection'});
+  assert.deepEqual(f.counts, {prepare: 1, submit: 1}, 'the named retry is observation, not explicit replay');
+});
+
+test('named submission cannot enter another preparation while its original is still pending', async t => {
+  let f, release, entered;
+  const started = new Promise(resolve => {entered = resolve;});
+  const pending = new Promise(resolve => {release = resolve;});
+  f = await fixture(t, {async prepare() {entered(); await pending; return {};},
+    submit: value => admitOriginal(f, value), lookup(value) {
+      const saved = f.journal.lookup({...fields, requestId: value.requestId}, moon);
+      return saved === undefined ? {kind: 'not_found'} : {kind: 'found', ref: saved.ref};
+    }});
+  const value = {...f.body(), requestName: 'one-preparation'};
+  const first = f.service.submitNamedAttempt(value);
+  try {
+    await started;
+    const candidate = {epoch: await f.service.issueEpoch(value), nonce: 'competing-connection'};
+    const observed = await f.service.submitNamedAttempt({...value, submissionRef: candidate});
+    assert.equal(observed.kind, 'observed');
+    assert.equal(observed.outcome.kind, 'preparing');
+    assert.deepEqual(observed.outcome.submissionRef, f.ref);
+    assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+  } finally {release(); await first;}
+});
+
+test('named submission preserves an unknown original and does not certify a forged capacity error', async t => {
+  const interruption = Object.assign(new Error('fixture original preparation interrupted'),
+    {code: 'ClientSubmissionNameCapacity'});
+  const f = await fixture(t, {prepare() {throw interruption;}});
+  const value = {...f.body(), requestName: 'unknown-original'};
+  await assert.rejects(f.service.submitNamedAttempt(value), error => error === interruption);
+  f.restart();
+  const observed = await f.service.submitNamedAttempt({...value, submissionRef: {
+    epoch: await f.service.issueEpoch(value), nonce: 'new-connection-after-loss'}});
+  assert.equal(observed.kind, 'observed');
+  assert.equal(observed.outcome.kind, 'preparing');
+  assert.deepEqual(observed.outcome.submissionRef, f.ref);
+  assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+});
+
+test('named submission keeps original binding when current authority disappears after preparation', async t => {
+  let f;
+  f = await fixture(t, {prepare() {f.authorize(false); return {};}});
+  const value = {...f.body(), requestName: 'current-fence'};
+  await assert.rejects(f.service.submitNamedAttempt(value), {code: 'ClientRequestLookupDenied'});
+  assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+  f.authorize(true);
+  const observed = await f.service.submitNamedAttempt(value);
+  assert.equal(observed.kind, 'observed');
+  assert.equal(observed.outcome.kind, 'preparing');
+  assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+});
+
+test('named submission conflict comes from original intent and never enters changed work', async t => {
+  const f = await fixture(t, {prepare() {
+    throw Object.assign(new Error('original invalid input'), {code: 'ClientProgramInvalidInput'});
+  }});
+  const original = {...f.body('SELECT ('), requestName: 'failed-original'};
+  const first = await f.service.submitNamedAttempt(original);
+  assert.equal(first.outcome.kind, 'preparation_failed');
+  const changed = await f.service.submitNamedAttempt({...f.body('SELECT 2 AS value'), requestName: original.requestName,
+    attemptRef: {operation: 'submit', attemptId: 'changed-original'}});
+  assert.equal(changed.kind, 'conflict');
+  assert.equal(changed.reason, 'intent');
+  assert.equal(Object.hasOwn(changed, 'outcome'), false);
+  assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+});
+
+test('named submission denied before binding cannot prepare or issue a Run', async t => {
+  const f = await fixture(t);
+  f.authorize(false);
+  const answer = await f.service.submitNamedAttempt({...f.body(), requestName: 'denied'});
+  assert.equal(answer.kind, 'refused');
+  assert.equal(answer.reason, 'authorization');
+  assert.equal(answer.guarantee, 'attempt_uncommitted_unconsumed');
+  assert.deepEqual(f.counts, {prepare: 0, submit: 0});
+  const db = new DatabaseSync(join(f.root, 'client-requests.sqlite3'), {readOnly: true});
+  try {assert.equal(db.prepare('SELECT COUNT(*) AS n FROM client_submission_names').get().n, 0);}
+  finally {db.close();}
+});
 
 async function unresolvedSubmissionFixture(t, prepare) {
   const start = 1_800_000_000_000;
@@ -549,7 +652,10 @@ test('retained Source analysis budget rechecks original intent and current discl
     '../../packages/client-wire/fixtures/check-outcome-pins.verified.json', import.meta.url), 'utf8'));
   budget.report.verdict = 'undetermined';
   budget.report.coverage.limits = [{code: 'analysis_budget_exhausted'}];
+  budget.report.runnable = {verdict: 'no', reasons: [{code: 'analysis_budget_exhausted'}]};
   assert.equal(validCheckOutcome(budget), true);
+  assert.equal(validCheckOutcome({...budget, report: {...budget.report,
+    runnable: {verdict: 'yes', reasons: []}}}), false);
   let disclosed = true;
   const observed = [];
   const f = await fixture(t, {prepare() {
@@ -560,6 +666,7 @@ test('retained Source analysis budget rechecks original intent and current discl
     if (!disclosed) {
       outcome.report.coverage.limits = [];
       outcome.report.coverage.unresolved = [{boundary: 'source_resolution', reason: 'unresolved_protected'}];
+      outcome.report.runnable = {verdict: 'no', reasons: [{code: 'unresolved_protected'}]};
     }
     assert.equal(validCheckOutcome(outcome), true);
     return outcome;
@@ -594,6 +701,7 @@ for (const partial of [false, true]) {
       const report = structuredClone(verified.report);
       report.verdict = 'undetermined';
       report.coverage.limits = [{code: limit}];
+      report.runnable = {verdict: 'no', reasons: [{code: limit}]};
       const outcome = partial ? {...failed, partial_report: report} : {...verified, report};
       assert.equal(validCheckOutcome(outcome), true);
       return outcome;
