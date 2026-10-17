@@ -35,6 +35,60 @@ fn declaration_base(extra : String) -> String {
 }
 
 ///|
+test "public Task document reads strict JSON and YAML with exact keys and instruction text" {
+  let yaml =
+    #|task: model-task:public.original
+    #|input: {notes: string}
+    #|output: {enabled: boolean}
+    #|instructions: "Original e\u0301\r\n"
+  let value = read_public_model_task_document(
+    yaml,
+    "yaml",
+    declaration_limits(),
+  ).unwrap()
+  assert_eq(
+    public_model_task_declaration_identity(value),
+    ("model-task:public.original", "model-task:public.original"),
+  )
+  assert_eq(
+    public_model_task_declaration_instructions(value),
+    "Original e\u{0301}\r\n",
+  )
+  assert_true(
+    read_public_model_task_document(
+      declaration_base(""),
+      "json",
+      declaration_limits(),
+    )
+    is Ok(_),
+  )
+  let invalid = yaml.replace(old="notes", new="e\u{0301}")
+  assert_true(
+    read_public_model_task_document(invalid, "yaml", declaration_limits())
+    is Err(_),
+  )
+  assert_true(
+    read_public_model_task_document(yaml, "unknown", declaration_limits())
+    is Err(_),
+  )
+  let (work, _, _) = public_model_task_declaration_usage(value)
+  assert_true(
+    read_public_model_task_document(yaml, "yaml", {
+      ..declaration_limits(),
+      max_work: work,
+    })
+    is Ok(_),
+  )
+  assert_true(
+    read_public_model_task_document(yaml, "yaml", {
+      ..declaration_limits(),
+      max_work: work - 1,
+    })
+    is Err(_),
+  )
+}
+
+///|
 test "public Task retains exact identifier version instructions and original contracts" {
   let root = declaration_cursor(declaration_base(""))
   let value = read_public_model_task_declaration(root, declaration_limits()).unwrap()
