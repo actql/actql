@@ -90,3 +90,14 @@ test('actual Common no-default unknown-model and invalid-token refusals create n
   assert.throws(()=>f.selected.resolveTaskDefaults(undefined,0n,limits()),{code:'MoonBitHostFailure'});
   assert.equal(absent.counts().calls+f.counts().calls,0);
 });
+
+test('actual Common failed profile read cannot replace original reader bounds or discard its refusal',()=>{
+  const f=fixture(),small={...limits(),maxWork:1};let failure;
+  assert.throws(()=>f.selected.resolveTaskDefaults(undefined,undefined,small),error=>{
+    failure=error;return error.code==='MoonBitHostFailure';
+  });
+  assert.throws(()=>f.selected.resolveTaskDefaults(undefined,undefined,small),error=>error===failure);
+  assert.throws(()=>f.selected.resolveTaskDefaults(undefined,undefined,limits()),
+    {code:'InstalledModelDefaultsLimitsChanged'});
+  assert.equal(f.counts().calls,0);
+});

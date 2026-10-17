@@ -10,7 +10,7 @@ const limits=()=>({maxBytes:4096,maxNodes:256,maxDepth:16,maxMembers:8,maxWork:1
 const hash=wire=>'sha256:'+createHash('sha256').update(wire).digest('hex');
 const canonical=body=>JSON.stringify(Object.fromEntries(Object.entries(body).sort(([a],[b])=>a.localeCompare(b))));
 const ok=value=>({$tag:1,_0:value});
-function fixture() {
+function fixture({readFailure,readThrow}={}) {
   let open=true,current=true;
   const calls={read:[],resolve:[],sends:0,installed:0};
   const originals=providerBindingOriginals('models/original');
@@ -18,6 +18,8 @@ function fixture() {
     clientProgramInstallModelProvider(){calls.installed++;return Object.freeze({});},
     clientProgramReadInstalledModelDefaults(provider,installation,contract,configuration,...bounds){
       assert.equal(this,moon);calls.read.push({provider,installation,contract,configuration,bounds});
+      if(readThrow)throw readThrow;
+      if(readFailure)return {$tag:0,_0:readFailure};
       const body={version:'actql-model-provider-binding/0.1',provider_id:provider,
         installation_revision_cid:hash(installation),configuration_contract_cid:hash(contract),
         configuration_cid:hash(configuration)};
@@ -135,4 +137,26 @@ test('legacy registration without required original runtime support supplies no 
   assert.throws(()=>selected.resolveTaskDefaults(undefined,undefined,limits()),
     {code:'InstalledModelDefaultsUnavailable'});
   assert.deepEqual(calls,['install']);
+});
+
+test('a refused original defaults read retains its exact failure and original reader bounds',()=>{
+  const f=fixture({readFailure:Object.freeze({original:'refused profile'})});
+  let failure;
+  assert.throws(()=>f.selected.resolveTaskDefaults(undefined,undefined,limits()),error=>{
+    failure=error;return error.code==='MoonBitHostFailure';
+  });
+  assert.throws(()=>f.selected.resolveTaskDefaults(undefined,undefined,limits()),error=>error===failure);
+  assert.throws(()=>f.selected.resolveTaskDefaults(undefined,undefined,{...limits(),maxWork:200000}),
+    {code:'InstalledModelDefaultsLimitsChanged'});
+  assert.equal(f.calls.read.length,1);
+  assert.equal(f.calls.resolve.length,0);assert.equal(f.calls.sends,0);
+});
+
+test('a thrown original defaults reader keeps the original throwable and never reads twice',()=>{
+  const original=new TypeError('OriginalReaderFailure');
+  const f=fixture({readThrow:original});
+  for(let attempt=0;attempt<2;attempt++){
+    assert.throws(()=>f.selected.resolveTaskDefaults(undefined,undefined,limits()),error=>error===original);
+  }
+  assert.equal(f.calls.read.length,1);assert.equal(f.calls.sends,0);
 });
