@@ -494,7 +494,7 @@
     {
       "module": "src/connectors/gcs/catalog/object_request.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "d38ccf04304f1e3beb4e6084ab7f1bf4bd7917a219e50578528b46ccc362bd9c",
+      "sha256": "026dafa73082819a5cd3b018a0e78d12b36e2f63d1908bf13b6ba6bff0130665",
       "role": "connector-semantics",
       "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
       "exports": [],
@@ -525,7 +525,7 @@
         },
         {
           "name": "mutation_request",
-          "declaration": "mutation_request ( binding : ObjectMutationBinding , original : ObjectMetadata , verb : String , body : String , logical_after : ObjectMetadataFields ? , authored_changes : String , ) - > Result [ ObjectMutationRequest , ObjectRequestIssue ]"
+          "declaration": "mutation_request ( binding : ObjectMutationBinding , original : ObjectMetadata , verb : String , body : String , logical_after : ObjectMetadataFields ? , authored_changes : String , marker ? : String , ) - > Result [ ObjectMutationRequest , ObjectRequestIssue ]"
         },
         {
           "name": "object_mutation_after",
@@ -634,6 +634,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "### Effect metadata Value wire"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Original PATCH target Preview"
               }
             ],
             "identity": [
@@ -699,6 +703,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "The bounded preserving parse/cursor"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Its additional preserving input cursor"
               }
             ],
             "extension": [
@@ -727,6 +735,14 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-effect-value-mutation.test.mjs",
                 "anchor": "GCS authored collision and malformed Effect wire refuse before approval or GET"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_effect_preview_wbtest.mbt",
+                "anchor": "GCS checked PATCH target Preview borrows the original response guard"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-mutation-preview.test.mjs",
+                "anchor": "GCS capture target projects the child original GET without replacement read"
               }
             ]
           }
@@ -736,7 +752,7 @@
     {
       "module": "src/connectors/gcs/catalog/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "c73173884bc46f659b552387c00aae989413850affcb5758426c8e1678a1bf0d",
+      "sha256": "2004255cb7750505761f1d5bdeaa79dc401321275b4bae59ee8d29796f4bda44",
       "role": "connector-semantics",
       "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
       "exports": [
@@ -761,6 +777,7 @@
         "pub fn object_metadata_page_next_token(ObjectMetadataPage) -> String?",
         "pub fn object_metadata_page_response_sha256(ObjectMetadataPage) -> String",
         "pub fn object_metadata_page_row_json(ObjectMetadataPage, Int, Int, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]",
+        "pub fn object_metadata_patch_effect_target_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]",
         "pub fn object_metadata_response_sha256(ObjectMetadata) -> String",
         "pub fn object_metadata_version(ObjectMetadata) -> String",
         "pub fn object_mutation_after(ObjectMutationRequest) -> ObjectMetadataFields?",
@@ -890,6 +907,10 @@
         {
           "name": "object_metadata_page_row_json",
           "declaration": "pub fn object_metadata_page_row_json(ObjectMetadataPage, Int, Int, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]"
+        },
+        {
+          "name": "object_metadata_patch_effect_target_json",
+          "declaration": "pub fn object_metadata_patch_effect_target_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]"
         },
         {
           "name": "object_metadata_response_sha256",
@@ -1061,6 +1082,7 @@
             "object_metadata_page_next_token",
             "object_metadata_page_response_sha256",
             "object_metadata_page_row_json",
+            "object_metadata_patch_effect_target_json",
             "object_metadata_response_sha256",
             "object_metadata_version",
             "object_mutation_after",
@@ -1120,6 +1142,7 @@
             "pub fn object_metadata_page_next_token(ObjectMetadataPage) -> String?",
             "pub fn object_metadata_page_response_sha256(ObjectMetadataPage) -> String",
             "pub fn object_metadata_page_row_json(ObjectMetadataPage, Int, Int, ObjectMetadataLimits) -> Result[String, ObjectMetadataIssue]",
+            "pub fn object_metadata_patch_effect_target_json(ObjectMutationBinding, ObjectMutationRequest, Int) -> Result[String, ObjectRequestIssue]",
             "pub fn object_metadata_response_sha256(ObjectMetadata) -> String",
             "pub fn object_metadata_version(ObjectMetadata) -> String",
             "pub fn object_mutation_after(ObjectMutationRequest) -> ObjectMetadataFields?",
@@ -1296,6 +1319,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "### Effect metadata Value wire"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Original PATCH target Preview"
               }
             ],
             "identity": [
@@ -1641,6 +1668,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "The bounded preserving parse/cursor"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Its additional preserving input cursor"
               }
             ],
             "extension": [
@@ -1789,6 +1820,14 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-effect-value-mutation.test.mjs",
                 "anchor": "GCS authored collision and malformed Effect wire refuse before approval or GET"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_effect_preview_wbtest.mbt",
+                "anchor": "GCS checked PATCH target Preview borrows the original response guard"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-mutation-preview.test.mjs",
+                "anchor": "GCS capture target projects the child original GET without replacement read"
               }
             ]
           }
@@ -1807,6 +1846,7 @@
             "admit_object_mutation_request",
             "metadata_fields_json",
             "object_metadata_logical_json",
+            "object_metadata_patch_effect_target_json",
             "object_mutation_body_for",
             "object_mutation_changes_json",
             "object_mutation_projection_json"
@@ -1831,6 +1871,10 @@
               {
                 "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
                 "anchor": "pub fn gcs_object_request_projection"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Original PATCH target Preview"
               }
             ],
             "identity": [
@@ -1891,6 +1935,10 @@
               {
                 "path": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
                 "anchor": "maxRequestBytes, maxResponseBytes, signal"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Its additional preserving input cursor"
               }
             ],
             "extension": [
@@ -1911,6 +1959,14 @@
               {
                 "path": "src/connectors/gcs/catalog/object_projection_wbtest.mbt",
                 "anchor": "GCS physical projection borrows the same request"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_effect_preview_wbtest.mbt",
+                "anchor": "GCS checked PATCH target Preview borrows the original response guard"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-mutation-preview.test.mjs",
+                "anchor": "GCS capture target projects the child original GET without replacement read"
               }
             ]
           }
@@ -1930,6 +1986,10 @@
           "declaration": "object_metadata_logical_json ( original : ObjectMetadata , limits : ObjectMetadataLimits , ) - > Result [ String , ObjectMetadataIssue ]"
         },
         {
+          "name": "object_metadata_patch_effect_target_json",
+          "declaration": "object_metadata_patch_effect_target_json ( binding : ObjectMutationBinding , request : ObjectMutationRequest , max_bytes : Int , ) - > Result [ String , ObjectRequestIssue ]"
+        },
+        {
           "name": "object_mutation_body_for",
           "declaration": "object_mutation_body_for ( binding : ObjectMutationBinding , request : ObjectMutationRequest , ) - > Result [ String , ObjectRequestIssue ]"
         },
@@ -1943,7 +2003,7 @@
         }
       ],
       "exports": [],
-      "sha256": "f0193919983fd65120eb43192478a3ab9e0abb8562dcd57d75ee66fcbf890b1d"
+      "sha256": "bc24387ba43956b52890774d352d536b2320b43077d4840a6d8d3f200e681016"
     },
     {
       "module": "src/connectors/gcs/host_node/object.mbt",
@@ -1967,6 +2027,7 @@
             "gcs_object_metadata_path",
             "gcs_object_mutation_binding",
             "gcs_object_mutation_kind",
+            "gcs_object_patch_effect_target",
             "gcs_object_prepare_delete",
             "gcs_object_prepare_effect_patch",
             "gcs_object_prepare_patch",
@@ -2016,6 +2077,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "### Effect metadata Value wire"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Original PATCH target Preview"
               }
             ],
             "identity": [
@@ -2128,6 +2193,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "The bounded preserving parse/cursor"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Its additional preserving input cursor"
               }
             ],
             "extension": [
@@ -2176,6 +2245,14 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-effect-value-mutation.test.mjs",
                 "anchor": "GCS authored collision and malformed Effect wire refuse before approval or GET"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_effect_preview_wbtest.mbt",
+                "anchor": "GCS checked PATCH target Preview borrows the original response guard"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-mutation-preview.test.mjs",
+                "anchor": "GCS capture target projects the child original GET without replacement read"
               }
             ]
           }
@@ -2235,6 +2312,10 @@
           "declaration": "gcs_object_mutation_kind ( binding : @ catalog . ObjectMutationBinding , ) - > String"
         },
         {
+          "name": "gcs_object_patch_effect_target",
+          "declaration": "gcs_object_patch_effect_target ( binding : @ catalog . ObjectMutationBinding , request : @ catalog . ObjectMutationRequest , max_bytes : Int , ) - > Result [ String , GcsFailure ]"
+        },
+        {
           "name": "gcs_object_prepare_delete",
           "declaration": "gcs_object_prepare_delete ( binding : @ catalog . ObjectMutationBinding , original : @ catalog . ObjectMetadata , ) - > Result [ @ catalog . ObjectMutationRequest , GcsFailure ]"
         },
@@ -2268,7 +2349,7 @@
         }
       ],
       "exports": [],
-      "sha256": "e8f3b5fa01a84884d122d0bbed6158d61b2b5827e44fa994b4350c91d602a0b9"
+      "sha256": "d25b39faa81fb9db337be056a1d07725d4178a26f36265dba157bb34fb5d5fa4"
     },
     {
       "module": "src/connectors/gcs/host_node/pkg.generated.mbti",
@@ -2302,6 +2383,7 @@
             "gcs_object_metadata_path",
             "gcs_object_mutation_binding",
             "gcs_object_mutation_kind",
+            "gcs_object_patch_effect_target",
             "gcs_object_prepare_delete",
             "gcs_object_prepare_effect_patch",
             "gcs_object_prepare_patch",
@@ -2351,6 +2433,7 @@
             "pub fn gcs_object_metadata_path(@catalog.ObjectMutationBinding, String) -> Result[String, GcsFailure]",
             "pub fn gcs_object_mutation_binding(String, String, String, String, String, String, Array[String], Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMutationBinding, GcsFailure]",
             "pub fn gcs_object_mutation_kind(@catalog.ObjectMutationBinding) -> String",
+            "pub fn gcs_object_patch_effect_target(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]",
             "pub fn gcs_object_prepare_delete(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
             "pub fn gcs_object_prepare_effect_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
             "pub fn gcs_object_prepare_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
@@ -2512,6 +2595,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "### Effect metadata Value wire"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Original PATCH target Preview"
               }
             ],
             "identity": [
@@ -2884,6 +2971,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "The bounded preserving parse/cursor"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Its additional preserving input cursor"
               }
             ],
             "extension": [
@@ -3036,6 +3127,14 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-effect-value-mutation.test.mjs",
                 "anchor": "GCS authored collision and malformed Effect wire refuse before approval or GET"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_effect_preview_wbtest.mbt",
+                "anchor": "GCS checked PATCH target Preview borrows the original response guard"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-mutation-preview.test.mjs",
+                "anchor": "GCS capture target projects the child original GET without replacement read"
               }
             ]
           }
@@ -3065,6 +3164,7 @@
         "pub fn gcs_object_metadata_path(@catalog.ObjectMutationBinding, String) -> Result[String, GcsFailure]",
         "pub fn gcs_object_mutation_binding(String, String, String, String, String, String, Array[String], Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMutationBinding, GcsFailure]",
         "pub fn gcs_object_mutation_kind(@catalog.ObjectMutationBinding) -> String",
+        "pub fn gcs_object_patch_effect_target(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]",
         "pub fn gcs_object_prepare_delete(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
         "pub fn gcs_object_prepare_effect_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
         "pub fn gcs_object_prepare_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
@@ -3185,6 +3285,10 @@
           "declaration": "pub fn gcs_object_mutation_kind(@catalog.ObjectMutationBinding) -> String"
         },
         {
+          "name": "gcs_object_patch_effect_target",
+          "declaration": "pub fn gcs_object_patch_effect_target(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]"
+        },
+        {
           "name": "gcs_object_prepare_delete",
           "declaration": "pub fn gcs_object_prepare_delete(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata) -> Result[@catalog.ObjectMutationRequest, GcsFailure]"
         },
@@ -3281,7 +3385,7 @@
           "declaration": "pub fn gcs_upload_target_observation(@catalog.ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectUploadObservation, @catalog.ObjectUploadIssue]"
         }
       ],
-      "sha256": "50e4a90aa13c2c879dbdd5786668f678f0a360c62c9e35a651e7680f3f39b7d2"
+      "sha256": "a068219453e9fa3a15638708373f2d4a20e0aa8f4d069bb173a7a96cbc4d53a2"
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
@@ -3327,6 +3431,7 @@
             "prepareOwnedGcsMetadataPatch",
             "prepareOwnedGcsObjectDelete",
             "projectGcsObjectMetadata",
+            "projectOwnedGcsMetadataPatchTarget",
             "projectOwnedGcsObjectRequest",
             "readGcsObjectTarget",
             "recheckOwnedGcsObjectRequest",
@@ -3344,6 +3449,7 @@
             "prepareOwnedGcsMetadataPatch",
             "prepareOwnedGcsObjectDelete",
             "projectGcsObjectMetadata",
+            "projectOwnedGcsMetadataPatchTarget",
             "projectOwnedGcsObjectRequest",
             "readGcsObjectTarget",
             "recheckOwnedGcsObjectRequest",
@@ -3372,6 +3478,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "### Effect metadata Value wire"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "### Original PATCH target Preview"
               }
             ],
             "identity": [
@@ -3448,6 +3558,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "The bounded preserving parse/cursor"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Its additional preserving input cursor"
               }
             ],
             "extension": [
@@ -3488,6 +3602,14 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-effect-value-mutation.test.mjs",
                 "anchor": "GCS authored collision and malformed Effect wire refuse before approval or GET"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_effect_preview_wbtest.mbt",
+                "anchor": "GCS checked PATCH target Preview borrows the original response guard"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-mutation-preview.test.mjs",
+                "anchor": "GCS capture target projects the child original GET without replacement read"
               }
             ]
           }
@@ -3504,6 +3626,7 @@
         "prepareOwnedGcsMetadataPatch",
         "prepareOwnedGcsObjectDelete",
         "projectGcsObjectMetadata",
+        "projectOwnedGcsMetadataPatchTarget",
         "projectOwnedGcsObjectRequest",
         "readGcsObjectTarget",
         "recheckOwnedGcsObjectRequest",
@@ -3789,6 +3912,15 @@
           "async": false
         },
         {
+          "name": "projectOwnedGcsMetadataPatchTarget",
+          "parameters": [
+            "request",
+            "maxProjectionBytes",
+            "binding"
+          ],
+          "async": false
+        },
+        {
           "name": "projectOwnedGcsObjectRequest",
           "parameters": [
             "moon",
@@ -3851,7 +3983,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "1b39d3ffab7fac0002d63712c05b64f9de5158339fd25409916b0a944645d201"
+      "sha256": "18cecc58b66dc976d9a85cedfea3bccbcb0b6a5c98be40203f49ef1bdef35ee8"
     },
     {
       "module": "src/connectors/gcs/catalog/collection_identity.mbt",
