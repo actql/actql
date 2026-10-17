@@ -399,7 +399,26 @@ export async function createInstalledRowSource({moon, declaration,
   declared, environmentWire, connectorId, connectorRegistration,
   connectorRevision, site, authorization, readOperation, physicalTarget,
   readPages, bindingCid, limits, referenceIssuer, listingPolicy, captureContent,
-  listingReportCapacity, prepareAcquisition}) {
+  listingReportCapacity, prepareAcquisition, directReadIdentity,
+  prepareRead, grantBeforeBegin = false}) {
+  // Trusted installation compatibility only: preserve an existing provider
+  // identity and ordering while this one Owner retains preparation, current
+  // authorization, RowRun, capture and failure cleanup. No wire selects this
+  // port and none of these callbacks issues authority or a cleanup ACK.
+  if (directReadIdentity !== undefined &&
+      (!Object.isFrozen(directReadIdentity) ||
+        Object.getPrototypeOf(directReadIdentity) !== Object.prototype ||
+        Object.keys(directReadIdentity).sort().join("\0") !==
+          ["attempt", "input", "subject", "useId"].join("\0") ||
+        !Number.isSafeInteger(directReadIdentity.input) || directReadIdentity.input < 0 ||
+        !["subject", "attempt", "useId"].every(key =>
+          typeof directReadIdentity[key] === "function"))) {
+    fail("InvalidInstalledSourceReadIdentity");
+  }
+  if ((prepareRead !== undefined && typeof prepareRead !== "function") ||
+      typeof grantBeforeBegin !== "boolean") {
+    fail("InvalidInstalledSourceReadPreparation");
+  }
   if (prepareAcquisition !== undefined &&
       (typeof prepareAcquisition !== 'function' ||
         typeof moon?.clientProgramRowSourceCheckOriginalAcquisition !== 'function')) {
@@ -473,11 +492,20 @@ export async function createInstalledRowSource({moon, declaration,
   const sourceReadAccesses = Object.freeze(declared.views.map(view =>
     Object.freeze({authorization, connection: site.connection,
       sourceRef: view.source_ref, resource: view.resource})));
+  const ordinarySubject = prepared => {
+    const subject = directReadIdentity === undefined
+      ? cid({version: 'actql-row-source-acquisition-read/0.1',
+        requirementCid: prepared.checkedSource.requirementCid, physicalBinding: prepared.physicalBinding})
+      : directReadIdentity.subject(prepared);
+    if (typeof subject !== 'string' || !cidPattern.test(subject)) {
+      fail('InvalidInstalledSourceReadIdentity');
+    }
+    return subject;
+  };
   const decideRead = (prepared, access, signal) =>
     access.authorization.authorize('acquisition', prepared.readTuple, {
       subjectCid: prepared.readSubjectCid ?? (prepared.checkedSource.selectionCid === undefined
-        ? cid({version: 'actql-row-source-acquisition-read/0.1',
-          requirementCid: prepared.checkedSource.requirementCid, physicalBinding: prepared.physicalBinding})
+        ? ordinarySubject(prepared)
         : valueCid({version: 'actql-keyed-source-selection-read/0.1',
           selectionCid: prepared.checkedSource.selectionCid, physicalBinding: prepared.physicalBinding})), signal});
   const currentRead = async (prepared, access, signal) => {
@@ -605,7 +633,8 @@ export async function createInstalledRowSource({moon, declaration,
     }
     if (![occurrence.stage, occurrence.input, occurrence.task].every(Number.isSafeInteger) ||
         occurrence.stage < 0 || occurrence.stage > 1 ||
-        occurrence.input < 0 || occurrence.task !== occurrence.stage) {
+        occurrence.input < 0 || occurrence.task !== occurrence.stage ||
+        (directReadIdentity !== undefined && occurrence.input !== directReadIdentity.input)) {
       fail('InvalidAcquisitionOccurrence');
     }
     occurrence = Object.freeze({...occurrence});
@@ -649,6 +678,18 @@ export async function createInstalledRowSource({moon, declaration,
       occurrence,
     });
     const physicalBindingCid = valueCid(prepared.physicalBinding);
+    const authorizePreparation = async () => {
+      const decision = await decideRead(prepared, access);
+      const refused = decision?.action === 'deny'
+        ? authorizationRuntimeCode(decision) : undefined;
+      if (refused !== undefined) {
+        throw Object.assign(new Error(refused), {code: refused,
+          authorization: decision});
+      }
+    };
+    // Original provider compatibility authorizes before its pure acquisition
+    // preparation. The ordinary path keeps its original opposite order.
+    if (directReadIdentity !== undefined) await authorizePreparation();
     // An installed provider may select its existing pure typed preparer. It
     // must return this exact requirement/declaration's original acquisition;
     // this is neither an I/O callback nor permission to replace a checked Run.
@@ -661,13 +702,7 @@ export async function createInstalledRowSource({moon, declaration,
       checked(moon.clientProgramRowSourceCheckOriginalAcquisition(
         acquisition, declaration, requirement));
     }
-    const decision = await decideRead(prepared, access);
-    const refused = decision?.action === 'deny'
-      ? authorizationRuntimeCode(decision) : undefined;
-    if (refused !== undefined) {
-      throw Object.assign(new Error(refused), {code: refused,
-        authorization: decision});
-    }
+    if (directReadIdentity === undefined) await authorizePreparation();
     preparations.set(prepared, Object.freeze({checkedOwner, effectful,
       requirement, resource, access, acquisition,
       occurrence, physicalBindingCid}));
@@ -1171,10 +1206,33 @@ export async function createInstalledRowSource({moon, declaration,
     const acquisition = owner.acquisition;
     const columns = [...moon.clientProgramRowSourceColumns(acquisition)];
     const nonce = randomUUID();
-    const runInvocationCid = cid({version: 'actql-row-source-acquisition/0.1',
-      requirementCid: prepared.checkedSource.requirementCid, nonce});
-    const dispatchRequestCid = cid({
+    const identity = directReadIdentity === undefined ? undefined
+      : directReadIdentity.attempt(prepared, nonce);
+    if (directReadIdentity !== undefined &&
+        (identity === null || typeof identity !== 'object' ||
+          Object.getPrototypeOf(identity) !== Object.prototype ||
+          !Object.isFrozen(identity) ||
+          Object.keys(identity).sort().join('\0') !==
+            ['dispatchRequestCid', 'runInvocationCid'].join('\0') ||
+          !cidPattern.test(identity.runInvocationCid) ||
+          !cidPattern.test(identity.dispatchRequestCid))) {
+      fail('InvalidInstalledSourceReadIdentity');
+    }
+    const runInvocationCid = identity?.runInvocationCid ??
+      cid({version: 'actql-row-source-acquisition/0.1',
+        requirementCid: prepared.checkedSource.requirementCid, nonce});
+    const dispatchRequestCid = identity?.dispatchRequestCid ?? cid({
       version: 'actql-row-source-acquisition-dispatch/0.1', runInvocationCid});
+    let preparedRead;
+    if (prepareRead !== undefined) {
+      // A provider's original bounded metadata observation precedes the row
+      // attempt. Mark the physical start before awaiting that same operation;
+      // a lost response is never reclassified as an unstarted acquisition.
+      state.started = true;
+      preparedRead = await prepareRead(Object.freeze({prepared, acquisition,
+        decision, granted, resource: owner.resource, nonce, runInvocationCid,
+        dispatchRequestCid, signal}));
+    }
     const capacity = {transferBytes: maxTransferBytes,
       executionBytes: BigInt(limits.maxPageBytes)};
     if (listingReportCapacity !== undefined &&
@@ -1202,6 +1260,13 @@ export async function createInstalledRowSource({moon, declaration,
       // markers for JSON scalars), not a replacement selector.
       const requestWire = checked(
         moon.clientProgramRowSourceRequestWire(acquisition));
+      const operation = operationBindings.get(owner.resource);
+      const issueGrant = () => site.issueReadGrant({operation,
+        decision: granted, resource: owner.resource, runInvocationCid,
+        dispatchRequestCid, maxUses: limits.maxPages});
+      // Preserve a selected driver's original grant/attempt order. The
+      // ordinary JSON/listing path keeps its existing post-begin issuance.
+      let grant = grantBeforeBegin ? issueGrant() : undefined;
       checked(moon.clientProgramRowSourceBegin(run, limits.maxPageBytes,
         limits.maxPageRows, limits.maxCaptureRows, referenceIssuer));
       const isListing = moon.clientProgramRowSourceIsListing(acquisition);
@@ -1210,12 +1275,9 @@ export async function createInstalledRowSource({moon, declaration,
       if (isListing && moon.clientProgramRowSourceListingComplete(run)) {
         return await complete();
       }
-      const operation = operationBindings.get(owner.resource);
-      const grant = site.issueReadGrant({operation,
-        decision: granted, resource: owner.resource, runInvocationCid,
-        dispatchRequestCid, maxUses: limits.maxPages});
+      if (!grantBeforeBegin) grant = issueGrant();
       state.started = true;
-      await readPages({resource: owner.resource, columns, requestWire,
+      await readPages({resource: owner.resource, columns, requestWire, preparedRead,
         operation, signal,
         verifyRead: () => currentRead(prepared, access, signal),
         // Same-runtime opaque borrowing for trusted installed adapters only.
@@ -1227,7 +1289,10 @@ export async function createInstalledRowSource({moon, declaration,
         // The current read decision is taken again before every request.
         authorizationFor: async index => {
           if (index > 0) await currentRead(prepared, access, signal);
-          return {...grant, useId: `${nonce}-read-${index}`};
+          const useId = directReadIdentity === undefined ? `${nonce}-read-${index}`
+            : directReadIdentity.useId(nonce, index);
+          if (!text(useId)) fail('InvalidInstalledSourceReadIdentity');
+          return {...grant, useId};
         },
         chargePage: body => checked(moon.clientProgramRowSourceChargePage(
           run, body)),

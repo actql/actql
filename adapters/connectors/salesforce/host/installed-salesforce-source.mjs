@@ -9,14 +9,10 @@ import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs'
 // now. Acquisition planning, capture and Source Evidence are owned by the
 // standard runtime (`moon`); this adapter supplies only provider bytes,
 // credential grants and the current read decision.
-import {createHash, randomUUID} from 'node:crypto';
-import {readFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
 import {isAbsolute} from 'node:path';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {acquisitionFailure} from '../../../host-common/acquisition-outcome.mjs';
-import {startInstalledRowRun} from '../../../host-node/installed-row-run.mjs';
-import {authorizationRuntimeCode} from
-  '../../../host-common/authorization-gate.mjs';
+import {createInstalledRowSource} from '../../../host-node/installed-row-source.mjs';
 import {installSalesforceAuthorization, installedSalesforceSiteBinding,
   loadInstalledSalesforceSite, releaseSalesforceSite,
   retainSalesforceSiteCleanup} from
@@ -31,7 +27,6 @@ export const INSTALLED_SALESFORCE_SOURCE_VERSION =
   'actql-installed-salesforce-source/0.1';
 const profileKeys = Object.freeze(['accountConfigurationWire', 'connectorId',
   'publicationPath', 'resources', 'siteProfilePath', 'version']);
-const contractRoot = new URL('../../../../spec/contracts/', import.meta.url);
 // One acquisition reads at most this many rows (the standard Host's checked
 // requirement bound) over at most `maxPages` query pages.
 const readLimits = Object.freeze({maxBytes: 4_000_000, maxNodes: 400_000,
@@ -189,17 +184,11 @@ export async function loadInstalledSalesforceSource(profile, {root,
     const discovery = installSalesforceResourceService({salesforceMoon,
       sites: [site]});
     discovery.installPublished(site.connection, loaded.declared);
-    const [queryContract, evidenceContract] = await Promise.all([
-      'actql-query-acquisition.json', 'actql-query-process-evidence.json',
-    ].map(name => readFile(new URL(name, contractRoot), 'utf8')));
-    return installedSalesforceAdapter({moon, queryMoon, site, authorization,
-      declaration, recover, discovery, queryContract, evidenceContract,
+    return await installedSalesforceAdapter({moon, queryMoon, site, authorization,
+      declaration, declared: loaded.declared, recover, discovery,
       environment, generationCid: loaded.generationCid,
       catalogCid: loaded.declared.catalog_cid,
-      connectorId: checkedProfile.connectorId,
-      views: loaded.declared.views,
-      sourceRefs: new Set(loaded.declared.views.map(view =>
-        view.source_ref))});
+      connectorId: checkedProfile.connectorId});
   } catch (error) {
     // The load's own failure stays primary; an incomplete Site release
     // travels with it to the caller.
@@ -207,251 +196,102 @@ export async function loadInstalledSalesforceSource(profile, {root,
   }
 }
 
-function installedSalesforceAdapter({moon, queryMoon, site, authorization,
-  declaration, recover, discovery, queryContract, evidenceContract,
-  environment, generationCid, catalogCid, connectorId, sourceRefs, views}) {
-  // Checked preparations this adapter issued; only these can be opened.
-  const preparations = new WeakMap();
-  const sourceAccess = Object.freeze({authorization,
-    connection: site.connection});
-  const sourceReadAccesses = Object.freeze(views.map(view =>
-    Object.freeze({authorization, connection: site.connection,
-      sourceRef: view.source_ref, resource: view.resource})));
-
-  const decideRead = (prepared, access, signal) =>
-    access.authorization.authorize('acquisition', prepared.readTuple, {
-      subjectCid: cid({version: 'actql-salesforce-acquisition-read/0.1',
-        requirementCid: prepared.checkedSource.requirementCid,
-        physicalBinding: prepared.physicalBinding}), signal});
-  // The current read decision for the prepared read. A held or denied
-  // decision reads nothing.
-  const currentRead = async (prepared, access, signal) => {
-    const decision = await decideRead(prepared, access, signal);
-    if (decision?.action !== 'dispatch') {
-      throw Object.assign(new Error('ExecutionAuthorizationDenied'),
-        {code: 'ExecutionAuthorizationDenied', decision});
-    }
-    return decision;
-  };
-
-  // Checked preparation for the Host's acquisition Checkpoint: the checked
-  // source, its read tuple and the physical target an approval covers. It
-  // performs no provider I/O and grants nothing.
-  // An Effect Run's acquisition is prepared from its checked Effect owner
-  // (`preparedEffect`) through the common Effect entries; a read-only Run's
-  // from its checked Program. Exactly one is given.
-  async function prepare({preparedProgram, preparedEffect, registry, values,
-    fragment, ordered, sourceAccess: access = sourceAccess,
-    occurrence = {stage: 0, input: 0, task: 0}}) {
-    if ((preparedProgram === undefined) === (preparedEffect === undefined)) {
-      fail('InvalidInstalledSourcePreparation');
-    }
-    const effectful = preparedEffect !== undefined;
-    const checkedOwner = preparedEffect ?? preparedProgram;
-    if (![occurrence.stage, occurrence.input, occurrence.task]
-      .every(Number.isSafeInteger) || occurrence.stage < 0 ||
-      occurrence.stage > 1 || occurrence.input !== 0 ||
-      occurrence.task !== occurrence.stage) {
-      fail('InvalidAcquisitionOccurrence');
-    }
-    occurrence = Object.freeze({...occurrence});
-    checked(effectful
-      ? moon.clientProgramEffectPrepareQueryAcquisition(checkedOwner,
-        occurrence.stage, occurrence.input)
-      : moon.clientProgramPrepareQueryAcquisition(checkedOwner,
-        occurrence.stage, occurrence.input));
-    const requirement = checked(effectful
-      ? moon.clientProgramEffectPrepareLocalQueryRequirement(checkedOwner,
-        occurrence.stage, occurrence.input, registry, values, fragment, ordered)
-      : moon.clientProgramPrepareLocalQueryRequirement(checkedOwner,
-        occurrence.stage, occurrence.input, registry, values, fragment, ordered));
-    const facts = checked(
-      moon.clientProgramQueryRequirementSourceEvidenceFacts(requirement));
-    if (!Array.isArray(facts) || facts.length !== 6 ||
-        !facts.every(value => typeof value === 'string')) {
-      fail('InstalledSourceEvidenceFactsUnavailable');
-    }
-    const [sourceRef, sourceContractCid, carrierSchemaContractCid,
-      sourceDataPolicyCid, dataClassification, sourceViewContractCid] = facts;
-    if (!sourceRefs.has(sourceRef)) fail('InstalledSourceProgramMismatch');
-    const [resource, ...fields] = checked(
-      moon.clientProgramSalesforceSourceTarget(declaration, requirement));
-    const prepared = Object.freeze({
-      checkedSource: Object.freeze({
-        requirementCid: moon.clientProgramQueryRequirementCid(requirement),
-        sourceRef, sourceContractCid, carrierSchemaContractCid,
-        sourceDataPolicyCid, dataClassification, sourceViewContractCid,
-        inputContractCid:
-          moon.clientProgramQueryRequirementInputContractCid(requirement),
-        outputContractCid:
-          moon.clientProgramQueryRequirementOutputContractCid(requirement),
-      }),
-      readTuple: Object.freeze({connection: site.connection, resource,
-        operation: 'read'}),
-      // What an approval covers: this org, connection revision, Site
-      // generation, published Catalog, Resource and fields. The same checked
-      // source read through another installation is another read.
-      physicalBinding: Object.freeze({
-        version: 'actql-installed-salesforce-target/0.1',
-        org_id: site.orgId, instance_origin: site.instanceOrigin,
-        site_key: site.siteKey, site_generation: site.siteGeneration,
-        connection_revision: site.connectionRevision,
-        catalog_cid: catalogCid, resource,
-        fields: Object.freeze([...fields])}),
-    });
-    // A read the account denies is refused here, before any Run exists; a
-    // delegated read is left to the Host's Checkpoint, or refused at
-    // dispatch when none can answer it.
-    const decision = await decideRead(prepared, access);
-    const refused = decision?.action === 'deny'
-      ? authorizationRuntimeCode(decision) : undefined;
-    if (refused !== undefined) {
-      throw Object.assign(new Error(refused), {code: refused,
-        authorization: decision});
-    }
-    const acquisition = checked(
-      moon.clientProgramPrepareSalesforceDeclaredRowAcquisition(
-        declaration, requirement, queryContract, evidenceContract));
-    preparations.set(prepared, Object.freeze({checkedOwner, effectful,
-      requirement, acquisition, resource, access, occurrence}));
-    return prepared;
-  }
-
-  // Acquire the prepared read: describe the Resource under this dispatch,
-  // plan and start the selected attempt in the standard runtime, read its
-  // pages under one query grant, recheck the Resource, then capture. The
-  // returned capture owns the live source until `close`. A failure states
-  // how the acquisition ended: nothing before the first provider request
-  // (the preparation check and the current read decision) starts it; after
-  // it, every provider request was awaited and the attempt closed, so it
-  // has stopped, unless closing the attempt itself failed.
-  async function open(options) {
-    const state = {started: false, closeFailed: false, recovery: undefined};
-    try {
-      return await acquire(state, options);
-    } catch (error) {
-      throw acquisitionFailure(error, state.closeFailed ? 'unknown'
-        : !state.started ? 'not_started' : 'stopped', state.recovery);
-    }
-  }
-
-  async function acquire(state, {preparedProgram, preparedEffect, registry,
-    values, fragment, ordered, sourceAccess: access = sourceAccess, signal,
-    preparedSource, retainedRelationOutput = false,
-    occurrence = {stage: 0, input: 0, task: 0}, ledger}) {
-    const prepared = preparedSource ?? await prepare({preparedProgram,
-      preparedEffect, registry, values, fragment, ordered,
-      sourceAccess: access, occurrence});
-    const owner = preparations.get(prepared);
-    if (owner === undefined ||
-        owner.checkedOwner !== (preparedEffect ?? preparedProgram) ||
-        owner.effectful !== (preparedEffect !== undefined) ||
-        owner.access !== access ||
-        owner.occurrence.stage !== occurrence.stage ||
-        owner.occurrence.input !== occurrence.input ||
-        owner.occurrence.task !== occurrence.task) {
-      fail('InstalledSourcePreparationMismatch');
-    }
-    const decision = await currentRead(prepared, access, signal);
-    // A read approved at the Host's Checkpoint is admitted by the Site only
-    // for this installation, and must be the approval of this exact read.
-    const approval = decision.basis === 'resumed_approval'
-      ? site.admitCheckpointReadApproval(decision) : undefined;
-    if (approval !== undefined && (approval.resource !== owner.resource ||
-        approval.catalogCid !== prepared.physicalBinding.catalog_cid ||
-        JSON.stringify(approval.fields) !==
-          JSON.stringify(prepared.physicalBinding.fields))) {
-      fail('SalesforceReadApprovalNotAdmitted');
-    }
-    const nonce = randomUUID();
-    const runInvocationCid = cid({
-      version: 'actql-salesforce-acquisition/0.1',
-      requirementCid: prepared.checkedSource.requirementCid, nonce});
-    const dispatchRequestCid = cid({
-      version: 'actql-salesforce-acquisition-dispatch/0.1', runInvocationCid});
-    const describe = async suffix => {
-      const described = await site.describeForAcquisition({
-        resource: owner.resource, runInvocationCid, dispatchRequestCid,
-        occurrence: `${nonce}-${suffix}`, approval, signal});
-      return Object.freeze({status: 'observed',
-        observation: recover(described.evidence, runInvocationCid),
-        observationCid: described.observationCid,
-        observationJson: described.evidence.observationJson});
-    };
-    state.started = true;
-    const current = await describe('plan');
-    const acquisition = owner.acquisition;
-    const plan = checked(moon.clientProgramRecheckSalesforceRowProjection(
-      declaration, acquisition, current.observation, 4096));
-    const session = startInstalledRowRun({moon, acquisition, nonce, ledger,
-      capacity: {
-        transferBytes: BigInt(readLimits.maxPages) * BigInt(readLimits.maxBytes),
-        executionBytes: BigInt(readLimits.maxBytes)}});
-    const {run} = session;
-    try {
-      const grant = site.issueGrant({operation: 'salesforce:query:read',
-        decision: approval ?? decision, resource: owner.resource,
-        runInvocationCid,
-        dispatchRequestCid, maxUses: readLimits.maxPages});
-      checked(moon.clientProgramRowSourceBegin(run, readLimits.maxBytes,
-        readLimits.maxRows, readLimits.maxTotalRows));
-      await readSalesforceQuery({moon: queryMoon, plan,
-        apiVersion: site.apiVersion, limits: readLimits,
-        chargePage: body => checked(
-          moon.clientProgramRowSourceChargePage(run, body)),
-        consumePage: (page, {charge}) => {
-          let compilerTuple1 = moon.clientProgramSalesforceQueryPageValues(page);
-          const columns = runtimeField(compilerTuple1, 0), rows = runtimeField(compilerTuple1, 1);
-          compilerTuple1 = undefined;
-          checked(moon.clientProgramRowSourceAcceptChargedValues(
-            run, charge, columns, rows));
-        },
-        initialAuthorization: {...grant, useId: `${nonce}-query-0`},
-        authorizationForPage: async (_path, index) => ({...grant,
-          useId: `${nonce}-query-${index}`}),
-        credential: site.credential, refreshCatalog: () => describe('recheck'),
-        signal});
-      return session.complete({owner, prepared, registry, values, fragment,
-        ordered, retainedRelationOutput,
-        currentRead: () => currentRead(prepared, access, signal)});
-    } catch (error) {
-      session.closeAfterFailure(state);
-      throw error;
-    }
-  }
-
-  return Object.freeze({
-    realizationKey: 'salesforce-acquired',
-    supportsRetainedRelationOutput: true,
-    // The installed implementation's own identification; the Host refuses
-    // the installation when its declared registration differs.
-    connectorRegistration: site.connectorRegistration,
-    connectorRevision: site.connectorRevision,
-    environmentWire: environment.wire, generationCid,
-    connectorBindings: Object.freeze([
-      installedSalesforceSiteBinding(site, connectorId)]),
-    // The source's own read authorization for the Host's pre-acquisition
-    // Checkpoint decision: the same configuration and context as the Site's.
-    readAuthorization: Object.freeze({
-      accountConfiguration: authorization.accountConfiguration,
-      context: authorization.context}),
-    sourceAccess,
-    sourceReadAccesses,
-    admitsSource: sourceRef => sourceRefs.has(sourceRef),
-    ledgerCapacity(prepared) {
-      const owner = preparations.get(prepared);
-      if (owner === undefined) fail('InstalledSourcePreparationMismatch');
-      const capacity = moon.clientProgramInstalledRowCaptureCapacity(
-        owner.acquisition);
-      if (capacity === undefined) fail('InstalledSourceCapacityUnavailable');
-      return Object.freeze({capacity,
-        transferBytes: BigInt(readLimits.maxPages) * BigInt(readLimits.maxBytes),
-        executionBytes: BigInt(readLimits.maxBytes)});
+// Compatibility installation only. Original Salesforce identities and typed
+// Describe/query codecs stay here; the shared Row Source owns every checked
+// preparation, original acquisition, RowRun, capture and failure cleanup.
+async function installedSalesforceAdapter({moon, queryMoon, site, authorization,
+  declaration, declared, recover, discovery, environment, generationCid,
+  catalogCid, connectorId}) {
+  const rowDeclaration = checked(
+    moon.clientProgramSalesforceRowDeclaration(declaration));
+  const directReadIdentity = Object.freeze({
+    input: 0,
+    subject: prepared => cid({version: 'actql-salesforce-acquisition-read/0.1',
+      requirementCid: prepared.checkedSource.requirementCid,
+      physicalBinding: prepared.physicalBinding}),
+    attempt: (prepared, nonce) => {
+      const runInvocationCid = cid({version: 'actql-salesforce-acquisition/0.1',
+        requirementCid: prepared.checkedSource.requirementCid, nonce});
+      return Object.freeze({runInvocationCid, dispatchRequestCid: cid({
+        version: 'actql-salesforce-acquisition-dispatch/0.1', runInvocationCid})});
     },
-    prepare, open,
+    useId: (nonce, index) => `${nonce}-query-${index}`,
+  });
+  const binding = installedSalesforceSiteBinding(site, connectorId);
+  const source = await createInstalledRowSource({moon,
+    declaration: rowDeclaration, declared, environmentWire: environment.wire,
+    connectorId, connectorRegistration: site.connectorRegistration,
+    connectorRevision: site.connectorRevision, bindingCid: binding.bindingCid,
+    authorization, directReadIdentity, grantBeforeBegin: true,
+    // These functions retain this same original Salesforce Site. The alias
+    // selects its existing issuer; it does not create a second grant Owner.
+    site: Object.freeze({connection: site.connection,
+      issueReadGrant: request => site.issueGrant(request),
+      admitCheckpointReadApproval: decision => site.admitCheckpointReadApproval(decision),
+      close: () => site.close()}),
+    readOperation: 'salesforce:query:read',
+    physicalTarget: (resource, fields) => Object.freeze({
+      version: 'actql-installed-salesforce-target/0.1',
+      org_id: site.orgId, instance_origin: site.instanceOrigin,
+      site_key: site.siteKey, site_generation: site.siteGeneration,
+      connection_revision: site.connectionRevision, catalog_cid: catalogCid,
+      resource, fields: Object.freeze([...fields])}),
+    limits: Object.freeze({maxPages: readLimits.maxPages,
+      maxPageBytes: readLimits.maxBytes, maxPageRows: readLimits.maxRows,
+      maxCaptureRows: readLimits.maxTotalRows}),
+    prepareRead: async ({prepared, acquisition, decision, granted, resource,
+      nonce, runInvocationCid, dispatchRequestCid, signal}) => {
+      const approval = decision.basis === 'resumed_approval' ? granted : undefined;
+      if (approval !== undefined && (approval.resource !== resource ||
+          approval.catalogCid !== prepared.physicalBinding.catalog_cid ||
+          JSON.stringify(approval.fields) !==
+            JSON.stringify(prepared.physicalBinding.fields))) {
+        fail('SalesforceReadApprovalNotAdmitted');
+      }
+      const describe = async suffix => {
+        const described = await site.describeForAcquisition({resource,
+          runInvocationCid, dispatchRequestCid, occurrence: `${nonce}-${suffix}`,
+          approval, signal});
+        return Object.freeze({status: 'observed',
+          observation: recover(described.evidence, runInvocationCid),
+          observationCid: described.observationCid,
+          observationJson: described.evidence.observationJson});
+      };
+      const current = await describe('plan');
+      const plan = checked(moon.clientProgramRecheckSalesforceRowProjection(
+        declaration, acquisition, current.observation, 4096));
+      return Object.freeze({plan, describe});
+    },
+    readPages: async ({preparedRead, authorizationFor, chargePage, rowRun, signal}) => {
+      await readSalesforceQuery({moon: queryMoon, plan: preparedRead.plan,
+        apiVersion: site.apiVersion, limits: readLimits, chargePage,
+        consumePage: (page, {charge}) => {
+          const values = moon.clientProgramSalesforceQueryPageValues(page);
+          // Borrow this shared Host's original accounted RowRun. Typed values
+          // are admitted directly; never stringify decimal/presence values.
+          checked(moon.clientProgramRowSourceAcceptChargedValues(
+            rowRun.run, charge, runtimeField(values, 0), runtimeField(values, 1)));
+        },
+        initialAuthorization: await authorizationFor(0),
+        authorizationForPage: async (_path, index) => authorizationFor(index),
+        credential: site.credential,
+        refreshCatalog: () => preparedRead.describe('recheck'), signal});
+    }});
+  // Keep the established compatibility entry shape. It delegates to the one
+  // shared execution implementation and does not expose new keyed/listing or
+  // retained-recovery profiles merely because the shared Owner supports them.
+  return Object.freeze({realizationKey: 'salesforce-acquired',
+    supportsRetainedRelationOutput: true,
+    connectorRegistration: source.connectorRegistration,
+    connectorRevision: source.connectorRevision,
+    environmentWire: source.environmentWire, generationCid,
+    connectorBindings: Object.freeze([binding]),
+    readAuthorization: source.readAuthorization,
+    sourceAccess: source.sourceAccess, sourceReadAccesses: source.sourceReadAccesses,
+    admitsSource: source.admitsSource,
+    ledgerCapacity: source.ledgerCapacity, prepare: source.prepare,
+    open: source.open, close: source.close,
     discovery: Object.freeze({resources: discovery.resources,
       inspectResource: discovery.inspectResource,
-      peekResource: discovery.peekResource}),
-    close: () => site.close(),
-  });
+      peekResource: discovery.peekResource})});
 }
