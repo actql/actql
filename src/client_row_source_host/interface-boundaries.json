@@ -174,7 +174,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "1fc8a84f7212aa88768de750166f6ad9cbdaa27048b262882c0814125070e99a",
+      "sha256": "dfbae5daddeef5d0f93754f20ae1411c31d7dc47af4d73b77129feb30facdcba",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -247,6 +247,7 @@
         "pub fn row_acquisition_execution_capacity(RowAcquisition) -> Int64",
         "pub fn row_acquisition_is_listing(RowAcquisition) -> Bool",
         "pub fn row_acquisition_listing_report_bounds(RowAcquisition) -> Result[(Int64, Int64), RowSourceIssue]",
+        "pub fn row_acquisition_provider_capacity(RowAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?",
         "pub fn row_acquisition_request_wire(RowAcquisition) -> Result[String, RowHostIssue]",
         "pub fn row_acquisition_requirement(RowAcquisition) -> @query_planning.QueryRequirement",
         "pub fn row_acquisition_retained_capacity(RowAcquisition) -> Int64",
@@ -556,6 +557,10 @@
           "declaration": "pub fn row_acquisition_listing_report_bounds(RowAcquisition) -> Result[(Int64, Int64), RowSourceIssue]"
         },
         {
+          "name": "row_acquisition_provider_capacity",
+          "declaration": "pub fn row_acquisition_provider_capacity(RowAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?"
+        },
+        {
           "name": "row_acquisition_request_wire",
           "declaration": "pub fn row_acquisition_request_wire(RowAcquisition) -> Result[String, RowHostIssue]"
         },
@@ -725,6 +730,7 @@
             "row_acquisition_execution_capacity",
             "row_acquisition_is_listing",
             "row_acquisition_listing_report_bounds",
+            "row_acquisition_provider_capacity",
             "row_acquisition_request_wire",
             "row_acquisition_requirement",
             "row_acquisition_retained_capacity",
@@ -820,6 +826,7 @@
             "pub fn row_acquisition_execution_capacity(RowAcquisition) -> Int64",
             "pub fn row_acquisition_is_listing(RowAcquisition) -> Bool",
             "pub fn row_acquisition_listing_report_bounds(RowAcquisition) -> Result[(Int64, Int64), RowSourceIssue]",
+            "pub fn row_acquisition_provider_capacity(RowAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?",
             "pub fn row_acquisition_request_wire(RowAcquisition) -> Result[String, RowHostIssue]",
             "pub fn row_acquisition_requirement(RowAcquisition) -> @query_planning.QueryRequirement",
             "pub fn row_acquisition_retained_capacity(RowAcquisition) -> Int64",
@@ -1082,8 +1089,12 @@
     },
     {
       "module": "src/client_row_source_host/provider_capacity.mbt",
-      "sha256": "e2ba0687c2e2f233dd6488359fa688da68205ab0794dbe431de6a0f4e1836cb9",
+      "sha256": "7c3f16bfc4adae1703acf4120c6f952b381c8261ae8dd03b88155122bdc5be61",
       "operations": [
+        {
+          "name": "row_acquisition_provider_capacity",
+          "declaration": "row_acquisition_provider_capacity ( value : RowAcquisition , declaration : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
+        },
         {
           "name": "row_provider_capacity_sum",
           "declaration": "row_provider_capacity_sum ( retained : Int64 , execution : Int64 , scratch : Int64 , declaration : @ execution . ExecutionCapacity ? , ) - > Result [ ( Int64 , Int64 ) , RowHostIssue ]"
@@ -1105,6 +1116,7 @@
         {
           "operations": [
             "<module>",
+            "row_acquisition_provider_capacity",
             "row_provider_capacity_sum",
             "row_provider_cleanup_bound",
             "start_accounted_provider_row_acquisition"
@@ -1193,6 +1205,132 @@
               {
                 "path": "src/query_integration/provider_capacity_wbtest.mbt",
                 "anchor": "provider envelope requires the exact reader cleanup binding"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/provider_capture_capacity.mbt",
+      "sha256": "c305ee8cbc9f928ca4848eb8843d124d335caac1ebff56dab3f2fe0165ec3ddd",
+      "operations": [
+        {
+          "name": "installed_provider_row_capture_capacity",
+          "declaration": "installed_provider_row_capture_capacity ( selected : @ row_source_host . RowAcquisition , declaration : @ execution . ExecutionCapacity ? , ) - > ClientInstalledCaptureCapacity ?"
+        },
+        {
+          "name": "installed_provider_row_capture_capacity_matches",
+          "declaration": "installed_provider_row_capture_capacity_matches ( capacity : ClientInstalledCaptureCapacity , selected : @ row_source_host . RowAcquisition , declaration : @ execution . ExecutionCapacity , ) - > Bool"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing ClientInstalledCaptureCapacity original requirement and Run Ledger planning Owner; declaration is not a grant",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installed_provider_row_capture_capacity",
+            "installed_provider_row_capture_capacity_matches"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Supplementary provider overlap"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "pub fn start_accounted_provider_row_acquisition"
+              },
+              {
+                "path": "src/client_local_host/provider_capture_capacity.mbt",
+                "anchor": "pub fn installed_provider_row_capture_capacity"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "physical_equal(configuration, acquisition.configuration)"
+              },
+              {
+                "path": "src/client_local_host/provider_capture_capacity.mbt",
+                "anchor": "physical_equal(original, selected)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "provider_capacity : @execution.ExecutionCapacity?"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "@resources.reserve_attempt"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "physical.cleanup_confirmed = Some(cleanup)"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Before any provider page or completion"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "return Err(Physical(InvalidLimits))"
+              },
+              {
+                "path": "src/query_integration/provider_capacity_wbtest.mbt",
+                "anchor": "provider envelope missing and one short refuse"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "pub fn close_accounted_row_run"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "False retirement keeps the same debt for retry"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "9223372036854775807L - retained"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "execution and remaining retention survive evidence generation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Ordinary and listing-report entries keep their existing selection semantics"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/query_integration/provider_capacity_wbtest.mbt",
+                "anchor": "provider envelope survives capture callback completion"
+              },
+              {
+                "path": "src/query_integration/provider_capacity_wbtest.mbt",
+                "anchor": "provider envelope requires the exact reader cleanup binding"
+              },
+              {
+                "path": "src/client_local_host/provider_capture_capacity_wbtest.mbt",
+                "anchor": "provider capture planner carries its overlap into the same prepared Run ledger"
               }
             ]
           }
