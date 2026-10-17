@@ -2413,3 +2413,18 @@ acquisition, transport, descriptor close or final verification carries those
 same originals and partial response without retry or fallback. The final
 runtime producer still requires its stronger actual physical/workspace/Result
 receipt for this exact module/source, not this compile-only receipt.
+
+
+The source-bound maintainer selection keeps the existing 1-GiB compiler extent
+and generation 1. It binds the selected original module, unchanged Engine body,
+thread-custody Runtime and first-domain provider bytes. Its private parent has
+finite work/attempt/holding/transfer ceilings 20/8/4/30; the single compiler
+child uses 2/1/1/3. These bound this one compiler preparation, not business Run
+permissions or a numerical product profile. Retained capacity is zero, the
+original physical capacity funds the parent execution dimension, and the
+Native first-domain operation derives the actual remaining payload after its
+own control storage. No child byte ratio, second extent or implicit growth is
+selected. The separate trusted control envelope remains explicit; this does
+not assert that all Python/loader/OS allocations are paid from the arena.
+The final producer and ordinary Local factory keep their existing physical
+and normal-supplier refusals until those independent owners are complete.

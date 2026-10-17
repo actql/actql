@@ -2,8 +2,8 @@
   "wasmtime_version": "38.0.0",
   "runtime_library_sha256": "eab50a4b7c8b687915ef582219be5209a3ea2e8e31704786ed1feeec7415aa6a",
   "runtime_library_bytes": 73282480,
-  "provider_library_sha256": "a69146d9779e606d692f85ef726829576f42b32b848f7765b18ef7ee88376ea8",
-  "provider_library_bytes": 2606240,
+  "provider_library_sha256": "2f589e83bccaebf40b9335c545c2e60423bdc5062cb357f4414a1d6a473b41bc",
+  "provider_library_bytes": 2609408,
   "engine_body": {
     "target": "aarch64-apple-darwin",
     "cpu_features": [
