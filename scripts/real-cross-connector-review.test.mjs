@@ -22,7 +22,7 @@ function reseal(value) {
 
 test('public Table review uses the fixed independent self-CID vector and keeps the full-byte digest separate', () => {
   const f = fixture();
-  assert.equal(f.review.artifactCid, 'sha256:df029ec5db85b4a87d8444497f713719d0253db7b72e6356a198bf534810ffa9');
+  assert.equal(f.review.artifactCid, 'sha256:6cd2cd48d097dd6e9fee106e3d35be530e1b29191dd3a60ef1d648425abb175f');
   assert.notEqual(digest(f.review.bytes), f.review.artifactCid);
   const checked = checkRealRouteReviewProjection(f.review, f.expected);
   assert.equal(checked.identity.sha256, digest(f.review.bytes).slice(7));
@@ -120,4 +120,17 @@ test('the complete public Table operation retains original create target, schema
     if (fault === 'request') operation.request_cid = cid('f');
     reseal(f); assert.throws(() => checkRealRouteReviewProjection(f.review, f.expected), fault);
   }
+});
+
+// The CTAS control does not name a terminal Effect. Keep the fixed default
+// member identity; a self-consistent unrelated named STORE is not this input.
+test('the original unlabeled CTAS member is exact and an unrelated save member is rejected', () => {
+  const f = fixture();
+  assert.equal(f.body.displayed_scope.effects[0].effect_id, 'aql_table_effect');
+  assert.equal(f.body.displayed_rows[0].effect_id, 'aql_table_effect');
+  checkRealRouteReviewProjection(f.review, f.expected);
+  f.body.displayed_scope.effects[0].effect_id = 'save';
+  f.body.displayed_rows[0].effect_id = 'save';
+  reseal(f);
+  assert.throws(() => checkRealRouteReviewProjection(f.review, f.expected));
 });

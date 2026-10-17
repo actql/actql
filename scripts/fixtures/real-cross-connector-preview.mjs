@@ -102,7 +102,9 @@ export function checkRealRouteReviewProjection(review, {catalogCid, checkpoint, 
     body.authoring_context_cid, body.redaction_policy_cid]) cid(value);
   assert.equal(body.sensitivity, 'restricted');
   assert.equal(body.retention_class, 'approval-evidence'); assert.equal(body.encryption_required, true);
-  assert.deepEqual(body.displayed_scope, {effects: [{effect_id: 'save', kind: 'store',
+  // This fixture's unlabeled CTAS uses the fixed default operation name from
+  // its original query_program lowering, not an unrelated named STORE member.
+  assert.deepEqual(body.displayed_scope, {effects: [{effect_id: 'aql_table_effect', kind: 'store',
     target: 'connector://table/catalog', count: 1}]});
   assert.deepEqual(body.displayed_permissions, ['scope:store']);
   assert.equal(body.displayed_authoring_context.length, 1);
@@ -116,7 +118,7 @@ export function checkRealRouteReviewProjection(review, {catalogCid, checkpoint, 
   const row = body.displayed_rows[0];
   assert.deepEqual(Object.keys(row).sort(), ['effect_id', 'row_preview_cid', 'target_row_identity',
     'before', 'after', 'preview_strength', 'target_guard', 'intended_changes'].sort());
-  assert.equal(row.effect_id, 'save'); cid(row.row_preview_cid);
+  assert.equal(row.effect_id, 'aql_table_effect'); cid(row.row_preview_cid);
   assert.equal(row.preview_strength, 'full_diff');
   assert.deepEqual(row.target_guard, {state: 'not_applicable'});
   assert.deepEqual(row.before, {state: 'not_applicable'});
