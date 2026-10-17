@@ -248,7 +248,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     c_sources += [(ROOT / 'src' / path, name) for path, name in FOREIGN_SOURCES]
     c_sources += [(ROOT / ENTRY / (name + '.c'), name)
                   for name in ('control_shim', 'backing_shim', 'domain_shim', 'domain_read_shim',
-                               'worker_selection_shim', 'live_channel_shim', 'sqlite_shim',
+                               'worker_selection_shim', 'live_channel_shim', 'process_shim', 'sqlite_shim',
                                'sqlite_database_shim', 'original_read_shim', 'packaged_runtime_shim',
                                'packaged_product_shim')]
     runtime_source = allocator if allocator is not None else moon_home / 'lib/runtime'
@@ -273,6 +273,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
                        '-include', str(ROOT / ENTRY / 'domain_read_shim.h'),
                        '-include', str(ROOT / ENTRY / 'worker_selection_shim.h'),
                        '-include', str(ROOT / ENTRY / 'live_channel_shim.h'),
+                       '-include', str(ROOT / ENTRY / 'process_shim.h'),
                        '-include', str(ROOT / ENTRY / 'sqlite_shim.h'),
                        '-include', str(ROOT / ENTRY / 'sqlite_database_shim.h'),
                        '-include', str(ROOT / ENTRY / 'original_read_shim.h'),

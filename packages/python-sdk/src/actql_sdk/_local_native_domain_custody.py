@@ -80,7 +80,7 @@ class _OriginalDomainCustody:
     scope remain separately caller-owned; closing this data never retires them.
     """
     __slots__ = ('_owner', '_scope', '_descriptor', '_functions', '_host', '_domain',
-                 '_reply', '_unknown', '_unknown_carrier', '_closed', '_live_channel_original', '_worker_process_original', '_sqlite_library_original', '_parent_read_original')
+                 '_reply', '_unknown', '_unknown_carrier', '_closed', '_live_channel_original', '_worker_process_original', '_sqlite_library_original', '_parent_read_original', '_installed_process_original')
     _owner: _OriginalControlCustody
     _scope: _OriginalBackingCustody
     _descriptor: _OriginalDescriptor
@@ -95,6 +95,7 @@ class _OriginalDomainCustody:
     _worker_process_original: object | None
     _sqlite_library_original: object | None
     _parent_read_original: object | None
+    _installed_process_original: object | None
 
     @classmethod
     def _prepare_original(cls, owner: _OriginalControlCustody,
@@ -124,6 +125,7 @@ class _OriginalDomainCustody:
         domain._worker_process_original = None
         domain._sqlite_library_original = None
         domain._parent_read_original = None
+        domain._installed_process_original = None
         domain._unknown_carrier = _OriginalDomainError(domain, unknown=True)
         owner._enter()
         if owner._closed or owner._original.value is None:
@@ -311,6 +313,8 @@ class _OriginalDomainCustody:
             from ._local_native_sqlite import _RETIRED_SQLITE_DATA
             if self._sqlite_library_original is not _RETIRED_SQLITE_DATA:
                 raise ValueError('Original SQLite Library still has cleanup or reply custody')
+        if self._installed_process_original is not None:
+            raise ValueError('Original installed process still has cleanup or reply custody')
         process = self._worker_process_original
         if process is not None:
             from ._local_worker_process import OriginalWorkerProcess

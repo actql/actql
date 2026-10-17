@@ -45,6 +45,20 @@ class NativeShimBindingTests(unittest.TestCase):
             path.write_text(original.replace(roles, swapped, 1))
             self.assertNotEqual(before, GENERATOR.render(root))
 
+    def test_original_process_child_abi_roles_and_output_slot_are_closed(self):
+        from actql_sdk._local_native_shim_abi import SIGNATURES, PARAMETERS
+        arguments, result = SIGNATURES['actql_process_child_utf16_into']
+        self.assertEqual([t.__name__ for t in arguments], [
+            'c_void_p', 'c_void_p', 'c_void_p', 'LP_c_ushort', 'c_int',
+            'LP_c_ubyte', 'c_int', 'LP_c_ubyte', 'c_int', 'LP_c_void_p'])
+        self.assertEqual(result.__name__, 'c_int')
+        self.assertEqual([name for name, _ in PARAMETERS['actql_process_child_utf16_into']],
+            ['host', 'domain', 'process', 'executable', 'units', 'arguments',
+             'arguments_bytes', 'environment', 'environment_bytes', 'slot'])
+        self.assertEqual([name for name, _ in PARAMETERS['actql_process_originals_into']],
+            ['reply', 'host', 'domain', 'process', 'channel', 'frame'])
+        self.assertNotIn('actql_process_close_fd', SIGNATURES)
+
     def test_unknown_symbol_cannot_bind_or_call_owner(self):
         from actql_sdk._local_native_shim_abi import bind
         class Library:
