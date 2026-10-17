@@ -65,6 +65,8 @@ pub fn primitive(Primitive, nullable~ : Bool) -> Contract
 
 pub fn read_author(@decode_core.Cursor, Limits) -> Result[Contract, AdmissionError]
 
+pub fn read_author_usage(@decode_core.Cursor, Limits) -> Result[(Contract, Int, Int), AdmissionError]
+
 pub fn read_checked(@decode_core.Cursor, Limits) -> Result[Contract, AdmissionError]
 
 pub fn read_checked_usage(@decode_core.Cursor, Limits) -> Result[(Contract, Int, Int), AdmissionError]

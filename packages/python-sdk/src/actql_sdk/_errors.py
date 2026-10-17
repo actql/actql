@@ -6,6 +6,7 @@ class ClientError(Exception):
         self.code = code
         self.cleanup_client = None
         self.submission_ref = None
+        self.request_id = None
         self.attempt_ref = None
         self.cancel_ref = None
         self.outcome = None
@@ -19,3 +20,10 @@ class ClientError(Exception):
         self.observation = None
         for key, value in facts.items():
             setattr(self, key, value)
+
+
+class RequestConflict(ClientError):
+    """The same scoped request name already binds different original intent."""
+
+    def __init__(self, **facts):
+        super().__init__('RequestConflict', **facts)

@@ -14347,6 +14347,72 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/model-task-defaults.original-selection",
+      "statement_sha256": "98d4427aba68db5e1c91bb78facf5eb48ebd1452d1542fe197fd9e981de0ff11",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-task-defaults",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-task-defaults.closed-profile",
+      "statement_sha256": "7cf15c01a3944d4c74e6a9c0a65585e330bf5155993d85428f1bcd65663dbeaf",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-task-defaults",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-task-defaults.settings",
+      "statement_sha256": "8ab9d744919623ab3b6de5753863d2ab10c24b2b8205c97970b446619d032d26",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-task-defaults",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-task-defaults.task-limit",
+      "statement_sha256": "b83508c24c1d6f95e03ca4bbb30b586d5087e9b746c133d974bcffa38485ab2c",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-task-defaults",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-task-defaults.recovery",
+      "statement_sha256": "a1b981f6ec56b14387f139d6e63a2b0def93f392a9e497139c5c5be4809e35d7",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-task-defaults",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-task-defaults.mock",
+      "statement_sha256": "cc27372d40d2a2c35ca233beaa9fd0214597dfde4d7e455b1e1c1792c7567bf5",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-task-defaults",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/planning-wire.product-a854b55d6c3e",
       "statement_sha256": "a854b55d6c3e96ac913d0bf7253ebb0fa8a90d6da520588757244c4c23491c7a",
       "status": "pending",

@@ -145,3 +145,77 @@ limits from SDK fields. A future trusted worker bootstrap must still validate
 its durable original launch facts, complete independent pre-spawn funding and
 current authorization before mapping or runtime work. This projection alone
 cannot supply those missing facts or enable ordinary factory startup.
+
+## Pre-spawn original channel capture
+
+`prepare_backed_live_channel_before_spawn` retains the original transferred
+Host/domain/ticket and the caller's actual already-created borrowed pipe pair
+before process creation. It issues the existing Common live access once under
+that same original channel record. It opens no descriptors, reserves no second
+backing, and does not fund independent process, Python, loader, FD or control
+domains. Complete bootstrap funding and durable provisioning remain separate.
+
+The actual process caller later uses `bind_backed_live_channel_child` once on
+that same record. A failed or lost binding response cannot select another child.
+The original physical provider checks pipe identity/current and refuses copied,
+foreign-process, replaced or retired records. A PID binding alone is not proof
+of inherited memory, VM admission, stop, descriptor close or loan return. The
+existing child-borrow/span check still precedes VM admission. The post-spawn
+entry keeps its existing signature and composes the same physical phases.
+
+Partial preparation is registered in the original domain before fallible capture
+or Common access issuance. Cleanup retains that same carrier and requires the
+existing physical caller's separate ACKs. Metadata retirement closes no pipe or
+process and returns no reservation. This private seam does not create a
+production `OriginalWorkerFunding` supplier or a normal numerical profile;
+remaining connections cannot use scalar DATA or an unbound holding as authority.
+
+## Same-channel original child resource frame
+
+`prepare_backed_original_channel_ledger` delegates to the existing Common
+`admit_backed_execution_live_child` and
+`prepare_backed_original_child_ledger` on that same prepared channel, original
+read use, ticket, domain and runtime reference. It issues no scalar root or
+second parent reservation. The channel marks the attempt before issuance and
+retains the returned frame before physical/current postchecks and the reply.
+Lost replies retain this original carrier and cannot issue another frame.
+
+The existing imported-child start/take/report/stop rules own first-use checks,
+inherited limits, cumulative snapshots, conservative Unknown accounting and
+retirement of escaped frames. This branch seeds no fixed VM/Host capacities.
+The original physical caller must still supply complete independent process,
+FD and control funding and check current physical custody for every physical
+operation. Pure resource preparation is not a VM, launch or Account grant.
+
+VM admission remains a separate one-shot step after the original child's actual
+span and borrower observation. A resource projection cannot make state/limits
+report a VM admission; when the frame was prepared, the later VM step checks
+that same existing logical projection instead of issuing it again. Only the
+original physical Owner's separate stop/alias/descriptor ACK permits retirement
+of the frame callbacks. Dropping a frame or closing an Engine does not prove
+process-static Rust/Mach resources retired. Normal supplier/profile and the
+Python worker/VM/final physical and wheel gates remain incomplete.
+
+## Original channel preparation transport
+
+The installed control entry roots code callbacks for the existing before-spawn
+channel and imported child frame. The private C shim preserves borrowed inputs,
+owned reply/getter references and persistent empty output slots. These callbacks
+are not a permission registry or a second Resource owner. A resource-frame reply
+can retain the same partial frame even when preparation returns a typed refusal.
+
+The Python physical caller prepares the original process descriptors once,
+retains the same channel before foreign capture, and binds only the actual PID
+returned by that process's original spawn. A lost spawn or binding response
+cannot select a different child. Both descriptor preparation and spawn reject
+reentry before the first supplier/current callback. The original supplier still
+has to fund independent process, FD, control and VM domains before launch.
+
+The frame's start, bootstrap reservation, current checks, immutable limits,
+cumulative reports and logical stop execute in the existing Native/Common
+owners. Python neither creates a Ledger nor computes usage or coverage from
+limits. Logical stop and immutable DATA are not physical retirement evidence.
+After the caller confirms the same original scoped stop, Host/Store cleanup and
+parent-descriptor closes, it retains the successful frame bootstrap-retirement
+and channel-retirement replies together before releasing extra managed aliases.
+A lost release response remains Unknown even if the C output slots were cleared.

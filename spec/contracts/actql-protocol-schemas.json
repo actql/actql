@@ -1,6 +1,6 @@
 {
   "version": "actql-protocol-schema-registry/0.1",
-  "registry_cid": "sha256:9b311b2609db6c00e4d78ed23104021e3573d0e51a8554a0708066fd87527746",
+  "registry_cid": "sha256:1f9df66488ad515bddb03a335d90c473c94d8d44c6d4e0323853176aa73e8ac4",
   "schema_cids": {
     "model_task": "sha256:f0b78bb09840a99b56f6fe910be33b9f51dfcc6349834aa44bcc1b5de1e87a7f",
     "contract_ref": "sha256:a149fa3216f6e15bfaca58a886f7a3e6a269b0109fe7b9ccca1c402c1a103e94",
@@ -18,7 +18,8 @@
     "canonical_value_contract": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c",
     "content_ref": "sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d",
     "content_availability_evidence": "sha256:784203dbc5f95925f83f57c0ff3230abef8bac867768bbe90b26f622fb2d867d",
-    "model_task_v02": "sha256:4d573d3b4ef25cfe72ad6d8c7bd1c9b13296e14801ea829f839f2461137c5734"
+    "model_task_v02": "sha256:4d573d3b4ef25cfe72ad6d8c7bd1c9b13296e14801ea829f839f2461137c5734",
+    "model_provider_defaults": "sha256:5aa89d89b0f91d52402179597140ef3f9e7f4d1752fcd3df5dd03f7eecfa721b"
   },
   "schemas": {
     "model_task": {
@@ -13853,6 +13854,65 @@
           ]
         }
       ]
+    },
+    "model_provider_defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "models"
+      ],
+      "properties": {
+        "default_model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "model",
+              "generation_config"
+            ],
+            "properties": {
+              "model": {
+                "type": "string",
+                "minLength": 1
+              },
+              "generation_config": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "temperature",
+                  "top_p",
+                  "max_output_tokens"
+                ],
+                "properties": {
+                  "temperature": {
+                    "type": "number"
+                  },
+                  "top_p": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1
+                  },
+                  "max_output_tokens": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "seed_requested": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "artifact_registry_cid": "sha256:76162cd46e2b4e58026d47e32b02b3773d9b588d98abd1a529f6ceae0ec76f07",

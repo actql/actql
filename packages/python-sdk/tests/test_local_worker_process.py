@@ -99,6 +99,97 @@ class WorkerProcessTests(unittest.TestCase):
         self.assertTrue(all(fd.closed for fd in self.process._descriptors))
         self.os_posix_spawn.assert_not_called()
 
+    def test_spawn_current_callback_cannot_reenter_original_spawn_or_preparation(self):
+        original = self.case.case.supplier.require_launch_originals
+        entered = False
+        def current(*args):
+            nonlocal entered
+            original(*args)
+            if not entered:
+                entered = True
+                with self.assertRaises(RuntimeError): self.process.spawn()
+                with self.assertRaises(RuntimeError): self.process.prepare_original_descriptors()
+        self.case.case.supplier.require_launch_originals = current
+        self.process.spawn()
+        self.os_posix_spawn.assert_called_once()
+        self.assertEqual(self.os_pipe.call_count, 3)
+        self.assert_no_execution_ack()
+
+    def test_prepare_descriptors_is_not_spawn_and_launch_reuses_original_pairs(self):
+        self.process.prepare_original_descriptors()
+        pairs = (self.process._stdin, self.process._stdout, self.process._stderr)
+        self.assertEqual(self.os_pipe.call_count, 3)
+        self.assertTrue(self.process._descriptors_prepared)
+        self.assertFalse(self.process._spawn_attempted)
+        self.assertIsNone(self.process._pid)
+        self.os_posix_spawn.assert_not_called()
+        with self.assertRaises(RuntimeError): self.process.prepare_original_descriptors()
+        self.process.spawn()
+        self.assertEqual((self.process._stdin, self.process._stdout, self.process._stderr), pairs)
+        self.assertEqual(self.os_pipe.call_count, 3)
+        self.assertEqual(self._read_file.call_count, 2)
+        with self.assertRaises(RuntimeError): self.process.prepare_original_descriptors()
+        self.assert_no_execution_ack()
+
+    def test_preparation_current_callback_cannot_reenter_prepare_or_spawn(self):
+        original = self.case.case.supplier.require_launch_originals
+        entries = []
+        def current(*args):
+            original(*args)
+            if self.process._descriptor_prepare_active:
+                entries.append(True)
+                with self.assertRaises(RuntimeError): self.process.prepare_original_descriptors()
+                with self.assertRaises(RuntimeError): self.process.spawn()
+        self.case.case.supplier.require_launch_originals = current
+        self.process.prepare_original_descriptors()
+        self.assertTrue(entries)
+        self.assertFalse(self.process._descriptor_prepare_active)
+        self.assertFalse(self.process._spawn_attempted)
+        self.assertEqual(self.os_pipe.call_count, 3)
+        self.os_posix_spawn.assert_not_called()
+        self.assert_no_execution_ack()
+
+    def test_prepared_descriptor_cleanup_prevents_launch_without_new_pipes(self):
+        self.process.prepare_original_descriptors()
+        self.process.close_parent_descriptors()
+        with self.assertRaises(ValueError): self.process.spawn()
+        with self.assertRaises(ValueError): self.process.prepare_original_descriptors()
+        self.assertEqual(self.os_pipe.call_count, 3)
+        self.os_posix_spawn.assert_not_called()
+        self.assert_no_execution_ack()
+
+    def test_partial_descriptor_preparation_is_original_pending_without_retry(self):
+        self.os_pipe.side_effect = [(3, 4), OSError('Second pipe unavailable')]
+        with self.assertRaises(LocalWorkerProcessPending) as caught:
+            self.process.prepare_original_descriptors()
+        self.assertIs(caught.exception.cleanup_process, self.process)
+        originals = tuple(self.process._descriptors)
+        # The first pair retains both closed low FDs and both live lifted
+        # originals. The failed second os.pipe produced no descriptors.
+        self.assertEqual([fd.value for fd in originals], [3, 4, 11, 12])
+        self.assertEqual([fd.closed for fd in originals], [True, True, False, False])
+        with self.assertRaises(RuntimeError): self.process.prepare_original_descriptors()
+        with self.assertRaises(LocalWorkerProcessPending): self.process.spawn()
+        self.assertEqual(self.os_pipe.call_count, 2)
+        self.assertEqual(tuple(self.process._descriptors), originals)
+        self.process.close_parent_descriptors()
+        self.assertTrue(all(fd.closed for fd in originals))
+        self.os_posix_spawn.assert_not_called()
+        self.assert_no_execution_ack()
+
+    def test_prepared_executable_revalidation_failure_retains_original_descriptors(self):
+        self.process.prepare_original_descriptors()
+        originals = tuple(self.process._descriptors)
+        self._read_file.side_effect = ValueError('Selected executable changed')
+        with self.assertRaises(LocalWorkerProcessPending): self.process.spawn()
+        with self.assertRaises(RuntimeError): self.process.spawn()
+        self.assertEqual(tuple(self.process._descriptors), originals)
+        self.assertEqual(self.os_pipe.call_count, 3)
+        self.process.close_parent_descriptors()
+        self.assertTrue(all(fd.closed for fd in originals))
+        self.os_posix_spawn.assert_not_called()
+        self.assert_no_execution_ack()
+
     def test_spawn_failure_never_retries_or_adopts_a_new_child(self):
         self.os_posix_spawn.side_effect = OSError('Spawn outcome unavailable')
         with self.assertRaises(LocalWorkerProcessPending): self.process.spawn()
