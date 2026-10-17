@@ -188,19 +188,12 @@ pub fn read_notion_database_read_declaration(
       }
       for property_id in ids {
         if property_id.is_empty() ||
-          @admitted.recheck_runtime_value(
-            @admitted.Text(property_id),
-            @contract.primitive(@contract.StringType, nullable=false),
-            {
-              max_nodes: 1,
-              max_depth: 1,
-              max_text_bytes: limits.metadata.max_identity_bytes,
-            },
-          )
+          @admitted.text_value(property_id, limits.metadata.max_identity_bytes)
           is None {
           return Err(InvalidProperty(property_id))
         }
-        if !read_contract_spend(budget, 1 + property_id.length()) {
+        if !read_contract_spend(budget, 1) ||
+          !read_contract_spend(budget, property_id.length()) {
           return Err(BudgetExceeded)
         }
         let entries = @decode.lookup(contracts_view, property_id).unwrap()
@@ -489,4 +482,11 @@ pub fn notion_database_read_declaration_original(
   declaration : NotionDatabaseReadDeclaration,
 ) -> @decode.Cursor {
   declaration.original
+}
+
+///|
+pub fn notion_property_read_original(
+  column : NotionPropertyReadColumn,
+) -> NotionPropertyMetadata {
+  column.property
 }
