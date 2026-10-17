@@ -138,7 +138,13 @@ fn command_key_preview(
   let canonical = match
     @publication.canonical_effect_preview_draft_wire(raw, 65536, 4096, 32) {
     Ok(value) => value
-    Err(issue) => fail("Command key Preview shape: " + @debug.to_string(issue))
+    Err(issue) =>
+      fail(
+        "Command key Preview shape: " +
+        @debug.to_string(issue) +
+        " public fixture draft=" +
+        raw,
+      )
   }
   let (_, preview) = match
     @publication.author_effect_preview_semantic_wire(
