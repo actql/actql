@@ -1,6 +1,6 @@
 import {prepareClientHostRequest, validNamedSubmissionAttempt, validSubmissionName,
   type WireConnection, type WireSubmissionRef, type WireOperationAttemptRef,
-  type WireNamedSubmissionAttempt, type WireSubmissionName} from './index.mjs';
+  type WireNamedSubmissionAttempt, type WireSubmissionName} from '@actql/client-wire';
 
 declare const value: unknown;
 declare const name: unknown;
