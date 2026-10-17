@@ -204,6 +204,7 @@ pub fn InstalledArenaChannelLedgerReply::issue_description(
 ) -> String {
   match self.issue {
     None => ""
-    Some(issue) => @debug.to_string(issue)
+    Some(@bootstrap.Domain(issue)) => "Domain(" + @debug.to_string(issue) + ")"
+    Some(@bootstrap.Child(issue)) => "Child(" + @debug.to_string(issue) + ")"
   }
 }
