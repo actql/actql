@@ -488,7 +488,7 @@
     {
       "module": "src/connectors/gcs/catalog/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "115033cff92be86fd5e6f874a6d6b4b936a2dfb06a101a6af280ff1e392784db",
+      "sha256": "ecb6aae3529d4eb3d2a0c87295eff3e9c85462430c41e4577fc31ab7d84ad5e2",
       "role": "connector-semantics",
       "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
       "exports": [
@@ -2836,7 +2836,7 @@
           "declaration": "pub fn gcs_upload_response_projection(@catalog.ObjectUploadBinding, @catalog.ObjectUploadRequest, Int, Bytes, Int) -> Result[String, @catalog.ObjectUploadIssue]"
         }
       ],
-      "sha256": "c423243471cd828bd0b380a567a051ff8868ddc3364ad14db1202e312812d2f7"
+      "sha256": "3f12eb35e44310007e844a7660d1c01d49d3d7ac3929ba693cabd89f6936b720"
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-owned-object-request.mjs",
