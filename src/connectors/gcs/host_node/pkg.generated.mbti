@@ -25,6 +25,22 @@ pub fn gcs_collection_reference_failure_code(@original_reference.CollectionRefer
 
 pub fn gcs_collection_resource_json(@catalog.ObjectCollectionBinding) -> String
 
+pub fn gcs_compose_binding(@catalog.ObjectUploadBinding, Int, Int64) -> Result[@catalog.ObjectComposeBinding, @catalog.ObjectUploadIssue]
+
+pub fn gcs_compose_body(@catalog.ObjectComposeBinding, @catalog.ObjectComposeRequest) -> Result[String, @catalog.ObjectUploadIssue]
+
+pub fn gcs_compose_failure_code(@catalog.ObjectUploadIssue) -> String
+
+pub fn gcs_compose_prepare(@catalog.ObjectComposeBinding, @catalog.ObjectUploadObservation, Array[@catalog.ObjectMetadata], String) -> Result[@catalog.ObjectComposeRequest, @catalog.ObjectUploadIssue]
+
+pub fn gcs_compose_projection(@catalog.ObjectComposeBinding, @catalog.ObjectComposeRequest, Int) -> Result[String, @catalog.ObjectUploadIssue]
+
+pub fn gcs_compose_recheck(@catalog.ObjectComposeBinding, @catalog.ObjectComposeRequest, @catalog.ObjectUploadObservation, Array[@catalog.ObjectMetadata]) -> Result[Unit, @catalog.ObjectUploadIssue]
+
+pub fn gcs_compose_response_matches(@catalog.ObjectComposeBinding, @catalog.ObjectComposeRequest, @catalog.ObjectMetadata) -> Bool
+
+pub fn gcs_compose_response_projection(@catalog.ObjectComposeBinding, @catalog.ObjectComposeRequest, Int, Bytes, Int) -> Result[String, @catalog.ObjectUploadIssue]
+
 pub fn gcs_content_metadata_failure_code(@catalog.ContentMetadataIssue) -> String
 
 pub fn gcs_content_metadata_json(Bytes, String, String, String, Int64, Int) -> Result[String, @catalog.ContentMetadataIssue]
