@@ -131,10 +131,7 @@ test "Currency and Percent read original number digits without conversion roundi
       ] {
       let page = money_rate_page(plan, input)
       assert_true(page is Ok(_), msg=native_type + " " + input)
-      assert_eq(
-        decimal_cell(page.unwrap(), 0),
-        Some(expected),
-      )
+      assert_eq(decimal_cell(page.unwrap(), 0), Some(expected))
     }
     // The original JSON Source Owner rejects negative zero before projection.
     assert_true(money_rate_page(plan, "-0.0") is Err(InvalidResponse))
