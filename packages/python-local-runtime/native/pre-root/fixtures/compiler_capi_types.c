@@ -101,6 +101,14 @@ int main(int argc, char **argv) {
            alignment <= _Alignof(max_align_t) && _Alignof(max_align_t) % alignment == 0);
     max_align_t record[(bytes + sizeof(max_align_t) - 1) / sizeof(max_align_t)];
     memset(record, 0, sizeof(record));
+    /* The original parent confirms spawn/current and the same child binding
+     * before this child maps FD4 or allocates any C-API object. EOF, a signal or
+     * another byte is a refusal, never permission to bind ambient storage. */
+    unsigned char ready = 0;
+    ssize_t received;
+    do { received = read(STDIN_FILENO, &ready, 1); }
+    while (received < 0 && errno == EINTR);
+    assert(received == 1 && ready == 'R');
     assert(actql_native_domain_borrow_open(record, bytes, 4, recipe, material) == 0);
     actql_owned_capacity *original = NULL;
     assert(actql_native_domain_borrow_claim_holding(record, &original) == 0);
