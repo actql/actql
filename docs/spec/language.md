@@ -953,13 +953,15 @@ Type equality and compatibility use the following common relations:
   flow to nullable, but not conversely. Base types match without coercion;
   decimal precision/scale, vector dimensions, and ResourceKind must match.
   Objects have exactly the same field set with recursively assignable values;
-  arrays have assignable items. An actual upper bound cannot exceed an expected
-  bound, and an actual lower bound cannot be smaller. Missing bounds prove no
-  restriction. An unspecified expected Artifact media type admits any media
+  arrays have assignable items. Outside the finite Text-enum domain proof above,
+  an actual upper bound cannot exceed an expected bound, and an actual lower
+  bound cannot be smaller. Missing bounds prove no restriction. An unspecified
+  expected Artifact media type admits any media
   type; a specified type requires that exact type to be proven.
 - `JoinNullability(A,B)` requires the same recursive base structure and the
   exact decimal/vector/ResourceKind parameters. It takes nullable OR at each
-  position and the least restrictive common value bounds. Different Artifact
+  position and the least restrictive common value bounds, with the coordinatewise
+  Text-enum rule above. Different Artifact
   media types join to an unspecified media type. Other base-type differences
   have no join. `json` is not an implicit supertype of typed objects or references.
 
