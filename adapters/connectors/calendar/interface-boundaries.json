@@ -1,10 +1,10 @@
 {
   "qualification": "existing Calendar Owner source-reference coverage; not normal acquisition, capacity, physical cleanup, credential mint or installed acceptance",
-  "source": "18ce3333ed27ab951878ae258a06400e1c161ed1",
+  "source": "666d7858cb5e26b7c39609b1dee723a9be3aba15",
   "declarations": [
     {
       "module": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-      "sha256": "a0d7dcd2ce9effce2c81fbd6b7140759ec230978bfbdf4ae2481708aba305889",
+      "sha256": "ad5b3dbdf5cfb0b32f8e551ef9f8a318f696496d38e068f4ea13cbfe311ddef3",
       "exports": [
         "CALENDAR_LIST_OPERATION",
         "CalendarListReadFailure",
@@ -115,21 +115,21 @@
         {
           "name": "prepareCalendarListRead/prepareCalendarListRead",
           "parameters": [
-            "name"
+            "value"
           ],
           "async": false
         },
         {
           "name": "prepareCalendarListRead/prepareCalendarListRead#2",
           "parameters": [
-            "key"
+            "name"
           ],
           "async": false
         },
         {
           "name": "prepareCalendarListRead/prepareCalendarListRead#3",
           "parameters": [
-            "value"
+            "key"
           ],
           "async": false
         },
