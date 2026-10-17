@@ -21,7 +21,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
 sys.path.insert(0, str(ROOT / 'scripts'))
 from python_release_cohort import read_cohort  # noqa: E402
-from actql_sdk._local_core import LOCAL_CORE_ABI, _validate_core_module  # noqa: E402
+from actql_sdk._local_core import _validate_core_module  # noqa: E402
+from actql_sdk._local_wasm_abi import LOCAL_CORE_ABI  # noqa: E402
 from actql_sdk._local_distribution import WASMTIME_VERSION, _read_file  # noqa: E402
 from actql_sdk._local_engine import _configure_selected_engine, _verify_selected_provider_link  # noqa: E402
 from actql_sdk._local_image_recipe import _recipe_from_original  # noqa: E402
@@ -180,7 +181,7 @@ def compile_image(core_receipt: Path, expected_source: str, destination: Path, *
                      digest=original['module_sha256'], capture=True)
     custody = _CompilerCustody(_holding)
 
-    def compile_selected() -> bytes:
+    def compile_selected() -> bytes | bytearray:
         wasmtime = import_module('wasmtime')
         ffi = import_module('wasmtime._ffi')
         custody.ffi = ffi
@@ -199,7 +200,7 @@ def compile_image(core_receipt: Path, expected_source: str, destination: Path, *
         custody.module = wasmtime.Module(custody.engine, wasm)
         _validate_core_module(wasmtime, custody.module)
         encoded = custody.module.serialize()
-        if not 0 < len(encoded) <= recipe.image_bytes_limit:
+        if not isinstance(encoded, (bytes, bytearray)) or not 0 < len(encoded) <= recipe.image_bytes_limit:
             raise ValueError('Compiled image exceeds the selected original file envelope')
         # No Wasm instance or Store is created. Signature validation and
         # serialization are not execution, admission or product acceptance.
