@@ -462,6 +462,16 @@ test "positive cumulative checked value schema output and original settings boun
       project_number_settings(body, "12", limits) is Err(BudgetExceeded),
     )
   }
+  for
+    limits in [
+      { max_bytes: 0, max_nodes: 100, max_depth: 10, },
+      { max_bytes: 4000, max_nodes: 0, max_depth: 10, },
+      { max_bytes: 4000, max_nodes: 100, max_depth: 0, },
+    ] {
+    assert_true(
+      project_number_settings(body, "12", limits) is Err(InvalidLimits),
+    )
+  }
 }
 
 ///|
@@ -472,6 +482,14 @@ test "settings numbers are original strings and missing malformed or unknown val
       settings_test_body().replace(old="\"16\"", new="16"),
       settings_test_body().replace(old="\"16\"", new="\"31\""),
       settings_test_body().replace(old="\"16\"", new="\"0\""),
+      settings_test_body().replace(
+        old="\"16\"",
+        new="\"999999999999999999999999999999\"",
+      ),
+      settings_test_body().replace(
+        old="\"digits\":\"16\"",
+        new="\"digits\":\"16\",\"digits\":\"16\"",
+      ),
       settings_test_body().replace(old="\"4\"", new="\"11\""),
       settings_test_body().replace(old="\"HALF_EVEN\"", new="\"DEFAULT\""),
       settings_test_body().replace(
@@ -558,11 +576,14 @@ test "per-value numeric admission does not retarget a text field or replace the 
     admit_record_number_value(fields[1], text, values_test_limits())
     is Err(InvalidValue("amount")),
   )
-  let selected = checked_values_test_page(page=values_test_page(names=["text"]))
-  assert_true(
-    physical_equal(
-      checked_record_settings(selected).unwrap(),
-      selected.settings.unwrap(),
-    ),
+  let settings = settings_test_original()
+  let original = values_test_page(names=["text"])
+  let selected = checked_values_test_page(
+    page=original,
+    settings=Some(settings),
   )
+  assert_true(
+    physical_equal(checked_record_settings(selected).unwrap(), settings),
+  )
+  assert_true(physical_equal(checked_record_original(selected), original))
 }
