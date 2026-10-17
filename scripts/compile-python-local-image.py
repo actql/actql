@@ -36,7 +36,9 @@ from actql_sdk._local_native_memory_abi import bind as bind_memory  # noqa: E402
 from actql_sdk._local_distribution import _closed, _pairs  # noqa: E402
 from actql_sdk._local_native_control_custody import _OriginalControlCustody, _OriginalControlFunctions  # noqa: E402
 from actql_sdk._local_native_backing_custody import _OriginalBackingCustody, _OriginalBackingFunctions  # noqa: E402
-from actql_sdk._local_native_domain_custody import _OriginalDomainCustody, _OriginalDomainFunctions  # noqa: E402
+from actql_sdk._local_native_domain_custody import (  # noqa: E402
+    _OriginalDomainCustody, _OriginalDomainFunctions, _OriginalDomainMaterialFunctions,
+)
 from actql_sdk._local_native_process_custody import (  # noqa: E402
     _OriginalInstalledProcessCustody, _OriginalInstalledProcessFunctions,
     _OriginalInstalledProcessError,
@@ -155,12 +157,21 @@ def _compiler_holding_original(original: dict[str, Any]) -> _CompilerHoldingOrig
         body['capacity_bytes'], body['generation'], hashlib.sha256(raw).digest())
 
 
+class _InitialCompilerDomainOriginal(NamedTuple):
+    """Closed source selection of non-byte limits, not a quota or extent."""
+
+    work: int
+    attempts: int
+    holdings: int
+    transfer: int
+
+
 class _CompilerParentOriginal(NamedTuple):
     """Source-bound maintainer selection, not a Ledger or worker permit."""
 
     holding: _CompilerHoldingOriginal
     parent: tuple[int, ...]
-    child: tuple[int, ...]
+    child: tuple[int, ...] | _InitialCompilerDomainOriginal
     recipe: bytes
 
 
@@ -175,26 +186,35 @@ def _compiler_parent_original(original: dict[str, Any],
                    ('scope', 'holding_sha256', 'parent', 'child'))
     parent = _closed(body['parent'], ('bytes', 'work', 'attempts', 'holdings',
                                      'transfer', 'retained', 'execution', 'control_envelope'))
-    child = _closed(body['child'], ('bytes', 'work', 'attempts', 'holdings',
-                                   'transfer', 'retained', 'execution'))
+    initial = type(body['child']) is dict and 'kind' in body['child']
+    if initial:
+        child = _closed(body['child'], ('kind', 'work', 'attempts', 'holdings', 'transfer'))
+        if child['kind'] != 'initial_execution_domain':
+            raise ValueError('Unknown source-original compiler child selection')
+        child_numbers = tuple(child[k] for k in ('work', 'attempts', 'holdings', 'transfer'))
+    else:
+        child = _closed(body['child'], ('bytes', 'work', 'attempts', 'holdings',
+                                       'transfer', 'retained', 'execution'))
+        child_numbers = tuple(child.values())
     if (body['scope'] != 'image_compiler_parent_only'
             or body['holding_sha256'] != selected.recipe.hex()
             or selected.generation > 2**63 - 1
             or parent['bytes'] != selected.capacity_bytes
             or any(type(n) is not int or not 0 <= n <= 2**63 - 1
-                   for n in (*parent.values(), *child.values()))
+                   for n in (*parent.values(), *child_numbers))
             or any(n > 2**31 - 1 for n in (parent['work'], parent['attempts'], parent['holdings'],
                                            child['work'], child['attempts'], child['holdings']))
             or parent['bytes'] <= 0 or parent['execution'] != parent['bytes']
             or parent['retained'] != 0 or parent['control_envelope'] <= 0
-            or child['bytes'] <= 0 or child['bytes'] > parent['bytes']):
+            or (not initial and (child['bytes'] <= 0 or child['bytes'] > parent['bytes']))):
         raise ValueError('Compiler parent differs from its source-original envelope')
     # Adequacy, quota/delegation and physical page rounding remain Native
     # decisions. There is deliberately no default profile or inferred grant.
     fields = ('bytes', 'work', 'attempts', 'holdings', 'transfer', 'retained', 'execution')
+    child_original = (_InitialCompilerDomainOriginal(*(child[k] for k in ('work', 'attempts', 'holdings', 'transfer')))
+                      if initial else tuple(child[k] for k in fields))
     return _CompilerParentOriginal(selected, tuple(parent[k] for k in (*fields, 'control_envelope')),
-                                    tuple(child[k] for k in fields),
-                                    hashlib.sha256(raw).digest())
+                                    child_original, hashlib.sha256(raw).digest())
 
 
 class CompilerParentAcquisitionError(RuntimeError):
@@ -334,10 +354,20 @@ class _CompilerParent:
             raise ValueError('Original compiler parent is busy')
         self.runtime.current()
         functions = _OriginalInstalledProcessFunctions(self.library)
+        child = self.original.child
+        if type(child) is _InitialCompilerDomainOriginal:
+            # This projection comes from the same live original domain now,
+            # not from a guessed ratio, previous DATA snapshot or new Ledger.
+            material = domain._project_original_material(_OriginalDomainMaterialFunctions(self.library))
+            if (material.source != self.original.holding.source_sha
+                    or material.recipe != self.original.recipe):
+                raise ValueError('Original compiler domain material changed')
+            retained, execution = material.scalars[13:15]
+        else:
+            retained, execution = child[5:7]
         try:
             return _OriginalInstalledProcessCustody._prepare_original(domain, functions,
-                path=path, nonce=nonce, retained=self.original.child[5],
-                execution=self.original.child[6])
+                path=path, nonce=nonce, retained=retained, execution=execution)
         except _OriginalInstalledProcessError as primary:
             # The same domain already holds the original process, including a
             # partial/Unknown reply. Do not replay preparation or release its
@@ -393,6 +423,10 @@ def _acquire_compiler_parent(original: dict[str, Any], selected: _CompilerHoldin
         control = _OriginalControlFunctions(parent.library)
         backing = _OriginalBackingFunctions(parent.library)
         domain = _OriginalDomainFunctions(parent.library)
+        if type(declaration.child) is _InitialCompilerDomainOriginal:
+            # Check selected transport availability before the first Host/FD
+            # acquisition; exporting a symbol still supplies no funding.
+            bind_native(parent.library, 'actql_domain_prepare_initial_into')
         parent.host = _OriginalControlCustody._prepare_original(control,
             source=selected.source_sha, recipe=declaration.recipe, generation=selected.generation,
             size=size, work=work, attempts=attempts, holdings=holdings, transfer=transfer,
@@ -403,12 +437,18 @@ def _acquire_compiler_parent(original: dict[str, Any], selected: _CompilerHoldin
         if (current.st_dev, current.st_ino, current.st_size) != (opened.st_dev, opened.st_ino, opened.st_size):
             raise ValueError('Original compiler descriptor changed during acquisition')
         parent.backing = _OriginalBackingCustody._borrow_original(parent.host, backing)
-        size, work, attempts, holdings, transfer, retained, execution = declaration.child
+        child = declaration.child
         with parent.backing._physical_scope():
-            parent.domain = _OriginalDomainCustody._prepare_original(
-                parent.host, parent.backing, descriptor, domain, size=size, work=work,
-                attempts=attempts, holdings=holdings, transfer=transfer, retained=retained,
-                execution=execution)
+            if type(child) is _InitialCompilerDomainOriginal:
+                parent.domain = _OriginalDomainCustody._prepare_initial_original(
+                    parent.host, parent.backing, descriptor, domain, work=child.work,
+                    attempts=child.attempts, holdings=child.holdings, transfer=child.transfer)
+            else:
+                size, work, attempts, holdings, transfer, retained, execution = child
+                parent.domain = _OriginalDomainCustody._prepare_original(
+                    parent.host, parent.backing, descriptor, domain, size=size, work=work,
+                    attempts=attempts, holdings=holdings, transfer=transfer, retained=retained,
+                    execution=execution)
         # Existing physical preparation is one-shot and precedes projecting
         # child material. It is neither process start nor a stop/cleanup ACK.
         # Store the same domain above before this foreign call can lose reply.

@@ -2381,3 +2381,14 @@ The ordinary domain record is registered before physical acquisition, so a
 partial mapping, loan or allocation remains with that same original pending
 carrier. No failed attempt is retried as a new initial domain, and only the
 existing original stop, borrower and physical cleanup boundaries retire it.
+
+The maintainer compiler's source declaration may explicitly choose the closed
+`initial_execution_domain` child selection with only work, attempts, holdings
+and transfer limits. It contains no child byte estimate, retained reservation
+or inferred execution budget. The assembly forwards that selection to the
+same Native first-domain operation. Before process preparation it obtains a
+fresh current projection from that original domain and forwards its original
+retained/execution limits to the existing process Owner. The projection is
+not cached as authority. Source/recipe disagreement refuses before registering
+a process. The old explicit-size conformance declaration remains distinct and
+unchanged; neither selection substitutes for a normal product supplier.
