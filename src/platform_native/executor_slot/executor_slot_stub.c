@@ -789,5 +789,5 @@ int32_t actql_executor_slot_kill_self(void) {
   return -1;
 }
 
-#include "duplex_stub.inc"
-#include "child_launch_stub.inc"
+#include "duplex_stub.h"
+#include "child_launch_stub.h"

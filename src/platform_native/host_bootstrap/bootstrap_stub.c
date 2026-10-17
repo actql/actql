@@ -312,8 +312,8 @@ typedef struct {
 #endif
 } actql_bootstrap_domain;
 
-#include "process_region.inc"
-#include "live_channel.inc"
+#include "process_region.h"
+#include "live_channel.h"
 
 MOONBIT_FFI_EXPORT void *actql_bootstrap_acquire_domain(actql_bootstrap_view *view) {
     actql_bootstrap_domain *record = moonbit_make_external_object(
