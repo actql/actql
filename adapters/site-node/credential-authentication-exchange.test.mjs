@@ -326,3 +326,34 @@ test('lost outcome COMMIT reply publishes no token and never repeats the confirm
   assert.equal(f.tokenRequests(), 1); assert.equal(f.resourceRequests(), 0);
   assert.equal(f.journal.recover().find(x => x.useId === 'original-auth').outcome, 'succeeded');
 });
+
+test('an unknown API outcome reply blocks a different page use on the same retained token', async t => {
+  const f = await fixture(t); await f.exchange();
+  const probe = new DatabaseSync(':memory:');
+  const statements = Object.getPrototypeOf(probe.prepare('SELECT 1')); probe.close();
+  const originalRun = statements.run, originalExec = DatabaseSync.prototype.exec;
+  let armed = false, writes = 0, lost = 0, originalFailure;
+  const loss = new Error('OriginalApiOutcomeCommitReplyLost');
+  statements.run = function(...values) {
+    const result = originalRun.apply(this, values);
+    if (/UPDATE credential_uses SET outcome/u.test(this.sourceSQL)) {armed = true;writes++;}
+    return result;
+  };
+  DatabaseSync.prototype.exec = function(sql) {
+    const result = originalExec.call(this, sql);
+    if (sql === 'COMMIT' && armed && lost++ === 0) {armed = false;throw loss;}
+    return result;
+  };
+  try {
+    await assert.rejects(f.resource(), error => {
+      assert.equal(error.code, 'RemoteCredentialJournalCommitOutcomeUnknown');
+      assert.equal(error.cause, loss); originalFailure = error; return true;
+    });
+  } finally { statements.run = originalRun; DatabaseSync.prototype.exec = originalExec; }
+  assert.equal(writes, 1); assert.equal(lost, 1);
+  // Observing durable success does not resolve the caller's unknown ACK.
+  assert.equal(f.journal.recover().find(x => x.useId === 'original-parent').outcome, 'succeeded');
+  await assert.rejects(f.resource({useId: 'page-after-unknown'}), error => error === originalFailure);
+  assert.equal(f.resourceRequests(), 1); assert.equal(f.tokenRequests(), 1);
+  assert.equal(f.journal.recover().length, 2);
+});
