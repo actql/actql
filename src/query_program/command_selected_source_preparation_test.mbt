@@ -99,7 +99,7 @@ fn selected_command_preparation_issue(
 test "selected short COMMAND Source reaches the actual Host with the same original publication and input occurrence" {
   for mode in ["installation", "identifier"] {
     for format in [@frontend.Sql, @frontend.Text] {
-      let environment = command_source_environment(mode)
+      let environment = command_selected_host_environment(mode)
       let (lowered, publication) = selected_command_source_preparation(
         environment, mode, format,
       )
@@ -161,13 +161,13 @@ test "selected short COMMAND Source reaches the actual Host with the same origin
 
 ///|
 test "selected short COMMAND refuses the equal-CID foreign publication at the actual parsed Host boundary" {
-  let environment = command_source_environment("installation")
+  let environment = command_selected_host_environment("installation")
   let (lowered, original) = selected_command_source_preparation(
     environment,
     "installation",
     @frontend.Sql,
   )
-  let foreign_environment = command_source_environment("installation")
+  let foreign_environment = command_selected_host_environment("installation")
   assert_eq(
     @check.checking_environment_cid(environment),
     @check.checking_environment_cid(foreign_environment),
@@ -189,5 +189,30 @@ test "selected short COMMAND refuses the equal-CID foreign publication at the ac
       command_targets=Some(foreign),
     )
     is Err(TargetSelection(ForeignEnvironment)),
+  )
+}
+
+///|
+test "selected short COMMAND declaration-only fixture still refuses the missing original Host policy" {
+  let environment = command_source_environment("installation")
+  let (lowered, _) = selected_command_source_preparation(
+    environment,
+    "installation",
+    @frontend.Sql,
+  )
+  assert_true(
+    @publication_host.prepare_parsed_client_effect_computation(
+      lowered.program.unwrap(),
+      environment,
+      None,
+      [],
+      @publication_host.client_standard_effect_computation_limits(),
+      command_targets=lowered.command_targets,
+    )
+    is Err(
+      Candidate(
+        Computation(Source(SourceView(Context(Policy(MissingCapacity)))))
+      )
+    ),
   )
 }
