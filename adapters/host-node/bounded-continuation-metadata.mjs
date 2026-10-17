@@ -75,11 +75,13 @@ export async function readContinuationLedgerBounded(path, prepareAttemptId, supp
   // count and live Core/physical holdings cannot replace this distinct bound.
   if (value.holdings.length > maxLedgerEntries) fail('ContinuationLedgerEntriesLimit');
   for (const entry of value.holdings) {
-    if (!keys(entry, ['name', 'semantic_cid', 'holding_cid', 'key_id', 'state'], ['cleanup_error']) ||
+    if (!keys(entry, ['name', 'semantic_cid', 'holding_cid', 'key_id', 'state'], ['cleanup_error', 'artifact_cid']) ||
         typeof entry.name !== 'string' || entry.name.length === 0 ||
         entry.name.length > 128 || !entry.name.isWellFormed() ||
         !cid(entry.semantic_cid) || !cid(entry.holding_cid) ||
         !cid(entry.key_id) || !['held', 'retiring', 'retired'].includes(entry.state) ||
+        (entry.artifact_cid !== undefined &&
+          (entry.name !== 'review_projection' || !cid(entry.artifact_cid))) ||
         (entry.cleanup_error !== undefined &&
           (typeof entry.cleanup_error !== 'string' || !entry.cleanup_error.isWellFormed()))) {
       fail('InvalidContinuationLedger');

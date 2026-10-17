@@ -1843,7 +1843,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // a deferred target read is unsupported before any provider I/O.
     async effectAuthorization({runId, runDefinitionCid, unitId,
       declaredResults, reviewWire, continuationWire, beforeDefer, targetReads,
-      requestedStop, assertRequestedStopCurrent,
+      requestedStop, assertRequestedStopCurrent, projectReview,
       journalPort = journal}) {
       if (!IDENTIFIER.test(runId ?? '') || !IDENTIFIER.test(unitId ?? '') ||
           typeof beforeDefer !== 'function' ||
@@ -1859,6 +1859,27 @@ export async function installRemoteCheckpoints({root, namespaceId,
         fail('RequestedEffectStopUnavailable');
       }
       declaredResults = Object.freeze([...declaredResults]);
+      const reviewLimits = Object.freeze({...INSTALLED_EFFECT_CHECKPOINT_LIMITS,
+        maxWireBytes: maxReviewBytes});
+      const reviewPolicyCid = contentCid({version:
+        'actql-remote-review-redaction/0.1', redacted: []});
+      const originalReview = (subjectCid, claims) => {
+        if (typeof projectReview !== 'function') fail('OriginalEffectReviewUnavailable');
+        const projected = projectReview(Object.freeze({authorityScopeCid,
+          approvalClaims: Object.freeze([...claims]),
+          redactionPolicyCid: reviewPolicyCid}), reviewLimits);
+        const review = contractControl.admitRunEvidence('review_projection',
+          projected?.wire, reviewLimits);
+        const body = JSON.parse(review.wire);
+        if (review.identity !== projected.identity || review.wire !== projected.wire ||
+            body.effect_preview_cid !== subjectCid ||
+            body.authority_scope_cid !== authorityScopeCid ||
+            body.redaction_policy_cid !== reviewPolicyCid ||
+            JSON.stringify(body.approval_claims) !== JSON.stringify(claims)) {
+          fail('EffectReviewProjectionMismatch');
+        }
+        return review;
+      };
       const common = {accountConfig, accountConfiguration,
         principal: ownerPrincipal, ...decisionOptions, decide,
         answeringAuthorities: answeringAuthorities === undefined
@@ -1876,9 +1897,13 @@ export async function installRemoteCheckpoints({root, namespaceId,
                 fail('InvalidEffectCheckpointBoundary');
               }
               await beforeDefer();
+              const review = originalReview(view.subject.subject_cid,
+                view.requiredClaims.includes('partial_application_accepted')
+                  ? ['effect_scope_approved', 'partial_application_accepted']
+                  : ['effect_scope_approved']);
               const id = `effect-${runId}`;
               const refs = await evidence.hold(id, runDefinitionCid, [
-                {name: 'review_projection', wire: reviewWire},
+                {name: 'review_projection', wire: review.wire, artifactCid: review.identity},
                 {name: 'continuation_record', wire: continuationWire},
               ]);
               const created = now();
@@ -1889,7 +1914,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
                 subject: {kind: 'run_unit', run_id: runId, unit_id: unitId,
                   continuation: 'resume_unit'},
                 required_artifact: {artifact_cid: view.subject.subject_cid},
-                review_projection_cid: refs[0],
+                review_projection_cid: review.identity,
                 human_summary: 'Approve the complete Effect Set',
                 created_at: new Date(created).toISOString(),
                 expires_at: new Date(created + checkpointTtlMs).toISOString(),
@@ -1950,8 +1975,9 @@ export async function installRemoteCheckpoints({root, namespaceId,
           options.signal?.throwIfAborted();
           await beforeDefer();
           stopCurrent();
+          const review = originalReview(decision.subjectCid, ['effect_scope_approved']);
           const refs = await evidence.hold(`effect-${runId}`, runDefinitionCid, [
-            {name: 'review_projection', wire: reviewWire},
+            {name: 'review_projection', wire: review.wire, artifactCid: review.identity},
             {name: 'continuation_record', wire: continuationWire},
           ]);
           stopCurrent();
@@ -1974,7 +2000,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
               required_artifact: {artifact_type: 'effect_set_preview',
                 artifact_cid: decision.subjectCid},
               requirements: ['effect_scope_approved'],
-              review_projection_cid: refs[0], reason_code: 'user_requested_stop',
+              review_projection_cid: review.identity, reason_code: 'user_requested_stop',
               human_summary: 'Review the requested first Effect Set',
               created_at: new Date(created).toISOString(),
               expires_at: new Date(expires).toISOString(),
@@ -2515,6 +2541,30 @@ export async function installRemoteCheckpoints({root, namespaceId,
             {maxWireBytes: bound, maxNodes: 10000, maxDepth: 64});
           if (review.wire !== wire || review.identity !== view.reviewProjectionCid) {
             fail('ModelReviewProjectionMismatch');
+          }
+        } else if (view.kind === 'effect_set' && view.prepareAttemptId === null) {
+          const opened = await evidence.open(`effect-${view.runId}`);
+          if (opened.requestCid !== view.runDefinitionCid) fail('EffectContinuationRunMismatch');
+          // Old pending checkpoints retain their original full-byte identity;
+          // this read never upgrades their evidence or reissues a checkpoint.
+          if (opened.held('review_projection').includes(view.reviewProjectionCid)) {
+            bytes = await opened.bytes('review_projection', view.reviewProjectionCid,
+              {maxBytes: bound});
+          } else {
+            bytes = await opened.artifactBytes('review_projection', view.reviewProjectionCid,
+              {maxBytes: bound});
+            const wire = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
+            const review = contractControl.admitRunEvidence('review_projection', wire,
+              {...INSTALLED_EFFECT_CHECKPOINT_LIMITS, maxWireBytes: bound});
+            if (review.wire !== wire || review.identity !== view.reviewProjectionCid) {
+              fail('EffectReviewProjectionMismatch');
+            }
+            const body = JSON.parse(wire);
+            if (body.effect_preview_cid !== view.requiredArtifact.cid ||
+                body.authority_scope_cid !== authorityScopeCid ||
+                JSON.stringify(body.approval_claims) !== JSON.stringify(view.requirements)) {
+              fail('EffectReviewProjectionMismatch');
+            }
           }
         } else {
           const opened = await evidence.open(view.prepareAttemptId ?? `effect-${view.runId}`);

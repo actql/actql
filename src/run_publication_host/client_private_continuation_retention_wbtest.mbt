@@ -17,8 +17,11 @@ fn private_retention_test_wire(
 fn private_retention_test_entry(
   tail? : String = "",
   state? : String = "held",
+  name? : String = "captured_input",
 ) -> String {
-  "{\"name\":\"captured_input\",\"semantic_cid\":\"sha256:" +
+  "{\"name\":\"" +
+  name +
+  "\",\"semantic_cid\":\"sha256:" +
   "3".repeat(64) +
   "\",\"holding_cid\":\"sha256:" +
   "4".repeat(64) +
@@ -29,6 +32,36 @@ fn private_retention_test_entry(
   "\"" +
   tail +
   "}"
+}
+
+///|
+test "private review identity is bounded optional DATA only on the original review role" {
+  let field = ",\"artifact_cid\":\"sha256:" + "5".repeat(64) + "\""
+  let entry = private_retention_test_entry(name="review_projection", tail=field)
+  let wire = private_retention_test_wire("[" + entry + "]")
+  assert_eq(private_retention_test_check(wire, 1), Ok(()))
+  assert_eq(private_retention_test_check(wire, 0), Err(EntriesLimit))
+  for
+    invalid in [
+      private_retention_test_entry(tail=field),
+      private_retention_test_entry(
+        name="review_projection",
+        tail=",\"artifact_cid\":null",
+      ),
+      private_retention_test_entry(
+        name="review_projection",
+        tail=",\"artifact_cid\":\"bad\"",
+      ),
+      private_retention_test_entry(name="review_projection", tail=field + field),
+    ] {
+    assert_eq(
+      private_retention_test_check(
+        private_retention_test_wire("[" + invalid + "]"),
+        1,
+      ),
+      Err(InvalidLedger),
+    )
+  }
 }
 
 ///|

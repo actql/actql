@@ -54,10 +54,11 @@ pub fn check_client_private_continuation_retention(
       return Err(InvalidLedger)
     }
   }
-  // Valid root: <=7 nodes. Each entry: <=7. Admit one extra complete entry
+  // Valid root: <=7 nodes. Each entry: <=8, including both optional failure
+  // text and a review's semantic identity. Admit one extra complete entry
   // for the distinct entry-limit diagnosis. Larger malformed trees still
   // fail before any native JSON.parse materialization. Int64 avoids overflow.
-  let nodes = (14L + 7L * max_entries.to_int64())
+  let nodes = (15L + 8L * max_entries.to_int64())
     .min(max_wire_bytes.to_int64())
     .to_int()
   guard @source.parse_json_bytes_preserving(bytes, {
@@ -102,6 +103,7 @@ pub fn check_client_private_continuation_retention(
     guard @decode.element_at(holdings, i) is Some(entry) &&
       @decode.closed_object(entry, [
         "name", "semantic_cid", "holding_cid", "key_id", "state", "cleanup_error",
+        "artifact_cid",
       ])
       is Ok(object) &&
       private_retention_text(object, "name") is Some(name) &&
@@ -118,6 +120,15 @@ pub fn check_client_private_continuation_retention(
       Missing => ()
       Present(value) =>
         if @decode.text(value) is Err(_) {
+          return Err(InvalidLedger)
+        }
+      ExplicitNull => return Err(InvalidLedger)
+    }
+    match @decode.field(object, "artifact_cid") {
+      Missing => ()
+      Present(_) =>
+        if name != "review_projection" ||
+          !private_retention_cid(private_retention_text(object, "artifact_cid")) {
           return Err(InvalidLedger)
         }
       ExplicitNull => return Err(InvalidLedger)
