@@ -179,6 +179,11 @@ Focused controls use the actual GCS compiler bridge, a fresh real FD failure,
 and the actual existing Credential binding before TCP. The success response
 ports and Credential claim controls are explicit doubles, not genuine Account
 approval, normal installed metadata/update/delete acceptance or live GCS.
+An additional actual capture-receiver counter executes the unchanged Common
+cleanup progress law from the qualified retained runtime and proves that the
+same pending FD child blocks input/Result/Source retirement. It checks that
+law's current source equality; it is not a fresh whole-Common build or proof
+that all compiler inputs match the latest installed product cohort.
 
 ### Retained upload target observations
 

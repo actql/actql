@@ -3344,6 +3344,10 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-mutation-request-child.test.mjs",
                 "anchor": "original mutation child preserves frozen failure and same real FD"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-mutation-child-capture.test.mjs",
+                "anchor": "actual Common capture cleanup retains GCS original FD child"
               }
             ]
           }
