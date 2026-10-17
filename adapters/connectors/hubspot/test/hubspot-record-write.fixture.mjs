@@ -76,4 +76,3 @@ export async function recordWriteFixture(t, kind = 'update', accountOperations =
     send: overrides => sendRawHubSpotRecordBatch({...options, ...overrides}),
     project: observation => projectHubSpotRecordWriteObservation({moon, request, observation, limits})};
 }
-
