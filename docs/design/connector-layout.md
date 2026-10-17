@@ -167,8 +167,9 @@ The physical supplier can compare its already-issued CheckedValue with the
 borrowed view through `matchesIssued`. Common requires the same original opaque
 Reference, then performs that view's existing bounded current check, including
 retention after the Host callback. Equal canonical bytes, CID or issuer domain
-do not suffice. The argument and callback closure overlap the existing view
-only for the observation; retirement still cuts its original back-reference.
+do not suffice. The method closures share the existing retireable original
+capture; each call also holds its CheckedValue argument and observation callback
+workspace. Retirement still cuts the original back-reference, not those costs.
 This predicate issues no reservation, allocation, byte loan or read permission.
 
 A synchronous trusted Command preparation can borrow the same view repeatedly
