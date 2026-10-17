@@ -1303,6 +1303,8 @@ alone does not prove exactly-once.
 
 <a id="model-task"></a>
 
+<!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_provider_defaults sha256:5aa89d89b0f91d52402179597140ef3f9e7f4d1752fcd3df5dd03f7eecfa721b -->
+
 ### ModelTask outcomes and attachments
 
 <!-- machine-import: ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/inference_barrier sha256:34f1a37cbaea973964f4cf84ca3806b2492df545b718042ad8057604c95cb6dd -->
@@ -1339,6 +1341,23 @@ extra answers and distribution entries, and check ranges before consistency.
 The selected finite physical profile MUST fix precision and tolerance; provider
 self-description cannot widen either. This registration does not change the
 original invocation-evidence or embedded capture-bundle bodies and readers.
+
+<a id="model-task-defaults"></a>
+
+### Original installed ModelTask defaults
+
+<!-- requirement-block: model-task-defaults.original-selection model-task-defaults.closed-profile model-task-defaults.settings model-task-defaults.task-limit model-task-defaults.recovery model-task-defaults.mock -->
+Public Task normalization MUST select the exact original installed provider and model pair, using the original project registry's default provider only when the public model pair is absent and then that registration's explicit default model. A provider type, environment-variable name, equal configuration CID or current alias is not an installed model original, and missing applicable originals refuse before Source, Model or Effect I/O.
+
+An installed provider choosing `model_defaults` in its original configuration MUST admit the closed profile grammar owned here, check every profile including unused entries, reject duplicate model names and require any explicit `default_model` to name a profile in that same original. The optional subrecord contains `models: [{model, generation_config}]` and optional nonempty `default_model`, with no null or unknown fields, and its containing configuration still needs its own original configuration contract. Absence leaves existing explicit Task/configuration bodies unchanged and supplies no model default.
+
+Normalization MUST use temperature, top-p and optional seed only from the selected model's applicable original profile, without vendor or SDK fallback. The existing generation grammar retains finite temperature, top-p in `(0, 1]`, positive safe-integer token count and an optional signed safe-integer seed.
+
+A Task's explicit output-token limit MUST override the installation default rather than treating that default as a hard ceiling. With the Task limit absent, the explicit applicable default supplies it, while separately declared provider, Host or Program ceilings may only lower the bound execution/request value before dispatch, without recomputing the Task identity from transient Host settings.
+
+Saved execution and recovery MUST preserve the original public Task, project selection, installed configuration/revision, normalized Task and bound request settings rather than resolve new defaults or replace the original Run. Current authorization, egress, capability, reservations, Unknown and cleanup remain independent, and checked profile DATA is neither their proof nor permission.
+
+Mock normalization MUST use its own original fixture installation/profile and typed answer originals, not a live provider's defaults or a manufactured physical model grant. A public authored physical model does not dispatch a physical provider in mock mode.
 
 <a id="planning-wire"></a>
 
