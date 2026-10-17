@@ -5,6 +5,8 @@ import {runtimePair} from '../../../host-common/compiler-binding.generated.mjs';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {invokeScopedCredentialOperation} from
   '../../../host-common/owned-invocation-context.mjs';
+import {openHttpsCredentialBinding, closeHttpsCredentialBinding} from
+  '../../../site-node/https-credential-resource.mjs';
 
 const originals = new WeakMap();
 const wire = value => canonicalJson(value, {dataKeys: true});
@@ -142,12 +144,151 @@ export async function readGcsObjectTarget({moon, binding, name, authorization,
 
 function originalRequest(request, binding) {
   const original = originals.get(request);
-  if (original === undefined) fail('ForeignGcsObjectRequest');
+  if (original === undefined || original.lifetime?.retiring) fail('ForeignGcsObjectRequest');
   const {moon, handle} = original;
   // This same-object borrow is checked by the portable provider Owner. A JS
   // copy, equal body/CID or changed permission binding cannot substitute it.
   gcsOwnedResult(moon, moon.gcsObjectRequestBody(binding ?? original.binding, handle));
   return original;
+}
+
+// The original installed capture retains this child before prepare(). Its
+// caller must already own the real read/preparation envelope: these clamps
+// and this Credential binding do not reserve material or issue approval.
+// No normal installer selects this child without that original supplier.
+export function createGcsMutationRequestChild({moon, binding, kind, name, value,
+  marker, maxProjectionBytes, maxRequestBytes, maxSecretBytes, credential,
+  callResource, authorizationForRow, assertCurrent, signal}) {
+  const lifetime = {retiring: false};
+  let configuration = {moon, binding, kind, name, value, marker,
+    maxProjectionBytes, maxRequestBytes, maxSecretBytes, credential,
+    callResource, authorizationForRow, assertCurrent, signal};
+  let preparing = false, prepared, response, physicalBinding;
+  let changes;
+  let preparation, releaseFlight, retired = false;
+  let failure, cleanup, cleanupStatus, cleanupRetry, invalidCleanup = false, failed = false;
+  const unavailable = () => fail('GcsOriginalMutationPreparationUnavailable');
+  const current = original => {
+    if (lifetime.retiring || configuration !== original) unavailable();
+    original.signal?.throwIfAborted();
+    const result = original.assertCurrent();
+    if (result !== undefined) {
+      if (typeof result?.then === 'function') void Promise.resolve(result).catch(() => {});
+      unavailable();
+    }
+    if (lifetime.retiring || configuration !== original) unavailable();
+    original.signal?.throwIfAborted();
+  };
+  const rememberFailure = primary => {
+    failed = true;
+    failure = primary;
+    // Diagnostic property access must not replace the original thrown value.
+    // A malformed/throwing cleanup facet stays pending, not assumed absent.
+    try {
+      cleanup = primary?.cleanupHandle;
+      if (cleanup !== undefined) {
+        cleanupStatus = cleanup?.status;
+        cleanupRetry = cleanup?.retry;
+        invalidCleanup = typeof cleanupStatus !== 'function' || typeof cleanupRetry !== 'function';
+      } else if (primary?.cleanupPending === true) invalidCleanup = true;
+    } catch { invalidCleanup = true; }
+  };
+  const release = () => {
+    lifetime.retiring = true;
+    if (retired) return Promise.resolve(false);
+    if (releaseFlight !== undefined) return releaseFlight;
+    releaseFlight = (async () => {
+      let closed = true;
+      // Drive only this original Credential binding, even while its prepare
+      // Promise remains unresolved. Pending close is never physical ACK.
+      if (physicalBinding !== undefined) {
+        closed = closeHttpsCredentialBinding(physicalBinding) === 'closed';
+      }
+      if (preparing || !closed || invalidCleanup) return false;
+      if (cleanup !== undefined) {
+        if (Reflect.apply(cleanupStatus, cleanup, [])?.pending !== false) {
+          if (await Reflect.apply(cleanupRetry, cleanup, []) === false) return false;
+          if (Reflect.apply(cleanupStatus, cleanup, [])?.pending !== false) return false;
+        }
+      }
+      if (prepared !== undefined) originals.delete(prepared.request);
+      prepared = undefined;
+      preparation = undefined;
+      response = undefined;
+      changes = undefined;
+      configuration = undefined;
+      physicalBinding = undefined;
+      failure = undefined;
+      failed = false;
+      cleanup = cleanupStatus = cleanupRetry = undefined;
+      retired = true;
+      return true;
+    })().finally(() => { releaseFlight = undefined; });
+    return releaseFlight;
+  };
+  return Object.freeze({
+    prepare() {
+      if (lifetime.retiring) return Promise.reject(Object.assign(
+        new Error('GcsOriginalMutationPreparationUnavailable'), {code: 'GcsOriginalMutationPreparationUnavailable'}));
+      if (preparation !== undefined) return preparation;
+      const original = configuration;
+      preparing = true;
+      preparation = (async () => {
+        if (!['patch_metadata', 'delete_object'].includes(original.kind) ||
+            ![original.maxRequestBytes, original.maxProjectionBytes, original.maxSecretBytes].every(n => integer(n)) ||
+            typeof original.authorizationForRow !== 'function' ||
+            typeof original.assertCurrent !== 'function' ||
+            typeof original.callResource !== 'function' ||
+            ['gcsObjectMutationKind', 'gcsObjectMetadataPath', 'gcsObjectMetadataMaxBytes',
+              'gcsObjectTargetObservation', 'gcsObjectFailureCode', 'gcsObjectRequestProjection',
+              'gcsObjectRequestBody', 'gcsObjectRequestChanges',
+              original.kind === 'patch_metadata' ? 'gcsObjectPreparePatch' : 'gcsObjectPrepareDelete']
+              .some(name => typeof original.moon?.[name] !== 'function') ||
+            original.moon.gcsObjectMutationKind(original.binding) !== original.kind) unavailable();
+        // Path/binding refusal must precede a fresh read decision or secret.
+        gcsOwnedResult(original.moon, original.moon.gcsObjectMetadataPath(original.binding, original.name));
+        if (original.kind === 'patch_metadata') {
+          // Snapshot the original admitted row DATA before the first await.
+          // This additional wire/Buffer overlaps the caller row and raw GET;
+          // it belongs to that caller's funded preparation workspace.
+          changes = Buffer.from(wire(original.value), 'utf8');
+          if (changes.byteLength > original.moon.gcsObjectMetadataMaxBytes(original.binding)) {
+            fail('GcsObjectRequestCapacityExceeded');
+          }
+          if (!/^sha256:[0-9a-f]{64}$/u.test(original.marker ?? '')) unavailable();
+        } else if (wire(original.value) !== '{}') fail('GcsInvalidObjectChanges');
+        current(original);
+        const authorization = await original.authorizationForRow();
+        current(original);
+        physicalBinding = openHttpsCredentialBinding({...original.credential,
+          scope: authorization?.scope, maxSecretBytes: original.maxSecretBytes});
+        response = await readGcsObjectTarget({moon: original.moon, binding: original.binding,
+          name: original.name, authorization, credential: {...original.credential, binding: physicalBinding},
+          callResource: original.callResource, maxRequestBytes: original.maxRequestBytes, signal: original.signal});
+        current(original);
+        const before = admitGcsObjectTargetObservation(original.moon, original.binding, original.name, response);
+        const request = original.kind === 'patch_metadata'
+          ? projectOwnedGcsObjectRequest(original.moon, original.binding,
+            gcsOwnedResult(original.moon, original.moon.gcsObjectPreparePatch(original.binding,
+              before, changes, original.marker)), original.maxProjectionBytes)
+          : prepareOwnedGcsObjectDelete({moon: original.moon, binding: original.binding,
+            original: before, maxProjectionBytes: original.maxProjectionBytes});
+        const owned = originals.get(request);
+        originals.set(request, {...owned, lifetime});
+        prepared = Object.freeze({request, requestCid: request.request_cid});
+        current(original);
+        return prepared;
+      })().catch(primary => { rememberFailure(primary);throw primary; })
+        .finally(() => { preparing = false; });
+      return preparation;
+    },
+    release,
+    retry: release,
+    status() {
+      return Object.freeze({pending: !retired,
+        ...(failed ? {errors: Object.freeze([failure])} : {})});
+    },
+  });
 }
 
 export function ownedGcsObjectRequestCid(request, binding) {

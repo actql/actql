@@ -39,6 +39,17 @@ pub fn gcs_object_failure_code(issue : GcsFailure) -> String {
 }
 
 ///|
+#export_name("gcsObjectMutationKind")
+pub fn gcs_object_mutation_kind(
+  binding : @catalog.ObjectMutationBinding,
+) -> String {
+  match @catalog.object_mutation_kind(binding) {
+    PatchMetadata => "patch_metadata"
+    DeleteObject => "delete_object"
+  }
+}
+
+///|
 #export_name("gcsObjectMetadataPath")
 pub fn gcs_object_metadata_path(
   binding : @catalog.ObjectMutationBinding,

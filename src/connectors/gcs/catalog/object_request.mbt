@@ -450,3 +450,12 @@ pub fn object_mutation_body(request : ObjectMutationRequest) -> String {
 pub fn object_mutation_cid(request : ObjectMutationRequest) -> String {
   request.cid
 }
+
+///|
+// Read-only original binding projection for the existing private preparation
+// child. This is neither a permission nor a new binding constructor.
+pub fn object_mutation_kind(
+  binding : ObjectMutationBinding,
+) -> ObjectMutationKind {
+  binding.kind
+}
