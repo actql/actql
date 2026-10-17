@@ -314,9 +314,9 @@ test "normal child with real retained Rust panic allocation requires original re
 }
 
 ///|
-test "original Rust sequence OOM stays signaled while physical region retirement is confirmed" {
-  // The original combined four-case success counter failed at this same
-  // 64/48/32-page profile. Preserve that refusal: no capacity increase,
-  // allocation-level close weakening, or conversion to handler success.
-  process_fixture_rust_retirement("rust-aborted", "all-original", @executor.Signaled(6))
+test "aborted real retained Rust child stays signaled while physical region retirement is confirmed" {
+  // A fresh explicit process fault follows the same actual retained mutex.
+  // The old four-case root-only counter applied to a domain remains failed;
+  // this is no capacity increase or conversion to handler/business success.
+  process_fixture_rust_retirement("rust-aborted", "retained-panic-abort", @executor.Signaled(6))
 }

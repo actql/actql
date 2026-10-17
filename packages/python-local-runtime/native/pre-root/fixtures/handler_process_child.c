@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -26,7 +27,8 @@ static size_t size_argument(const char *value) {
 int main(int argc, char **argv) {
     assert(argc == 8);
     const bool retained_panic = strcmp(argv[7], "retained-panic") == 0;
-    assert(retained_panic || strcmp(argv[7], "all-original") == 0);
+    const bool deliberate_abort = strcmp(argv[7], "retained-panic-abort") == 0;
+    assert(retained_panic || deliberate_abort || strcmp(argv[7], "all-original") == 0);
     int descriptor = open(argv[1], O_RDWR | O_NOFOLLOW | O_CLOEXEC);
     assert(descriptor >= 0);
     long selected_page = sysconf(_SC_PAGESIZE); assert(selected_page > 0);
@@ -61,10 +63,10 @@ int main(int argc, char **argv) {
     void *(*address)(void) = NULL;
     assert(sizeof(address) == sizeof(symbol)); memcpy(&address, &symbol, sizeof(address));
     assert(address != NULL && address() == dlsym(RTLD_DEFAULT, "actql_native_owned_current"));
-    /* The retained-panic case proves normal process retirement with the real
-     * std mutex still live. The full original sequence separately exercises
-     * its bounded-domain OOM; a signaled child is never business success. */
-    const int selected_cases = retained_panic ? 2 : 4;
+    /* Both selected domain cases retain the actual std mutex. The older full
+     * sequence also has a root-only try_close counter; applying that counter
+     * to an interior domain is not a domain-completion or exhaustion proof. */
+    const int selected_cases = retained_panic || deliberate_abort ? 2 : 4;
     for (int index = 0; index < selected_cases; index++) {
         assert(run(index) == 0);
         actql_test_original_extent_observation(original, index + 1);
@@ -80,6 +82,12 @@ int main(int argc, char **argv) {
      * exclusive view and descriptor before reporting region retirement. */
     printf("{\"handler_cases\":%d,\"RuntimeRetained\":true,"
          "\"borrow_return\":\"refused\",\"holding_closed\":false}\n", selected_cases);
-    assert(fflush(stdout) == 0 && close(descriptor) == 0);
+    assert(fflush(stdout) == 0);
+    if (deliberate_abort) {
+        fputs("deliberate retained-process fixture abort; handler success not claimed\n", stderr);
+        raise(SIGABRT);
+        return 4;
+    }
+    assert(close(descriptor) == 0);
     return 0;
 }
