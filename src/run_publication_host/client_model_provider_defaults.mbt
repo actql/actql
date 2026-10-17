@@ -2,6 +2,7 @@
 /// Original configuration DATA in the existing Model/Host owner. This is not
 /// an installed Provider, current configuration, resource profile or grant.
 struct ClientModelProviderDefaults {
+  provider_id : String
   binding : @publication.RunEvidenceValue
   profile : @environment.ModelProviderDefaults?
   bytes : Int
@@ -41,7 +42,7 @@ pub fn read_client_model_provider_defaults(
       max_work,
     ) {
     Ok((profile, bytes, nodes, work)) =>
-      Ok({ binding, profile, bytes, nodes, work, })
+      Ok({ provider_id, binding, profile, bytes, nodes, work, })
     Err(issue) => Err(InvalidDefaults(issue.kind))
   }
 }

@@ -1,6 +1,6 @@
 {
   "version": "actql-protocol-schema-registry/0.1",
-  "registry_cid": "sha256:1f9df66488ad515bddb03a335d90c473c94d8d44c6d4e0323853176aa73e8ac4",
+  "registry_cid": "sha256:7e59eb4f0e1b3c3e10c2c3224abe5db2b02ce50cc4e247bd583bcba9609f194d",
   "schema_cids": {
     "model_task": "sha256:f0b78bb09840a99b56f6fe910be33b9f51dfcc6349834aa44bcc1b5de1e87a7f",
     "contract_ref": "sha256:a149fa3216f6e15bfaca58a886f7a3e6a269b0109fe7b9ccca1c402c1a103e94",
@@ -19,7 +19,7 @@
     "content_ref": "sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d",
     "content_availability_evidence": "sha256:784203dbc5f95925f83f57c0ff3230abef8bac867768bbe90b26f622fb2d867d",
     "model_task_v02": "sha256:4d573d3b4ef25cfe72ad6d8c7bd1c9b13296e14801ea829f839f2461137c5734",
-    "model_provider_defaults": "sha256:5aa89d89b0f91d52402179597140ef3f9e7f4d1752fcd3df5dd03f7eecfa721b"
+    "model_provider_defaults": "sha256:35258db20dca538d6889ac34789becea8c4a62858127848b1419d19a93b144e6"
   },
   "schemas": {
     "model_task": {
@@ -13879,6 +13879,81 @@
               "model": {
                 "type": "string",
                 "minLength": 1
+              },
+              "data_handling": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "schema",
+                  "id",
+                  "version",
+                  "kind",
+                  "body",
+                  "cid"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "actql.contract/0.1"
+                  },
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "version": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "kind": {
+                    "const": "request_data_handling"
+                  },
+                  "body": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "accepted_classifications",
+                      "allowed_regions",
+                      "retention",
+                      "training_use"
+                    ],
+                    "properties": {
+                      "accepted_classifications": {
+                        "type": "array",
+                        "minItems": 1,
+                        "uniqueItems": true,
+                        "items": {
+                          "enum": [
+                            "public",
+                            "internal",
+                            "confidential",
+                            "restricted"
+                          ]
+                        }
+                      },
+                      "allowed_regions": {
+                        "type": "array",
+                        "minItems": 1,
+                        "uniqueItems": true,
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "retention": {
+                        "enum": [
+                          "none",
+                          "provider_contract"
+                        ]
+                      },
+                      "training_use": {
+                        "const": "forbidden"
+                      }
+                    }
+                  },
+                  "cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
               },
               "generation_config": {
                 "type": "object",

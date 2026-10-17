@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import {checkModelProviderDefaultsSchema} from './model-provider-defaults-contract.mjs';
+import {checkModelProviderDefaultsSchema, modelProviderHandlingSchema} from './model-provider-defaults-contract.mjs';
 import {machineCid} from './actql-spec-family.mjs';
 
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
@@ -20,6 +20,20 @@ test('original provider defaults DATA has an owned closed machine grammar', () =
   assert.deepEqual(generation.required, ['temperature', 'top_p', 'max_output_tokens']);
   assert.deepEqual(generation.properties.max_output_tokens,
     {type: 'integer', minimum: 1, maximum: 9007199254740991});
+});
+
+test('per-model handling keeps the existing closed envelope and original policy role', () => {
+  const schema = modelProviderHandlingSchema();
+  assert.deepEqual(registry.schemas.model_provider_defaults.properties.models.items.properties.data_handling, schema);
+  assert.deepEqual(schema.properties.schema, {const: 'actql.contract/0.1'});
+  assert.deepEqual(schema.properties.kind, {const: 'request_data_handling'});
+  assert.equal(schema.additionalProperties, false);
+  assert.equal(schema.properties.body.additionalProperties, false);
+  assert.deepEqual(schema.properties.body.properties.training_use, {const: 'forbidden'});
+  for (const name of ['accepted_classifications', 'allowed_regions']) {
+    assert.equal(schema.properties.body.properties[name].minItems, 1);
+    assert.equal(schema.properties.body.properties[name].uniqueItems, true);
+  }
 });
 
 test('profile selection does not broaden historical explicit Task or binding bytes', () => {

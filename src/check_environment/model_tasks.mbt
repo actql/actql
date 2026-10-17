@@ -261,6 +261,18 @@ fn model_task_handling(
     b,
   )
   let cid = model_task_cid(o, "contract_cid", root, b)
+  model_task_handling_constraints(o, root, b, cid)
+}
+
+///|
+/// Shared constraints for legacy inline Task handling and a checked original
+/// request_data_handling Envelope. The caller owns the original CID binding.
+fn model_task_handling_constraints(
+  o : @decode.ObjectView,
+  root : @decode.Cursor,
+  b : ModelTaskBudget,
+  cid : String,
+) -> ModelDataHandling raise ModelTaskStop {
   if model_task_string(o, "training_use", root, b) != "forbidden" {
     model_task_fail(InvalidBody, root)
   }

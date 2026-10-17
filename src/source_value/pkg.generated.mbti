@@ -37,6 +37,8 @@ pub fn parse_yaml_bytes(Bytes, ParseLimits, source_path? : String) -> Result[Nod
 
 pub fn parse_yaml_bytes_measured(Bytes, ParseLimits, source_path? : String) -> Result[ParsedSource, ParseError]
 
+pub fn parse_yaml_bytes_preserving(Bytes, ParseLimits, source_path? : String) -> Result[Node, ParseError]
+
 pub fn parse_yaml_measured(String, ParseLimits, source_path? : String) -> Result[ParsedSource, ParseError]
 
 pub fn representation_extent(Node, Int, Int, Int) -> Result[SourceRepresentationExtent, SourceRepresentationExtentIssue]

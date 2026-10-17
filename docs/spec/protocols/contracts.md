@@ -1347,7 +1347,7 @@ alone does not prove exactly-once.
 
 <a id="model-task"></a>
 
-<!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_provider_defaults sha256:5aa89d89b0f91d52402179597140ef3f9e7f4d1752fcd3df5dd03f7eecfa721b -->
+<!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_provider_defaults sha256:35258db20dca538d6889ac34789becea8c4a62858127848b1419d19a93b144e6 -->
 
 ### ModelTask outcomes and attachments
 
@@ -1390,10 +1390,16 @@ original invocation-evidence or embedded capture-bundle bodies and readers.
 
 ### Original installed ModelTask defaults
 
-<!-- requirement-block: model-task-defaults.original-selection model-task-defaults.closed-profile model-task-defaults.settings model-task-defaults.task-limit model-task-defaults.recovery model-task-defaults.mock -->
+<!-- requirement-block: model-task-defaults.original-selection model-task-defaults.closed-profile model-task-defaults.handling-envelope model-task-defaults.handling-inventory model-task-defaults.handling-applicability model-task-defaults.handling-original-pair model-task-defaults.public-version model-task-defaults.retained-public-originals model-task-defaults.immutable-saved-originals model-task-defaults.settings model-task-defaults.task-limit model-task-defaults.recovery model-task-defaults.mock -->
 Public Task normalization MUST select the exact original installed provider and model pair, using the original project registry's default provider only when the public model pair is absent and then that registration's explicit default model. A provider type, environment-variable name, equal configuration CID or current alias is not an installed model original, and missing applicable originals refuse before Source, Model or Effect I/O.
 
-An installed provider choosing `model_defaults` in its original configuration MUST admit the closed profile grammar owned here, check every profile including unused entries, reject duplicate model names and require any explicit `default_model` to name a profile in that same original. The optional subrecord contains `models: [{model, generation_config}]` and optional nonempty `default_model`, with no null or unknown fields, and its containing configuration still needs its own original configuration contract. Absence leaves existing explicit Task/configuration bodies unchanged and supplies no model default.
+An installed provider choosing `model_defaults` in its original configuration MUST admit the closed profile grammar owned here, check every profile including unused entries, reject duplicate model names and require any explicit `default_model` to name a profile in that same original. The optional subrecord contains `models: [{model, generation_config, data_handling?}]` and optional nonempty `default_model`, with no null or unknown fields, and its containing configuration still needs its own original configuration contract. Absence leaves existing explicit Task/configuration bodies unchanged and supplies no model default.
+
+For new public Task normalization, the selected model's `data_handling`, when present, MUST be the exact complete existing `actql.contract/0.1` Envelope with kind `request_data_handling`, whose canonical preimage excludes only its own `cid`. Its closed body contains `accepted_classifications`, `allowed_regions`, `retention` and `training_use`, retaining the existing nonempty duplicate-free classification/region lists, supported retention values and `training_use: forbidden`. Every supplied policy, including an unused model's policy, MUST be checked. Missing policy remains unavailable for public normalization; a generation-only legacy profile remains valid DATA and does not acquire a policy by default.
+
+The trusted installed Provider's actual configuration contract/configuration/revision MUST explicitly cover that policy and the selected model/endpoint. Body/CID integrity alone establishes neither this applicability nor policy provenance or operational truth. Per-model originals MUST not substitute across profiles, equal separately read configurations, installations or saved Runs. Current egress, Account authority and physical compatibility remain independent.
+
+For the new public Task form only, Common MUST retain the exact admitted `task` String as both its task identifier and internal version String, without suffix parsing, trimming or Unicode/text normalization. Legacy explicit Task versions and bytes remain unchanged. Public normalization MUST retain its original checked input/output contracts, instructions, registry selection and applicable original policy/configuration with the resulting Task and Run; replacement policy/defaults MUST NOT rewrite those saved originals.
 
 Normalization MUST use temperature, top-p and optional seed only from the selected model's applicable original profile, without vendor or SDK fallback. The existing generation grammar retains finite temperature, top-p in `(0, 1]`, positive safe-integer token count and an optional signed safe-integer seed.
 
