@@ -1,6 +1,6 @@
 {
-  "source": "9301c985ec87bd28bb4eccf8f2d65d0859609b08",
-  "syntaxProjectionSha256": "4a31ecaf4ac9e25c4558a6363ef836ef44d22cbc792e2ae1cd9c05bbdc05c888",
+  "source": "181666eb6ef4e2ae2370dd1a1ca0a5704f81cb40",
+  "syntaxProjectionSha256": "e05f187d6c9556f0798481278d1a0878782d7211076a8f2c5ed8257d44520c32",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -53,7 +53,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_shim_abi.py",
-      "sha256": "8f1c6eb9249fc0bebbb56da365bd98c9a547882299ab09dedf4c64a5b570e3cc",
+      "sha256": "da62846b7d8552e1c34f40db4c0731f5b1e0c40415094df3b7c6b4aaf58c0d4a",
       "generator": {
         "path": "scripts/generate-local-native-shim-bindings.py",
         "anchor": "def render("
@@ -30181,6 +30181,13 @@
         },
         {
           "async": false,
+          "name": "_OriginalInstalledProcessCustody/request_stop",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "_OriginalInstalledProcessCustody/restrict_transport",
           "parameters": [
             "self"
@@ -30250,7 +30257,7 @@
           ]
         }
       ],
-      "sha256": "e9189f3c3d383d7cc1c8d03402c15af56d1859f4a70cb75e187287669179ee49",
+      "sha256": "29771aeede1ef021eed5c5dc5d3afa9deeaeda36d93a8a29c26a561e6b5e6db0",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "existing installed Host/domain and Native process Holder",
@@ -30267,7 +30274,6 @@
             "c_void_p"
           ],
           "operations": [
-            "<module>",
             "_OriginalInstalledProcessCustody",
             "_OriginalInstalledProcessCustody/__copy__",
             "_OriginalInstalledProcessCustody/__deepcopy__",
@@ -30285,6 +30291,7 @@
             "_OriginalInstalledProcessCustody/current",
             "_OriginalInstalledProcessCustody/poll_stop",
             "_OriginalInstalledProcessCustody/prepare_child",
+            "_OriginalInstalledProcessCustody/request_stop",
             "_OriginalInstalledProcessCustody/restrict_transport",
             "_OriginalInstalledProcessCustody/retire_stopped",
             "_OriginalInstalledProcessCustody/return_transport",
@@ -30393,6 +30400,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_process_custody.py",
                 "anchor": "def retire_stopped("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_process_custody.py",
+                "anchor": "def request_stop("
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/process_child_native.mbt",
+                "anchor": "pub fn InstalledArenaHost::request_process_child_stop("
               }
             ],
             "resources": [
@@ -30439,6 +30454,14 @@
               {
                 "path": "scripts/fixtures/python-native-installed-process.py",
                 "anchor": "actual Native child FD4/selected environment/pipe roundtrip"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_process_custody.py",
+                "anchor": "def test_lost_stop_request_reply_keeps_original_unknown_without_resending("
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/process_child_transport_wbtest.mbt",
+                "anchor": "test \"installed child stop request retains the original region until separate typed stop and retirement\""
               }
             ]
           }
@@ -36525,7 +36548,7 @@
           ]
         }
       ],
-      "sha256": "8f1c6eb9249fc0bebbb56da365bd98c9a547882299ab09dedf4c64a5b570e3cc",
+      "sha256": "da62846b7d8552e1c34f40db4c0731f5b1e0c40415094df3b7c6b4aaf58c0d4a",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
