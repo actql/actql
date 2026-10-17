@@ -129,8 +129,22 @@ The maintainer-only `scripts/compile-python-local-image.py` prepares the image
 receipt consumed by the component assembler. It requires an exact clean
 `--source`, original `--core-receipt`, new `--destination`, and explicit
 `--verify-only` or `--compile`. Verification does not import the native runtime
-or create an Engine: it locates the selected regular files through installed
-distribution metadata, not a resource API that executes the package initializer.
+or create an Engine. It verifies the original module/source/toolchain/ABI and
+selected recipe independently of any installed ordinary Wasmtime package.
+Compilation additionally requires `--bindings-source`, `--native-libraries` and
+a fresh absolute `--preparation` directory. The same final product staging
+routine checks the pinned source/license, target and both selected DLLs and
+rechecks the owned copies. It emits the existing private
+`actql_local_runtime._wasmtime` namespace without constructing LocalComponents
+or claiming an image/physical receipt. This is preparation, not another wheel
+or runtime distribution route. The input DLL directory is never loaded.
+Only the owned staged provider is acquired; private import occurs inside that
+same original holding, and actual Rust/provider linkage is checked before Config.
+Foreign/preloaded private namespaces and changed preparation members are refused.
+The fresh preparation directory and imported aliases are retained on every
+outcome; partial import is sticky Unknown rather than an unload/reimport or
+inferred native cleanup. The final image/physical/workspace/Result and normal
+wheel/installed gates remain mandatory and strictly stronger.
 Compilation uses the same selected Engine adapter as the
 installed constructor, reuses the existing Core module signature validator,
 and serializes without creating a Wasm instance, Store, Run or Submission.

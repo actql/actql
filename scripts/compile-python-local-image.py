@@ -8,11 +8,12 @@ from __future__ import annotations
 import argparse
 from ctypes import CDLL, byref, c_ubyte, c_void_p
 import hashlib
-from importlib import import_module, metadata
+from importlib import import_module
 import importlib.util
 import json
 import os
 import platform
+import stat
 from pathlib import Path
 import subprocess
 import sys
@@ -26,7 +27,7 @@ from actql_sdk._local_core import _validate_core_module  # noqa: E402
 from actql_sdk._local_wasm_abi import LOCAL_CORE_ABI  # noqa: E402
 from actql_sdk._local_distribution import WASMTIME_VERSION, _read_file  # noqa: E402
 from actql_sdk._local_engine import _configure_selected_engine, _verify_selected_provider_link  # noqa: E402
-from actql_sdk._local_image_recipe import _recipe_from_original  # noqa: E402
+from actql_sdk._local_image_recipe import _SelectedImageRecipe, _recipe_from_original  # noqa: E402
 from actql_sdk._local_native_holding import _NativeHoldingLease  # noqa: E402
 from actql_sdk._local_native_memory_abi import bind as bind_memory  # noqa: E402
 from actql_sdk._local_distribution import _closed, _pairs  # noqa: E402
@@ -168,24 +169,119 @@ def verify(core_receipt: Path, expected_source: str) -> dict[str, Any]:
     original = assembly.recipe.image_recipe_original(ROOT, source)
     recipe = _recipe_from_original(original, source_sha=source,
                                    package_version=version, module_sha256=digest)
-    distribution = metadata.distribution('wasmtime')
-    if distribution.version != WASMTIME_VERSION:
-        raise ValueError('Image compiler Wasmtime version mismatch')
-    # resources.files('wasmtime') imports its package and therefore the DLL
-    # loader. Preflight must remain metadata/file-only before the original
-    # compiler holding has entered its scope.
-    runtime = distribution.locate_file('wasmtime')
-    if not isinstance(runtime, Path):
-        raise ValueError('Image compiler requires an ordinary installed Wasmtime wheel')
-    library = runtime / 'darwin-aarch64/_libwasmtime.dylib'
-    _read_file(library, maximum=recipe.runtime_library_bytes,
-               expected=recipe.runtime_library_bytes, digest=recipe.runtime_library_sha256)
-    provider = library.parent / 'libactql_native_control.dylib'
-    _read_file(provider, maximum=recipe.provider_library_bytes,
-               expected=recipe.provider_library_bytes, digest=recipe.provider_library_sha256)
     return {'source': source, 'module': module, 'module_sha256': digest,
-        'core_receipt_sha256': receipt_hash, 'recipe': recipe, 'runtime_library': library,
-        'provider_library': provider}
+        'core_receipt_sha256': receipt_hash, 'recipe': recipe}
+
+
+class _CompilerRuntime(NamedTuple):
+    """Retained preparation bytes, not image/physical admission or funding."""
+
+    source_sha: str
+    recipe: _SelectedImageRecipe
+    directory: Path
+    files: tuple[tuple[str, int, str], ...]
+
+
+def _runtime_files(directory: Path, recipe: _SelectedImageRecipe) -> tuple[tuple[str, int, str], ...]:
+    """Snapshot/check only the output of the shared original staging routine."""
+    if (not directory.is_absolute() or directory.resolve() != directory
+            or directory.is_symlink() or not directory.is_dir()):
+        raise ValueError('Original compiler private runtime directory is unavailable')
+    records: list[tuple[str, int, str]] = []
+    for path in sorted(directory.rglob('*')):
+        mode = path.lstat().st_mode
+        if stat.S_ISDIR(mode):
+            continue
+        if not stat.S_ISREG(mode):
+            raise ValueError('Compiler private runtime contains a nonregular member')
+        name = path.relative_to(directory).as_posix()
+        selected = {
+            'actql_local_runtime/_wasmtime/darwin-aarch64/_libwasmtime.dylib':
+                (recipe.runtime_library_bytes, recipe.runtime_library_sha256),
+            'actql_local_runtime/_wasmtime/darwin-aarch64/libactql_native_control.dylib':
+                (recipe.provider_library_bytes, recipe.provider_library_sha256),
+        }.get(name)
+        if selected is not None:
+            size, digest = selected
+            _read_file(path, maximum=size, expected=size, digest=digest)
+        else:
+            raw = _read_file(path, maximum=2 * 1024 * 1024)
+            size, digest = len(raw), hashlib.sha256(raw).hexdigest()
+        records.append((name, size, digest))
+    return tuple(records)
+
+
+def prepare_compiler_runtime(original: dict[str, Any], bindings_source: Path,
+                             native_libraries: Path, destination: Path) -> _CompilerRuntime:
+    """Same private product source/DLL preparation, before any native import.
+
+    The caller retains this fresh directory on every outcome. It must not be
+    an automatic temporary cleanup while native aliases or an original holding
+    may remain. No LocalComponents/image/physical success is synthesized.
+    """
+    if not destination.is_absolute() or destination.exists() or destination.is_symlink():
+        raise ValueError('Select a fresh absolute compiler preparation directory')
+    original_init = assembly.recipe._source_original(ROOT, original['source'],
+        'packages/python-local-runtime/src/actql_local_runtime/__init__.py',
+        'Original private runtime package')
+    destination.mkdir()
+    package = destination / 'actql_local_runtime'
+    package.mkdir()
+    (package / '__init__.py').write_bytes(original_init)
+    assembly.recipe.stage_selected_private_runtime(original['recipe'], bindings_source,
+                                                   native_libraries, package)
+    return _CompilerRuntime(original['source'], original['recipe'], destination,
+                            _runtime_files(destination, original['recipe']))
+
+
+def _runtime_original(original: dict[str, Any], prepared: _CompilerRuntime | None) -> dict[str, Any]:
+    if (type(prepared) is not _CompilerRuntime or prepared.source_sha != original['source']
+            or prepared.recipe != original['recipe']
+            or prepared.files != _runtime_files(prepared.directory, prepared.recipe)):
+        raise ValueError('Compiler private runtime differs from its original preparation')
+    library = prepared.directory / 'actql_local_runtime/_wasmtime/darwin-aarch64/_libwasmtime.dylib'
+    return {**original, 'runtime_library': library,
+        'provider_library': library.parent / 'libactql_native_control.dylib',
+        'private_runtime': prepared}
+
+
+def _import_compiler_runtime(custody: _CompilerCustody, original: dict[str, Any]) -> tuple[Any, Any]:
+    prepared = original['private_runtime']
+    _runtime_original(original, prepared)
+    if any(name == 'actql_local_runtime' or name.startswith('actql_local_runtime.')
+           for name in sys.modules):
+        raise ValueError('Compiler private runtime namespace is already loaded')
+    before_path, before_bytecode = sys.path[:], sys.dont_write_bytecode
+    try:
+        sys.path.insert(0, str(prepared.directory))
+        sys.dont_write_bytecode = True
+        # This function runs only inside the same actual holding's scope.
+        # A partial import may have loaded the DLL and captured its addresses.
+        # Preserve its aliases and original holding rather than retry/import
+        # replacement or guessing native retirement from sys.modules cleanup.
+        try:
+            runtime = import_module('actql_local_runtime._wasmtime')
+            ffi = import_module('actql_local_runtime._wasmtime._ffi')
+            _runtime_original(original, prepared)
+            members = {name for name, _, _ in prepared.files}
+            for name, module in sys.modules.copy().items():
+                if name == 'actql_local_runtime' or name.startswith('actql_local_runtime.'):
+                    filename = getattr(module, '__file__', None)
+                    if (not isinstance(filename, str)
+                            or not Path(filename).is_relative_to(prepared.directory)
+                            or Path(filename).relative_to(prepared.directory).as_posix() not in members):
+                        raise ValueError('Compiler imported a foreign private runtime member')
+            return runtime, ffi
+        except BaseException as error:
+            custody._unknown = error
+            raise
+        finally:
+            custody.runtime_modules = tuple(module for name, module in sys.modules.copy().items()
+                if name == 'actql_local_runtime' or name.startswith('actql_local_runtime.'))
+    finally:
+        sys.path[:] = before_path
+        sys.dont_write_bytecode = before_bytecode
+
 
 
 class ImageCompilerCleanupError(RuntimeError):
@@ -206,6 +302,8 @@ class _CompilerCustody:
 
     def __init__(self, holding: _NativeHoldingLease) -> None:
         self.holding = holding
+        self.preparation: _CompilerRuntime | None = None
+        self.runtime_modules: tuple[Any, ...] = ()
         self.ffi: Any = None
         self.config: Any = None
         self.pool: Any = None
@@ -289,20 +387,24 @@ def _verify_compiler_holding(original: dict[str, Any], holding: _NativeHoldingLe
 
 
 def compile_image(core_receipt: Path, expected_source: str, destination: Path, *,
-                  _holding: _NativeHoldingLease | None = None) -> dict[str, object]:
+                  _holding: _NativeHoldingLease | None = None,
+                  _runtime: _CompilerRuntime | None = None) -> dict[str, object]:
     original = verify(core_receipt, expected_source)
     if destination.exists():
         raise ValueError('Image compiler destination already exists')
+    if _holding is None:
+        raise ValueError('Select an unbound original native compiler holding')
+    original = _runtime_original(original, _runtime)
     _verify_compiler_holding(original, _holding)
     assert _holding is not None
     recipe = original['recipe']
     wasm = _read_file(original['module'], maximum=32 * 1024 * 1024,
                      digest=original['module_sha256'], capture=True)
     custody = _CompilerCustody(_holding)
+    custody.preparation = _runtime
 
     def compile_selected() -> bytes | bytearray:
-        wasmtime = import_module('wasmtime')
-        ffi = import_module('wasmtime._ffi')
+        wasmtime, ffi = _import_compiler_runtime(custody, original)
         custody.ffi = ffi
         library = original['runtime_library']
         if Path(ffi.filename) != library or Path(ffi.dll._name) != library:
@@ -336,7 +438,7 @@ def compile_image(core_receipt: Path, expected_source: str, destination: Path, *
         raise ImageCompilerCleanupError(custody, primary) from cleanup_error
     if primary is not None:
         raise primary
-    final = verify(core_receipt, expected_source)
+    final = _runtime_original(verify(core_receipt, expected_source), _runtime)
     if (final['core_receipt_sha256'] != original['core_receipt_sha256']
             or final['recipe'] != recipe):
         raise ValueError('Original image compiler materials changed')
@@ -359,17 +461,24 @@ def compile_image(core_receipt: Path, expected_source: str, destination: Path, *
 
 
 def compile_from_original(core_receipt: Path, expected_source: str,
-                          destination: Path) -> dict[str, object]:
+                          destination: Path, *, bindings_source: Path | None = None,
+                          native_libraries: Path | None = None,
+                          preparation: Path | None = None) -> dict[str, object]:
     """Maintainer-only CLI composition; no normal factory or runtime fallback."""
     original = verify(core_receipt, expected_source)
     if destination.exists():
         raise ValueError('Image compiler destination already exists')
     selected = _compiler_holding_original(original)
+    if bindings_source is None or native_libraries is None or preparation is None:
+        raise ValueError('Select original binding source, native libraries and fresh preparation')
+    prepared = prepare_compiler_runtime(original, bindings_source, native_libraries, preparation)
+    original = _runtime_original(original, prepared)
     holding = _acquire_compiler_holding(original, selected)
     try:
         if holding._capacity_bytes() != selected.capacity_bytes:
             raise ValueError('Physical compiler holding does not match its original extent')
-        return compile_image(core_receipt, expected_source, destination, _holding=holding)
+        return compile_image(core_receipt, expected_source, destination, _holding=holding,
+                             _runtime=prepared)
     except ImageCompilerCleanupError:
         # The existing carrier retains this same holding and every uncertain
         # handle. Do not retry its scope, handle close or physical retirement.
@@ -390,6 +499,9 @@ if __name__ == '__main__':
     parser.add_argument('--source', required=True)
     parser.add_argument('--core-receipt', type=Path, required=True)
     parser.add_argument('--destination', type=Path, required=True)
+    parser.add_argument('--bindings-source', type=Path)
+    parser.add_argument('--native-libraries', type=Path)
+    parser.add_argument('--preparation', type=Path)
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument('--verify-only', action='store_true')
     mode.add_argument('--compile', action='store_true')
@@ -401,4 +513,6 @@ if __name__ == '__main__':
             'image_bytes_limit': checked['recipe'].image_bytes_limit,
             'native_engine_started': False, 'compiled': False, 'public_local_acceptance': False}))
     else:
-        print(json.dumps(compile_from_original(args.core_receipt, args.source, args.destination)))
+        print(json.dumps(compile_from_original(args.core_receipt, args.source, args.destination,
+            bindings_source=args.bindings_source, native_libraries=args.native_libraries,
+            preparation=args.preparation)))

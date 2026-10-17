@@ -16,7 +16,6 @@ from actql_sdk._local_native_holding import NativeHoldingScopeError
 ROOT = Path(__file__).resolve().parents[3]
 spec = importlib.util.spec_from_file_location('prepared_image_compiler', ROOT / 'scripts/compile-python-local-image.py')
 compiler = importlib.util.module_from_spec(spec); spec.loader.exec_module(compiler)
-original_distribution = compiler.metadata.distribution
 
 
 class ImageCompilerTests(unittest.TestCase):
@@ -26,13 +25,24 @@ class ImageCompilerTests(unittest.TestCase):
         self.stack.enter_context(patch.object(compiler, 'ROOT', self.case.source))
         self.stack.enter_context(patch.object(compiler.sys, 'platform', 'darwin'))
         self.stack.enter_context(patch.object(compiler.platform, 'machine', return_value='arm64'))
-        self.distribution = SimpleNamespace(version='38.0.0', locate_file=lambda name: self.case.root)
-        self.stack.enter_context(patch.object(compiler.metadata, 'distribution', return_value=self.distribution))
         self.library = self.case.root / 'darwin-aarch64/_libwasmtime.dylib'
         self.library.parent.mkdir(); self.library.write_bytes(b'independent runtime library fixture')
         self.provider = self.library.parent / 'libactql_native_control.dylib'
         self.provider.write_bytes(PROVIDER)
         self.destination = self.case.root / 'compiled'
+        self.preparation_root = self.case.root / 'prepared'
+        (self.preparation_root / 'actql_local_runtime/_wasmtime/darwin-aarch64').mkdir(parents=True)
+        for name in ('__init__.py', '_wasmtime/__init__.py'):
+            (self.preparation_root / 'actql_local_runtime' / name).write_text('# Independent scalar namespace fixture\n')
+        for path in (self.library, self.provider):
+            (self.preparation_root / 'actql_local_runtime/_wasmtime/darwin-aarch64' / path.name).write_bytes(path.read_bytes())
+        self.library = self.preparation_root / 'actql_local_runtime/_wasmtime/darwin-aarch64/_libwasmtime.dylib'
+        self.provider = self.library.parent / 'libactql_native_control.dylib'
+
+    def preparation(self, original=None):
+        original = compiler.verify(self.case.module_file, self.case.head) if original is None else original
+        return compiler._CompilerRuntime(original['source'], original['recipe'], self.preparation_root,
+            compiler._runtime_files(self.preparation_root, original['recipe']))
 
     def test_verify_only_does_not_import_native_runtime_or_issue_compiled_fact(self):
         with patch.object(compiler, 'import_module', side_effect=AssertionError('Native engine')):
@@ -42,7 +52,7 @@ class ImageCompilerTests(unittest.TestCase):
         self.assertEqual(checked['recipe'].source_sha, self.case.head)
         self.assertFalse(self.destination.exists())
 
-    def test_actual_distribution_metadata_preflight_does_not_execute_package_initializer(self):
+    def test_source_preflight_does_not_execute_an_ordinary_package_initializer(self):
         package = self.case.root / 'wasmtime'
         package.mkdir()
         marker = self.case.root / 'unfunded-package-imported'
@@ -50,29 +60,22 @@ class ImageCompilerTests(unittest.TestCase):
             'from pathlib import Path\n'
             f'Path({str(marker)!r}).write_text("package initializer executed")\n'
             'raise AssertionError("Unfunded package initializer")\n')
-        info = self.case.root / 'wasmtime-38.0.0.dist-info'
-        info.mkdir(); (info / 'METADATA').write_text('Name: wasmtime\nVersion: 38.0.0\n')
-        native_directory = package / 'darwin-aarch64'; native_directory.mkdir()
-        (native_directory / self.library.name).write_bytes(self.library.read_bytes())
-        (native_directory / self.provider.name).write_bytes(self.provider.read_bytes())
-        self.assertNotIn('wasmtime', sys.modules)
         self.stack.enter_context(patch.object(sys, 'path', [str(self.case.root), *sys.path]))
-        with patch.object(compiler.metadata, 'distribution', side_effect=original_distribution):
-            checked = compiler.verify(self.case.module_file, self.case.head)
-        self.assertEqual(checked['runtime_library'], native_directory / self.library.name)
+        checked = compiler.verify(self.case.module_file, self.case.head)
+        self.assertNotIn('runtime_library', checked)
         self.assertFalse(marker.exists())
         self.assertNotIn('wasmtime', sys.modules)
         self.assertFalse(self.destination.exists())
 
-    def test_foreign_distribution_version_or_nonfilesystem_location_refuse_before_import(self):
+    def test_foreign_or_changed_preparation_refuses_before_import(self):
+        original = compiler.verify(self.case.module_file, self.case.head)
+        prepared = self.preparation(original)
         with patch.object(compiler, 'import_module', side_effect=AssertionError('Native engine')):
-            self.distribution.version = '37.0.0'
-            with self.assertRaisesRegex(ValueError, 'version mismatch'):
-                compiler.verify(self.case.module_file, self.case.head)
-            self.distribution.version = '38.0.0'
-            self.distribution.locate_file = lambda name: object()
-            with self.assertRaisesRegex(ValueError, 'ordinary installed Wasmtime wheel'):
-                compiler.verify(self.case.module_file, self.case.head)
+            with self.assertRaisesRegex(ValueError, 'original preparation'):
+                compiler._runtime_original(original, prepared._replace(source_sha='f' * 40))
+            (self.preparation_root / 'actql_local_runtime/__init__.py').write_text('# Changed fixture')
+            with self.assertRaisesRegex(ValueError, 'original preparation'):
+                compiler._runtime_original(original, prepared)
 
     def test_compile_only_original_verifies_without_claiming_physical_success(self):
         with patch.object(compiler, 'import_module', side_effect=AssertionError('Native engine')):
@@ -88,13 +91,15 @@ class ImageCompilerTests(unittest.TestCase):
         self.assertFalse(self.destination.exists())
 
     def test_missing_or_modified_provider_is_refused_before_engine_import(self):
+        original = compiler.verify(self.case.module_file, self.case.head)
+        prepared = self.preparation(original)
         self.provider.unlink()
         with patch.object(compiler, 'import_module', side_effect=AssertionError('Native engine')):
-            with self.assertRaises(FileNotFoundError):
-                compiler.compile_image(self.case.core_file, self.case.head, self.destination)
+            with self.assertRaisesRegex(ValueError, 'original preparation'):
+                compiler._runtime_original(original, prepared)
             self.provider.write_bytes(b'x' * len(PROVIDER))
             with self.assertRaisesRegex(LocalInstallationError, 'digest mismatched'):
-                compiler.compile_image(self.case.core_file, self.case.head, self.destination)
+                compiler._runtime_original(original, prepared)
         self.assertFalse(self.destination.exists())
 
     def test_foreign_source_and_changed_original_receipt_refuse_before_runtime(self):
@@ -138,12 +143,14 @@ class ImageCompilerTests(unittest.TestCase):
         # No DLL, allocation, native compilation or nominal Core is created.
         self.stack.enter_context(patch.object(compiler, '_verify_compiler_holding'))
         self.stack.enter_context(patch.object(compiler, '_verify_selected_provider_link'))
-        self.stack.enter_context(patch.object(compiler, 'import_module', side_effect=case.runtime))
+        self.stack.enter_context(patch.object(compiler, '_import_compiler_runtime',
+            side_effect=lambda custody, original: (case.wasmtime, case.ffi)))
         return case, holding, provider
 
     def compile_prepared(self, holding):
         return compiler.compile_image(self.case.core_file, self.case.head,
-                                      self.destination, _holding=holding)
+                                      self.destination, _holding=holding,
+                                      _runtime=self.preparation())
 
     def test_signature_refusal_closes_native_handles_without_instance_or_receipt(self):
         case, holding, provider = self.prepared_native()
