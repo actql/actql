@@ -36,7 +36,7 @@ test "Writer acquisition failure preserves conflict and never cleans foreign byt
   let generation = root.inspect_generation(name).unwrap().unwrap()
   let failure = match root.create_writer_with_custody(name, 16L) {
     Err(value) => value
-    Ok(_) => { fail("foreign staging Writer was admitted") }
+    Ok(_) => fail("foreign staging Writer was admitted")
   }
   assert_true(failure.issue() is Conflict)
   failure.retry_cleanup().unwrap()
@@ -53,10 +53,12 @@ test "Writer custody rejects malformed inputs without an acquired carrier" {
   for (name, limit) in [("../escape", 1L), ("writer-negative", -1L)] {
     let failure = match root.create_writer_with_custody(name, limit) {
       Err(value) => value
-      Ok(_) => { fail("invalid Writer was admitted") }
+      Ok(_) => fail("invalid Writer was admitted")
     }
     assert_true(failure.writer is None)
-    assert_true(failure.issue() is InvalidName || failure.issue() is InvalidLimit)
+    assert_true(
+      failure.issue() is InvalidName || failure.issue() is InvalidLimit,
+    )
     failure.retry_cleanup().unwrap()
   }
   root.close().unwrap()

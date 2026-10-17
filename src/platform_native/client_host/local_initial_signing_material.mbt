@@ -85,8 +85,7 @@ pub fn NativeLocalAdoptionSession::create_initial_signing_material(
     return Err(failure)
   }
   match self.check_original() {
-    Err(issue) =>
-      return Err(initial_signing_unavailable(issue))
+    Err(issue) => return Err(initial_signing_unavailable(issue))
     Ok(_) => ()
   }
   if !self.initial_signing_eligible.val {
@@ -101,8 +100,7 @@ pub fn NativeLocalAdoptionSession::create_initial_signing_material(
     match self.root.inspect_generation(name) {
       Ok(None) => ()
       Ok(Some(_)) => return Err(self.initial_signing_refusal(CustodyLost))
-      Err(issue) =>
-        return Err(self.initial_signing_refusal(Filesystem(issue)))
+      Err(issue) => return Err(self.initial_signing_refusal(Filesystem(issue)))
     }
   }
   // Acquire/retain the actual exclusive Writer before creating secret material.
@@ -120,7 +118,9 @@ pub fn NativeLocalAdoptionSession::create_initial_signing_material(
   let (private_pem, public_pem) = match crypto.generate_ed25519_key_pair() {
     Ok(value) => value
     Err(issue) =>
-      return Err(self.initial_signing_refusal(Crypto(issue), writer=Some(writer)))
+      return Err(
+        self.initial_signing_refusal(Crypto(issue), writer=Some(writer)),
+      )
   }
   // RFC8410 representation lengths are checked format facts, not a memory
   // reservation or proof of the full Library/Writer/installer overlap budget.
@@ -130,14 +130,20 @@ pub fn NativeLocalAdoptionSession::create_initial_signing_material(
   match writer.append(private_pem) {
     Err(issue) =>
       return Err(
-        self.initial_signing_refusal(WritePending(writer, issue), writer=Some(writer)),
+        self.initial_signing_refusal(
+          WritePending(writer, issue),
+          writer=Some(writer),
+        ),
       )
     Ok(_) => ()
   }
   let generation = match writer.seal("local-signing-key.pem") {
     Err(issue) =>
       return Err(
-        self.initial_signing_refusal(WritePending(writer, issue), writer=Some(writer)),
+        self.initial_signing_refusal(
+          WritePending(writer, issue),
+          writer=Some(writer),
+        ),
       )
     Ok(value) => value
   }
@@ -145,7 +151,8 @@ pub fn NativeLocalAdoptionSession::create_initial_signing_material(
     Err(issue) => return Err(self.initial_signing_refusal(issue))
     Ok(_) => ()
   }
-  let projection = match self.root.adopt_private_file_projection("local-signing-key.pem") {
+  let projection = match
+    self.root.adopt_private_file_projection("local-signing-key.pem") {
     Err(issue) => return Err(self.initial_signing_refusal(Filesystem(issue)))
     Ok(value) => value
   }
