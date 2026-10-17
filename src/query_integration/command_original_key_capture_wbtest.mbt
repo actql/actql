@@ -79,8 +79,169 @@ fn command_key_close(
 }
 
 ///|
+/// A shape-admitted private Preview isolates the same Run's payload verifier.
+/// Placeholder authority/artifact fields do not establish apply authority or
+/// installed acceptance; the original managed input is independently pinned.
+fn command_key_preview(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  captured : @strategy.CapturedEffectRunDAG,
+  inputs : @strategy.CapturedEffectInputs,
+  template : @publication.RunEvidenceValue,
+  selector : String,
+) -> @strategy.CapturedEffectPreviewInputs {
+  let owner = @strategy.captured_effect_run_owner(captured)
+  let definition = @publication_host.prepared_client_effect_computation_definition_cid(
+    prepared,
+  )
+  let run = @publication.publication_contract_identity(
+    @effect_binding.effect_program_run_definition(owner),
+  )
+  let (_, invocation, _) = private_table_artifact_context(template)
+  let authoring = native_publication_cid(
+    "{\"annotations\":[],\"program_definition_cid\":\"" +
+    definition +
+    "\",\"version\":\"actql-authoring-context/0.1\"}",
+  )
+  let raw =
+    #|{"version":"actql-effect-preview/0.1","sensitivity":"private","retention_class":"authority-evidence","encryption_required":true,"program_semantics_cid":"@SEM@","program_definition_cid":"@DEF@","invocation_cid":"@INV@","run_identity_cid":"@RUN@","compiled_plan_cid":"@PLAN@","check_environment_cid":"@ENV@","authoring_context":{"version":"actql-authoring-context/0.1","program_definition_cid":"@DEF@","annotations":[],"authoring_context_cid":"@AUTHOR@"},"barrier_provenance_cids":[],"model_derived":false,"model_task_contract_cids":[],"model_invocation_evidence_cids":[],"model_response_artifact_cids":[],"effects":[{"effect_id":"save","effect_kind":"command","target":"Object","contract":"command:fixture.upload.v1","resolved_command_contract_cid":"sha256:3768a016ccb69b496ebed661020966ce09ca6d836a89331937e131f891123853","source_result":"out","result_artifact_cid":"@P@","effect_identity_cid":"@P@","preview_strength":"full_diff","source_binding_cid":"@P@","capability_evidence_cid":"@P@","authority_scope_cid":"@P@","write_footprint":{"kind":"exact_targets","resource_identity_scheme_cid":"@P@","provider_namespace":"fixture","provider_boundary_cid":"@P@","resource_kind":"Object","provider_object_identity_cids":[]},"count":1,"max_items":1,"required_permissions":["scope:write"],"approval":"required","on_item_failure":"halt","changes":[{"after":{"state":"not_applicable"},"before":{"state":"not_applicable"},"intended_changes":{"state":"present","value":{"id":"one","value":"original"}},"row_idempotency_key":"@P@","row_preview_cid":"@P@","target_guard":{"state":"not_applicable"},"target_row_identity":@SELECTOR@}],"row_order":["@P@"],"effect_member_preview_cid":"@P@","executed":false}],"executed":false,"effect_preview_cid":"@P@"}
+  let raw = raw
+    .replace(
+      old="@SEM@",
+      new=@publication_host.prepared_client_effect_computation_semantics_cid(
+        prepared,
+      ),
+    )
+    .replace(old="@DEF@", new=definition)
+    .replace(
+      old="@INV@",
+      new=@publication.publication_contract_identity(invocation),
+    )
+    .replace(old="@RUN@", new=run)
+    .replace(
+      old="@PLAN@",
+      new=@publication.run_publication_compiled_plan_cid(
+        @effect_binding.effect_program_run_admission(owner),
+      ),
+    )
+    .replace(
+      old="@ENV@",
+      new=@publication_host.prepared_client_effect_computation_environment_cid(
+        prepared,
+      ),
+    )
+    .replace(old="@AUTHOR@", new=authoring)
+    .replace(
+      old="@P@",
+      new=native_publication_cid("command-key-preview-placeholder"),
+    )
+    .replace(old="@SELECTOR@", new=selector)
+  let (_, preview) = @publication.author_effect_preview_semantic_wire(
+    raw, run, authoring, 65536, 4096, 32,
+  ).unwrap()
+  let bound = @effect_binding.bind_effect_program_run_preview(
+    owner,
+    invocation,
+    0,
+    preview,
+    10000,
+    {
+      max_fields: 10,
+      max_work: 10000,
+      max_bytes: 65536,
+      max_nodes: 4096,
+      max_depth: 32,
+    },
+  ).unwrap()
+  @strategy.bind_captured_effect_preview_inputs(captured, inputs, bound, 10000).unwrap()
+}
+
+///|
+test "Command Preview payload proof cannot bypass incomplete or foreign whole-input key validation" {
+  let (prepared, captured, inputs, operations, available, completed, template) = published_store_capture_with_completion(
+    input_key=true,
+  )
+  let exported = command_key_managed_export(inputs, operations, completed)
+  let key = @strategy.start_captured_effect_command_key_validation(
+    @bounded.control(),
+    inputs,
+    0,
+    0,
+    exported,
+    100,
+    1000,
+    10,
+    100,
+  ).unwrap()
+  let pair = @strategy.captured_effect_published_store_binding(inputs, 0, 100)
+    .unwrap()
+    .unwrap()
+  let reference = published_store_capture_reference(Ref(true))
+  guard reference.value is @admitted.Reference(original) else {
+    fail("original Reference")
+  }
+  let target = @strategy.bind_captured_effect_command_target(
+    inputs, 0, pair, reference, 100,
+  ).unwrap()
+  let preview = command_key_preview(
+    prepared,
+    captured,
+    inputs,
+    template,
+    @admitted.reference_wire_json(original),
+  )
+  assert_true(
+    @strategy.prepare_captured_effect_plan_verifier(
+      preview,
+      0,
+      2,
+      100,
+      published_target=Some(target),
+    )
+    is Err(@strategy.CapturedEffectPlanVerifyIssue::NotReady),
+  )
+  assert_true(
+    @strategy.prepare_captured_effect_plan_verifier(
+      preview,
+      0,
+      2,
+      100,
+      published_target=Some(target),
+      input_key=Some(key),
+    )
+    is Err(@strategy.CapturedEffectPlanVerifyIssue::NotReady),
+  )
+  command_key_finish(key)
+  let verifier = @strategy.prepare_captured_effect_plan_verifier(
+    preview,
+    0,
+    2,
+    100,
+    published_target=Some(target),
+    input_key=Some(key),
+  ).unwrap()
+  let row = @identity.from_source(
+    @source.parse_json(local_managed_test_rows(operations)[0], {
+      max_input_bytes: 1024,
+      max_nodes: 64,
+      max_depth: 8,
+    }).unwrap(),
+    64,
+    8,
+    1024,
+  )
+  @strategy.check_captured_effect_plan_row(
+    verifier, row, 0, 2, 100, 1024, 64, 8,
+  ).unwrap()
+  let proof = @strategy.finish_captured_effect_plan_verifier(verifier).unwrap()
+  assert_true(@strategy.captured_effect_plan_proof_matches(proof, preview, 0))
+  @strategy.check_captured_effect_plan_proofs(preview, [proof], 1, 100).unwrap()
+  command_key_close(captured, inputs, operations, available)
+  assert_false(@strategy.captured_effect_plan_proof_matches(proof, preview, 0))
+}
+
+///|
 test "Command key proof requires original managed export completion cleanup and same captured Run" {
-  let (_, captured, inputs, operations, available, completed) = published_store_capture_with_completion(
+  let (_, captured, inputs, operations, available, completed, _) = published_store_capture_with_completion(
     input_key=true,
   )
   let exported = command_key_managed_export(inputs, operations, completed)
@@ -138,9 +299,11 @@ test "Command key proof requires original managed export completion cleanup and 
   let (_, changes) = @strategy.project_captured_effect_proposal_row(
     proposal, row, 0, 2, 100, 1024, 64, 8,
   ).unwrap()
-  assert_eq(changes, "{\"id\":\"one\",\"value\":\"original\"}")
+  assert_eq(
+    changes, "{\"state\":\"present\",\"value\":{\"id\":\"one\",\"value\":\"original\"}}",
+  )
   @strategy.finish_captured_effect_proposal_plan(proposal, 1).unwrap()
-  let (_, foreign, foreign_inputs, foreign_operations, foreign_available, _) = published_store_capture_with_completion(
+  let (_, foreign, foreign_inputs, foreign_operations, foreign_available, _, _) = published_store_capture_with_completion(
     input_key=true,
   )
   assert_true(
@@ -203,7 +366,7 @@ test "Command key proof requires original managed export completion cleanup and 
 
 ///|
 test "Command key proof rejects the final duplicate from actual captured managed rows" {
-  let (_, captured, inputs, operations, available, completed) = published_store_capture_with_completion(
+  let (_, captured, inputs, operations, available, completed, _) = published_store_capture_with_completion(
     input_key=true,
     rows="[{\"id\":\"one\",\"value\":\"a\"},{\"id\":\"two\",\"value\":\"b\"},{\"id\":\"one\",\"value\":\"c\"}]",
   )
@@ -256,7 +419,7 @@ test "Command key proof rejects the final duplicate from actual captured managed
 
 ///|
 test "Command key cleanup cancels partial captured work without releasing its original Result" {
-  let (_, captured, inputs, operations, available, completed) = published_store_capture_with_completion(
+  let (_, captured, inputs, operations, available, completed, _) = published_store_capture_with_completion(
     input_key=true,
   )
   let exported = command_key_managed_export(inputs, operations, completed)
