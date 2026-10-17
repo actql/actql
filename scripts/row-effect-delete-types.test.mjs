@@ -38,7 +38,7 @@ test('public types actually reject proposed DELETE values and missing original v
   assert.equal(expected.length, 8);
   const diagnostics = check(mutant);
   assert.equal(diagnostics.length, expected.length, JSON.stringify(diagnostics));
-  assert(diagnostics.every(row => row.file === sourcePath && row.code === 2322),
-    JSON.stringify(diagnostics));
-  assert.deepEqual(diagnostics.map(row => row.line).sort((a, b) => a - b), expected);
+  assert(diagnostics.every(row => row.file === sourcePath), JSON.stringify(diagnostics));
+  assert.deepEqual(diagnostics.map(row => [row.line, row.code]),
+    expected.map((line, index) => [line, [2322, 2322, 2322, 2322, 2322, 2322, 2741, 2741][index]]));
 });
