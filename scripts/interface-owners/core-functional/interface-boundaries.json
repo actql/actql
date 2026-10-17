@@ -9047,7 +9047,7 @@
     },
     {
       "module": "adapters/host-node/infer-operation.mjs",
-      "sha256": "e0e3ac03830b1615420f3960a63677883f538d4f2c41e177ed34f0c4653d0bc2",
+      "sha256": "1627e3327fbbc71c305c2b051d1978781af7d1d5879956f2321b2ca926af330d",
       "role": "physical-io",
       "exports": [
         "openNodeComposedInferProvider",
@@ -9323,6 +9323,13 @@
           "parameters": [
             "registration",
             "persistence"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/init:bindModelRawCapture/init:bindModelRawCapture/init:bindModelRawCapture",
+          "parameters": [
+            "next"
           ],
           "async": false
         },
@@ -10169,7 +10176,8 @@
             "withNodeInferResult/cancel/cancel",
             "withNodeInferResult/retained/init:retry/init:retry",
             "withNodeInferResult/retained/retained",
-            "withNodeInferResult/withNodeInferResult"
+            "withNodeInferResult/withNodeInferResult",
+            "openNodeInferOperation/operation/init:bindModelRawCapture/init:bindModelRawCapture/init:bindModelRawCapture"
           ],
           "exports": [
             "openNodeComposedInferProvider",
@@ -11023,7 +11031,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-continuation.mjs",
-      "sha256": "3d0924637313dc9b6873756d4b17c87bb2b03e908c0112e124f3333a34f6ec4a",
+      "sha256": "628db51c88e518b8643808717d990e159730726b50d6b2abf269b391b53a6fd4",
       "role": "physical-io",
       "exports": [
         "installNodeModelContinuation"
@@ -11990,7 +11998,27 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/authorization-gate.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/diagnostic-observer.mjs",
+        "../host-common/runtime-result.mjs",
+        "./client-checkpoints.mjs",
+        "./infer-entry-persistence.mjs",
+        "./infer-evaluation-evidence.mjs",
+        "./infer-original-installation.mjs",
+        "./infer-physical-observation.mjs",
+        "./infer-raw-capture.mjs",
+        "./infer-raw-selection.mjs",
+        "./installed-model-originals.mjs",
+        "./local-account-config.mjs",
+        "./sqlite-checkpoint-journal.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-model.mjs",

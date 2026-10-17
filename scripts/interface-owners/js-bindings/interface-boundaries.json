@@ -43615,7 +43615,7 @@
     {
       "module": "adapters/host-node/infer-operation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e0e3ac03830b1615420f3960a63677883f538d4f2c41e177ed34f0c4653d0bc2",
+      "sha256": "1627e3327fbbc71c305c2b051d1978781af7d1d5879956f2321b2ca926af330d",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -43892,6 +43892,13 @@
           "parameters": [
             "registration",
             "persistence"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/init:bindModelRawCapture/init:bindModelRawCapture/init:bindModelRawCapture",
+          "parameters": [
+            "next"
           ],
           "async": false
         },
@@ -45280,7 +45287,8 @@
             "openNodeInferOperation/run/run#2",
             "openNodeInferOperation/runtimeCurrent/runtimeCurrent",
             "openNodeInferOperation/stop",
-            "openNodeInferOperation/stop/stop"
+            "openNodeInferOperation/stop/stop",
+            "openNodeInferOperation/operation/init:bindModelRawCapture/init:bindModelRawCapture/init:bindModelRawCapture"
           ],
           "exports": [
             "openNodeInferOperation"
@@ -46207,15 +46215,32 @@
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "6e76d39ff96987a99afafc358fc00a9235f4db151e49e156c5939098e1981499",
+      "sha256": "d6a1c11c9683de2a3953ff0ba4cb22c1973f78c96af8b7162516eaa0ebbfcf5a",
       "role": "physical-io",
       "owner": "A — existing Model raw custody projection",
       "exports": [
+        "bindOriginalModelRawTransportPersistence",
         "createModelRawCaptureStorePort",
         "createModelRawTransportPersistence",
+        "createModelRawTransportPersistenceFactory",
         "originalModelRawTransportPersistenceMatches"
       ],
       "operations": [
+        {
+          "name": "bindOriginalModelRawTransportPersistence",
+          "parameters": [
+            "persistence",
+            "operation",
+            "registration",
+            "bind"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindOriginalModelRawTransportPersistence/bindOriginalModelRawTransportPersistence",
+          "parameters": [],
+          "async": false
+        },
         {
           "name": "createModelRawCaptureStorePort",
           "parameters": [
@@ -46330,6 +46355,23 @@
         },
         {
           "name": "createModelRawTransportPersistence/wake/wake",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createModelRawTransportPersistenceFactory",
+          "parameters": [
+            "store",
+            "moon",
+            "registration",
+            "retainHolding",
+            "notify",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelRawTransportPersistenceFactory/createModelRawTransportPersistenceFactory",
           "parameters": [],
           "async": false
         },
@@ -47082,8 +47124,166 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "bindOriginalModelRawTransportPersistence",
+            "bindOriginalModelRawTransportPersistence/bindOriginalModelRawTransportPersistence"
+          ],
+          "exports": [
+            "bindOriginalModelRawTransportPersistence"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Per-request raw persistence binding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "export function createModelRawTransportPersistenceFactory({store, moon, registration,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "original.registration === registration;"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "prepare: () => createModelRawTransportPersistence({store, moon, registration,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "if (original?.prepare !== undefined) originalTransportPorts.delete(persistence);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "throw new TypeError('ForeignInferRawCapturePersistence');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "persist.cleanup = call => {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "not the active window. The factory drops its original captures after the"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "keeps its single-Call semantics."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-physical-preflight-context.test.mjs",
+                "anchor": "test('each prepared request saves its original raw Call"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-selection.test.mjs",
+                "anchor": "test('failed factory binding retains the original child"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createModelRawTransportPersistenceFactory",
+            "createModelRawTransportPersistenceFactory/createModelRawTransportPersistenceFactory"
+          ],
+          "exports": [
+            "createModelRawTransportPersistenceFactory"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Per-request raw persistence binding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "export function createModelRawTransportPersistenceFactory({store, moon, registration,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "original.registration === registration;"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "prepare: () => createModelRawTransportPersistence({store, moon, registration,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "if (original?.prepare !== undefined) originalTransportPorts.delete(persistence);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "throw new TypeError('ForeignInferRawCapturePersistence');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "persist.cleanup = call => {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "not the active window. The factory drops its original captures after the"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "keeps its single-Call semantics."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-physical-preflight-context.test.mjs",
+                "anchor": "test('each prepared request saves its original raw Call"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-selection.test.mjs",
+                "anchor": "test('failed factory binding retains the original child"
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/private-publication-holding.mjs",
+        "../host-common/runtime-result.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
@@ -48603,7 +48803,7 @@
     {
       "module": "adapters/host-node/installed-model-continuation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "3d0924637313dc9b6873756d4b17c87bb2b03e908c0112e124f3333a34f6ec4a",
+      "sha256": "628db51c88e518b8643808717d990e159730726b50d6b2abf269b391b53a6fd4",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -50457,7 +50657,27 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/authorization-gate.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/diagnostic-observer.mjs",
+        "../host-common/runtime-result.mjs",
+        "./client-checkpoints.mjs",
+        "./infer-entry-persistence.mjs",
+        "./infer-evaluation-evidence.mjs",
+        "./infer-original-installation.mjs",
+        "./infer-physical-observation.mjs",
+        "./infer-raw-capture.mjs",
+        "./infer-raw-selection.mjs",
+        "./installed-model-originals.mjs",
+        "./local-account-config.mjs",
+        "./sqlite-checkpoint-journal.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-model.mjs",
