@@ -521,6 +521,36 @@ authorization binding at apply.
 | `targeted` | Exact target, intended change, target guard, and explicit before-unavailable status |
 | `create`, `command`, `store` | Kind-specific intended operation, payload or typed request, and exact scope |
 
+<!-- requirement-block: review-artifacts.sealed-review-original-row-evidence -->
+A newly sealed Effect review and its approval admission MUST bind every
+displayed member and row to the same original private Preview, including the
+member's exact `preview_strength` and the row's exact `target_guard` and
+`intended_changes`, while preserving `before` and `after` without wrapping,
+normalizing or replacing their states or values. The three additional closed
+row fields remain optional only for structural compatibility with historical
+absent-field encodings; their omission or mismatch is insufficient evidence
+for a new sealed review or approval. Strength is the original `full_diff` or
+`targeted`, not an inferred Effect kind. This does not fabricate unavailable
+before evidence, a version guard, a `not_applicable` state, an intended request
+or stronger evidence, and does not rewrite a historical pending Run.
+
+<!-- requirement-block: review-artifacts.original-resource-scope-target -->
+Private Preview and review scope targets MUST preserve the original string,
+`{field}` selector or concrete closed `resource_ref` alternative, independently
+of each row's exact target identity. A field selector with ResourceRef row
+identities remains a field selector; one row is not a representative scope.
+The concrete alternative uses exactly the existing ResourceRef contract, not
+the entire row-identity union, a stringified reference or a newly issued grant.
+
+<!-- requirement-block: review-artifacts.projection-self-identity-and-store-address -->
+The `review_projection_cid` MUST hash the complete canonical review projection
+excluding only its own root field, including every present row extension and
+all fourteen original top-level fields otherwise. Its self identity is distinct
+from the physical Store's digest of complete bytes. The Checkpoint and approval
+bind that exact original review identity, Preview, authority scope, claims,
+Authoring Context and immutable redaction policy; a public shape or CID is not
+authority to apply or resume an Effect.
+
 <!-- requirement-block: effect-outcome-wire.upsert-action -->
 The `effect_row_outcome_receipt` for an applied upsert MUST include
 `typed_outcome.action` as `created` or `updated`, bound by `typed_outcome_cid`
@@ -838,10 +868,10 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/observation_set sha256:a2a967e39998c2d2037b035d81aab0eb5dce50b308c6d0c08f8b88512307f59c
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_invocation_evidence sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_capture_bundle sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_preview sha256:83add51a9d2c3aa700d512b226f2931e0075304afab4a08e9b32c4da3a31c772
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_preview sha256:d61a28ce5eb88ef7195d0557114339c53af92d93878e1c816882f13720cb208d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_source_artifact sha256:58e2c6121d2089cc025f14a863664ab9bbc64f219b594f6416b16fd83c685bdc
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_row_outcome_receipt sha256:e239b0d9b9229efdc67095bbea81ff8bccc0873a6bc277de7857c7955d8719fd
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/review_projection sha256:454fb9ff461949542c38af133e210912e3e9e4260e53a2dc25ae3de7b42160d2
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/review_projection sha256:99680abc66cdaa569fb44ac546fd1f814ed128e5d1ed3002d38d3a885acfe87b
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/approval_attestation sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_apply_receipt sha256:4f4aabc61bc08bf79ecfe89cf958906e99d5bde4e12b3e95f5ef6539c9964c62
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_set_apply_receipt sha256:311b168738be9062ba8ff88d5e3d3d1d7fbbfe3935ee334cb6216d92e0a4b9cb

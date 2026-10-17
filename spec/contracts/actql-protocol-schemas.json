@@ -13990,7 +13990,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:76162cd46e2b4e58026d47e32b02b3773d9b588d98abd1a529f6ceae0ec76f07",
+  "artifact_registry_cid": "sha256:91849cecfa9c98be1bd43feea4072d21e9347b9a63977f086e0710713eaef277",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -14004,8 +14004,8 @@
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
-    "effect_preview": "sha256:83add51a9d2c3aa700d512b226f2931e0075304afab4a08e9b32c4da3a31c772",
-    "review_projection": "sha256:454fb9ff461949542c38af133e210912e3e9e4260e53a2dc25ae3de7b42160d2",
+    "effect_preview": "sha256:d61a28ce5eb88ef7195d0557114339c53af92d93878e1c816882f13720cb208d",
+    "review_projection": "sha256:99680abc66cdaa569fb44ac546fd1f814ed128e5d1ed3002d38d3a885acfe87b",
     "approval_attestation": "sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9",
     "effect_apply_receipt": "sha256:4f4aabc61bc08bf79ecfe89cf958906e99d5bde4e12b3e95f5ef6539c9964c62",
     "effect_set_apply_receipt": "sha256:311b168738be9062ba8ff88d5e3d3d1d7fbbfe3935ee334cb6216d92e0a4b9cb",
@@ -14026,13 +14026,13 @@
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
     "plan_document": "sha256:c2ccbe439bebe37794c2771b5435a788d8315d4a1543c52d3cae6856fc315714",
     "plan_result": "sha256:692b481d25e23400f0f81e0ddade946aba2dafca4dd2f1fe6c22c7e15e5122c1",
-    "run_state": "sha256:3fbfc2cc5a79449fd05fce58e0fad25f6eef0ecde8314a222417a2e233db28c2",
+    "run_state": "sha256:1f69800e0dc69f0878383330ac64683a377db8b6dfd47732dbd0f813ba680333",
     "captured_run": "sha256:a37894cfc6919e1562be6b44293871f349085e6b94e27281eec26b7af8d0514c",
     "execution_account_config": "sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20",
     "caller_input_intent": "sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d",
     "initial_input_artifact_set": "sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d",
     "source_input_logical": "sha256:1b11bde1c1081b782d14ffe080ad5c511144724e8c8fd2d0c1c772828d1c09ea",
-    "effect_row_outcome_receipt": "sha256:e239b0d9b9229efdc67095bbea81ff8bccc0873a6bc277de7857c7955d8719fd",
+    "effect_row_outcome_receipt": "sha256:593bc435a48c2e568dc98e1a8863e88dbbcbc46a8bc07c7136b777e8dd8ce5a9",
     "effect_source_artifact": "sha256:58e2c6121d2089cc025f14a863664ab9bbc64f219b594f6416b16fd83c685bdc",
     "model_effective_inputs": "sha256:b44b64433d41470d143efa8deac6692201804a5714380694a84d66759819a727",
     "model_input_artifact": "sha256:86e9e2c7b59634e8235b80a12b241a26f4f32f913dd30064aed36dfaecaf318c",
@@ -42858,6 +42858,52 @@
                         "minLength": 1
                       }
                     }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "$actql_ref",
+                      "version",
+                      "resource_kind",
+                      "provider_namespace",
+                      "provider_identity_cid",
+                      "authority_scope_cid",
+                      "boundary_cid",
+                      "identity_cid"
+                    ],
+                    "properties": {
+                      "$actql_ref": {
+                        "const": "resource"
+                      },
+                      "version": {
+                        "const": "actql-resource-ref/0.1"
+                      },
+                      "resource_kind": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "provider_namespace": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "provider_identity_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "authority_scope_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "boundary_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "identity_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      }
+                    }
                   }
                 ]
               },
@@ -43392,6 +43438,52 @@
                             "minLength": 1
                           }
                         }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "$actql_ref",
+                          "version",
+                          "resource_kind",
+                          "provider_namespace",
+                          "provider_identity_cid",
+                          "authority_scope_cid",
+                          "boundary_cid",
+                          "identity_cid"
+                        ],
+                        "properties": {
+                          "$actql_ref": {
+                            "const": "resource"
+                          },
+                          "version": {
+                            "const": "actql-resource-ref/0.1"
+                          },
+                          "resource_kind": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "provider_namespace": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "provider_identity_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "authority_scope_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "boundary_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "identity_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          }
+                        }
                       }
                     ]
                   },
@@ -43506,7 +43598,76 @@
                 ]
               },
               "before": {},
-              "after": {}
+              "after": {},
+              "preview_strength": {
+                "enum": [
+                  "full_diff",
+                  "targeted"
+                ]
+              },
+              "target_guard": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "state",
+                      "version_cid"
+                    ],
+                    "properties": {
+                      "state": {
+                        "const": "version"
+                      },
+                      "version_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "state"
+                    ],
+                    "properties": {
+                      "state": {
+                        "const": "not_applicable"
+                      }
+                    }
+                  }
+                ]
+              },
+              "intended_changes": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "state",
+                      "value"
+                    ],
+                    "properties": {
+                      "state": {
+                        "const": "present"
+                      },
+                      "value": {}
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "state"
+                    ],
+                    "properties": {
+                      "state": {
+                        "const": "not_applicable"
+                      }
+                    }
+                  }
+                ]
+              }
             }
           }
         },
