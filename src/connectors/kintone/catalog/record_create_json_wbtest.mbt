@@ -35,11 +35,13 @@ test "mapped CREATE date and timestamp keep Common carriers and exact native res
     write_test_limits(),
     mutation_limits(),
   ).unwrap()
-  assert_true(record_create_request_body(request).contains("2026-10-18T00:00:00Z"))
   assert_true(
-    record_create_request_values_json(request, 8192, 1000, 16).unwrap().contains(
-      "2026-10-18T00:00:00.000Z",
-    ),
+    record_create_request_body(request).contains("2026-10-18T00:00:00Z"),
+  )
+  assert_true(
+    record_create_request_values_json(request, 8192, 1000, 16)
+    .unwrap()
+    .contains("2026-10-18T00:00:00.000Z"),
   )
   assert_true(
     prepare_record_create_request_json(
@@ -86,24 +88,40 @@ test "mapped CREATE bounds apply before parse and across the complete record arr
   let catalog = create_json_form()
   assert_true(
     prepare_record_create_request_json(
-      catalog, body, body.length() - 1, write_test_limits(), mutation_limits(),
+      catalog,
+      body,
+      body.length() - 1,
+      write_test_limits(),
+      mutation_limits(),
     )
     is Err(BudgetExceeded),
   )
   assert_true(
     prepare_record_create_request_json(
-      catalog, body, 8192, write_test_limits(), { ..mutation_limits(), max_records: 1, },
+      catalog,
+      body,
+      8192,
+      write_test_limits(),
+      { ..mutation_limits(), max_records: 1, },
     )
     is Err(BudgetExceeded),
   )
   assert_true(
     prepare_record_create_request_json(
-      catalog, body, 8192, { ..write_test_limits(), max_nodes: 4, }, mutation_limits(),
+      catalog,
+      body,
+      8192,
+      { ..write_test_limits(), max_nodes: 4, },
+      mutation_limits(),
     )
     is Err(BudgetExceeded),
   )
   let request = prepare_record_create_request_json(
-    catalog, body, 8192, write_test_limits(), mutation_limits(),
+    catalog,
+    body,
+    8192,
+    write_test_limits(),
+    mutation_limits(),
   ).unwrap()
   let size = @utf8.encode(
     record_create_request_values_json(request, 8192, 1000, 16).unwrap(),
@@ -112,5 +130,7 @@ test "mapped CREATE bounds apply before parse and across the complete record arr
     record_create_request_values_json(request, size - 1, 1000, 16)
     is Err(BudgetExceeded),
   )
-  assert_true(record_create_request_values_json(request, size, 1000, 16) is Ok(_))
+  assert_true(
+    record_create_request_values_json(request, size, 1000, 16) is Ok(_),
+  )
 }

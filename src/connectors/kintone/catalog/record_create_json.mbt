@@ -123,9 +123,7 @@ pub fn prepare_record_create_request_json(
   let records = []
   for index in 0..<count {
     let row = @decode.element_at(cursor, index).unwrap()
-    guard @decode.open_object(row) is Ok(_) else {
-      return Err(InvalidRecords)
-    }
+    guard @decode.open_object(row) is Ok(_) else { return Err(InvalidRecords) }
     match create_json_values(catalog, row, write_limits) {
       Ok(value) => records.push(value)
       Err(issue) => return Err(issue)
