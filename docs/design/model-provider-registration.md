@@ -153,3 +153,29 @@ This representation does not advertise normal numerical startup, an installable
 public Provider package or live Model support. Host-specific layout and all
 simultaneous holdings still require the original resource supplier. Public
 execution and package acceptance remain separate from private registration.
+
+## Public Task originals and applicable handling
+
+Public Task admission retains the original decoded document, exact identifier,
+instructions and checked input/output contracts. Its internal version is that
+same identifier String; it does not parse a suffix or change legacy explicit
+Task versions. The original project registry must name the same Task. Selection
+uses either the complete authored provider/model pair or the same registry's
+default provider and its actual registration's original model default.
+
+The original installed configuration may supply an explicit `data_handling`
+Envelope in each model profile. The existing contract-envelope identity reader
+checks its original body/CID, and the existing Task handling constraints check
+no-training, classifications, regions and retention. Every supplied profile is
+checked, including unused policies. The containing actual configuration contract
+must explicitly admit this extension and cover that model/endpoint. Integrity
+and applicability are separate: canonical bytes alone do not establish policy
+provenance, current installation, geographic processing or permission.
+
+No policy is inferred from a provider type, SDK default or another model.
+Missing applicable policy remains unavailable for public normalization; legacy
+generation-only DATA stays valid without acquiring a policy. Mock must supply
+its own original fixture policy, not a physical provider grant. Preparation and
+saved Run materials retain the selected original policy/configuration and Task;
+current replacements cannot rewrite the original Task identity. Existing Account,
+egress, capability, reservation, Unknown and cleanup checks remain independent.

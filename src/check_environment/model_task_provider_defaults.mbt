@@ -5,7 +5,7 @@
 /// configuration/revision before adopting a normalized public Task.
 struct ModelProviderDefaults {
   default_model : String?
-  models : Array[(String, ModelGeneration)]
+  models : Array[(String, ModelGeneration, ModelProviderHandling?)]
   bytes : Int
   nodes : Int
   work : Int
@@ -16,6 +16,7 @@ struct ResolvedModelProviderDefaults {
   original : ModelProviderDefaults
   model : String
   generation : ModelGeneration
+  handling : ModelProviderHandling?
   work : Int
 }
 
@@ -52,13 +53,13 @@ fn model_provider_defaults_read(
   // Charge the complete inventory before either collection grows. Unused
   // profiles are checked too; lookup does not excuse a malformed later entry.
   model_task_charge(budget, count, values)
-  let models : Array[(String, ModelGeneration)] = []
+  let models : Array[(String, ModelGeneration, ModelProviderHandling?)] = []
   let names : Map[String, Bool] = Map([])
   for index in 0..<count {
     let value = @decode.element_at(values, index).unwrap()
     let profile = model_task_object(
       value,
-      ["model", "generation_config"],
+      ["model", "generation_config", "data_handling"],
       budget,
     )
     let model = model_task_string(profile, "model", value, budget)
@@ -70,7 +71,12 @@ fn model_provider_defaults_read(
       model_task_required(profile, "generation_config", value),
       budget,
     )
-    models.push((model, generation))
+    let handling = match @decode.field(profile, "data_handling") {
+      Missing => None
+      ExplicitNull => model_task_fail(InvalidBody, value)
+      Present(original) => Some(model_provider_handling_read(original, budget))
+    }
+    models.push((model, generation, handling))
   }
   if default_model is Some(model) && !names.contains(model) {
     model_task_fail(ReferenceMismatch, root)
@@ -193,7 +199,7 @@ pub fn resolve_model_provider_defaults(
       }
   }
   let mut work = 0
-  for (name, generation) in original.models {
+  for (name, generation, handling) in original.models {
     // Reserve each string comparison before it happens, without Int overflow.
     for charge in [1, name.length(), model.length()] {
       if charge > max_work - work {
@@ -210,7 +216,7 @@ pub fn resolve_model_provider_defaults(
         None => generation
         Some(max_output_tokens) => { ..generation, max_output_tokens, }
       }
-      return Ok({ original, model: name, generation: selected, work, })
+      return Ok({ original, model: name, generation: selected, handling, work, })
     }
   }
   Err(UnknownModel)
@@ -247,4 +253,18 @@ pub fn resolved_model_provider_defaults_work(
   value : ResolvedModelProviderDefaults,
 ) -> Int {
   value.work
+}
+
+///|
+/// A policy from another equal configuration/model selection is not this
+/// original pair. Missing policy remains unavailable for public normalization.
+pub fn resolved_model_provider_defaults_handling(
+  value : ResolvedModelProviderDefaults,
+  original : ModelProviderDefaults,
+) -> ModelProviderHandling? {
+  if physical_equal(value.original, original) {
+    value.handling
+  } else {
+    None
+  }
 }
