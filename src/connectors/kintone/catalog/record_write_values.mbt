@@ -120,14 +120,15 @@ pub fn prepare_record_write_values(
   let mut nodes = limits.max_nodes
   let mut text_bytes = limits.max_text_bytes
   for (code, value) in cells {
-    if seen.contains(code) {
-      return Err(DuplicateField(code))
-    }
-    seen[code] = true
+    // Check the caller's string bound before hashing it into the inventory.
     guard @scalar.admit_utf8_length(code, limits.max_name_bytes) is Ok(bytes) &&
       bytes <= text_bytes else {
       return Err(BudgetExceeded)
     }
+    if seen.contains(code) {
+      return Err(DuplicateField(code))
+    }
+    seen[code] = true
     text_bytes -= bytes
     guard form_field_named(catalog, [code]) is Some(field) &&
       write_value_contract(field) is Some(contract) else {
