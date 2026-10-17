@@ -47,15 +47,18 @@ pub fn reserve_shared_capacity(
 /// alone establish neither phase assignment nor permission to read or send.
 pub fn reserve_shared_workspace_capacity(
   ledger : Ledger,
-  bytes : Int64,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
 ) -> Result[SharedCapacity, LedgerIssue] {
-  if bytes <= 0L {
+  if retained_bytes < 0L ||
+    execution_bytes <= 0L ||
+    execution_bytes < retained_bytes {
     return Err(InvalidCharge)
   }
-  reserve_capacity(ledger, 0L, bytes).map(read => {
+  reserve_capacity(ledger, retained_bytes, execution_bytes).map(read => {
     ledger,
     reservation: read.reservation,
-    capacity: bytes,
+    capacity: execution_bytes,
     allocated: 0L,
     closing: false,
   })
