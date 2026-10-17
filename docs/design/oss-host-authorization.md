@@ -1,5 +1,38 @@
 # OSS Host authorization behavior
 
+## Original sealed Effect review evidence
+
+The existing Common Preview/publication Owner projects an admitted private
+Preview into the normative restricted, encrypted review artifact. It checks
+the same original Run, complete member/row identity chain and Authoring Context
+before copying scope, required permissions and row evidence. Strength is copied
+from each original member, and guard/change/before/after states retain their
+original absent, unavailable and present distinctions. An authored field target
+is not replaced by one row's concrete ResourceRef. A concrete original target
+uses only the existing closed ResourceRef alternative.
+
+The structural row extensions preserve old absent-field encodings. New issuance
+and approval admission additionally compare the complete projection with its
+original Preview and trusted Host scope/claim/redaction-policy originals. An old
+artifact missing evidence is not upgraded from its shape, CID, a row's values or
+current configuration. Metadata remains author-supplied context, not authority.
+
+Common owns canonical self identity and semantic correspondence. The Host keeps
+the original opaque Preview and wire, current authorization, existing encrypted
+Store holding, Checkpoint and continuation. A review's self CID excludes only
+its own root field; a Store byte digest includes the complete wire and is not
+that self CID. Approval binds the review actually shown and cannot discharge
+another Preview, scope, claim set or redaction policy. Neither projection nor
+physical persistence issues an Account grant, apply permit or cleanup ACK.
+
+The projection overlaps the original private wire, bounded parser/readmission
+workspace, original identity inventories, member/row traversal, output writer,
+canonical body, sealed wire and returned DATA aliases. Original per-Run/Host
+reservations must cover that overlap; bounds or reference retirement are not
+funding, physical release or GC evidence. Original failure, Unknown, cancellation
+and cleanup custody remain with their existing Owners. No historical pending
+Run is rewritten or replayed by this connection.
+
 Status: design draft, not implemented behavior or a new conformance profile.
 The [agreed authorization model](host-authorization.md) owns the two-layer
 responsibility decision. This document describes its OSS Host realization.

@@ -54,7 +54,8 @@ fn run_evidence_identity_field(name : String) -> String? {
     | "model_attempt_accounting"
     | "model_attempt_outcome"
     | "model_attachment_admission" => Some("self_cid")
-    "run_review_projection" => Some("review_projection_cid")
+    "run_review_projection" | "review_projection" =>
+      Some("review_projection_cid")
     "model_effective_inputs" => Some("effective_inputs_cid")
     "model_input_artifact" => Some("input_artifact_cid")
     "model_input_key" => Some("input_key_cid")
@@ -118,6 +119,7 @@ pub fn seal_run_evidence_value(
       max_nodes - 1,
       max_depth,
       data_keys=generated_interactive_protocol_schema(name) ||
+        name == "review_projection" ||
         name == "model_journal_entry" ||
         name == "model_journal_settlement",
     ) {
@@ -177,6 +179,7 @@ pub fn admit_run_evidence_value(
       max_nodes,
       max_depth,
       data_keys=generated_interactive_protocol_schema(name) ||
+        name == "review_projection" ||
         name == "model_journal_entry" ||
         name == "model_journal_settlement",
     ) {
@@ -189,6 +192,7 @@ pub fn admit_run_evidence_value(
     return Err(RunEvidenceInvalidShape)
   }
   if generated_interactive_protocol_schema(name) ||
+    name == "review_projection" ||
     [
       "model_response_profile", "model_raw_capture_policy", "model_raw_response",
       "model_original_storage_binding", "model_journal_entry", "model_journal_settlement",

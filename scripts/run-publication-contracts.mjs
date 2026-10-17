@@ -126,6 +126,9 @@ function withResourceTarget(existing, resourceRef) {
 export function effectPreviewSchema(existing, resourceRef = referenceSchemas.resource_ref) {
   const preview = clone(existing);
   const member = preview.properties.effects.items;
+  // A concrete original ResourceRef and an authored field selector are
+  // different scope alternatives. Never substitute a representative row.
+  member.properties.target = withResourceTarget(member.properties.target, resourceRef);
   // A Command keeps the checked ResourceRef, not a row scalar or a hash-only
   // approximation. Shape admission does not issue it or authorize its use.
   member.properties.changes.items.properties.target_row_identity = withResourceTarget(
@@ -146,6 +149,39 @@ export function effectPreviewSchema(existing, resourceRef = referenceSchemas.res
     !isDeepStrictEqual(rule, sourceBinding));
   member.allOf.push(sourceBinding);
   return preview;
+}
+
+export function effectReviewProjectionSchema(existing, preview, resourceRef) {
+  const review = clone(existing);
+  const row = review.properties.displayed_rows.items;
+  const member = preview.properties.effects.items;
+  row.properties.target_row_identity = withResourceTarget(
+    row.properties.target_row_identity, resourceRef);
+  for (const name of ['preview_strength', 'target_guard', 'intended_changes']) {
+    row.properties[name] = clone(name === 'preview_strength'
+      ? member.properties[name] : member.properties.changes.items.properties[name]);
+  }
+  review.properties.displayed_scope.properties.effects.items.properties.target =
+    withResourceTarget(review.properties.displayed_scope.properties.effects.items
+      .properties.target, resourceRef);
+  return review;
+}
+
+// Select only this existing Owner's changed boundary. The full historical
+// publication generator also owns unrelated Run/CLI/outcome transformations;
+// a review-only refresh must not replay those over later adopted contracts.
+export function correctedEffectReviewContracts(registry) {
+  const next = clone(registry);
+  const preview = effectPreviewSchema(next.artifact_schemas.effect_preview,
+    next.schemas.resource_ref);
+  next.artifact_schemas.effect_preview = preview;
+  next.artifact_schemas.review_projection = effectReviewProjectionSchema(
+    next.artifact_schemas.review_projection, preview, next.schemas.resource_ref);
+  for (const name of ['effect_preview', 'review_projection']) {
+    next.artifact_schema_cids[name] = machineCid(next.artifact_schemas[name]);
+  }
+  next.artifact_registry_cid = machineCid(next.artifact_schemas);
+  return next;
 }
 
 export function effectRowOutcomeReceiptSchema(outcome) {
@@ -490,10 +526,8 @@ export function correctedContracts(registry, cli) {
     ['actql-effect-preview/0.1', preview],
   ]);
   next.artifact_schemas.effect_preview = preview;
-  const displayedRow = next.artifact_schemas.review_projection
-    .properties.displayed_rows.items;
-  displayedRow.properties.target_row_identity = withResourceTarget(
-    displayedRow.properties.target_row_identity, next.schemas.resource_ref);
+  next.artifact_schemas.review_projection = effectReviewProjectionSchema(
+    next.artifact_schemas.review_projection, preview, next.schemas.resource_ref);
   next.artifact_schemas.result_manifest = manifest;
   next.artifact_schemas.run_receipt = receipt;
   next.artifact_schemas.run_state = state;
@@ -600,7 +634,14 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const read = path => JSON.parse(readFileSync(path, 'utf8'));
   const registry = read(registryPath);
   const cli = read(cliPath);
-  if (process.argv.includes('--write')) {
+  if (process.argv.includes('--review-only')) {
+    const next = correctedEffectReviewContracts(registry);
+    if (process.argv.includes('--write')) {
+      writeFileSync(registryPath, JSON.stringify(next, null, 2) + '\n');
+    } else {
+      assert.deepEqual(registry, next, 'Effect review schemas are stale');
+    }
+  } else if (process.argv.includes('--write')) {
     const next = correctedContracts(registry, cli);
     writeFileSync(registryPath, JSON.stringify(next.registry, null, 2) + '\n');
     writeFileSync(cliPath, JSON.stringify(next.cli, null, 2) + '\n');
@@ -608,5 +649,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   } else {
     checkContracts(registry, cli);
   }
-  console.log('Run publication 0.1 schemas and embeddings verified.');
+  console.log(process.argv.includes('--review-only')
+    ? 'Effect Preview/review 0.1 schemas verified; unrelated publication/CLI contracts not checked.'
+    : 'Run publication 0.1 schemas and embeddings verified.');
 }
