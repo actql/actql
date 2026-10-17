@@ -39,8 +39,8 @@ test('clear selects a distinct empty-input Command and preserves the original up
   const old = JSON.parse(readFileSync(new URL('./fixtures/range-owned-baseline.json', import.meta.url), 'utf8'));
   const update = sheetsRangeCommand('sheets-book', site, provider);
   assert.equal(update.installed.commandCid, old.commandCid);
-  assert.equal(update.command.input_schema, old.inputContractCid);
-  assert.equal(update.command.output_schema, old.outputContractCid);
+  assert.equal(update.command.input_schema.cid, old.inputContractCid);
+  assert.equal(update.command.output_schema.cid, old.outputContractCid);
 });
 
 test('clear prepares one immutable original marker in the same values-only batch', () => {
