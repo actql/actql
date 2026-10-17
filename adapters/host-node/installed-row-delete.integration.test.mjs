@@ -10,7 +10,7 @@ import * as moon from '../../_build/js/release/build/connectors_builtin_node/con
 import {canonicalJson} from './local-account-config.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
 import {installRowSourceAuthorization, openRowSourceCredentialSite} from './installed-row-source.mjs';
-import {effectHost} from '../connectors/salesforce/test/installed-salesforce-effect.fixture.mjs';
+import {effectHost} from './fixtures/installed-row-effect.fixture.mjs';
 
 const repo = new URL('../../', import.meta.url);
 const cid = value => 'sha256:' + createHash('sha256').update(
