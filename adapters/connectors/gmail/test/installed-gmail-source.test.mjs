@@ -54,6 +54,17 @@ test('installed Gmail actual text Source retains one original reader capture and
   }
 });
 
+test('installed Gmail optional TLS authority is bounded original PEM before native transport',async t=>{
+  const f=await installedGmailFixture(t);
+  await assert.rejects(installedGmailSourceIdentityParts(f.profile,{...f.profile,
+    limits:{...f.profile.limits,maxCaBytes:1}}),{message:'InvalidInstalledSourceProfile'});
+  const path=join(f.root,'untrusted-ca.pem');
+  await writeFile(path,Buffer.from([0xff,0x80,0x01]));
+  await writeFile(f.profile.siteProfilePath,JSON.stringify({...f.site,caPath:path}));
+  await assert.rejects(installedGmailSourceIdentityParts(f.profile,f.profile),{code:'InvalidInstalledGmailTlsAuthority'});
+  assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
+});
+
 test('ordinary installed Gmail entrance discovers the real factory and refuses missing normal supply',async t=>{
   const f=await installedGmailFixture(t),path=join(f.root,'source.json');
   await writeFile(path,JSON.stringify(f.profile));

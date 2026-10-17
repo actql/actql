@@ -27,7 +27,7 @@ export async function installedGmailFixture(t,{account='allow'}={}){
     resource:{any_of:['labels']},operation:{any_of:['read']},exclusions:[]}]});
   const profile={version:'actql-installed-gmail-source/0.1',connectorId:'mailbox',mailbox:f.options.mailbox,
     siteProfilePath,accountConfigurationWire:policy,limits:{...labelListReadLimits,
-      maxDeclarationBytes:4096,maxDeclarationNodes:1000,maxSecretBytes:128}};
+      maxDeclarationBytes:4096,maxDeclarationNodes:1000,maxSecretBytes:128,maxCaBytes:16384}};
   const capacity=common.clientProgramRowSourceProviderCapacity(262144n,262144n);
   assert.ok(capacity);
   const sources=[];

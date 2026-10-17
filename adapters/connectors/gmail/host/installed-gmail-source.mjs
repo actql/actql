@@ -1,11 +1,10 @@
 // Installation metadata and physical adaptation only. Common retains the
 // checked declaration, acquisition, planner, Ledger, RowRun and capture.
 import {createHash} from 'node:crypto';
-import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {readSourceProfileJson} from '../../../host-node/source-profile-json.mjs';
+import {readSourceProfileJson,readBoundedConfigurationText} from '../../../host-node/source-profile-json.mjs';
 import {retainInstalledHostInitializationFailure} from '../../../host-node/installed-host-cleanup.mjs';
 import {createInstalledRowSource,installRowSourceAuthorization,openRowSourceCredentialSite,
   rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
@@ -20,7 +19,7 @@ const siteKeys=['version','apiOrigin','credentialAuthorityId','credentialKeyId',
   'environment','journalRoot','namespaceId','siteGeneration','siteKey'];
 const readLimitKeys=['maxResponseBytes','maxNodes','maxDepth','maxRows','maxMailboxBytes','maxTargetBytes',
   'maxValueNodes','maxValueTextBytes','maxRowsWireBytes','maxRowsWireNodes','maxRowsWireDepth'];
-const limitKeys=[...readLimitKeys,'maxDeclarationBytes','maxDeclarationNodes','maxSecretBytes'];
+const limitKeys=[...readLimitKeys,'maxDeclarationBytes','maxDeclarationNodes','maxSecretBytes','maxCaBytes'];
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const text=value=>typeof value==='string'&&value.length>0&&value.isWellFormed()&&!/[\u0000-\u001f\u007f]/u.test(value);
 const absolute=value=>text(value)&&isAbsolute(value);
@@ -54,7 +53,16 @@ function checkSite(site){
 async function readInputs(profile){
   const installed=checkInstalledGmailSourceProfile(profile);
   const site=checkSite(await readSourceProfileJson(installed.siteProfilePath));
-  const ca=site.caPath===undefined?undefined:await readFile(site.caPath);
+  let ca;
+  if(site.caPath!==undefined){
+    // This private Site accepts bounded PEM text, not an unbounded file read
+    // or lenient UTF-8 identity. Non-ASCII/replacement input is refused rather
+    // than re-encoding different authority bytes before hashing/native TLS.
+    const pem=await readBoundedConfigurationText(site.caPath,{maxBytes:installed.limits.maxCaBytes});
+    if(/[^\x09\x0a\x0d\x20-\x7e]/u.test(pem)||!pem.includes('-----BEGIN CERTIFICATE-----')||
+        !pem.includes('-----END CERTIFICATE-----'))fail('InvalidInstalledGmailTlsAuthority');
+    ca=Buffer.from(pem,'ascii');
+  }
   // Configuration canonicalization must not collapse distinct original
   // mailbox bytes or drop the selected TLS authority from this generation.
   const binding={mailboxBytesCid:sha(Buffer.from(installed.mailbox)),

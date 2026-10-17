@@ -59,6 +59,11 @@ standard installation table. Its closed Source profile fixes connector identity,
 the original mailbox, Site-profile path, Account configuration and independent
 reader/declaration/secret ceilings. The Site fixes the original HTTPS origin,
 signing identity, namespace, generation, journal and optional TLS authority.
+That private override is bounded original ASCII PEM text, read by the existing
+bounded configuration/FD owner under its explicit `maxCaBytes` ceiling. Invalid
+bytes are refused instead of leniently decoding a different authority before
+hashing or handing it to native TLS. The ordinary platform TLS trust store is
+unchanged when the override is absent.
 Their ordinary identity parts retain a digest of the exact mailbox bytes and
 selected TLS authority; configuration normalization cannot collapse distinct
 mailboxes. The original Common schema/key declaration and checked Source alias
