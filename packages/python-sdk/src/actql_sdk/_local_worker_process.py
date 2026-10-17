@@ -102,8 +102,12 @@ class OriginalWorkerProcess:
         self._native_metadata_retired = False
         self._native_retirement_inflight = False
         self._native_retirement_unknown: BaseException | None = None
+        self._descriptor_prepare_attempted = False
+        self._descriptor_prepare_active = False
+        self._descriptors_prepared = False
         self._spawn_syscall_attempted = False
         self._spawn_attempted = False
+        self._spawn_active = False
         self._pid: int | None = None
         self._exit: _OriginalChildExit | None = None
         self._wait_unknown: BaseException | None = None
@@ -279,7 +283,9 @@ class OriginalWorkerProcess:
                 or self._native_domain is None or self._native_domain._live_channel_original is not proof
                 or proof._pipe._native_channel_original is not proof
                 or any(slot.value is not None for slot in
-                       (proof._host, proof._native_domain, proof._channel, proof._reply))
+                       (proof._host, proof._native_domain, proof._channel, proof._reply,
+                        proof._frame_host, proof._frame_domain, proof._frame_channel,
+                        proof._frame, proof._frame_reply))
                 or self._native_dup_unknown):
             raise ValueError('Original Native channel retirement is unconfirmed')
         self._finish_native_metadata()
@@ -389,55 +395,103 @@ class OriginalWorkerProcess:
         elif identity != self._launch_identity:
             raise ValueError('Original worker launch link identity changed')
 
-    def spawn(self) -> None:
+    def prepare_original_descriptors(self) -> None:
+        """Same funded process: create/retain its original pipes before spawn.
+
+        This is not launch or child/Host admission. The original supplier must
+        already cover this process/FD/control phase. Partial pairs and a lost
+        duplicate remain in this same process; another preparation is refused.
+        """
         with self._lock:
             self._launchable()
-            if self._spawn_attempted:
-                raise RuntimeError('Original worker spawn was already attempted')
+            if self._spawn_attempted or self._spawn_active:
+                raise RuntimeError('Original worker spawn was already attempted or is active')
+            try:
+                self._prepare_original_descriptors()
+            except BaseException as failure:
+                raise LocalWorkerProcessPending(self) from failure
+
+    def _prepare_original_descriptors(self) -> None:
+        self._launchable()
+        if self._descriptor_prepare_attempted or self._descriptor_prepare_active:
+            raise RuntimeError('Original worker descriptor preparation was already attempted or is active')
+        # Busy before any current callback can reenter. This guards physical
+        # custody only; the existing supplier remains the authority.
+        self._descriptor_prepare_active = True
+        try:
             self._funding.require_launch()
             self._launchable()
             self._require_native_current()
-            self._spawn_attempted = True
+            self._descriptor_prepare_attempted = True
+            self._verify_executable()
+            self._duplicate_original_domain()
+            self._stdin, self._stdout, self._stderr = self._pipe(), self._pipe(), self._pipe()
+            self._funding.require_launch()
+            self._launchable()
+            self._require_native_current()
+            self._descriptors_prepared = True
+        finally:
+            self._descriptor_prepare_active = False
+
+    def spawn(self) -> None:
+        with self._lock:
+            self._launchable()
+            if self._spawn_attempted or self._spawn_active or self._descriptor_prepare_active:
+                raise RuntimeError('Original worker spawn was already attempted or descriptor preparation is active')
+            # Scope guard precedes the first supplier/current callback. Keep
+            # known pre-entry refusals separate from syscall Unknown below.
+            self._spawn_active = True
             try:
-                # Same-FD nofollow/size/digest check; no PATH search or system
-                # interpreter fallback. Startup attestation is still required.
-                self._verify_executable()
-                self._duplicate_original_domain()
-                slot_action = self._slot.inheritance_action()
-                self._stdin, self._stdout, self._stderr = self._pipe(), self._pipe(), self._pipe()
-                actions: list[tuple[int, int] | tuple[int, int, int]] = [slot_action,
-                    (os.POSIX_SPAWN_DUP2, self._stdin[0].value, 0),
-                    (os.POSIX_SPAWN_DUP2, self._stdout[1].value, 1),
-                    (os.POSIX_SPAWN_DUP2, self._stderr[1].value, 2)]
-                if self._native_duplicate is not None:
-                    # Lift to >=10 before fd3/stdin/stdout/stderr rewrites: the
-                    # original backing may itself occupy destination fd3/4.
-                    actions.append((os.POSIX_SPAWN_DUP2, self._native_duplicate.value, 4))
-                actions.extend((os.POSIX_SPAWN_CLOSE, value.value) for value in self._descriptors if not value.closed)
-                actions.append((os.POSIX_SPAWN_CLOSE, slot_action[1]))
                 self._funding.require_launch()
                 self._launchable()
-                self._verify_launch_original()
                 self._require_native_current()
-                self._spawn_syscall_attempted = True
-                pid = os.posix_spawn(str(self._executable),
-                    (str(self._executable), '-I', '-m', 'actql_sdk._local_worker_entry'),
-                    dict(self._environment), file_actions=actions, setpgroup=0)
-                # Capture the actual child before parent descriptor closes or
-                # any postcheck can fail. Exec failure after spawn is not a
-                # known-unstarted admission result.
-                self._pid = pid
-                if type(pid) is not int or pid <= 0:
-                    self._wait_unknown = RuntimeError('Original child identity is unavailable')
-                    raise RuntimeError('Original child identity is unavailable')
-                if self._native_duplicate is not None:
-                    self._native_duplicate.close()
-                self._stdin[0].close()
-                self._stdout[1].close()
-                self._stderr[1].close()
-                self._slot.close()
-            except BaseException as failure:
-                raise LocalWorkerProcessPending(self) from failure
+                self._spawn_attempted = True
+                try:
+                    # Same-FD nofollow/size/digest check; no PATH search or system
+                    # interpreter fallback. Startup attestation is still required.
+                    if self._descriptors_prepared:
+                        # A previously prepared interpreter is checked again at
+                        # the original launch boundary; no stale pathname proof.
+                        self._verify_executable()
+                    else:
+                        self._prepare_original_descriptors()
+                    assert self._stdin is not None and self._stdout is not None and self._stderr is not None
+                    slot_action = self._slot.inheritance_action()
+                    actions: list[tuple[int, int] | tuple[int, int, int]] = [slot_action,
+                        (os.POSIX_SPAWN_DUP2, self._stdin[0].value, 0),
+                        (os.POSIX_SPAWN_DUP2, self._stdout[1].value, 1),
+                        (os.POSIX_SPAWN_DUP2, self._stderr[1].value, 2)]
+                    if self._native_duplicate is not None:
+                        # Lift to >=10 before fd3/stdin/stdout/stderr rewrites: the
+                        # original backing may itself occupy destination fd3/4.
+                        actions.append((os.POSIX_SPAWN_DUP2, self._native_duplicate.value, 4))
+                    actions.extend((os.POSIX_SPAWN_CLOSE, value.value) for value in self._descriptors if not value.closed)
+                    actions.append((os.POSIX_SPAWN_CLOSE, slot_action[1]))
+                    self._funding.require_launch()
+                    self._launchable()
+                    self._verify_launch_original()
+                    self._require_native_current()
+                    self._spawn_syscall_attempted = True
+                    pid = os.posix_spawn(str(self._executable),
+                        (str(self._executable), '-I', '-m', 'actql_sdk._local_worker_entry'),
+                        dict(self._environment), file_actions=actions, setpgroup=0)
+                    # Capture the actual child before parent descriptor closes or
+                    # any postcheck can fail. Exec failure after spawn is not a
+                    # known-unstarted admission result.
+                    self._pid = pid
+                    if type(pid) is not int or pid <= 0:
+                        self._wait_unknown = RuntimeError('Original child identity is unavailable')
+                        raise RuntimeError('Original child identity is unavailable')
+                    if self._native_duplicate is not None:
+                        self._native_duplicate.close()
+                    self._stdin[0].close()
+                    self._stdout[1].close()
+                    self._stderr[1].close()
+                    self._slot.close()
+                except BaseException as failure:
+                    raise LocalWorkerProcessPending(self) from failure
+            finally:
+                self._spawn_active = False
 
     def observe_child_exit(self) -> _OriginalChildExit | None:
         """Reap only this original direct child. Descendant/slot stop is separate."""

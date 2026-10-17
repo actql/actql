@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from ._local_native_shim_abi import bind as bind_native
 
-from ctypes import POINTER, byref, c_int, c_int32, c_void_p
+from ctypes import POINTER, byref, c_int, c_int32, c_uint16, c_ubyte, c_void_p
 from dataclasses import dataclass
 from os import getpid
 from threading import Thread, current_thread
@@ -78,11 +78,7 @@ class _OriginalControlCustody:
     _borrowed_fd: _OriginalDescriptor | None
 
     @classmethod
-    def _take_original_reply(cls, functions: _OriginalControlFunctions,
-                             owning_reply: c_void_p) -> _OriginalControlCustody:
-        if (type(functions) is not _OriginalControlFunctions
-                or type(owning_reply) is not c_void_p or owning_reply.value is None):
-            raise ValueError('Unavailable original Native reply')
+    def _empty_original(cls, functions: _OriginalControlFunctions) -> _OriginalControlCustody:
         host = cls.__new__(cls)
         host._functions = functions
         host._incoming, host._original, host._retained, host._reply = _new_control_slots()
@@ -93,6 +89,74 @@ class _OriginalControlCustody:
         # Reporting a lost native reply must not allocate its cleanup carrier
         # after the original has moved. Failure here leaves the input untouched.
         host._unknown_carrier = _OriginalControlError(host, unknown=True)
+        return host
+
+    @classmethod
+    def _prepare_original(cls, functions: _OriginalControlFunctions, *,
+                          source: str, recipe: bytes, generation: int, size: int,
+                          work: int, attempts: int, holdings: int, transfer: int,
+                          retained: int, execution: int, envelope: int) -> _OriginalControlCustody:
+        """Trusted private assembly, not an installed supplier or funding fact.
+
+        The existing Native Owner creates/reserves its original Ledger only on
+        subsequent actual acquire. Every Python slot precedes this first call;
+        response loss retains the exact preparation reply, never a new Host.
+        """
+        if (type(functions) is not _OriginalControlFunctions or type(source) is not str
+                or len(source) != 40 or any(c not in '0123456789abcdef' for c in source)
+                or type(recipe) is not bytes or len(recipe) != 32
+                or any(type(n) is not int or not 0 <= n <= 2**31 - 1
+                       for n in (work, attempts, holdings))
+                or any(type(n) is not int or not 0 <= n <= 2**63 - 1
+                       for n in (generation, size, transfer, retained, execution, envelope))):
+            raise ValueError('Original Native preparation inputs are unavailable')
+        # Bind before any Owner call. An old component missing this new private
+        # ABI is refused without acquiring or substituting a different library.
+        prepare = bind_native(functions.library, 'actql_control_prepare_utf16_into')
+        source_units = (c_uint16 * 40)(*map(ord, source))
+        recipe_bytes = (c_ubyte * 32).from_buffer_copy(recipe)
+        host = cls._empty_original(functions)
+        host._enter()
+        known: _OriginalControlError | None = None
+        try:
+            code = prepare(source_units, 40, recipe_bytes, 32, generation, size,
+                           work, attempts, holdings, transfer, retained, execution,
+                           envelope, byref(host._incoming))
+            if type(code) is not int or code != 0 or host._incoming.value is None:
+                raise host._mark_unknown()
+            operation = functions.operation(host._incoming)
+            issue = functions.issue(host._incoming)
+            if (type(operation) is not int or operation != 1
+                    or type(issue) is not int or not 0 <= issue <= 7):
+                raise host._mark_unknown()
+            if issue != 0:
+                # Native permits this data drop only when the typed preparation
+                # really has no original Host; an inconsistent partial stays.
+                host._drop(host._incoming)
+                host._closed = True
+                known = _OriginalControlError(host, unknown=False,
+                                              fact=_OriginalArenaFact(operation, issue))
+                raise known
+            code = functions.originals(host._incoming, byref(host._original), byref(host._retained))
+            if (type(code) is not int or code != 0 or host._original.value is None
+                    or host._original.value != host._retained.value):
+                raise host._mark_unknown()
+            host._drop(host._incoming)
+            return host
+        except BaseException as error:
+            if error is host._unknown or error is known:
+                raise
+            raise host._mark_unknown() from error
+        finally:
+            host._busy = False
+
+    @classmethod
+    def _take_original_reply(cls, functions: _OriginalControlFunctions,
+                             owning_reply: c_void_p) -> _OriginalControlCustody:
+        if (type(functions) is not _OriginalControlFunctions
+                or type(owning_reply) is not c_void_p or owning_reply.value is None):
+            raise ValueError('Unavailable original Native reply')
+        host = cls._empty_original(functions)
         host._enter()
         try:
             # Initialization/allocation failures above leave the caller's slot

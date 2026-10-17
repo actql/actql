@@ -259,6 +259,7 @@
         "Query",
         "QueryReader",
         "Reader",
+        "RequestConflict",
         "Result",
         "RunState",
         "Scope",
@@ -279,7 +280,7 @@
       "module": "packages/python-product/src/actql/__init__.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "377b605a33fda4dddde6ecfa15a751112d46fd648d30f38aa9150c5d8991271f",
+      "sha256": "34605f2325c52d4f3255ba11ac16786d2679f4710b2f070212b91f26b26af8a0",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -311,7 +312,8 @@
             "get_submission_check_observation",
             "get_submission_input",
             "resolve_check_location",
-            "resolve_check_text_range"
+            "resolve_check_text_range",
+            "RequestConflict"
           ],
           "attributes": {
             "responsibility": [
@@ -537,6 +539,7 @@
         "Query",
         "QueryReader",
         "Reader",
+        "RequestConflict",
         "Result",
         "RunState",
         "Scope",
@@ -557,7 +560,7 @@
       "module": "packages/python-product/src/actql/__init__.pyi",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "806fdd1cea9ea5ffe903c376e70d4c7727963146b750edd4b5ee73d092b3a4a7",
+      "sha256": "0e7b43ad57ec03bc0a4f6414366c12850120d823fc368cc53ac85af80093ecf4",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -589,7 +592,8 @@
             "get_submission_check_observation",
             "get_submission_input",
             "resolve_check_location",
-            "resolve_check_text_range"
+            "resolve_check_text_range",
+            "RequestConflict"
           ],
           "attributes": {
             "responsibility": [
@@ -818,6 +822,7 @@
         "Query",
         "QueryReader",
         "Reader",
+        "RequestConflict",
         "Result",
         "RunState",
         "Scope",
@@ -848,7 +853,7 @@
       "module": "packages/python-sdk/src/actql_sdk/__init__.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "fafe6bc56f4c68eada59b16a23640f13304136ba8386f42646c110defb728d65",
+      "sha256": "cc3afc2c15a6035177c1cd455d5b2baa48c27a2555e3680f2b33f7286ba25e1d",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -880,7 +885,8 @@
             "get_submission_check_observation",
             "get_submission_input",
             "resolve_check_location",
-            "resolve_check_text_range"
+            "resolve_check_text_range",
+            "RequestConflict"
           ],
           "attributes": {
             "responsibility": [
@@ -1233,6 +1239,7 @@
         "Query",
         "QueryReader",
         "Reader",
+        "RequestConflict",
         "Result",
         "RunState",
         "SSLContext",
@@ -1266,41 +1273,42 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
+          "async": false,
           "name": "AsyncClient",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": true,
           "name": "AsyncClient/__aenter__",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/__aexit__",
           "parameters": [
             "self",
             "*exc"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/aclose",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/approve",
           "parameters": [
             "self",
             "checkpoint_id"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/aql",
           "parameters": [
             "self",
@@ -1311,18 +1319,18 @@
             "attempt_id",
             "parameter_declarations",
             "result"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/attach",
           "parameters": [
             "self",
             "reference"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/check",
           "parameters": [
             "self",
@@ -1331,10 +1339,10 @@
             "scope",
             "format",
             "parameter_declarations"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/check#2",
           "parameters": [
             "self",
@@ -1344,20 +1352,20 @@
             "format",
             "parameter_declarations",
             "parameters"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/check#3",
           "parameters": [
             "self",
             "input",
             "kind",
             "scope"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/check#4",
           "parameters": [
             "self",
@@ -1365,19 +1373,19 @@
             "kind",
             "scope",
             "parameters"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/checkpoints",
           "parameters": [
             "self",
             "after",
             "limit"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/connect",
           "parameters": [
             "cls",
@@ -1389,67 +1397,67 @@
             "timeout",
             "transport",
             "signer"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/lookup_submission",
           "parameters": [
             "self",
             "reference"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/new_submission",
           "parameters": [
             "self",
             "nonce"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/open",
           "parameters": [
             "cls",
             "signer"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/profile",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/reject",
           "parameters": [
             "self",
             "checkpoint_id"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/resolve_checkpoints",
           "parameters": [
             "self",
             "items",
             "signer"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/review_checkpoint",
           "parameters": [
             "self",
             "checkpoint",
             "max_bytes"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/sql",
           "parameters": [
             "self",
@@ -1460,111 +1468,113 @@
             "attempt_id",
             "parameter_declarations",
             "result"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/start",
           "parameters": [
             "self",
             "program",
             "submission_ref",
+            "request_id",
             "parameters",
             "attempt_id",
             "stop_before",
             "read_only"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/start_source",
           "parameters": [
             "self",
             "text",
             "format",
             "submission_ref",
+            "request_id",
             "parameters",
             "parameter_declarations",
             "attempt_id",
             "stop_before",
             "read_only"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncExecution",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "AsyncExecution/cancel",
           "parameters": [
             "self",
             "cancel_id",
             "expected_revision",
             "attempt_id"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncExecution/lookup_cancellation",
           "parameters": [
             "self",
             "reference"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncExecution/reconcile",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncExecution/ref",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncExecution/result",
           "parameters": [
             "self",
             "name"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncExecution/status",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncExecution/submission",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncExecution/wait",
           "parameters": [
             "self",
             "until",
             "since"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncQuery",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": true,
           "name": "AsyncQuery/all",
           "parameters": [
             "self",
@@ -1574,10 +1584,10 @@
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncQuery/all#2",
           "parameters": [
             "self",
@@ -1587,17 +1597,17 @@
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncQuery/execution",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncQuery/rows",
           "parameters": [
             "self",
@@ -1605,10 +1615,10 @@
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncQuery/rows#2",
           "parameters": [
             "self",
@@ -1616,139 +1626,139 @@
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncQueryReader",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": true,
           "name": "AsyncQueryReader/__aenter__",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncQueryReader/__aexit__",
           "parameters": [
             "self",
             "*exc"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncQueryReader/__aiter__",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncQueryReader/__anext__",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncQueryReader/aclose",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncQueryReader/attempt_id",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncQueryReader/delivery_attempt",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncQueryReader/rows_yielded",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncReader",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": true,
           "name": "AsyncReader/__aenter__",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncReader/__aexit__",
           "parameters": [
             "self",
             "*exc"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncReader/__aiter__",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncReader/__anext__",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncReader/aclose",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncReader/attempt_id",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncReader/delivery_attempt",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncReader/rows_yielded",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncResult",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": true,
           "name": "AsyncResult/all",
           "parameters": [
             "self",
@@ -1758,10 +1768,10 @@
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncResult/all#2",
           "parameters": [
             "self",
@@ -1771,18 +1781,18 @@
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncResult/delivery_attempt",
           "parameters": [
             "self",
             "attempt_id"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncResult/rows",
           "parameters": [
             "self",
@@ -1790,10 +1800,10 @@
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncResult/rows#2",
           "parameters": [
             "self",
@@ -1801,51 +1811,51 @@
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "CheckObservation",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "CheckObservation/__init__",
           "parameters": [
             "self",
             "value"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Client",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "Client/__enter__",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Client/__exit__",
           "parameters": [
             "self",
             "*exc"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Client/approve",
           "parameters": [
             "self",
             "checkpoint_id"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Client/aql",
           "parameters": [
             "self",
@@ -1856,18 +1866,18 @@
             "attempt_id",
             "parameter_declarations",
             "result"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Client/attach",
           "parameters": [
             "self",
             "reference"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Client/check",
           "parameters": [
             "self",
@@ -1876,10 +1886,10 @@
             "scope",
             "format",
             "parameter_declarations"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Client/check#2",
           "parameters": [
             "self",
@@ -1889,20 +1899,20 @@
             "format",
             "parameter_declarations",
             "parameters"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Client/check#3",
           "parameters": [
             "self",
             "input",
             "kind",
             "scope"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Client/check#4",
           "parameters": [
             "self",
@@ -1910,26 +1920,26 @@
             "kind",
             "scope",
             "parameters"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Client/checkpoints",
           "parameters": [
             "self",
             "after",
             "limit"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Client/close",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Client/connect",
           "parameters": [
             "cls",
@@ -1941,67 +1951,67 @@
             "timeout",
             "transport",
             "signer"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Client/lookup_submission",
           "parameters": [
             "self",
             "reference"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Client/new_submission",
           "parameters": [
             "self",
             "nonce"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Client/open",
           "parameters": [
             "cls",
             "signer"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Client/profile",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Client/reject",
           "parameters": [
             "self",
             "checkpoint_id"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Client/resolve_checkpoints",
           "parameters": [
             "self",
             "items",
             "signer"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Client/review_checkpoint",
           "parameters": [
             "self",
             "checkpoint",
             "max_bytes"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Client/sql",
           "parameters": [
             "self",
@@ -2012,167 +2022,169 @@
             "attempt_id",
             "parameter_declarations",
             "result"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Client/start",
           "parameters": [
             "self",
             "program",
             "submission_ref",
+            "request_id",
             "parameters",
             "attempt_id",
             "stop_before",
             "read_only"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Client/start_source",
           "parameters": [
             "self",
             "text",
             "format",
             "submission_ref",
+            "request_id",
             "parameters",
             "parameter_declarations",
             "attempt_id",
             "stop_before",
             "read_only"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "ClientError",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "ClientError/__init__",
           "parameters": [
             "self",
             "code",
             "**facts"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Execution",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "Execution/cancel",
           "parameters": [
             "self",
             "cancel_id",
             "expected_revision",
             "attempt_id"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Execution/lookup_cancellation",
           "parameters": [
             "self",
             "reference"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Execution/reconcile",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Execution/ref",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Execution/result",
           "parameters": [
             "self",
             "name"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Execution/status",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Execution/submission",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Execution/wait",
           "parameters": [
             "self",
             "until",
             "since"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Observation",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "Observation/__getitem__",
           "parameters": [
             "self",
             "key"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Observation/__init__",
           "parameters": [
             "self",
             "value"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Observation/__iter__",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Observation/__len__",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Observation/to_dict",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Query",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "Query/all",
           "parameters": [
             "self",
@@ -2182,10 +2194,10 @@
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Query/all#2",
           "parameters": [
             "self",
@@ -2195,17 +2207,17 @@
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Query/execution",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Query/rows",
           "parameters": [
             "self",
@@ -2213,10 +2225,10 @@
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Query/rows#2",
           "parameters": [
             "self",
@@ -2224,139 +2236,152 @@
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "QueryReader",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "QueryReader/__enter__",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "QueryReader/__exit__",
           "parameters": [
             "self",
             "*exc"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "QueryReader/__iter__",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "QueryReader/__next__",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "QueryReader/attempt_id",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "QueryReader/close",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "QueryReader/delivery_attempt",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "QueryReader/rows_yielded",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Reader",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "Reader/__enter__",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Reader/__exit__",
           "parameters": [
             "self",
             "*exc"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Reader/__iter__",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Reader/__next__",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Reader/attempt_id",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Reader/close",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Reader/delivery_attempt",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Reader/rows_yielded",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
+          "name": "RequestConflict",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "RequestConflict/__init__",
+          "parameters": [
+            "self",
+            "**facts"
+          ]
+        },
+        {
+          "async": false,
           "name": "Result",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "Result/all",
           "parameters": [
             "self",
@@ -2366,10 +2391,10 @@
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Result/all#2",
           "parameters": [
             "self",
@@ -2379,18 +2404,18 @@
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Result/delivery_attempt",
           "parameters": [
             "self",
             "attempt_id"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Result/rows",
           "parameters": [
             "self",
@@ -2398,10 +2423,10 @@
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Result/rows#2",
           "parameters": [
             "self",
@@ -2409,15 +2434,15 @@
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Signer",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "Signer/__init__",
           "parameters": [
             "self",
@@ -2425,94 +2450,93 @@
             "reviewer_id",
             "sign",
             "authority_scope_cid"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_RowModel",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "_RowModel/model_validate",
           "parameters": [
             "self",
             "value",
             "strict"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_RowValidator",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "_RowValidator/validate_python",
           "parameters": [
             "self",
             "value",
             "strict"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "explain_check_reason",
           "parameters": [
             "reason"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "get_check_fixes",
           "parameters": [
             "observation"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "get_check_input",
           "parameters": [
             "observation",
             "document_id",
             "revision"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "get_submission_check_observation",
           "parameters": [
             "error"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "get_submission_input",
           "parameters": [
             "result"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "resolve_check_location",
           "parameters": [
             "observation",
             "location",
             "current_input"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "resolve_check_text_range",
           "parameters": [
             "observation",
             "location",
             "current_input"
-          ],
-          "async": false
+          ]
         }
       ],
-      "sha256": "1791a7bcd3bee464c83075a4c08c79b4f63114162d829dd42cff3d63f2b5c9f3",
+      "sha256": "11ca92bcf2d92aaa7c3f72f51e0eae3b65e8e8bce5a47edf88924b9b9300a5f5",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -2626,7 +2650,9 @@
             "get_submission_check_observation",
             "get_submission_input",
             "resolve_check_location",
-            "resolve_check_text_range"
+            "resolve_check_text_range",
+            "RequestConflict",
+            "RequestConflict/__init__"
           ],
           "exports": [
             "Any",
@@ -2670,7 +2696,8 @@
             "get_submission_input",
             "overload",
             "resolve_check_location",
-            "resolve_check_text_range"
+            "resolve_check_text_range",
+            "RequestConflict"
           ],
           "attributes": {
             "responsibility": [
@@ -3211,6 +3238,7 @@
         "AsyncExecution",
         "ClientError",
         "Observation",
+        "RequestConflict",
         "RunState",
         "asyncio",
         "base64",
@@ -3241,6 +3269,7 @@
       "imports": [
         ".",
         "._checkpoints",
+        "._connection",
         "._diagnostics",
         "._errors",
         "._local_core",
@@ -3267,26 +3296,27 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
+          "async": false,
           "name": "AsyncClient",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": true,
           "name": "AsyncClient/__aenter__",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/__aexit__",
           "parameters": [
             "self",
             "*exc"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/__init__",
           "parameters": [
             "self",
@@ -3298,45 +3328,45 @@
             "timeout",
             "transport",
             "signer"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_accept_response",
           "parameters": [
             "self",
             "response"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_answer_checkpoint",
           "parameters": [
             "self",
             "body",
             "decision",
             "signer"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_attach",
           "parameters": [
             "self",
             "reference"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/_body",
           "parameters": [
             "self",
             "operation",
             "body"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/_capture_start",
           "parameters": [
             "self",
@@ -3346,96 +3376,97 @@
             "parameters",
             "attempt_id",
             "stop_before",
-            "read_only"
-          ],
-          "async": false
+            "read_only",
+            "request_name"
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_check",
           "parameters": [
             "self",
             "body"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_checkpoints",
           "parameters": [
             "self",
             "body"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_chunks",
           "parameters": [
             "response",
             "chunk_size"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_close_response",
           "parameters": [
             "self",
             "response"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_connect_local",
           "parameters": [
             "cls",
             "host",
             "signer"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/_decide_checkpoint",
           "parameters": [
             "self",
             "checkpoint_id",
             "decision"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/_from_local_host",
           "parameters": [
             "cls",
             "host",
             "signer"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_json",
           "parameters": [
             "self",
             "response",
             "max_bytes"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_lookup_submission",
           "parameters": [
             "self",
             "reference"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_open",
           "parameters": [
             "self",
             "operation",
             "body"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/_prepare_start",
           "parameters": [
             "self",
@@ -3445,55 +3476,64 @@
             "parameters",
             "attempt_id",
             "stop_before",
-            "read_only"
-          ],
-          "async": false
+            "read_only",
+            "request_name"
+          ]
         },
         {
+          "async": false,
+          "name": "AsyncClient/_redact_connection_failure",
+          "parameters": [
+            "self",
+            "failure"
+          ]
+        },
+        {
+          "async": true,
           "name": "AsyncClient/_release",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_release_response",
           "parameters": [
             "self",
             "response"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_request",
           "parameters": [
             "self",
             "operation",
             "body",
             "max_bytes"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_resolve_checkpoints",
           "parameters": [
             "self",
             "items",
             "signer",
             "decided_at"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_review_checkpoint",
           "parameters": [
             "self",
             "checkpoint",
             "body"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/_source_query",
           "parameters": [
             "self",
@@ -3505,58 +3545,67 @@
             "attempt_id",
             "parameter_declarations",
             "result"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_start",
           "parameters": [
             "self",
             "body"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
+          "name": "AsyncClient/_submission_candidate",
+          "parameters": [
+            "self",
+            "reference",
+            "request_id"
+          ]
+        },
+        {
+          "async": false,
           "name": "AsyncClient/_valid_token",
           "parameters": [
             "token"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/aclose",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/approve",
           "parameters": [
             "self",
             "checkpoint_id"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/aql",
           "parameters": [
             "self",
             "text",
             "parameters",
             "**options"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/attach",
           "parameters": [
             "self",
             "reference"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/check",
           "parameters": [
             "self",
@@ -3566,271 +3615,280 @@
             "format",
             "parameter_declarations",
             "**options"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/checkpoints",
           "parameters": [
             "self",
             "after",
             "limit"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/connect",
           "parameters": [
             "cls",
             "endpoint",
             "token",
             "**options"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/lookup_submission",
           "parameters": [
             "self",
             "reference"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/new_submission",
           "parameters": [
             "self",
             "nonce"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/open",
           "parameters": [
             "cls",
             "signer"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/profile",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/reject",
           "parameters": [
             "self",
             "checkpoint_id"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/resolve_checkpoints",
           "parameters": [
             "self",
             "items",
             "signer"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/review_checkpoint",
           "parameters": [
             "self",
             "checkpoint",
             "max_bytes"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/sql",
           "parameters": [
             "self",
             "text",
             "parameters",
             "**options"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/start",
           "parameters": [
             "self",
             "program",
             "submission_ref",
+            "request_id",
             "parameters",
             "attempt_id",
             "stop_before",
             "read_only"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/start_source",
           "parameters": [
             "self",
             "text",
             "format",
             "submission_ref",
+            "request_id",
             "parameters",
             "parameter_declarations",
             "attempt_id",
             "stop_before",
             "read_only"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncExecution",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "AsyncExecution/__init__",
           "parameters": [
             "self",
             "client",
             "admission",
             "submission"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncExecution/_cancel",
           "parameters": [
             "self",
             "cancel_id",
             "expected_revision",
             "attempt_id"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncExecution/_lookup_cancellation",
           "parameters": [
             "self",
             "reference"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncExecution/_observe",
           "parameters": [
             "self",
             "operation",
             "**body"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncExecution/cancel",
           "parameters": [
             "self",
             "cancel_id",
             "expected_revision",
             "attempt_id"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncExecution/lookup_cancellation",
           "parameters": [
             "self",
             "reference"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncExecution/reconcile",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncExecution/ref",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncExecution/result",
           "parameters": [
             "self",
             "name"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncExecution/status",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncExecution/submission",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncExecution/wait",
           "parameters": [
             "self",
             "until",
             "since"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "_ExchangeFailure",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "_ExchangeFailure/__init__",
           "parameters": [
             "self",
             "code",
             "sent"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_LocalCoreCleanupPort",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "_LocalCoreCleanupPort/__init__",
           "parameters": [
             "self",
             "core"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "_LocalCoreCleanupPort/aclose",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
+          "name": "_submission_context",
+          "parameters": [
+            "body",
+            "original"
+          ]
+        },
+        {
+          "async": false,
           "name": "get_submission_input",
           "parameters": [
             "result"
-          ],
-          "async": false
+          ]
         }
       ],
-      "sha256": "36dff44ee90a0f2b70596182f502c9a3b037df98c2175a3e18130b6ea2930644",
+      "sha256": "102296c0c157606b1712db2b204378974d10164f1b0057924cfd92e517560368",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -3892,7 +3950,9 @@
             "_LocalCoreCleanupPort",
             "_LocalCoreCleanupPort/__init__",
             "_LocalCoreCleanupPort/aclose",
-            "get_submission_input"
+            "get_submission_input",
+            "AsyncClient/_submission_candidate",
+            "_submission_context"
           ],
           "exports": [
             "AsyncClient",
@@ -3924,7 +3984,8 @@
             "uuid",
             "weakref",
             "wire",
-            "wire_bytes"
+            "wire_bytes",
+            "RequestConflict"
           ],
           "attributes": {
             "responsibility": [
@@ -4203,8 +4264,551 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "AsyncClient/_redact_connection_failure"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Responsibility: project the existing Workspace connection-string contract."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Inputs: original URI, separate credential selection and optional asserted target."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Identity: preserve one decoded Workspace and the original credential choice."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Ownership: the existing Client retains credentials; no raw URI is retained."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Synchronization: pure admission precedes credential callbacks and transport."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Failure: invalid input has a fixed error with no borrowed parser cause."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Cancellation: parsing creates no task, exchange, retry or cleanup obligation."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Resources: original 16384/8192/256 UTF-16 bounds apply before transport."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Extension: no daemon, Local fallback, DNS discovery or grant is issued."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Verification: independent connection vectors and actual Remote consumer cases."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ]
+          }
         }
       ]
+    },
+    {
+      "module": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+      "sha256": "2096e890b5d1e39f3567cb659871abcc19913e1a30c2fc8a47acccee41a39982",
+      "exports": [
+        "Any",
+        "CheckObservation",
+        "CheckReason",
+        "CheckReport",
+        "ClientError",
+        "Iterator",
+        "Literal",
+        "Mapping",
+        "Observation",
+        "Self",
+        "annotations",
+        "cast",
+        "check_outcome",
+        "dataclass",
+        "fields",
+        "freeze",
+        "snapshot",
+        "thaw"
+      ],
+      "operations": [
+        {
+          "async": false,
+          "name": "CheckObservation",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "CheckObservation/__copy__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "CheckObservation/__deepcopy__",
+          "parameters": [
+            "self",
+            "memo"
+          ]
+        },
+        {
+          "async": false,
+          "name": "CheckObservation/__init__",
+          "parameters": [
+            "self",
+            "value"
+          ]
+        },
+        {
+          "async": false,
+          "name": "CheckReason",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "CheckReport",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_CheckFields",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_CheckFields/__copy__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CheckFields/__deepcopy__",
+          "parameters": [
+            "self",
+            "memo"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CheckFields/__getitem__",
+          "parameters": [
+            "self",
+            "key"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CheckFields/__iter__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CheckFields/__len__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CheckFields/__setattr__",
+          "parameters": [
+            "self",
+            "name",
+            "value"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CheckFields/_from_snapshot",
+          "parameters": [
+            "cls",
+            "source"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CheckFields/to_dict",
+          "parameters": [
+            "self"
+          ]
+        }
+      ],
+      "imports": [
+        "._errors",
+        "._run_state",
+        "._values",
+        "._wire_codec",
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "typing"
+      ],
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "CheckObservation",
+            "CheckObservation/__copy__",
+            "CheckObservation/__deepcopy__",
+            "CheckObservation/__init__",
+            "CheckReason",
+            "CheckReport",
+            "_CheckFields",
+            "_CheckFields/__copy__",
+            "_CheckFields/__deepcopy__",
+            "_CheckFields/__getitem__",
+            "_CheckFields/__iter__",
+            "_CheckFields/__len__",
+            "_CheckFields/__setattr__",
+            "_CheckFields/_from_snapshot",
+            "_CheckFields/to_dict"
+          ],
+          "exports": [
+            "Any",
+            "CheckObservation",
+            "CheckReason",
+            "CheckReport",
+            "ClientError",
+            "Iterator",
+            "Literal",
+            "Mapping",
+            "Observation",
+            "Self",
+            "annotations",
+            "check_outcome",
+            "dataclass",
+            "fields",
+            "freeze",
+            "snapshot",
+            "thaw"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Responsibility: expose the public report/reason attributes without another checker."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Inputs: only the original generated check-outcome admission selects a variant."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Identity: mapping/to_dict retain exact wire absence; dataclass copies are data."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Ownership: no view issues an input binding, Run, permission or original-call key."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Synchronization: construction is local and performs no callbacks or I/O."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Failure: completed, partial failure and unavailable remain separate outcomes."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Cancellation: projection neither starts nor cancels work or acknowledges cleanup."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Resources: the already bounded immutable response backs nested views."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Extension: new wire variants must first pass the same generated codec."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Verification: public facade, detached-copy and original-location tests."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "cast"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Responsibility: expose the public report/reason attributes without another checker."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Inputs: only the original generated check-outcome admission selects a variant."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Identity: mapping/to_dict retain exact wire absence; dataclass copies are data."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Ownership: no view issues an input binding, Run, permission or original-call key."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Synchronization: construction is local and performs no callbacks or I/O."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Failure: completed, partial failure and unavailable remain separate outcomes."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Cancellation: projection neither starts nor cancels work or acknowledges cleanup."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Resources: the already bounded immutable response backs nested views."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Extension: new wire variants must first pass the same generated codec."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
+                "anchor": "Verification: public facade, detached-copy and original-location tests."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Check report attributes"
+              }
+            ]
+          }
+        }
+      ],
+      "role": "public-wire-codec",
+      "owner": "existing public Python Client / wire / reader boundary",
+      "rationale": "Immutable check/report/reason attributes delegate all admission to the original generated wire. Existing diagnostics alone retain original input custody; copies are detached data and issue no check, permission or Run."
     },
     {
       "exports": [
@@ -4403,6 +5007,242 @@
               {
                 "path": "packages/python-sdk/tests/test_boundaries.py",
                 "anchor": "AsyncBoundaryTests"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/python-sdk/src/actql_sdk/_connection.py",
+      "sha256": "d43cc0119648b35cf13f43ab180fe047d874a0bf02bf8f6fe0d15488fa895421",
+      "exports": [
+        "ClientError",
+        "NO_TOKEN",
+        "httpx",
+        "ipaddress",
+        "re",
+        "remote_connection",
+        "unquote_to_bytes",
+        "valid_dsn_credential"
+      ],
+      "operations": [
+        {
+          "async": false,
+          "name": "_ipv4",
+          "parameters": [
+            "host"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_ipv4/number",
+          "parameters": [
+            "part"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_parse",
+          "parameters": [
+            "input"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_units",
+          "parameters": [
+            "value"
+          ]
+        },
+        {
+          "async": false,
+          "name": "remote_connection",
+          "parameters": [
+            "endpoint",
+            "token",
+            "workspace_id"
+          ]
+        },
+        {
+          "async": false,
+          "name": "valid_dsn_credential",
+          "parameters": [
+            "value"
+          ]
+        }
+      ],
+      "imports": [
+        "._errors",
+        "httpx",
+        "ipaddress",
+        "re",
+        "urllib.parse"
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "existing Workspace connection-string and Client transport boundary",
+      "rationale": "Pure admission and target projection for the same Client; not a credential, Workspace, authority, Run or retry issuer.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "_ipv4",
+            "_ipv4/number",
+            "_parse",
+            "_units",
+            "remote_connection",
+            "valid_dsn_credential"
+          ],
+          "exports": [
+            "ClientError",
+            "NO_TOKEN",
+            "httpx",
+            "ipaddress",
+            "re",
+            "remote_connection",
+            "unquote_to_bytes",
+            "valid_dsn_credential"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Responsibility: project the existing Workspace connection-string contract."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Inputs: original URI, separate credential selection and optional asserted target."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Identity: preserve one decoded Workspace and the original credential choice."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Ownership: the existing Client retains credentials; no raw URI is retained."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Synchronization: pure admission precedes credential callbacks and transport."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Failure: invalid input has a fixed error with no borrowed parser cause."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Cancellation: parsing creates no task, exchange, retry or cleanup obligation."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Resources: original 16384/8192/256 UTF-16 bounds apply before transport."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Extension: no daemon, Local fallback, DNS discovery or grant is issued."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_connection.py",
+                "anchor": "Verification: independent connection vectors and actual Remote consumer cases."
+              },
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "# Workspace connection strings"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "### Workspace connection strings"
               }
             ]
           }
@@ -4771,28 +5611,42 @@
     },
     {
       "exports": [
-        "ClientError"
+        "ClientError",
+        "RequestConflict"
       ],
       "imports": [],
       "module": "packages/python-sdk/src/actql_sdk/_errors.py",
       "responsibilityFacet": "primary",
       "operations": [
         {
+          "async": false,
           "name": "ClientError",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "ClientError/__init__",
           "parameters": [
             "self",
             "code",
             "**facts"
-          ],
-          "async": false
+          ]
+        },
+        {
+          "async": false,
+          "name": "RequestConflict",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "RequestConflict/__init__",
+          "parameters": [
+            "self",
+            "**facts"
+          ]
         }
       ],
-      "sha256": "6e6ad9348dd944199d01670086464be2aa639547bb9fd84b134586c827274244",
+      "sha256": "54bcba513acb962152177733d28a2ebbf047c6ced93213fe2e919a5d7bf1e280",
       "role": "observation-presentation",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -4801,10 +5655,13 @@
           "operations": [
             "<module>",
             "ClientError",
-            "ClientError/__init__"
+            "ClientError/__init__",
+            "RequestConflict",
+            "RequestConflict/__init__"
           ],
           "exports": [
-            "ClientError"
+            "ClientError",
+            "RequestConflict"
           ],
           "attributes": {
             "responsibility": [
@@ -5040,6 +5897,557 @@
       ]
     },
     {
+      "module": "packages/python-sdk/src/actql_sdk/_query.py",
+      "sha256": "0381267b4fd5c849d5d342076c462cc42f5253944ba72a9e03825788504fa7cc",
+      "exports": [
+        "AsyncQuery",
+        "AsyncQueryReader",
+        "AsyncReader",
+        "ClientError",
+        "asyncio",
+        "tighter"
+      ],
+      "operations": [
+        {
+          "async": false,
+          "name": "AsyncQuery",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "AsyncQuery/__init__",
+          "parameters": [
+            "self",
+            "client",
+            "body",
+            "result_name"
+          ]
+        },
+        {
+          "async": true,
+          "name": "AsyncQuery/_all",
+          "parameters": [
+            "self",
+            "rows",
+            "size",
+            "captured"
+          ]
+        },
+        {
+          "async": false,
+          "name": "AsyncQuery/_error",
+          "parameters": [
+            "self",
+            "code",
+            "cause"
+          ]
+        },
+        {
+          "async": true,
+          "name": "AsyncQuery/_select",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "AsyncQuery/all",
+          "parameters": [
+            "self",
+            "max_rows",
+            "max_retained_value_bytes",
+            "**read_options"
+          ]
+        },
+        {
+          "async": false,
+          "name": "AsyncQuery/execution",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "AsyncQuery/rows",
+          "parameters": [
+            "self",
+            "**read_options"
+          ]
+        },
+        {
+          "async": false,
+          "name": "AsyncQueryReader",
+          "parameters": []
+        },
+        {
+          "async": true,
+          "name": "AsyncQueryReader/__aenter__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": true,
+          "name": "AsyncQueryReader/__aexit__",
+          "parameters": [
+            "self",
+            "*exc"
+          ]
+        },
+        {
+          "async": false,
+          "name": "AsyncQueryReader/__aiter__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": true,
+          "name": "AsyncQueryReader/__anext__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "AsyncQueryReader/__init__",
+          "parameters": [
+            "self",
+            "query",
+            "captured"
+          ]
+        },
+        {
+          "async": true,
+          "name": "AsyncQueryReader/_next",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": true,
+          "name": "AsyncQueryReader/aclose",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "AsyncQueryReader/attempt_id",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": true,
+          "name": "AsyncQueryReader/delivery_attempt",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "AsyncQueryReader/rows_yielded",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalQueryHandle",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_OriginalQueryHandle/__copy__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalQueryHandle/__deepcopy__",
+          "parameters": [
+            "self",
+            "memo"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalQueryHandle/__reduce_ex__",
+          "parameters": [
+            "self",
+            "protocol"
+          ]
+        }
+      ],
+      "imports": [
+        "._async",
+        "._errors",
+        "._reader",
+        "._values",
+        "asyncio"
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "existing public Python Client / wire / reader boundary",
+      "rationale": "Lazy caller composition of the same original submission, Run and Result; no separate permission, revision, retry or cleanup Owner.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "AsyncQuery",
+            "AsyncQuery/__init__",
+            "AsyncQuery/_all",
+            "AsyncQuery/_error",
+            "AsyncQuery/_select",
+            "AsyncQuery/all",
+            "AsyncQuery/execution",
+            "AsyncQuery/rows",
+            "AsyncQueryReader",
+            "AsyncQueryReader/__aenter__",
+            "AsyncQueryReader/__aexit__",
+            "AsyncQueryReader/__aiter__",
+            "AsyncQueryReader/__anext__",
+            "AsyncQueryReader/__init__",
+            "AsyncQueryReader/aclose",
+            "AsyncQueryReader/attempt_id",
+            "AsyncQueryReader/delivery_attempt",
+            "AsyncQueryReader/rows_yielded"
+          ],
+          "exports": [
+            "AsyncQuery",
+            "AsyncQueryReader",
+            "AsyncReader",
+            "ClientError",
+            "asyncio",
+            "tighter"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Responsibility: invoke one captured read-only submission and select its Result."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Inputs: the Client's admitted packet and an optional explicit Result name."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Identity: the original submission/attempt survives observation loss and copies"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Ownership: readers are the existing Result readers, held through local cleanup."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Synchronization: one caller lock joins concurrent consumption of this handle."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Failure: held, Unknown and non-success states retain their original evidence."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Cancellation: cancelling consumption neither cancels a Run nor authorizes resend."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Resources: the existing negotiated read and retained-value limits apply."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Extension: the Common readOnly restriction, not this module, rejects Effects."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Verification: lazy/cancellation/read-boundary and installed Remote cases."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "_OriginalQueryHandle",
+            "_OriginalQueryHandle/__copy__",
+            "_OriginalQueryHandle/__deepcopy__",
+            "_OriginalQueryHandle/__reduce_ex__"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Responsibility: invoke one captured read-only submission and select its Result."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Inputs: the Client's admitted packet and an optional explicit Result name."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Identity: the original submission/attempt survives observation loss and copies"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Ownership: readers are the existing Result readers, held through local cleanup."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Synchronization: one caller lock joins concurrent consumption of this handle."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Failure: held, Unknown and non-success states retain their original evidence."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Cancellation: cancelling consumption neither cancels a Run nor authorizes resend."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Resources: the existing negotiated read and retained-value limits apply."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Extension: the Common readOnly restriction, not this module, rejects Effects."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Verification: lazy/cancellation/read-boundary and installed Remote cases."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "AsyncQueryReader/_next"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Responsibility: invoke one captured read-only submission and select its Result."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Inputs: the Client's admitted packet and an optional explicit Result name."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Identity: the original submission/attempt survives observation loss and copies"
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Ownership: readers are the existing Result readers, held through local cleanup."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Synchronization: one caller lock joins concurrent consumption of this handle."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Failure: held, Unknown and non-success states retain their original evidence."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Cancellation: cancelling consumption neither cancels a Run nor authorizes resend."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Resources: the existing negotiated read and retained-value limits apply."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Extension: the Common readOnly restriction, not this module, rejects Effects."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_query.py",
+                "anchor": "Verification: lazy/cancellation/read-boundary and installed Remote cases."
+              },
+              {
+                "path": "packages/python-sdk/README.md",
+                "anchor": "## Lazy short queries"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "exports": [
         "AsyncReader",
         "AsyncResult",
@@ -5068,143 +6476,144 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
+          "async": false,
           "name": "AsyncReader",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": true,
           "name": "AsyncReader/__aenter__",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncReader/__aexit__",
           "parameters": [
             "self",
             "*exc"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncReader/__aiter__",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncReader/__anext__",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncReader/__init__",
           "parameters": [
             "self",
             "result",
             "limits",
             "validate"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncReader/_iterate",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncReader/_release",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncReader/aclose",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncReader/attempt_id",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncReader/delivery_attempt",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncReader/rows_yielded",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncResult",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "AsyncResult/__init__",
           "parameters": [
             "self",
             "run",
             "name"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncResult/_all",
           "parameters": [
             "self",
             "rows",
             "size",
             "captured"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncResult/_valid_delivery",
           "parameters": [
             "self",
             "value",
             "attempt_id"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncResult/all",
           "parameters": [
             "self",
             "max_rows",
             "max_retained_value_bytes",
             "**read_options"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncResult/delivery_attempt",
           "parameters": [
             "self",
             "attempt_id"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncResult/rows",
           "parameters": [
             "self",
@@ -5212,10 +6621,10 @@
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_capture_rows",
           "parameters": [
             "profile",
@@ -5223,40 +6632,39 @@
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_row_validator",
           "parameters": [
             "schema"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "retained_value_bytes",
           "parameters": [
             "value"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "retained_value_bytes/visit",
           "parameters": [
             "item"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "tighter",
           "parameters": [
             "value",
             "maximum"
-          ],
-          "async": false
+          ]
         }
       ],
-      "sha256": "9562eddf9bd2e6ded755d6b04c42e7428226922f30ebb7eb73053fef0620118b",
+      "sha256": "c5af123f75ac2602c0b1bf7395a96cbf18f436426c68492c32939e02f28e1a00",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -5545,76 +6953,76 @@
       ],
       "operations": [
         {
+          "async": false,
           "name": "RunState",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "RunState/__init__",
           "parameters": [
             "self",
             "value"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_StateMapping",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "_StateMapping/__deepcopy__",
           "parameters": [
             "self",
             "memo"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_StateMapping/__getitem__",
           "parameters": [
             "self",
             "key"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_StateMapping/__init__",
           "parameters": [
             "self",
             "source"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_StateMapping/__iter__",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_StateMapping/__len__",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_StateMapping/__setattr__",
           "parameters": [
             "self",
             "name",
             "value"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_field_value",
           "parameters": [
             "value"
-          ],
-          "async": false
+          ]
         }
       ],
       "imports": [
@@ -5739,6 +7147,7 @@
       ],
       "imports": [
         "._async",
+        "._connection",
         "._errors",
         "._query",
         "asyncio"
@@ -5786,22 +7195,22 @@
           ]
         },
         {
+          "async": false,
           "name": "Client/approve",
           "parameters": [
             "self",
             "checkpoint_id"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Client/aql",
           "parameters": [
             "self",
             "text",
             "parameters",
             "**options"
-          ],
-          "async": false
+          ]
         },
         {
           "async": false,
@@ -5877,12 +7286,12 @@
           ]
         },
         {
+          "async": false,
           "name": "Client/reject",
           "parameters": [
             "self",
             "checkpoint_id"
-          ],
-          "async": false
+          ]
         },
         {
           "async": false,
@@ -5903,14 +7312,14 @@
           ]
         },
         {
+          "async": false,
           "name": "Client/sql",
           "parameters": [
             "self",
             "text",
             "parameters",
             "**options"
-          ],
-          "async": false
+          ]
         },
         {
           "async": false,
@@ -6005,53 +7414,53 @@
           ]
         },
         {
+          "async": false,
           "name": "Query",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "Query/__init__",
           "parameters": [
             "self",
             "client",
             "query"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Query/all",
           "parameters": [
             "self",
             "**options"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Query/execution",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "Query/rows",
           "parameters": [
             "self",
             "**options"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "QueryReader",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "QueryReader/close",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
           "async": false,
@@ -6168,7 +7577,7 @@
           "parameters": []
         }
       ],
-      "sha256": "00f3784c8fddf62f9a676b5f4db2d2f99b1e76d331c24ab9b092a5f452ffeacb",
+      "sha256": "85a6c9b4110bf6c2b1776d6ecc499a75d2a579b1efc3c8885cab99d742fda171",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -8181,952 +9590,6 @@
           }
         }
       ]
-    },
-    {
-      "module": "packages/python-sdk/src/actql_sdk/_query.py",
-      "sha256": "a4714072975d33edfbe20032256191ea1722ddaa67130a8b3a105f572e9fea59",
-      "exports": [
-        "AsyncQuery",
-        "AsyncQueryReader",
-        "AsyncReader",
-        "ClientError",
-        "asyncio",
-        "tighter"
-      ],
-      "operations": [
-        {
-          "name": "AsyncQuery",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "AsyncQuery/__init__",
-          "parameters": [
-            "self",
-            "client",
-            "body",
-            "result_name"
-          ],
-          "async": false
-        },
-        {
-          "name": "AsyncQuery/_all",
-          "parameters": [
-            "self",
-            "rows",
-            "size",
-            "captured"
-          ],
-          "async": true
-        },
-        {
-          "name": "AsyncQuery/_error",
-          "parameters": [
-            "self",
-            "code",
-            "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "AsyncQuery/_select",
-          "parameters": [
-            "self"
-          ],
-          "async": true
-        },
-        {
-          "name": "AsyncQuery/all",
-          "parameters": [
-            "self",
-            "max_rows",
-            "max_retained_value_bytes",
-            "**read_options"
-          ],
-          "async": false
-        },
-        {
-          "name": "AsyncQuery/execution",
-          "parameters": [
-            "self"
-          ],
-          "async": false
-        },
-        {
-          "name": "AsyncQuery/rows",
-          "parameters": [
-            "self",
-            "**read_options"
-          ],
-          "async": false
-        },
-        {
-          "name": "AsyncQueryReader",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "AsyncQueryReader/__aenter__",
-          "parameters": [
-            "self"
-          ],
-          "async": true
-        },
-        {
-          "name": "AsyncQueryReader/__aexit__",
-          "parameters": [
-            "self",
-            "*exc"
-          ],
-          "async": true
-        },
-        {
-          "name": "AsyncQueryReader/__aiter__",
-          "parameters": [
-            "self"
-          ],
-          "async": false
-        },
-        {
-          "name": "AsyncQueryReader/__anext__",
-          "parameters": [
-            "self"
-          ],
-          "async": true
-        },
-        {
-          "name": "AsyncQueryReader/__init__",
-          "parameters": [
-            "self",
-            "query",
-            "captured"
-          ],
-          "async": false
-        },
-        {
-          "name": "AsyncQueryReader/_next",
-          "parameters": [
-            "self"
-          ],
-          "async": true
-        },
-        {
-          "name": "AsyncQueryReader/aclose",
-          "parameters": [
-            "self"
-          ],
-          "async": true
-        },
-        {
-          "name": "AsyncQueryReader/attempt_id",
-          "parameters": [
-            "self"
-          ],
-          "async": false
-        },
-        {
-          "name": "AsyncQueryReader/delivery_attempt",
-          "parameters": [
-            "self"
-          ],
-          "async": true
-        },
-        {
-          "name": "AsyncQueryReader/rows_yielded",
-          "parameters": [
-            "self"
-          ],
-          "async": false
-        },
-        {
-          "name": "_OriginalQueryHandle",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "_OriginalQueryHandle/__copy__",
-          "parameters": [
-            "self"
-          ],
-          "async": false
-        },
-        {
-          "name": "_OriginalQueryHandle/__deepcopy__",
-          "parameters": [
-            "self",
-            "memo"
-          ],
-          "async": false
-        },
-        {
-          "name": "_OriginalQueryHandle/__reduce_ex__",
-          "parameters": [
-            "self",
-            "protocol"
-          ],
-          "async": false
-        }
-      ],
-      "imports": [
-        "._async",
-        "._errors",
-        "._reader",
-        "._values",
-        "asyncio"
-      ],
-      "responsibilityFacet": "primary",
-      "role": "physical-io",
-      "owner": "existing public Python Client / wire / reader boundary",
-      "rationale": "Lazy caller composition of the same original submission, Run and Result; no separate permission, revision, retry or cleanup Owner.",
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "AsyncQuery",
-            "AsyncQuery/__init__",
-            "AsyncQuery/_all",
-            "AsyncQuery/_error",
-            "AsyncQuery/_select",
-            "AsyncQuery/all",
-            "AsyncQuery/execution",
-            "AsyncQuery/rows",
-            "AsyncQueryReader",
-            "AsyncQueryReader/__aenter__",
-            "AsyncQueryReader/__aexit__",
-            "AsyncQueryReader/__aiter__",
-            "AsyncQueryReader/__anext__",
-            "AsyncQueryReader/__init__",
-            "AsyncQueryReader/aclose",
-            "AsyncQueryReader/attempt_id",
-            "AsyncQueryReader/delivery_attempt",
-            "AsyncQueryReader/rows_yielded"
-          ],
-          "exports": [
-            "AsyncQuery",
-            "AsyncQueryReader",
-            "AsyncReader",
-            "ClientError",
-            "asyncio",
-            "tighter"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Responsibility: invoke one captured read-only submission and select its Result."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Inputs: the Client's admitted packet and an optional explicit Result name."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "identity": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Identity: the original submission/attempt survives observation loss and copies"
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Ownership: readers are the existing Result readers, held through local cleanup."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Synchronization: one caller lock joins concurrent consumption of this handle."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "failure": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Failure: held, Unknown and non-success states retain their original evidence."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Cancellation: cancelling consumption neither cancels a Run nor authorizes resend."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "resources": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Resources: the existing negotiated read and retained-value limits apply."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "extension": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Extension: the Common readOnly restriction, not this module, rejects Effects."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "verification": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Verification: lazy/cancellation/read-boundary and installed Remote cases."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "_OriginalQueryHandle",
-            "_OriginalQueryHandle/__copy__",
-            "_OriginalQueryHandle/__deepcopy__",
-            "_OriginalQueryHandle/__reduce_ex__"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Responsibility: invoke one captured read-only submission and select its Result."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Inputs: the Client's admitted packet and an optional explicit Result name."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "identity": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Identity: the original submission/attempt survives observation loss and copies"
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Ownership: readers are the existing Result readers, held through local cleanup."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Synchronization: one caller lock joins concurrent consumption of this handle."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "failure": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Failure: held, Unknown and non-success states retain their original evidence."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Cancellation: cancelling consumption neither cancels a Run nor authorizes resend."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "resources": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Resources: the existing negotiated read and retained-value limits apply."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "extension": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Extension: the Common readOnly restriction, not this module, rejects Effects."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "verification": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Verification: lazy/cancellation/read-boundary and installed Remote cases."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "AsyncQueryReader/_next"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Responsibility: invoke one captured read-only submission and select its Result."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Inputs: the Client's admitted packet and an optional explicit Result name."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "identity": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Identity: the original submission/attempt survives observation loss and copies"
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Ownership: readers are the existing Result readers, held through local cleanup."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Synchronization: one caller lock joins concurrent consumption of this handle."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "failure": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Failure: held, Unknown and non-success states retain their original evidence."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Cancellation: cancelling consumption neither cancels a Run nor authorizes resend."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "resources": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Resources: the existing negotiated read and retained-value limits apply."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "extension": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Extension: the Common readOnly restriction, not this module, rejects Effects."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ],
-            "verification": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_query.py",
-                "anchor": "Verification: lazy/cancellation/read-boundary and installed Remote cases."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "## Lazy short queries"
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "module": "packages/python-sdk/src/actql_sdk/_check_observation.py",
-      "sha256": "2096e890b5d1e39f3567cb659871abcc19913e1a30c2fc8a47acccee41a39982",
-      "exports": [
-        "Any",
-        "CheckObservation",
-        "CheckReason",
-        "CheckReport",
-        "ClientError",
-        "Iterator",
-        "Literal",
-        "Mapping",
-        "Observation",
-        "Self",
-        "annotations",
-        "cast",
-        "check_outcome",
-        "dataclass",
-        "fields",
-        "freeze",
-        "snapshot",
-        "thaw"
-      ],
-      "operations": [
-        {
-          "name": "CheckObservation",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "CheckObservation/__copy__",
-          "parameters": [
-            "self"
-          ],
-          "async": false
-        },
-        {
-          "name": "CheckObservation/__deepcopy__",
-          "parameters": [
-            "self",
-            "memo"
-          ],
-          "async": false
-        },
-        {
-          "name": "CheckObservation/__init__",
-          "parameters": [
-            "self",
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "CheckReason",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "CheckReport",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "_CheckFields",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "_CheckFields/__copy__",
-          "parameters": [
-            "self"
-          ],
-          "async": false
-        },
-        {
-          "name": "_CheckFields/__deepcopy__",
-          "parameters": [
-            "self",
-            "memo"
-          ],
-          "async": false
-        },
-        {
-          "name": "_CheckFields/__getitem__",
-          "parameters": [
-            "self",
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "_CheckFields/__iter__",
-          "parameters": [
-            "self"
-          ],
-          "async": false
-        },
-        {
-          "name": "_CheckFields/__len__",
-          "parameters": [
-            "self"
-          ],
-          "async": false
-        },
-        {
-          "name": "_CheckFields/__setattr__",
-          "parameters": [
-            "self",
-            "name",
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "_CheckFields/_from_snapshot",
-          "parameters": [
-            "cls",
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "_CheckFields/to_dict",
-          "parameters": [
-            "self"
-          ],
-          "async": false
-        }
-      ],
-      "imports": [
-        "._errors",
-        "._run_state",
-        "._values",
-        "._wire_codec",
-        "__future__",
-        "collections.abc",
-        "dataclasses",
-        "typing"
-      ],
-      "responsibilityFacet": "primary",
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "CheckObservation",
-            "CheckObservation/__copy__",
-            "CheckObservation/__deepcopy__",
-            "CheckObservation/__init__",
-            "CheckReason",
-            "CheckReport",
-            "_CheckFields",
-            "_CheckFields/__copy__",
-            "_CheckFields/__deepcopy__",
-            "_CheckFields/__getitem__",
-            "_CheckFields/__iter__",
-            "_CheckFields/__len__",
-            "_CheckFields/__setattr__",
-            "_CheckFields/_from_snapshot",
-            "_CheckFields/to_dict"
-          ],
-          "exports": [
-            "Any",
-            "CheckObservation",
-            "CheckReason",
-            "CheckReport",
-            "ClientError",
-            "Iterator",
-            "Literal",
-            "Mapping",
-            "Observation",
-            "Self",
-            "annotations",
-            "check_outcome",
-            "dataclass",
-            "fields",
-            "freeze",
-            "snapshot",
-            "thaw"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
-                "anchor": "Responsibility: expose the public report/reason attributes without another checker."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "### Check report attributes"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
-                "anchor": "Inputs: only the original generated check-outcome admission selects a variant."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "### Check report attributes"
-              }
-            ],
-            "identity": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
-                "anchor": "Identity: mapping/to_dict retain exact wire absence; dataclass copies are data."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "### Check report attributes"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
-                "anchor": "Ownership: no view issues an input binding, Run, permission or original-call key."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "### Check report attributes"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
-                "anchor": "Synchronization: construction is local and performs no callbacks or I/O."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "### Check report attributes"
-              }
-            ],
-            "failure": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
-                "anchor": "Failure: completed, partial failure and unavailable remain separate outcomes."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "### Check report attributes"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
-                "anchor": "Cancellation: projection neither starts nor cancels work or acknowledges cleanup."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "### Check report attributes"
-              }
-            ],
-            "resources": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
-                "anchor": "Resources: the already bounded immutable response backs nested views."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "### Check report attributes"
-              }
-            ],
-            "extension": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
-                "anchor": "Extension: new wire variants must first pass the same generated codec."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "### Check report attributes"
-              }
-            ],
-            "verification": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
-                "anchor": "Verification: public facade, detached-copy and original-location tests."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "### Check report attributes"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [],
-          "exports": [
-            "cast"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
-                "anchor": "Responsibility: expose the public report/reason attributes without another checker."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "### Check report attributes"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
-                "anchor": "Inputs: only the original generated check-outcome admission selects a variant."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "### Check report attributes"
-              }
-            ],
-            "identity": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
-                "anchor": "Identity: mapping/to_dict retain exact wire absence; dataclass copies are data."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "### Check report attributes"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
-                "anchor": "Ownership: no view issues an input binding, Run, permission or original-call key."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "### Check report attributes"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
-                "anchor": "Synchronization: construction is local and performs no callbacks or I/O."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "### Check report attributes"
-              }
-            ],
-            "failure": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
-                "anchor": "Failure: completed, partial failure and unavailable remain separate outcomes."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "### Check report attributes"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
-                "anchor": "Cancellation: projection neither starts nor cancels work or acknowledges cleanup."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "### Check report attributes"
-              }
-            ],
-            "resources": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
-                "anchor": "Resources: the already bounded immutable response backs nested views."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "### Check report attributes"
-              }
-            ],
-            "extension": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
-                "anchor": "Extension: new wire variants must first pass the same generated codec."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "### Check report attributes"
-              }
-            ],
-            "verification": [
-              {
-                "path": "packages/python-sdk/src/actql_sdk/_check_observation.py",
-                "anchor": "Verification: public facade, detached-copy and original-location tests."
-              },
-              {
-                "path": "packages/python-sdk/README.md",
-                "anchor": "### Check report attributes"
-              }
-            ]
-          }
-        }
-      ],
-      "role": "public-wire-codec",
-      "owner": "existing public Python Client / wire / reader boundary",
-      "rationale": "Immutable check/report/reason attributes delegate all admission to the original generated wire. Existing diagnostics alone retain original input custody; copies are detached data and issue no check, permission or Run."
     }
   ]
 }
