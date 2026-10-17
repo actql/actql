@@ -53,10 +53,11 @@ async function fixture(t) {
   const profilePath = join(root, 'profile.json');
   await writeFile(profilePath, JSON.stringify({version, connection: 'fixture-connection'}));
   const resolveSecret = async () => {secrets++; return secret;};
-  let binding, active = true, currentCount = 0, onCurrent;
+  let binding, active = true, currentCount = 0, onCurrent, assertResult;
   const f = {root, journal, requests: () => [...requests], secrets: () => secrets,
     rotate: () => {secret = 'replacement-token';}, revoke: () => {active = false;},
     setCurrent: callback => {onCurrent = callback;},
+    setAssertResult: value => {assertResult = value;},
     closeBinding: () => closeHttpsCredentialBinding(binding)};
   t.after(async () => {
     if (binding) assert.equal(closeHttpsCredentialBinding(binding), 'closed');
@@ -85,6 +86,7 @@ async function fixture(t) {
       const assertCurrent = () => {
         assertInstalledSourcePublicationRequest(request, originals);
         if (!active) throw Object.assign(new Error('FixtureAuthorityRevoked'), {code: 'FixtureAuthorityRevoked'});
+        return assertResult;
       };
       const currentBeforeSend = async () => {
         await observeInstalledSourcePublicationCurrent(request, originals);
@@ -105,7 +107,7 @@ async function fixture(t) {
         authorization: original, credential, callResource: callHttpsCredentialResource,
         operation: 'metadata:' + ['database', 'schema'][index], method: 'GET',
         path: '/metadata/' + ['database', 'schema'][index], maxRequestBytes: 128, maxResponseBytes: 1024, ...changes});
-      await callback({...f, control, view, subject, scopes, authorization, call});
+      await callback({...f, control, view, subject, scopes, credential, authorization, call});
       return Object.freeze({fixtureOnly: true});
     }};
     const connectorTable = createInstalledConnectorTable([{name: 'notion', registration: 'notion',
@@ -135,8 +137,14 @@ test('metadata foreign copied Scope and changed operation request refuse before 
   const f = await fixture(t);
   await f.run(async x => {
     const authorization = x.authorization(0);
+    const copiedSubject = x.view.admitSubject(x.view.subjectWire(x.subject), x.view.subjectCid(x.subject));
+    const foreignScope = x.view.prepareScope(copiedSubject, x.control.scopeFields(x.scopes[0]));
     for (const change of [{operation: 'metadata:schema'}, {path: '/metadata/other'},
-      {method: 'POST', body: '{}'}, {authorization: {...authorization, scope: {...authorization.scope}}}]) {
+      {method: 'POST', body: '{}'},
+      {credential: {...x.credential, binding: undefined}},
+      {credential: {...x.credential, currentBeforeSend: undefined}},
+      {authorization: {...authorization, scope: foreignScope}},
+      {authorization: {...authorization, scope: {...authorization.scope}}}]) {
       await assert.rejects(async () => x.call(0, change, authorization));
     }
     assert.deepEqual(x.journal.recover(), []);
@@ -198,4 +206,16 @@ test('metadata binding retirement after physical response retains pending until 
     assert.equal(x.closeBinding(), 'closed');
   });
   assert.equal(f.requests().length, 1);
+});
+
+
+test('metadata async or boolean synchronous current fence cannot authorize a claim', async t => {
+  for (const value of [Promise.resolve(), true]) {
+    const f = await fixture(t); f.setAssertResult(value);
+    await f.run(async x => {
+      await assert.rejects(x.call(0), {code: 'InvalidInstallationMetadataCurrentFence'});
+      assert.deepEqual(x.journal.recover(), []);
+    });
+    assert.equal(f.requests().length, 0); assert.equal(f.secrets(), 0);
+  }
 });
