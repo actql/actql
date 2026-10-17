@@ -2757,7 +2757,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
-      "sha256": "d83bc89224a58f3c9a54149cb5622d531804dab534902ea4f0bedcc30759d99a",
+      "sha256": "33659da72fb6dc7a1caa4fd6aba48915e2c8471a10e463d12f6f5e1ecea9f647",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing published Salesforce source installation; provider protocol stays Salesforce and RowRun remains the capture owner",
@@ -6684,7 +6684,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-source.mjs",
-      "sha256": "9a600cdcb29201a4cb0f157d6d9c4a44a93689d6e1096390d0b80948b46201a0",
+      "sha256": "9f4a2cb5889a5742d1aa3e78a3bf2e3e28055f9bd7c3ce8820c8e628d751b689",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
@@ -6749,7 +6749,8 @@
             "prepareAcquisition",
             "directReadIdentity",
             "prepareRead",
-            "grantBeforeBegin"
+            "grantBeforeBegin",
+            "originalSourceAccess"
           ],
           "async": true
         },
