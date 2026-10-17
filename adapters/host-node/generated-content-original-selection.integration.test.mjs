@@ -3,7 +3,7 @@
 // SERIALIZE Effect preparation, selected physical allocation or installed loan.
 import assert from 'node:assert/strict';
 import {createHash, generateKeyPairSync} from 'node:crypto';
-import {writeFile} from 'node:fs/promises';
+import {mkdir, mkdtemp, stat, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import test from 'node:test';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -17,8 +17,15 @@ const cid = value => `sha256:${createHash('sha256').update(value).digest('hex')}
 
 async function fixture(t, {restored = false, omitRestoredOriginal = false, afterMatch,
   failCompletion, maxObjectBytes = 10000, retainCustody = false} = {}) {
-  const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
-    prefix: 'generated-original-selection-', label: 'Generated Content original selection'});
+  const parent = new URL('../../_build/', import.meta.url).pathname;
+  await mkdir(parent, {recursive: true});
+  // An intentionally unresolved custody counter must not use the ordinary
+  // remove-on-passed scratch. Match the existing explicit Unknown test route.
+  const scratch = retainCustody
+    ? Object.freeze({path: await mkdtemp(join(parent, 'generated-original-unknown-'))})
+    : await createOwnedScratch({parent, prefix: 'generated-original-selection-',
+      label: 'Generated Content original selection'});
+  if (retainCustody) assert.equal((await stat(scratch.path)).mode & 0o777, 0o700);
   const generatedCleanups = [];
   let owner, holdingCid;
   const generated = await createGeneratedContentFixture({after: fn => generatedCleanups.push(fn)},
@@ -111,7 +118,7 @@ async function withConsumer(t, f, issued, inspect, expectedStatus = 'waiting_che
     // Preserve this fresh counter's original synthetic signer with its Run/DB
     // and Content holdings. No secret is logged and no old state is touched.
     await writeFile(join(f.scratch.path, 'original-test-signing-key.pem'),
-      keys.privateKey.export({type: 'pkcs8', format: 'pem'}), {mode: 0o600});
+      keys.privateKey.export({type: 'pkcs8', format: 'pem'}), {mode: 0o600, flag: 'wx'});
   }
   const host = await openContentCommandHost({scratch: f.scratch, generated: f.generated,
     originalContentValue: issued, keys, entrance: 'Local',
