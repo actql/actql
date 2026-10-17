@@ -113,13 +113,30 @@ function checkAuthenticationSelection(state, original) {
   }
 }
 
+function authenticationDependency(state, parentScope, grant, scope, control, journal, trustedNow) {
+  if (grant === undefined && scope === undefined) return undefined;
+  const selectedScope = Object.freeze({...scope});
+  if (selectedScope.resourceOrigin !== 'https://oauth2.googleapis.com' ||
+      !text(selectedScope.operation) || selectedScope.operation === parentScope.operation ||
+      credentialInvocationBindingKeys.some(name => name !== 'resourceOrigin' &&
+        selectedScope[name] !== state.original[name]) || typeof journal.checkGrant !== 'function') {
+    fail('ForeignRemoteCredentialAuthenticationScope');
+  }
+  const grantCid = control.identity(grant);
+  const original = journal.checkGrant(grantCid, BigInt(trustedNow), selectedScope, control);
+  // Prospective signed admission supplies metadata/current only. The later
+  // actual claim's own grant, never this separate object, binds the Common pair.
+  const expires = BigInt(JSON.parse(control.json(original)).expires_unix_ms);
+  return Object.freeze({grantCid, scope: selectedScope, expires});
+}
+
 // Prepare one bounded native-key assertion inside the existing binding. The
 // caller's original current/capacity boundary is required before resolution
 // and after its await. This does not send, claim an auth use or return secret
 // request bytes; the separate original authentication operation remains next.
 export async function prepareHttpsCredentialAuthenticationMaterial({binding,
   scope, control, journal, resolveSecret, parentClaim, currentBeforeSign,
-  now = Date.now, signal}) {
+  authenticationGrant, authenticationScope, now = Date.now, signal}) {
   const state = acquireBinding(binding, {scope, control, journal, resolveSecret});
   if (state === undefined) fail('InvalidRemoteCredentialBinding');
   try {
@@ -148,6 +165,8 @@ export async function prepareHttpsCredentialAuthenticationMaterial({binding,
     signal?.throwIfAborted();
     await currentBeforeSign();
     current();
+    const dependency = authenticationDependency(state, scope, authenticationGrant,
+      authenticationScope, control, journal, time());
     const selected = await registration.resolveMaterial(Object.freeze({
       ...state.original, operation: scope.operation,
       grantCid: parentClaim.record.grantCid}), signal);
@@ -158,7 +177,7 @@ export async function prepareHttpsCredentialAuthenticationMaterial({binding,
     const material = Object.freeze(Object.create(null));
     const original = {material, selected, privateKey: selected.privateKey,
       expiresUnixMilliseconds: selected.expiresUnixMilliseconds,
-      parentClaim, parentScope: Object.freeze({...scope}), assertion: undefined};
+      parentClaim, parentScope: Object.freeze({...scope}), dependency, assertion: undefined};
     // Retain the same original material through a failed later fence until the
     // binding retires. Resolver failures propagate with their original custody.
     state.authenticationMaterial = original;
@@ -172,8 +191,12 @@ export async function prepareHttpsCredentialAuthenticationMaterial({binding,
     // Read only metadata of the same signed claim grant; never re-admit or
     // manufacture an original from this canonical public grant projection.
     const parentExpiry = BigInt(JSON.parse(control.json(parentClaim.grant)).expires_unix_ms);
+    const currentDependency = dependency === undefined ? undefined :
+      authenticationDependency(state, original.parentScope, authenticationGrant,
+        dependency.scope, control, journal, trustedNow);
     const proposedExpiry = BigInt(issuedAt + registration.lifetimeSeconds) * 1000n;
-    const deadline = [parentExpiry, original.expiresUnixMilliseconds, proposedExpiry]
+    const deadline = [parentExpiry, original.expiresUnixMilliseconds, proposedExpiry,
+      currentDependency?.expires ?? parentExpiry]
       .reduce((minimum, value) => value < minimum ? value : minimum);
     const lifetime = deadline / 1000n - BigInt(issuedAt);
     if (deadline <= BigInt(trustedNow) || lifetime <= 0n) {
@@ -264,7 +287,7 @@ export async function exchangeHttpsCredentialAuthentication({binding, material,
   try {
     const original = state.authenticationMaterial, registration = state.authentication;
     if (registration === undefined || original === undefined ||
-        original.material !== material || original.assertion === undefined ||
+        original.material !== material || original.assertion === undefined || original.dependency === undefined ||
         typeof currentBeforeSend !== 'function' || typeof now !== 'function' ||
         !text(useId) || typeof journal.checkGrant !== 'function' ||
         ['prepareAuthenticationRequest', 'bindAuthenticationUse', 'checkAuthenticationOperation']
@@ -272,12 +295,17 @@ export async function exchangeHttpsCredentialAuthentication({binding, material,
       fail('RemoteCredentialAuthenticationUnavailable');
     }
     if (state.authenticationExchangeAttempted) fail('RemoteCredentialAuthenticationAlreadyClaimed');
+    if (control.identity(authGrant) !== original.dependency.grantCid) {
+      fail('ForeignRemoteCredentialAuthenticationScope');
+    }
     const reader = authenticationTokenReader(registration, state.maxSecretBytes);
     const selectedScope = Object.freeze({...authScope});
     if (selectedScope.resourceOrigin !== 'https://oauth2.googleapis.com' ||
         !text(selectedScope.operation) || selectedScope.operation === original.parentScope.operation ||
         credentialInvocationBindingKeys.some(name => name !== 'resourceOrigin' &&
-          selectedScope[name] !== state.original[name])) {
+          selectedScope[name] !== state.original[name]) ||
+        credentialInvocationBindingKeys.some(name => selectedScope[name] !== original.dependency.scope[name]) ||
+        selectedScope.operation !== original.dependency.scope.operation) {
       fail('ForeignRemoteCredentialAuthenticationScope');
     }
     await currentBeforeSend();
