@@ -211,7 +211,10 @@ test "installed process retains the original slot until typed child stop and phy
     if process.stop is None { assert_eq(process_test_sleep(1000), 0) }
   }
   assert_true(process.stop is Some(_))
-  assert_true(process.slot.unwrap().is_open())
+  // Successful spawn handed the original slot FD to its Holder. The retained
+  // typed stop, not Slot.is_open(), proves that the original pin is current.
+  assert_false(process.slot.unwrap().is_open())
+  process.stop.unwrap().require_current(process.holder.unwrap()).unwrap()
   fixture.host.retire_stopped_process(fixture.domain, process).unwrap()
   assert_true(process.closed && process.holder_closed && process.channel_retired)
   assert_false(process.slot.unwrap().is_open())

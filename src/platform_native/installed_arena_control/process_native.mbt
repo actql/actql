@@ -422,9 +422,6 @@ pub fn InstalledArenaHost::retire_stopped_process(
     }
   }
   process.closing = true
-  if process.slot_close_unknown {
-    return Err(@bootstrap.Process(@executor.LockFailed))
-  }
   guard process.region is Some(region) && process.stop is Some(stop) else {
     return Err(@bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)))
   }
@@ -436,13 +433,6 @@ pub fn InstalledArenaHost::retire_stopped_process(
   process.channel_retired = true
   process.holder_closed = true
   domain.live_channel = None
-  if process.slot is Some(slot) && slot.is_open() {
-    process.slot_close_unknown = true
-    if !slot.close() {
-      return Err(@bootstrap.Process(@executor.LockFailed))
-    }
-    process.slot_close_unknown = false
-  }
   process.closed = true
   Ok(())
 }
