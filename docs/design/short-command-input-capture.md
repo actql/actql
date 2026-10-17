@@ -141,7 +141,17 @@ materialization; the Host does not increase a cap, replace a reservation or
 retry preparation with smaller declared limits.
 
 The private exporter accepts that original phase view only for the matching
-managed member and complete snapshotted limits. Temporary import/receipt close
+managed member and complete snapshotted limits. Planning also seals the unique
+original local Result index already used to choose that member's generated
+sequence. A dependency exporter can use the same phase only for that exact
+index, original captured input set/member and original managed completion and
+retained material. The existing Source/managed-import Owner checks the original
+borrow, and reservation/allocation/borrowing precede its materialization. It
+does not use an arbitrary dependency index or substitute an equal Result.
+The same whole-key/derived-export checks remain required afterward; a matching
+index alone is not completed correspondence. Missing physical material and
+separate Table suppliers remain unavailable rather than falling back to data.
+Temporary import/receipt close
 does not return its borrower: completed key evidence and the captured payload
 can outlive those views. The existing capture cleanup must retain the phase
 before calling preparation and through payload/proof retirement. Closing it
@@ -178,9 +188,11 @@ Command key still has a separate original member binding, phase and overlapping
 import/key allowance, so its export is not merged with another member's key
 traversal. The existing Ledger can refuse the simultaneous allocations. An
 unkeyed member keeps its original export and proposal route. A dependent Local
-Result export needs its own original capacity receiver; a member-only phase is
-not silently used to fund that different route. Missing supply stays unavailable,
-not a language prohibition or permission to bypass the original key refusal.
+Result export needs the exact original local receiver described above. Other
+upstream-only Results and independently shared members cannot borrow that
+phase implicitly; their own overlapping supply remains required. Missing supply
+stays unavailable, not a language prohibition or permission to bypass the
+original key refusal.
 
 The parent capture retains phase views and completed-key aliases alongside
 source pins, prepared payloads, original Content artifacts and request children.

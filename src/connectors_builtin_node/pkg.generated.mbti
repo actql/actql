@@ -212,6 +212,8 @@ pub fn client_program_author_effect_preview(String, String, String, @logical_req
 
 pub fn client_program_begin_effect_command_key_workspace(ClientEffectCommandWorkspace, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.PublicationOutputExportLimits, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int]) -> Result[ClientEffectManagedInputImport, ClientEffectCommandWorkspaceIssue]
 
+pub fn client_program_begin_effect_local_command_key_workspace(ClientEffectCommandWorkspace, @physical_strategy.CapturedEffectInputs, Int, Int, @run_publication_host.PublicationOutputExportLimits, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int]) -> Result[ClientEffectManagedInputImport, ClientEffectCommandWorkspaceIssue]
+
 pub fn client_program_begin_infer_original_model_invalidation(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin]) -> Result[@physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin], @client_infer_host.Issue]
 
 pub fn client_program_begin_infer_original_read_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelQuantityCapacity?, Int64, Int64, Int, Int, Int) -> Result[@run_publication_host.ClientModelReadScope, @client_infer_host.Issue]

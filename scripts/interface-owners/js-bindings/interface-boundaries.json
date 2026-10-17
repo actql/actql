@@ -30109,7 +30109,7 @@
     {
       "module": "adapters/host-node/effect-input-export.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "b7c5731d6449824ba699c3fdc545a20d07a14969ace38e56122fe30376dc6235",
+      "sha256": "7d17cd93b4cee8403d581399e570d8fe0f7d28c29681b22ad24f29d9f7537650",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -45999,7 +45999,7 @@
     {
       "module": "adapters/host-node/installed-keyed-content-capture.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "85d76f963dd1704a7bb1323f883aaba2bb78ff3d01400bb048812eb5bb0802c9",
+      "sha256": "ed59d3b180595a40d021bd3c70ffd66ab517065fb37c10a8bba5cad53daad8b6",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -46056,6 +46056,13 @@
           "name": "installRunKeyedContentCapture/capture/capture/capture/retained/retained",
           "parameters": [
             "handles"
+          ],
+          "async": false
+        },
+        {
+          "name": "installRunKeyedContentCapture/capture/capture/capture/retained/retained#2",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -46163,6 +46170,13 @@
           "async": true
         },
         {
+          "name": "installRunKeyedContentCapture/recover/recover/recover/value/value",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "installRunKeyedContentCapture/recover/recover/recover#2",
           "parameters": [],
           "async": false
@@ -46220,8 +46234,30 @@
           "async": false
         },
         {
+          "name": "installRunKeyedContentCapture/selectedForContent/selectedForContent",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
           "name": "installRunKeyedContentCapture/selectionCurrent/selectionCurrent",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installRunKeyedContentCapture/storageCurrentForContent/storageCurrentForContent",
+          "parameters": [
+            "stored",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "installRunKeyedContentCapture/storageForContent/storageForContent",
+          "parameters": [
+            "binding"
+          ],
           "async": false
         }
       ],
@@ -46345,6 +46381,7 @@
             "installRunKeyedContentCapture/capture/capture",
             "installRunKeyedContentCapture/capture/capture/capture",
             "installRunKeyedContentCapture/capture/capture/capture/retained/retained",
+            "installRunKeyedContentCapture/capture/capture/capture/retained/retained#2",
             "installRunKeyedContentCapture/capture/capture/capture#2",
             "installRunKeyedContentCapture/capture/capture/capture#3",
             "installRunKeyedContentCapture/checkInventoryRoom/checkInventoryRoom",
@@ -46363,6 +46400,7 @@
             "installRunKeyedContentCapture/live/live",
             "installRunKeyedContentCapture/recover/recover",
             "installRunKeyedContentCapture/recover/recover/recover",
+            "installRunKeyedContentCapture/recover/recover/recover/value/value",
             "installRunKeyedContentCapture/recover/recover/recover#2",
             "installRunKeyedContentCapture/recoverInventory/recoverInventory",
             "installRunKeyedContentCapture/recoverInventory/recoverInventory/closed/closed",
@@ -46372,7 +46410,10 @@
             "installRunKeyedContentCapture/referenceIssuer/referenceIssuer",
             "installRunKeyedContentCapture/releaseCurrent/releaseCurrent",
             "installRunKeyedContentCapture/remember/remember",
-            "installRunKeyedContentCapture/selectionCurrent/selectionCurrent"
+            "installRunKeyedContentCapture/selectedForContent/selectedForContent",
+            "installRunKeyedContentCapture/selectionCurrent/selectionCurrent",
+            "installRunKeyedContentCapture/storageCurrentForContent/storageCurrentForContent",
+            "installRunKeyedContentCapture/storageForContent/storageForContent"
           ],
           "exports": [
             "installRunKeyedContentCapture"
@@ -46386,6 +46427,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "inputsOutputs": [
@@ -46396,6 +46441,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "identity": [
@@ -46406,6 +46455,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "ownership": [
@@ -46416,6 +46469,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "synchronization": [
@@ -46426,6 +46483,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "failure": [
@@ -46436,6 +46497,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "cancellation": [
@@ -46446,6 +46511,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "resources": [
@@ -46456,6 +46525,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "extension": [
@@ -46466,6 +46539,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ],
             "verification": [
@@ -46480,6 +46557,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
               }
             ]
           }

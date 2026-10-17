@@ -570,7 +570,8 @@ export async function exportPinnedEffectLocalResult({resultIndex, ...options}) {
   if (!Number.isSafeInteger(resultIndex) || resultIndex < 0) {
     throw new TypeError('InvalidEffectLocalResult');
   }
-  return exportPinnedResult({...options, memberIndex: undefined,
+  return exportPinnedResult({...options,
+    memberIndex: options.commandWorkspace === undefined ? undefined : options.memberIndex,
     localResultIndex: resultIndex});
 }
 
@@ -617,8 +618,10 @@ async function exportPinnedResult({
     throw new TypeError('MissingEffectPhysicalSource');
   }
   if (commandWorkspace !== undefined &&
-      (local || table || physical === undefined ||
-        typeof moon.clientProgramBeginEffectCommandKeyWorkspace !== 'function' ||
+      (table || physical === undefined ||
+        local && !Number.isSafeInteger(memberIndex) ||
+        typeof (local ? moon.clientProgramBeginEffectLocalCommandKeyWorkspace
+          : moon.clientProgramBeginEffectCommandKeyWorkspace) !== 'function' ||
         typeof moon.clientProgramEffectCommandKeyWorkspaceSynchronousEnd !== 'function')) {
     throw new TypeError('EffectCommandWorkspaceUnavailable');
   }
@@ -635,9 +638,13 @@ async function exportPinnedResult({
         // the exporter. Reserve/allocate before withRows can materialize its
         // managed import; no structural count or caller bytes issue capacity.
         try {
-          importing = checked(moon.clientProgramBeginEffectCommandKeyWorkspace(
-            commandWorkspace, inputs, memberIndex, limits,
-            physical.completed, physical.material));
+          importing = checked(local
+            ? moon.clientProgramBeginEffectLocalCommandKeyWorkspace(
+              commandWorkspace, inputs, memberIndex, localResultIndex, limits,
+              physical.completed, physical.material)
+            : moon.clientProgramBeginEffectCommandKeyWorkspace(
+              commandWorkspace, inputs, memberIndex, limits,
+              physical.completed, physical.material));
         } finally {
           // A synchronous return/throw is not a resource/physical ACK.
           moon.clientProgramEffectCommandKeyWorkspaceSynchronousEnd(commandWorkspace);

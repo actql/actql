@@ -172,6 +172,24 @@ capture; each call also holds its CheckedValue argument and observation callback
 workspace. Retirement still cuts the original back-reference, not those costs.
 This predicate issues no reservation, allocation, byte loan or read permission.
 
+The existing physical Source inventory may retain the exact confirmed Store
+holding alongside that issued value and its original candidate, Store authority,
+workspace Scope and data policy. Confirmation precedes the synchronous private
+receiver and the same availability fence runs again after it. Fresh capture and
+saved capture use this same boundary; neither reconstructs issuer custody by
+looking up a Reference or CID later. The inventory's typed original matcher and
+post-callback entry/current check are also required when selecting this stored
+binding. A copied binding or equal-wire issuance cannot substitute for that
+entry. The immutable observation exposes no Store, path, key or byte buffer.
+The post-matcher fence checks both inventory retirement and the original Source's
+current availability; a callback can change the latter without starting cleanup
+or replacing the entry. It rechecks inventory retirement after that availability
+callback as well. A prior successful match is not a substitute for either fence.
+It is metadata custody, not a physical loan, original phase assignment, read
+authorization or cleanup acknowledgement. Its extra record and aliases remain
+in the Source/Host envelope through their actual lifetimes; temporary Source
+cleanup does not retire the committed Content holding or escaped aliases.
+
 The same Owner can additionally borrow a supplier's already allocated
 `SharedAllocation`. It first matches the original issued Reference and captured
 input, then checks the same live Run Ledger and Resource's exact capacity /
