@@ -123,7 +123,10 @@ test "Salesforce row acquisition requires the same projected view and checked re
   let requirement = salesforce_row_requirement()
   let (query, evidence) = query_evidence_test_bodies()
   let acquisition = @row_host.prepare_row_acquisition(
-    projected, requirement, query, evidence,
+    projected,
+    requirement,
+    @identity.stringify_value(query, 100000, 10000, 100),
+    @identity.stringify_value(evidence, 100000, 10000, 100),
   ).unwrap()
   assert_true(
     @row_host.check_row_acquisition_original(
