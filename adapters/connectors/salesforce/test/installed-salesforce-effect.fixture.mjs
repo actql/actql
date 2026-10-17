@@ -58,7 +58,11 @@ export async function installedEffect(t, {writes, writeOperation = 'update',
   t.after(async () => {
     for (const close of closers.reverse()) await close();
     for (const effect of loaded) effect.close();
-    await rm(root, {recursive: true, force: true});
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      t.diagnostic(`Retained installed Salesforce Effect fixture: ${root}`);
+    } else {
+      await rm(root, {recursive: true, force: true});
+    }
   });
   const authority = generateKeyPairSync('ed25519');
   await writeFile(join(root, 'credential.key'), authority.privateKey.export({
