@@ -88,6 +88,19 @@ def emission_commands(output: str, moon_home: Path) -> list[list[str]]:
     return commands
 
 
+def require_emission_registry(commands: list[list[str]], registry: Path) -> None:
+    """Require the same selected file under ordinary absolute/relative spelling.
+
+    Moon emits repository-relative paths for an output inside its working root.
+    Resolve both spellings against that exact root; never omit the registry or
+    replace its package content with a fallback.
+    """
+    expected = registry.resolve()
+    if any((ROOT / command[command.index('-all-pkgs') + 1]).resolve() != expected
+           for command in commands if '-all-pkgs' in command):
+        raise ValueError('Selected Native compiler registry binding changed')
+
+
 def relocated_registry(raw: bytes, check_root: Path, build_root: Path,
                        moon_home: Path) -> bytes:
     """Preserve ordinary Moon metadata with only its artifact target relocated."""
@@ -194,9 +207,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     registry.parent.mkdir(parents=True, exist_ok=True)
     registry.write_bytes(relocated_registry(registry_source.read_bytes(), check_root,
                                           registry.parent, moon_home))
-    if any(Path(c[c.index('-all-pkgs') + 1]) != registry
-           for c in commands if '-all-pkgs' in c):
-        raise ValueError('Selected Native compiler registry binding changed')
+    require_emission_registry(commands, registry)
     source_roots = [ROOT / 'src' / name.removeprefix('actql/actql/') for name in PACKAGES]
     source_inputs = [original(path) for directory in sorted(source_roots)
                      for path in sorted(directory.iterdir())

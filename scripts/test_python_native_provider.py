@@ -3,6 +3,10 @@ import importlib.util
 import json
 from pathlib import Path
 import tempfile
+import os
+import shlex
+from types import SimpleNamespace
+from unittest.mock import patch
 import unittest
 
 
@@ -125,6 +129,69 @@ class NativeProviderRecipeTests(unittest.TestCase):
             alias = root / 'alias.c'; alias.symlink_to(original)
             with self.assertRaisesRegex(ValueError, 'unavailable'):
                 PRODUCER.original_dependency(alias, root / 'selected-sdk')
+
+
+class NativeProviderRegistryCallerTests(unittest.TestCase):
+    """Reach the actual build caller before input capture; no compiler runs."""
+
+    def exercise(self, spelling):
+        class ReachedInputCapture(Exception):
+            pass
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            moon, sdk, destination = root / 'moon', root / 'sdk', root / 'output'
+            moon.mkdir(); sdk.mkdir()
+            pin = {'moonc': 'selected-compiler', 'moon': 'selected-builder'}
+            (root / 'toolchain.json').write_text(json.dumps(pin))
+            (moon / 'installed.json').write_text(json.dumps({'pin': pin, 'platform': 'darwin-arm64'}))
+            first = root / 'src' / sorted(PRODUCER.PACKAGES)[0].removeprefix('actql/actql/')
+            first.mkdir(parents=True); (first / 'original.mbt').write_text('fixture source\n')
+            source = '1' * 40
+            def command(args, **kwargs):
+                output = ''
+                if args[:3] == ['git', 'rev-parse', 'HEAD']: output = source + '\n'
+                elif args[:2] == ['git', 'status']: pass
+                elif args[0] == str(moon / 'bin/moonc'): output = pin['moonc'] + '\n'
+                elif args[1] == 'version': output = 'moon ' + pin['moon'] + '\n'
+                elif args[1] == 'check' and args[0] == str(moon / 'bin/moon'):
+                    check = destination / 'metadata/native/debug/check'
+                    check.mkdir(parents=True)
+                    entries = []
+                    for package in sorted(PRODUCER.PACKAGES):
+                        rel = package.removeprefix('actql/actql/')
+                        entries.append({'root': 'actql/actql', 'rel': rel,
+                            'artifact': str(check / rel / (Path(rel).name + '.mi'))})
+                    (check / 'all_pkgs.json').write_text(json.dumps({'packages': entries}))
+                elif args[1] == 'build' and args[0] == str(moon / 'bin/moon'):
+                    registry = destination / 'emission/native/debug/build/all_pkgs.json'
+                    selected = str(registry) if spelling == 'absolute' else os.path.relpath(registry, root)
+                    if spelling == 'foreign': selected = str(root / 'foreign/all_pkgs.json')
+                    lines = ['moonc build-package original.mbt -pkg ' + package
+                        + ' -target native -o original.core -all-pkgs ' + shlex.quote(selected)
+                        for package in sorted(PRODUCER.PACKAGES)]
+                    lines.append('moonc link-core original.core -target native -o entry.c')
+                    output = '\n'.join(lines)
+                return SimpleNamespace(stdout=output, stderr='', returncode=0)
+            with patch.object(PRODUCER, 'ROOT', root), \
+                 patch.object(PRODUCER.platform, 'system', return_value='Darwin'), \
+                 patch.object(PRODUCER.platform, 'machine', return_value='arm64'), \
+                 patch.object(PRODUCER.subprocess, 'run', side_effect=command), \
+                 patch.object(PRODUCER, 'prepare_allocator_source', return_value=(None, {})), \
+                 patch.object(PRODUCER, 'original', side_effect=ReachedInputCapture), \
+                 patch.object(PRODUCER, 'require_emission_registry', wraps=PRODUCER.require_emission_registry) as gate:
+                expected = ValueError if spelling == 'foreign' else ReachedInputCapture
+                with self.assertRaises(expected):
+                    PRODUCER.build(source, moon, Path('/selected/clang'), sdk, destination, 30)
+                gate.assert_called_once()
+
+    def test_actual_builder_accepts_ordinary_relative_registry(self):
+        self.exercise('relative')
+
+    def test_actual_builder_preserves_absolute_registry(self):
+        self.exercise('absolute')
+
+    def test_actual_builder_refuses_foreign_registry_before_input_capture(self):
+        self.exercise('foreign')
 
 
 if __name__ == '__main__':
