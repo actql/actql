@@ -1,0 +1,49 @@
+{
+  "qualification": "Independent fixed operator configuration DATA, hashed with RFC8785 outside product output. Not a publication, authority, grant or expected row oracle. The installed Common Owner must regenerate and bind the same metadata before use.",
+  "alias": {
+    "name": "snowflake.usage_30d",
+    "sourceRef": "connector://snowflake/usage_30d#records",
+    "sourceViewContractCid": "sha256:df50f9150293e04506344dab14632b6a49799165a18e00a6c5fd87c5d0ddac7b",
+    "schemaContractCid": "sha256:071615d2d160b4ee56b95e58517257f24804863524226108b80b09231d6fe0a9"
+  },
+  "preimages": [
+    {
+      "name": "request",
+      "key": "cid",
+      "canonicalPreimage": "{\"body\":{\"additional_properties\":false,\"fields\":{},\"nullable\":false,\"type\":\"object\"},\"id\":\"snowflake/usage_30d/records/request\",\"kind\":\"request_schema\",\"schema\":\"actql.contract/0.1\",\"version\":\"snowflake/0.1\"}",
+      "cid": "sha256:772a18c190b50fdccdf943343c127fb297a1a7f93233ace368c60f28cf8e9511"
+    },
+    {
+      "name": "row",
+      "key": "cid",
+      "canonicalPreimage": "{\"body\":{\"fields\":{\"ACCOUNT_ID\":{\"nullable\":false,\"type\":\"string\"},\"ACTIVE_USERS\":{\"nullable\":false,\"precision\":38,\"scale\":0,\"type\":\"decimal\"},\"TREND\":{\"nullable\":true,\"type\":\"string\"}},\"version\":\"actql-relation-schema/0.1\"},\"id\":\"snowflake/usage_30d/records/row\",\"kind\":\"carrier_schema\",\"schema\":\"actql.contract/0.1\",\"version\":\"snowflake/0.1\"}",
+      "cid": "sha256:071615d2d160b4ee56b95e58517257f24804863524226108b80b09231d6fe0a9"
+    },
+    {
+      "name": "facts",
+      "key": "cid",
+      "canonicalPreimage": "{\"body\":{},\"id\":\"snowflake/usage_30d/records/facts\",\"kind\":\"carrier_facts\",\"schema\":\"actql.contract/0.1\",\"version\":\"snowflake/0.1\"}",
+      "cid": "sha256:1861cb227ba384d299d9287899b85cc5941cb17d06b0b42e2b8e34635a24d53d"
+    },
+    {
+      "name": "policy",
+      "key": "cid",
+      "canonicalPreimage": "{\"body\":{\"classification\":\"unknown\",\"source_ref\":\"connector://snowflake/usage_30d#records\",\"version\":\"actql-source-data-policy/0.1\"},\"id\":\"snowflake/usage_30d/records/policy\",\"kind\":\"data_policy\",\"schema\":\"actql.contract/0.1\",\"version\":\"snowflake/0.1\"}",
+      "cid": "sha256:9a888e1c927f90c738fe73210e330c262d65410c85a09276810a62f20c31b43c"
+    },
+    {
+      "name": "pushdown",
+      "key": "cid",
+      "canonicalPreimage": "{\"body\":{\"carrier\":\"relation\",\"operations\":[\"projection\"],\"version\":\"actql-source-view-pushdown/0.1\"},\"id\":\"snowflake/usage_30d/records/pushdown\",\"kind\":\"pushdown\",\"schema\":\"actql.contract/0.1\",\"version\":\"snowflake/0.1\"}",
+      "cid": "sha256:f79d9073ea345745799ef489bdd3c078475718c7b959a39bad5012e5daba4c94"
+    },
+    {
+      "name": "view",
+      "key": "contract_cid",
+      "canonicalPreimage": "{\"acquisition\":{\"authority\":\"read_content\",\"default_mode\":\"snapshot\",\"kind\":\"scan\",\"modes\":[{\"bounded\":true,\"mode\":\"snapshot\"}],\"request_schema\":{\"cid\":\"sha256:772a18c190b50fdccdf943343c127fb297a1a7f93233ace368c60f28cf8e9511\",\"id\":\"snowflake/usage_30d/records/request\",\"version\":\"snowflake/0.1\"}},\"connector_id\":\"snowflake\",\"connector_version\":\"snowflake/0.1\",\"output\":{\"carrier\":\"relation\",\"data_policy\":{\"cid\":\"sha256:9a888e1c927f90c738fe73210e330c262d65410c85a09276810a62f20c31b43c\",\"id\":\"snowflake/usage_30d/records/policy\",\"version\":\"snowflake/0.1\"},\"facts\":{\"cid\":\"sha256:1861cb227ba384d299d9287899b85cc5941cb17d06b0b42e2b8e34635a24d53d\",\"id\":\"snowflake/usage_30d/records/facts\",\"version\":\"snowflake/0.1\"},\"schema\":{\"cid\":\"sha256:071615d2d160b4ee56b95e58517257f24804863524226108b80b09231d6fe0a9\",\"id\":\"snowflake/usage_30d/records/row\",\"version\":\"snowflake/0.1\"}},\"pushdown\":{\"contract\":{\"cid\":\"sha256:f79d9073ea345745799ef489bdd3c078475718c7b959a39bad5012e5daba4c94\",\"id\":\"snowflake/usage_30d/records/pushdown\",\"version\":\"snowflake/0.1\"},\"operations\":[\"projection\"]},\"request_processing\":{\"mutates_business_state\":false},\"resource_kind\":\"relation\",\"schema\":\"actql.source_view/0.1\",\"view_id\":\"records\",\"view_version\":\"snowflake/0.1\"}",
+      "cid": "sha256:df50f9150293e04506344dab14632b6a49799165a18e00a6c5fd87c5d0ddac7b"
+    }
+  ],
+  "hostAccountWire": "{\"account_id\":\"snowflake-public-fixture\",\"entries\":[{\"connection\":{\"all\":true},\"entry_id\":\"run-and-read\",\"exclusions\":[],\"operation\":{\"any_of\":[\"read\",\"write\"]},\"outcome\":\"allow\",\"principal\":{\"all\":true},\"resource\":{\"all\":true}}],\"version\":\"actql-execution-account-config/0.1\"}",
+  "sourceAccountWire": "{\"account_id\":\"installed-fixture\",\"entries\":[{\"connection\":{\"any_of\":[\"snowflake:snowflake\"]},\"entry_id\":\"table-read\",\"exclusions\":[],\"operation\":{\"any_of\":[\"read\"]},\"outcome\":\"allow\",\"principal\":{\"all\":true},\"resource\":{\"any_of\":[\"usage_30d\"]}}],\"version\":\"actql-execution-account-config/0.1\"}"
+}

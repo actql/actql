@@ -260,6 +260,19 @@ export function installNodeClientProgramPreparation({moon, environment,
       return restored.prepared;
     },
     sourceCheckFailure(error) {return sourceCheckFailures.has(error);},
+    // Only the same installation's prepared owner reaches this boundary. The
+    // submitted intent is the opaque original retained by the request journal;
+    // no emitted row, final-stage inspection or Account decision stands in for
+    // its complete Common Effect inventory.
+    assertSubmittedIntent(prepared, intent) {
+      if (!owned.has(prepared) && !effectOwned.has(prepared)) {
+        throw new TypeError('Foreign Client preparation');
+      }
+      if (effectOwned.has(prepared) &&
+          !moon.clientSubmittedIntentEffectCompatible(intent, prepared)) {
+        fail('ClientProgramRejected');
+      }
+    },
     assertOwned(prepared) {
       if (!owned.has(prepared) && !effectOwned.has(prepared)) {
         throw new TypeError('Foreign Client preparation');

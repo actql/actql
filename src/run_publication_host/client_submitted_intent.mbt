@@ -5,6 +5,7 @@ struct ClientSubmittedIntent {
   wire : String
   cid : String
   stop_before_commit : Bool
+  read_only : Bool
 } derive(Eq, Debug)
 
 ///|
@@ -50,6 +51,29 @@ pub fn client_submitted_intent_requests_commit_stop(
 }
 
 ///|
+/// An original continuation restriction, never an execution or Account grant.
+pub fn client_submitted_intent_requests_read_only(
+  value : ClientSubmittedIntent,
+) -> Bool {
+  value.read_only
+}
+
+///|
+/// Consult the complete inventory of this same checked computation. Neither
+/// row cardinality, reachability nor a current policy decision removes an
+/// Effect occurrence. The Host separately retains the original intent/pair.
+pub fn client_submitted_intent_effect_compatible(
+  intent : ClientSubmittedIntent,
+  prepared : PreparedClientEffectComputation,
+) -> Bool {
+  !intent.read_only ||
+  @syntax.effect_header_count(
+    @checked.effect_program_static_headers(prepared.candidate),
+  ) ==
+  0
+}
+
+///|
 pub fn prepare_client_submitted_intent(
   body : String,
   max_bytes : Int,
@@ -92,7 +116,14 @@ pub fn prepare_client_submitted_intent(
     Some(@canonical.String("commit")) => true
     _ => return Err(InvalidEnvelope)
   }
-  let expected_fields = if stop_before_commit { 4 } else { 3 }
+  let read_only = match @canonical.object_field(value, "readOnly") {
+    None => false
+    Some(@canonical.Bool(true)) => true
+    _ => return Err(InvalidEnvelope)
+  }
+  let expected_fields = 3 +
+    (if stop_before_commit { 1 } else { 0 }) +
+    (if read_only { 1 } else { 0 })
   if @canonical.object_field_count(value) != Some(expected_fields) {
     return Err(InvalidEnvelope)
   }
@@ -128,6 +159,7 @@ pub fn prepare_client_submitted_intent(
       wire,
       cid: "sha256:" + @encode.finish_hash(writer),
       stop_before_commit,
+      read_only,
     })
   } catch {
     _ => Err(Encoding)

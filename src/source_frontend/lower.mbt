@@ -25,6 +25,7 @@ pub(all) struct Lowered {
   // Retain the trusted publication for the original checked Effect owner.
   update_targets : @query.UpdateTargetPublication?
   store_targets : @query.StoreTargetPublication?
+  command_targets : @query.CommandTargetPublication?
   command_selection : @query.ShortCommandSelection?
   keyed_effect_kind : @syntax.KeyedEffectKind?
 }
@@ -299,6 +300,7 @@ fn emit(
   program : @program.Program,
   update_targets : @query.UpdateTargetPublication?,
   store_targets : @query.StoreTargetPublication?,
+  command_targets : @query.CommandTargetPublication?,
   command_selection : @query.ShortCommandSelection?,
   keyed_effect_kind : @syntax.KeyedEffectKind?,
 ) -> Result[Lowered, Issue] {
@@ -315,6 +317,7 @@ fn emit(
     program: Some(program),
     update_targets,
     store_targets,
+    command_targets,
     command_selection,
     keyed_effect_kind,
   })
@@ -390,6 +393,7 @@ pub fn lower_with_source(
             program: None,
             update_targets: None,
             store_targets: None,
+            command_targets: None,
             command_selection: None,
             keyed_effect_kind: None,
           },
@@ -405,6 +409,7 @@ pub fn lower_with_source(
             program: None,
             update_targets: None,
             store_targets: None,
+            command_targets: None,
             command_selection: None,
             keyed_effect_kind: None,
           },
@@ -454,6 +459,7 @@ pub fn lower_with_source(
         program,
         update_targets,
         store_targets,
+        command_targets,
         command_selection,
         @syntax.terminal_effect(parsed).map(clause => clause.kind),
       ).map(lowered => (lowered, Some(source)))

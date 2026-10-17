@@ -74,7 +74,7 @@ import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {installHostObservation, observationTraceParent} from '../host-common/observation.mjs';
 import {installNodeClientDispatchOwner, confirmNodeRunCancellation, cancelNodeRunContinuation,
   observeNodeRestoredModelStop, recordNodeRunPhysicalStop} from './client-dispatch-owner.mjs';
-import {retainInstalledHostInitializationFailure} from
+import {retainInstalledHostInitializationFailure, retainInstalledHostRuntimeFailure} from
   './installed-host-cleanup.mjs';
 import {issueInferTrustedRuntimeView, checkInferTrustedRuntimeView,
   forgetInferTrustedRuntimeView, associateInferTrustedStartupView,
@@ -293,11 +293,11 @@ async function openInstalledHost(originalInstallation) {
     if (modelRuntimeView !== undefined) {
       if (modelRuntimeStartupView !== undefined) {
         forgetInferTrustedStartupView(modelRuntimeStartupView, host, host);
+        modelRuntimeStartupView = undefined;
       }
       forgetInferTrustedRuntimeView(modelRuntimeView, host, host);
+      modelRuntimeView = undefined;
     }
-    modelRuntimeStartupView = undefined;
-    modelRuntimeView = undefined;
     modelSdkStaticOriginals = undefined;
     // Drop the installer's borrowed configuration/callback and table links
     // only at the same final cleanup boundary. This is NOT process/native ACK.
@@ -1975,6 +1975,14 @@ async function openInstalledHost(originalInstallation) {
     if (!hostConnection({principalId: actual, connection})) {
       throw clientOperationError('ClientConnectionDenied');
     }
+    if (Object.hasOwn(submission, 'readOnly')) {
+      const intent = moon.clientSubmittedIntent(canonicalValueJson({kind, input,
+        parameters, readOnly: submission.readOnly,
+        ...(Object.hasOwn(submission, 'stopBefore') ? {stopBefore: submission.stopBefore} : {})},
+      {dataKeys: true}), 1048576, 65536, 64);
+      if (intent === undefined) throw clientOperationError('ClientProgramInvalidInput');
+      prepareSubmit.assertSubmittedIntent(submission.preparedProgram, intent);
+    }
     const {requested, resultNames, acquired, acquisitionCount, keyedAcquisition, effectful} =
       requestOf(submission);
     const selectedModel = inferSelections.get(submission.preparedProgram);
@@ -3108,6 +3116,7 @@ async function openInstalledHost(originalInstallation) {
     // request/Run observation remains available without relabeling its identity.
     submit: async () => {throw clientOperationError('ClientSubmissionReferenceRequired');},
     submitIntent: submissionService.submitAttempt,
+    submitNamedIntent: submissionService.submitNamedAttempt,
     lookupSubmission: submissionService.lookupSubmission,
     lookupRequest: lookupHeld,
     stateService, resultService, observeRun, observeOwners, wait, reconcile, cancel, lookupCancellation, cancelRequest,
@@ -3148,19 +3157,9 @@ async function openInstalledHost(originalInstallation) {
   }
   } catch (cause) {
     modelRuntimeClosing = true;
-    if (cause?.cleanupPending === true) {
-      // The SAME initialization cleanup handle retains this borrowed view.
-      // Never retire it merely because opening threw or close was requested.
-      const cleanup = cause.cleanupHandle;
-      if (typeof cleanup?.retry === 'function' && typeof cleanup?.status === 'function') {
-        cause.cleanupHandle = Object.freeze({status: () => cleanup.status(), async retry() {
-          const status = await cleanup.retry();
-          if (cleanup.status().pending === false) retireModelRuntime();
-          return status;
-        }});
-      }
-    } else retireModelRuntime();
-    throw cause;
+    // Retain the same original failure/child and Host reference finalizer,
+    // including readonly exceptions and partial nominal retirement.
+    throw retainInstalledHostRuntimeFailure(cause, retireModelRuntime);
   }
 }
 

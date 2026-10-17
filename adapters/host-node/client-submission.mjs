@@ -2,7 +2,8 @@
 // neither dispatches tasks nor infers nonexecution from a missing Run record.
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {validSubmissionRef, validSubmissionOutcome, validSubmissionLookup,
-  isClientSubmitRejection, validCheckOutcome, validOperationAttemptRef} from '../../packages/client-wire/index.mjs';
+  isClientSubmitRejection, validCheckOutcome, validOperationAttemptRef,
+  validSubmissionName, validNamedSubmissionAttempt} from '../../packages/client-wire/index.mjs';
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const classification = code => ({
@@ -139,14 +140,26 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     if (!validSubmissionLookup(result, value.connection, value.submissionRef)) fail('InvalidClientHostSubmissionLookup');
     return result;
   };
-  const replayReady = async (value, retained, fields, original) => {
+  const assertOriginalPreparation = (prepared, input, value) => {
+    if (typeof prepareSubmit.assertSubmittedIntent === 'function') {
+      prepareSubmit.assertSubmittedIntent(prepared, input);
+    } else if (Object.hasOwn(value, 'readOnly')) {
+      // An installation without the original Common boundary cannot accept
+      // this continuation choice. Older unselected installations are unchanged.
+      fail('ClientProgramUnsupported');
+    }
+  };
+  const replayReady = async (value, retained, fields, original, input) => {
     const requestId = retained.requestId;
     if (flights.has(requestId)) return original;
     // A ready receipt establishes acceptance, not physical dispatch. Only
     // explicit replay re-enters the existing Run owner; lookup stays read-only.
     const flight = (async () => {
       let preparedProgram;
-      try {preparedProgram = await prepareSubmit({...value, requestId});}
+      try {
+        preparedProgram = await prepareSubmit({...value, requestId});
+        assertOriginalPreparation(preparedProgram, input, value);
+      }
       catch (error) {
         if (!isClientSubmitRejection(error?.code)) throw error;
         // Current execution support cannot replace an already accepted intent.
@@ -181,17 +194,22 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     flights.set(requestId, flight);
     return await flight;
   };
-  const submitIntent = async (request, attempt) => {
-    const value = snapshot(request);
-    if (!validSubmissionRef(value.submissionRef)) fail('InvalidClientRequest');
-    const fields = attempt?.fields ?? await authorize(value);
+  const submittedInput = value => {
     const input = moon.clientSubmittedIntent(canonicalJson({kind: value.kind, input: value.input,
       parameters: value.parameters,
-      ...(Object.hasOwn(value, 'stopBefore') ? {stopBefore: value.stopBefore} : {})},
+      ...(Object.hasOwn(value, 'stopBefore') ? {stopBefore: value.stopBefore} : {}),
+      ...(Object.hasOwn(value, 'readOnly') ? {readOnly: value.readOnly} : {})},
     {dataKeys: true}), 1048576, 65536, 64);
     if (input === undefined || moon.clientSubmittedIntentCid(input) !== value.intentCid) {
       fail('InvalidClientSubmittedIntent');
     }
+    return input;
+  };
+  const submitIntent = async (request, attempt) => {
+    const value = snapshot(request);
+    if (!validSubmissionRef(value.submissionRef)) fail('InvalidClientRequest');
+    const fields = attempt?.fields ?? await authorize(value);
+    const input = submittedInput(value);
     // The Host supplies principalId after authentication. Client data cannot
     // substitute another actor for this explicit decision. Check through the
     // same journal owner before preparation and at atomic receipt acceptance.
@@ -205,7 +223,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       if (retained.intentCid !== value.intentCid) fail('ClientSubmittedIntentConflict');
       const result = await refresh(value, retained, fields);
       if (result.kind === 'unresolvable') fail('ClientSubmissionUnresolvable');
-      if (result.kind === 'ready') return await replayReady(value, retained, fields, result);
+      if (result.kind === 'ready') return await replayReady(value, retained, fields, result, input);
       if (result.kind !== 'preparing') return await discloseOutcome(value, result, fields, retained);
     }
     if (retained === undefined) {
@@ -222,7 +240,10 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       return storedOutcome(journal.lookupSubmittedIntent(value.submissionRef, fields, moon));
     }
     let preparedProgram;
-    try {preparedProgram = await prepareSubmit({...value, requestId});}
+    try {
+      preparedProgram = await prepareSubmit({...value, requestId});
+      assertOriginalPreparation(preparedProgram, input, value);
+    }
     catch (error) {
       if (!isClientSubmitRejection(error?.code)) throw error;
       const kind = retained === undefined ? 'not_accepted' : 'preparation_failed';
@@ -331,6 +352,44 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       return immutable(rejected);
     }
   };
-  return Object.freeze({submitIntent, submitAttempt, lookupSubmission,
+  const submitNamedAttempt = async request => {
+    const value = snapshot(request);
+    if (!validSubmissionName(value.requestName) || !validSubmissionRef(value.submissionRef) ||
+        !validOperationAttemptRef(value.attemptRef) || value.attemptRef.operation !== 'submit') {
+      fail('InvalidClientSubmissionAttempt');
+    }
+    if (typeof journal.resolveNamedSubmissionAttempt !== 'function') fail('ClientOperationUnavailable');
+    const selected = await authorizedScope(value);
+    const fields = selected === undefined ? {currentAuthorization: false} : scopeFields(selected);
+    const input = selected === undefined ? undefined : submittedInput(value);
+    const resolution = journal.resolveNamedSubmissionAttempt(value.requestName, input,
+      {...fields, actorId: value.principalId, submissionRef: value.submissionRef,
+        attemptRef: value.attemptRef}, moon);
+    const original = {requestName: value.requestName, intentCid: value.intentCid,
+      attemptRef: value.attemptRef};
+    let answer;
+    if (resolution.kind === 'refused' || resolution.kind === 'conflict') {
+      // Only the same Journal's nominal, confirmed rollback/initial refusal
+      // path can issue this projection. Error text never certifies nonacceptance.
+      answer = {...original, kind: resolution.kind, reason: resolution.reason,
+        ...(resolution.kind === 'refused' ? {guarantee: resolution.guarantee} : {})};
+    } else {
+      const retained = resolution.submission;
+      const bound = snapshot({...value, submissionRef: retained.submissionRef});
+      // The original name and intent are already committed before preparation.
+      // Another connection may only observe this original, never replay it or
+      // replace its epoch because its first outcome is still preparing/unknown.
+      const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission({
+        principalId: value.principalId, connection: value.connection, submissionRef: retained.submissionRef});
+      const current = await authorize(value);
+      if (current.authorityScopeCid !== fields.authorityScopeCid ||
+          current.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');
+      answer = {...original, kind: 'observed', outcome};
+    }
+    if (!validNamedSubmissionAttempt(answer, value.connection, value.requestName,
+      value.submissionRef, value.intentCid, value.attemptRef)) fail('InvalidClientHostSubmissionOutcome');
+    return immutable(answer);
+  };
+  return Object.freeze({submitIntent, submitAttempt, submitNamedAttempt, lookupSubmission,
     async issueEpoch(request) {return journal.issueSubmissionEpoch(await authorize(snapshot(request)), moon);}});
 }

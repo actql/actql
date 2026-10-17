@@ -1,0 +1,328 @@
+{
+  "qualification": "Lead-reviewed existing Owner references and syntax coverage only; not normal funding, raw retirement, installation, actual Slack service or release acceptance",
+  "source": "1680014add6ebc00f608b3524ca34add76bda025",
+  "declarations": [
+    {
+      "module": "adapters/connectors/slack/site/user-list-read.mjs",
+      "sha256": "e8deb4c7fdcd4ea5ddb42ca410f7962cca82431ea6e786b5a1c931851257cf3a",
+      "exports": [
+        "SLACK_USER_LIST_OPERATION",
+        "SLACK_WORKSPACE_IDENTITY_OPERATION",
+        "SlackUserListReadFailure",
+        "createSlackUserListReader"
+      ],
+      "operations": [
+        {
+          "name": "createSlackUserListReader",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackUserListReader/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSlackUserListReader/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createSlackUserListReader/handle/init:read/init:read/result/result",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackUserListReader/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "executeRead",
+          "parameters": [
+            "prepared",
+            "received"
+          ],
+          "async": true
+        },
+        {
+          "name": "executeRead/request/request",
+          "parameters": [
+            "operation",
+            "index",
+            "method",
+            "path",
+            "query",
+            "body"
+          ],
+          "async": true
+        },
+        {
+          "name": "executeRead/request/request/response/response",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "executeRead/request/request/response/response/response",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "executeRead/verify/verify",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReader",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead",
+          "parameters": [
+            "moon",
+            "workspaceId",
+            "names",
+            "initialAuthorization",
+            "credential",
+            "authorizationFor",
+            "limits",
+            "current",
+            "chargeResponse",
+            "consumeObservation",
+            "consumePage",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/prepareRead",
+          "parameters": [
+            "fn"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/prepareRead#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/prepareRead#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/prepareRead#4",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "SlackUserListReadFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause",
+            "observations"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/http-exchange.mjs",
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Slack Catalog/physical reader; Account, Credential/Site, Common RowRun and Ledger retain original authority, accounting, capture and cleanup",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createSlackUserListReader",
+            "createSlackUserListReader/handle/init:observe/init:observe",
+            "createSlackUserListReader/handle/init:read/init:read",
+            "createSlackUserListReader/handle/init:read/init:read/result/result",
+            "createSlackUserListReader/handle/init:requestStop/init:requestStop",
+            "executeRead",
+            "executeRead/request/request",
+            "executeRead/request/request/response/response",
+            "executeRead/request/request/response/response/response",
+            "executeRead/verify/verify",
+            "fail/fail",
+            "originalReader",
+            "positive/positive",
+            "prepareRead",
+            "prepareRead/prepareRead",
+            "prepareRead/prepareRead#2",
+            "prepareRead/prepareRead#3",
+            "prepareRead/prepareRead#4",
+            "prepareRead/provider/provider",
+            "SlackUserListReadFailure/constructor:constructor/constructor:constructor"
+          ],
+          "exports": [
+            "SLACK_USER_LIST_OPERATION",
+            "SLACK_WORKSPACE_IDENTITY_OPERATION",
+            "SlackUserListReadFailure",
+            "createSlackUserListReader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Credential-bound acquisition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/slack/site/user-list-read.mjs",
+                "anchor": "function prepareRead("
+              },
+              {
+                "path": "adapters/connectors/slack/site/user-list-read.mjs",
+                "anchor": "async function executeRead("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/slack/site/user-list-read.mjs",
+                "anchor": "invocationBindingsMatch(authorization.scope,context.scope)"
+              },
+              {
+                "path": "src/connectors/slack/catalog/identity.mbt",
+                "anchor": "pub fn slack_workspace_identity_matches("
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "different binding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/slack/site/user-list-read.mjs",
+                "anchor": "const readers = new WeakMap();"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Retained inventory and retirement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/slack/site/user-list-read.mjs",
+                "anchor": "currentBeforeSend:()=>verify(operation)"
+              },
+              {
+                "path": "adapters/connectors/slack/site/user-list-read.mjs",
+                "anchor": "await context.callbacks.consumeObservation(observed.charge);"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "journal.authorize("
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/slack/site/user-list-read.mjs",
+                "anchor": "throw new SlackUserListReadFailure(cause,observations);"
+              },
+              {
+                "path": "adapters/connectors/slack/test/user-list-read.test.mjs",
+                "anchor": "test('Slack lost page response keeps the original use Unknown"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/slack/site/user-list-read.mjs",
+                "anchor": "signal.throwIfAborted();"
+              },
+              {
+                "path": "adapters/connectors/slack/site/user-list-read.mjs",
+                "anchor": "requestStop(reason)"
+              },
+              {
+                "path": "adapters/connectors/slack/test/user-list-read.test.mjs",
+                "anchor": "test('Slack original reader cancellation copied handles"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "Before I/O the trusted caller must reserve the entire simultaneous reader graph"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "sharing is not zero retained cost"
+              },
+              {
+                "path": "adapters/connectors/slack/site/user-list-read.mjs",
+                "anchor": "cleanupConfirmed:false"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "module does not substitute constants, a new ledger or a cleanup assertion."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/slack/test/user-list-read.test.mjs",
+                "anchor": "test('Slack actual SQL and AQL use distinct identity and page grants"
+              },
+              {
+                "path": "adapters/connectors/slack/test/user-list-read.test.mjs",
+                "anchor": "test('Slack all-page IDs remain checked"
+              },
+              {
+                "path": "src/connectors/slack/catalog/identity_wbtest.mbt",
+                "anchor": "test \"Slack identity preserves"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

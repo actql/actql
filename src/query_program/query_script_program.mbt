@@ -846,7 +846,9 @@ fn compile_query_script_with_source(
           }
           commands.push(command)
         }
-        stage_entries.push(("effects", construction.object(commands)))
+        if !commands.is_empty() {
+          stage_entries.push(("effects", construction.object(commands)))
+        }
       }
       stages.push(construction.object(stage_entries))
       stage_arrays.push(stage_steps)

@@ -3,6 +3,7 @@ import type {ClientHostOperation, WireAdmissionShape, WireCancellationShape,
   WireOperationAttemptRefShape, WireCancellationAttemptShape,
   WireCancellationRefShape, WireCancellationLookupShape,
   WireSubmissionEpochShape, WireSubmissionRefShape, WireSubmissionOutcomeShape, WireSubmissionLookupShape, WireSubmissionRestartShape, WireSubmissionAttemptShape,
+  WireSubmissionNameShape, WireNamedSubmissionAttemptShape,
   WireCheckpointReviewShape, WireCheckpointSummaryShape,
   WireConnectionShape, WireHeldShape, WireLookupFoundShape,
   WireLookupNotFoundShape, WireLookupUnknownShape, WireProfileShape,
@@ -37,6 +38,12 @@ export type WireSubmissionEpoch = WireSubmissionEpochShape;
 export type WireSubmissionRef = WireSubmissionRefShape;
 export type WireSubmissionOutcome = WireSubmissionOutcomeShape;
 export type WireSubmissionAttempt = WireSubmissionAttemptShape;
+export type WireSubmissionName = WireSubmissionNameShape;
+export type WireNamedSubmissionAttempt = WireNamedSubmissionAttemptShape;
+export declare function validSubmissionName(value: unknown): value is WireSubmissionName;
+export declare function validNamedSubmissionAttempt(value: unknown, selected: WireConnection,
+  name: WireSubmissionName, candidate: WireSubmissionRef, intentCid: string,
+  attemptRef: WireOperationAttemptRef): value is WireNamedSubmissionAttempt;
 export declare function validSubmissionAttempt(value: unknown, selected: WireConnection,
   expected: WireSubmissionRef, intentCid: string, attemptRef: WireOperationAttemptRef,
   unresolvedHistory?: WireSubmissionRestart): value is WireSubmissionAttempt;
@@ -100,6 +107,9 @@ export type WireClientBodyByOperation = Readonly<{
   }>}> | Readonly<{kind: 'program'; input: object}>);
   'submit-intent': Omit<WireClientBodyByOperation['submit'], 'requestId'> & Readonly<{
     submissionRef: WireSubmissionRef; intentCid: string}>;
+  'submit-named-intent': WireClientBodyByOperation['submit-intent'] & Readonly<{
+    requestName: WireSubmissionName; attemptRef: WireOperationAttemptRef;
+    stopBefore?: 'commit'; readOnly?: true}>;
   'restart-intent': WireClientBodyByOperation['submit-intent'] & Readonly<{
     unresolvedHistory: WireSubmissionRestart}>;
   'lookup-submission': WireBodyBase & Readonly<{submissionRef: WireSubmissionRef}>;

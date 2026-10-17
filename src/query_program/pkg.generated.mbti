@@ -57,7 +57,7 @@ pub fn resolve_concrete_keyed_effect_target_binding(UpdateTargetPublication, @qu
 
 pub fn resolve_concrete_store_target_binding(StoreTargetPublication, String, String, Int) -> Result[ResolvedStoreTarget, StoreTargetIssue]
 
-pub fn resolve_concrete_update_target_binding(UpdateTargetPublication, String, String, Int) -> Result[ResolvedUpdateTarget, UpdateTargetIssue]
+pub fn resolve_concrete_update_target_binding(UpdateTargetPublication, String, String, Int, effect_kind? : String) -> Result[ResolvedUpdateTarget, UpdateTargetIssue]
 
 pub fn resolve_keyed_effect_target_binding(UpdateTargetPublication, @query_syntax.KeyedEffectKind, Array[@query_syntax.NamePart], @query_syntax.NamePart?, Int) -> Result[ResolvedUpdateTarget, UpdateTargetIssue]
 

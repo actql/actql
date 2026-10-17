@@ -551,9 +551,11 @@ export async function exportPinnedEffectLocalResult({resultIndex, ...options}) {
 async function exportPinnedResult({
   moon, execution, inputs, memberIndex, limits, onChunk,
   onReceipt, onCanonicalRow, canonicalRowLimits,
+  prepareProposal, commandWorkspace,
   signal, advanceQuantum = 256, localResultIndex,
 }) {
   if (typeof onChunk !== 'function' ||
+      (prepareProposal !== undefined && typeof prepareProposal !== 'function') ||
       (onReceipt !== undefined && typeof onReceipt !== 'function') ||
       (onCanonicalRow !== undefined &&
         (typeof onCanonicalRow !== 'function' ||
@@ -588,6 +590,12 @@ async function exportPinnedResult({
   if (physical === undefined && !local) {
     throw new TypeError('MissingEffectPhysicalSource');
   }
+  if (commandWorkspace !== undefined &&
+      (local || table || physical === undefined ||
+        typeof moon.clientProgramBeginEffectCommandKeyWorkspace !== 'function' ||
+        typeof moon.clientProgramEffectCommandKeyWorkspaceSynchronousEnd !== 'function')) {
+    throw new TypeError('EffectCommandWorkspaceUnavailable');
+  }
   let importing, preparation, stream, receipt, exportOwner;
   try {
     if (physical === undefined) {
@@ -596,7 +604,19 @@ async function exportPinnedResult({
       preparation = moon.clientProgramEffectLocalResultExportPreparation(
         exportOwner);
     } else {
-      importing = checked(local
+      if (commandWorkspace !== undefined) {
+        // The original capture retains this same phase view before calling
+        // the exporter. Reserve/allocate before withRows can materialize its
+        // managed import; no structural count or caller bytes issue capacity.
+        try {
+          importing = checked(moon.clientProgramBeginEffectCommandKeyWorkspace(
+            commandWorkspace, inputs, memberIndex, limits,
+            physical.completed, physical.material));
+        } finally {
+          // A synchronous return/throw is not a resource/physical ACK.
+          moon.clientProgramEffectCommandKeyWorkspaceSynchronousEnd(commandWorkspace);
+        }
+      } else importing = checked(local
         ? moon.clientProgramEffectLocalManagedInputBegin(inputs,
           localResultIndex, physical.completed, physical.material, limits)
         : table ? moon.clientProgramEffectTableManagedInputBegin(input,
@@ -624,6 +644,9 @@ async function exportPinnedResult({
         throw new Error('EffectInputExportDidNotAdvance');
       }
       await yieldEventLoop(undefined, {signal});
+    }
+    if (prepareProposal !== undefined) {
+      await prepareProposal(exportOwner, importing);
     }
     stream = checked(table ? moon.clientProgramEffectTableInputExportReady(preparation)
       : moon.clientProgramEffectInputExportReady(preparation));
@@ -689,7 +712,7 @@ async function preparePinnedEffectSourcePayloadOwned({
   moon, checkedOwner, execution, inputs, memberIndex, limits, store, maxBytes,
   control, invocation, retention, sourceBindingCid, contractLimits, signal,
   localEvidenceContext,
-  onProposalRow, proposalMemberIndexes, proposalLimits,
+  onProposalRow, proposalMemberIndexes, proposalLimits, onOriginalArtifact,
 }, manifestSet, local, duplicateManifestMember = false) {
   if (typeof store?.createPreparedObjectWriter !== 'function' ||
       typeof store.storeAuthorityCid !== 'string' ||
@@ -724,6 +747,7 @@ async function preparePinnedEffectSourcePayloadOwned({
           proposalLimits.maxBytes === 0 ||
           proposalLimits.maxNodes === 0 ||
           proposalLimits.maxDepth === 0)) ||
+      (onOriginalArtifact !== undefined && typeof onOriginalArtifact !== 'function') ||
       !Number.isSafeInteger(maxBytes) || maxBytes < 0) {
     throw new TypeError('InvalidEffectSourceStore');
   }
@@ -882,6 +906,16 @@ async function preparePinnedEffectSourcePayloadOwned({
           : control.issueDependentLocalEffectResultArtifact(checkedOwner,
             inputs, importing, local.dependency, localDefinition, receipt,
             retention, localContext, contractLimits);
+        if (onOriginalArtifact !== undefined && proposalMembers !== undefined) {
+          for (const originalMember of proposalMembers) {
+            // The same original export still owns its reference backing here.
+            // The capture must retain the Artifact before a fallible adoption;
+            // normal export finally remains responsible for the old receipt.
+            if (onOriginalArtifact(localResultArtifact, originalMember) !== undefined) {
+              throw new TypeError('InvalidEffectOriginalArtifactProjection');
+            }
+          }
+        }
         if (local !== undefined && !table) {
           if (memberIndex === undefined) return undefined;
           if (!moon.clientProgramEffectLocalResultMatchesMember(

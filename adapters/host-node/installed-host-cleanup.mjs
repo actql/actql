@@ -3,8 +3,19 @@
 export async function retainInstalledHostInitializationFailure(cause,
   {journal, store, checkpoints, dispatchOwner, sourceProfile,
     installedEffect, observation, ownerViews}) {
+  // Retain the original receiver and methods before the first cleanup await.
+  // A changed error property cannot acknowledge a different physical owner.
+  const originalCleanup = cause?.cleanupHandle;
+  let originalRetry, originalStatus;
+  let retryCaptured = false, statusCaptured = false;
+  function captureOriginalStatus() {
+    if (!statusCaptured) {
+      originalStatus = originalCleanup?.status;
+      statusCaptured = true;
+    }
+  }
   const pending = new Set();
-  if (cause?.cleanupHandle !== undefined || cause?.cleanupPending === true) {
+  if (originalCleanup !== undefined || cause?.cleanupPending === true) {
     pending.add('initialization');
   }
   if (checkpoints !== undefined) pending.add('checkpoint-stop');
@@ -20,10 +31,29 @@ export async function retainInstalledHostInitializationFailure(cause,
   const failure = Object.assign(new Error('InstalledHostInitializationFailed',
     {cause}), {code: 'InstalledHostInitializationFailed',
     primaryFailure: cause?.primaryFailure ?? cause});
-  const status = () => Object.freeze({pending: pending.size !== 0,
-    owners: Object.freeze([...pending]), errors: Object.freeze([
-      ...(cause?.cleanupHandle?.status?.().errors ??
-        cause?.cleanupErrors ?? []), ...errors])});
+  let originalErrors = cause?.cleanupErrors ?? [];
+  let observationFailure;
+  function observeOriginalCleanup() {
+    try {
+      captureOriginalStatus();
+      const observed = originalStatus?.call(originalCleanup);
+      const observedPending = observed?.pending !== false;
+      originalErrors = [...(observed?.errors ?? cause?.cleanupErrors ?? [])];
+      return observedPending;
+    } catch (error) {
+      // Observation is not an ACK. Retain one diagnostic rather than growing
+      // the error history on every status poll, and keep the original owner.
+      observationFailure ??= Object.freeze({owner: 'initialization', error});
+      return true;
+    }
+  }
+  const status = () => {
+    if (pending.has('initialization')) observeOriginalCleanup();
+    return Object.freeze({pending: pending.size !== 0,
+      owners: Object.freeze([...pending]), errors: Object.freeze([
+        ...originalErrors, ...(observationFailure === undefined ? [] :
+          [observationFailure]), ...errors])});
+  };
   async function attempt(name, close) {
     if (!pending.has(name)) return;
     try {
@@ -34,12 +64,19 @@ export async function retainInstalledHostInitializationFailure(cause,
   let flight;
   async function drain() {
     await attempt('initialization', async () => {
-      if (typeof cause.cleanupHandle?.retry !== 'function' ||
-          typeof cause.cleanupHandle?.status !== 'function') {
+      // Property access can itself fail. Keep it inside this original Owner's
+      // attempt; only an unobserved method may be captured on a later retry.
+      if (!retryCaptured) {
+        originalRetry = originalCleanup?.retry;
+        retryCaptured = true;
+      }
+      captureOriginalStatus();
+      if (typeof originalRetry !== 'function' ||
+          typeof originalStatus !== 'function') {
         throw new Error('InstalledHostInitializationCleanupOwnerMissing');
       }
-      await cause.cleanupHandle.retry();
-      if (cause.cleanupHandle.status().pending !== false) {
+      await originalRetry.call(originalCleanup);
+      if (observeOriginalCleanup()) {
         throw new Error('InstalledHostInitializationCleanupPending');
       }
     });
@@ -74,17 +111,97 @@ export async function retainInstalledHostInitializationFailure(cause,
   return failure;
 }
 
+// Keep the existing Host's final reference-retirement duty behind the exact
+// failed initializer's cleanup. Never mutate a borrowed/frozen exception or
+// infer successful retirement from its request/Promise alone.
+export function retainInstalledHostRuntimeFailure(cause, retire) {
+  let child = cause?.cleanupHandle;
+  let childStatus = child?.status, childRetry = child?.retry;
+  let childComplete = child === undefined && cause?.cleanupPending !== true;
+  let retirementComplete = false, finalize = retire, flight, lastError;
+  let failureOwner = 'initialization';
+  const originalErrors = cause?.cleanupErrors;
+  let childErrors = Array.isArray(originalErrors) ? originalErrors : [];
+  const failure = Object.assign(new Error('InstalledHostInitializationCleanupPending', {cause}), {
+    code: cause?.code ?? 'InstalledHostInitializationCleanupPending',
+    primaryFailure: cause?.primaryFailure ?? cause,
+  });
+  const status = () => Object.freeze({pending: !childComplete || !retirementComplete,
+    owners: Object.freeze([...(childComplete ? [] : ['initialization']),
+      ...(retirementComplete ? [] : ['runtime'])]),
+    errors: Object.freeze([...childErrors,
+      ...(lastError === undefined ? [] : [Object.freeze({owner: failureOwner, error: lastError})])])});
+  const observeChild = () => {
+    if (childComplete) return true;
+    if (typeof childStatus !== 'function' || typeof childRetry !== 'function') {
+      throw new Error('InstalledHostInitializationCleanupOwnerMissing');
+    }
+    const observed = Reflect.apply(childStatus, child, []);
+    const errors = observed?.errors;
+    if (Array.isArray(errors)) childErrors = errors;
+    if (observed?.pending !== false) return false;
+    childComplete = true;
+    child = childStatus = childRetry = undefined;
+    return true;
+  };
+  const retireOnce = () => {
+    if (retirementComplete) return;
+    failureOwner = 'runtime';
+    finalize();
+    retirementComplete = true;
+    finalize = undefined;
+  };
+  const update = () => {
+    const observed = status();
+    failure.cleanupPending = observed.pending;
+    failure.cleanupErrors = observed.errors;
+    failure.cleanupError = lastError;
+    return observed;
+  };
+  function retry() {
+    if (flight !== undefined) return flight;
+    if (childComplete && retirementComplete) return Promise.resolve(status());
+    flight = Promise.resolve().then(async () => {
+      try {
+        failureOwner = 'initialization';
+        if (!observeChild()) {
+          await Reflect.apply(childRetry, child, []);
+          if (!observeChild()) return update();
+        }
+        retireOnce();
+        return update();
+      } catch (error) {
+        lastError = error;
+        update();
+        throw failure;
+      }
+    }).finally(() => {flight = undefined;});
+    return flight;
+  }
+  failure.cleanupHandle = Object.freeze({status, retry});
+  // Merely attaching the finalizer must not retry the initializer's work.
+  try {
+    if (observeChild()) {
+      retireOnce();
+      return cause;
+    }
+  } catch (error) {lastError = error;}
+  update();
+  return failure;
+}
+
 // Once dispatch and Checkpoint owners have stopped, these resource closures
 // are independent. A failed close retains only that owner for the next call;
 // another adapter or the Store must not be skipped or closed twice.
 export function createInstalledHostShutdown({stop, drain, retire, checkpoint,
-  journal, source, effect, store, diagnostic, observation, ownerViews}) {
+  journal, source, effect, store, diagnostic, observation, ownerViews, finalize}) {
   const completed = new Set();
   const pending = Object.freeze(['stop', 'drain', 'retire', 'checkpoint',
     'journal', 'source', 'effect', 'store',
     ...(diagnostic === undefined ? [] : ['diagnostic']),
     ...(observation === undefined ? [] : ['observation']),
-    ...(ownerViews === undefined ? [] : ['ownerViews'])]);
+    ...(ownerViews === undefined ? [] : ['ownerViews']),
+    ...(finalize === undefined ? [] : ['finalize'])]);
   let flight;
   let checkpointResult;
   let storeCleanupPending = false;
@@ -130,6 +247,17 @@ export function createInstalledHostShutdown({stop, drain, retire, checkpoint,
     }
     await attempt('diagnostic', () => diagnostic?.());
     await attempt('observation', () => observation?.());
+    if (finalize !== undefined) {
+      try {
+        await attempt('finalize', finalize);
+        finalize = undefined;
+      }
+      catch (cause) {
+        throw Object.assign(new Error('InstalledHostCleanupPending', {cause}), {
+          code: 'InstalledHostCleanupPending', primaryFailure: cause,
+        });
+      }
+    }
     return Object.freeze({storeCleanupPending,
       pendingRetention: checkpointResult?.pendingRetention ?? [],
       authorizationCleanupPending:
@@ -154,4 +282,95 @@ export function createInstalledHostShutdown({stop, drain, retire, checkpoint,
     return flight;
   }
   return Object.freeze({close, status});
+}
+
+// The failure of a caller that acquired `site`: the primary failure stays
+// the error, and the Site's release is attempted at once. When it does not
+// complete, the error carries the release responsibility (`cleanupPending`,
+// `cleanupErrors`, `cleanupHandle` {retry, status}) to the caller, beside any
+// cleanup responsibility it already carried. A frozen or non-object failure
+// is wrapped with `primaryFailure`.
+export function retainInstalledCredentialSiteCleanup(site, primary,
+  ownerFailureCode = 'InstalledCredentialSiteOwnerFailed') {
+  const errors = [];
+  try { site.close(); } catch (error) { errors.push(error); }
+  return handOverCredentialSiteRelease(site, primary, errors, ownerFailureCode);
+}
+
+// Release `site` after its caller succeeded. A release that does not
+// complete throws its failure carrying the retry responsibility; the failed
+// attempt is not repeated here.
+export function releaseInstalledCredentialSite(site,
+  ownerFailureCode = 'InstalledCredentialSiteOwnerFailed') {
+  try { site.close(); }
+  catch (error) { throw handOverCredentialSiteRelease(site, error, [error], ownerFailureCode); }
+}
+
+function handOverCredentialSiteRelease(site, primary, errors, ownerFailureCode) {
+  // Capture the previous owner before wrapping or replacing its metadata.
+  const earlier = primary?.cleanupHandle;
+  const earlierOwned = earlier !== undefined || primary?.cleanupPending === true;
+  const earlierErrors = primary?.cleanupErrors ?? [];
+  let originalStatus, originalRetry;
+  let statusCaptured = false, retryCaptured = false;
+  function captureEarlierMethods() {
+    // Capture each successfully observed method once, before invoking either
+    // one. A failed getter keeps the same receiver pending for a later check.
+    if (!retryCaptured) {
+      originalRetry = earlier?.retry;
+      retryCaptured = true;
+    }
+    if (!statusCaptured) {
+      originalStatus = earlier?.status;
+      statusCaptured = true;
+    }
+  }
+  const earlierStatus = () => {
+    try {
+      captureEarlierMethods();
+      return typeof originalStatus === 'function'
+        ? originalStatus.call(earlier) : undefined;
+    } catch (error) {
+      // An unavailable observation cannot replace the primary failure or
+      // confirm release. Keep the retry owner and the observation failure.
+      if (!errors.includes(error)) errors.push(error);
+      return undefined;
+    }
+  };
+  const failure = primary !== null && typeof primary === 'object' &&
+    Object.isExtensible(primary) ? primary
+    : Object.assign(new Error(ownerFailureCode, {cause: primary}),
+      {code: primary?.code ?? ownerFailureCode,
+        primaryFailure: primary});
+  if (site.cleanupPending() !== true && !earlierOwned) return failure;
+  const status = () => {
+    const before = earlierStatus();
+    return Object.freeze({
+      // Only the previous owner can confirm its own release. A missing or
+      // incomplete handle must not turn an outstanding duty into success.
+      pending: site.cleanupPending() === true ||
+        earlierOwned && before?.pending !== false,
+      errors: Object.freeze([...(before?.errors ?? earlierErrors), ...errors])});
+  };
+  const handle = Object.freeze({status, async retry() {
+    if (earlierStatus()?.pending !== false) {
+      try {
+        captureEarlierMethods();
+        if (typeof originalRetry === 'function') {
+          await originalRetry.call(earlier);
+        }
+      } catch (error) { if (!errors.includes(error)) errors.push(error); }
+    }
+    if (site.cleanupPending() === true) {
+      try { site.close(); } catch (error) { errors.push(error); }
+    }
+    const current = status();
+    failure.cleanupPending = current.pending;
+    failure.cleanupErrors = current.errors;
+    return current;
+  }});
+  failure.cleanupPending = status().pending;
+  failure.cleanupErrors = status().errors;
+  failure.cleanupHandle = handle;
+  return failure;
 }

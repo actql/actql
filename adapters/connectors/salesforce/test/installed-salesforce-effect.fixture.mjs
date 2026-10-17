@@ -255,7 +255,7 @@ export async function effectHost(t, installation, state, {effect,
     if (closed) return;
     closed = true;
     for (const {stage, result} of outcomes) {
-      stage.dispose();
+      await stage.dispose();
       await endCustody(stage, result);
     }
     for (const execution of executions) {
