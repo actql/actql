@@ -76,7 +76,7 @@ struct NativeBackedLiveChannel[T, C] {
   mut ledger_frame : @resources.ImportedChildLedger?
   mut original_ledger : @resources.Ledger?
   mut envelope_attempted : Bool
-  mut envelope : @resources.Reservation?
+  mut envelope : @resources.CapacityReservation?
   mut envelope_retired : Bool
   mut retired : Bool
 }

@@ -99,6 +99,10 @@ pub fn operate_installed_arena_channel_ledger_reply(
             }
           6 => backing.report_backed_channel_ledger(host, channel, frame)
           7 => backing.stop_backed_channel_ledger(host, channel, frame)
+          9 =>
+            backing.require_backed_channel_bootstrap_current(
+              host, channel, frame,
+            )
           8 =>
             backing.retire_backed_channel_bootstrap_after_owner_ack(
               host, channel, frame,

@@ -96,6 +96,15 @@ pub fn[T, C] NativeHostBootstrap::require_backed_channel_ledger_current(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  guard record.live is Some(live) else {
+    return Err(Domain(Bootstrap(Unavailable)))
+  }
+  match self.backed_live_child_state(original, live, record) {
+    Err(issue) => return Err(Domain(issue))
+    Ok(@resources.LiveClosing) =>
+      return Err(Child(@resources.Resource(@resources.ClosedReservation)))
+    Ok(@resources.LiveOpen) => ()
+  }
   guard record.original_ledger is Some(ledger) else {
     return Err(Child(@resources.Unavailable))
   }
@@ -133,6 +142,9 @@ pub fn[T, C] NativeHostBootstrap::reserve_backed_channel_bootstrap(
   match self.require_backed_channel_ledger_current(original, record, frame) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  if retained < 0L || execution <= 0L {
+    return Err(Child(@resources.Resource(@resources.InvalidCharge)))
   }
   if record.envelope_attempted {
     return Err(Child(@resources.AlreadyConsumed))
@@ -206,11 +218,40 @@ pub fn[T, C] NativeHostBootstrap::retire_backed_channel_bootstrap_after_owner_ac
   }
   if record.envelope is Some(envelope) {
     match
-      @resources.settle_reservation(record.original_ledger.unwrap(), envelope) {
+      @resources.settle_capacity(record.original_ledger.unwrap(), envelope) {
       Err(issue) => return Err(Child(@resources.Resource(issue)))
       Ok(_) => record.envelope = None
     }
   }
   record.envelope_retired = true
   Ok(())
+}
+
+///|
+/// Coverage only for the SAME selected physical domain. This cannot fund a
+/// separate process, FD, Python heap, copy, Store or VM/Account authority.
+pub fn[T, C] NativeHostBootstrap::require_backed_channel_bootstrap_current(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChannel[T, C],
+  frame : @resources.ImportedChildLedger,
+) -> Result[Unit, NativeBackedOriginalReadIssue] {
+  match self.require_backed_channel_ledger_current(original, record, frame) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard record.original_ledger is Some(ledger) &&
+    record.envelope is Some(envelope) else {
+    return Err(Child(@resources.Unavailable))
+  }
+  let (payload, _) = match
+    self.backed_domain_capacity(original, record.domain, record.child) {
+    Err(issue) => return Err(Domain(issue))
+    Ok(value) => value
+  }
+  if @resources.capacity_reservation_covers(ledger, envelope, 0L, payload) {
+    Ok(())
+  } else {
+    Err(Child(@resources.Unavailable))
+  }
 }
