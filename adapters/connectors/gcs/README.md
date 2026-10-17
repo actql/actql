@@ -717,6 +717,9 @@ response of its original conditional metadata PATCH or DELETE. A PATCH needs
 the same bucket/name/generation and byte size, advancing metageneration, exact
 intended user properties and the new marker extracted from its own sealed
 request. Available original storage class/checksums/encoding remain consistent.
+Optional storage class and checksum facts absent from the original observation
+may appear in the response; their earlier absence is not an expected value.
+Facts supplied by the original observation are still checked for equality.
 Case, NFD user text, omission and explicit empty metadata maps are not merged.
 
 An original empty 204 DELETE response confirms the provider operation. A later

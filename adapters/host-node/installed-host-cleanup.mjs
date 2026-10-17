@@ -283,3 +283,94 @@ export function createInstalledHostShutdown({stop, drain, retire, checkpoint,
   }
   return Object.freeze({close, status});
 }
+
+// The failure of a caller that acquired `site`: the primary failure stays
+// the error, and the Site's release is attempted at once. When it does not
+// complete, the error carries the release responsibility (`cleanupPending`,
+// `cleanupErrors`, `cleanupHandle` {retry, status}) to the caller, beside any
+// cleanup responsibility it already carried. A frozen or non-object failure
+// is wrapped with `primaryFailure`.
+export function retainInstalledCredentialSiteCleanup(site, primary,
+  ownerFailureCode = 'InstalledCredentialSiteOwnerFailed') {
+  const errors = [];
+  try { site.close(); } catch (error) { errors.push(error); }
+  return handOverCredentialSiteRelease(site, primary, errors, ownerFailureCode);
+}
+
+// Release `site` after its caller succeeded. A release that does not
+// complete throws its failure carrying the retry responsibility; the failed
+// attempt is not repeated here.
+export function releaseInstalledCredentialSite(site,
+  ownerFailureCode = 'InstalledCredentialSiteOwnerFailed') {
+  try { site.close(); }
+  catch (error) { throw handOverCredentialSiteRelease(site, error, [error], ownerFailureCode); }
+}
+
+function handOverCredentialSiteRelease(site, primary, errors, ownerFailureCode) {
+  // Capture the previous owner before wrapping or replacing its metadata.
+  const earlier = primary?.cleanupHandle;
+  const earlierOwned = earlier !== undefined || primary?.cleanupPending === true;
+  const earlierErrors = primary?.cleanupErrors ?? [];
+  let originalStatus, originalRetry;
+  let statusCaptured = false, retryCaptured = false;
+  function captureEarlierMethods() {
+    // Capture each successfully observed method once, before invoking either
+    // one. A failed getter keeps the same receiver pending for a later check.
+    if (!retryCaptured) {
+      originalRetry = earlier?.retry;
+      retryCaptured = true;
+    }
+    if (!statusCaptured) {
+      originalStatus = earlier?.status;
+      statusCaptured = true;
+    }
+  }
+  const earlierStatus = () => {
+    try {
+      captureEarlierMethods();
+      return typeof originalStatus === 'function'
+        ? originalStatus.call(earlier) : undefined;
+    } catch (error) {
+      // An unavailable observation cannot replace the primary failure or
+      // confirm release. Keep the retry owner and the observation failure.
+      if (!errors.includes(error)) errors.push(error);
+      return undefined;
+    }
+  };
+  const failure = primary !== null && typeof primary === 'object' &&
+    Object.isExtensible(primary) ? primary
+    : Object.assign(new Error(ownerFailureCode, {cause: primary}),
+      {code: primary?.code ?? ownerFailureCode,
+        primaryFailure: primary});
+  if (site.cleanupPending() !== true && !earlierOwned) return failure;
+  const status = () => {
+    const before = earlierStatus();
+    return Object.freeze({
+      // Only the previous owner can confirm its own release. A missing or
+      // incomplete handle must not turn an outstanding duty into success.
+      pending: site.cleanupPending() === true ||
+        earlierOwned && before?.pending !== false,
+      errors: Object.freeze([...(before?.errors ?? earlierErrors), ...errors])});
+  };
+  const handle = Object.freeze({status, async retry() {
+    if (earlierStatus()?.pending !== false) {
+      try {
+        captureEarlierMethods();
+        if (typeof originalRetry === 'function') {
+          await originalRetry.call(earlier);
+        }
+      } catch (error) { if (!errors.includes(error)) errors.push(error); }
+    }
+    if (site.cleanupPending() === true) {
+      try { site.close(); } catch (error) { errors.push(error); }
+    }
+    const current = status();
+    failure.cleanupPending = current.pending;
+    failure.cleanupErrors = current.errors;
+    return current;
+  }});
+  failure.cleanupPending = status().pending;
+  failure.cleanupErrors = status().errors;
+  failure.cleanupHandle = handle;
+  return failure;
+}

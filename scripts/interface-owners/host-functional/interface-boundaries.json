@@ -31073,11 +31073,13 @@
     {
       "module": "adapters/host-node/installed-host-cleanup.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "db592eae07986de4a15b95a22fa06f4c515b00f98bae4de23118a41503b75281",
+      "sha256": "9251263c6e0836332350cc1b524d8e3de6595ffbda6707e8fbce43fa8a8b474e",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
         "createInstalledHostShutdown",
+        "releaseInstalledCredentialSite",
+        "retainInstalledCredentialSiteCleanup",
         "retainInstalledHostInitializationFailure",
         "retainInstalledHostRuntimeFailure"
       ],
@@ -31156,6 +31158,53 @@
           "name": "createInstalledHostShutdown/status/status/status",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "handOverCredentialSiteRelease",
+          "parameters": [
+            "site",
+            "primary",
+            "errors",
+            "ownerFailureCode"
+          ],
+          "async": false
+        },
+        {
+          "name": "handOverCredentialSiteRelease/captureEarlierMethods",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "handOverCredentialSiteRelease/earlierStatus/earlierStatus",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "handOverCredentialSiteRelease/handle/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "handOverCredentialSiteRelease/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "releaseInstalledCredentialSite",
+          "parameters": [
+            "site",
+            "ownerFailureCode"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainInstalledCredentialSiteCleanup",
+          "parameters": [
+            "site",
+            "primary",
+            "ownerFailureCode"
           ],
           "async": false
         },
@@ -31624,6 +31673,99 @@
               {
                 "path": "adapters/host-node/installed-runtime-retirement.test.mjs",
                 "anchor": "installed Host retains original runtime cleanup after"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "handOverCredentialSiteRelease",
+            "handOverCredentialSiteRelease/earlierStatus/earlierStatus",
+            "handOverCredentialSiteRelease/handle/init:retry/init:retry",
+            "handOverCredentialSiteRelease/status/status",
+            "releaseInstalledCredentialSite",
+            "retainInstalledCredentialSiteCleanup",
+            "handOverCredentialSiteRelease/captureEarlierMethods"
+          ],
+          "exports": [
+            "releaseInstalledCredentialSite",
+            "retainInstalledCredentialSiteCleanup"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "export function retainInstalledCredentialSiteCleanup(site, primary,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "return handOverCredentialSiteRelease(site, primary, errors, ownerFailureCode);"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const earlier = primary?.cleanupHandle;"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "anchor": "'SalesforceSiteOwnerFailed'"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "originalStatus.call(earlier)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "function handOverCredentialSiteRelease(site, primary, errors, ownerFailureCode) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "if (site.cleanupPending() === true) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "An unavailable observation cannot replace the primary failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "earlierOwned && before?.pending !== false,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "## Credential Site failure handoff"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "anchor": "Compatibility entries delegate the same Site and primary failure"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-credential-site-cleanup.test.mjs",
+                "anchor": "shared Site cleanup retains an independent original Reader"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/installed-salesforce-site-cleanup.test.mjs",
+                "anchor": "an unavailable earlier status retains custody"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-site-original-methods.test.mjs",
+                "anchor": "a replacement status during the original retry cannot acknowledge the held original child"
               }
             ]
           }
