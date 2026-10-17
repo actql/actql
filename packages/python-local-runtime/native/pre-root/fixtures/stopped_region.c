@@ -53,6 +53,8 @@ int main(void) {
           actql_native_owned_transfer(domain, 1, recipe) == 0,
           "same original domain, without a second reserve");
     actql_owned_capacity *original_domain = domain;
+    check(actql_native_owned_domain_unborrowed(domain, &view) == 0,
+          "physical pre-start observation does not issue launch permission");
     check(actql_native_owned_unmap_stopped_child_domain(&view, &domain) == ACTQL_OWNED_INVALID &&
           domain == original_domain && view.mapping != NULL,
           "never-borrowed domain is not stopped-child retirement");
@@ -80,6 +82,8 @@ int main(void) {
     }
     assert(close(ready[1]) == 0 && close(finish[0]) == 0);
     char value = 0; assert(read(ready[0], &value, 1) == 1 && value == 'R');
+    check(actql_native_owned_domain_unborrowed(domain, &view) == ACTQL_OWNED_BUSY,
+          "original borrow prevents another pre-start observation");
     check(actql_native_owned_close_extent_domain(&view, &domain) == ACTQL_OWNED_BUSY &&
           domain == original_domain && !loan.returned,
           "ordinary domain close refuses the live original borrower");
@@ -123,7 +127,7 @@ int main(void) {
           actql_native_owned_retire(root, allocation) == 0 &&
           actql_native_owned_leave(root) == 0 && actql_native_owned_try_close(&root) == 0 && root == NULL,
           "separate descriptor loan allocation and original root cleanup");
-    printf("{\"discovered\":12,\"executed\":%d,\"passed\":%d,\"failed\":0,"
+    printf("{\"discovered\":14,\"executed\":%d,\"passed\":%d,\"failed\":0,"
            "\"fixture_pages\":64,\"Native_stop_proof\":false,\"Rust\":0,\"VM\":0}\n", cases, cases);
-    return cases == 12 ? 0 : 1;
+    return cases == 14 ? 0 : 1;
 }
