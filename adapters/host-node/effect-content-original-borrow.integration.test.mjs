@@ -79,7 +79,7 @@ test('actual Content preparation borrows the original captured Command input and
   scratch.passed();
 });
 
-test('actual Command child keeps its optional unindexed context and original parent through async preparation', async t => {
+test('actual Content capture keeps the same original parent through an async preparation child', async t => {
   const scratch = await createOwnedScratch({
     parent: new URL('../../_build/', import.meta.url).pathname,
     prefix: 'effect-content-child-', label: 'Original Content async child',

@@ -197,5 +197,11 @@ not return parent input/Artifact/Source custody before original child retirement
 Current refusal, cancellation and prepare failure drive that same cleanup;
 Promise completion or a cancel request is not a physical ACK. This port issues
 no capacity or permission. Missing supplier funding remains unavailable.
+The existing Command caller omits `rowIndex` and the selected-preparation
+`assertCurrent`; its indexed `authorizationForRow` callback is optional. Typed
+consumers distinguish these contexts by the presence of `rowIndex`, preserving
+the required zero-argument supplier for guarded rows. A Command never receives
+a synthetic row index or read grant to satisfy a declaration.
+
 Pure synchronous preparation and the existing Command child path are unchanged;
 this connection does not add DELETE to the separate saved-selection domain.
