@@ -110,3 +110,53 @@ and borrow must enter child custody before callbacks, survive current refusal,
 and remain held until the actual tuple/map/alias workspace retires. Component
 diagnostics using explicit structural fixtures do not establish that normal
 supplier or change the ordinary missing-key refusal.
+
+## Original Local key-phase byte custody
+
+The private Local Effect Host can plan one key phase only from its original
+prepared Run, generated task sequence and captured member. It retains those
+originals, not a reconstructed sequence, caller Ledger or equal-CID capacity.
+The selected allowance composes the existing Local allocation policy: one full
+row/key executor envelope, one managed re-admission envelope and both canonical
+export envelopes simultaneously. The key cursor is the same implementation
+used by that row executor. Its actual type-frame limit is selected from the
+original export value-node limit, rather than Local's smaller default. Logical
+wire framing is quoted at its own declared depth, not silently clamped to the
+payload depth. Values, row maps/order, key columns/tuples/map/type frames and
+encoding state remain overlapping; an entry ceiling is never converted directly
+into bytes. These are the existing conservative allocation units, not a V8/RSS
+theorem or a numerical Model profile. The full Local metadata/control allowance
+is retained, including bounded-session/key/import controls; a sampled small
+Result does not discount that allowance. Host planning records, original aliases
+and asynchronous caller controls remain in the enclosing Host inventory too.
+
+Before managed import or key construction, the same private phase uses the
+existing Ledger's byte-only reservation path, then its SharedCapacity,
+SharedAllocation and SharedBorrow. Each original token enters the retained
+phase view before the next fallible operation or callback. This path consumes
+no new send/Compute attempt, transfer, holding or quantity allowance. Both
+retained and execution allowances remain reserved until that same allocation
+and all borrowers retire. Insufficient original Ledger capacity refuses before
+materialization; the Host does not increase a cap, replace a reservation or
+retry preparation with smaller declared limits.
+
+The private exporter accepts that original phase view only for the matching
+managed member and complete snapshotted limits. Temporary import/receipt close
+does not return its borrower: completed key evidence and the captured payload
+can outlive those views. The existing capture cleanup must retain the phase
+before calling preparation and through payload/proof retirement. Closing it
+revokes new work first; a reentrant close during a synchronous operation stays
+pending. Private caller `finally` releases only its own synchronous stack entry,
+including refused nested calls, never a physical borrower. Existing bounded key
+cleanup, import cancellation, exact borrower return, allocation retirement and
+reservation settlement then drive the original debt. Refusal/throw retains that
+same view for cleanup; it does not acquire a replacement or acknowledge raw,
+Content, FD, Store or Source retirement. Borrow return invalidates the funded
+key evidence even while an escaped proof alias still exists.
+
+The explicit legacy component entrance remains available without this phase;
+its structural fixtures do not thereby become funded normal preparation. The
+ordinary automatic caller must install and retain the original private supplier
+before choosing this entrance. Physical Content allocation, current permission,
+installed distribution and the four-role Model supplier are separate obligations;
+neither this Local phase nor a matching Ledger supplies them implicitly.

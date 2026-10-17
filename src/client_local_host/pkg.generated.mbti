@@ -59,6 +59,8 @@ pub fn client_acquired_serialization_prefix_capacity(@run_publication_host.Prepa
 
 pub fn client_broad_residual_execution(ClientBroadResidual) -> @local.ManagedProviderExecution
 
+pub fn client_command_key_workspace_capacity(@execution_relation.GeneratedSequence, @run_publication_host.PublicationOutputExportLimits) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_content_local_provider(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, ClientSerializationWorkspaceLimits, ClientLocalContentPhysicalPort, (ClientLocalContentStep) -> Bool, recovery? : ClientRetainedContentOutput?) -> @local.ManagedProvider?
 
 pub fn client_duckdb_acquisition_estimate(Array[Array[Int]], Array[Int64?], Array[Int64?]) -> Result[ClientDuckDBAcquisitionEstimate, ClientDuckDBAcquisitionIssue]
