@@ -155,3 +155,60 @@ test('actual Notion aggregate page node cap applies to all complete rows togethe
   assert.equal(f.state.requests.length,6);
   assert.equal(reader.observe().cleanupConfirmed,false);
 });
+
+const queryStatus=(wire,status)=>wire.slice(0,-1)+',"request_status":'+JSON.stringify(status)+'}';
+
+test('actual Notion incomplete first page refuses before dependent I/O or row delivery and retains original charges',async t=>{
+  for(const cursor of [null,'next']){
+    const f=await fixture(t);let requests=0;
+    f.state.respond=request=>request.method==='POST'?
+      (requests++===0?queryStatus(queryPage(['page1'],cursor),{type:'incomplete',incomplete_reason:'query_result_limit_reached'}):queryPage([])):
+      propertyPage('ab');
+    const reader=f.create();let failure;
+    await assert.rejects(reader.read(),error=>{failure=error;return error.code==='NotionDataSourceReadFailed';});
+    assert.equal(f.state.requests.length,1);assert.equal(failure.children.length,0);assert.deepEqual(f.rows,[]);
+    assert.equal(failure.observations.length,1);assert.equal(failure.responseCharges.length,1);
+    assert.equal(failure.responseCharges[0],f.state.charges[0]);
+    assert.match(failure.observations[0].body.toString(),/"type":"incomplete"/u);
+    assert.equal(reader.observe().cleanupConfirmed,false);
+    await assert.rejects(reader.read(),{code:'NotionDataSourceReaderAlreadyStarted'});assert.equal(f.state.requests.length,1);
+  }
+});
+
+test('actual Notion incomplete final page cannot complete after an earlier valid original page',async t=>{
+  const f=await fixture(t),respond=f.state.respond;let queries=0;
+  f.state.respond=(request,body)=>{
+    const wire=respond(request,body);
+    return request.method==='POST'&&queries++===1?queryStatus(wire,{type:'incomplete',incomplete_reason:'query_result_limit_reached'}):wire;
+  };
+  const reader=f.create();let failure;
+  await assert.rejects(reader.read(),error=>{failure=error;return error.code==='NotionDataSourceReadFailed';});
+  assert.equal(f.state.requests.length,4);assert.equal(f.rows.length,1,'the earlier page is retained, never a successful whole query');
+  assert.equal(failure.children.length,1);assert.equal(failure.responseCharges.length,4);
+  assert(failure.responseCharges.every((ticket,index)=>ticket===f.state.charges[index]));
+  assert(failure.observations.some(response=>response.body.toString().includes('"type":"incomplete"')));
+  assert.equal(reader.observe().cleanupConfirmed,false);
+  await assert.rejects(reader.read(),{code:'NotionDataSourceReaderAlreadyStarted'});assert.equal(f.state.requests.length,4);
+});
+
+test('actual Notion explicit complete statuses preserve exact Decimal and original page custody',async t=>{
+  const f=await fixture(t),respond=f.state.respond;
+  f.state.respond=(request,body)=>{
+    const wire=respond(request,body);
+    return request.method==='POST'?queryStatus(wire,{type:'complete',incomplete_reason:'query_result_limit_reached'}):wire;
+  };
+  const reader=f.create(),result=await reader.read();
+  assert.equal(result.rowCount,2);assert.equal(result.pages,2);assert.equal(f.state.requests.length,6);
+  assert(f.rows.every(row=>row.amount==='9007199254740993.25'));
+  assert(result.observations.filter(x=>x.body.toString().includes('"type":"complete"')).length===2);
+  assert.equal(reader.observe().cleanupConfirmed,false);
+});
+
+test('compiled Notion query admission refuses malformed status instead of treating null cursor as completeness',()=>{
+  const {source}=originals();
+  for(const status of [null,true,[],{},'complete',{type:'future'},{type:null},{type:'complete',incomplete_reason:null},
+    {type:'complete',incomplete_reason:'future'},{type:'complete',extra:true}]){
+    const body=Buffer.from(queryStatus(queryPage(['page1']),status));
+    assert.throws(()=>checked(provider.notionProjectQueryPage(source,body,...metadata,10,128)),{code:'MoonBitHostFailure'});
+  }
+});
