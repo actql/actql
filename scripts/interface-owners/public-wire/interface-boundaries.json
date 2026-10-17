@@ -7,7 +7,7 @@
     {
       "module": "packages/client-wire/client-host.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "fad045daee1e9e01f7a64f3c976a5e2daa4650568a9463566b8e9e55c604b73d",
+      "sha256": "97fcde32a83d0b6112a6a9cd5fe474218619fa47056019a601c8221ead17f8d7",
       "exports": [
         "checkOutcomeProtocol",
         "checkOutcomeSchemaCid",
@@ -32,6 +32,7 @@
         "validLookupFoundShape",
         "validLookupNotFoundShape",
         "validLookupUnknownShape",
+        "validNamedSubmissionAttemptShape",
         "validOperationAttemptRefShape",
         "validOwnerCursorShape",
         "validOwnerObservationsShape",
@@ -52,6 +53,7 @@
         "validSubmissionAttemptShape",
         "validSubmissionEpochShape",
         "validSubmissionLookupShape",
+        "validSubmissionNameShape",
         "validSubmissionOutcomeShape",
         "validSubmissionRefShape",
         "validSubmissionRestartShape",
@@ -298,6 +300,13 @@
           "async": false
         },
         {
+          "name": "validNamedSubmissionAttemptShape/validNamedSubmissionAttemptShape",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "validOperationAttemptRefShape/validOperationAttemptRefShape",
           "parameters": [
             "value"
@@ -435,6 +444,13 @@
         },
         {
           "name": "validSubmissionLookupShape/validSubmissionLookupShape",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "validSubmissionNameShape/validSubmissionNameShape",
           "parameters": [
             "value"
           ],
@@ -1602,6 +1618,122 @@
               {
                 "path": "adapters/host-node/client-run-wait-since.test.mjs",
                 "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "validNamedSubmissionAttemptShape/validNamedSubmissionAttemptShape",
+            "validSubmissionNameShape/validSubmissionNameShape"
+          ],
+          "exports": [
+            "validNamedSubmissionAttemptShape",
+            "validSubmissionNameShape"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "## Scoped durable submission names"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"submit-named-intent\": ["
+              },
+              {
+                "path": "packages/client-wire/index.d.ts",
+                "anchor": "export declare function validNamedSubmissionAttempt("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "original workspace, actor and authority"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "a newly supplied connection epoch is not its"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "The physical index belongs to this same Journal and transaction owner."
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "resolveOrBindSubmittedName(name, intent, {namespaceId, actorId, authorityScopeCid,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Only the first confirmed insertion can enter preparation."
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission({"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named unresolved and refused replies remain distinct from committed original admission'"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Missing retained outcome, formal retirement,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Names are not"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Run/Effect reconciliation, current authorization and resource rules remain separate."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Names have finite admission capacity under the existing Journal limit."
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "rejectSubmission('ClientSubmissionNameCapacity', 'refused', 'admission_capacity');"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named packet identities pin new projections without changing old submission bodies'"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "The old explicit-epoch submission response still requires its original exact"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/client-wire/named-submission.test.mjs",
+                "anchor": "test('named observations correlate the original reference without weakening explicit epochs'"
+              },
+              {
+                "path": "adapters/host-node/client-named-submission-host.integration.test.mjs",
+                "anchor": "actual Host named submission survives a new process"
+              },
+              {
+                "path": "packages/client-wire/named-submission.typecheck.mts",
+                "anchor": "const retained: WireNamedSubmissionAttempt = value;"
               }
             ]
           }
