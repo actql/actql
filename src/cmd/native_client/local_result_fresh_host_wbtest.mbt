@@ -31,6 +31,7 @@ test "public Result reads actual published Values from a fresh Host and preserve
     "public-result-fresh-host",
     ttl_ms=86400000.0,
     observed_at=local_utc_now(),
+    managed_root=true,
   )
   defer host.close() |> ignore
   let sqlite = effect_finite_cli_ok(
@@ -154,6 +155,7 @@ test "public Result reads actual published Values from a fresh Host and preserve
         crypto,
         existing_only=true,
         configuration_files=settings.installation_files,
+        managed_root_path=Some(settings.managed_root),
       ),
       "fresh.reopen.adoption",
     ).open_journal(

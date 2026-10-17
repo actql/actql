@@ -15,6 +15,7 @@ fn effect_finite_cli_host(
   name : String,
   ttl_ms? : Double = 100.0,
   observed_at? : String = "2026-10-10T00:00:00.000Z",
+  managed_root? : Bool = false,
 ) -> (
   @local_host.NativeLocalHostConnection,
   LocalHostSettings,
@@ -76,6 +77,7 @@ fn effect_finite_cli_host(
         "local-cli",
         crypto,
         configuration_files=names,
+        managed_root_path=if managed_root { Some(root) } else { None },
       ),
       "adoption",
     ).open_journal(sqlite, crypto, ttl_ms, 8, 8388608L),
