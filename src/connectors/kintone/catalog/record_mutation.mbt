@@ -353,7 +353,15 @@ pub fn recheck_record_delete_form(
   bytes : Bytes,
   limits : FormFieldLimits,
 ) -> Result[Unit, RecordMutationIssue] {
-  let original = request.targets[0].page.catalog
+  recheck_original_record_form(request.targets[0].page.catalog, bytes, limits)
+}
+
+///|
+fn recheck_original_record_form(
+  original : FormFieldCatalog,
+  bytes : Bytes,
+  limits : FormFieldLimits,
+) -> Result[Unit, RecordMutationIssue] {
   let observed = match project_form_fields(bytes, original.app_id, limits) {
     Ok(value) => value
     Err(issue) => return Err(Form(issue))

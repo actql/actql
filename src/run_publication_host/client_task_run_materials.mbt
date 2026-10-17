@@ -85,6 +85,20 @@ fn admit_client_task_run_materials_input(
     Ok(value) => value
     Err(issue) => return Err(Compilation(issue))
   }
+  admit_client_task_run_materials_compilation(
+    input, compilation, expected_run_definition_cid, limits,
+  )
+}
+
+///|
+// Both task compilers must re-admit the same saved invocation, authorization
+// and complete Run identity. A reconstructed INFER graph is not authority.
+fn admit_client_task_run_materials_compilation(
+  input : ClientRunMaterialsInput,
+  compilation : ClientTaskCompilation,
+  expected_run_definition_cid : String,
+  limits : ClientValuesRunMaterialsLimits,
+) -> Result[ClientTaskRunMaterials, ClientTaskRunMaterialsIssue] {
   let evidence = fn(name : String, wire : String) {
     @publication.admit_run_evidence_value(
       name,

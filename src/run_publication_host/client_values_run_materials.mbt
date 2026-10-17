@@ -117,6 +117,7 @@ fn issue_client_run_materials_input(
   environment_wire : String,
   program : String,
   parameters_wire : String?,
+  infer_input? : (String, String)? = None,
 ) -> Result[String, ClientValuesRunMaterialsIssue] {
   let environment_cid = @checked.checking_environment_cid(environment)
   guard environment_cid == prepared_client_check_environment_cid(prepared) &&
@@ -150,7 +151,13 @@ fn issue_client_run_materials_input(
     return Err(MaterialsRunMismatch)
   }
   encode_client_run_materials_body(
-    admission, definition, environment_cid, environment_wire, program, parameters_wire,
+    admission,
+    definition,
+    environment_cid,
+    environment_wire,
+    program,
+    parameters_wire,
+    infer_input~,
   )
 }
 
@@ -274,6 +281,7 @@ fn encode_client_run_materials_body(
 // Bounded retained inputs for both compilation owners.
 priv struct ClientRunMaterialsInput {
   prepared : PreparedClientProgram
+  infer_input : (String, String)?
   prepared_wire : String
   authorization_wire : String
   scope_id : String
@@ -445,6 +453,7 @@ fn read_client_run_materials_input(
   expressions : @context.ExpressionProfiles,
   operations : @context.PureOperationProfiles,
   limits : ClientValuesRunMaterialsLimits,
+  allow_infer? : Bool = false,
 ) -> Result[ClientRunMaterialsInput, ClientValuesRunMaterialsIssue] {
   let body = match
     read_client_run_materials_body(materials, expressions, operations) {
@@ -457,7 +466,7 @@ fn read_client_run_materials_input(
   if body.target_selections_wire is Some(_) {
     return Err(MaterialsEvidence("effect_target_selections"))
   }
-  if body.infer_input is Some(_) {
+  if !allow_infer && body.infer_input is Some(_) {
     return Err(MaterialsEvidence("infer_execution_contract"))
   }
   let prepared = match
@@ -473,6 +482,7 @@ fn read_client_run_materials_input(
   }
   Ok({
     prepared,
+    infer_input: body.infer_input,
     prepared_wire: body.prepared_wire,
     authorization_wire: body.authorization_wire,
     scope_id: body.scope_id,
@@ -526,6 +536,7 @@ fn admit_client_values_run_materials_input(
     run_id,
     created_at,
     valid_until,
+    ..
   } = input
   let compilation = match
     issue_prepared_client_values_compilation(

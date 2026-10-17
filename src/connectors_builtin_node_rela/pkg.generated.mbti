@@ -178,6 +178,8 @@ pub fn client_program_admit_effect_risk_acceptance_body(String, Int, Int, Int) -
 
 pub fn client_program_admit_effect_run_materials(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, @run_publication_host.ClientRequestIdentity?) -> Result[@run_publication_host.ClientEffectRunMaterials, ClientEffectOriginalBridgeIssue]
 
+pub fn client_program_admit_infer_run_materials(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Result[@run_publication_host.ClientTaskRunMaterials, ClientInferRunMaterialsBridgeIssue]
+
 pub fn client_program_admit_local_effect_source_evidence(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalManifest, @run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, Int, Int, Int) -> Result[@run_publication.CapturedLocalEffectSourceEvidence, @run_publication.CapturedLocalEffectSourceIssue]
 
 pub fn client_program_admit_local_table_storage_mapping(String, Int, Int, Int) -> Result[@table.IcebergStorageMapping, @table.IcebergStorageMappingIssue]
@@ -706,6 +708,14 @@ pub fn client_program_imported_effect_relation_bodies(@run_publication_host.Clie
 
 pub fn client_program_imported_effect_scope_json(@run_publication_host.ClientEffectImportedEvidence) -> String
 
+pub fn client_program_infer_run_materials_compiled(@run_publication_host.ClientTaskRunMaterials) -> Result[@run_publication_host.ClientCompiledRun, @run_publication_host.ClientCompiledRunIssue]
+
+pub fn client_program_infer_run_materials_definition(@run_publication_host.ClientTaskRunMaterials) -> @run_publication.PublicationContract
+
+pub fn client_program_infer_run_materials_graph(@run_publication_host.ClientTaskRunMaterials) -> @run_publication_host.ClientInferPlanGraph?
+
+pub fn client_program_infer_run_materials_prepared(@run_publication_host.ClientTaskRunMaterials) -> @run_publication_host.PreparedClientProgram
+
 pub fn client_program_installed_duckdb_capture_capacity(@actql/actql/connectors/duckdb/host.CaptureConfiguration) -> @client_local_host.ClientInstalledCaptureCapacity?
 
 pub fn client_program_installed_listing_row_capture_capacity(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?) -> @client_local_host.ClientInstalledCaptureCapacity?
@@ -792,6 +802,8 @@ pub fn client_program_issue_imported_local_effect_invocation(@run_publication_ho
 
 pub fn client_program_issue_imported_local_effect_table_artifact(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectManagedInputImport, @run_publication_host.ClientEffectLocalTableDefinition, @run_publication_host.ClientEffectImportedEvidence, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, ClientEffectLocalArtifactBridgeIssue]
 
+pub fn client_program_issue_infer_run_materials(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @program_check.CheckEnvironment, String?) -> Result[String, @run_publication_host.ClientTaskRunMaterialsIssue]
+
 pub fn client_program_issue_local_effect_result_definition(@run_publication_host.PreparedClientEffectComputation, Int, String, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalResultDefinitionIssue]
 
 pub fn client_program_issue_local_effect_result_manifest(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectLocalInvocation, Array[@run_publication_host.ClientEffectLocalResultArtifact], Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalManifest, @run_publication_host.ClientEffectLocalManifestIssue]
@@ -849,6 +861,28 @@ pub fn client_program_kintone_accept_read_page(@actql/actql/connectors/kintone/h
 pub fn client_program_kintone_bind_read_cleanup(@actql/actql/connectors/kintone/host.RecordRead, () -> Bool) -> Result[Unit, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
 pub fn client_program_kintone_borrow_read(@actql/actql/connectors/kintone/host.PreparedRecordRead, @client_row_source_host.RowRun, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, Int) -> Result[@actql/actql/connectors/kintone/host.RecordRead, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_checked_columns(@actql/actql/connectors/kintone/catalog.CheckedRecordPage) -> Array[String]
+
+pub fn client_program_kintone_checked_record_page(@actql/actql/connectors/kintone/catalog.OriginalRecordPage, @actql/actql/connectors/kintone/catalog.AppNumberSettings?, @actql/actql/connectors/kintone/catalog.RecordValueLimits) -> Result[@actql/actql/connectors/kintone/catalog.CheckedRecordPage, @actql/actql/connectors/kintone/catalog.RecordValueIssue]
+
+pub fn client_program_kintone_checked_rows(@actql/actql/connectors/kintone/catalog.CheckedRecordPage) -> Array[Array[@value_admission.CheckedValue]]
+
+pub fn client_program_kintone_create_app_id(@actql/actql/connectors/kintone/catalog.RecordCreateRequest) -> String
+
+pub fn client_program_kintone_create_body(@actql/actql/connectors/kintone/catalog.RecordCreateRequest) -> String
+
+pub fn client_program_kintone_create_count(@actql/actql/connectors/kintone/catalog.RecordCreateRequest) -> Int
+
+pub fn client_program_kintone_create_recheck_form(@actql/actql/connectors/kintone/catalog.RecordCreateRequest, Bytes, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> Result[Unit, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_create_request(@actql/actql/connectors/kintone/catalog.FormFieldCatalog, Array[@actql/actql/connectors/kintone/catalog.RecordWriteValues], @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordCreateRequest, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_create_response(@actql/actql/connectors/kintone/catalog.RecordCreateRequest, Int, Bytes, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordCreateAcknowledgement, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_create_response_records(@actql/actql/connectors/kintone/catalog.RecordCreateAcknowledgement) -> Array[(String, String)]
+
+pub fn client_program_kintone_create_response_request(@actql/actql/connectors/kintone/catalog.RecordCreateAcknowledgement) -> @actql/actql/connectors/kintone/catalog.RecordCreateRequest
 
 pub fn client_program_kintone_declaration_limits(Int, Int, Int, Int, Int) -> @client_row_source_host.RowDeclarationLimits
 
@@ -942,7 +976,27 @@ pub fn client_program_kintone_record_declaration(@actql/actql/connectors/kintone
 
 pub fn client_program_kintone_retire_read(@actql/actql/connectors/kintone/host.RecordRead) -> Result[Unit, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
+pub fn client_program_kintone_update_app_id(@actql/actql/connectors/kintone/catalog.RecordUpdateRequest) -> String
+
+pub fn client_program_kintone_update_body(@actql/actql/connectors/kintone/catalog.RecordUpdateRequest) -> String
+
+pub fn client_program_kintone_update_count(@actql/actql/connectors/kintone/catalog.RecordUpdateRequest) -> Int
+
+pub fn client_program_kintone_update_observation(@actql/actql/connectors/kintone/catalog.RecordUpdateRequest, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_update_request(Array[(@actql/actql/connectors/kintone/catalog.OriginalRecordTarget, @actql/actql/connectors/kintone/catalog.RecordWriteValues)], @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordUpdateRequest, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_update_response(@actql/actql/connectors/kintone/catalog.RecordUpdateRequest, Int, Bytes, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordUpdateAcknowledgement, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_update_response_records(@actql/actql/connectors/kintone/catalog.RecordUpdateAcknowledgement) -> Array[(String, String)]
+
+pub fn client_program_kintone_update_response_request(@actql/actql/connectors/kintone/catalog.RecordUpdateAcknowledgement) -> @actql/actql/connectors/kintone/catalog.RecordUpdateRequest
+
 pub fn client_program_kintone_value_limits(Int, Int, Int, Int, Int) -> @actql/actql/connectors/kintone/catalog.RecordValueLimits
+
+pub fn client_program_kintone_write_limits(Int, Int, Int, Int, Int, Int) -> @actql/actql/connectors/kintone/catalog.RecordWriteLimits
+
+pub fn client_program_kintone_write_values(@actql/actql/connectors/kintone/catalog.FormFieldCatalog, Array[(String, @value_admission.CheckedValue)], @actql/actql/connectors/kintone/catalog.RecordWriteLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordWriteValues, @actql/actql/connectors/kintone/catalog.RecordWriteIssue]
 
 pub fn client_program_local_aoa_steps(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientTaskAoAStepsIssue]
 
@@ -3167,6 +3221,11 @@ pub(all) enum ClientEffectProgramBridgeIssue {
 pub(all) enum ClientEffectProgramBridgeOutcome {
   EffectPrepared(@run_publication_host.PreparedClientEffectComputation)
   EffectRejected(ClientEffectProgramBridgeIssue)
+}
+
+pub(all) enum ClientInferRunMaterialsBridgeIssue {
+  Manifests(@run_publication_host.ClientCompilationManifestIssue)
+  Materials(@run_publication_host.ClientTaskRunMaterialsIssue)
 }
 
 type ClientLocalEffectHost

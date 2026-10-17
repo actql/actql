@@ -1,5 +1,5 @@
 {
-  "source": "a0411a7cd8caa71089e39a9be11787c641b5c6ee",
+  "source": "a3734022d801265bbb0128f9205f1cd8bdf335dc",
   "qualification": "Existing kintone original Catalog, Row Source, Account and Credential Site physical boundary references; not another Owner, permission, artifact or numerical admission",
   "declarations": [
     {
@@ -1422,6 +1422,294 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- Verification: `kintone-key-lookup.test.mjs` drives actual Common, Account,"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/kintone/site/kintone-record-write.mjs",
+      "sha256": "1aca4d5c544fb4ddfddabc9d11775bdb0d71f80b8757c139a12f05f9154b2db7",
+      "exports": [
+        "KINTONE_RECORD_CREATE_OPERATION",
+        "KINTONE_RECORD_UPDATE_OPERATION",
+        "KintoneWriteFailure",
+        "projectKintoneWriteObservation",
+        "sendRawKintoneWrite"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "KintoneWriteFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause",
+            "observations",
+            "phase"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectKintoneWriteObservation",
+          "parameters": [
+            "moon",
+            "kind",
+            "request",
+            "observation",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectKintoneWriteObservation/projectKintoneWriteObservation",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawKintoneWrite",
+          "parameters": [
+            "moon",
+            "kind",
+            "originalAppId",
+            "request",
+            "initialAuthorization",
+            "credential",
+            "authorizationFor",
+            "current",
+            "limits",
+            "chargeResponse",
+            "consumeObservation",
+            "guestSpaceId",
+            "signal",
+            "callResource"
+          ],
+          "async": true
+        },
+        {
+          "name": "sendRawKintoneWrite/observedRead/observedRead",
+          "parameters": [
+            "selected",
+            "index",
+            "path",
+            "payload",
+            "check"
+          ],
+          "async": true
+        },
+        {
+          "name": "sendRawKintoneWrite/receive/receive",
+          "parameters": [
+            "selected",
+            "index",
+            "path",
+            "method",
+            "payload",
+            "headers"
+          ],
+          "async": true
+        },
+        {
+          "name": "sendRawKintoneWrite/receive/receive/response/response",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawKintoneWrite/receive/receive/response/response/response",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sendRawKintoneWrite/sendRawKintoneWrite",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawKintoneWrite/sendRawKintoneWrite#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawKintoneWrite/sendRawKintoneWrite#3",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawKintoneWrite/sendRawKintoneWrite#4",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendRawKintoneWrite/verify/verify",
+          "parameters": [
+            "selected"
+          ],
+          "async": true
+        },
+        {
+          "name": "writePorts",
+          "parameters": [
+            "moon",
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "writePorts/ports/ports",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "writePorts/writePorts",
+          "parameters": [
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "writePorts/writePorts#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "writePorts/writePorts#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "./kintone-record-delete.mjs",
+        "./kintone-record-read.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing original kintone Catalog, Account, Credential Site and Effect/capture owners; original CREATE/UPDATE transport and response DATA only",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "KintoneWriteFailure/constructor:constructor/constructor:constructor",
+            "positive/positive",
+            "projectKintoneWriteObservation",
+            "projectKintoneWriteObservation/projectKintoneWriteObservation",
+            "sendRawKintoneWrite",
+            "sendRawKintoneWrite/observedRead/observedRead",
+            "sendRawKintoneWrite/receive/receive",
+            "sendRawKintoneWrite/receive/receive/response/response",
+            "sendRawKintoneWrite/receive/receive/response/response/response",
+            "sendRawKintoneWrite/sendRawKintoneWrite",
+            "sendRawKintoneWrite/sendRawKintoneWrite#2",
+            "sendRawKintoneWrite/sendRawKintoneWrite#3",
+            "sendRawKintoneWrite/sendRawKintoneWrite#4",
+            "sendRawKintoneWrite/verify/verify",
+            "writePorts",
+            "writePorts/ports/ports",
+            "writePorts/writePorts",
+            "writePorts/writePorts#2",
+            "writePorts/writePorts#3"
+          ],
+          "exports": [
+            "KINTONE_RECORD_CREATE_OPERATION",
+            "KINTONE_RECORD_UPDATE_OPERATION",
+            "KintoneWriteFailure",
+            "projectKintoneWriteObservation",
+            "sendRawKintoneWrite"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Write responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Write inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Write identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Write ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Write synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Write failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Write cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Write resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Write extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Write verification:"
               }
             ]
           }
