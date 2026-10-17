@@ -1,0 +1,322 @@
+{
+  "source": "fb5875d31df3d7a827cfa14894b07302b155f236",
+  "qualification": "Lead-reviewed existing Owner references and syntax coverage only; not normal funding, raw retirement, installation, actual Notion service or release acceptance",
+  "declarations": [
+    {
+      "module": "adapters/connectors/notion/site/user-list-read.mjs",
+      "sha256": "8b36ac261cb0f797269d60004ff5a02f7f1e8cc6fd5a4950bfbf01c2a6c86c59",
+      "exports": [
+        "NOTION_USER_LIST_API_VERSION",
+        "NOTION_USER_LIST_OPERATION",
+        "NotionUserListReadFailure",
+        "createNotionUserListReader"
+      ],
+      "operations": [
+        {
+          "name": "createNotionUserListReader",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionUserListReader/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNotionUserListReader/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createNotionUserListReader/handle/init:read/init:read/result/result",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionUserListReader/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "executeRead",
+          "parameters": [
+            "prepared",
+            "received"
+          ],
+          "async": true
+        },
+        {
+          "name": "executeRead/request/request",
+          "parameters": [
+            "operation",
+            "index",
+            "method",
+            "path",
+            "query",
+            "body"
+          ],
+          "async": true
+        },
+        {
+          "name": "executeRead/request/request/response/response",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "executeRead/request/request/response/response/response",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "executeRead/verify/verify",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "NotionUserListReadFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause",
+            "observations"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReader",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead",
+          "parameters": [
+            "moon",
+            "names",
+            "initialAuthorization",
+            "credential",
+            "authorizationFor",
+            "limits",
+            "current",
+            "chargeResponse",
+            "consumePage",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/prepareRead",
+          "parameters": [
+            "fn"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/prepareRead#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/prepareRead#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/prepareRead#4",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/http-exchange.mjs",
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Notion Catalog/physical reader; Account, Credential/Site, Common RowRun and Resource retain original authority, accounting, capture and cleanup",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createNotionUserListReader",
+            "createNotionUserListReader/handle/init:observe/init:observe",
+            "createNotionUserListReader/handle/init:read/init:read",
+            "createNotionUserListReader/handle/init:read/init:read/result/result",
+            "createNotionUserListReader/handle/init:requestStop/init:requestStop",
+            "executeRead",
+            "executeRead/request/request",
+            "executeRead/request/request/response/response",
+            "executeRead/request/request/response/response/response",
+            "executeRead/verify/verify",
+            "fail/fail",
+            "NotionUserListReadFailure/constructor:constructor/constructor:constructor",
+            "originalReader",
+            "positive/positive",
+            "prepareRead",
+            "prepareRead/prepareRead",
+            "prepareRead/prepareRead#2",
+            "prepareRead/prepareRead#3",
+            "prepareRead/prepareRead#4",
+            "prepareRead/provider/provider"
+          ],
+          "exports": [
+            "NOTION_USER_LIST_API_VERSION",
+            "NOTION_USER_LIST_OPERATION",
+            "NotionUserListReadFailure",
+            "createNotionUserListReader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "## Credential-bound paging"
+              },
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "No page is sorted, normalized or retried."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/notion/site/user-list-read.mjs",
+                "anchor": "function prepareRead("
+              },
+              {
+                "path": "adapters/connectors/notion/site/user-list-read.mjs",
+                "anchor": "async function executeRead("
+              },
+              {
+                "path": "src/connectors/notion/catalog/users.mbt",
+                "anchor": "pub fn project_notion_user_list("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/notion/site/user-list-read.mjs",
+                "anchor": "invocationBindingsMatch(authorization.scope,context.scope)"
+              },
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "The same original installed Credential binding retains token identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/notion/site/user-list-read.mjs",
+                "anchor": "const readers = new WeakMap();"
+              },
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "The user-list response is not an original workspace"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/notion/site/user-list-read.mjs",
+                "anchor": "currentBeforeSend:()=>verify(operation)"
+              },
+              {
+                "path": "adapters/connectors/notion/site/user-list-read.mjs",
+                "anchor": "await context.callbacks.consumePage(rows,Object.freeze({charge}));"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/notion/site/user-list-read.mjs",
+                "anchor": "throw new NotionUserListReadFailure(cause,observations);"
+              },
+              {
+                "path": "adapters/connectors/notion/test/user-list-read.test.mjs",
+                "anchor": "Notion lost original page reply remains Unknown"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/notion/site/user-list-read.mjs",
+                "anchor": "requestStop(reason)"
+              },
+              {
+                "path": "adapters/connectors/notion/test/user-list-read.test.mjs",
+                "anchor": "Notion cancellation and escaped raw or copied handles"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "## Reader graph and physical retirement"
+              },
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "Pending I/O, signing/secret resolution, callback Promises"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "The Catalog alone interprets the original response"
+              },
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "No live Notion workspace or credential is used."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/notion/test/user-list-read.test.mjs",
+                "anchor": "Notion actual SQL and AQL original paged Credential reads"
+              },
+              {
+                "path": "adapters/connectors/notion/test/user-list-read.test.mjs",
+                "anchor": "Notion cross-page IDs stay checked"
+              },
+              {
+                "path": "adapters/connectors/notion/test/user-list-read.test.mjs",
+                "anchor": "Notion aggregate raw bound charges and retains"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
