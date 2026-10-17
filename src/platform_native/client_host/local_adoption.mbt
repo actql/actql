@@ -14,6 +14,9 @@ struct NativeLocalAdoptionSession {
   configuration : @authorization.AdmittedAccountConfiguration
   settings : NativeLocalConfigurationSelection
   existing_only : Bool
+  // Shared across aliases: only the actual exclusive creation may consume it.
+  initial_signing_eligible : Ref[Bool]
+  initial_signing_failure : Ref[NativeLocalInitialSigningFailure?]
   root_ownership : @filesystem.NativeFileOwnership
   state_path : String
   intent_body : Bytes
@@ -372,6 +375,8 @@ pub fn begin_native_local_host_adoption(
     configuration,
     settings,
     existing_only,
+    initial_signing_eligible: Ref(original is None),
+    initial_signing_failure: Ref(None),
     root_ownership: created,
     state_path: parent_path + "/" + state_name,
     intent_body,
@@ -393,6 +398,9 @@ fn NativeLocalAdoptionSession::check_original(
   }
   if self.read_cleanup is Some(issue) {
     return Err(issue)
+  }
+  if self.initial_signing_failure.val is Some(failure) {
+    return Err(failure.issue())
   }
   self
   .check_original_after_read_custody()
@@ -462,6 +470,9 @@ fn NativeLocalAdoptionSession::stage_configuration_after_original(
   }
   if self.read_cleanup is Some(issue) {
     return Err(issue)
+  }
+  if self.initial_signing_failure.val is Some(failure) {
+    return Err(failure.issue())
   }
   self
   .stage_configuration_after_read_custody()
@@ -574,6 +585,11 @@ pub fn NativeLocalAdoptionSession::close(
   // stay here. Fence new work before cleanup; do not return the adoption lock
   // while a rejected Reader still owns its original cleanup responsibility.
   self.closed = true
+  if self.initial_signing_failure.val is Some(failure) &&
+    failure.retry_cleanup() is Err(_) {
+    self.close_pending = true
+    return false
+  }
   if self.retry_read_cleanup() is Err(_) {
     self.close_pending = true
     return false
