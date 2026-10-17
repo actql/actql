@@ -59,7 +59,7 @@ pub fn notion_property_definition(NotionPropertyMetadata) -> @decode_core.Cursor
 
 pub fn notion_property_item_page_complete(NotionPropertyItemPage) -> Bool
 
-pub fn notion_property_item_page_original(NotionPropertyItemPage) -> @decode_core.Cursor
+pub fn notion_property_item_page_original(NotionPropertyItemPage) -> Result[@decode_core.Cursor, NotionPropertyItemIssue]
 
 pub fn notion_property_item_page_original_wire(NotionPropertyItemPage, Int) -> Result[String, NotionPropertyItemIssue]
 

@@ -582,6 +582,10 @@
               {
                 "path": "adapters/connectors/notion/test/property-item-read.test.mjs",
                 "anchor": "actual property lost reply remains original journal Unknown with no resend or replacement token resolution"
+              },
+              {
+                "path": "src/connectors/notion/catalog/property_item_original_wbtest.mbt",
+                "anchor": "test \"Notion copied pagination control cannot upgrade an incomplete original\""
               }
             ]
           }
