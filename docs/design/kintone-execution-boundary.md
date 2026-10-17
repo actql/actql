@@ -83,6 +83,48 @@ duplicate-detection maps and digest workspace can overlap. Their positive
 projection bounds are not a reservation or whole-phase funding proof; the
 original caller must retain that custody through its existing cleanup.
 
+## Checked record carriers and storage precision
+
+The original live App General Settings response supplies storage precision.
+Its `numberPrecision.digits` and `decimalPlaces` have a documented range
+meaning: the integer part has at most `digits - decimalPlaces` digits and the
+fractional storage precision is `decimalPlaces`. When that original envelope
+is representable by Common, the numeric carrier is its exact
+`decimal(digits, decimalPlaces)`. The settings App label and revision must
+match the original Form observation; missing or unrepresentable original
+bounds refuse the numeric projection. Independent nonnumeric fields do not
+need a fabricated numeric default.
+
+Field `displayScale` stays display metadata. It neither narrows the stored
+read domain nor causes rounding or an excess-scale refusal against the
+display setting. For example, `1.007` displayed as `1.00` remains the original
+value. The Connector does not repeat the provider's configured rounding mode.
+Only the proved storage envelope constrains Common's exact Decimal admission.
+
+Checked record projection reuses Common ValueContract and Value admission.
+Codes stay codes, arrays preserve order and duplicates, and each table object
+keeps its original row ID and child contracts. Calendar validity is checked
+by the existing Date/Timestamp owner; UTC whole-second response spelling gains
+zero milliseconds without changing its instant. The canonical relation
+field-map is emitted by the same contracts before physical record I/O. Field
+names that Common cannot represent are refused, never normalized or aliased
+into a different original field.
+
+The returned checked matrix is input to the existing RowRun, not a new
+acquisition or completion. Its original page remains retained. Copies of
+returned arrays cannot alter either original projection. Shared logical Time,
+int64 revision and issued ContentRef production still require their respective
+owners; missing support is unavailable rather than String, Double or a
+fabricated reference.
+
+Original Form, General Settings, record bytes/decode trees, generated contracts,
+converted Source nodes, checked values, retained row matrices and schema output
+may overlap. Positive limits bound projection and output; they do not reserve
+this lifetime, adopt a normal numerical profile or discharge physical cleanup.
+The existing Site must still bind the actual authenticated same-App live
+requests, generation and current authority. Equal data/revisions are not that
+authority or an ACK.
+
 ## Provider references
 
 - [Get Form Fields](https://kintone.dev/en/docs/kintone/rest-api/apps/form/get-form-fields/)
@@ -99,6 +141,13 @@ original caller must retain that custody through its existing cleanup.
 - [Get Records](https://kintone.dev/en/docs/kintone/rest-api/records/get-records/)
   returns complete selected record fields and a nullable string total count;
   table children cannot be requested independently of their table.
+- [Get General Settings](https://kintone.dev/en/docs/kintone/rest-api/apps/settings/get-general-settings/)
+  supplies original storage settings and App revision, with a distinct preview
+  endpoint.
+- [Field entry limits](https://us.kintone.help/k/en/app/form/othersettings/field_restriction)
+  defines integer and fractional storage ranges; the
+  [Number field](https://us.kintone.help/k/en/app/form/form_parts/number)
+  documentation distinguishes display truncation from unchanged stored values.
 
 These metadata projections are not registration or installed acceptance of a
 complete Connector. Record acquisition/conversion, content, writes, operations,

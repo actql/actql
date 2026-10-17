@@ -56,6 +56,7 @@ pub struct OriginalRecordPage {
   response_sha256 : String
   total_count : String?
   priv catalog : FormFieldCatalog
+  priv names : Array[String]
   priv records : Array[OriginalRecord]
 }
 
@@ -417,6 +418,7 @@ pub fn project_record_page(
     response_sha256: @sha.hex(bytes),
     total_count,
     catalog,
+    names: names.copy(),
     records,
   })
 }
@@ -432,6 +434,11 @@ pub fn record_page_uses_catalog(
 ///|
 pub fn record_page_records(page : OriginalRecordPage) -> Array[OriginalRecord] {
   page.records.copy()
+}
+
+///|
+pub fn record_page_columns(page : OriginalRecordPage) -> Array[String] {
+  page.names.copy()
 }
 
 ///|
