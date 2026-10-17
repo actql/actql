@@ -33,6 +33,44 @@ default and metadata cursors for declaration admission; it does not validate the
 default or metadata itself. It does not import Parameter defaults or `format`
 into the general `read_author`/`read_checked` grammars.
 
+## Public ModelTask type normalization
+
+The public Task `input` and `output` records are field maps. The existing
+`check_environment` Owner normalizes these maps with
+`read_public_model_task_contract`, independently of Provider/default selection.
+Only type positions expand a scalar name to `{type: name, nullable: false}` or
+add omitted `nullable: false` to a typed record. Object `fields` and array `items`
+recurse through that same adapter; enum members and schema field names remain
+data. The intermediate parser preserves exact object keys, so a raw Cursor's
+noncanonical name is still rejected rather than silently normalized. The complete
+result passes through `value_contract.read_author_usage`.
+Unknown fields, checked-only extents and Parameter-only rules are retained for
+rejection, rather than ignored. General authored and checked contracts still
+require explicit nullability. An unsupported logical type cannot become Number,
+Decimal or String merely because those representations are available.
+
+The private result retains the original immutable field-map Cursor, the admitted
+Contract, its complete checked canonical wire/CID and charged work/semantic
+node/UTF-8 usage. Checked schema identity comes from the existing canonical
+emitter and SHA-256; authored key order does not alter it, whereas retained enum
+order/repetitions and explicit nullability do. No result is an installed Task,
+Provider binding, authority, numerical allocation or evidence of currentness.
+The original Task/configuration and the actual registration still require their
+existing nominal admission before execution or restoration.
+
+`ModelTaskLimits.contracts` bounds the aggregate semantic tree. Its `bodies`
+limits bound intermediate normalization and checked output bytes/JSON nodes/depth;
+`max_members` additionally bounds the top-level field count. Separate complete
+parser, admission, emitter and hash traversals are reserved against `max_work`
+before those operations, using the caller's body bounds. The transformer uses
+active-ancestry frames and indexed children rather than a detached field map.
+Failure returns no partial checked schema. Original Cursor/tree, temporary wire,
+parser/admission trees, checked Contract/enum backing, emitted wire, hash work and
+returned aliases can overlap and belong in the existing consuming Owner's
+retained/workspace inventory, including the intermediate UTF-8 byte backing;
+these structural limits supply no physical funding.
+The schema reader does not own external I/O, cancellation ACK or resource release.
+
 Both entries allow empty object fields. Field names follow the Language rule,
 including line breaks, and reject dots, blank names, `__cid` and the `__actql_`
 prefix. A field named `meta` is ordinary schema data, not an annotation. The
