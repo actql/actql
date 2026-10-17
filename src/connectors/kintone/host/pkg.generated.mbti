@@ -6,6 +6,7 @@ import {
   "actql/actql/connectors/kintone/catalog",
   "actql/actql/encode_core",
   "actql/actql/query_planning",
+  "moonbitlang/core/debug",
 }
 
 // Values
@@ -16,6 +17,8 @@ pub fn bind_record_read_cleanup(RecordRead, () -> Bool) -> Result[Unit, RecordRe
 pub fn borrow_record_read(PreparedRecordRead, @client_row_source_host.RowRun, @catalog.RecordPageLimits, @catalog.RecordValueLimits, Int) -> Result[RecordRead, RecordReadIssue]
 
 pub fn declare_records(@catalog.FormFieldCatalog, @catalog.AppNumberSettings?, Array[String], String, String, String, @catalog.RecordValueLimits, @client_row_source_host.RowDeclarationLimits) -> Result[RecordDeclaration, RecordReadIssue]
+
+pub fn prepare_record_create_execution_request(RecordCreateMapping, Bytes, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue]
 
 pub fn prepare_record_create_mapping(RecordDeclaration, String, Array[@client_row_source_host.RowMappingSource], String, @client_row_source_host.RowDeclarationLimits) -> Result[RecordCreateMapping, @client_row_source_host.RowMappingIssue]
 
@@ -30,6 +33,8 @@ pub fn prepare_record_update_mapping(RecordDeclaration, String, Array[@client_ro
 pub fn recheck_record_read_form(RecordRead, Bytes, @catalog.FormFieldLimits) -> Result[Unit, RecordReadIssue]
 
 pub fn record_create_mapping(RecordCreateMapping) -> @client_row_source_host.RowMapping
+
+pub fn record_create_mapping_is_original(RecordCreateMapping) -> Bool
 
 pub fn record_create_mapping_matches_declaration(RecordCreateMapping, RecordDeclaration) -> Bool
 
@@ -85,6 +90,11 @@ pub fn retire_record_read(RecordRead) -> Result[Unit, RecordReadIssue]
 pub struct PreparedRecordRead {
   // private fields
 }
+
+pub(all) enum RecordCreateExecutionIssue {
+  Catalog(@catalog.RecordCreateJsonIssue)
+  MappingMismatch
+} derive(Eq, @debug.Debug)
 
 pub struct RecordCreateMapping {
   // private fields
