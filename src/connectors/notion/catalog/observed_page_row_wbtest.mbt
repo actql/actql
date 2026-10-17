@@ -243,6 +243,14 @@ test "Notion observed row conservatively charges original scans before assembly 
     ).unwrap_err(),
     InvalidLimits,
   )
+  assert_eq(
+    start_notion_observed_page_read_row(binding, page, 16, 3, row_test_limits()).unwrap_err(),
+    Observation(BudgetExceeded),
+  )
+  assert_eq(
+    start_notion_observed_page_read_row(binding, page, 16, 0, row_test_limits()).unwrap_err(),
+    InvalidLimits,
+  )
   let (binding, query) = row_test_setup()
   let query_row = start_notion_read_row(binding, query, 0, row_test_limits()).unwrap()
   assert_true(!notion_read_row_matches_observed_page(query_row, binding, page))

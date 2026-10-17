@@ -745,3 +745,60 @@ private fixture issuer/material and observation tickets, preserving original
 Unknown journals and keys. They do not establish a normal operational issuer,
 complete page inventory, numerical funding, installed publication or live
 Notion acceptance.
+
+## Checked rows from exact page originals
+
+An exact-page observation can enter the same complete checked row Owner used
+by database queries. The shared private property projection checks its actual
+data-source parent, optional database coordinate, every original property
+name/id/kind and the complete original schema inventory. It does not wrap the
+GET in a fabricated query/list response or infer a missing source from names.
+The historical query-row type holds those checked property occurrences; the
+issued row additionally retains the exact original Page object. A read-only
+matcher requires that same row, schema binding and Page, not equal ids, bytes
+or CIDs. Ordinary query rows retain their existing behavior and output bytes.
+
+The row and its pending-property request share one nominal original occurrence.
+Only its actual completed property page can fill that cell. A separately
+assembled equal row, another query observation or copied row record cannot
+substitute. Scalar admission, exact Decimal conversion, Timestamp/system fields,
+whole-object admission, duplicate completion and cancellation use the existing
+algorithm. The bounded original response/schema scans are charged before the
+new row is assembled, including every name/id/kind occurrence and the actual
+identity bound. Budget exhaustion remains fail closed, without a hidden reset.
+
+The thin parent reader captures the original compiled methods and receiver,
+then holds the exact-page child before its first await. It retains that actual
+response charge for whole-row delivery. For each pending column it obtains a
+separate original property authorization only after Common issues the actual
+row-bound request; page authorization never substitutes for property purpose.
+Current/stop checks surround the supplier await and every physical read. Earlier
+original charges go to observation; exactly the last actual response charge
+accompanies the complete checked row. Synthetic canonical output never becomes
+transfer input. A scalar-only row needs no property operation or speculative
+property grant. Every returned charge remains held in the same parent graph,
+including aggregate-bound refusal after a child returned its actual response.
+
+The existing property reader owns cursor history and completion. The parent
+retains every child before awaiting it, original results/errors and charge
+aliases after success or failure. Lost replies remain the same Credential
+journal Unknown; a new explicit reader cannot resend that original use.
+All child and parent cleanup observations remain unconfirmed. Promise/consume
+callbacks, transport close, array freezing and GC do not prove physical cleanup.
+
+The optional Page reference changes the row's layout even on the legacy None
+path. Its Some path overlaps the original raw/decode/Page graph, projected
+property records and checked schema/cells/output. The parent also retains a
+WeakMap/token/state, compiled method closures and receiver, frozen context and
+schema wire, callbacks and pending authorization/result Promises, composite
+signal/controller, child/result/charge arrays, bounded pending-column DATA and
+returned row wire. Shared aliases, rest-call arrays, Encoder workspace and
+private matcher work are not free. Actual installation/phase funding must cover
+the entire lifetime; per-response/aggregate limits are not its supplier.
+
+This is a full-diff read prerequisite, not an issued target, complete Preview,
+write authorization, snapshot-isolation promise or conditional mutation. The
+actual installed before/apply reread, current original version guard, writes,
+reconciliation, saved-original recovery, complete workspace inventory and
+normal resource supplier remain separate obligations. No public schema,
+canonical preimage, wire/version or permission domain changes here.
