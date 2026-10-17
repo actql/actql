@@ -3,6 +3,7 @@ package "actql/actql/connectors/bigquery/catalog"
 
 import {
   "actql/actql/client_row_source_host",
+  "actql/actql/value_admission",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
@@ -34,7 +35,23 @@ pub fn generate_read_declaration(ReadProjection, String, String, String, @client
 
 pub fn prepare_read_projection(TableDescription, Array[String], DescriptionLimits) -> Result[ReadProjection, DescriptionIssue]
 
+pub fn project_query_page(ReadProjection, QueryJob, Bytes, QueryLimits) -> Result[QueryPage, QueryIssue]
+
 pub fn project_table_description(TableTarget, Bytes, DescriptionLimits) -> Result[TableDescription, DescriptionIssue]
+
+pub fn query_job(String, String, String, Int) -> Result[QueryJob, QueryIssue]
+
+pub fn query_page_cell(QueryPage, Int, Int) -> @value_admission.CheckedValue?
+
+pub fn query_page_matches_original(QueryPage, ReadProjection, QueryJob) -> Bool
+
+pub fn query_page_next_token(QueryPage) -> String?
+
+pub fn query_page_response_sha256(QueryPage) -> String
+
+pub fn query_page_row_count(QueryPage) -> Int
+
+pub fn query_page_total_rows(QueryPage) -> Int64
 
 pub fn read_projection_fields(ReadProjection) -> Array[String]
 
@@ -73,6 +90,37 @@ pub(all) struct DescriptionLimits {
   max_fields : Int
   max_name_bytes : Int
   max_schema_bytes : Int
+}
+
+pub(all) enum QueryIssue {
+  InvalidQueryLimits
+  QueryLimit
+  InvalidQueryResponse
+  InvalidQueryJob
+  ForeignQueryJob
+  QueryPending
+  QueryDiagnostics
+  QuerySchemaMismatch(String)
+  InvalidQueryCell(String)
+  QueryValueAdmission(String, @value_admission.Issue)
+} derive(Eq, @debug.Debug)
+
+pub struct QueryJob {
+  // private fields
+}
+
+pub(all) struct QueryLimits {
+  description : DescriptionLimits
+  max_rows : Int
+  max_total_rows : Int64
+  max_value_nodes : Int
+  max_value_text_bytes : Int
+  max_job_bytes : Int
+  max_page_token_bytes : Int
+}
+
+pub struct QueryPage {
+  // private fields
 }
 
 pub struct ReadProjection {

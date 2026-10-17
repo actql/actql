@@ -78,12 +78,15 @@ pub fn query_job(
   // JobReference's declared identifier domain, not a fabricated UUID-only
   // restriction. Routing still needs the original authenticated physical port.
   if job_id.length() > 1024 ||
-    !job_id.to_array().all(c =>
+    !job_id
+    .to_array()
+    .all(c => {
       (c >= 'a' && c <= 'z') ||
       (c >= 'A' && c <= 'Z') ||
       (c >= '0' && c <= '9') ||
       c == '_' ||
-      c == '-') {
+      c == '-'
+    }) {
     return Err(InvalidQueryJob)
   }
   Ok({ project, job_id, location, })
@@ -101,7 +104,10 @@ fn valid_query_limits(limits : QueryLimits) -> Bool {
 }
 
 ///|
-fn query_root(bytes : Bytes, limits : QueryLimits) -> Result[@decode.Cursor, QueryIssue] {
+fn query_root(
+  bytes : Bytes,
+  limits : QueryLimits,
+) -> Result[@decode.Cursor, QueryIssue] {
   if !valid_query_limits(limits) {
     return Err(InvalidQueryLimits)
   }
@@ -109,21 +115,24 @@ fn query_root(bytes : Bytes, limits : QueryLimits) -> Result[@decode.Cursor, Que
   if bytes.length() > bound.max_bytes {
     return Err(QueryLimit)
   }
-  let parsed = match @source.parse_json_bytes_preserving(bytes, {
-    max_input_bytes: bound.max_bytes,
-    max_nodes: bound.max_nodes,
-    max_depth: bound.max_depth,
-  }) {
+  let parsed = match
+    @source.parse_json_bytes_preserving(bytes, {
+      max_input_bytes: bound.max_bytes,
+      max_nodes: bound.max_nodes,
+      max_depth: bound.max_depth,
+    }) {
     Ok(value) => value
-    Err({ issue: InputLimit | NodeLimit | DepthLimit, .. }) => return Err(QueryLimit)
+    Err({ issue: InputLimit | NodeLimit | DepthLimit, .. }) =>
+      return Err(QueryLimit)
     Err(_) => return Err(InvalidQueryResponse)
   }
-  match @decode.admit(parsed, {
-    max_nodes: bound.max_nodes,
-    max_depth: bound.max_depth,
-    max_string_bytes: bound.max_bytes,
-    max_total_string_bytes: bound.max_bytes,
-  }) {
+  match
+    @decode.admit(parsed, {
+      max_nodes: bound.max_nodes,
+      max_depth: bound.max_depth,
+      max_string_bytes: bound.max_bytes,
+      max_total_string_bytes: bound.max_bytes,
+    }) {
     Ok(value) => Ok(value)
     Err(_) => Err(InvalidQueryResponse)
   }
@@ -142,9 +151,14 @@ fn native_kind(kind : String) -> String {
 }
 
 ///|
-fn find_query_original(columns : Array[ColumnDescription], name : String) -> ColumnDescription? {
+fn find_query_original(
+  columns : Array[ColumnDescription],
+  name : String,
+) -> ColumnDescription? {
   for column in columns {
-    if column.name == name { return Some(column) }
+    if column.name == name {
+      return Some(column)
+    }
   }
   None
 }
@@ -175,27 +189,30 @@ fn query_column(
   }
   let mode = match @decode.lookup(object, "mode") {
     None => "NULLABLE"
-    Some(value) => match @decode.text(value) {
-      Ok(text) => text
-      Err(_) => return Err(QuerySchemaMismatch(original.name))
-    }
+    Some(value) =>
+      match @decode.text(value) {
+        Ok(text) => text
+        Err(_) => return Err(QuerySchemaMismatch(original.name))
+      }
   }
   if !["NULLABLE", "REQUIRED", "REPEATED"].contains(mode) ||
-    ((mode == "REPEATED") != (original.mode == "REPEATED")) {
+    (mode == "REPEATED") != (original.mode == "REPEATED") {
     return Err(QuerySchemaMismatch(original.name))
   }
   // Query schemas may omit parameterization. Never replace the captured
   // original contract with an unparameterized decimal default. When supplied,
   // used constraints must agree with the observed original metadata.
   let effective = match original.contract {
-    Some(contract) => match contract.shape {
-      @contract.Array(element, ..) => element
-      _ => contract
-    }
+    Some(contract) =>
+      match contract.shape {
+        @contract.Array(element, ..) => element
+        _ => contract
+      }
     None => return Err(QuerySchemaMismatch(original.name))
   }
   let (precision, scale) = match effective.shape {
-    @contract.Decimal(precision~, scale~) => (Some(precision.to_int64()), Some(scale.to_int64()))
+    @contract.Decimal(precision~, scale~) =>
+      (Some(precision.to_int64()), Some(scale.to_int64()))
     _ => (original.precision, original.scale)
   }
   for (key, expected) in [("precision", precision), ("scale", scale)] {
@@ -216,7 +233,8 @@ fn query_column(
     for index in 0..<original.children.length() {
       let field = @decode.element_at(fields, index).unwrap()
       guard @decode.open_object(field) is Ok(child) &&
-        required_text(child, "name") is Some(name) && !seen.contains(name) else {
+        required_text(child, "name") is Some(name) &&
+        !seen.contains(name) else {
         return Err(QuerySchemaMismatch(original.name))
       }
       seen.push(name)
@@ -241,11 +259,12 @@ fn query_checked(
   name : String,
   budget : QueryValueBudget,
 ) -> Result[@admitted.CheckedValue, QueryIssue] {
-  match @admitted.admit_usage(contract, cursor, {
-    max_nodes: budget.nodes,
-    max_text_bytes: budget.text_bytes,
-    max_depth: budget.max_depth,
-  }) {
+  match
+    @admitted.admit_usage(contract, cursor, {
+      max_nodes: budget.nodes,
+      max_text_bytes: budget.text_bytes,
+      max_depth: budget.max_depth,
+    }) {
     Ok((value, nodes, text)) => {
       budget.nodes -= nodes
       budget.text_bytes -= text
@@ -263,12 +282,13 @@ fn converted_query_cell(
   name : String,
   budget : QueryValueBudget,
 ) -> Result[@admitted.CheckedValue, QueryIssue] {
-  match @decode.admit(node, {
-    max_nodes: budget.nodes,
-    max_depth: budget.max_depth,
-    max_string_bytes: budget.text_bytes,
-    max_total_string_bytes: budget.text_bytes,
-  }) {
+  match
+    @decode.admit(node, {
+      max_nodes: budget.nodes,
+      max_depth: budget.max_depth,
+      max_string_bytes: budget.text_bytes,
+      max_total_string_bytes: budget.text_bytes,
+    }) {
     Ok(cursor) => query_checked(cursor, contract, name, budget)
     Err(_) => Err(QueryLimit)
   }
@@ -306,20 +326,40 @@ fn query_cell_value(
     budget.nodes -= 1
     let values : Array[@admitted.Value] = []
     for index in 0..<count {
-      guard @decode.closed_object(@decode.element_at(cursor, index).unwrap(), ["v"]) is Ok(wrapper) &&
-        @decode.lookup(wrapper, "v") is Some(value) && !@decode.is_null(value) else {
+      guard @decode.closed_object(@decode.element_at(cursor, index).unwrap(), [
+          "v",
+        ])
+        is Ok(wrapper) &&
+        @decode.lookup(wrapper, "v") is Some(value) &&
+        !@decode.is_null(value) else {
         return Err(InvalidQueryCell(name))
       }
-      match query_cell_value(value, column, element, false, budget, depth + 1, limits) {
+      match
+        query_cell_value(
+          value,
+          column,
+          element,
+          false,
+          budget,
+          depth + 1,
+          limits,
+        ) {
         Ok(value) => values.push(value.value)
         Err(issue) => return Err(issue)
       }
     }
-    guard @admitted.recheck_runtime_value(@admitted.array_value(values), contract, {
-      max_nodes: limits.max_value_nodes,
-      max_text_bytes: limits.max_value_text_bytes,
-      max_depth: budget.max_depth,
-    }) is Some(checked) else { return Err(InvalidQueryCell(name)) }
+    guard @admitted.recheck_runtime_value(
+        @admitted.array_value(values),
+        contract,
+        {
+          max_nodes: limits.max_value_nodes,
+          max_text_bytes: limits.max_value_text_bytes,
+          max_depth: budget.max_depth,
+        },
+      )
+      is Some(checked) else {
+      return Err(InvalidQueryCell(name))
+    }
     return Ok(checked)
   }
   if native_kind(column.original.native_type) == "RECORD" {
@@ -331,12 +371,24 @@ fn query_cell_value(
     budget.nodes -= 1
     let values : Array[(String, @admitted.Value)] = []
     for index, child in column.children {
-      guard @decode.closed_object(@decode.element_at(fields, index).unwrap(), ["v"]) is Ok(wrapper) &&
+      guard @decode.closed_object(@decode.element_at(fields, index).unwrap(), [
+          "v",
+        ])
+        is Ok(wrapper) &&
         @decode.lookup(wrapper, "v") is Some(value) &&
         child.original.contract is Some(child_contract) else {
         return Err(InvalidQueryCell(child.original.name))
       }
-      match query_cell_value(value, child, child_contract, child.mode == "REPEATED", budget, depth + 1, limits) {
+      match
+        query_cell_value(
+          value,
+          child,
+          child_contract,
+          child.mode == "REPEATED",
+          budget,
+          depth + 1,
+          limits,
+        ) {
         Ok(value) => values.push((child.original.name, value.value))
         Err(issue) => return Err(issue)
       }
@@ -346,7 +398,10 @@ fn query_cell_value(
         max_nodes: limits.max_value_nodes,
         max_text_bytes: limits.max_value_text_bytes,
         max_depth: budget.max_depth,
-      }) is Some(checked) else { return Err(InvalidQueryCell(name)) }
+      })
+      is Some(checked) else {
+      return Err(InvalidQueryCell(name))
+    }
     return Ok(checked)
   }
   guard @decode.text(cursor) is Ok(text) else {
@@ -358,12 +413,23 @@ fn query_cell_value(
       guard contract.shape is @contract.Decimal(precision~, scale~) else {
         return Err(QuerySchemaMismatch(name))
       }
-      let canonical = match @admitted.normalize_decimal_text(text, precision, scale, budget.text_bytes) {
+      let canonical = match
+        @admitted.normalize_decimal_text(
+          text,
+          precision,
+          scale,
+          budget.text_bytes,
+        ) {
         Ok(value) => value
         Err(InputLimit | InvalidLimits) => return Err(QueryLimit)
         Err(_) => return Err(InvalidQueryCell(name))
       }
-      converted_query_cell({ value: String(canonical), span: @decode.cursor_span(cursor), }, contract, name, budget)
+      converted_query_cell(
+        { value: String(canonical), span: @decode.cursor_span(cursor), },
+        contract,
+        name,
+        budget,
+      )
     }
     "BOOL" => {
       let flag = match text {
@@ -371,33 +437,53 @@ fn query_cell_value(
         "false" => false
         _ => return Err(InvalidQueryCell(name))
       }
-      converted_query_cell({ value: Bool(flag), span: @decode.cursor_span(cursor), }, contract, name, budget)
+      converted_query_cell(
+        { value: Bool(flag), span: @decode.cursor_span(cursor), },
+        contract,
+        name,
+        budget,
+      )
     }
     "FLOAT64" => {
-      let parsed = match @source.parse_json_bytes_preserving(@utf8.encode(text), {
-        max_input_bytes: budget.text_bytes,
-        max_nodes: budget.nodes,
-        max_depth: budget.max_depth,
-      }) {
+      let parsed = match
+        @source.parse_json_bytes_preserving(@utf8.encode(text), {
+          max_input_bytes: budget.text_bytes,
+          max_nodes: budget.nodes,
+          max_depth: budget.max_depth,
+        }) {
         Ok(value) if value.value is Number(_) => value
+        Err({ issue: InputLimit | NodeLimit | DepthLimit, .. }) =>
+          return Err(QueryLimit)
         _ => return Err(InvalidQueryCell(name))
       }
       converted_query_cell(parsed, contract, name, budget)
     }
     "JSON" => {
-      let (value, nodes, bytes) = match @admitted.admit_json_literal(text, {
-        max_nodes: budget.nodes,
-        max_text_bytes: budget.text_bytes,
-        max_depth: budget.max_depth,
-      }) {
+      let (value, nodes, bytes) = match
+        @admitted.admit_json_literal(text, {
+          max_nodes: budget.nodes,
+          max_text_bytes: budget.text_bytes,
+          max_depth: budget.max_depth,
+        }) {
         Ok(value) => value
+        Err(
+          JsonLiteralParse({ issue: InputLimit | NodeLimit | DepthLimit, .. })
+        ) => return Err(QueryLimit)
+        Err(
+          JsonLiteralAdmission(
+            @admitted.ValueIssue(@admitted.BudgetExceeded, ..)
+          )
+        ) => return Err(QueryLimit)
         Err(_) => return Err(InvalidQueryCell(name))
       }
       guard @admitted.recheck_runtime_value(value.value, contract, {
-        max_nodes: budget.nodes,
-        max_text_bytes: budget.text_bytes,
-        max_depth: budget.max_depth,
-      }) is Some(checked) else { return Err(QueryLimit) }
+          max_nodes: budget.nodes,
+          max_text_bytes: budget.text_bytes,
+          max_depth: budget.max_depth,
+        })
+        is Some(checked) else {
+        return Err(QueryLimit)
+      }
       budget.nodes -= nodes
       budget.text_bytes -= bytes
       Ok(checked)
@@ -424,18 +510,20 @@ pub fn project_query_page(
   }
   let location = match @decode.lookup(reference, "location") {
     None => "US" // The provider's documented JobReference default only.
-    Some(value) => match @decode.text(value) {
-      Ok(text) => text
-      Err(_) => return Err(InvalidQueryResponse)
-    }
+    Some(value) =>
+      match @decode.text(value) {
+        Ok(text) => text
+        Err(_) => return Err(InvalidQueryResponse)
+      }
   }
   guard required_text(reference, "projectId") == Some(job.project) &&
-    required_text(reference, "jobId") == Some(job.job_id) && location == job.location &&
+    required_text(reference, "jobId") == Some(job.job_id) &&
+    location == job.location &&
     job.project == projection.original.target.project else {
     return Err(ForeignQueryJob)
   }
   match query_job(job.project, job.job_id, job.location, limits.max_job_bytes) {
-    Err(issue) => return Err(issue)
+    Err(_) => return Err(QueryLimit)
     Ok(_) => ()
   }
   guard @decode.lookup(object, "jobComplete") is Some(done) &&
@@ -443,13 +531,16 @@ pub fn project_query_page(
     return Err(InvalidQueryResponse)
   }
   if !done {
-    if @decode.lookup(object, "rows") is Some(_) || @decode.lookup(object, "totalRows") is Some(_) {
+    if @decode.lookup(object, "rows") is Some(_) ||
+      @decode.lookup(object, "totalRows") is Some(_) {
       return Err(InvalidQueryResponse)
     }
     return Err(QueryPending)
   }
   if @decode.lookup(object, "errors") is Some(errors) {
-    guard @decode.array_length(errors) is Some(count) else { return Err(InvalidQueryResponse) }
+    guard @decode.array_length(errors) is Some(count) else {
+      return Err(InvalidQueryResponse)
+    }
     if count > 0 {
       // These can be warnings; do not convert their presence to Job failed or
       // committed. The physical caller retains the original diagnostic facts.
@@ -465,17 +556,18 @@ pub fn project_query_page(
   }
   let page_token = match @decode.lookup(object, "pageToken") {
     None => None
-    Some(cursor) => match @decode.text(cursor) {
-      Ok("") => None
-      Ok(text) => {
-        match @scalar.admit_utf8_length(text, limits.max_page_token_bytes) {
-          Err(_) => return Err(QueryLimit)
-          Ok(_) => ()
+    Some(cursor) =>
+      match @decode.text(cursor) {
+        Ok("") => None
+        Ok(text) => {
+          match @scalar.admit_utf8_length(text, limits.max_page_token_bytes) {
+            Err(_) => return Err(QueryLimit)
+            Ok(_) => ()
+          }
+          Some(text)
         }
-        Some(text)
+        Err(_) => return Err(InvalidQueryResponse)
       }
-      Err(_) => return Err(InvalidQueryResponse)
-    }
   }
   guard @decode.lookup(object, "schema") is Some(schema) &&
     @decode.open_object(schema) is Ok(schema) &&
@@ -489,9 +581,19 @@ pub fn project_query_page(
   }
   let columns : Array[QueryColumn] = []
   for index, name in projection.fields {
-    guard find_query_original(projection.original.columns, name) is Some(original) &&
-      original.contract is Some(_) else { return Err(QuerySchemaMismatch(name)) }
-    match query_column(@decode.element_at(fields, index).unwrap(), original, metadata_budget, 1, limits.description) {
+    guard find_query_original(projection.original.columns, name)
+      is Some(original) &&
+      original.contract is Some(_) else {
+      return Err(QuerySchemaMismatch(name))
+    }
+    match
+      query_column(
+        @decode.element_at(fields, index).unwrap(),
+        original,
+        metadata_budget,
+        1,
+        limits.description,
+      ) {
       Ok(value) => columns.push(value)
       Err(issue) => return Err(issue)
     }
@@ -499,10 +601,11 @@ pub fn project_query_page(
   let rows_cursor = @decode.lookup(object, "rows")
   let count = match rows_cursor {
     None if total_rows == 0L => 0
-    Some(cursor) => match @decode.array_length(cursor) {
-      Some(count) => count
-      None => return Err(InvalidQueryResponse)
-    }
+    Some(cursor) =>
+      match @decode.array_length(cursor) {
+        Some(count) => count
+        None => return Err(InvalidQueryResponse)
+      }
     _ => return Err(InvalidQueryResponse)
   }
   if count > limits.max_rows || count.to_int64() > total_rows {
@@ -523,22 +626,45 @@ pub fn project_query_page(
     }
     let values : Array[@admitted.CheckedValue] = []
     for index, column in columns {
-      guard @decode.closed_object(@decode.element_at(fields, index).unwrap(), ["v"]) is Ok(wrapper) &&
+      guard @decode.closed_object(@decode.element_at(fields, index).unwrap(), [
+          "v",
+        ])
+        is Ok(wrapper) &&
         @decode.lookup(wrapper, "v") is Some(cursor) else {
         return Err(InvalidQueryCell(column.original.name))
       }
-      match query_cell_value(cursor, column, column.original.contract.unwrap(), column.mode == "REPEATED", budget, 1, limits) {
+      match
+        query_cell_value(
+          cursor,
+          column,
+          column.original.contract.unwrap(),
+          column.mode == "REPEATED",
+          budget,
+          1,
+          limits,
+        ) {
         Ok(value) => values.push(value)
         Err(issue) => return Err(issue)
       }
     }
     rows.push(values)
   }
-  Ok({ projection, job, rows, total_rows, page_token, response_sha256: @sha.hex(bytes), })
+  Ok({
+    projection,
+    job,
+    rows,
+    total_rows,
+    page_token,
+    response_sha256: @sha.hex(bytes),
+  })
 }
 
 ///|
-pub fn query_page_matches_original(page : QueryPage, projection : ReadProjection, job : QueryJob) -> Bool {
+pub fn query_page_matches_original(
+  page : QueryPage,
+  projection : ReadProjection,
+  job : QueryJob,
+) -> Bool {
   physical_equal(page.projection, projection) && physical_equal(page.job, job)
 }
 
@@ -558,7 +684,11 @@ pub fn query_page_next_token(page : QueryPage) -> String? {
 }
 
 ///|
-pub fn query_page_cell(page : QueryPage, row : Int, column : Int) -> @admitted.CheckedValue? {
+pub fn query_page_cell(
+  page : QueryPage,
+  row : Int,
+  column : Int,
+) -> @admitted.CheckedValue? {
   match page.rows.get(row) {
     Some(values) => values.get(column)
     None => None
