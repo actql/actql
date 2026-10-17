@@ -193,9 +193,7 @@ test "Native check hidden namespace stays unresolved while independent invalid i
   let invalid = context.project({
     document: "SELECT @count AS id",
     format: Sql,
-    declarations: Some(
-      "{\"count\":{\"type\":\"number\",\"nullable\":false}}",
-    ),
+    declarations: Some("{\"count\":{\"type\":\"number\",\"nullable\":false}}"),
     parameters: Some("{\"count\":\"private-input-value\"}"),
   })
   assert_eq(
@@ -212,9 +210,7 @@ test "Native check missing parameters use the same Owner requirements and runnab
   let report = context.project({
     document: "SELECT @count AS id",
     format: Sql,
-    declarations: Some(
-      "{\"count\":{\"type\":\"number\",\"nullable\":false}}",
-    ),
+    declarations: Some("{\"count\":{\"type\":\"number\",\"nullable\":false}}"),
     parameters: None,
   })
   assert_true(report.contains("parameter_value_required"), msg=report)
