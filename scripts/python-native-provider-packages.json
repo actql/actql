@@ -82,6 +82,7 @@
   "actql/actql/platform_native/bounded_files",
   "actql/actql/platform_native/client_host",
   "actql/actql/platform_native/credential_resource",
+  "actql/actql/platform_native/executor_slot",
   "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/host_bootstrap",
   "actql/actql/platform_native/http_client",

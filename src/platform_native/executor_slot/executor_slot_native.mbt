@@ -29,6 +29,19 @@ extern "C" fn slot_spawn_ffi(
 ) -> Int = "actql_executor_slot_spawn"
 
 ///|
+#borrow(executable, arguments)
+extern "C" fn slot_spawn_duplex_ffi(
+  executable : Bytes,
+  executable_length : Int,
+  arguments : Bytes,
+  arguments_length : Int,
+  descriptor : Int,
+  target_descriptor : Int,
+  input_descriptor : Int,
+  output_descriptor : Int,
+) -> Int = "actql_executor_slot_spawn_duplex"
+
+///|
 extern "C" fn slot_wait_ffi(pid : Int, block : Int) -> Int = "actql_executor_slot_wait"
 
 ///|
@@ -155,6 +168,8 @@ fn NativeExecutorSlot::spawn_holder_reading(
   executable : String,
   arguments : Array[String],
   input : Int,
+  scoped? : NativeScopedExecutorHolder? = None,
+  output? : Int = -1,
 ) -> Result[NativeExecutorSlotChild, NativeExecutorSlotIssue] {
   if self.descriptor < 0 {
     return Err(Closed)
@@ -185,22 +200,40 @@ fn NativeExecutorSlot::spawn_holder_reading(
   }
   let encoded_executable = @utf8.encode(executable)
   let encoded_arguments = Bytes::from_array(block)
-  let pid = slot_spawn_ffi(
-    encoded_executable,
-    encoded_executable.length(),
-    encoded_arguments,
-    encoded_arguments.length(),
-    self.descriptor,
-    NATIVE_EXECUTOR_SLOT_INHERITED_FD,
-    input,
-  )
+  let pid = if output < 0 {
+    slot_spawn_ffi(
+      encoded_executable,
+      encoded_executable.length(),
+      encoded_arguments,
+      encoded_arguments.length(),
+      self.descriptor,
+      NATIVE_EXECUTOR_SLOT_INHERITED_FD,
+      input,
+    )
+  } else {
+    slot_spawn_duplex_ffi(
+      encoded_executable,
+      encoded_executable.length(),
+      encoded_arguments,
+      encoded_arguments.length(),
+      self.descriptor,
+      NATIVE_EXECUTOR_SLOT_INHERITED_FD,
+      input,
+      output,
+    )
+  }
   if pid <= 0 {
     return Err(SpawnFailed)
   }
-  ignore(slot_close_ffi(self.descriptor))
+  let close_status = slot_close_ffi(self.descriptor)
   self.descriptor = -1
   self.acquired = false
-  Ok({ pid, exit: None, })
+  let child = { pid, exit: None, }
+  if scoped is Some(original) {
+    original.child = Some(child)
+    original.parent_close_unknown = close_status != 0
+  }
+  Ok(child)
 }
 
 ///|

@@ -48429,7 +48429,7 @@
     {
       "module": "adapters/host-node/installed-model.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "b7c50f80a10888ac32c06f175efdc196121d0f3c39dfac0ab7692e877e72f319",
+      "sha256": "ede7ac0cedd26883b63a499a088aac58f6a780063426cf5189a06f290891ae32",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -48530,6 +48530,29 @@
           "async": false
         },
         {
+          "name": "installModelProviders/resolveTaskDefaults",
+          "parameters": [
+            "selectedModel",
+            "taskMaxOutputTokens",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/resolveTaskDefaults/resolveTaskDefaults",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/resolveTaskDefaults/resolveTaskDefaults#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "readInstalledModelDependencies",
           "parameters": [
             "moon",
@@ -48573,6 +48596,31 @@
           "name": "readInstalledModelExecution/entry/entry",
           "parameters": [
             "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainAdmittedProviderBinding",
+          "parameters": [
+            "moon",
+            "providerId",
+            "originals",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainModelDefaultsLimits",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainModelDefaultsLimits/retainModelDefaultsLimits",
+          "parameters": [
+            "key",
+            "index"
           ],
           "async": false
         },
@@ -48849,7 +48897,8 @@
         },
         {
           "operations": [
-            "admitInstalledModelProviderBinding"
+            "admitInstalledModelProviderBinding",
+            "retainAdmittedProviderBinding"
           ],
           "exports": [
             "admitInstalledModelProviderBinding"
@@ -48863,6 +48912,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The retained private Node registration can resolve candidate Task defaults only"
               }
             ],
             "inputsOutputs": [
@@ -48873,6 +48926,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "pub fn read_client_model_provider_defaults("
               }
             ],
             "identity": [
@@ -48883,6 +48940,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "if (this !== retained)"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "pub fn client_model_provider_defaults_generation("
               }
             ],
             "ownership": [
@@ -48893,6 +48958,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "struct ClientModelProviderDefaults"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "let defaultsOriginal, defaultsBounds, defaultsReadFailure;"
               }
             ],
             "synchronization": [
@@ -48903,6 +48976,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "assertNewTrustedRuntime();"
               }
             ],
             "failure": [
@@ -48913,6 +48990,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "pub(all) enum ClientModelProviderDefaultsIssue"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "if (defaultsReadFailure !== undefined) throw defaultsReadFailure.cause;"
               }
             ],
             "cancellation": [
@@ -48923,6 +49008,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "new-Host predicate without cancelling an already borrowed Run on Host closing."
               }
             ],
             "resources": [
@@ -48933,6 +49022,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Reader ceilings are explicitly supplied, closed, finite DATA and snapshotted"
               }
             ],
             "extension": [
@@ -48943,6 +49036,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "no Task/Environment, restored Run, authority, resource loan, send or cleanup ACK."
               }
             ],
             "verification": [
@@ -48957,6 +49054,18 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/installed-model-defaults.test.mjs",
+                "anchor": "test('installed defaults reject copied or other-installation receivers before Core work'"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults_wbtest.mbt",
+                "anchor": "test \"installed defaults refuse an equal separately admitted profile for the selected generation\""
+              },
+              {
+                "path": "adapters/host-node/installed-model-defaults.actual.test.mjs",
+                "anchor": "test('actual Common failed profile read cannot replace original reader bounds or discard its refusal'"
               }
             ]
           }
@@ -49196,7 +49305,10 @@
             "installModelProviders/installModelProviders",
             "installModelProviders/installModelProviders#2",
             "installModelProviders/installModelProviders#3",
-            "installModelProviders/requireEagerSdkStartup/requireEagerSdkStartup"
+            "installModelProviders/requireEagerSdkStartup/requireEagerSdkStartup",
+            "installModelProviders/resolveTaskDefaults",
+            "installModelProviders/resolveTaskDefaults/resolveTaskDefaults",
+            "installModelProviders/resolveTaskDefaults/resolveTaskDefaults#2"
           ],
           "exports": [
             "installModelProviders"
@@ -49210,6 +49322,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The retained private Node registration can resolve candidate Task defaults only"
               }
             ],
             "inputsOutputs": [
@@ -49220,6 +49336,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "pub fn read_client_model_provider_defaults("
               }
             ],
             "identity": [
@@ -49230,6 +49350,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "if (this !== retained)"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "pub fn client_model_provider_defaults_generation("
               }
             ],
             "ownership": [
@@ -49240,6 +49368,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "struct ClientModelProviderDefaults"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "let defaultsOriginal, defaultsBounds, defaultsReadFailure;"
               }
             ],
             "synchronization": [
@@ -49250,6 +49386,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "assertNewTrustedRuntime();"
               }
             ],
             "failure": [
@@ -49260,6 +49400,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "pub(all) enum ClientModelProviderDefaultsIssue"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "if (defaultsReadFailure !== undefined) throw defaultsReadFailure.cause;"
               }
             ],
             "cancellation": [
@@ -49270,6 +49418,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "new-Host predicate without cancelling an already borrowed Run on Host closing."
               }
             ],
             "resources": [
@@ -49280,6 +49432,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Reader ceilings are explicitly supplied, closed, finite DATA and snapshotted"
               }
             ],
             "extension": [
@@ -49290,6 +49446,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "no Task/Environment, restored Run, authority, resource loan, send or cleanup ACK."
               }
             ],
             "verification": [
@@ -49304,6 +49464,18 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/installed-model-defaults.test.mjs",
+                "anchor": "test('installed defaults reject copied or other-installation receivers before Core work'"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults_wbtest.mbt",
+                "anchor": "test \"installed defaults refuse an equal separately admitted profile for the selected generation\""
+              },
+              {
+                "path": "adapters/host-node/installed-model-defaults.actual.test.mjs",
+                "anchor": "test('actual Common failed profile read cannot replace original reader bounds or discard its refusal'"
               }
             ]
           }
@@ -49767,8 +49939,106 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "retainModelDefaultsLimits",
+            "retainModelDefaultsLimits/retainModelDefaultsLimits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The retained private Node registration can resolve candidate Task defaults only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "pub fn read_client_model_provider_defaults("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "if (this !== retained)"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "pub fn client_model_provider_defaults_generation("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "struct ClientModelProviderDefaults"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "let defaultsOriginal, defaultsBounds, defaultsReadFailure;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "assertNewTrustedRuntime();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults.mbt",
+                "anchor": "pub(all) enum ClientModelProviderDefaultsIssue"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "if (defaultsReadFailure !== undefined) throw defaultsReadFailure.cause;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "new-Host predicate without cancelling an already borrowed Run on Host closing."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Reader ceilings are explicitly supplied, closed, finite DATA and snapshotted"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "no Task/Environment, restored Run, authority, resource loan, send or cleanup ACK."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-model-defaults.test.mjs",
+                "anchor": "test('installed defaults reject copied or other-installation receivers before Core work'"
+              },
+              {
+                "path": "src/run_publication_host/client_model_provider_defaults_wbtest.mbt",
+                "anchor": "test \"installed defaults refuse an equal separately admitted profile for the selected generation\""
+              },
+              {
+                "path": "adapters/host-node/installed-model-defaults.actual.test.mjs",
+                "anchor": "test('actual Common failed profile read cannot replace original reader bounds or discard its refusal'"
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./infer-original-installation.mjs",
+        "./infer-raw-selection.mjs",
+        "./installed-check-environment.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",

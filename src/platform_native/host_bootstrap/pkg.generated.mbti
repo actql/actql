@@ -3,6 +3,7 @@ package "actql/actql/platform_native/host_bootstrap"
 
 import {
   "actql/actql/physical_resources",
+  "actql/actql/platform_native/executor_slot",
   "moonbitlang/core/debug",
 }
 
@@ -68,6 +69,19 @@ pub(all) enum NativeBackedOriginalReadIssue {
   Child(@physical_resources.ImportedChildLedgerIssue)
 }
 
+type NativeBackedProcessRegion[T, C]
+
+pub(all) enum NativeBackedProcessRegionAcquisition[T, C] {
+  ProcessRegionReady(NativeBackedProcessRegion[T, C])
+  ProcessRegionPending(NativeBackedProcessRegion[T, C], NativeBackedProcessRegionIssue)
+}
+
+pub(all) enum NativeBackedProcessRegionIssue {
+  Domain(NativeBackedExecutionIssue)
+  Process(@executor_slot.NativeExecutorSlotIssue)
+  OriginalChild(@physical_resources.ImportedChildLedgerIssue)
+} derive(Eq, @debug.Debug)
+
 pub(all) enum NativeBackedViewAcquisition[T, C] {
   Mapped(NativeBackedExecutionView[T, C])
   PendingView(NativeBackedExecutionView[T, C], NativeBackedExecutionIssue)
@@ -95,18 +109,24 @@ pub(all) enum NativeBootstrapIssue {
 } derive(Eq, @debug.Debug)
 
 type NativeHostBootstrap[T]
+pub fn[T, C] NativeHostBootstrap::abandon_prepared_process_region(Self[T], T, NativeBackedProcessRegion[T, C]) -> Result[Unit, NativeBackedProcessRegionIssue]
 pub fn[T, C] NativeHostBootstrap::acquire_backed_domain(Self[T], T, NativeBackedExecutionView[T, C], C) -> Result[NativeBackedDomainAcquisition[T, C], NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::admit_backed_live_channel(Self[T], T, NativeBackedLiveChannel[T, C]) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T, C, R] NativeHostBootstrap::admit_backed_live_child(Self[T], T, NativeBackedLiveChild[T, C, R], R) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T] NativeHostBootstrap::allocate(Self[T], T, Int64) -> Result[NativeBootstrapAllocation[T], NativeBootstrapIssue]
 pub fn[T] NativeHostBootstrap::allocation_charge(Self[T], T, Int64) -> Result[Int64, NativeBootstrapIssue]
+pub fn[T, C] NativeHostBootstrap::backed_channel_ledger_limits(Self[T], T, NativeBackedLiveChannel[T, C], @physical_resources.ImportedChildLedger) -> Result[@physical_resources.LedgerLimits, NativeBackedOriginalReadIssue]
 pub fn[T, C] NativeHostBootstrap::backed_domain_capacity(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[(Int64, Int64), NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::backed_live_channel_capacities(Self[T], T, NativeBackedLiveChannel[T, C]) -> Result[(Int64, Int64), NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::backed_live_channel_limits(Self[T], T, NativeBackedLiveChannel[T, C]) -> Result[@physical_resources.LedgerLimits, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::backed_live_channel_state(Self[T], T, NativeBackedLiveChannel[T, C]) -> Result[@physical_resources.BackedExecutionLiveState, NativeBackedExecutionIssue]
 pub fn[T, C, R] NativeHostBootstrap::backed_live_child_limits(Self[T], T, NativeBackedLiveChild[T, C, R], R) -> Result[@physical_resources.LedgerLimits, NativeBackedExecutionIssue]
 pub fn[T, C, R] NativeHostBootstrap::backed_live_child_state(Self[T], T, NativeBackedLiveChild[T, C, R], R) -> Result[@physical_resources.BackedExecutionLiveState, NativeBackedExecutionIssue]
+pub fn[T, C] NativeHostBootstrap::bind_backed_live_channel_child(Self[T], T, NativeBackedLiveChannel[T, C], Int) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::bind_backed_live_channel_vm(Self[T], T, NativeBackedLiveChannel[T, C], Int64, Int64, Int64) -> Result[Unit, NativeBackedExecutionIssue]
+pub fn[T, C] NativeHostBootstrap::bind_prepared_process_channel_region(Self[T], T, NativeBackedLiveChannel[T, C], @executor_slot.NativeScopedExecutorHolder, @executor_slot.NativeScopedDuplexBorrow, Int) -> Result[NativeBackedProcessRegionAcquisition[T, C], NativeBackedProcessRegionIssue]
+pub fn[T, C] NativeHostBootstrap::bind_prepared_process_region(Self[T], T, NativeBackedExecutionDomain[T, C], C, @executor_slot.NativeScopedExecutorHolder, Int) -> Result[NativeBackedProcessRegionAcquisition[T, C], NativeBackedProcessRegionIssue]
+pub fn[T, C] NativeHostBootstrap::bind_process_channel_child(Self[T], T, NativeBackedProcessRegion[T, C]) -> Result[Unit, NativeBackedProcessRegionIssue]
 pub fn[T] NativeHostBootstrap::borrow(Self[T], T, NativeBootstrapAllocation[T]) -> Result[NativeBootstrapBorrow[T], NativeBootstrapIssue]
 pub fn[T] NativeHostBootstrap::borrow_backing(Self[T], T) -> Result[NativeBootstrapBorrow[T], NativeBootstrapIssue]
 pub fn[T] NativeHostBootstrap::capacity_usage(Self[T]) -> @physical_resources.SharedCapacityUsage
@@ -126,8 +146,11 @@ pub fn[T, C] NativeHostBootstrap::leave_backed_read_context(Self[T], T, NativeBa
 pub fn[T] NativeHostBootstrap::leave_borrow_scope(Self[T], T, NativeBootstrapBorrow[T]) -> Result[Unit, NativeBootstrapIssue]
 pub fn[T, C] NativeHostBootstrap::lend_backed_region(Self[T], T, NativeBackedExecutionRegion[T, C], NativeBootstrapBorrow[T], C, @physical_resources.BackedExecutionExtent, @physical_resources.BackedExecutionAccess, @physical_resources.LedgerLimits, Int64, Int64) -> Result[NativeBackedExecutionAcquisition[T, C], NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::map_backed_view(Self[T], T, NativeBackedExecutionLoan[T, C], C, Int) -> Result[NativeBackedViewAcquisition[T, C], NativeBackedExecutionIssue]
+pub fn[T, C] NativeHostBootstrap::original_backed_channel_ledger_frame(Self[T], T, NativeBackedLiveChannel[T, C]) -> Result[@physical_resources.ImportedChildLedger?, NativeBackedOriginalReadIssue]
 pub fn[T, C] NativeHostBootstrap::prepare_backed_live_channel(Self[T], T, NativeBackedExecutionDomain[T, C], C, Int, Int, Int, Int64) -> Result[NativeBackedLiveChannelAcquisition[T, C], NativeBackedExecutionIssue]
+pub fn[T, C] NativeHostBootstrap::prepare_backed_live_channel_before_spawn(Self[T], T, NativeBackedExecutionDomain[T, C], C, Int, Int, Int64) -> Result[NativeBackedLiveChannelAcquisition[T, C], NativeBackedExecutionIssue]
 pub fn[T, C, R] NativeHostBootstrap::prepare_backed_live_child(Self[T], T, NativeBackedExecutionDomain[T, C], C, R) -> Result[NativeBackedLiveChildAcquisition[T, C, R], NativeBackedExecutionIssue]
+pub fn[T, C] NativeHostBootstrap::prepare_backed_original_channel_ledger(Self[T], T, NativeBackedLiveChannel[T, C]) -> Result[@physical_resources.ImportedChildLedger, NativeBackedOriginalReadIssue]
 pub fn[T, C, R] NativeHostBootstrap::prepare_backed_original_read_ledger(Self[T], T, NativeBackedLiveChild[T, C, R], R) -> Result[@physical_resources.ImportedChildLedger, NativeBackedOriginalReadIssue]
 pub fn[T, C] NativeHostBootstrap::prepare_backed_read_context(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T, C, R] NativeHostBootstrap::prepare_backed_read_live_child(Self[T], T, NativeBackedExecutionDomain[T, C], C, R) -> Result[NativeBackedLiveChildAcquisition[T, C, R], NativeBackedExecutionIssue]
@@ -135,20 +158,30 @@ pub fn[T, C] NativeHostBootstrap::project_backed_extent(Self[T], T, NativeBacked
 pub fn[T, C] NativeHostBootstrap::project_prepared_domain(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[NativePreparedDomainTransport, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::project_prepared_domain_original(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[(NativePreparedDomainTransport, @physical_resources.BackedExecutionOriginalData), NativeBackedExecutionIssue]
 pub fn[T] NativeHostBootstrap::report(Self[T], T, NativeBootstrapDelegation[T], @physical_resources.LedgerUsage) -> Result[Unit, NativeBootstrapIssue]
+pub fn[T, C] NativeHostBootstrap::report_backed_channel_ledger(Self[T], T, NativeBackedLiveChannel[T, C], @physical_resources.ImportedChildLedger) -> Result[Unit, NativeBackedOriginalReadIssue]
 pub fn[T, C] NativeHostBootstrap::report_backed_live_channel(Self[T], T, NativeBackedLiveChannel[T, C], @physical_resources.LedgerUsage) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T, C, R] NativeHostBootstrap::report_backed_live_child(Self[T], T, NativeBackedLiveChild[T, C, R], R, @physical_resources.LedgerUsage) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::report_backed_region(Self[T], T, NativeBackedExecutionLoan[T, C], C, @physical_resources.LedgerUsage) -> Result[Unit, NativeBackedExecutionIssue]
+pub fn[T, C] NativeHostBootstrap::require_backed_channel_bootstrap_current(Self[T], T, NativeBackedLiveChannel[T, C], @physical_resources.ImportedChildLedger) -> Result[Unit, NativeBackedOriginalReadIssue]
+pub fn[T, C] NativeHostBootstrap::require_backed_channel_ledger_current(Self[T], T, NativeBackedLiveChannel[T, C], @physical_resources.ImportedChildLedger) -> Result[Unit, NativeBackedOriginalReadIssue]
 pub fn[T, C] NativeHostBootstrap::require_backed_domain_current(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::require_backed_read_context_current(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::require_backed_read_context_retired(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T] NativeHostBootstrap::require_borrow_current(Self[T], T, NativeBootstrapBorrow[T]) -> Result[Unit, NativeBootstrapIssue]
 pub fn[T] NativeHostBootstrap::require_current(Self[T], T) -> Result[Unit, NativeBootstrapIssue]
+pub fn[T, C] NativeHostBootstrap::reserve_backed_channel_bootstrap(Self[T], T, NativeBackedLiveChannel[T, C], @physical_resources.ImportedChildLedger, Int64, Int64) -> Result[Unit, NativeBackedOriginalReadIssue]
 pub fn[T] NativeHostBootstrap::retire(Self[T], T, NativeBootstrapAllocation[T]) -> Result[Unit, NativeBootstrapIssue]
+pub fn[T, C] NativeHostBootstrap::retire_backed_channel_bootstrap_after_owner_ack(Self[T], T, NativeBackedLiveChannel[T, C], @physical_resources.ImportedChildLedger) -> Result[Unit, NativeBackedOriginalReadIssue]
 pub fn[T, C] NativeHostBootstrap::retire_backed_live_channel_after_owner_ack(Self[T], T, NativeBackedLiveChannel[T, C]) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T, C, R] NativeHostBootstrap::retire_backed_live_child_after_owner_ack(Self[T], T, NativeBackedLiveChild[T, C, R], R) -> Result[Unit, NativeBackedExecutionIssue]
+pub fn[T, C] NativeHostBootstrap::retire_stopped_process_region(Self[T], T, NativeBackedProcessRegion[T, C], @executor_slot.NativeScopedExecutorStop) -> Result[Unit, NativeBackedProcessRegionIssue]
 pub fn[T] NativeHostBootstrap::return_borrow(Self[T], T, NativeBootstrapBorrow[T]) -> Result[Unit, NativeBootstrapIssue]
+pub fn[T, C] NativeHostBootstrap::return_process_channel_transport(Self[T], T, NativeBackedProcessRegion[T, C]) -> Result[Unit, NativeBackedProcessRegionIssue]
 pub fn[T, C] NativeHostBootstrap::settle_backed_region_after_owner_ack(Self[T], T, NativeBackedExecutionLoan[T, C], C, @physical_resources.LedgerUsage?) -> Result[Unit, NativeBackedExecutionIssue]
+pub fn[T, C] NativeHostBootstrap::start_backed_channel_ledger(Self[T], T, NativeBackedLiveChannel[T, C], @physical_resources.ImportedChildLedger) -> Result[Unit, NativeBackedOriginalReadIssue]
+pub fn[T, C] NativeHostBootstrap::stop_backed_channel_ledger(Self[T], T, NativeBackedLiveChannel[T, C], @physical_resources.ImportedChildLedger) -> Result[Unit, NativeBackedOriginalReadIssue]
 pub fn[T, C] NativeHostBootstrap::stop_backed_live_channel(Self[T], T, NativeBackedLiveChannel[T, C]) -> Result[Unit, NativeBackedExecutionIssue]
+pub fn[T, C] NativeHostBootstrap::stop_backed_live_channel_transport_use(Self[T], T, NativeBackedLiveChannel[T, C]) -> Result[Unit, NativeBackedOriginalReadIssue]
 pub fn[T, C, R] NativeHostBootstrap::stop_backed_live_child(Self[T], T, NativeBackedLiveChild[T, C, R], R) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::transfer_backed_domain(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T] NativeHostBootstrap::try_close(Self[T], T) -> Result[Unit, NativeBootstrapIssue]

@@ -48,6 +48,14 @@ moonbit_string_t actql_control_description(actql_control_reply *);
 int actql_control_originals_into(actql_control_reply *,
                                 actql_control_host **, actql_control_host **);
 int actql_control_current_into(actql_control_host *, actql_control_reply **);
+/* Trusted compiler/installer assembly only. These bounded copies belong to
+ * its declared initial control envelope; they are not arena acquisition or a
+ * Ledger issued by C. The existing typed callback selects the original Host.
+ * The persistent output keeps that same result if the foreign reply is lost. */
+int actql_control_prepare_utf16_into(
+    const uint16_t *, int32_t, const uint8_t *, int32_t, int64_t, int64_t,
+    int32_t, int32_t, int32_t, int64_t, int64_t, int64_t, int64_t,
+    actql_control_reply **);
 int actql_control_acquire_fd_into(actql_control_host *, int32_t,
                                   actql_control_reply **);
 

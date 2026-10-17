@@ -347,6 +347,16 @@ pub fn read_author(
 }
 
 ///|
+/// Authored admission with the same complete semantic node/UTF-8 usage as
+/// checked admission. This changes no grammar or default/nullability rules.
+pub fn read_author_usage(
+  cursor : @decode.Cursor,
+  limits : Limits,
+) -> Result[(Contract, Int, Int), AdmissionError] {
+  admit_usage(cursor, limits, false)
+}
+
+///|
 /// Validates checked contract values without repairing noncanonical strings.
 /// This is not a canonical JSON byte, signature or issuer-admission boundary.
 pub fn read_checked(

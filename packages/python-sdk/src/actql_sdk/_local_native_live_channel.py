@@ -55,6 +55,27 @@ class _OriginalLiveChannelFunctions:
         self.issue = bind_native(library, 'actql_live_channel_issue_family')
 
 
+class _OriginalLivePreparationFunctions:
+    """Actual matching pre-spawn/frame ABI of the same selected provider.
+
+    The old post-spawn diagnostic entry remains separate; missing new exports
+    cannot select it as a compatibility path.
+    """
+
+    def __init__(self, library: Any) -> None:
+        self.legacy = _OriginalLiveChannelFunctions(library)
+        self.before = bind_native(library, 'actql_live_channel_prepare_before_spawn_into')
+        self.child = bind_native(library, 'actql_live_channel_bind_child_into')
+        self.prepare = bind_native(library, 'actql_channel_ledger_prepare_into')
+        self.operate = bind_native(library, 'actql_channel_ledger_operate_into')
+        self.originals = bind_native(library, 'actql_channel_ledger_originals_into')
+        self.operation = bind_native(library, 'actql_channel_ledger_operation')
+        self.issue = bind_native(library, 'actql_channel_ledger_issue_family')
+        self.limits = bind_native(library, 'actql_channel_ledger_copy_limits')
+        self.drop = bind_native(library, 'actql_channel_ledger_drop_reply')
+        self.finish = bind_native(library, 'actql_channel_ledger_finish_retired_data')
+
+
 class _OriginalLiveChannelCustody:
     """Retain one existing domain/channel and physical caller across failures.
 
@@ -69,7 +90,10 @@ class _OriginalLiveChannelCustody:
                  '_read', '_write', '_read_value', '_write_value', '_child_pid',
                  '_host', '_native_domain', '_channel', '_reply', '_unknown',
                  '_unknown_carrier', '_closed', '_bind_attempted', '_admit_attempted',
-                 '_stop_attempted', '_stop_acknowledged', '_control_original')
+                 '_stop_attempted', '_stop_acknowledged', '_control_original',
+                 '_preparation_functions', '_child_binding_attempted', '_child_bound',
+                 '_frame_host', '_frame_domain', '_frame_channel', '_frame', '_frame_reply',
+                 '_frame_prepare_attempted', '_frame_values')
     _original: _OriginalLiveChannelCustody
     _domain: _OriginalDomainCustody
     _owner: _OriginalControlCustody
@@ -97,6 +121,16 @@ class _OriginalLiveChannelCustody:
     _stop_attempted: bool
     _stop_acknowledged: bool
     _control_original: object | None
+    _preparation_functions: _OriginalLivePreparationFunctions | None
+    _child_binding_attempted: bool
+    _child_bound: bool
+    _frame_host: c_void_p
+    _frame_domain: c_void_p
+    _frame_channel: c_void_p
+    _frame: c_void_p
+    _frame_reply: c_void_p
+    _frame_prepare_attempted: bool
+    _frame_values: tuple[int | None, ...] | None
 
     def __init__(self) -> None:
         raise TypeError('Original live-channel custody requires the installed physical caller')
@@ -104,7 +138,8 @@ class _OriginalLiveChannelCustody:
     @classmethod
     def _capture_original(cls, domain: _OriginalDomainCustody,
                           process: OriginalWorkerProcess, pipe: OriginalWorkerPipe,
-                          functions: _OriginalLiveChannelFunctions, *, nonce: int) -> _OriginalLiveChannelCustody:
+                          functions: _OriginalLiveChannelFunctions, *, nonce: int,
+                          _preparation: _OriginalLivePreparationFunctions | None = None) -> _OriginalLiveChannelCustody:
         if (type(domain) is not _OriginalDomainCustody
                 or type(process) is not OriginalWorkerProcess or type(pipe) is not OriginalWorkerPipe
                 or type(functions) is not _OriginalLiveChannelFunctions
@@ -114,12 +149,19 @@ class _OriginalLiveChannelCustody:
                 or pipe._funding is not process._funding
                 or type(nonce) is not int or not 0 < nonce <= 2**63 - 1):
             raise ValueError('Original Native live-channel inputs are unavailable')
+        before_spawn = _preparation is not None
+        if before_spawn and (type(_preparation) is not _OriginalLivePreparationFunctions
+                or _preparation.legacy is not functions or not process._descriptors_prepared
+                or process._spawn_attempted or process._spawn_syscall_attempted or process._pid is not None):
+            raise ValueError('Original pre-spawn descriptors are unavailable')
         funding = process._funding
         if (type(funding) is not OriginalWorkerFunding or funding._physical is not domain
                 or funding._delegation is not domain or funding._ledger is not domain._owner
                 or process._native_domain is not domain or domain._worker_process_original is not process
                 or process._native_metadata_retired or process._native_dup_unknown
-                or process._native_duplicate is None or not process._native_duplicate.closed
+                or process._native_duplicate is None
+                or (before_spawn and (process._native_duplicate.closed or process._native_duplicate.close_attempted)
+                    or not before_spawn and not process._native_duplicate.closed)
                 or domain._live_channel_original is not None or pipe._native_channel_original is not None):
             raise ValueError('Original live-channel funding or one-shot domain is unavailable')
         if process._stdin is None or process._stdout is None:
@@ -142,24 +184,44 @@ class _OriginalLiveChannelCustody:
         channel._bind_attempted = channel._admit_attempted = channel._stop_attempted = False
         channel._stop_acknowledged = False
         channel._control_original = None
+        channel._preparation_functions = _preparation
+        channel._child_binding_attempted = channel._child_bound = not before_spawn
+        channel._frame_host, channel._frame_domain, channel._frame_channel = c_void_p(), c_void_p(), c_void_p()
+        channel._frame, channel._frame_reply = c_void_p(), c_void_p()
+        channel._frame_prepare_attempted = False
+        channel._frame_values = None
         # Same existing custody before current/physical capture can fail. Even
         # a lost return never allows a second capture on the same pipe/domain.
         domain._live_channel_original = pipe._native_channel_original = channel
         known: _OriginalLiveChannelError | None = None
-        try:
-            with process._lock:
+        with process._lock:
+            try:
                 channel._require_launch()
                 channel._owner._enter()
+            except BaseException:
+                # No foreign call has started. A known local entry refusal
+                # owns no channel aliases and must not poison parent cleanup.
+                if domain._live_channel_original is channel:
+                    domain._live_channel_original = None
+                if pipe._native_channel_original is channel:
+                    pipe._native_channel_original = None
+                channel._closed = True
+                raise
+            try:
                 try:
-                    channel._status(functions.prepare(domain._host, domain._domain,
-                        process._pid, channel._read.value, channel._write.value, nonce, byref(channel._reply)))
+                    if _preparation is None:
+                        channel._status(functions.prepare(domain._host, domain._domain,
+                            process._pid, channel._read.value, channel._write.value, nonce, byref(channel._reply)))
+                    else:
+                        channel._status(_preparation.before(domain._host, domain._domain,
+                            channel._read.value, channel._write.value, nonce, byref(channel._reply)))
                     channel._status(functions.originals(channel._reply, byref(channel._host),
                         byref(channel._native_domain), byref(channel._channel)))
                     if (channel._host.value is None or channel._host.value != domain._host.value
                             or channel._native_domain.value is None
                             or channel._native_domain.value != domain._domain.value):
                         raise channel._mark_unknown()
-                    fact = channel._fact(1)
+                    fact = channel._fact(10 if before_spawn else 1)
                     if channel._channel.value is None:
                         if fact.issue_family == 0:
                             raise channel._mark_unknown()
@@ -180,10 +242,202 @@ class _OriginalLiveChannelCustody:
                     known = _OriginalLiveChannelError(channel, unknown=False, fact=fact)
                     raise known
                 return channel
+            except BaseException as error:
+                if error is known or error is channel._unknown:
+                    raise
+                raise channel._mark_unknown() from error
+
+    @classmethod
+    def _prepare_original(cls, domain: _OriginalDomainCustody,
+                          process: OriginalWorkerProcess, pipe: OriginalWorkerPipe,
+                          functions: _OriginalLivePreparationFunctions, *, nonce: int) -> _OriginalLiveChannelCustody:
+        if type(functions) is not _OriginalLivePreparationFunctions:
+            raise ValueError('Matching original pre-spawn transport is unavailable')
+        return cls._capture_original(domain, process, pipe, functions.legacy,
+                                     nonce=nonce, _preparation=functions)
+
+    def prepare_original_frame(self) -> None:
+        """Project this live ticket once; never create a scalar child root."""
+        with self._process._lock:
+            functions = self._preparation_functions
+            self._require_launch()
+            if functions is None or self._frame_prepare_attempted:
+                raise ValueError('Original resource frame preparation is unavailable or already attempted')
+            self._owner._enter()
+            self._frame_prepare_attempted = True
+            try:
+                self._status(functions.prepare(self._host, self._native_domain, self._channel,
+                                               byref(self._frame_reply)))
+                self._status(functions.originals(self._frame_reply, byref(self._frame_host),
+                    byref(self._frame_domain), byref(self._frame_channel), byref(self._frame)))
+                if (self._frame_host.value != self._host.value or self._frame_host.value is None
+                        or self._frame_domain.value != self._native_domain.value
+                        or self._frame_domain.value is None
+                        or self._frame_channel.value != self._channel.value or self._frame_channel.value is None):
+                    raise self._mark_unknown()
+                channel_values = (self._frame_host.value, self._frame_domain.value,
+                                  self._frame_channel.value, self._frame.value)
+                self._frame_values = channel_values
+                fact = self._frame_fact(1)
+                if fact.issue_family == 0 and self._frame.value is None:
+                    raise self._mark_unknown()
+                # A no-frame known refusal retains the original typed reply
+                # for final alias retirement. Partial frames stay here too.
+                if self._frame.value is not None:
+                    self._drop_frame_reply()
+            except BaseException as error:
+                if error is self._unknown:
+                    raise
+                raise self._mark_unknown() from error
+            finally:
+                self._owner._busy = False
+            self._frame_postcheck(fact, cleanup=False)
+
+    def _frame_fact(self, expected: int) -> _OriginalArenaFact:
+        functions = self._preparation_functions
+        if functions is None or self._frame_reply.value is None:
+            raise self._mark_unknown()
+        operation, issue = functions.operation(self._frame_reply), functions.issue(self._frame_reply)
+        if (type(operation) is not int or operation != expected
+                or type(issue) is not int or not 0 <= issue <= 10):
+            raise self._mark_unknown()
+        if issue == 10:
+            # The existing Common imported-child Unknown is not a known denial.
+            raise self._mark_unknown()
+        return _OriginalArenaFact(operation, issue)
+
+    def _drop_frame_reply(self) -> None:
+        functions = self._preparation_functions
+        if functions is None:
+            raise self._mark_unknown()
+        if self._frame_reply.value is not None:
+            self._status(functions.drop(byref(self._frame_reply), self._frame_host,
+                self._frame_domain, self._frame_channel, self._frame))
+            if self._frame_reply.value is not None:
+                raise self._mark_unknown()
+
+    def _require_frame_identity(self) -> None:
+        if (self._frame_values is None or
+                (self._frame_host.value, self._frame_domain.value, self._frame_channel.value,
+                 self._frame.value) != self._frame_values
+                or self._frame_host.value != self._host.value
+                or self._frame_domain.value != self._native_domain.value
+                or self._frame_channel.value != self._channel.value):
+            raise ValueError('Original Native resource frame aliases changed')
+
+    def _frame_postcheck(self, fact: _OriginalArenaFact, *, cleanup: bool) -> None:
+        try:
+            self._require_frame_identity()
+            if cleanup:
+                self._identity(cleanup=True)
+            else:
+                self._require_launch()
         except BaseException as error:
-            if error is known or error is channel._unknown:
+            if error is self._unknown:
                 raise
-            raise channel._mark_unknown() from error
+            raise self._mark_unknown() from error
+        if fact.issue_family != 0:
+            raise _OriginalLiveChannelError(self, unknown=False, fact=fact)
+
+    def _frame_operation(self, operation: int, retained: int = 0, execution: int = 0,
+                         *, cleanup: bool = False, keep_reply: bool = False) -> tuple[int, ...] | None:
+        functions = self._preparation_functions
+        # Closed transport selection, not an authority or accounting decision.
+        if (functions is None or type(operation) is not int or not 2 <= operation <= 10
+                or type(retained) is not int or type(execution) is not int
+                or not 0 <= retained <= 2**63 - 1 or not 0 <= execution <= 2**63 - 1
+                or (operation == 3 and execution == 0)
+                or (operation != 3 and (retained != 0 or execution != 0))):
+            raise ValueError('Original resource frame operation is not representable')
+        limits = (c_int64 * 6)(*([-1] * 6))
+        value: tuple[int, ...] | None = None
+        with self._process._lock:
+            if cleanup:
+                self._identity(cleanup=True)
+            else:
+                self._require_launch()
+            self._require_frame_identity()
+            if self._frame.value is None:
+                raise ValueError('Original resource frame is unavailable')
+            self._owner._enter()
+            try:
+                self._drop_frame_reply()
+                self._status(functions.operate(self._frame_host, self._frame_domain,
+                    self._frame_channel, self._frame, operation, retained, execution, byref(self._frame_reply)))
+                fact = self._frame_fact(operation)
+                if operation == 5 and fact.issue_family == 0:
+                    self._status(functions.limits(self._frame_reply, self._frame_host,
+                        self._frame_domain, self._frame_channel, self._frame, limits))
+                    value = tuple(limits)
+                    if any(item < 0 for item in value):
+                        raise self._mark_unknown()
+                if not keep_reply:
+                    self._drop_frame_reply()
+            except BaseException as error:
+                if error is self._unknown:
+                    raise
+                raise self._mark_unknown() from error
+            finally:
+                self._owner._busy = False
+            self._frame_postcheck(fact, cleanup=cleanup)
+            return value
+
+    def start_original_frame(self) -> None:
+        self._frame_operation(2)
+
+    def reserve_original_bootstrap(self, *, retained: int, execution: int) -> None:
+        # Actual Common reservation from the original delegation. This accepts
+        # no parent/Frame/Owner supplied by a caller and chooses no profile.
+        self._frame_operation(3, retained, execution)
+
+    def require_original_frame_current(self) -> None:
+        self._frame_operation(4)
+
+    def original_frame_limits(self) -> tuple[int, ...]:
+        value = self._frame_operation(5)
+        assert value is not None
+        return value
+
+    def report_original_frame(self) -> None:
+        # Existing Common snapshot, not caller-supplied usage or a fresh credit.
+        self._frame_operation(6, cleanup=True)
+
+    def stop_original_frame(self) -> None:
+        # Logical stop alone never calls physical/metadata retirement.
+        self._frame_operation(7, cleanup=True)
+
+    def stop_transport_use(self) -> None:
+        """Ask the same Native Owner to restrict fresh transport work.
+
+        The physical caller must still finish actual I/O and return its opaque
+        endpoint borrow. This confirmation is no FD close, scoped process stop,
+        metadata retirement, quota settlement or business acknowledgment.
+        """
+        self._frame_operation(10, cleanup=True)
+
+    def require_original_bootstrap_current(self) -> None:
+        self._frame_operation(9)
+
+    def bind_original_child(self) -> None:
+        """Bind only the PID captured by this original process's one spawn.
+
+        Neither an external PID argument nor a lost spawn response can adopt a
+        different child. A lost/denied binding remains one-shot in this record.
+        """
+        with self._process._lock:
+            functions, process = self._preparation_functions, self._process
+            if functions is None or self._child_binding_attempted:
+                raise ValueError('Original child binding is unavailable or already attempted')
+            process._nominal()
+            if (not process._spawn_syscall_attempted or not process._spawn_attempted
+                    or type(process._pid) is not int or not 0 < process._pid <= 2**31 - 1
+                    or process._native_duplicate is None or not process._native_duplicate.closed
+                    or process._native_dup_unknown):
+                raise ValueError('Original spawned child is unconfirmed')
+            self._child_binding_attempted = True
+            self._child_pid = process._pid
+            self._perform(11, functions.child, (process._pid,))
+            self._child_bound = True
 
     def __copy__(self) -> NoReturn:
         raise TypeError('Original Native live-channel custody cannot be copied')
@@ -235,8 +489,12 @@ class _OriginalLiveChannelCustody:
                 or process._stdin is None or process._stdout is None
                 or process._stdin[1] is not self._write or process._stdout[0] is not self._read
                 or process._parent_pipe_borrowed or pipe._active
-                or not process._spawn_attempted or type(process._pid) is not int or process._pid <= 0
-                or process._pid != self._child_pid
+                or (self._child_binding_attempted and
+                    (not process._spawn_attempted or type(process._pid) is not int or process._pid <= 0
+                     or process._pid != self._child_pid))
+                or (not self._child_binding_attempted and
+                    (process._pid is not None or process._spawn_syscall_attempted
+                     or not cleanup and process._spawn_attempted))
                 or self._read.value != self._read_value or self._write.value != self._write_value):
             raise ValueError('Original Native channel physical identities changed')
         for descriptor in (self._read, self._write):
@@ -335,6 +593,8 @@ class _OriginalLiveChannelCustody:
         It is not a public input accepting a foreign Store or Caller identity.
         """
         self._require_launch()
+        if not self._child_bound:
+            raise ValueError('Original Native child binding is unconfirmed')
         if self._bind_attempted:
             raise ValueError('Original Native channel VM binding was already attempted')
         if (type(span) is not _OriginalVMSpanData or type(span.nonce) is not int or span.nonce != self._nonce
@@ -353,6 +613,8 @@ class _OriginalLiveChannelCustody:
 
     def admit(self) -> None:
         self._require_launch()
+        if not self._child_bound:
+            raise ValueError('Original Native child binding is unconfirmed')
         if self._admit_attempted:
             raise ValueError('Original Native channel admission was already attempted')
         self._admit_attempted = True
@@ -423,6 +685,9 @@ class _OriginalLiveChannelCustody:
                     *self._funding_originals, observation))
                 self._identity(cleanup=True)
                 self._require_retirement_observations(channel, observation)
+                if self._frame.value is not None:
+                    self._frame_operation(8, cleanup=True, keep_reply=True)
+                self._require_retirement_observations(channel, observation)
                 self._owner._enter()
                 try:
                     self._drop_reply()
@@ -432,6 +697,14 @@ class _OriginalLiveChannelCustody:
                     if fact.issue_family != 0:
                         known = _OriginalLiveChannelError(self, unknown=False, fact=fact)
                         raise known
+                    if self._frame_prepare_attempted:
+                        functions = self._preparation_functions
+                        assert functions is not None
+                        self._status(functions.finish(byref(self._frame_host), byref(self._frame_domain),
+                            byref(self._frame_channel), byref(self._frame), byref(self._frame_reply), self._reply))
+                        if any(value.value is not None for value in (self._frame_host, self._frame_domain,
+                                self._frame_channel, self._frame, self._frame_reply)):
+                            raise self._mark_unknown()
                     self._status(self._functions.finish(byref(self._host), byref(self._native_domain),
                                                        byref(self._channel), byref(self._reply)))
                     if any(x.value is not None for x in (self._host, self._native_domain, self._channel, self._reply)):

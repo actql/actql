@@ -12,8 +12,32 @@ extern "C" fn capture_live_channel_ffi(
 ) -> PhysicalLiveChannel = "actql_bootstrap_capture_live_channel"
 
 ///|
+#borrow(domain)
+extern "C" fn prepare_live_channel_ffi(
+  domain : PhysicalExtentDomain,
+  read_fd : Int,
+  write_fd : Int,
+  nonce : Int64,
+) -> PhysicalLiveChannel = "actql_bootstrap_prepare_live_channel"
+
+///|
+#borrow(channel)
+extern "C" fn bind_live_child_ffi(
+  channel : PhysicalLiveChannel,
+  child : Int,
+) -> Int = "actql_bootstrap_bind_live_child"
+
+///|
 #borrow(channel)
 extern "C" fn live_channel_status_ffi(channel : PhysicalLiveChannel) -> Int = "actql_bootstrap_live_channel_status"
+
+///|
+#borrow(channel)
+extern "C" fn match_live_channel_descriptors_ffi(
+  channel : PhysicalLiveChannel,
+  read_fd : Int,
+  write_fd : Int,
+) -> Int = "actql_bootstrap_match_live_channel_descriptors"
 
 ///|
 #borrow(channel)
@@ -51,8 +75,20 @@ struct NativeBackedLiveChannel[T, C] {
   nonce : Int64
   mut physical : PhysicalLiveChannel?
   mut live : NativeBackedLiveChild[T, C, NativeBackedLiveChannel[T, C]]?
+  mut child_binding_attempted : Bool
   mut binding_attempted : Bool
   mut bound : Bool
+  // Resource projection and actual VM admission are separate original steps.
+  mut admitted : Bool
+  mut ledger_attempted : Bool
+  mut ledger_frame : @resources.ImportedChildLedger?
+  mut original_ledger : @resources.Ledger?
+  mut envelope_attempted : Bool
+  mut envelope : @resources.CapacityReservation?
+  mut envelope_retired : Bool
+  // Ending parent transport use is distinct from child/process or metadata
+  // retirement. Keep the original frame and all cleanup responsibility.
+  mut transport_stopped : Bool
   mut retired : Bool
 }
 
@@ -80,6 +116,59 @@ pub fn[T, C] NativeHostBootstrap::prepare_backed_live_channel(
   NativeBackedLiveChannelAcquisition[T, C],
   NativeBackedExecutionIssue,
 ] {
+  self.capture_backed_live_channel(
+    original,
+    domain,
+    child,
+    Some(child_pid),
+    read_fd,
+    write_fd,
+    nonce,
+  )
+}
+
+///|
+/// Retain the same original domain/ticket and actual borrowed pipes BEFORE
+/// spawn. Complete process/FD/control funding remains a separate requirement.
+/// Preparation issues no child/VM/launch/Source/Model authority. Missing pipes
+/// refuse with the same pending carrier; no descriptor is opened or duplicated.
+pub fn[T, C] NativeHostBootstrap::prepare_backed_live_channel_before_spawn(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+  read_fd : Int,
+  write_fd : Int,
+  nonce : Int64,
+) -> Result[
+  NativeBackedLiveChannelAcquisition[T, C],
+  NativeBackedExecutionIssue,
+] {
+  self.capture_backed_live_channel(
+    original,
+    domain,
+    child,
+    None,
+    read_fd,
+    write_fd,
+    nonce,
+  )
+}
+
+///|
+fn[T, C] NativeHostBootstrap::capture_backed_live_channel(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+  child_pid : Int?,
+  read_fd : Int,
+  write_fd : Int,
+  nonce : Int64,
+) -> Result[
+  NativeBackedLiveChannelAcquisition[T, C],
+  NativeBackedExecutionIssue,
+] {
   match self.require_domain_current(original, domain, child) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -99,20 +188,27 @@ pub fn[T, C] NativeHostBootstrap::prepare_backed_live_channel(
     nonce,
     physical: None,
     live: None,
+    child_binding_attempted: child_pid is Some(_),
     binding_attempted: false,
     bound: false,
+    admitted: false,
+    ledger_attempted: false,
+    ledger_frame: None,
+    original_ledger: None,
+    envelope_attempted: false,
+    envelope: None,
+    envelope_retired: false,
+    transport_stopped: false,
     retired: false,
   }
   // Existing domain custody precedes any fallible physical or access capture.
   domain.live_channel_attempted = true
   domain.live_channel = Some(record)
-  let physical = capture_live_channel_ffi(
-    domain.physical,
-    child_pid,
-    read_fd,
-    write_fd,
-    nonce,
-  )
+  let physical = match child_pid {
+    Some(pid) =>
+      capture_live_channel_ffi(domain.physical, pid, read_fd, write_fd, nonce)
+    None => prepare_live_channel_ffi(domain.physical, read_fd, write_fd, nonce)
+  }
   record.physical = Some(physical)
   let status = live_channel_status_ffi(physical)
   if status != 0 {
@@ -147,6 +243,164 @@ fn[T, C] NativeHostBootstrap::original_live_channel(
 }
 
 ///|
+fn[T, C] NativeHostBootstrap::require_live_channel_open(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChannel[T, C],
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  match self.original_live_channel(original, record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if record.transport_stopped {
+    return Err(Bootstrap(Closing))
+  }
+  match record.domain.process_region {
+    Some(process) =>
+      self.require_process_channel_current(original, record, process)
+    None => self.require_domain_current(original, record.domain, record.child)
+  }
+}
+
+///|
+// Reuse the same Common projection under the exact associated process check.
+// Independent live-child/domain callers keep their original generic refusal.
+fn[T, C] NativeHostBootstrap::live_channel_accounting_state(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChannel[T, C],
+) -> Result[@resources.BackedExecutionLiveState, NativeBackedExecutionIssue] {
+  guard record.live is Some(live) else { return Err(Bootstrap(Unavailable)) }
+  if record.domain.process_region is None {
+    return self.backed_live_child_state(original, live, record)
+  }
+  match self.require_live_channel_open(original, record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match self.original_live_child(original, live, record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard live.projection is Some(projection) else {
+    return Err(Bootstrap(Unavailable))
+  }
+  @resources.backed_execution_live_state(projection, record).map_err(issue => {
+    Accounting(issue)
+  })
+}
+
+///|
+/// Restrict fresh transport work before the existing FD Owner takes back its
+/// borrowed endpoints. The serialized caller must separately finish actual
+/// in-flight I/O and return its original endpoint borrow. This does not close
+/// any FD, prove child stop, retire metadata, return backing or settle quota.
+/// Failed logical stop keeps this same restriction and original frame outcome.
+pub fn[T, C] NativeHostBootstrap::stop_backed_live_channel_transport_use(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChannel[T, C],
+) -> Result[Unit, NativeBackedOriginalReadIssue] {
+  match self.original_live_channel(original, record) {
+    Err(issue) => return Err(Domain(issue))
+    Ok(_) => ()
+  }
+  record.transport_stopped = true
+  match record.ledger_frame {
+    Some(frame) =>
+      @resources.stop_imported_child_ledger(frame).map_err(issue => Child(issue))
+    None =>
+      match record.live {
+        None => Ok(())
+        Some(_) =>
+          self
+          .stop_backed_live_channel(original, record)
+          .map_err(issue => Domain(issue))
+      }
+  }
+}
+
+///|
+/// The same process Owner binds its actual spawned child once. PID DATA does
+/// not prove inherited memory, VM admission, stop or descriptor retirement.
+/// Retain the original channel on response loss; never retry with another PID.
+pub fn[T, C] NativeHostBootstrap::bind_backed_live_channel_child(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChannel[T, C],
+  child_pid : Int,
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  match self.original_live_channel(original, record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match self.require_live_channel_open(original, record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if record.child_binding_attempted {
+    return Err(Bootstrap(AlreadyConsumed))
+  }
+  record.child_binding_attempted = true
+  guard record.physical is Some(physical) else {
+    return Err(Bootstrap(Unavailable))
+  }
+  let status = bind_live_child_ffi(physical, child_pid)
+  if status != 0 {
+    return Err(Bootstrap(Physical(status)))
+  }
+  self.require_live_channel_open(original, record)
+}
+
+///|
+/// Trusted same-parent resource assembly before bootstrap, with the original
+/// transferred domain/ticket and actual prepared pipes. No scalar limits,
+/// callbacks, VM/Host baseline or launch permission enter this issuer. The
+/// same channel retains a partial frame on lost reply/current postcheck.
+pub fn[T, C] NativeHostBootstrap::prepare_backed_original_channel_ledger(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChannel[T, C],
+) -> Result[@resources.ImportedChildLedger, NativeBackedOriginalReadIssue] {
+  match self.original_live_channel(original, record) {
+    Err(issue) => return Err(Domain(issue))
+    Ok(_) => ()
+  }
+  match self.require_live_channel_open(original, record) {
+    Err(issue) => return Err(Domain(issue))
+    Ok(_) => ()
+  }
+  if record.ledger_attempted || record.admitted {
+    return Err(Domain(Bootstrap(AlreadyConsumed)))
+  }
+  guard record.physical is Some(physical) && record.live is Some(live) else {
+    return Err(Domain(Bootstrap(Unavailable)))
+  }
+  let status = live_channel_status_ffi(physical)
+  if status != 0 {
+    return Err(Domain(Bootstrap(Physical(status))))
+  }
+  record.ledger_attempted = true
+  let frame = match
+    self.prepare_backed_original_live_ledger(original, live, record) {
+    Err(issue) => return Err(issue)
+    Ok(frame) => frame
+  }
+  // Original custody precedes postchecks and the foreign reply boundary.
+  record.ledger_frame = Some(frame)
+  match self.require_live_channel_open(original, record) {
+    Err(issue) => return Err(Domain(issue))
+    Ok(_) => ()
+  }
+  let status = live_channel_status_ffi(physical)
+  if status != 0 {
+    Err(Domain(Bootstrap(Physical(status))))
+  } else {
+    Ok(frame)
+  }
+}
+
+///|
 /// Same private channel only, after validating the original child's Memory
 /// observation. Relative DATA is not a public VM/admission constructor. The
 /// same caller must check its original channel and physical custody again.
@@ -165,7 +419,7 @@ pub fn[T, C] NativeHostBootstrap::bind_backed_live_channel_vm(
   if record.binding_attempted {
     return Err(Bootstrap(AlreadyConsumed))
   }
-  match self.require_domain_current(original, record.domain, record.child) {
+  match self.require_live_channel_open(original, record) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -181,7 +435,7 @@ pub fn[T, C] NativeHostBootstrap::bind_backed_live_channel_vm(
     return Err(Bootstrap(Physical(status)))
   }
   record.bound = true
-  self.require_domain_current(original, record.domain, record.child)
+  self.require_live_channel_open(original, record)
 }
 
 ///|
@@ -194,6 +448,10 @@ pub fn[T, C] NativeHostBootstrap::admit_backed_live_channel(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  match self.require_live_channel_open(original, record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   guard record.bound &&
     record.physical is Some(physical) &&
     record.live is Some(live) else {
@@ -203,7 +461,25 @@ pub fn[T, C] NativeHostBootstrap::admit_backed_live_channel(
   if status != 0 {
     return Err(Bootstrap(Physical(status)))
   }
-  match self.admit_backed_live_child(original, live, record) {
+  if record.admitted {
+    return Err(Accounting(@resources.LiveChildAlreadyAdmitted))
+  }
+  if record.ledger_frame is Some(_) {
+    // Its resource projection already exists; this step still requires the
+    // actual original child/VM observation above and cannot readmit Common.
+    match self.live_channel_accounting_state(original, record) {
+      Err(issue) => return Err(issue)
+      Ok(@resources.LiveClosing) => return Err(Bootstrap(Closing))
+      Ok(@resources.LiveOpen) => ()
+    }
+  } else {
+    match self.admit_backed_live_child(original, live, record) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  record.admitted = true
+  match self.require_live_channel_open(original, record) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -225,16 +501,27 @@ pub fn[T, C] NativeHostBootstrap::backed_live_channel_state(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  guard record.physical is Some(physical) && record.live is Some(live) else {
+  match self.require_live_channel_open(original, record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard record.physical is Some(physical) && record.live is Some(_) else {
     return Err(Bootstrap(Unavailable))
   }
   let status = live_vm_current_ffi(physical)
   if status != 0 {
     return Err(Bootstrap(Physical(status)))
   }
-  let state = match self.backed_live_child_state(original, live, record) {
+  if !record.admitted {
+    return Err(Bootstrap(Unavailable))
+  }
+  let state = match self.live_channel_accounting_state(original, record) {
     Err(issue) => return Err(issue)
     Ok(value) => value
+  }
+  match self.require_live_channel_open(original, record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   let status = live_vm_current_ffi(physical)
   if status != 0 {
@@ -255,7 +542,15 @@ pub fn[T, C] NativeHostBootstrap::backed_live_channel_limits(
     Ok(@resources.LiveClosing) => return Err(Bootstrap(Closing))
     Ok(@resources.LiveOpen) => ()
   }
-  self.backed_live_child_limits(original, record.live.unwrap(), record)
+  if record.domain.process_region is None {
+    return self.backed_live_child_limits(original, record.live.unwrap(), record)
+  }
+  guard record.live is Some(live) && live.projection is Some(projection) else {
+    return Err(Bootstrap(Unavailable))
+  }
+  @resources.backed_execution_live_limits(projection, record).map_err(issue => {
+    Accounting(issue)
+  })
 }
 
 ///|
@@ -352,6 +647,9 @@ pub fn[T, C] NativeHostBootstrap::retire_backed_live_channel_after_owner_ack(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  if record.envelope is Some(_) {
+    return Err(Accounting(@resources.CleanupPending))
+  }
   if record.live is Some(live) {
     match
       self.retire_backed_live_child_after_owner_ack(original, live, record) {
@@ -366,6 +664,10 @@ pub fn[T, C] NativeHostBootstrap::retire_backed_live_channel_after_owner_ack(
     }
     record.physical = None
   }
+  // Common's same-owner ACK retirement invalidates escaped original frames
+  // and breaks their callbacks. Dropping this reference alone is never an ACK.
+  record.ledger_frame = None
+  record.original_ledger = None
   record.retired = true
   record.domain.live_channel = None
   Ok(())

@@ -1138,6 +1138,12 @@ pub fn client_program_installed_infer_plan_graph(@run_publication_host.PreparedC
 
 pub fn client_program_installed_listing_row_capture_capacity(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?) -> @client_local_host.ClientInstalledCaptureCapacity?
 
+pub fn client_program_installed_model_defaults_binding(@run_publication_host.ClientModelProviderDefaults) -> @run_publication.RunEvidenceValue
+
+pub fn client_program_installed_model_defaults_generation(@run_publication_host.ClientModelProviderDefaults, @check_environment.ResolvedModelProviderDefaults) -> @check_environment.ModelGeneration?
+
+pub fn client_program_installed_model_defaults_usage(@run_publication_host.ClientModelProviderDefaults) -> (Int, Int, Int)
+
 pub fn client_program_installed_pending_duckdb_capture_capacity(@client_local_host.ClientDuckDBCaptureCapacity) -> @client_local_host.ClientInstalledCaptureCapacity
 
 pub fn client_program_installed_provider_row_capture_capacity(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?) -> @client_local_host.ClientInstalledCaptureCapacity?
@@ -1764,6 +1770,8 @@ pub fn client_program_read_infer_model_execution(@run_publication_host.PreparedC
 
 pub fn client_program_read_infer_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Int, Int) -> Result[@model_execution.ModelSlotReplayRead, @model_execution.ModelExecutionIssue]
 
+pub fn client_program_read_installed_model_defaults(String, String, String, String, Int, Int, Int, Int, Int) -> Result[@run_publication_host.ClientModelProviderDefaults, @run_publication_host.ClientModelProviderDefaultsIssue]
+
 pub fn client_program_read_model_original_resource_document(String, Int, Int, Int) -> Result[@run_publication.ModelOriginalResourceDocument, @run_publication.PublicationContractIssue]
 
 pub fn client_program_read_model_response_profile(String, String, Int, Int, Int, Int, Int) -> Result[@check_environment.ModelResponseProfile, @check_environment.ModelTaskIssue]
@@ -1849,6 +1857,8 @@ pub fn client_program_reserve_captured_content_workspace(@physical_resources.Led
 pub fn client_program_reserve_infer_evidence_copy(Int) -> Result[(@physical_resources.Ledger, @physical_resources.Reservation), @physical_resources.LedgerIssue]
 
 pub fn client_program_reserve_original_infer_publication_capacity(@client_infer_host.Execution, Int64, Int64) -> Result[@model_execution.OriginalModelPublicationCapacity, @client_infer_host.Issue]
+
+pub fn client_program_resolve_installed_model_defaults(@run_publication_host.ClientModelProviderDefaults, String?, Int64?, Int) -> Result[@check_environment.ResolvedModelProviderDefaults, @check_environment.ModelProviderDefaultsResolutionIssue]
 
 pub fn client_program_resource_reference_issuer((String, String) -> Bool, (String) -> Bool) -> @value_admission.ReferenceIssuer
 

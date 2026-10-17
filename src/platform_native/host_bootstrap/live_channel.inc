@@ -17,6 +17,7 @@ typedef struct actql_bootstrap_live_channel {
     size_t span_offset;
     size_t span_bytes;
     int status;
+    bool child_binding_attempted;
     bool binding_attempted;
     bool bound;
     bool retired;
@@ -55,23 +56,24 @@ static int original_live_channel_current(actql_bootstrap_live_channel *record) {
     return ACTQL_OWNED_OK;
 }
 
-MOONBIT_FFI_EXPORT void *actql_bootstrap_capture_live_channel(
-    actql_bootstrap_domain *domain, int32_t child, int32_t read_fd,
-    int32_t write_fd, int64_t nonce) {
+/* Capture the original already-created pipe pair before spawn. The caller
+ * retains its separately funded process/FD/control custody. This creates no
+ * child, launch grant, descriptor or VM observation. */
+MOONBIT_FFI_EXPORT void *actql_bootstrap_prepare_live_channel(
+    actql_bootstrap_domain *domain, int32_t read_fd, int32_t write_fd, int64_t nonce) {
     actql_bootstrap_live_channel *record = moonbit_make_external_object(
         keep_physical_custody, sizeof(*record));
     memset(record, 0, sizeof(*record));
     record->original = record;
     record->process = getpid();
     record->domain = domain;
-    record->child = (pid_t)child;
     record->read_fd = read_fd;
     record->write_fd = write_fd;
     record->nonce = nonce;
     record->status = ACTQL_OWNED_INVALID;
     struct stat left, right;
     if (domain == NULL || domain->status != ACTQL_OWNED_OK || domain->lease == NULL ||
-        child <= 0 || (pid_t)child == getpid() || nonce <= 0 || read_fd == write_fd ||
+        nonce <= 0 || read_fd == write_fd ||
         !original_live_pipe(read_fd, O_RDONLY, &left) ||
         !original_live_pipe(write_fd, O_WRONLY, &right) ||
         (left.st_dev == right.st_dev && left.st_ino == right.st_ino))
@@ -85,9 +87,47 @@ MOONBIT_FFI_EXPORT void *actql_bootstrap_capture_live_channel(
     return record;
 }
 
+/* The original process caller binds its actual spawned child exactly once.
+ * This is correlation, not proof of child stop, inherited mapping or VM use.
+ * A failed attempt remains with the same record; it cannot select a new PID. */
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_bind_live_child(
+    actql_bootstrap_live_channel *record, int32_t child) {
+    int status = original_live_channel_current(record);
+    if (status != ACTQL_OWNED_OK) return status;
+    if (record->child_binding_attempted) return ACTQL_OWNED_INVALID;
+    record->child_binding_attempted = true;
+    if (child <= 0 || (pid_t)child == getpid()) {
+        record->status = ACTQL_OWNED_INVALID;
+        return ACTQL_OWNED_INVALID;
+    }
+    record->child = (pid_t)child;
+    return original_live_channel_current(record);
+}
+
+/* Preserve the existing post-spawn capture entry and its failure carrier. */
+MOONBIT_FFI_EXPORT void *actql_bootstrap_capture_live_channel(
+    actql_bootstrap_domain *domain, int32_t child, int32_t read_fd,
+    int32_t write_fd, int64_t nonce) {
+    actql_bootstrap_live_channel *record = actql_bootstrap_prepare_live_channel(
+        domain, read_fd, write_fd, nonce);
+    if (record->status == ACTQL_OWNED_OK)
+        (void)actql_bootstrap_bind_live_child(record, child);
+    return record;
+}
+
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_live_channel_status(
     actql_bootstrap_live_channel *record) {
     return original_live_channel_current(record);
+}
+
+/* Physical correspondence only, after the existing process Owner validated
+ * its same-holder opaque endpoint borrow. These numbers issue no authority. */
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_match_live_channel_descriptors(
+    actql_bootstrap_live_channel *record, int32_t read_fd, int32_t write_fd) {
+    int status = original_live_channel_current(record);
+    if (status != ACTQL_OWNED_OK) return status;
+    return record->read_fd == read_fd && record->write_fd == write_fd
+        ? ACTQL_OWNED_OK : ACTQL_OWNED_INVALID;
 }
 
 /* Called only by the same private channel after the original child's Core
@@ -99,7 +139,8 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_bind_live_span(
     if (status != ACTQL_OWNED_OK) return status;
     if (record->binding_attempted) return ACTQL_OWNED_INVALID;
     record->binding_attempted = true;
-    if (nonce != record->nonce || offset <= 0 || bytes <= 0 ||
+    if (!record->child_binding_attempted || record->child <= 0 ||
+        nonce != record->nonce || offset <= 0 || bytes <= 0 ||
         (uint64_t)offset > SIZE_MAX || (uint64_t)bytes > SIZE_MAX ||
         (uint64_t)offset > record->domain->view->view.payload_length ||
         (uint64_t)bytes > record->domain->view->view.payload_length - (size_t)offset ||
@@ -116,7 +157,8 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_live_vm_current(
     actql_bootstrap_live_channel *record) {
     int status = original_live_channel_current(record);
     if (status != ACTQL_OWNED_OK) return status;
-    if (!record->bound || actql_native_owned_domain_has_child(record->lease,
+    if (!record->child_binding_attempted || record->child <= 0 || !record->bound ||
+        actql_native_owned_domain_has_child(record->lease,
             (int64_t)record->process, (int64_t)record->child) != ACTQL_OWNED_OK)
         return ACTQL_OWNED_BUSY;
     return ACTQL_OWNED_OK;

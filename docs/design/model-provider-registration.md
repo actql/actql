@@ -56,7 +56,75 @@ the returned runtime-check closure and any unresolved cleanup handle also
 remain in the same Host inventory. A byte intake ceiling does not reserve this
 overlap; the original startup/Run funding supplier must cover it separately.
 
+## Original generation profiles and public Task normalization
+
+The original installed Provider configuration may explicitly select a closed
+`model_defaults` subrecord: an ordered `models` array of `{model,
+generation_config}` and an optional `default_model` that names one entry.
+Generation uses the existing Task reader's finite settings and safe integer
+rules. Every entry, including unused models, is checked. The containing
+configuration's own contract still has to admit the subrecord; this grammar is
+not permission to extend an arbitrary closed Provider configuration.
+
+Common's private-constructor profile is configuration DATA, not a registered
+Provider or authority. Its resolution retains the exact profile original;
+projecting selected generation with a separately read equal-wire profile is
+refused. Byte, node and work usage is reported even when defaults are absent.
+The transient configuration cursor is not retained by that profile; Host wire,
+revision, contract, registration and currentness remain the original Host's
+responsibility. This does not claim GC, physical release or a funded envelope.
+
+An explicit public provider/model pair is atomic. Omission selects the original
+registry default provider and only that actual registration's explicit default
+model. Temperature/top-p/seed come from its applicable profile, never an SDK
+default. An explicit Task token count replaces a default, even if larger;
+independent hard ceilings still belong to original bound execution admission.
+Current settings do not rewrite canonical Task identity or saved Run settings.
+
+The public input/output field maps normalize through the existing ValueContract
+Owner. Their checked schema, not the shorthand text, supplies schema identity.
+Neither normalization path manufactures missing data-handling policy, a prompt,
+an installed Provider, a request reservation or mock answers. Candidate DATA can
+precede actual Host registration where the original factory needs the resulting
+Task identity, but the existing original registration and Task admission must
+then bind the same captured configuration/revision, not a replacement.
+
+Records, per-model generation values, selection references, bounded parser and
+decoder workspace, temporary name index, normalized wire and checked Contract
+holdings remain in the existing Host/Run phase inventory. The default profile
+does not define prices or supply a numerical lease. Physical preflight, Store
+custody, Journal settlement, current authority and final send remain separate.
+
 ## Exclusive invocation mode
+
+The retained private Node registration can resolve candidate Task defaults only
+through its original record receiver and existing Provider map/current closure.
+It captures the actual registration callback's runtime and Core readers, retains
+the same three nonsecret binding originals, and attempts its profile read at most once.
+The existing binding issuer and profile reader share one private Common DATA
+record, so projecting generation with a separately admitted equal configuration
+refuses. Missing runtime support/originals remains unavailable; legacy explicit
+registrations do not acquire a default. New Task preparation checks the existing
+new-Host predicate without cancelling an already borrowed Run on Host closing.
+
+Reader ceilings are explicitly supplied, closed, finite DATA and snapshotted
+before use. A cached original cannot be reused under changed reader ceilings.
+The first attempt retains its bounds even on refusal, and a failed reader keeps
+its exact original throwable instead of parsing again or accepting a larger
+limit. Its bounded failure carrier/cause remains with that installation;
+dropping a managed reference is not physical release. Reader ceilings are not
+a reservation or the simultaneous holding envelope. Profile usage
+reports its own parser/decoder work even without a selected default; the
+existing binding's three canonical-original traversals, encoding and evidence
+record remain a separate Host workspace responsibility, not free work.
+
+The Common DATA record, profile/model/generation references, original binding,
+reader-bound snapshot, four captured Core callbacks and record method remain
+with that existing installation. Resolution adds its original-bound candidate
+and a small usage/binding view; explicit token replacement may add one generation
+copy. Current refusal retains the already read original rather than reparsing
+new configuration. This synchronous candidate path performs no I/O and issues
+no Task/Environment, restored Run, authority, resource loan, send or cleanup ACK.
 
 The existing ModelProvider Owner distinguishes a synchronous fixture callback
 from an asynchronous installed physical Provider. The variants are exclusive:

@@ -22,6 +22,7 @@ This document owns catalog, sourceview, mapping, command, model-task, check-envi
 - [Connector Catalog and lock](#catalog-and-lock)
 - [Connector manifest and authorization boundary](#connector-manifest)
 - [GCS private request metadata](#gcs-private-request-metadata)
+- [GCS compose destination profile](#gcs-compose-destination-profile)
 - [Deterministic Catalog generation](#mapping-generation)
 - [Capture classification inheritance](#classification-inheritance)
 - [Command item and recovery contract](#command-item-contract)
@@ -1155,6 +1156,49 @@ or changed metageneration MUST NOT authorize automatic resend, adoption of a
 new head or a new operation. Unknown and unresolved cleanup remain owned by
 the original operation.
 
+<a id="gcs-compose-destination-profile"></a>
+
+#### GCS compose destination profile
+
+<!-- requirement-block: gcs-compose-destination-profile.existing-properties -->
+For an existing GCS compose destination, the Connector MUST retain the
+Preview-captured user metadata and content type, replacing only the reserved
+request marker with this original operation's marker. This explicitly selected
+profile is not JSON API default inheritance; it does not preserve an old marker
+as evidence for the new operation.
+
+<!-- requirement-block: gcs-compose-destination-profile.absent-properties -->
+For an explicitly observed absent destination, the Connector MUST preview and
+send the first original source's captured content type and an empty user map
+plus the new marker. Missing content-type evidence is not permission to invent
+a default; an explicit NULL metadata representation is not an empty map.
+
+<!-- requirement-block: gcs-compose-destination-profile.original-guards -->
+The request MUST bind both the original destination generation and
+metageneration when replacing an object, or the original absence precondition
+when creating it. A metadata-only concurrent change is not a new approved
+destination and cannot be silently overwritten.
+
+<!-- requirement-block: gcs-compose-destination-profile.ordered-sources -->
+Composition MUST retain original source order and repetitions, source
+generation preconditions, and the expected composed size and CRC evidence.
+This profile concatenates one through 32 original objects without deleting
+them; it does not sort or deduplicate their data, silently select newer source
+versions, or treat marker data alone as proof of apply.
+
+<!-- requirement-block: gcs-compose-destination-profile.original-custody -->
+The exact intended destination properties and source/destination bindings MUST
+remain with the existing original request, Preview, approval and recovery
+material. Current authority and the original dispatch/response ownership remain
+separate from request consistency; response loss preserves Unknown and does
+not permit blind resend or adoption of newly read properties.
+
+<!-- requirement-block: gcs-compose-destination-profile.unrelated-properties -->
+An implementation MUST distinguish this finite content-type/user-metadata
+profile from preservation of ACL, encryption, retention, encoded-representation
+or other unrelated properties. Unsupported properties or missing required
+evidence remain explicit rather than being described as generally preserved.
+
 <a id="file-sources"></a>
 
 ### File listing and versioned Content Sources
@@ -1303,6 +1347,8 @@ alone does not prove exactly-once.
 
 <a id="model-task"></a>
 
+<!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_provider_defaults sha256:5aa89d89b0f91d52402179597140ef3f9e7f4d1752fcd3df5dd03f7eecfa721b -->
+
 ### ModelTask outcomes and attachments
 
 <!-- machine-import: ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/inference_barrier sha256:34f1a37cbaea973964f4cf84ca3806b2492df545b718042ad8057604c95cb6dd -->
@@ -1339,6 +1385,23 @@ extra answers and distribution entries, and check ranges before consistency.
 The selected finite physical profile MUST fix precision and tolerance; provider
 self-description cannot widen either. This registration does not change the
 original invocation-evidence or embedded capture-bundle bodies and readers.
+
+<a id="model-task-defaults"></a>
+
+### Original installed ModelTask defaults
+
+<!-- requirement-block: model-task-defaults.original-selection model-task-defaults.closed-profile model-task-defaults.settings model-task-defaults.task-limit model-task-defaults.recovery model-task-defaults.mock -->
+Public Task normalization MUST select the exact original installed provider and model pair, using the original project registry's default provider only when the public model pair is absent and then that registration's explicit default model. A provider type, environment-variable name, equal configuration CID or current alias is not an installed model original, and missing applicable originals refuse before Source, Model or Effect I/O.
+
+An installed provider choosing `model_defaults` in its original configuration MUST admit the closed profile grammar owned here, check every profile including unused entries, reject duplicate model names and require any explicit `default_model` to name a profile in that same original. The optional subrecord contains `models: [{model, generation_config}]` and optional nonempty `default_model`, with no null or unknown fields, and its containing configuration still needs its own original configuration contract. Absence leaves existing explicit Task/configuration bodies unchanged and supplies no model default.
+
+Normalization MUST use temperature, top-p and optional seed only from the selected model's applicable original profile, without vendor or SDK fallback. The existing generation grammar retains finite temperature, top-p in `(0, 1]`, positive safe-integer token count and an optional signed safe-integer seed.
+
+A Task's explicit output-token limit MUST override the installation default rather than treating that default as a hard ceiling. With the Task limit absent, the explicit applicable default supplies it, while separately declared provider, Host or Program ceilings may only lower the bound execution/request value before dispatch, without recomputing the Task identity from transient Host settings.
+
+Saved execution and recovery MUST preserve the original public Task, project selection, installed configuration/revision, normalized Task and bound request settings rather than resolve new defaults or replace the original Run. Current authorization, egress, capability, reservations, Unknown and cleanup remain independent, and checked profile DATA is neither their proof nor permission.
+
+Mock normalization MUST use its own original fixture installation/profile and typed answer originals, not a live provider's defaults or a manufactured physical model grant. A public authored physical model does not dispatch a physical provider in mock mode.
 
 <a id="planning-wire"></a>
 
