@@ -50,7 +50,7 @@ fn local_result_format(child : @argparse.Matches) -> String raise ClientStop {
 // A stdout grant is never redirected or relabelled as file delivery.
 fn local_result_stdout_only(child : @argparse.Matches) -> Unit raise ClientStop {
   for name in ["output", "deliver", "receipt"] {
-    if optional(child, name) is Some(_) {
+    if child.values.contains(name) {
       stop("LocalResultFileDeliveryUnavailable")
     }
   }
@@ -135,7 +135,8 @@ fn local_public_result(
     sqlite,
     selected.namespace_id,
   )
-  local_with_result_store(store, attempt_id, () => {
+  let reply = {
+    errdefer local_result_store_close(store, attempt_id)
     let names = match
       host.lookup_original_result_names_json(
         crypto,
@@ -191,5 +192,18 @@ fn local_public_result(
       current~,
       store~,
     )
-  })
+  }
+  local_result_store_close(store, attempt_id)
+  reply
+}
+
+///|
+// Only the output boundary: a Local sink has already written payload bytes.
+// This does not observe Run completion, publication or a delivery receipt.
+fn local_payload_already_streamed(matches : @argparse.Matches) -> Bool {
+  match matches.subcommand {
+    Some(("read", _)) | Some(("result", _)) =>
+      matches.values.get("mode") == Some(["local"])
+    _ => false
+  }
 }

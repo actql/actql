@@ -172,15 +172,12 @@ fn result_command_store(name : String) -> @local_store.Store raise {
 }
 
 ///|
-test "Result Store wrapper closes only its original and waits for confirmed cleanup" {
+test "Result close boundary closes only its original and waits for confirmed cleanup" {
   let store = result_command_store("result-store-success")
   let other = result_command_store("result-store-independent")
-  let reply = local_with_result_store(store, "original-attempt", () => {
-    if !(store.capacity_usage() is Ok(_)) {
-      stop("OriginalStoreUnavailable")
-    }
-    "original response"
-  })
+  assert_true(store.capacity_usage() is Ok(_))
+  local_result_store_close(store, "original-attempt")
+  let reply = "original response"
   assert_eq(reply, "original response")
   assert_true(store.capacity_usage() is Err(@local_store.Closed))
   assert_true(other.capacity_usage() is Ok(_))
@@ -188,11 +185,12 @@ test "Result Store wrapper closes only its original and waits for confirmed clea
 }
 
 ///|
-test "Result Store wrapper preserves a preparation refusal after the same close ACK" {
+test "Result preparation refusal retains the original reason after the same close ACK" {
   let store = result_command_store("result-store-refusal")
-  let reason = local_with_result_store(store, "original-attempt", () => {
+  let reason = try {
+    errdefer local_result_store_close(store, "original-attempt")
     stop("OriginalPolicyRefused")
-  }) catch {
+  } catch {
     ClientStop(message) => message
   }
   assert_eq(reason, "OriginalPolicyRefused")
@@ -200,7 +198,7 @@ test "Result Store wrapper preserves a preparation refusal after the same close 
 }
 
 ///|
-test "Result Store wrapper cannot turn a pending original Writer into a reply" {
+test "Result close boundary cannot turn a pending original Writer into a reply" {
   let store = result_command_store("result-store-pending")
   let request = @test_payload.prepare_publication_payload_request(
     "sha256:" + "c".repeat(64),
@@ -215,9 +213,10 @@ test "Result Store wrapper cannot turn a pending original Writer into a reply" {
     1L,
   ).unwrap()
   let writer = request_lookup_ok(store.begin_payload(request), "result.writer")
-  let reason = local_with_result_store(store, "original-attempt", () => {
+  let reason = try {
+    local_result_store_close(store, "original-attempt")
     "must not escape"
-  }) catch {
+  } catch {
     ClientStop(message) => message
   }
   assert_eq(reason, "LocalReadStoreCleanupPending attempt-id=original-attempt")
@@ -225,4 +224,34 @@ test "Result Store wrapper cannot turn a pending original Writer into a reply" {
   writer.append(b"held").unwrap()
   writer.cancel().unwrap()
   assert_true(store.close() is Ok(true))
+}
+
+///|
+test "main output bypasses buffered replies only for actual Local payload routes" {
+  let local_result = command().parse(
+    argv=["--mode", "local", "result", "original-run"],
+    env=Map([]),
+  )
+  assert_true(local_payload_already_streamed(local_result))
+  let local_read = command().parse(
+    argv=[
+      "--mode", "local", "read", "--ref-file", "original.json", "--result-name",
+      "answer", "--attempt-id", "original-attempt",
+    ],
+    env=Map([]),
+  )
+  assert_true(local_payload_already_streamed(local_read))
+  let remote_read = command().parse(
+    argv=[
+      "read", "--ref-file", "original.json", "--result-name", "answer", "--attempt-id",
+      "original-attempt",
+    ],
+    env=Map([]),
+  )
+  assert_false(local_payload_already_streamed(remote_read))
+  let local_status = command().parse(
+    argv=["--mode", "local", "status", "original-run"],
+    env=Map([]),
+  )
+  assert_false(local_payload_already_streamed(local_status))
 }

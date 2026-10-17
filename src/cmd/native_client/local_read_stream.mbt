@@ -138,7 +138,8 @@ fn local_selected_result_stream(
     sqlite,
     selected.namespace_id,
   )
-  local_with_result_store(store, attempt_id, () => {
+  let reply = {
+    errdefer local_result_store_close(store, attempt_id)
     local_admitted_result_stream(
       host~,
       settings~,
@@ -154,7 +155,9 @@ fn local_selected_result_stream(
       current~,
       store~,
     )
-  })
+  }
+  local_result_store_close(store, attempt_id)
+  reply
 }
 
 ///|
@@ -199,23 +202,15 @@ fn local_read_binding_for_original(
 }
 
 ///|
-// Own this exact Store through preparation and streaming. An unconfirmed
-// close cannot publish the work result or cause a replacement Store to open.
-fn local_with_result_store(
+// Only this original Store's ACK settles its cleanup. Keep the call directly
+// around work so no additional callback holds decoded material through close.
+fn local_result_store_close(
   store : @local_store.Store,
   attempt_id : String,
-  work : () -> String raise ClientStop,
-) -> String raise ClientStop {
-  let reply = {
-    errdefer (if !(store.close() is Ok(true)) {
-      stop("LocalReadStoreCleanupPending attempt-id=" + attempt_id)
-    })
-    work()
-  }
+) -> Unit raise ClientStop {
   if !(store.close() is Ok(true)) {
     stop("LocalReadStoreCleanupPending attempt-id=" + attempt_id)
   }
-  reply
 }
 
 ///|
