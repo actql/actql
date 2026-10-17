@@ -183,6 +183,25 @@ test "original YAML pointers preserve plain quoted Unicode keys and missing pare
       Some(""),
     )
   }
+  let literal = yaml_check_values.replace(
+    old="stages:",
+    new="params:\n  x: {type: object, fields: {}, default: {\"é/😀~\": wrong}}\nstages:",
+  )
+  let parsed = @syntax.parse(
+    literal,
+    @host.client_standard_program_preparation_limits().checking.input,
+    format=Yaml,
+  ).unwrap()
+  // A literal/default object's key is original value data, not a contract name.
+  assert_eq(
+    check_program_original_pointer(
+      literal,
+      [Key("params"), Key("x"), Key("default"), Key("é/😀~")],
+      format=Yaml,
+      original_body=Some(@syntax.program_body(parsed)),
+    ),
+    Some("/params/x/default/é~1😀~0"),
+  )
 }
 
 ///|
