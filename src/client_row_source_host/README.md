@@ -80,8 +80,21 @@ cleanup. False retirement keeps the same debt for retry. Only that observer's
 confirmed retirement allows original close to settle the same reservation.
 No numeric profile or transport implementation follows from this primitive.
 
+The existing `ClientInstalledCaptureCapacity` Owner's
+`installed_provider_row_capture_capacity` projects these same checked sums
+before Run Ledger preparation, retaining the exact acquisition and declaration.
+`installed_provider_row_capture_capacity_matches` checks that original pair;
+equal quantities or equal requirement CIDs cannot substitute another pair.
+The existing finite Ledger ceilings, actual overlap admission and refusals
+remain in force. The new projection neither raises them nor proves every
+downstream Compute/Effect envelope fits. Listing profile substitution is refused.
+
 The nullable profile reference on every RowPhysical, selected declaration,
 reader/observer aliases and transition overlap belong to the original Host
 inventory. Returned diagnostics, raw history, ID/cursor indexes, parsed page,
 checked rows, output and closures must be covered concurrently by the supplier;
 maxPageBytes and transfer counts are not substitutes for that declaration.
+Every installed capacity record also has one nullable provider-pair reference;
+the selected pair retains the original acquisition and declaration until the
+existing planning/capture Owner retires it. No extra reference is free merely
+because it aliases an existing object.

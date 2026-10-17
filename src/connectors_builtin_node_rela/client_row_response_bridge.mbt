@@ -3,6 +3,29 @@
 // Same-runtime original row response borrowing; no wire reconstructs these types.
 
 ///|
+#export_name("clientProgramInstalledProviderRowCaptureCapacity")
+pub fn client_program_installed_provider_row_capture_capacity(
+  acquisition : @client_row_source_host.RowAcquisition,
+  capacity : @execution.ExecutionCapacity?,
+) -> @client_local_host.ClientInstalledCaptureCapacity? {
+  @client_local_host.installed_provider_row_capture_capacity(
+    acquisition, capacity,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledProviderRowCaptureCapacityMatches")
+pub fn client_program_installed_provider_row_capture_capacity_matches(
+  capacity : @client_local_host.ClientInstalledCaptureCapacity,
+  acquisition : @client_row_source_host.RowAcquisition,
+  declaration : @execution.ExecutionCapacity,
+) -> Bool {
+  @client_local_host.installed_provider_row_capture_capacity_matches(
+    capacity, acquisition, declaration,
+  )
+}
+
+///|
 #export_name("clientProgramRowSourceStartProviderAccounted")
 pub fn client_program_row_source_start_provider_accounted(
   acquisition : @client_row_source_host.RowAcquisition,

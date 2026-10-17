@@ -30,6 +30,31 @@ fn row_provider_capacity_sum(
 }
 
 ///|
+/// Pure same-acquisition declaration projection for the existing installed
+/// Ledger planner. Neither a reservation nor physical transport admission.
+pub fn row_acquisition_provider_capacity(
+  value : RowAcquisition,
+  declaration : @execution.ExecutionCapacity?,
+) -> @execution.ExecutionCapacity? {
+  // This ordinary provider profile does not silently select or supplement a
+  // listing-report profile. Those entries keep their original explicit API.
+  if row_acquisition_is_listing(value) {
+    return None
+  }
+  match
+    row_provider_capacity_sum(
+      row_acquisition_retained_capacity(value),
+      row_acquisition_execution_capacity(value),
+      0L,
+      declaration,
+    ) {
+    Ok((retained, execution)) =>
+      @execution.execution_capacity(retained, execution)
+    Err(_) => None
+  }
+}
+
+///|
 /// Trusted installation declaration for this original acquisition/reader and
 /// target recipe only. Missing or unjustified capacity is unavailable, not a
 /// default. ExecutionCapacity is neither an issuer nor an actual reservation.
@@ -44,20 +69,18 @@ pub fn start_accounted_provider_row_acquisition(
   transfer_bytes : Int64,
   execution_scratch : Int64,
 ) -> Result[RowRun, RowHostIssue] {
-  if transfer_bytes < 0L ||
-    value.configuration.listing_rows is Some(ReportListingRows(_, _)) {
+  if transfer_bytes < 0L || execution_scratch < 0L {
     return Err(Physical(InvalidLimits))
   }
-  let (retained, execution) = match
-    row_provider_capacity_sum(
-      row_acquisition_retained_capacity(value),
-      row_acquisition_execution_capacity(value),
-      execution_scratch,
-      declaration,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+  guard row_acquisition_provider_capacity(value, declaration) is Some(capacity) else {
+    return Err(Physical(InvalidLimits))
   }
+  let retained = @execution.execution_capacity_retained_bytes(capacity)
+  let executing = @execution.execution_capacity_execution_bytes(capacity)
+  if execution_scratch > 9223372036854775807L - executing {
+    return Err(Physical(InvalidLimits))
+  }
+  let execution = executing + execution_scratch
   let reservation = match
     @resources.reserve_attempt(ledger, transfer_bytes, retained, execution) {
     Ok(value) => value
