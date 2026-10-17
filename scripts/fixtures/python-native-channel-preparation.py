@@ -116,18 +116,19 @@ cases.append('actual original bootstrap reservation/current and cumulative repor
 
 # 7: Logical stop refuses new work; frame aliases cannot be freed using it as
 # the channel's physical retirement reply. All original slots remain retained.
-resource(7); drop_frame(); resource(4, refused=True); drop_frame()
-resource(8)  # This caller has never spawned; close its actual pipes below.
+resource(7); drop_frame(); resource(4, refused=True)
 old_values = (fh.value, fdomain.value, fchannel.value, frame.value, frame_reply.value)
 assert functions.finish(C.byref(fh), C.byref(fdomain), C.byref(fchannel), C.byref(frame),
                         C.byref(frame_reply), C.c_void_p()) == -2
 assert (fh.value, fdomain.value, fchannel.value, frame.value, frame_reply.value) == old_values
+drop_frame()
 cases.append('actual logical stop/current refusal cannot retire original frame aliases')
 
 # 8: The original fixture never spawned or sent anything. Confirm its exact
 # pipes closed, then retire metadata using both exact successful typed replies.
 for descriptor in pipe_fds: descriptor.close()
 assert all(descriptor.closed for descriptor in pipe_fds)
+resource(8)
 live(8)
 assert functions.finish(C.byref(fh), C.byref(fdomain), C.byref(fchannel), C.byref(frame),
                         C.byref(frame_reply), reply) == 0
