@@ -51,12 +51,18 @@ test "missing and empty Host signers remain distinct without a fabricated defaul
 test "Host signers reject project and foreign roles rather than relabeling originals" {
   for
     wire in [
-      host_signer_original.replace_all(old="actql-host/0.1", new="actql-config/0.1"),
+      host_signer_original.replace_all(
+        old="actql-host/0.1",
+        new="actql-config/0.1",
+      ),
       host_signer_original.replace_all(
         old="\"account_config\"",
         new="\"model_tasks\"",
       ),
-      host_signer_original.replace_all(old="\"public_key\"", new="\"publicKey\""),
+      host_signer_original.replace_all(
+        old="\"public_key\"",
+        new="\"publicKey\"",
+      ),
       host_signer_original.replace_all(old="\"effect_set\"", new="\"foreign\""),
       host_signer_original.replace_all(old="[\"effect_set\"]", new="[]"),
       host_signer_original.replace_all(

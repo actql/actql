@@ -32,6 +32,7 @@ export function checkRelaClientBridges(root, write = false) {
   }
   for (const file of ['client_row_response_bridge.mbt', 'client_salesforce_row_source_bridge.mbt', 'client_snowflake_read_bridge.mbt', 'client_kintone_read_bridge.mbt', 'client_update_target_bridge.mbt', 'client_table_write_publication.mbt', 'client_multi_source_bridge.mbt',
     'client_project_configuration_bridge.mbt',
+    'client_host_signers_bridge.mbt',
     'client_model_defaults_bridge.mbt',
     'client_public_model_task_bridge.mbt',
     'client_row_listing_capacity.mbt',
