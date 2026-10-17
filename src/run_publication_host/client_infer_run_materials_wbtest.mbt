@@ -48,6 +48,7 @@ fn infer_run_materials_fixture() -> (
     environment_wire,
     program,
     None,
+    bounds,
   ).unwrap()
   (prepared, compiled, definition, materials)
 }
@@ -217,6 +218,7 @@ test "saved INFER projection refuses foreign preparation and substituted Environ
       environment_wire,
       program,
       None,
+      run_materials_limits(),
     )
     is Err(Binding(ForeignRun)),
   )
@@ -231,7 +233,51 @@ test "saved INFER projection refuses foreign preparation and substituted Environ
       changed_wire,
       program,
       None,
+      run_materials_limits(),
     )
     is Err(Input(MaterialsEnvironment)),
+  )
+}
+
+///|
+test "saved INFER projection refuses custom dependency graphs before material issuance" {
+  let prepared = client_infer_prefix_test_program()
+  let bounds = run_materials_limits()
+  let custom = client_infer_material_test_graph(prepared)
+  let compilation = issue_prepared_client_infer_compilation(
+    prepared,
+    custom,
+    run_materials_manifests(),
+    bounds.max_sequence_steps,
+    bounds.max_sequence_work,
+    bounds.max_evidence_bytes,
+    bounds.max_evidence_nodes,
+    bounds.max_evidence_depth,
+  ).unwrap()
+  let compiled = issue_client_task_compiled_run(
+    prepared,
+    compilation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  let definition = issue_client_compiled_run_definition(
+    compiled, "original-model-scope", "original-model-run", "2026-10-01T00:00:00.000Z",
+    "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  let (environment_wire, environment) = client_infer_prefix_test_environment()
+  let writer = @encode.writer(65536, 8192, 64)
+  @syntax.emit_program_source(prepared.source, writer)
+  assert_true(
+    issue_client_infer_run_materials(
+      compiled,
+      definition,
+      environment,
+      environment_wire,
+      @encode.finish(writer),
+      None,
+      bounds,
+    )
+    is Err(Binding(UnsupportedProgram)),
   )
 }

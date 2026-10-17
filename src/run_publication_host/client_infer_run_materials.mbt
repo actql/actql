@@ -10,6 +10,7 @@ pub fn issue_client_infer_run_materials(
   environment_wire : String,
   program : String,
   parameters_wire : String?,
+  limits : ClientValuesRunMaterialsLimits,
 ) -> Result[String, ClientTaskRunMaterialsIssue] {
   guard compiled.compilation is Tasks(compilation) &&
     compilation.infer is Some(graph) &&
@@ -28,6 +29,24 @@ pub fn issue_client_infer_run_materials(
     ) {
     Ok(_) => ()
     Err(issue) => return Err(Binding(issue))
+  }
+  // This material form encodes the installed compiler's original dependency
+  // selection. Custom graphs must not emit bundles their inverse would reject.
+  let installed = match
+    issue_installed_client_infer_plan_graph(
+      compiled.owner,
+      graph.source_ordinal,
+      graph.execution,
+      limits.sequence,
+      limits.max_evidence_bytes,
+      limits.max_evidence_nodes,
+      limits.max_evidence_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Binding(UnsupportedProgram))
+  }
+  if installed.graph.wire != graph.graph.wire {
+    return Err(Binding(UnsupportedProgram))
   }
   let execution = try {
     let writer = @encode.writer(65536, 4096, 64)
