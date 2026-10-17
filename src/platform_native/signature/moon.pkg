@@ -14,6 +14,9 @@ options(
   "native-stub": [ "signature_stub.c" ],
   targets: {
     "signature_native.mbt": [ "native" ],
+    "key_generation_native.mbt": [ "native" ],
+    "key_generation_native_wbtest.mbt": [ "native" ],
+    "key_generation_unsupported.mbt": [ "not", "native" ],
     "signature_native_wbtest.mbt": [ "native" ],
     "diagnostic_ceiling_native_wbtest.mbt": [ "native" ],
     "private_evidence_native_wbtest.mbt": [ "native" ],
