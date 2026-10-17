@@ -30189,7 +30189,7 @@
     {
       "module": "adapters/host-node/installed-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "68cc7356ec4b3c9af9375c27ea4947b72726160a8ce81f1b0a47612272d32eec",
+      "sha256": "5e3abaccab1c47ce4bea59cece044fe8c7417d1072ed6ecdd95353b2da21c757",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -30301,13 +30301,9 @@
         {
           "name": "readProfileJson",
           "parameters": [
-            "path"
+            "path",
+            "maxBytes"
           ],
-          "async": true
-        },
-        {
-          "name": "readProfileJson/release/release",
-          "parameters": [],
           "async": true
         },
         {
@@ -30363,7 +30359,6 @@
             "publishInstalledEffectProfile",
             "readProfile",
             "readProfileJson",
-            "readProfileJson/release/release",
             "refuse/refuse",
             "runtimeBundleCid/runtimeBundleCid",
             "selectInstallation",
@@ -30453,7 +30448,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "import {open, readFile} from 'node:fs/promises';"
+                "anchor": "import {readSourceProfileJson} from './source-profile-json.mjs';"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
@@ -30626,7 +30621,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-effect.mjs",
-                "anchor": "import {open, readFile} from 'node:fs/promises';"
+                "anchor": "import {readSourceProfileJson} from './source-profile-json.mjs';"
               },
               {
                 "path": "docs/design/effect-refusal-settlement.md",
