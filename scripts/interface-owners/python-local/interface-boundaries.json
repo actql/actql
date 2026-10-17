@@ -30089,7 +30089,7 @@
       ],
       "sha256": "e9189f3c3d383d7cc1c8d03402c15af56d1859f4a70cb75e187287669179ee49",
       "responsibilityFacet": "primary",
-      "role": "original-native-process-opaque-transport",
+      "role": "physical-io",
       "owner": "existing installed Host/domain and Native process Holder",
       "contracts": [
         {
