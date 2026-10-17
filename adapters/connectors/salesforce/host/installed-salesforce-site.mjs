@@ -9,8 +9,10 @@ import {readSourceProfileJson} from '../../../host-node/source-profile-json.mjs'
 import {isAbsolute} from 'node:path';
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {canonicalJson as canonicalValueJson} from '../../../../packages/sdk/host-port.mjs';
-import {canonicalJson, contentCid, createLocalAuthorizationGate} from
+import {canonicalJson, contentCid} from
   '../../../host-node/local-account-config.mjs';
+import {installRowSourceAuthorization} from
+  '../../../host-node/installed-row-source.mjs';
 import {openSqliteCredentialJournal} from
   '../../../site-node/sqlite-credential-journal.mjs';
 import {signRemoteCredentialGrant} from
@@ -136,19 +138,13 @@ export async function installSalesforceAuthorization({accountConfiguration,
   const context = Object.freeze({principal: principalId,
     contextCid: cid({version: 'actql-installed-salesforce-context/0.1',
       root, principalId})});
-  const gate = await createLocalAuthorizationGate({...gateOptions,
-    accountConfiguration, principal: principalId, context});
-  const issued = new WeakSet();
-  const own = decision => {
-    if (decision !== null && typeof decision === 'object') issued.add(decision);
-    return decision;
-  };
-  const authorization = Object.freeze({...gate, context,
-    // The exact configuration text, for a Host Checkpoint that decides the
-    // same source's reads under the same configuration.
-    accountConfiguration,
-    authorize: async (...args) => own(await gate.authorize(...args)),
-    resume: async (...args) => own(await gate.resume(...args))});
+  const {issued, ...gate} = await installRowSourceAuthorization({
+    accountConfiguration, principalId, root, connectorRegistration: 'salesforce',
+    originalContext: context, gateOptions});
+  // Preserve the compatibility entry's original surface and its private
+  // installation provenance. Decision issuance belongs to the shared issuer;
+  // a caller-supplied object with an `issued` method is never an installation.
+  const authorization = Object.freeze(gate);
   installedDecisions.set(authorization, issued);
   return authorization;
 }
@@ -283,7 +279,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     const hostCommit = commitFacts !== undefined &&
       commitFacts.principal === principalId &&
       commitFacts.configurationCid === authorization.configurationCid;
-    if (!(issuedDecisions.has(decision) || hostCommit) ||
+    if (!(issuedDecisions(decision) || hostCommit) ||
         decision.action !== 'dispatch' ||
         decision.boundary !== required[0] ||
         (!hostCommit && decision.contextCid !== context.contextCid) ||
@@ -423,7 +419,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
         siteGeneration: profile.siteGeneration,
         connectionRevision: profile.connectionRevision, resource,
         occurrence}), signal});
-    if (!issuedDecisions.has(decision) || decision.action !== 'dispatch' ||
+    if (!issuedDecisions(decision) || decision.action !== 'dispatch' ||
         decision.boundary !== 'acquisition' ||
         decision.contextCid !== context.contextCid ||
         decision.tuple?.connection !== connection ||
@@ -743,7 +739,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   async function peek({decision, resource, fields, maxRows,
     maxBytes = 65536, maxNodes = 10000, signal} = {}) {
     ensureOpen();
-    if (!issuedDecisions.has(decision) || decision.action !== 'dispatch' ||
+    if (!issuedDecisions(decision) || decision.action !== 'dispatch' ||
         decision.boundary !== 'acquisition' ||
         decision.contextCid !== context.contextCid ||
         decision.tuple?.connection !== connection ||
