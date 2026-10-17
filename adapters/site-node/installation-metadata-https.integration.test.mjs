@@ -67,7 +67,10 @@ async function fixture(t) {
     console.error('Original metadata HTTPS fixture retained: ' + root);
   });
   f.run = async callback => {
-    const module = {check: value => Object.freeze({...value}), async publish(profile, options) {
+    const module = {check: value => Object.freeze({...value}),
+      identityParts() {assert.fail('Publication must not rediscover identity');},
+      load() {assert.fail('Publication must not load a query Source');},
+      async publish(profile, options) {
       const request = options.publicationRequest, originals = {...options, profile};
       const view = runtimeCore(moon).installationPreparationMetadata();
       const subject = view.prepareSubject({accountConfigurationCid: cid('a'), accountId: 'fixture-account',
