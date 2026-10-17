@@ -103,7 +103,7 @@ test "Notion multiselect empty array clears but null scalar and nontext elements
       null,
       write_test_text("Done"),
       write_test_value(
-        "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"bool\",\"nullable\":false}}",
+        "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"boolean\",\"nullable\":false}}",
         "[false]",
       ),
     ] {

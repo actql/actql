@@ -33,17 +33,37 @@ existing label's original option id, checking and charging unselected options
 too; it cannot implicitly create options. A null status write is refused here
 because the vendor can replace it with its default option. That operation needs
 the actual default original, rather than claiming a null value was preserved.
-People/relation arrays carry original
-checked identifier text, never manufactured ResourceRefs or permissions.
-Computed and audit properties refuse encoding. Temporal range and Content/file
-writes require their own original typed physical projection; their absence is
-an implementation boundary, not a new public language restriction.
+People/relation arrays carry original checked identifier text, never
+manufactured ResourceRefs or permissions. People, relation and multi-select
+writes each require both the actual supplied item bound and the vendor's
+100-entry request bound. That request bound does not limit reads or the logical
+Array type. Multi-select checks the complete original option inventory once,
+including for an empty selection; every exact supplied label selects an
+existing option id. Unknown or normalized-equivalent names cannot create an
+option. The encoded request retains supplied order and repeated occurrences;
+this is not a claim that vendor storage preserves an ordered multiset. An
+empty array clears the property, whereas null is rejected for multi-select.
+
+A single original Common Date or Timestamp encodes the date object's `start`;
+the codec never parses Text as a temporal value, chooses a named timezone or
+rounds precision. Common's canonical checked scalar spelling remains intact.
+Explicit null clears a date. A supplied range Object is not silently reduced
+to its start: range fields need their original typed Mapping projection and
+remain unavailable through this single-scalar codec. Computed and audit
+properties refuse encoding. Temporal range and Content/file writes still need
+their actual typed physical suppliers; this is an implementation boundary,
+not a new public language restriction.
 
 Codec work and output limits cover string/option/identifier scans, property
 membership, duplicate detection and bounded Encoder depth/nodes/bytes. Original
 source/decode graphs, property definitions, CheckedValue/contracts, Text slices,
 option maps, per-property encoded documents, aggregate output and caller aliases
-can overlap. Those holdings require the existing Effect/resource supplier;
+can overlap. The multi-select label-to-original-id map shares its original
+strings but retains its own bounded map backing; duplicate input labels are
+still charged, and no selected option is free because another occurrence used
+it. Single-scalar temporal emission retains the original CheckedValue and text
+alongside its encoded document. Those holdings require the existing
+Effect/resource supplier;
 structural limits do not reserve capacity, acknowledge physical retirement or
 prove normal numerical funding. Approval/current authority, original captured
 Mapping/input, Run materials, dispatch, Unknown/nonresend and cleanup remain
