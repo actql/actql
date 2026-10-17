@@ -17,7 +17,10 @@ test "resident Source fixture has canonical ordered Environment evidence" {
       },
     ) {
     Ok(_) => ()
-    Err(issue) => fail("fixture Environment admission: \{issue}")
+    Err(issue) => {
+      debug_inspect(issue, content="valid ordered fixture Environment")
+      fail("fixture Environment admission refused")
+    }
   }
 }
 
