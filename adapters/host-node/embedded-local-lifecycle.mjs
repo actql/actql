@@ -4,6 +4,7 @@ import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createInstalledHostShutdown} from './installed-host-cleanup.mjs';
 
 export function installedHostShutdown(host) {
+  const retireRuntime = host.retireModelRuntime;
   const shutdown = createInstalledHostShutdown({
     stop: () => {
       host.stopModelRuntime?.();
@@ -21,17 +22,14 @@ export function installedHostShutdown(host) {
     ...(host.observation === undefined ? {} :
       {observation: () => host.observation.close()}),
     ...(host.ownerViews === undefined ? {} : {ownerViews: () => host.ownerViews.close()}),
+    ...(retireRuntime === undefined ? {} : {finalize: async () => {
+      await Reflect.apply(retireRuntime, host, []);
+      // The same shutdown marks this duty complete only after success.
+      // A failed/partial retirement still owns the original callback.
+      delete host.retireModelRuntime;
+    }}),
   });
-  return Object.freeze({status: shutdown.status, async close() {
-    // Only this SAME existing shutdown confirms all child duties. A failed
-    // close retains its retry state and the original runtime view unchanged.
-    const result = await shutdown.close();
-    host.retireModelRuntime?.();
-    // The actual Host records finalization by retiring this internal hook.
-    // Multiple leases/repeated close cannot call the nominal forget twice.
-    delete host.retireModelRuntime;
-    return result;
-  }});
+  return Object.freeze({status: shutdown.status, close: shutdown.close});
 }
 
 const closing = () => Object.assign(new Error('ClientHostClosing'),
