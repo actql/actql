@@ -12,7 +12,8 @@ const {openNodeInferOperation} = await import(process.env.ACTQL_PREFLIGHT_CONTEX
 // Actual Node driver and pinned SDK preparation, with explicit Core ports.
 // These ports cannot prove Common admission, funding, Store ACK or public I/O.
 function fixture({preflight, notification = createInferIoNotification(), signal,
-  bindingIssue, omitNotification = false, poll = () => false, cleanup = () => true} = {}) {
+  bindingIssue, omitNotification = false, poll = () => false, cleanup = () => true,
+  rawCaptureBinder} = {}) {
   const active = {}, request = {}, output = Object.freeze([{answer: 7}]);
   let bound, invoked = false, requested = false, stopped = false;
   let advances = 0, starts = 0, cleanups = 0, progress = 0;
@@ -39,6 +40,7 @@ function fixture({preflight, notification = createInferIoNotification(), signal,
   const open = () => openNodeInferOperation({moon, preparedProgram: {}, step: 0,
     graph: {}, registry: '', values: '', fragment: '', ordered: '', provider: {}, signal,
     physicalPreflight: preflight, ioNotification: omitNotification ? undefined : notification,
+    rawCaptureBinder,
     quantityCapacity: {limits: {tokens: 1n, costUnits: 0n, durationMs: 1n},
       perAttempt: {tokens: 1n, costUnits: 0n, durationMs: 1n}},
     observeProgress() { progress++; }});
@@ -115,6 +117,44 @@ test('one original operation binds every prepared request to its same raw regist
   } finally { await original.close(); }
   assert.equal(original.cleanupPending(), false);
   assert.equal(ports.length, 2, 'cleanup never prepares or dispatches another request');
+});
+
+for (const count of [4, 24]) {
+  test(`same execution binds all ${count} original raw callbacks without limiting the inventory to active slots`, async () => {
+    const requests = Array.from({length: count}, () => ({})), observed = [];
+    const registration = {};
+    const f = fixture({preflight(request, _context, retainBinder) {
+      retainBinder(actual => {
+        assert.equal(actual, registration);
+        observed.push(request);
+      });
+    }, poll: () => true});
+    const original = f.open();
+    try {
+      for (const request of requests) f.bound()(request);
+      original.bindModelRawCapture(registration);
+      assert.deepEqual(observed, requests);
+      assert.equal(new Set(observed).size, count);
+      assert.throws(() => original.bindModelRawCapture(registration),
+        /InferRawCaptureBindingUnavailable/u);
+    } finally { await original.close(); }
+    assert.equal(f.counts().starts, 1);
+    assert.equal(observed.length, count);
+  });
+}
+
+test('legacy direct raw binding cannot mix with deferred preflight callbacks', async () => {
+  let direct = 0, deferred = 0;
+  const f = fixture({rawCaptureBinder() {direct++;},
+    preflight(_request, _context, retainBinder) {
+      retainBinder(() => {deferred++;});
+    }, poll: () => true});
+  const original = f.open();
+  try {
+    assert.throws(() => f.bound()(f.request), /InferRawCaptureBinderUnavailable/u);
+    original.bindModelRawCapture({});
+    assert.equal(direct, 1); assert.equal(deferred, 0);
+  } finally { await original.close(); }
 });
 
 test('each original preflight can retain only its synchronous raw callback', async () => {
