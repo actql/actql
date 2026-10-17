@@ -400,7 +400,7 @@ export async function createInstalledRowSource({moon, declaration,
   connectorRevision, site, authorization, readOperation, physicalTarget,
   readPages, bindingCid, limits, referenceIssuer, listingPolicy, captureContent,
   listingReportCapacity, prepareAcquisition, directReadIdentity,
-  prepareRead, grantBeforeBegin = false}) {
+  prepareRead, grantBeforeBegin = false, originalSourceAccess}) {
   // Trusted installation compatibility only: preserve an existing provider
   // identity and ordering while this one Owner retains preparation, current
   // authorization, RowRun, capture and failure cleanup. No wire selects this
@@ -484,7 +484,19 @@ export async function createInstalledRowSource({moon, declaration,
     }
     return installationBinding;
   }
-  const sourceAccess = Object.freeze({authorization,
+  // Preserve an original installation's exact immutable access metadata;
+  // this is neither a wire object nor an authorization decision. Defaults
+  // keep the ordinary singleton Source projection unchanged.
+  if (originalSourceAccess !== undefined &&
+      (originalSourceAccess === null || typeof originalSourceAccess !== 'object' ||
+        Object.getPrototypeOf(originalSourceAccess) !== Object.prototype ||
+        !Object.isFrozen(originalSourceAccess) ||
+        Reflect.ownKeys(originalSourceAccess).sort().join('\0') !== 'authorization\0connection' ||
+        Object.getOwnPropertyDescriptor(originalSourceAccess, 'authorization')?.value !== authorization ||
+        Object.getOwnPropertyDescriptor(originalSourceAccess, 'connection')?.value !== site.connection)) {
+    fail('InvalidInstalledSourceAccess');
+  }
+  const sourceAccess = originalSourceAccess ?? Object.freeze({authorization,
     connection: site.connection,
     ...(sourceRefs.size === 1 ? {sourceRef: [...sourceRefs][0]} : {})});
   // Read disclosure and held-Run authority are per declared view. The

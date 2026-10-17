@@ -223,6 +223,7 @@ async function installedSalesforceAdapter({moon, queryMoon, site, authorization,
     connectorId, connectorRegistration: site.connectorRegistration,
     connectorRevision: site.connectorRevision, bindingCid: binding.bindingCid,
     authorization, directReadIdentity, grantBeforeBegin: true,
+    originalSourceAccess: Object.freeze({authorization, connection: site.connection}),
     // These functions retain this same original Salesforce Site. The alias
     // selects its existing issuer; it does not create a second grant Owner.
     site: Object.freeze({connection: site.connection,

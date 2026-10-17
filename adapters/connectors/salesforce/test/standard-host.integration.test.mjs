@@ -2284,6 +2284,7 @@ test('shared Salesforce Source preserves original read and credential preimages 
   let capture;
   try {
     assert.equal(adapter.realizationKey, 'salesforce-acquired');
+    assert.deepEqual(Object.keys(adapter.sourceAccess).sort(), ['authorization', 'connection']);
     assert.equal(adapter.openKeyed, undefined, 'no new profile exposed by compatibility entry');
     preparedSource = await adapter.prepare({...common, sourceAccess: access});
     const expectedSubject = originalCid({version: 'actql-salesforce-acquisition-read/0.1',
