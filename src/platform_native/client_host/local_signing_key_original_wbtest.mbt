@@ -47,6 +47,38 @@ fn signing_original_write(file : String, body : Bytes) -> Unit {
 }
 
 ///|
+// Closed phase labels only: never print native error payloads, configuration,
+// public/private key bytes or retained rows while diagnosing fixture admission.
+fn signing_original_adoption_diagnostic(
+  value : Result[NativeLocalAdoptionSession, NativeLocalAdoptionIssue],
+  phase : String,
+) -> NativeLocalAdoptionSession {
+  if value is Err(issue) {
+    let kind = match issue {
+      InvalidInput => "input"
+      ConfigurationLimit => "limit"
+      Configuration(_) => "configuration"
+      ForeignAccount => "account"
+      UninstalledBootstrapProfile => "bootstrap-profile"
+      CustodyLost => "custody"
+      SourceChanged => "source"
+      AmbiguousInitialization => "initialization"
+      Encoding => "encoding"
+      Crypto(_) => "crypto"
+      Filesystem(@filesystem.Lock(_)) => "filesystem-lock"
+      Filesystem(@filesystem.InvalidName) => "filesystem-name"
+      Filesystem(@filesystem.GenerationMismatch) => "filesystem-generation"
+      Filesystem(_) => "filesystem"
+      ReadAcquisitionFailure(_) => "read-acquisition"
+      ReadPending(_, _) => "read-cleanup"
+      _ => "other"
+    }
+    println("signing-original fixture admission: " + phase + ":" + kind)
+  }
+  value.unwrap()
+}
+
+///|
 fn signing_original_host(
   name : String,
   existing? : Bool = false,
@@ -373,16 +405,18 @@ test "Local signing roles reject same raw32 across differently encoded public or
       diagnostic_ceiling=Some(64),
     ).unwrap()
     let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
-    let host = begin_native_local_host_adoption(
-        path,
-        name + ".host",
-        path,
-        account_file,
-        "operator",
-        crypto,
-        configuration_files=[host_file, reviewer_file, registration_file],
+    let host = signing_original_adoption_diagnostic(
+        begin_native_local_host_adoption(
+          path,
+          name + ".host",
+          path,
+          account_file,
+          "operator",
+          crypto,
+          configuration_files=[host_file, reviewer_file, registration_file],
+        ),
+        name,
       )
-      .unwrap()
       .open_journal(local_journal_test_library(), crypto, 100.0, 8, 8388608L)
       .unwrap()
     let reviewer = host
