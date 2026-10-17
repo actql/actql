@@ -56,7 +56,13 @@ pub fn declare_records(
           schema_wire: schema,
           schema_cid: "sha256:" + @sha.hex(@utf8.encode(schema)),
           request_schema_wire: None,
-          facts_wire: None,
+          // The API record ID is unique within this original App. This is a
+          // conditional relation key, not permission or observed completion:
+          // the same reader still rejects duplicate/reordered IDs. Native
+          // RECORD_NUMBER fields, including App Code, remain separate data.
+          facts_wire: Some(
+            "{\"relation_keys\":{\"candidate_keys\":[[\"$id\"]]}}",
+          ),
           acquisition_wire: None,
         },
       ],
