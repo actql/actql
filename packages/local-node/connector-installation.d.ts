@@ -341,11 +341,33 @@ export type RowEffectFootprint = Readonly<{
   resource_kind: string; resource_identity_scheme_cid: string;
   provider_object_identity_cids: readonly string[];
 }>;
+/** Existing capture-owned child. Preparation completion is not cleanup. */
+export interface RowEffectRequestChild<Request extends object> {
+  prepare(): Awaitable<Readonly<{request: Request; requestCid: string}>>;
+  release(): Awaitable<boolean | void>;
+  retry(): Awaitable<boolean | void>;
+  status(): Readonly<{pending: boolean}>;
+}
 export interface RowEffectDriver<Request extends object, Current = unknown> {
   readonly kinds: readonly RowEffectKind[];
   prepareRequest(options: Readonly<{member: RowEffectMember;
     value: ConnectorJsonObject; selector?: ConnectorJsonValue;
     current: Current | undefined}>): Readonly<{request: Request; requestCid: string}>;
+  /** Synchronous, I/O-free factory retained by the existing capture owner.
+   * Guarded UPDATE/upsert receives the exact row and a zero-argument read
+   * supplier. The existing Command context has no row index/current fence
+   * and may omit its indexed read supplier. No grant is created by the type. */
+  prepareRequestChild?(options: Readonly<{member: RowEffectMember;
+    value: ConnectorJsonObject; selector?: ConnectorJsonValue;
+    current: Current | undefined; signal?: AbortSignal;
+  } & ({rowIndex: number;
+    authorizationForRow: () => Promise<InvocationAuthorization>;
+    /** Existing selected-preparation fence; absence is not a new current proof. */
+    assertCurrent?: () => void;
+  } | {rowIndex?: undefined;
+    authorizationForRow?: (index: number) => Promise<InvocationAuthorization>;
+    assertCurrent?: undefined;
+  })>): RowEffectRequestChild<Request>;
   requestFacts(request: Request): Readonly<{
     value: ConnectorJsonObject; target?: ConnectorJsonValue}>;
   writeOperation(member: RowEffectMember): string;
