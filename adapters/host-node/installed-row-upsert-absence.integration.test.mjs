@@ -8,6 +8,7 @@ import {join} from 'node:path';
 import test from 'node:test';
 import {inspect} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
+import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {canonicalJson} from './local-account-config.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
@@ -118,13 +119,23 @@ async function fixture(t, {kind = 'upsert', observation = 'absent', targetSubsti
       requestCid,
       recoveryEntry: ({entries}) => ({kind: 'fixture-upsert-originals',
         observationCid: state.version, wire: canonicalJson({requests: entries.map(entry => entry.request)})}),
-      recoverRequests() {assert.fail('Recovery is a separate physical consuming acceptance');},
+      recoverRequests({durable}) {
+        assert.equal(durable.connectorRecovery.length, 1);
+        const original = durable.connectorRecovery[0];
+        assert.equal(original.memberIndex, 0);
+        assert.equal(original.kind, 'fixture-upsert-originals');
+        assert.equal(original.observationCid, state.version);
+        state.recoveries = (state.recoveries ?? 0) + 1;
+        return {requests: [JSON.parse(original.wire).requests]};
+      },
       send() {state.sends++; assert.fail('A captured required-approval Set cannot send');},
       project() {assert.fail('No Provider response exists in this capture test');},
     }});
   const host = await effectHost(t, {onClose: close => closes.push(close)}, join(root, 'host'),
     {effect, stopBeforeApply: true});
-  return {root, effect, host, state, mapping};
+  return {root, effect, host, state, mapping,
+    reopen: () => effectHost(t, {onClose: close => closes.push(close)}, join(root, 'host'),
+      {effect, stopBeforeApply: true})};
 }
 
 test('actual Common captures original explicit UPSERT absence without a synthetic before value or version', async t => {
@@ -257,3 +268,27 @@ for (const kind of ['update', 'delete']) {
     assert.equal(f.state.sends, 0);
   });
 }
+
+test('same saved mixed UPSERT restores original source requests and canonical claims without authority or send', async t => {
+  const rows = [{id: 'c-key', value: 'c'}, {id: 'b-key', value: 'b'}, {id: 'a-key', value: 'a'}];
+  const f = await fixture(t, {observation: entry => ({identity: entry.target,
+    ...(entry.target === 'b-key' ? {state: 'absent'} :
+      {versionCid: cid(entry.target + ' version'), before: {id: entry.target, value: 'original ' + entry.target}})})});
+  const first = await f.host.run(program(f.mapping, {rows}), 'original-upsert-reopen');
+  const original = f.host.outcomes[0].stage;
+  const originalWire = f.host.control.effectComputationPreviewWire(original.preview);
+  const expected = [...rows].reverse().map(value => cid({target: value.id, value}));
+  assert.deepEqual(original.apply.members[0].claims.map(row => row.canonicalRequestCid), expected);
+  const continuation = JSON.parse(original.continuationWire);
+  await f.host.close();
+  const reopened = await f.reopen();
+  // Recovery retains the exact original Run/Preview and requests. Missing
+  // original commit authority still refuses; reopening cannot mint approval.
+  await assert.rejects(reopened.resume('original-upsert-reopen', first.accepted.ref.runDefinitionCid,
+    continuation), error => error instanceof ExecutionAuthorizationError && error.authorization.action === 'deny');
+  assert.equal(f.state.recoveries, 1);
+  const recovered = reopened.outcomes[0].stage;
+  assert.equal(reopened.control.effectComputationPreviewWire(recovered.publication.preview), originalWire);
+  assert.deepEqual(recovered.receipt.members[0].rowOwners.map(row => row.claim.canonicalRequestCid), expected);
+  assert.equal(f.state.sends, 0);
+});
