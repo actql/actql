@@ -138,6 +138,25 @@ pub fn resolve_update_target_binding(
   explicit_mapping : @query.NamePart?,
   max_work : Int,
 ) -> Result[ResolvedUpdateTarget, UpdateTargetIssue] {
+  resolve_effect_target_candidates(
+    publication,
+    publication.candidates,
+    name,
+    explicit_mapping,
+    max_work,
+  )
+}
+
+///|
+// One alias/Mapping resolution path. Candidates come only from the original
+// Common operation classifier, never payload fit or current permissions.
+fn resolve_effect_target_candidates(
+  publication : UpdateTargetPublication,
+  candidates : Array[@environment.MappingContractShape],
+  name : Array[@query.NamePart],
+  explicit_mapping : @query.NamePart?,
+  max_work : Int,
+) -> Result[ResolvedUpdateTarget, UpdateTargetIssue] {
   if name.is_empty() || name.length() > 16 || max_work < 0 {
     return Err(UnresolvedTarget)
   }
@@ -160,7 +179,7 @@ pub fn resolve_update_target_binding(
     return Err(UnresolvedTarget)
   }
   let mut selected_mapping : @environment.MappingContractShape? = None
-  for mapping in publication.candidates {
+  for mapping in candidates {
     if remaining < 1 {
       return Err(WorkLimit)
     }
@@ -211,6 +230,25 @@ pub fn resolve_concrete_update_target_binding(
   if effect_kind != "update" && effect_kind != "delete" {
     return Err(InvalidPublication)
   }
+  resolve_concrete_effect_target_candidates(
+    publication,
+    publication.candidates,
+    target,
+    mapping_reference,
+    max_work,
+    effect_kind~,
+  )
+}
+
+///|
+fn resolve_concrete_effect_target_candidates(
+  publication : UpdateTargetPublication,
+  candidates : Array[@environment.MappingContractShape],
+  target : String,
+  mapping_reference : String,
+  max_work : Int,
+  effect_kind? : String = "update",
+) -> Result[ResolvedUpdateTarget, UpdateTargetIssue] {
   if max_work < 0 {
     return Err(WorkLimit)
   }
@@ -238,18 +276,16 @@ pub fn resolve_concrete_update_target_binding(
     return Err(UnresolvedTarget)
   }
   let mut selected_mapping : @environment.MappingContractShape? = None
-  // Short UPDATE resolution keeps its original UPDATE-only candidate set.
-  // A checked concrete DELETE already has its selector and permission rules
-  // admitted by the Effect checker. Here only its exact original Mapping and
-  // installation identity are bound; UPDATE support cannot stand in for it.
+  // Concrete checked DELETE uses the original complete Mapping inventory.
+  // Short keyed selections retain their operation-classified candidates.
   let mapping_count = if effect_kind == "update" {
-    publication.candidates.length()
+    candidates.length()
   } else {
     @environment.mapping_shape_count(publication.mappings)
   }
   for index in 0..<mapping_count {
     let mapping = if effect_kind == "update" {
-      publication.candidates[index]
+      candidates[index]
     } else {
       @environment.mapping_shape_at(publication.mappings, index).unwrap()
     }

@@ -98,6 +98,37 @@ field, bounded UTF8 material, cleanup before/after send, and response loss with 
 original `unknown` use. Local TLS and SQLite cases are physical component evidence;
 they do not establish live HubSpot identity permissions or installed public E2E.
 
+### Private kintone API-token presentation
+
+The same trusted binding installer may select
+`secretPresentation: 'kintone-api-token'` for the original `kintone` Connector
+registration. The default remains Bearer. The closed selector is captured in
+the private binding, cannot be changed per operation, and cannot be combined
+with the separate Google authentication dependency. Unknown presentations and
+other registrations refuse before resolution or claim. No Connector-visible
+secret, arbitrary header factory, public credential reference or new grant is
+introduced.
+
+The physical request uses the same privately retained original material in
+`X-Cybozu-API-Token`, without a Bearer or password header. This follows
+[kintone's authentication contract](https://kintone.dev/en/docs/common/authentication/).
+It does not prove that a token covers an App, its related Apps, or any operation:
+the existing nominal scope, signed admission, current Host callback, expiry,
+ordinal and Journal authorization remain mandatory. Each Form or Records call
+is a separate authorized Provider I/O use. Resolver changes cannot select a
+replacement token or trigger an automatic account re-probe. Rotation,
+revocation, response loss and retirement keep the original binding/Journal
+responsibility and socket-close acknowledgement.
+
+Both `x-cybozu-api-token` and `x-cybozu-authorization` are reserved at the shared
+HTTP boundary against Provider request injection and response observation.
+The controlled TLS fixture redacts both from route input and retained request
+observations. Reserving the password header does not implement password
+authentication. The secret ceiling, simultaneous header/response retention and
+original acquisition funding obligations remain unchanged; this private
+presentation is neither normal numerical funding nor complete installed
+kintone read/write acceptance.
+
 ### Non-row observation response accounting
 
 An accounted ordinary row acquisition exposes the private driver callback

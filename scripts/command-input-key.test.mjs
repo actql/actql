@@ -6,6 +6,7 @@ import {machineCid} from './actql-spec-family.mjs';
 import {parameterPrograms} from './parameter-schema.mjs';
 import {commandInputKeySchema, commandInputKeySchemas} from './command-input-key.mjs';
 import {publishedCommandTargetSchemas} from './published-command-target.mjs';
+import {withoutCreateValuesSchema} from './create-values.mjs';
 const read = p => JSON.parse(readFileSync(p, 'utf8'));
 const protocol = read('spec/contracts/actql-protocol-schemas.json');
 const vectors = read('portability/corpus/command-input-keys.json');
@@ -20,8 +21,14 @@ test('actual Program schemas retain all original declarations and add only optio
     vectors.previous_source + ':spec/contracts/actql-protocol-schemas.json'],
   {encoding: 'utf8', maxBuffer: 16 * 1024 * 1024})).artifact_schemas.executable_plan
     .properties.execution_material.properties.program);
+  const historical = structuredClone(prior);
+  command(historical).properties.input_key = structuredClone(commandInputKeySchema);
+  assert.equal(machineCid(historical), vectors.program_cid,
+    'The original input-key-only preimage retains its original type grammar');
   for (const program of parameterPrograms(protocol)) {
-    assert.equal(machineCid(program), vectors.program_cid);
+    // Later adopted type constraints do not rewrite a historical full-schema
+    // preimage. Compare the complete current Command against its original body.
+    assert.deepEqual(command(withoutCreateValuesSchema(program)), command(historical));
     assert.deepEqual(command(program).properties.input_key, commandInputKeySchema);
     assert.equal(command(program).required.includes('input_key'), false);
   }

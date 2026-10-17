@@ -4572,7 +4572,8 @@
             "journal",
             "resolveSecret",
             "maxSecretBytes",
-            "authentication"
+            "authentication",
+            "secretPresentation"
           ],
           "async": false
         },
@@ -4867,6 +4868,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original authentication exchange and token custody"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Private kintone API-token presentation"
               }
             ],
             "identity": [
@@ -5031,12 +5036,20 @@
               {
                 "path": "adapters/site-node/credential-authentication-exchange.test.mjs",
                 "anchor": "failed outcome recording keeps original current failure and its same pending cleanup receiver"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "kintone token presentation uses the retained secret"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "kintone lost response retains the original Unknown use"
               }
             ]
           }
         }
       ],
-      "sha256": "0974d422639dba95a7f1de66a702f68cec41f5b134773ae4f31a6e0e48f30e84",
+      "sha256": "37b7662283a6b77f62944aba9556e88b0b6626c30af6847b5cc8ee7ed2e361b7",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",

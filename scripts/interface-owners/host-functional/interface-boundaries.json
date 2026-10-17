@@ -4554,7 +4554,7 @@
     {
       "module": "adapters/host-common/http-exchange.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "93242239546c1a9e4af45b86eaccc9376f48324e3b9418f67ed433d19643be27",
+      "sha256": "bbeee8665db66a336ebdb8aec60d93a3e90f770fb865f0bead7355d27822f9c8",
       "role": "physical-io",
       "owner": "Existing Connector HTTP request projection and credential transport boundary",
       "exports": [
@@ -4768,6 +4768,10 @@
               {
                 "path": "adapters/host-common/http-body-lifetime.md",
                 "anchor": "## Two explicit shapes"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "### Private kintone API-token presentation"
               }
             ],
             "identity": [
@@ -4916,6 +4920,14 @@
               {
                 "path": "adapters/host-common/http-exchange.test.mjs",
                 "anchor": "byte length/backing properties cannot disguise"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "kintone token presentation uses the retained secret"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "kintone lost response retains the original Unknown use"
               }
             ]
           }
