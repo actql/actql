@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {createHash} from 'node:crypto';
 import * as provider from '../../../../_build/js/release/build/connectors/notion/host_node/host_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {createNotionDatabaseDiscovery,NOTION_DATABASE_RETRIEVE_OPERATION as databaseOperation,
@@ -17,6 +18,21 @@ const limits={maxResponseBytes:16384,maxTotalResponseBytes:32768,maxTargetBytes:
 const definition={id:'t%3Ax',name:'text',type:'rich_text',rich_text:{}};
 const database=ids=>({object:'database',id:'db',data_sources:ids.map(id=>({id,name:'same name'}))});
 const schema=()=>({object:'data_source',id:'s',parent:{type:'database_id',database_id:'db'},properties:{text:definition}});
+
+test('actual Notion declaration source identity retains original UTF8 and never grants equal-data substitution',()=>{
+  const raw=Buffer.from(' \r\n{"id":"db","data_source_id":"s"}\n');
+  const expected=`sha256:${createHash('sha256').update(raw).digest('hex')}`;
+  const original=checked(provider.notionReadDatabaseDeclaration(raw,...declarationBounds));
+  assert.equal(provider.notionReadDatabaseDeclarationSourceCid(original),expected);
+  assert.equal(provider.notionReadDatabaseDeclarationSourceBytes(original),raw.length);
+  const equal=checked(provider.notionReadDatabaseDeclaration(Buffer.from(raw),...declarationBounds));
+  const db=checked(provider.notionProjectDatabase(Buffer.from(JSON.stringify(database(['s']))),...metadata));
+  const selected=checked(provider.notionSelectReadSource(original,db,1000));
+  assert.equal(provider.notionReadSourceSelectionMatches(selected,equal,db),false);
+  raw.fill(0);assert.equal(provider.notionReadDatabaseDeclarationSourceCid(original),expected);
+  assert.equal(provider.notionReadDatabaseId(original),'db');
+  assert.equal(provider.notionReadSourceSelectionId(selected),'s');
+});
 
 async function fixture(t,{decl={id:'db',read_contracts:{'t%3Ax':[{column:'text',projection:'value',
   contract:{type:'string',nullable:false,enum:['ab']}}]}},ids=['s']}={}){
@@ -168,4 +184,76 @@ test('actual Notion full Source metadata omission refuses before property I/O wi
   assert.equal(reader.observe().cleanupConfirmed,false);
   await assert.rejects(reader.read(),{code:'NotionDataSourceReaderAlreadyStarted'});
   assert.equal(f.state.requests.length,3);
+});
+
+test('actual Notion schema authorization receives only the original observed Common selection and exact path',async t=>{
+  const f=await fixture(t);let called=0,request;
+  const result=await f.discover({sourceAuthorization:undefined,
+    authorizationFor:({operation,index})=>{assert.equal(operation,databaseOperation);return f.authorize(operation,`database-${index}`);},
+    sourceAuthorizationFor:async original=>{
+      assert.equal(++called,1);assert.equal(f.state.requests.length,1);
+      assert(Object.isFrozen(original));request=original;
+      assert.equal(original.declaration,f.declaration);
+      assert.equal(provider.notionReadSourceSelectionMatches(original.selection,f.declaration,original.database),true);
+      assert.equal(original.operation,sourceOperation);assert.equal(original.method,'GET');
+      assert.equal(original.path,'/v1/data_sources/s');assert.equal(original.origin,f.scope.resourceOrigin);assert.equal(original.bodyBytes,0);
+      await Promise.resolve();return f.authorize(sourceOperation,'lazy-original-schema');
+    }}).read();
+  assert.equal(called,1);assert.equal(result.selection,request.selection);
+  assert.equal(result.database,request.database);
+  assert.equal(provider.notionDataSourceReadMatches(result.readContracts,f.declaration,result.source),true);
+  assert.equal(f.state.requests.length,2);assert.equal(f.journal.recover().filter(x=>x.outcome==='succeeded').length,2);
+  assert.deepEqual(result.responseCharges,f.state.charges);
+});
+
+test('actual Notion lazy schema grant has no missing wrong-operation or ambiguous eager fallback',async t=>{
+  for(const kind of ['missing','wrong-operation']){
+    const f=await fixture(t);let calls=0;
+    const reader=f.discover({sourceAuthorization:undefined,sourceAuthorizationFor:()=>{
+      calls++;return kind==='missing'?undefined:f.authorize(databaseOperation,'foreign-schema');
+    }});let failure;
+    await assert.rejects(reader.read(),error=>{failure=error;return error.code==='NotionDatabaseDiscoveryFailed';});
+    assert.equal(calls,1);assert.equal(f.state.requests.length,1);
+    assert.equal(failure.observations.length,1);assert.equal(failure.responseCharges.length,1);
+    assert.equal(reader.observe().cleanupConfirmed,false);
+    await assert.rejects(reader.read(),{code:'NotionDiscoveryAlreadyStarted'});
+  }
+  const f=await fixture(t);assert.throws(()=>f.discover({sourceAuthorizationFor:()=>{throw Error('must not run');}}),{code:'InvalidNotionDiscovery'});
+  assert.equal(f.state.requests.length,0);
+});
+
+test('actual Notion ambiguous database cannot request a lazy schema grant or guess an occurrence',async t=>{
+  for(const ids of [[],['other','s']]){
+    const f=await fixture(t,{ids});let calls=0;
+    const reader=f.discover({sourceAuthorization:undefined,sourceAuthorizationFor:()=>{calls++;return f.authorize(sourceOperation,'not-selected');}});
+    await assert.rejects(reader.read(),{code:'NotionDatabaseDiscoveryFailed'});
+    assert.equal(calls,0);assert.equal(f.state.requests.length,1);
+    assert.equal(f.state.charges.length,1);assert.equal(reader.observe().cleanupConfirmed,false);
+  }
+});
+
+test('actual Notion current and stop after awaited schema issuer retain the same database charge without schema I/O',async t=>{
+  for(const kind of ['current','stop']){
+    const f=await fixture(t);let reader;
+    reader=f.discover({sourceAuthorization:undefined,sourceAuthorizationFor:async()=>{
+      await Promise.resolve();
+      if(kind==='current')await f.writeAccount('deny');else reader.requestStop(new Error('stopped before schema'));
+      return f.authorize(sourceOperation,'late-schema');
+    }});let failure;
+    await assert.rejects(reader.read(),error=>{failure=error;return error.code==='NotionDatabaseDiscoveryFailed';});
+    assert.equal(f.state.requests.length,1);assert.equal(failure.observations.length,1);
+    assert.deepEqual(failure.responseCharges,f.state.charges);assert.equal(reader.observe().cleanupConfirmed,false);
+    assert.equal(f.journal.recover().filter(x=>x.outcome==='succeeded').length,1);
+  }
+});
+
+test('actual Notion lazy authorization and selected provider functions are snapshotted before awaiting',async t=>{
+  const f=await fixture(t);let calls=0;
+  const moon={...provider},options={...f.discoveryOptions,moon,sourceAuthorization:undefined,
+    sourceAuthorizationFor:()=>{calls++;return f.authorize(sourceOperation,'snapshot-schema');}};
+  const reader=createNotionDatabaseDiscovery(options);
+  options.sourceAuthorizationFor=()=>{throw Error('replaced issuer');};
+  moon.notionReadSourceSelectionId=()=>{throw Error('replaced selection getter');};
+  const result=await reader.read();assert.equal(calls,1);assert.equal(f.state.requests.length,2);
+  assert.equal(provider.notionReadSourceSelectionId(result.selection),'s');
 });

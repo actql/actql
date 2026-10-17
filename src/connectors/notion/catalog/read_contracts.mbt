@@ -45,6 +45,8 @@ pub struct NotionDatabaseReadDeclaration {
   database_id : String
   priv source_id : String?
   priv original : @decode.Cursor
+  priv original_bytes : Bytes
+  priv source_cid : String
   priv columns : Array[DeclaredNotionReadColumn]
   priv property_ids : Array[String]
 }
@@ -118,7 +120,13 @@ pub fn read_notion_database_read_declaration(
   if !read_contract_limits_valid(limits) {
     return Err(InvalidLimits)
   }
-  let original = match database_cursor(bytes, limits.metadata) {
+  if bytes.length() > limits.metadata.max_bytes {
+    return Err(Metadata(BudgetExceeded))
+  }
+  // Capture once before decoding/hash. Never retain a mutable caller Buffer
+  // as the declaration's original source or reinterpret its canonical domain.
+  let original_bytes = bytes.copy()
+  let original = match database_cursor(original_bytes, limits.metadata) {
     Ok(value) => value
     Err(issue) => return Err(Metadata(issue))
   }
@@ -132,6 +140,8 @@ pub fn read_notion_database_read_declaration(
       database_id,
       source_id: None,
       original,
+      original_bytes,
+      source_cid: "sha256:" + @sha.hex(original_bytes),
       columns: [],
       property_ids: [],
     })
@@ -251,7 +261,15 @@ pub fn read_notion_database_read_declaration(
     }
     _ => return Err(InvalidDeclaration)
   }
-  Ok({ database_id, source_id, original, columns, property_ids, })
+  Ok({
+    database_id,
+    source_id,
+    original,
+    original_bytes,
+    source_cid: "sha256:" + @sha.hex(original_bytes),
+    columns,
+    property_ids,
+  })
 }
 
 ///|
