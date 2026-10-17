@@ -21,7 +21,7 @@ const program = mapping => ({version: 'actql/0.1', id: 'original-generic-upsert'
   rows: [{id: 'original-id', value: 'original before'}]}, as: 'selected'}],
   results: {rows: {from: 'selected', fields: ['id', 'value']}},
   effects: {save: {upsert: {target: mapping.target_ref, mapping: mapping.mapping_ref,
-    from: {result: 'rows'}, id: 'id', set: {id: {field: 'id'}, value: {field: 'value'}}}}}}],
+    from: {result: 'rows'}, key: 'id', set: {id: {field: 'id'}, value: {field: 'value'}}}}}}],
 results: {answer: {from: {stage: 'source', result: 'rows'}}}});
 
 async function fixture(t, {kind = 'upsert', observation = 'absent', targetSubstitution = false} = {}) {
