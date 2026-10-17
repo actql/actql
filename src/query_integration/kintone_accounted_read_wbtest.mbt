@@ -214,6 +214,19 @@ test "kintone same accounted RowRun charges original bytes and captures nominal 
   assert_true(@kintone_host.record_read_original(read) is None)
   assert_true(@resources.ledger_usage(ledger).reserved_execution_bytes > 0L)
   @row_host.finish_row_run(run).unwrap()
+  // The installed Host uses the existing bounded capture of the original
+  // acquisition prefix. The synchronous whole-pipeline helper cannot accept
+  // the Program's later assertion/sort; do not execute or discard them here.
+  @row_host.begin_row_capture(run).unwrap()
+  let mut complete = false
+  for _ in 0..<1000 {
+    let (done, _) = @row_host.advance_row_capture(run, 1).unwrap()
+    if done {
+      complete = true
+      break
+    }
+  }
+  assert_true(complete)
   let capture = @row_host.capture_row_run(run).unwrap()
   let input = @query.captured_source_storage(
     @row_host.row_capture_source(capture).unwrap(),
