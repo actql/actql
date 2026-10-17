@@ -105,7 +105,8 @@ fn captured_effect_command_key_original_retained(
   }
   match value.exported {
     Some(exported) =>
-      captured_effect_local_result_export_retained(value.inputs, exported)
+      captured_effect_local_result_export_retained(value.inputs, exported) &&
+      captured_effect_local_result_export_derived_retained(exported)
     None => value.retained
   }
 }

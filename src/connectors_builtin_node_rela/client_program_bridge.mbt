@@ -6386,7 +6386,7 @@ pub fn client_program_effect_local_command_key_start(
     max_work,
     limits.values.max_nodes,
     limits.max_result_workspace_entries,
-  ).map(Some)
+  ).map(value => Some(value))
 }
 
 ///|
@@ -6465,7 +6465,23 @@ pub fn client_program_effect_proposal_begin(
   member_index : Int,
   max_fields : Int,
   max_work : Int,
-  input_key? : @strategy.CapturedEffectCommandKeyValidation? = None,
+) -> Result[
+  @strategy.CapturedEffectProposalPlan,
+  @strategy.CapturedEffectProposalIssue,
+] {
+  @strategy.prepare_captured_effect_proposal_plan(
+    inputs, member_index, max_fields, max_work,
+  )
+}
+
+///|
+#export_name("clientProgramEffectProposalBeginWithKey")
+pub fn client_program_effect_proposal_begin_with_key(
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  max_fields : Int,
+  max_work : Int,
+  input_key : @strategy.CapturedEffectCommandKeyValidation,
 ) -> Result[
   @strategy.CapturedEffectProposalPlan,
   @strategy.CapturedEffectProposalIssue,
@@ -6475,7 +6491,7 @@ pub fn client_program_effect_proposal_begin(
     member_index,
     max_fields,
     max_work,
-    input_key~,
+    input_key=Some(input_key),
   )
 }
 

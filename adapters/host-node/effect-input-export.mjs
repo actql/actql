@@ -846,8 +846,11 @@ async function preparePinnedEffectSourcePayloadOwned({
                   proposalBounds.maxWork));
               if (key !== undefined) proposalKeys.push(key);
               await advanceEffectCommandKey(moon, key, signal, 256);
-              proposalPlans.push(checked(moon.clientProgramEffectProposalBegin(
-                inputs, index, proposalBounds.maxFields, proposalBounds.maxWork, key)));
+              proposalPlans.push(checked(key === undefined
+                ? moon.clientProgramEffectProposalBegin(
+                  inputs, index, proposalBounds.maxFields, proposalBounds.maxWork)
+                : moon.clientProgramEffectProposalBeginWithKey(
+                  inputs, index, proposalBounds.maxFields, proposalBounds.maxWork, key)));
             }
           } catch (failure) {
             // Retire private traversal before the export finally closes its

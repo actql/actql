@@ -1207,6 +1207,8 @@ pub fn relation_schema_usage(RelationSchemaIdentity) -> (Int, Int, Int)
 
 pub fn relation_schema_wire(RelationSchemaIdentity) -> String
 
+pub fn release_completed_result_key_validation(CompletedResultKeyValidation) -> Bool
+
 pub fn release_prepared_infer_rows_use(InferRowsUse) -> Bool
 
 pub fn replay_completed_relation_export(CompletedOutputExport, CompletedRelationExportReceipt, ValueLimits, RowWireLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
