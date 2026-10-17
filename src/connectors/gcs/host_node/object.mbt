@@ -9,6 +9,30 @@ pub enum GcsFailure {
 }
 
 ///|
+#export_name("gcsObjectResponseMatches")
+pub fn gcs_object_response_matches(
+  binding : @catalog.ObjectMutationBinding,
+  request : @catalog.ObjectMutationRequest,
+  response : @catalog.ObjectMetadata,
+) -> Bool {
+  @catalog.object_mutation_response_matches(binding, request, response)
+}
+
+///|
+#export_name("gcsObjectResponseProjection")
+pub fn gcs_object_response_projection(
+  binding : @catalog.ObjectMutationBinding,
+  request : @catalog.ObjectMutationRequest,
+  status : Int,
+  body : Bytes,
+  max_bytes : Int,
+) -> Result[String, GcsFailure] {
+  @catalog.object_mutation_response_projection_json(
+    binding, request, status, body, max_bytes,
+  ).map_err(issue => Request(issue))
+}
+
+///|
 #export_name("gcsObjectFailureCode")
 pub fn gcs_object_failure_code(issue : GcsFailure) -> String {
   match issue {
