@@ -42,7 +42,7 @@ pub fn slack_user_list_metadata_json(
 ) -> String {
   let next : Json = match page.next_cursor {
     Some(cursor) => cursor.to_json()
-    None => Null
+    None => Json::null()
   }
   (
     {
