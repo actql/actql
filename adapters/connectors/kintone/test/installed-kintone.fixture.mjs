@@ -151,5 +151,5 @@ export async function installedKintoneFixture(t, {formRead = 'allow', recordsRea
   const ledger = () => checked(common.clientProgramAcquisitionLedger(1, 1, 65536n,
     100000000n, 100000000n, 0));
   return {root, tls, state, site, sitePath, metadata, metadataPath, profile, path,
-    sources, captures, load, prepare, ledger};
+    sources, captures, load, prepare, ledger, resolveSecret};
 }
