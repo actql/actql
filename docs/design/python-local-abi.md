@@ -2267,8 +2267,9 @@ physical acknowledgments or missing normal funding.
 
 A normal child borrow return leaves the original allocator closing and its
 one-shot borrow history intact. After the same process Owner confirms typed
-stop in the original empty physical scope, both never-borrowed startup and normally returned custody follow the
-existing allocation-level domain close, then view and descriptor cleanup.
+stop in the original empty physical scope, both never-borrowed startup and
+normally returned custody follow the existing allocation-level domain close,
+then view and descriptor cleanup.
 Returned metadata does not bypass live-allocation or scope checks. A retained
 original child borrow continues to use the separate stopped-region path; PID
 absence cannot select either path or clear responsibility. Failed view cleanup
