@@ -1525,7 +1525,7 @@
         {
           "name": "connect",
           "parameters": [
-        "options: Readonly<{\n  mode: 'local'; owner?: 'local'; runtime?: 'embedded'; durability?: 'volatile' | 'durable';\n  consentRefs?: readonly string[]; installation?: HostInstallation;\n}>"
+            "options: Readonly<{\n  mode: 'local'; owner?: 'local'; runtime?: 'embedded'; durability?: 'volatile' | 'durable';\n  consentRefs?: readonly string[]; installation?: HostInstallation;\n}>"
           ],
           "result": "Promise<Client>"
         },
@@ -1681,6 +1681,14 @@
               {
                 "path": "adapters/host-node/client-interactive-read-public.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "scripts/node-local-owner-selection.test.mjs",
+                "anchor": "test('real SDK admits the same closed Local wire and awaited Client close after default selection'"
+              },
+              {
+                "path": "packages/node/local-owner.typecheck.mts",
+                "anchor": "const embedded: EmbeddedLocalOptions"
               }
             ]
           }
@@ -1831,6 +1839,14 @@
               {
                 "path": "adapters/host-node/client-interactive-read-public.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "scripts/node-local-owner-selection.test.mjs",
+                "anchor": "test('real SDK admits the same closed Local wire and awaited Client close after default selection'"
+              },
+              {
+                "path": "packages/node/local-owner.typecheck.mts",
+                "anchor": "const embedded: EmbeddedLocalOptions"
               }
             ]
           }
@@ -2334,6 +2350,14 @@
               {
                 "path": "scripts/local-node-package-imports.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "scripts/node-local-owner-selection.test.mjs",
+                "anchor": "test('real SDK admits the same closed Local wire and awaited Client close after default selection'"
+              },
+              {
+                "path": "packages/node/local-owner.typecheck.mts",
+                "anchor": "const embedded: EmbeddedLocalOptions"
               }
             ]
           }
