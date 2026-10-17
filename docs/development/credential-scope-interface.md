@@ -350,7 +350,11 @@ Account authority, API scope or policy classification.
 Response loss remains the original sent use's Unknown. A later refused exchange
 cannot settle a previous completed/Unknown use; only the claim actually acquired
 by that invocation enters its failure path. A fallible outcome COMMIT is not
-automatically repeated or interpreted as unsaved. Request/socket retirement and
+automatically repeated or interpreted as unsaved. An unknown API outcome reply
+remains held with that same token and original failure, even if a later durable
+read sees success; a different page use cannot bypass that unresolved ACK. A
+failed outcome recording also retains both its original request failure and
+the outcome failure. Request/socket retirement and
 binding close remain separate from durable Unknown resolution. The original
 parent/claim/pair, body backing, full response and codec tree/string/scope backing,
 token, native key, callbacks and overlapping frames remain in the original

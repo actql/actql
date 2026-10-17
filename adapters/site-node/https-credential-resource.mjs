@@ -632,6 +632,7 @@ async function callCredentialResource({
     if (token === undefined || typeof currentBeforeSend !== 'function') {
       fail('RemoteCredentialAuthenticationUnavailable');
     }
+    if (token.pendingOutcome !== undefined) throw token.pendingOutcome;
     const trustedNow = authenticationCurrent(binding, original, scope, control, journal, now, signal);
     if (token.expires <= BigInt(trustedNow)) fail('RemoteCredentialAuthenticationMaterialExpired');
   }
@@ -746,16 +747,25 @@ async function callCredentialResource({
   } catch (error) {
     // Do not repeat a fallible outcome COMMIT on the new auth path. The
     // existing Journal and its original unknown claim retain responsibility.
-    if (authenticated && finishing) throw error;
-    journal.finish(
-      claimed.record.useCid,
-      requestStarted &&
+    if (authenticated && finishing) {
+      token.pendingOutcome = error;
+      throw error;
+    }
+    const outcome = requestStarted &&
         (operation.method !== 'GET' ||
           error?.code !== 'RemoteCredentialRedirectRejected') &&
         error?.code !== 'RemoteCredentialResourceRejected'
         ? 'unknown'
-        : 'failed',
-    );
+        : 'failed';
+    if (authenticated) {
+      try { journal.finish(claimed.record.useCid, outcome); }
+      catch (outcomeFailure) {
+        token.pendingOutcome = Object.assign(new Error('RemoteCredentialAuthenticationOutcomeUnknown', {
+          cause: Object.freeze({originalFailure: error, outcomeFailure, useCid: claimed.record.useCid}),
+        }), {code: 'RemoteCredentialAuthenticationOutcomeUnknown'});
+        throw token.pendingOutcome;
+      }
+    } else journal.finish(claimed.record.useCid, outcome);
     throw error;
   }
 }
