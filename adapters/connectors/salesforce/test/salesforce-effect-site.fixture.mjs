@@ -155,6 +155,9 @@ export async function openSalesforceEffectSiteFixture(t, {
   // The validity of newly issued certificates.
   certificateDays = 1,
   openCredentialJournal,
+  // Exact Account target response headers for conditional-read tests only.
+  // No conditional behavior is added to the fixture's write implementation.
+  accountTargetHeaders,
 }) {
   const writable = ['Test_Record__c', ...extraWritable];
   const root = await mkdtemp(join(tmpdir(), 'actql-effect-site-'));
@@ -209,6 +212,10 @@ export async function openSalesforceEffectSiteFixture(t, {
   const server = createServer({cert, key}, (request, response) => {
     const observed = {method: request.method, path: request.url,
       authorization: request.headers.authorization};
+    if (accountTargetHeaders !== undefined) {
+      observed.accept = request.headers.accept;
+      observed.acceptEncoding = request.headers['accept-encoding'];
+    }
     seen.push(observed);
     if (request.headers.authorization !== 'Bearer test-only-secret') {
       response.writeHead(401).end();
@@ -401,7 +408,8 @@ export async function openSalesforceEffectSiteFixture(t, {
         response.end(replyJson(current));
         return;
       }
-      response.writeHead(200, {'content-type': 'application/json'});
+      response.writeHead(200, {'content-type': 'application/json',
+        ...(record === 'Account' ? accountTargetHeaders : {})});
       response.end(replyJson({Id: target,
         Name: observedNames.get(record) ?? observedName,
         External_Key__c: target,
@@ -638,6 +646,7 @@ export async function openSalesforceEffectSiteFixture(t, {
     write: recoveryGrant(write),
   });
   return {seen, journal, orgId, origin, site: installed, profilePath, catalog, observe, write, credential,
+    authorization: hostAuthorization,
     refreshCatalog, recoveryConnection, declared,
     declaration: declared.declaration,
     // The execution Mapping of one write under this Site's declaration.
