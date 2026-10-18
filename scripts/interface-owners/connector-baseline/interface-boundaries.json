@@ -8897,6 +8897,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "cid/cid",
             "fail/fail",
             "installSalesforceAuthorization",

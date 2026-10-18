@@ -8482,6 +8482,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "byCid/byCid",
             "byCid/byCid/byCid",
             "byCid/byCid/byCid#2",
