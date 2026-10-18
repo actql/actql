@@ -963,6 +963,31 @@ work. Its later dispatches continue to use ordinary active-bundle admission and
 current execution authority. The transport-specific custody adapters preserve these same common operations;
 transport acknowledgement never replaces the original Store observation.
 
+## Installed Row credential issuer loading
+
+The ordinary Run Credential Site and the Salesforce compatibility installer
+load their selected issuer through `loadRowSourceCredentialCustody`. The
+existing Row Site owns private-key admission, optional CA acquisition, the
+original Journal opener, grant signing and release. The installer retains its
+own profile, Account context and Site-binding preimages, refusal codes and
+provider-specific operation admission. No key or second credential issuer is
+returned to a Connector driver.
+
+Key and CA acquisition and Ed25519 admission precede construction of the
+installer's default secret resolver and opening its Journal. The resolver
+factory is synchronous, receives no private material and does not resolve a
+provider secret. Failure before Journal acquisition cannot create a Journal
+cleanup duty; after acquisition the same existing custody owns close, pending
+release and retry. Loader completion is neither current permission nor a
+physical release acknowledgement. The original profile/key/CA input bounds
+and the simultaneous decoded-key and retained-custody inventory remain the
+caller's resource obligation.
+
+The installation-metadata alternative keeps its separately bounded key read,
+original initialization-failure carrier and after-await current fence. It does
+not acquire Run grants or defaults through the compatibility loader. Scope,
+signature preimages and per-use Journal checks keep their existing Owners.
+
 ## Pre-Run Bundle custody on the outbound channel
 
 The existing authenticated outbound channel distinguishes `RemoteSitePollOperation`
