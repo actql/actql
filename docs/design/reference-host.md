@@ -208,6 +208,16 @@ cache-shaped object alone does not authenticate those originals. These are
 selected implementation obligations, not restrictions on ActQL Programs or
 permission for unrelated Node callbacks, libraries or business work.
 
+After synchronous original namespace initialization, the actual preload captures
+its CJS/JSON Module records and exports descriptors once, before entry runs.
+Currentness checks retain that same record, exports reference and shallow own
+descriptor inventory without invoking exported getters. Changed or replaced
+records remain refused even if restored. An image not initialized at that
+handoff cannot acquire pre-entry provenance by compiling later. Preexisting
+bootstrap bodies, nested export referents, stock resolution and fixed asset
+reads still need their independent selected-domain correspondence; this cache
+handoff alone is neither a complete loader proof nor an operational issuer.
+
 This admission has no conversion to metadata HTTP, Source, Result, business Run,
 Model invocation, Content/driver or external-VM capacity or authority. Their
 existing Resource suppliers and current authorization remain separate. The
