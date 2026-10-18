@@ -9,7 +9,7 @@ import test from 'node:test';
 // Real ordinary Node module loading, same-FD captured images and the private
 // installation Owner. The small Host below is explicit, not the full product
 // Host or a normal installed README success, business supplier or permission.
-function fixture(t,{inventory=true,changeImage=false}={}) {
+function fixture(t,{inventory=true,changeImage=false,publicNode=false}={}) {
   const directory=mkdtempSync(join(tmpdir(),'actql-ordinary-control-'));
   t.after(()=>rmSync(directory,{recursive:true}));
   const root=join(directory,'node_modules/@actql/local-node');
@@ -42,6 +42,18 @@ function fixture(t,{inventory=true,changeImage=false}={}) {
     packages:[],dependencies:[],localVersion:'1.0.0',optionalSdk:null,optionalSdkCoverage:'absent',
     publicNode:null,publicNodeCoverage:'absent',localPublicModule:'index.mjs',
     hostModule:'adapters/host-node/embedded-local.mjs',hostValidator:'assertInitialControlHostPreparation'};
+  if(publicNode){
+    const node=join(directory,'node_modules/@actql/node');
+    const nodeSources=new Map([
+      ['package.json',Buffer.from(JSON.stringify({name:'@actql/node',version:'1.0.0',type:'module',exports:'./index.mjs'}))],
+      ['index.mjs',sources.get('index.mjs')],
+      ['initial-control-public-dispatch.cjs',readFileSync(new URL('../../packages/node/initial-control-public-dispatch.cjs',import.meta.url))]
+    ]);
+    for(const[path,bytes]of nodeSources){mkdirSync(dirname(join(node,path)),{recursive:true});writeFileSync(join(node,path),bytes);}
+    selected.publicNode={name:'@actql/node',version:'1.0.0',dependencies:[{name:'@actql/local-node',local:true}],
+      images:[...nodeSources].map(([path,bytes])=>({path,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')}))};
+    selected.publicNodeCoverage='prepared';
+  }
   sources.set('adapters/host-node/initial-control-package-original.cjs',Buffer.from(
     'module.exports=Object.freeze({imageInventory:'+(inventory?JSON.stringify(selected):'undefined')+'});'));
   for(const [path,bytes]of sources){mkdirSync(dirname(join(root,path)),{recursive:true});writeFileSync(join(root,path),bytes);}
@@ -66,11 +78,19 @@ test('ordinary import acquires its installed prefix before original bounded inpu
   assert.equal(result.status,0,result.stderr);
 });
 
-test('ordinary source-only absence refuses before observing the raw caller',t=>{
+test('ordinary source-only absence refuses before dependent packet traversal',t=>{
   const f=fixture(t,{inventory:false});const result=f.run(
     'import assert from"node:assert/strict";import{connect}from"@actql/local-node";'+
-    'let seen=0;const raw=new Proxy({},{get(){seen++;},ownKeys(){seen++;}});'+
+    'let seen=0;const raw={mode:"local",installation:new Proxy({},{get(){seen++;},ownKeys(){seen++;}}),get profile(){seen++;}};'+
     'assert.throws(()=>connect(raw),{code:"NodeInitialControlAdmissionUnavailable"});assert.equal(seen,0);');
+  assert.equal(result.status,0,result.stderr);
+});
+
+test('ordinary public Node delivery binds its own captured facade and the same Local installation',t=>{
+  const f=fixture(t,{publicNode:true});const result=f.run(
+    'import assert from"node:assert/strict";import{connect}from"@actql/node";'+
+    'const client=await connect({mode:"local",installation:{directory:".actql"},profile:"mock"});'+
+    'assert.equal(client.input.profile,"mock");assert.equal((await client.scope.close()).pending,false);');
   assert.equal(result.status,0,result.stderr);
 });
 
