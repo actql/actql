@@ -1,7 +1,7 @@
 ///|
 /// Native PullRequest fields additional to the shared Issue-shaped columns.
 /// These values are observations, not merge permission or mutation selectors.
-struct PullRequestNativeFields {
+pub(all) struct PullRequestNativeFields {
   base : String
   head : String
   draft : Bool
@@ -23,13 +23,13 @@ fn graphql_nullable_actor(
       guard @decode.open_object(cursor) is Ok(actor) else {
         return Err(InvalidField(name))
       }
-      graphql_text(actor, "login").map(Some)
+      graphql_text(actor, "login").map(value => Some(value))
     }
   }
 }
 
 ///|
-fn graphql_pull_request_fields(
+pub fn graphql_pull_request_fields(
   object : @decode.ObjectView,
 ) -> Result[PullRequestNativeFields, IssuePageIssue] {
   let base = match graphql_text(object, "baseRefName") {

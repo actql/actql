@@ -96,23 +96,28 @@ test "PullRequest observed merge actor and time stay separate from authority" {
 
 ///|
 test "PullRequest malformed requested fields refuse instead of becoming SQL null" {
-  for name in ["baseRefName", "headRefName", "isDraft", "mergeable", "mergedAt", "mergedBy", "reviewDecision"] {
+  for
+    name in [
+      "baseRefName", "headRefName", "isDraft", "mergeable", "mergedAt", "mergedBy",
+      "reviewDecision",
+    ] {
     assert_eq(
       graphql_pull_request_fields(pull_request_fields_fixture([], omitted=name)),
       Err(MissingRequiredField(name)),
     )
   }
-  for (name, value) in [
-    ("baseRefName", Json::null()),
-    ("headRefName", 7.to_json()),
-    ("isDraft", "false".to_json()),
-    ("mergeable", "false".to_json()),
-    ("mergeable", Json::null()),
-    ("mergedAt", "yesterday".to_json()),
-    ("mergedBy", "octo".to_json()),
-    ("mergedBy", Json::object({})),
-    ("reviewDecision", "APPROVED_FUTURE".to_json()),
-  ] {
+  for
+    (name, value) in [
+      ("baseRefName", Json::null()),
+      ("headRefName", (7).to_json()),
+      ("isDraft", "false".to_json()),
+      ("mergeable", "false".to_json()),
+      ("mergeable", Json::null()),
+      ("mergedAt", "yesterday".to_json()),
+      ("mergedBy", "octo".to_json()),
+      ("mergedBy", Json::object({})),
+      ("reviewDecision", "APPROVED_FUTURE".to_json()),
+    ] {
     assert_true(
       graphql_pull_request_fields(pull_request_fields_fixture([(name, value)]))
       is Err(_),
