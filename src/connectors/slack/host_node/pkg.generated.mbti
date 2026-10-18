@@ -8,7 +8,11 @@ import {
 // Values
 pub fn slack_admit_message_history_page(@catalog.SlackMessageHistory, @catalog.SlackMessageHistoryRequest, Bytes) -> Result[@catalog.SlackMessagePage, @catalog.SlackMessagePageIssue]
 
+pub fn slack_admit_message_replies_page(@catalog.SlackMessageReplies, @catalog.SlackMessageRepliesRequest, Bytes) -> Result[@catalog.SlackMessageRepliesPage, @catalog.SlackMessagePageIssue]
+
 pub fn slack_begin_message_history(@catalog.SlackMessageHistory) -> Result[@catalog.SlackMessageHistoryRequest, @catalog.SlackMessagePageIssue]
+
+pub fn slack_begin_message_replies(@catalog.SlackMessageReplies) -> Result[@catalog.SlackMessageRepliesRequest, @catalog.SlackMessagePageIssue]
 
 pub fn slack_channel_list_column_names() -> Array[String]
 
@@ -24,7 +28,11 @@ pub fn slack_channel_list_schema_wire(Int, Int, Int) -> Result[String, @catalog.
 
 pub fn slack_close_message_history(@catalog.SlackMessageHistory) -> Unit
 
+pub fn slack_close_message_replies(@catalog.SlackMessageReplies) -> Unit
+
 pub fn slack_finish_message_history(@catalog.SlackMessageHistory, @catalog.SlackMessagePage) -> Result[Unit, @catalog.SlackMessagePageIssue]
+
+pub fn slack_finish_message_replies(@catalog.SlackMessageReplies, @catalog.SlackMessageRepliesPage) -> Result[Unit, @catalog.SlackMessagePageIssue]
 
 pub fn slack_message_column_names() -> Array[String]
 
@@ -38,11 +46,27 @@ pub fn slack_message_page_row_count(@catalog.SlackMessagePage) -> Int
 
 pub fn slack_message_page_rows_wire(@catalog.SlackMessagePage, Array[String], Int, Int, Int) -> Result[String, @catalog.SlackMessagePageIssue]
 
+pub fn slack_message_replies_matches_original(@catalog.SlackMessageReplies, @catalog.SlackMessagePage, Int) -> Bool
+
+pub fn slack_message_replies_page_has_next(@catalog.SlackMessageRepliesPage) -> Bool
+
+pub fn slack_message_replies_page_row_count(@catalog.SlackMessageRepliesPage) -> Int
+
+pub fn slack_message_replies_page_rows_wire(@catalog.SlackMessageRepliesPage, Array[String], Int, Int, Int) -> Result[String, @catalog.SlackMessagePageIssue]
+
+pub fn slack_message_replies_request_json(@catalog.SlackMessageRepliesRequest) -> String
+
+pub fn slack_message_replies_request_matches(@catalog.SlackMessageReplies, @catalog.SlackMessageRepliesRequest) -> Bool
+
 pub fn slack_message_schema_wire(Int, Int, Int) -> Result[String, @catalog.SlackMessagePageIssue]
 
 pub fn slack_next_message_history_request(@catalog.SlackMessageHistory, @catalog.SlackMessagePage) -> Result[@catalog.SlackMessageHistoryRequest, @catalog.SlackMessagePageIssue]
 
+pub fn slack_next_message_replies_request(@catalog.SlackMessageReplies, @catalog.SlackMessageRepliesPage) -> Result[@catalog.SlackMessageRepliesRequest, @catalog.SlackMessagePageIssue]
+
 pub fn slack_prepare_message_history(String, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SlackMessageHistory, @catalog.SlackMessagePageIssue]
+
+pub fn slack_prepare_message_replies(@catalog.SlackMessagePage, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SlackMessageReplies, @catalog.SlackMessagePageIssue]
 
 pub fn slack_project_channel_list(Bytes, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.SlackChannelListPage, @catalog.SlackChannelListIssue]
 

@@ -8939,26 +8939,71 @@
     {
       "module": "adapters/host-common/sqlite-format-inspection.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bf9dd4499ae60caca67bc659c401622e241ad7007c6a291301989aa5b6e1d41e",
+      "sha256": "5ec8da1fc58b9a652d05ce21c9cb496ca093944f1e45ca56e7d5bccb3bc1add2",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
+        "inspectJournalDirectory",
         "inspectSqliteSnapshot"
       ],
       "operations": [
+        {
+          "name": "inspectJournalDirectory",
+          "parameters": [
+            "directory",
+            "maxEntries",
+            "unavailableCode",
+            "cleanupCode"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectJournalDirectory/captureClose/captureClose",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "inspectJournalDirectory/close/close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "inspectJournalDirectory/inspectJournalDirectory",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "inspectJournalDirectory/retry/retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "inspectJournalDirectory/status/status",
+          "parameters": [],
+          "async": false
+        },
         {
           "name": "inspectSqliteSnapshot",
           "parameters": [
             "databasePath",
             "inspect",
             "code",
-            "validateSource"
+            "validateSource",
+            "maxSourceBytes",
+            "unavailableCode"
           ],
           "async": false
         },
         {
           "name": "inspectSqliteSnapshot/cleanup/init:close/init:close",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "inspectSqliteSnapshot/closeFile/closeFile",
+          "parameters": [
+            "original"
+          ],
           "async": false
         },
         {
@@ -9006,10 +9051,18 @@
             "inspectSqliteSnapshot/inspectSqliteSnapshot",
             "inspectSqliteSnapshot/inspectSqliteSnapshot#2",
             "sameFile/sameFile",
-            "sameFile/sameFile/sameFile"
+            "sameFile/sameFile/sameFile",
+            "inspectJournalDirectory",
+            "inspectJournalDirectory/captureClose/captureClose",
+            "inspectJournalDirectory/close/close",
+            "inspectJournalDirectory/inspectJournalDirectory",
+            "inspectJournalDirectory/retry/retry",
+            "inspectJournalDirectory/status/status",
+            "inspectSqliteSnapshot/closeFile/closeFile"
           ],
           "exports": [
-            "inspectSqliteSnapshot"
+            "inspectSqliteSnapshot",
+            "inspectJournalDirectory"
           ],
           "attributes": {
             "responsibility": [
@@ -9024,6 +9077,10 @@
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "inputsOutputs": [
@@ -9038,6 +9095,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Checkpoint and Resolution admission"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "identity": [
@@ -9052,6 +9113,14 @@
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "anchor": "const source = {path, fd, close: closeSync};"
               }
             ],
             "ownership": [
@@ -9066,6 +9135,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "synchronization": [
@@ -9080,6 +9153,14 @@
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "anchor": "// Capture once before handing the database to the inspector. Retry"
               }
             ],
             "failure": [
@@ -9094,6 +9175,14 @@
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "anchor": "// A ceiling is an inspection support bound, not a file-format restriction or"
               }
             ],
             "cancellation": [
@@ -9108,6 +9197,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Checkpoint and Resolution admission"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "resources": [
@@ -9122,6 +9215,14 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-common/sqlite-format-inspection.mjs",
+                "anchor": "// The original pinned DB and WAL coexist with their isolated copies."
               }
             ],
             "extension": [
@@ -9136,6 +9237,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Checkpoint and Resolution admission"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "verification": [
@@ -9146,12 +9251,29 @@
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-common/sqlite-inspection-bounds.test.mjs",
+                "anchor": "combined actual DB and WAL extent refuses before scratch copying or the SQLite inspector"
               }
             ]
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "./sqlite-transaction.mjs",
+        "node:fs",
+        "node:os",
+        "node:path",
+        "node:sqlite"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-common/strategy.mjs",
@@ -16651,7 +16773,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "cccce9e410f3d9b7e7416ffdd1159311fd82cb52592229745d6aaf8af939d42a",
+      "sha256": "3366b9eb971bb075dc2ae338f77f64b894696c1384190f2ce853573ced0b9818",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -16698,7 +16820,9 @@
         {
           "name": "admitJournalDirectory",
           "parameters": [
-            "directory"
+            "directory",
+            "maxInspectionEntries",
+            "maxInspectionBytes"
           ],
           "async": false
         },
@@ -16856,7 +16980,9 @@
           "parameters": [
             "directory",
             "databasePath",
-            "markerPath"
+            "markerPath",
+            "maxInspectionEntries",
+            "maxInspectionBytes"
           ],
           "async": false
         },
@@ -16953,6 +17079,49 @@
           "async": false
         },
         {
+          "name": "journalDirectoryEntries",
+          "parameters": [
+            "directory",
+            "maxInspectionEntries"
+          ],
+          "async": false
+        },
+        {
+          "name": "journalMarkerMatches",
+          "parameters": [
+            "path",
+            "expected"
+          ],
+          "async": false
+        },
+        {
+          "name": "journalMarkerMatches/close/close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "journalMarkerMatches/journalMarkerMatches",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "journalMarkerMatches/journalMarkerMatches#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "journalMarkerMatches/retry/retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "journalMarkerMatches/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "logicalPlanOriginalShape",
           "parameters": [
             "value"
@@ -16964,6 +17133,8 @@
           "parameters": [
             "directory",
             "maxRecords",
+            "maxInspectionEntries",
+            "maxInspectionBytes",
             "maxRunDefinitionWireBytes",
             "submissionEpochTtlMs",
             "submissionEpochNow",
@@ -18248,7 +18419,14 @@
             "validEpochAuthority",
             "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent",
             "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/init:assertCurrent/init:assertCurrent",
-            "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/readOriginal/readOriginal"
+            "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/readOriginal/readOriginal",
+            "journalDirectoryEntries",
+            "journalMarkerMatches",
+            "journalMarkerMatches/close/close",
+            "journalMarkerMatches/journalMarkerMatches",
+            "journalMarkerMatches/journalMarkerMatches#2",
+            "journalMarkerMatches/retry/retry",
+            "journalMarkerMatches/status/status"
           ],
           "exports": [
             "openClientRequestJournal",
@@ -18287,6 +18465,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "The private Node binding projects the Program from the actual compiled owner"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "inputsOutputs": [
@@ -18325,6 +18507,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits) {"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "identity": [
@@ -18367,6 +18553,10 @@
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
                 "anchor": "test('first Infer journal admission refuses copied or other-control tickets and raw evidence'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "ownership": [
@@ -18409,6 +18599,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "if (originalInferRun !== undefined) {"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "synchronization": [
@@ -18451,6 +18645,10 @@
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
                 "anchor": "test('Infer material and Run roll back together when original journal custody COMMIT fails'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "failure": [
@@ -18493,12 +18691,16 @@
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
                 "anchor": "test('saved Infer reader refuses altered original Task materials Run program and admission correspondence'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "import {closeSync, existsSync, fsyncSync, lstatSync,"
+                "anchor": "const originalClose = closeSync;"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -18535,6 +18737,10 @@
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
                 "anchor": "assert.equal(saved.physicalStartReserved, false);"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "resources": [
@@ -18585,6 +18791,14 @@
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
                 "anchor": "test('Infer original copies use the existing aggregate evidence bound before durable acceptance'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function journalMarkerMatches(path, expected)"
               }
             ],
             "extension": [
@@ -18623,6 +18837,10 @@
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
                 "anchor": "test('legacy Infer material absence is not backfilled and changed originals do not replace a saved Run'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "verification": [
@@ -18673,6 +18891,14 @@
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
                 "anchor": "test('another process reads the same Journal original pair after an acceptance reply is discarded'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-inspection-bounds.test.mjs",
+                "anchor": "fixed journal markers use no whole-file materialization during admission or currentness"
               }
             ]
           }
@@ -25650,7 +25876,7 @@
     {
       "module": "adapters/host-node/host-root-format.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "01a0f543d21fe95e16e947ca9a5e3e6468b9ccd2362989092328ce6527cb4b54",
+      "sha256": "c08755fccd9e3b301f4b99a882a068c5213f2502d5263ea05bd97ee5ed14528b",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -25660,14 +25886,36 @@
         {
           "name": "admitHostRootFormat",
           "parameters": [
-            "root"
+            "root",
+            "openDirectory"
           ],
           "async": true
         },
         {
-          "name": "admitHostRootFormat/legacy/legacy",
+          "name": "admitHostRootFormat/admitHostRootFormat",
           "parameters": [
-            "name"
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitHostRootFormat/admitHostRootFormat#2",
+          "parameters": [
+            "original"
+          ],
+          "async": true
+        },
+        {
+          "name": "admitHostRootFormat/admitHostRootFormat#3",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitHostRootFormat/admitHostRootFormat#4",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -25679,11 +25927,34 @@
           "async": true
         },
         {
-          "name": "entryNames",
+          "name": "entryExists",
           "parameters": [
-            "root"
+            "root",
+            "name"
           ],
           "async": true
+        },
+        {
+          "name": "firstEntry",
+          "parameters": [
+            "root",
+            "openDirectory"
+          ],
+          "async": true
+        },
+        {
+          "name": "firstEntry/firstEntry",
+          "parameters": [
+            "path"
+          ],
+          "async": true
+        },
+        {
+          "name": "firstEntry/firstEntry#2",
+          "parameters": [
+            "original"
+          ],
+          "async": false
         },
         {
           "name": "formatError",
@@ -25699,10 +25970,16 @@
           "operations": [
             "<module>",
             "admitHostRootFormat",
-            "admitHostRootFormat/legacy/legacy",
             "admitMarker",
-            "entryNames",
-            "formatError"
+            "formatError",
+            "admitHostRootFormat/admitHostRootFormat",
+            "admitHostRootFormat/admitHostRootFormat#2",
+            "admitHostRootFormat/admitHostRootFormat#3",
+            "admitHostRootFormat/admitHostRootFormat#4",
+            "entryExists",
+            "firstEntry",
+            "firstEntry/firstEntry",
+            "firstEntry/firstEntry#2"
           ],
           "exports": [
             "admitHostRootFormat"
@@ -25711,7 +25988,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/host-root-format.mjs",
-                "anchor": "export async function admitHostRootFormat(root) {"
+                "anchor": "export async function admitHostRootFormat(root, {openDirectory = opendir} = {}) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -25720,12 +25997,16 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/host-root-format.mjs",
-                "anchor": "export async function admitHostRootFormat(root) {"
+                "anchor": "export async function admitHostRootFormat(root, {openDirectory = opendir} = {}) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -25734,12 +26015,16 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Program and stage execution"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/host-root-format.mjs",
-                "anchor": "export async function admitHostRootFormat(root) {"
+                "anchor": "export async function admitHostRootFormat(root, {openDirectory = opendir} = {}) {"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -25748,12 +26033,16 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/host-root-format.mjs",
-                "anchor": "await handle?.close();"
+                "anchor": "return await withOriginalFile(root, async path => {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -25762,12 +26051,16 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "# Connector ownership and repository layout"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/host-root-format.mjs",
-                "anchor": "import {lstat, mkdir, open, readFile, readdir} from 'node:fs/promises';"
+                "anchor": "import {lstat, mkdir, open, opendir} from 'node:fs/promises';"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -25776,6 +26069,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "failure": [
@@ -25790,12 +26087,16 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/host-root-format.mjs",
-                "anchor": "await handle?.close();"
+                "anchor": "return await withOriginalFile(root, async path => {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -25804,6 +26105,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Program and stage execution"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "resources": [
@@ -25818,6 +26123,14 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "# Connector ownership and repository layout"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/host-root-format.mjs",
+                "anchor": "// Only emptiness is needed. Do not materialize an arbitrary directory and"
               }
             ],
             "extension": [
@@ -25832,6 +26145,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Program and stage execution"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "verification": [
@@ -25842,12 +26159,28 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/host-root-format.test.mjs",
+                "anchor": "a pending real Dir close refuses admission and retries only its captured original receiver"
               }
             ]
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "./source-profile-json.mjs",
+        "node:fs",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/in-process-client.mjs",
@@ -27364,7 +27697,7 @@
     {
       "module": "adapters/host-node/infer-trusted-node-preload.cjs",
       "responsibilityFacet": "primary",
-      "sha256": "bf02a9992e3cd5f1abcfae8536060c023becca81d700adf1c1ef508cfbedc25d",
+      "sha256": "67819bf36bee0406dd35b01b8b34626c22742d164e5b4150794908c0bf46c782",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -27519,9 +27852,51 @@
           "async": false
         },
         {
+          "name": "inputUnavailable/inputUnavailable",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "moduleNamespace",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "operational/init:assertCurrent/init:assertCurrent",
+          "parameters": [
+            "held"
+          ],
+          "async": false
+        },
+        {
+          "name": "operational/init:close/init:close",
+          "parameters": [
+            "held"
+          ],
+          "async": false
+        },
+        {
+          "name": "operational/init:prepare/init:prepare",
+          "parameters": [
+            "held",
+            "rawInput"
+          ],
+          "async": false
+        },
+        {
+          "name": "operational/init:readAsset/init:readAsset",
+          "parameters": [
+            "held",
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "operational/init:readInput/init:readInput",
+          "parameters": [
+            "held"
           ],
           "async": false
         },
@@ -27536,6 +27911,13 @@
         {
           "name": "publicPreloadOriginals",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "samePreparation/samePreparation",
+          "parameters": [
+            "held"
+          ],
           "async": false
         },
         {
@@ -27600,7 +27982,14 @@
             "sdkOriginals/sdkOriginals",
             "sdkUnavailable",
             "sdkValue",
-            "unavailable/unavailable"
+            "unavailable/unavailable",
+            "inputUnavailable/inputUnavailable",
+            "operational/init:assertCurrent/init:assertCurrent",
+            "operational/init:close/init:close",
+            "operational/init:prepare/init:prepare",
+            "operational/init:readAsset/init:readAsset",
+            "operational/init:readInput/init:readInput",
+            "samePreparation/samePreparation"
           ],
           "exports": [
             "commonjs:assertInitialControlInstallationCurrent",
@@ -27633,6 +28022,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
                 "anchor": "// Internal state machine, not an operational issuer."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "inputsOutputs": [
@@ -27675,6 +28068,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
                 "anchor": "function readInput(scope, originals)"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "identity": [
@@ -27729,6 +28126,14 @@
               {
                 "path": "adapters/host-node/infer-trusted-node-preload.cjs",
                 "anchor": "[string.prototype, 'trimEnd'],"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "anchor": "let preparationOriginals, preparationInput, preparationClosed = false;"
               }
             ],
             "ownership": [
@@ -27759,6 +28164,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Callbacks and opaque handles remain original Owner borrows, not traversed or"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "synchronization": [
@@ -27809,6 +28218,14 @@
               {
                 "path": "adapters/host-node/initial-control-package-custody.cjs",
                 "anchor": "// Compile both actual public ESM namespaces before the Module handoff."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "anchor": "// before the generated inventory or any captured image is initialized."
               }
             ],
             "failure": [
@@ -27843,6 +28260,10 @@
               {
                 "path": "adapters/host-node/initial-control-preparation-input.test.mjs",
                 "anchor": "raw acquisition failure preserves the original cause and pending duty without rereading"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "cancellation": [
@@ -27877,6 +28298,10 @@
               {
                 "path": "adapters/host-node/initial-control-preparation-input.test.mjs",
                 "anchor": "after-input callback current and reentrant close retain the same pending preparation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "resources": [
@@ -27927,6 +28352,14 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The selected preparation path also retains the native `String.prototype.trimEnd`"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "anchor": "// Native runtime/library identities stay with this SAME actual process/module"
               }
             ],
             "extension": [
@@ -27953,6 +28386,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The selected startup may support an original producer-controlled preparation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "verification": [
@@ -28039,6 +28476,14 @@
               {
                 "path": "adapters/host-node/infer-trusted-node-startup.test.mjs",
                 "anchor": "ordinary embedded import preserves application environment normalizer selection"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/initial-control-finite-host.test.mjs",
+                "anchor": "partial initialization retains the actual marker FD until its same close-only duty acknowledges"
               }
             ]
           }
@@ -28049,6 +28494,7 @@
         "./initial-control-installation-owner.cjs",
         "./initial-control-package-custody.cjs",
         "./initial-control-package-original.cjs",
+        "./initial-control-phase-envelope.cjs",
         "node:buffer",
         "node:http",
         "node:https",
@@ -28058,7 +28504,8 @@
         "node:process",
         "node:stream",
         "node:tls",
-        "node:util"
+        "node:util",
+        "node:v8"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -30048,6 +30495,185 @@
         }
       ],
       "referenceQualification": "Source-image DATA and explicit syscall boundary references only; not complete image-loader coverage, an operational supplier or normal Host acceptance."
+    },
+    {
+      "module": "adapters/host-node/initial-control-phase-envelope.cjs",
+      "sha256": "435aa89eb69a5aacda846ba346ebaa966ad4a0d01b345db35f3ed4bab32b3d1d",
+      "exports": [
+        "commonjs:declareInitialControlPhaseEnvelope",
+        "commonjs:inspectInitialControlPhaseEnvelope"
+      ],
+      "operations": [
+        {
+          "name": "declareInitialControlPhaseEnvelope",
+          "parameters": [
+            "heapCeilingBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectInitialControlPhaseEnvelope",
+          "parameters": [
+            "inventory",
+            "declaration",
+            "runtimeOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectInitialControlPhaseEnvelope/dependencies",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectInitialControlPhaseEnvelope/images",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "own/own",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "unavailable/unavailable",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing private Host/Resource selected initial-control lifetime; finite accounting DATA, not an issuer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "declareInitialControlPhaseEnvelope",
+            "inspectInitialControlPhaseEnvelope",
+            "inspectInitialControlPhaseEnvelope/dependencies",
+            "inspectInitialControlPhaseEnvelope/images",
+            "own/own",
+            "unavailable/unavailable"
+          ],
+          "exports": [
+            "commonjs:declareInitialControlPhaseEnvelope",
+            "commonjs:inspectInitialControlPhaseEnvelope"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "anchor": "// Selected-recipe accounting DATA, never an operational issuer."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "anchor": "function declareInitialControlPhaseEnvelope(heapCeilingBytes)"
+              },
+              {
+                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "anchor": "function inspectInitialControlPhaseEnvelope(inventory, declaration, runtimeOriginal)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "anchor": "// only the real early preload retains the runtime/module original and can"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "anchor": "lifetime: 'original-process-and-escaped-module-lifetime'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "anchor": "// Declare the WHOLE supported recipe before reading its generated inventory."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "anchor": "const cause = new NativeError('NodeInitialControlEnvelopeUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
+                "anchor": "the selected backend and every actual native library identity must correspond before capture"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "anchor": "// A retired installation does not replenish the process-lifetime counters."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "anchor": "// External child backing is separate from the managed/native assumption."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
+                "anchor": "finite disposition includes simultaneous managed, native, compiler and full capture terms"
+              },
+              {
+                "path": "adapters/host-node/initial-control-finite-host.test.mjs",
+                "anchor": "partial initialization retains the actual marker FD until its same close-only duty acknowledges"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Selected finite disposition and actual same-Host control component only; no business capacity, universal VM lease or normal numerical profile."
     },
     {
       "module": "adapters/host-node/installation.mjs",
@@ -44862,14 +45488,15 @@
     {
       "module": "adapters/host-node/source-profile-json.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0804e50aeb152062327965b1702a6c70828bd9066dd2709f40b213ad1f20ffd0",
+      "sha256": "d535d573119979dae5b1432c6b4d67d69a30f4a7ff959bd4fb7aec71b25673be",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
         "installedRuntimeBundleCid",
         "readBoundedConfigurationText",
         "readBoundedConfigurationUtf8",
-        "readSourceProfileJson"
+        "readSourceProfileJson",
+        "withOriginalFile"
       ],
       "operations": [
         {
@@ -45262,7 +45889,8 @@
             "withOriginalFile/captureClose/captureClose"
           ],
           "exports": [
-            "installedRuntimeBundleCid"
+            "installedRuntimeBundleCid",
+            "withOriginalFile"
           ],
           "attributes": {
             "responsibility": [
@@ -45347,6 +45975,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "close. It captures the original close function and receiver before beginning"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "External physical children are a distinct part of that phase"
               }
             ],
             "extension": [
@@ -45379,6 +46011,10 @@
               {
                 "path": "adapters/host-node/source-profile-close-original.test.mjs",
                 "anchor": "unobserved close getter failure retains the FD without beginning intake and retries observation once"
+              },
+              {
+                "path": "adapters/host-node/host-root-format.test.mjs",
+                "anchor": "a pending real Dir close refuses admission and retries only its captured original receiver"
               }
             ]
           }

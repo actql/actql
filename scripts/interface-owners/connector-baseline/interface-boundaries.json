@@ -12255,12 +12255,15 @@
     {
       "module": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4f833f75a9a501eb97762898b0cce6ab1503235ae778906991427aaaebb97375",
+      "sha256": "a39c896f7322edbdea8c57a684f24969010140e6d8514ff940716098bdef71ce",
       "role": "physical-io",
       "owner": "Separately authorized prospective target reads, not Preview/apply or absence proof; original owner admits guards",
       "exports": [
+        "observeSalesforceAccountConditionalTarget",
         "observeSalesforceSingleTarget",
-        "observeSalesforceTargetSet"
+        "observeSalesforceTargetSet",
+        "retireSalesforceAccountTargetOriginal",
+        "withSalesforceAccountTargetOriginal"
       ],
       "operations": [
         {
@@ -12271,18 +12274,18 @@
           "async": false
         },
         {
+          "name": "observeSalesforceAccountConditionalTarget",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
           "name": "observeSalesforceSingleTarget",
           "parameters": [
-            "moon",
-            "request",
-            "currentCatalog",
-            "authorization",
-            "credential",
-            "limits",
-            "signal",
-            "callResource"
+            "options"
           ],
-          "async": true
+          "async": false
         },
         {
           "name": "observeSalesforceTargetSet",
@@ -12304,10 +12307,79 @@
           "async": false
         },
         {
+          "name": "observeSingleTarget",
+          "parameters": [
+            "moon",
+            "request",
+            "currentCatalog",
+            "authorization",
+            "credential",
+            "limits",
+            "signal",
+            "callResource",
+            "accountConditional"
+          ],
+          "async": true
+        },
+        {
+          "name": "retireSalesforceAccountTargetOriginal",
+          "parameters": [
+            "observed"
+          ],
+          "async": false
+        },
+        {
           "name": "validLimits/validLimits",
           "parameters": [
             "limits"
           ],
+          "async": false
+        },
+        {
+          "name": "withSalesforceAccountTargetOriginal",
+          "parameters": [
+            "observed",
+            "originals",
+            "consume"
+          ],
+          "async": false
+        },
+        {
+          "name": "withSalesforceAccountTargetOriginal/check/check",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "withSalesforceAccountTargetOriginal/check/check/check",
+          "parameters": [
+            "credentialFacts"
+          ],
+          "async": false
+        },
+        {
+          "name": "withSalesforceAccountTargetOriginal/check/check/check/values/values",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "withSalesforceAccountTargetOriginal/check/check/check/values/values/values",
+          "parameters": [
+            "pair"
+          ],
+          "async": false
+        },
+        {
+          "name": "withSalesforceAccountTargetOriginal/check/check/check/values/values/values#2",
+          "parameters": [
+            "pair"
+          ],
+          "async": false
+        },
+        {
+          "name": "withSalesforceAccountTargetOriginal/withSalesforceAccountTargetOriginal",
+          "parameters": [],
           "async": false
         }
       ],
@@ -12316,79 +12388,156 @@
           "operations": [
             "<module>",
             "fail/fail",
+            "observeSalesforceAccountConditionalTarget",
             "observeSalesforceSingleTarget",
             "observeSalesforceTargetSet",
             "observeSalesforceTargetSet/owned/owned",
-            "validLimits/validLimits"
+            "observeSingleTarget",
+            "retireSalesforceAccountTargetOriginal",
+            "validLimits/validLimits",
+            "withSalesforceAccountTargetOriginal",
+            "withSalesforceAccountTargetOriginal/check/check",
+            "withSalesforceAccountTargetOriginal/check/check/check",
+            "withSalesforceAccountTargetOriginal/check/check/check/values/values",
+            "withSalesforceAccountTargetOriginal/check/check/check/values/values/values",
+            "withSalesforceAccountTargetOriginal/check/check/check/values/values/values#2",
+            "withSalesforceAccountTargetOriginal/withSalesforceAccountTargetOriginal"
           ],
           "exports": [
+            "observeSalesforceAccountConditionalTarget",
             "observeSalesforceSingleTarget",
-            "observeSalesforceTargetSet"
+            "observeSalesforceTargetSet",
+            "retireSalesforceAccountTargetOriginal",
+            "withSalesforceAccountTargetOriginal"
           ],
           "attributes": {
             "responsibility": [
               {
                 "path": "src/connectors/salesforce/catalog/target_observation.mbt",
                 "anchor": "prepare_target_observation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original Salesforce Account conditional target observations"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
                 "anchor": "observeSalesforceTargetSet"
+              },
+              {
+                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
+                "anchor": "withSalesforceAccountTargetOriginal"
               }
             ],
             "identity": [
               {
                 "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
                 "anchor": "salesforceSingleWriteRequestScopeMatches"
+              },
+              {
+                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
+                "anchor": "use[2] !== original.expectedUseId"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
                 "anchor": "const observations = []"
+              },
+              {
+                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
+                "anchor": "const accountTargetOriginals = new WeakMap()"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
                 "anchor": "authorizationForRow"
+              },
+              {
+                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
+                "anchor": "const facts = check()"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
                 "anchor": "A 404"
+              },
+              {
+                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
+                "anchor": "if (failed) throw primary"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
                 "anchor": "signal?.throwIfAborted"
+              },
+              {
+                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
+                "anchor": "original.signal?.throwIfAborted()"
               }
             ],
             "resources": [
               {
                 "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
                 "anchor": "maxTotalResponseBytes"
+              },
+              {
+                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
+                "anchor": "const values = name => original.response.headers"
               }
             ],
             "extension": [
               {
                 "path": "src/connectors/salesforce/catalog/target_observation.mbt",
                 "anchor": "prepare_observed_target_preview_row"
+              },
+              {
+                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
+                "anchor": "SalesforceAccountConditionalProfileUnavailable"
               }
             ],
             "verification": [
               {
                 "path": "adapters/connectors/salesforce/test/salesforce-catalog-sync.test.mjs",
                 "anchor": "target read cannot turn absence or a foreign record into a guard"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/account-target-original.test.mjs",
+                "anchor": "Account target original refuses an earlier confirmed response substituted for a different use"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/account-target-original.test.mjs",
+                "anchor": "Account target original detects finisher mutation"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/account-target-original.test.mjs",
+                "anchor": "Account target original rejects missing weak wildcard"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/account-target-original.test.mjs",
+                "anchor": "Account target original refuses retirement"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/account-target-original.test.mjs",
+                "anchor": "Account target original keeps cancellation"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "./salesforce-credential-binding.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
