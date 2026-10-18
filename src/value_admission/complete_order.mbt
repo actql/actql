@@ -174,6 +174,11 @@ pub fn advance_complete_order(
               @encode.number_value(out, value)
               @encode.end_array(out)
             }
+            Signed64(value) => {
+              begin_order_value(out, "int64")
+              @encode.string_value(out, value.to_string())
+              @encode.end_array(out)
+            }
             Text(value) => {
               begin_order_value(out, "text")
               pending.push(

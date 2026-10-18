@@ -198,6 +198,10 @@ pub fn advance_complete_equality(
             if a != b {
               return equality_result(value, false, work)
             }
+          (Signed64(a), Signed64(b)) =>
+            if a != b {
+              return equality_result(value, false, work)
+            }
           (Text(a), Text(b))
           | (Date(a), Date(b))
           | (Timestamp(a), Timestamp(b)) =>
