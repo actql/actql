@@ -3,6 +3,7 @@ import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 import {pathToFileURL} from 'node:url';
+import {inspect} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
 import {rowSourceCheckEnvironment} from './installed-row-source.mjs';
 import {mockChurnRiskCatalogue} from './mock-churn-risk-catalogue.mjs';
@@ -51,10 +52,15 @@ function fixture() {
       JSON.stringify(program), 'json', admitted, undefined);
     const prepared = moon.clientProgramPreparationReady(outcome);
     assert.ok(prepared, 'The real Common checker must admit the diagnostic source Program');
-    const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(prepared,
-      0, 0, registry, JSON.stringify(aoa.execution_contracts['REL.values']),
-      JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-      JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+    let requirement;
+    try {
+      requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(prepared,
+        0, 0, registry, JSON.stringify(aoa.execution_contracts['REL.values']),
+        JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+        JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+    } catch (error) {
+      assert.fail(`Original ${entry.connection} requirement: ${inspect(error.cause, {depth: 12})}`);
+    }
     const acquisition = checked(moon.clientProgramRowSourcePrepareAcquisition(
       declaration, requirement, queryContract, evidenceContract, undefined));
     assert.equal(checked(moon.clientProgramRowSourceRequestWire(acquisition)), '{}');
