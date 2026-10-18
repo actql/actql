@@ -39,6 +39,7 @@ fn graphql_issue(number : Int, fields : Array[(String, String)]) -> String {
     ("createdAt", "\"2026-10-01T00:00:00Z\""),
     ("updatedAt", "\"2026-10-02T00:00:00Z\""),
     ("closedAt", "null"),
+    ("milestone", "null"),
   ]
   let parts = values.map(entry => {
     let mut value = entry.1
@@ -143,6 +144,7 @@ test "a page of the published repository maps to the existing Issue rows" {
     body: Some(""),
     author: Some("octo"),
     comments: 3L,
+    milestone: None,
     created_at: "2026-10-01T00:00:00.000Z",
     updated_at: "2026-10-02T00:00:00.000Z",
     closed_at: None,
@@ -297,5 +299,67 @@ test "the body is kept exactly: empty, text, missing, null or invalid" {
       ),
     ),
     Err(Row(MissingRequiredField("body"))),
+  )
+}
+
+///|
+test "milestone title is not a database ID or filter selector" {
+  let info = "{\"hasNextPage\":false,\"endCursor\":null}"
+  for title in ["2", "*", "none", "null", "", "  release β / 日本語  "] {
+    let milestone : Json = {
+      "title": title.to_json(),
+      "number": 71,
+      "databaseId": 805,
+      "id": "M_X",
+    }
+    let page = project(
+      graphql_node(
+        "R_A",
+        1296269,
+        "octo/hello",
+        info,
+        graphql_issue(1, [("milestone", milestone.stringify())]),
+      ),
+    ).unwrap()
+    assert_eq(page.rows[0].milestone, Some(title))
+  }
+  assert_true(issues_query.contains("milestone { title }"))
+  assert_true(!issues_query.contains("$milestone"))
+  assert_true(!issues_query.contains("milestone:"))
+}
+
+///|
+test "milestone NULL is absent and malformed requested title refuses" {
+  let info = "{\"hasNextPage\":false,\"endCursor\":null}"
+  let absent = project(
+    graphql_node("R_A", 1296269, "octo/hello", info, graphql_issue(1, [])),
+  ).unwrap()
+  assert_eq(absent.rows[0].milestone, None)
+  for
+    (value, issue) in [
+      ("{}", MissingRequiredField("milestone.title")),
+      ("{\"number\":2}", MissingRequiredField("milestone.title")),
+      ("{\"title\":null}", NullRequiredField("milestone.title")),
+      ("{\"title\":2}", InvalidField("milestone.title")),
+      ("[]", InvalidField("milestone")),
+      ("\"*\"", InvalidField("milestone")),
+    ] {
+    assert_eq(
+      project(
+        graphql_node(
+          "R_A",
+          1296269,
+          "octo/hello",
+          info,
+          graphql_issue(1, [("milestone", value)]),
+        ),
+      ),
+      Err(Row(issue)),
+    )
+  }
+  let missing = graphql_issue(1, []).replace(old=",\"milestone\":null", new="")
+  assert_eq(
+    project(graphql_node("R_A", 1296269, "octo/hello", info, missing)),
+    Err(Row(MissingRequiredField("milestone"))),
   )
 }
