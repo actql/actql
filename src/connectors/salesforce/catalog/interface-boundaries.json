@@ -1,0 +1,129 @@
+{
+  "qualification": "Original Salesforce metadata and source-reference coverage only; not a DELETE grant or physical outcome",
+  "declarations": [
+    {
+      "module": "src/connectors/salesforce/catalog/delete_projection.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "01010ad004387c4793c1ce332f146ba8f7f7505242d92faec2cae0b9d8af310d",
+      "role": "connector-semantics",
+      "owner": "Existing Salesforce Catalog Describe and original record identity projection",
+      "exports": [],
+      "operations": [
+        {
+          "name": "delete_projection_matches_binding",
+          "declaration": "delete_projection_matches_binding ( value : DeleteProjection , current : CatalogObservationBinding , ) - > Bool"
+        },
+        {
+          "name": "delete_projection_matches_local_binding",
+          "declaration": "delete_projection_matches_local_binding ( value : DeleteProjection , current : LocalCatalogObservationBinding , ) - > Bool"
+        },
+        {
+          "name": "delete_projection_observation",
+          "declaration": "delete_projection_observation ( value : DeleteProjection ) - > String"
+        },
+        {
+          "name": "delete_projection_resource",
+          "declaration": "delete_projection_resource ( value : DeleteProjection ) - > String"
+        },
+        {
+          "name": "prepare_delete_projection",
+          "declaration": "prepare_delete_projection ( observation : CatalogObservation , current : CatalogObservationBinding , resource : String , ) - > Result [ DeleteProjection , DeleteProjectionIssue ]"
+        },
+        {
+          "name": "prepare_local_delete_projection",
+          "declaration": "prepare_local_delete_projection ( observation : CatalogObservation , current : LocalCatalogObservationBinding , resource : String , ) - > Result [ DeleteProjection , DeleteProjectionIssue ]"
+        },
+        {
+          "name": "prepare_owned_delete_projection",
+          "declaration": "prepare_owned_delete_projection ( observation : CatalogObservation , current : CatalogExecutionBinding , resource_name : String , ) - > Result [ DeleteProjection , DeleteProjectionIssue ]"
+        },
+        {
+          "name": "recheck_delete_projection",
+          "declaration": "recheck_delete_projection ( value : DeleteProjection , current : CatalogObservation , ) - > Result [ Unit , DeleteProjectionIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "delete_projection_matches_binding",
+            "delete_projection_matches_local_binding",
+            "delete_projection_observation",
+            "delete_projection_resource",
+            "prepare_delete_projection",
+            "prepare_local_delete_projection",
+            "prepare_owned_delete_projection",
+            "recheck_delete_projection"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "- Verification:"
+              },
+              {
+                "path": "src/connectors/salesforce/catalog/delete_projection_wbtest.mbt",
+                "anchor": "test \"delete metadata requires the original positive Describe proof and native record identity\""
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
