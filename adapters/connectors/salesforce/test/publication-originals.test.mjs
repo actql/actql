@@ -150,3 +150,29 @@ test('pending current observation admits neither a competing observation nor a p
   await pending;
   originals(f.site, x.declared, x.body, () => {});
 });
+
+
+test('a lost original Describe reply remains Unknown with no live capture or automatic resend', async t => {
+  const f = await fixture(t), before = f.seen.length;
+  f.loseNextDescribeReply();
+  await assert.rejects(f.describe(), {code: 'SalesforceCatalogRefreshInterrupted'});
+  const unknown = f.journal.recover().filter(row => row.outcome === 'unknown');
+  assert.equal(unknown.length, 1);
+  assert.equal(f.seen.length, before + 1);
+  // The older equal Catalog cannot stand in for the lost live observation.
+  assert.throws(() => originals(f.site, f.declared, '{}', () => {}),
+    {code: 'SalesforcePublicationOriginalUnavailable'});
+  assert.equal(f.journal.inspect(unknown[0].useCid).outcome, 'unknown');
+  assert.equal(f.seen.length, before + 1);
+});
+
+test('an actual rejected Describe cannot issue live publication originals from the previous Catalog', async t => {
+  const f = await fixture(t), before = f.seen.length;
+  f.setDescribeStatus(503);
+  await assert.rejects(f.describe());
+  assert.equal(f.seen.length, before + 1);
+  assert.equal(f.journal.recover().filter(row => row.outcome === 'unknown').length, 0);
+  assert.equal(f.journal.recover().filter(row => row.outcome === 'failed').length, 1);
+  assert.throws(() => originals(f.site, f.declared, '{}', () => {}),
+    {code: 'SalesforcePublicationOriginalUnavailable'});
+});

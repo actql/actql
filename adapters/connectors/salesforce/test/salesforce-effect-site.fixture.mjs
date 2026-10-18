@@ -191,6 +191,7 @@ export async function openSalesforceEffectSiteFixture(t, {
   const observedNames = new Map();
   let nameUpdateable = true;
   let describeStatus = 200;
+  let loseNextDescribe = false;
   // The stateful org's records by Id.
   const defaultRecords = () => storedOrder.map(index => ({
     Id: `a0000000000000${index}`,
@@ -294,6 +295,11 @@ export async function openSalesforceEffectSiteFixture(t, {
     const described = writable.find(name => request.method === 'GET' &&
       request.url === `${prefix}sobjects/${name}/describe`);
     if (described !== undefined) {
+      if (loseNextDescribe) {
+        loseNextDescribe = false;
+        request.socket.destroy();
+        return;
+      }
       if (describeStatus !== 200) {
         response.writeHead(describeStatus, {'content-type': 'application/json'});
         response.end(JSON.stringify([{errorCode: 'SERVER_UNAVAILABLE'}]));
@@ -646,6 +652,7 @@ export async function openSalesforceEffectSiteFixture(t, {
     },
     setNameUpdateable(value) { nameUpdateable = value; },
     setDescribeStatus(value) { describeStatus = value; },
+    loseNextDescribeReply() { loseNextDescribe = true; },
     setNameCreateable(value) { nameCreateable = value; },
     setOptionalText(value) { optionalText = value; },
     // The stateful org's current records, and a change to one of them made
