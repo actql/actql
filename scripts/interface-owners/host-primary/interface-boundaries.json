@@ -7038,7 +7038,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
-                "anchor": "test('the selected Host consumer forwards only omitted open input without a raw observation'"
+                "anchor": "test('the selected Host consumer forwards admitted connect and omitted open without a raw observation'"
               }
             ]
           }

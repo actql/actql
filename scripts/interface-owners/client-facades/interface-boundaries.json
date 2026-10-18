@@ -1947,6 +1947,22 @@
             "raw"
           ],
           "async": false
+        },
+        {
+          "name": "forwardOrdinary",
+          "parameters": [
+            "kind",
+            "raw"
+          ],
+          "async": false
+        },
+        {
+          "name": "forwardOrdinary",
+          "parameters": [
+            "kind",
+            "raw"
+          ],
+          "async": false
         }
       ],
       "imports": [
@@ -13160,7 +13176,7 @@
     },
     {
       "module": "packages/local-node/initial-control-public-dispatch.cjs",
-      "sha256": "a231cf830b7be21fedbb3ef0492a6cc6a8b16a36585d95e2578116b53cffd4d7",
+      "sha256": "4bf63123c2b35fa8104eeddf8206d337414be6c86fe19989a5d0cfa8ad1d76fa",
       "exports": [
         "commonjs:selectedInitialControlHostPreparation"
       ],
@@ -13191,7 +13207,8 @@
           "operations": [
             "<module>",
             "<anonymous>",
-            "init:selectedInitialControlHostPreparation/init:selectedInitialControlHostPreparation"
+            "init:selectedInitialControlHostPreparation/init:selectedInitialControlHostPreparation",
+            "forwardOrdinary"
           ],
           "exports": [
             "commonjs:selectedInitialControlHostPreparation"
@@ -13246,7 +13263,7 @@
             "failure": [
               {
                 "path": "packages/local-node/initial-control-public-dispatch.cjs",
-                "anchor": "let selectedInitialControlHostPreparation;"
+                "anchor": "let selectedInitialControlHostPreparation, ordinaryReceiver, ordinaryConnect;"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -13298,7 +13315,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "preload refuses unsupported raw input before its Host consumer"
+                "anchor": "a mismatched captured package image refuses before Host and entry compilation"
               },
               {
                 "path": "scripts/initial-control-public-dispatch.test.mjs",
@@ -13311,7 +13328,7 @@
     },
     {
       "module": "packages/node/initial-control-public-dispatch.cjs",
-      "sha256": "28139f7798590c3cd6eaaf7136b6afc0c060d4f17624f84eb0289ef65a4a2207",
+      "sha256": "fcd64ae757e8b6686f5f07ef5b998c7bb8c3caa9e21e26b676bd8da925059d2d",
       "exports": [
         "commonjs:selectedInitialControlHostPreparation"
       ],
@@ -13326,6 +13343,7 @@
         }
       ],
       "imports": [
+        "@actql/local-node/_internal/initial-control-public-dispatch",
         "node:module",
         "node:path",
         "node:process"
@@ -13341,7 +13359,8 @@
           "operations": [
             "<module>",
             "<anonymous>",
-            "init:selectedInitialControlHostPreparation/init:selectedInitialControlHostPreparation"
+            "init:selectedInitialControlHostPreparation/init:selectedInitialControlHostPreparation",
+            "forwardOrdinary"
           ],
           "exports": [
             "commonjs:selectedInitialControlHostPreparation"
@@ -13396,7 +13415,7 @@
             "failure": [
               {
                 "path": "packages/node/initial-control-public-dispatch.cjs",
-                "anchor": "let selectedInitialControlHostPreparation;"
+                "anchor": "let selectedInitialControlHostPreparation, ordinaryReceiver, ordinaryConnect;"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -13448,7 +13467,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "preload refuses unsupported raw input before its Host consumer"
+                "anchor": "a mismatched captured package image refuses before Host and entry compilation"
               },
               {
                 "path": "scripts/initial-control-public-dispatch.test.mjs",
