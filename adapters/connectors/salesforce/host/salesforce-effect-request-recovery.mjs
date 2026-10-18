@@ -8,6 +8,8 @@ const fail = code => {
   throw Object.assign(new Error(code), {code});
 };
 
+// Synchronous, bounded reconstruction only: the caller retains Run, cancellation,
+// current authorization, response custody and physical send responsibilities.
 // Rebuild provider request material from a recovered Preview and exact
 // prepared Ledger claims. This does not restore apply or credential authority.
 // The ordinary apply owner must repeat whole-set and current Site admission.
