@@ -7,14 +7,15 @@ fn field_connection(
 ) -> String {
   let item = if field == "assignees" { "login" } else { "name" }
   let nodes : Array[Json] = values.map(value => {
-    let fields : Map[String, Json] = { item: value.to_json(), }
+    let fields : Map[String, Json] = {}
+    fields[item] = value.to_json()
     Json::object(fields)
   })
   (
     {
       "totalCount": total.to_json(),
       "pageInfo": {
-        "hasNextPage": next.is_some().to_json(),
+        "hasNextPage": (next is Some(_)).to_json(),
         "endCursor": match next {
           Some(value) => value.to_json()
           None => Json::null()
@@ -71,12 +72,13 @@ test "nested Issue fields finish only after exact original repository Issue and 
   let request = issue_page_read_next_request(read, 100).unwrap().unwrap()
   assert_true(request.contains("query ActqlIssueAssignees("))
   let parsed = @json.parse(request) catch { _ => abort("invalid request JSON") }
-  assert_eq(parsed["variables"], {
-    "id": "R_A",
-    "number": 7,
-    "first": 100,
-    "after": "A0",
-  })
+  guard parsed is Json::object(root) else { abort("request not object") }
+  let expected : Json = {
+    "id": "R_A".to_json(), "number": 7.to_json(),
+    "first": 100.to_json(), "after": "A0".to_json(),
+  }
+  assert_eq(root.get("variables"), Some(expected))
+
   issue_page_read_accept(
     read,
     @utf8.encode(field_response("assignees", ["b"], 3, Some("A1"))),

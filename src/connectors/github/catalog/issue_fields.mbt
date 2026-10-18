@@ -12,7 +12,7 @@ pub struct IssuePageRead {
 }
 
 ///|
-priv struct IssueFieldProgress {
+pub struct IssueFieldProgress {
   row_index : Int
   field : String
   total_count : Int64
