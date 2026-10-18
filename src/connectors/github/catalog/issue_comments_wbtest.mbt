@@ -246,7 +246,7 @@ test "comment subject Source enumerates real Issue and PullRequest originals wit
     assert_true(page.has_next_page)
     assert_eq(page.end_cursor, Some("subjects-next"))
     // Only the matched original subject supplies the dependent query.
-    assert_true(issue_comments_request(page.subjects[0], 100, None).is_ok())
+    assert_true(issue_comments_request(page.subjects[0], 100, None) is Ok(_))
   }
 }
 
