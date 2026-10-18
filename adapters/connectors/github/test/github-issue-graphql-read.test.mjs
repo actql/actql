@@ -625,3 +625,29 @@ test('cancellation after an actual response retains the original pending or cons
       context.journal, facts => { assert.equal(facts.response, response); });
   }
 });
+
+
+test('original filter capture refuses non-array labels before I/O and keeps the admitted array snapshot', async t => {
+  const context = await setup(t, world());
+  for (const labels of ['x', new Set(['x']), {0: 'x', length: 1}, [7]]) {
+    await assert.rejects(context.read({filters: {state: 'all', labels}}),
+      {code: 'InvalidGitHubReadFilters'});
+  }
+  assert.equal(context.fixture.seen().length, 0);
+  assert.deepEqual(context.journal.recover(), []);
+  const labels = [' a ', 'β', ' a '];
+  const filters = {state: 'all', labels};
+  let captured = false;
+  const result = await context.read({filters,
+    chargePage: () => {
+      if (!captured) { labels.push('changed'); filters.state = 'draft'; captured = true; }
+    },
+  });
+  assert.equal(result.complete, true);
+  const requests = issueReads(context.fixture);
+  assert.equal(requests.length, 3);
+  for (const request of requests) {
+    assert.deepEqual(request.variables.labels, [' a ', 'β', ' a ']);
+    assert.equal(request.variables.states, null);
+  }
+});

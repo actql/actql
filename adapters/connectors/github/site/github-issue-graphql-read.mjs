@@ -96,14 +96,17 @@ export async function readGitHubIssuesByNode({moon, repository,
     }
   };
   repository = prefix.repository;
-  const labels = Object.freeze([...(filters.labels ?? [])]);
-  filters = Object.freeze({...filters, labels});
-  if (!['open', 'closed', 'all'].includes(filters.state) ||
-      !Array.isArray(labels) ||
-      labels.some(label => typeof label !== 'string') ||
-      (filters.since !== undefined && typeof filters.since !== 'string')) {
+  const inputLabels = filters.labels ?? [];
+  const filterState = filters.state;
+  const filterSince = filters.since;
+  if (!['open', 'closed', 'all'].includes(filterState) ||
+      !Array.isArray(inputLabels) ||
+      inputLabels.some(label => typeof label !== 'string') ||
+      (filterSince !== undefined && typeof filterSince !== 'string')) {
     fail('InvalidGitHubReadFilters');
   }
+  const labels = Object.freeze(inputLabels.slice());
+  filters = Object.freeze({state: filterState, since: filterSince, labels});
   const headers = JSON.parse(moon.githubRequestHeadersJson());
   const responseHeaders = JSON.parse(moon.githubResponseHeadersJson());
   const accepted = [];
