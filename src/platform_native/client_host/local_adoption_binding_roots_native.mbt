@@ -101,10 +101,16 @@ pub fn register_native_local_adoption_binding_roots() -> Unit {
     fn(original) { original.read },
     fn(original) { original.crypto },
     fn(original) {
-      original.capture.flat_map(capture => capture.original_session())
+      match original.capture {
+        Some(capture) => capture.original_session()
+        None => None
+      }
     },
     fn(original) {
-      original.capture.flat_map(capture => capture.original_journal())
+      match original.capture {
+        Some(capture) => capture.original_journal()
+        None => None
+      }
     },
     fn(original) { original.descriptor_cleanup_acknowledged() },
     fn(reply) { reply.operation },

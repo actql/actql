@@ -43,7 +43,8 @@ fn prepare_local_adoption_binding(
   input : NativeLocalExistingAdoptionInput,
   diagnostic_ceiling : Int,
 ) -> NativeLocalAdoptionBinding {
-  let prepared = if diagnostic_ceiling <= 0 {
+  let prepared : Result[NativeLocalAdoptionCapture, NativeLocalAdoptionIssue] = if diagnostic_ceiling <=
+    0 {
     Err(InvalidInput)
   } else {
     prepare_native_local_existing_adoption_capture_in_current_read_context(
@@ -142,7 +143,9 @@ fn NativeLocalAdoptionBinding::operate(
     2 => capture.check_current()
     _ => capture.close()
   }
-  let primary = original.issue().map(issue => Capture(issue))
+  let primary : NativeLocalAdoptionBindingIssue? = original
+    .issue()
+    .map(issue => Capture(issue))
   if direct_read {
     match self.host.leave_local_host_phase(self.pair) {
       Err(issue) => return self.reply(operation, Some(Leave(primary, issue)))
@@ -196,7 +199,9 @@ fn NativeLocalAdoptionBinding::capture_journal(
 fn NativeLocalAdoptionBinding::descriptor_cleanup_acknowledged(
   self : NativeLocalAdoptionBinding,
 ) -> Bool {
-  !self.leave_pending &&
+  if self.leave_pending {
+    return false
+  }
   match self.capture {
     Some(capture) => capture.descriptor_cleanup_acknowledged()
     // Preparation performs no physical open. Borrowed parents and Crypto still
@@ -214,6 +219,7 @@ fn NativeLocalAdoptionBindingReply::issue_family(
     Some(InvalidOperation) => 1
     Some(Preparation(_)) => 2
     Some(Capture(AdoptionOpeningUnconfirmed)) => 3
+    Some(Capture(AdoptionJournal(JournalOpeningUnconfirmed))) => 3
     Some(Capture(_)) => 4
     Some(Resources(_)) => 5
     Some(ReadScopePending) => 6
