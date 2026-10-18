@@ -17,9 +17,9 @@ export const fields = Object.freeze([
  {name:'ACTIVE_USERS',type:'BIGNUMERIC',mode:'REQUIRED',precision:'38',scale:'0'},
  {name:'TREND',type:'STRING',mode:'NULLABLE'},
 ]);
-export function metadataBody() {
+export function metadataBody(selectedFields = fields) {
  return Buffer.from(JSON.stringify({kind:'bigquery#table',etag:'original-metadata',type:'TABLE',
-  tableReference:{projectId:'acme-project',datasetId:'product',tableId:'usage'},schema:{fields}}));
+  tableReference:{projectId:'acme-project',datasetId:'product',tableId:'usage'},schema:{fields:selectedFields}}));
 }
 export function queryLimits() {
  return moon.clientProgramBigQueryQueryLimits(
@@ -32,20 +32,20 @@ export function jobBody(jobId,{state='DONE',foreign=false,failed=false}={}) {
   configuration:{query:{query:statement,maximumBytesBilled:'1000000',useLegacySql:false}},
   status:{state,...(failed?{errorResult:{reason:'invalidQuery'}}:{})}}));
 }
-export function resultBody(jobId,{rows=[['a1',decimal38,'down'],['a2','0',null]],token,total='2'}={}) {
+export function resultBody(jobId,{rows=[['a1',decimal38,'down'],['a2','0',null]],token,total='2',selectedFields=fields}={}) {
  return Buffer.from(JSON.stringify({kind:'bigquery#getQueryResultsResponse',
   jobReference:{projectId:'acme-project',jobId,location:'EU'},jobComplete:true,
-  schema:{fields},totalRows:total,rows:rows.map(row=>({f:row.map(v=>({v}))})),
+  schema:{fields:selectedFields},totalRows:total,rows:rows.map(row=>({f:row.map(v=>({v}))})),
   ...(token===undefined?{}:{pageToken:token})}));
 }
 
-export async function originalBigQueryRowOwner() {
+export async function originalBigQueryRowOwner({selectedFields = fields} = {}) {
   const descriptionLimits = moon.clientProgramBigQueryDescriptionLimits(4096, 1000,
     16, 16, 4096, 4096);
   const declarationLimits = moon.clientProgramBigQueryDeclarationLimits(200000,
     20000, 32, 1, 3);
   const description = checked(moon.clientProgramBigQueryDescribeTable('acme-project',
-    'product', 'usage', metadataBody(), descriptionLimits));
+    'product', 'usage', metadataBody(selectedFields), descriptionLimits));
   const declaration = checked(moon.clientProgramBigQueryGenerateReadDeclaration(
     description, 'usage_30d', 'bigquery', 'bigquery/0.1', descriptionLimits, declarationLimits));
   const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
