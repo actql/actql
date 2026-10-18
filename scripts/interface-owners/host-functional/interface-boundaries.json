@@ -24139,7 +24139,7 @@
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e37bf02ffea6fc161f4b267456840bd4221f9641fc461158e28dbd0f268c05ec",
+      "sha256": "3440789d8e7de7e5aac99c1f49c8dfad892348a713fc6f1d6a52a19aae76c177",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -24173,6 +24173,16 @@
             "host",
             "installation",
             "generation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:assertSourceRequest/init:assertSourceRequest",
+          "parameters": [
+            "host",
+            "installation",
+            "generation",
+            "request"
           ],
           "async": false
         },
@@ -24232,6 +24242,47 @@
           "name": "createEmbeddedHostRegistry/init:connect/init:connect/init:retry/init:retry",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+          "parameters": [
+            "kind",
+            "input",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeSourceSnapshot/init:beforeSourceSnapshot/pending/pending",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:bindSourceRequest/init:bindSourceRequest",
+          "parameters": [
+            "receipt",
+            "body",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:bindSourceSnapshot/init:bindSourceSnapshot",
+          "parameters": [
+            "receipt",
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:finishSourceProducer/init:finishSourceProducer",
+          "parameters": [
+            "receipt",
+            "terminal"
+          ],
+          "async": false
         },
         {
           "name": "createEmbeddedHostRegistry/init:connect/init:connect/port/init:perform/init:perform",
@@ -24423,7 +24474,12 @@
             "installedHostShutdown/shutdown/shutdown#7",
             "installedHostShutdown/shutdown/shutdown#8",
             "installedHostShutdown/shutdown/shutdown#9",
-            "installedHostShutdown/shutdown/shutdown#12"
+            "installedHostShutdown/shutdown/shutdown#12",
+            "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+            "createEmbeddedHostRegistry/init:connect/init:connect/port/init:beforeSourceSnapshot/init:beforeSourceSnapshot/pending/pending",
+            "createEmbeddedHostRegistry/init:connect/init:connect/port/init:bindSourceRequest/init:bindSourceRequest",
+            "createEmbeddedHostRegistry/init:connect/init:connect/port/init:bindSourceSnapshot/init:bindSourceSnapshot",
+            "createEmbeddedHostRegistry/init:connect/init:connect/port/init:finishSourceProducer/init:finishSourceProducer"
           ],
           "exports": [
             "createEmbeddedHostRegistry",
@@ -24724,6 +24780,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "// This private installation bag holds backreferences, not canonical DATA."
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "const sourceProducers = new Map();"
               }
             ],
             "extension": [
@@ -24804,6 +24864,10 @@
               {
                 "path": "adapters/host-node/installed-project-configuration.test.mjs",
                 "anchor": "test('copied and foreign-runtime retirement cannot retire the original project'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-source-preparation.test.mjs",
+                "anchor": "a sibling last lease cannot release another lease original pending Source producer"
               }
             ]
           }
@@ -24927,7 +24991,8 @@
             "createEmbeddedHostRegistry/init:registerPreparation/init:registerPreparation",
             "createEmbeddedHostRegistry/init:retirePreparation/init:retirePreparation",
             "createEmbeddedHostRegistry/preparationChanged/preparationChanged",
-            "createEmbeddedHostRegistry/preparationFor"
+            "createEmbeddedHostRegistry/preparationFor",
+            "createEmbeddedHostRegistry/init:assertSourceRequest/init:assertSourceRequest"
           ],
           "exports": [],
           "attributes": {
@@ -25037,6 +25102,7 @@
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../../packages/sdk/host-port.mjs",
+        "../../packages/sdk/internal/private-source-preparation.mjs",
         "./installed-host-cleanup.mjs"
       ],
       "compilerFields": [],
