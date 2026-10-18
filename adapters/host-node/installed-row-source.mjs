@@ -36,6 +36,7 @@ import {openHttpsCredentialBinding, closeHttpsCredentialBinding} from
   '../site-node/https-credential-resource.mjs';
 import {readBoundedConfigurationText} from './source-profile-json.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
+import {bindClientSourceOperationRowRun} from './client-source-operation.mjs';
 
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
@@ -1747,7 +1748,8 @@ export async function createInstalledRowSource({moon, declaration,
   async function acquire(state, {preparedProgram, preparedEffect, registry,
     values, fragment, ordered, sourceAccess: access = sourceAccess, signal,
     preparedSource, retainedRelationOutput = false,
-    occurrence = {stage: 0, input: 0, task: 0}, ledger}, captureOnly = false) {
+    occurrence = {stage: 0, input: 0, task: 0}, ledger,
+    originalOperationScope}, captureOnly = false) {
     const prepared = preparedSource ?? await prepare({preparedProgram,
       preparedEffect, registry, values, fragment, ordered,
       sourceAccess: access, occurrence});
@@ -1843,13 +1845,18 @@ export async function createInstalledRowSource({moon, declaration,
       }
       if (!grantBeforeBegin) grant = issueGrant();
       state.started = true;
+      const rowRun = Object.freeze({acquisition, run, requestId: nonce,
+        runInvocationCid, dispatchRequestCid});
+      const withOriginalJob = originalOperationScope === undefined ? undefined
+        : bindClientSourceOperationRowRun(originalOperationScope, moon,
+          preparedProgram, prepared, rowRun);
       const readerOptions = {resource: owner.resource, columns, requestWire, preparedRead,
         operation, signal,
         verifyRead: () => currentRead(prepared, access, signal),
         // Same-runtime opaque borrowing for trusted installed adapters only.
         // The original Host keeps finish/capture/close and physical capacity.
-        rowRun: Object.freeze({acquisition, run, requestId: nonce,
-          runInvocationCid, dispatchRequestCid}),
+        rowRun,
+        ...(withOriginalJob === undefined ? {} : {withOriginalJob}),
         ...(isListing ? {listing: rowListingCallbacks({moon, run, signal,
           currentRead: () => currentRead(prepared, access, signal)})} : {}),
         // The current read decision is taken again before every request.
