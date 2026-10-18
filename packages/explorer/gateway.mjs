@@ -257,9 +257,13 @@ export function createExplorerGateway({client, origin, assets = new Map(),
     } catch (error) {
       assertSession(selected); ticket.assertCurrent();
       throw error;
-    } finally {inFlight--;}});
+    }});
     outstanding.add(read);
-    const settled = () => {outstanding.delete(read);};
+    const settled = () => {
+      // Keep the slot until this same original read leaves the collection.
+      outstanding.delete(read);
+      inFlight--;
+    };
     void read.then(settled, settled);
     // Timing out a presentation read neither cancels a Run nor releases the
     // outstanding SDK slot early. It remains held until that read settles.

@@ -177,3 +177,65 @@ test('closing before a request body is admitted prevents SDK entry', async () =>
   assert.notEqual((await response).status, 200);
   assert.equal(calls, 0);
 });
+
+test('settlement removes the original read before admitting its replacement into the four-call bound', async () => {
+  // Observe the real collection without changing its ordinary add/delete
+  // behavior. Reenter admission at the old read's removal boundary.
+  const OriginalSet = globalThis.Set;
+  const originals = Array.from({length: 4}, deferred), entered = deferred(), probed = deferred();
+  const origin = 'http://127.0.0.1:43210';
+  let gateway, headers, replacement, calls = 0, maximum = 0, didProbe = false;
+  class ObservedSet extends OriginalSet {
+    add(value) {
+      const result = super.add(value);
+      if (value instanceof Promise) maximum = Math.max(maximum, this.size);
+      return result;
+    }
+    delete(value) {
+      if (value instanceof Promise && !didProbe) {
+        didProbe = true;
+        replacement = gateway.fetch(new Request(`${origin}/api/read/checkpoints`, {
+          method: 'POST', headers, body: '{}',
+        }));
+        probed.resolve();
+      }
+      return super.delete(value);
+    }
+  }
+  globalThis.Set = ObservedSet;
+  try {
+    gateway = createExplorerGateway({origin, client: {
+      attach() {assert.fail('No Run operation');},
+      checkpoints() {
+        const index = calls++;
+        if (calls === 4) entered.resolve();
+        return index < 4 ? originals[index].promise : {items: []};
+      },
+    }});
+  } finally {globalThis.Set = OriginalSet;}
+  headers = await session(gateway, origin);
+  const responses = Array.from({length: 4}, () => gateway.fetch(new Request(`${origin}/api/read/checkpoints`, {
+    method: 'POST', headers, body: '{}',
+  })));
+  try {
+    await entered.promise;
+    assert.equal(maximum, 4);
+    originals[0].resolve({items: []});
+    await probed.promise;
+    const overlap = await replacement;
+    assert.equal(maximum, 4, 'Retained original reads and newly admitted reads share the same four-call bound');
+    assert.equal(overlap.status, 429, 'The old invocation still owns its slot until collection removal');
+    assert.equal(calls, 4);
+    const following = await gateway.fetch(new Request(`${origin}/api/read/checkpoints`, {
+      method: 'POST', headers, body: '{}',
+    }));
+    assert.equal(following.status, 200, 'The same slot is available after original removal');
+    assert.equal(calls, 5);
+    assert.equal(maximum, 4);
+  } finally {
+    for (const original of originals) original.resolve({items: []});
+    await Promise.all(responses);
+    await replacement;
+    await gateway.close();
+  }
+});
