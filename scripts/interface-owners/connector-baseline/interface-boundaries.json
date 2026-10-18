@@ -5986,7 +5986,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d5a3f8b89b6902be8cb0e266fc2a863268ef4bbbb8da09e8d394e855b5e5021c",
+      "sha256": "c86e97c44bbf4cbe47992e3e1645402923fdce180c80eb53161573aedbbbda71",
       "role": "connector-semantics",
       "owner": "Published stable repository identity and installed Issue Source; Host RowSource owns capture and disclosure",
       "exports": [
@@ -6231,6 +6231,10 @@
               {
                 "path": "src/connectors/github/source-views.json",
                 "anchor": "pull_requests"
+              },
+              {
+                "path": "src/connectors/github/source-views.json",
+                "anchor": "issue_comments"
               }
             ],
             "inputsOutputs": [
@@ -6301,6 +6305,10 @@
               {
                 "path": "adapters/connectors/github/test/github-milestone-declaration.test.mjs",
                 "anchor": "the PullRequest declaration keeps native read types and an inapplicable nullable reason"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-comment-read.test.mjs",
+                "anchor": "original Issue and PullRequest comments enter one accounted Source without replacing numeric identity"
               }
             ]
           }
@@ -6619,12 +6627,13 @@
     {
       "module": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ca9247b29067477b2b999bad1c840a3f7d14a7445c4a46b1958d6833197b16fd",
+      "sha256": "8425f97845fee44852d6ba8323ff06fe364b0e800ab24b2ff3ea89b690c3588f",
       "role": "physical-io",
       "owner": "Stable-node GraphQL Issue pagination; provider MoonBit fixes query, variables, projection and refusal",
       "exports": [
         "GITHUB_GRAPHQL_PATH",
         "GITHUB_GRAPHQL_READ_OPERATION",
+        "readGitHubIssueCommentsByNode",
         "readGitHubIssuesByNode",
         "readGitHubPullRequestsByNode"
       ],
@@ -6673,6 +6682,13 @@
           "async": false
         },
         {
+          "name": "readGitHubIssueCommentsByNode",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
           "name": "readGitHubIssuesByNode",
           "parameters": [
             "options"
@@ -6700,7 +6716,8 @@
             "consumeObservation",
             "consumePage",
             "signal",
-            "pullRequests"
+            "pullRequests",
+            "comments"
           ],
           "async": true
         },
@@ -6770,6 +6787,7 @@
             "pairs/pairs",
             "pairs/pairs/pairs",
             "pairs/pairs/pairs#2",
+            "readGitHubIssueCommentsByNode",
             "readGitHubIssuesByNode",
             "readGitHubPullRequestsByNode",
             "readGitHubRowsByNode",
@@ -6785,6 +6803,7 @@
           "exports": [
             "GITHUB_GRAPHQL_PATH",
             "GITHUB_GRAPHQL_READ_OPERATION",
+            "readGitHubIssueCommentsByNode",
             "readGitHubIssuesByNode",
             "readGitHubPullRequestsByNode"
           ],
@@ -6797,6 +6816,10 @@
               {
                 "path": "src/connectors/github/catalog/pull_requests.mbt",
                 "anchor": "begin_pull_request_page_read"
+              },
+              {
+                "path": "src/connectors/github/catalog/issue_comments_read.mbt",
+                "anchor": "begin_issue_comments_read"
               }
             ],
             "inputsOutputs": [
@@ -6903,6 +6926,10 @@
               {
                 "path": "adapters/connectors/github/test/github-pull-request-read.test.mjs",
                 "anchor": "original PullRequest pages complete through actual Credential uses and one accounted RowRun"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-comment-read.test.mjs",
+                "anchor": "original Issue and PullRequest comments enter one accounted Source without replacing numeric identity"
               }
             ]
           }
