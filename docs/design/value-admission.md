@@ -220,7 +220,7 @@ is an implementation gap, not a restriction on the declared Timestamp domain.
 Calendar endpoint admission likewise retains exact original Timestamp strings
 and compares their instants, including mixed fractional lengths. It does not
 use a millisecond projection or UTF-16 ordering to define valid ranges. The
-current civil Calendar lowering is still millisecond-only and returns its
+current civil Calendar range lowering is still millisecond-only and returns its
 explicit precision-unavailable issue before conversion, rather than calling a
 valid finer Timestamp invalid or unwrapping a failed projection. Literal and
 bound Parameter endpoints share this separation; civil profile coverage and
