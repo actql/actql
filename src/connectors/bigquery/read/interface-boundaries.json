@@ -1,0 +1,397 @@
+{
+  "qualification": "source-reference coverage; not Source authority, physical execution, funding or installed acceptance",
+  "declarations": [
+    {
+      "module": "src/connectors/bigquery/read/pkg.generated.mbti",
+      "sha256": "5a92d5053d6c79b1c5cebab47a61b700d0babb72ca17596ab4b4c79e46c958f4",
+      "exports": [
+        "pub fn accept_query_page(Read, String?, Bytes) -> Result[Int, ReadIssue]",
+        "pub fn bind_borrowed_read_transport(Read, () -> Bool) -> Result[Unit, ReadIssue]",
+        "pub fn borrow_accounted_read(PreparedRead, @client_row_source_host.RowRun, @catalog.QueryJob, @catalog.QueryLimits, Int) -> Result[Read, ReadIssue]",
+        "pub fn capture_result_read(Read) -> Result[@client_row_source_host.RowSourceCapture, ReadIssue]",
+        "pub fn close_result_read(Read) -> Result[Unit, ReadIssue]",
+        "pub fn finish_result_read(Read) -> Result[Unit, ReadIssue]",
+        "pub fn interrupt_result_read(Read) -> Unit",
+        "pub fn prepare_declared_read(@catalog.TableDescription, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @catalog.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[PreparedRead, ReadIssue]",
+        "pub fn prepared_read_acquisition(PreparedRead) -> @client_row_source_host.RowAcquisition",
+        "pub fn prepared_read_projection(PreparedRead) -> @catalog.ReadProjection",
+        "pub fn read_start_failure_cleanup(ReadStartFailure) -> Read?",
+        "pub fn read_start_failure_issue(ReadStartFailure) -> ReadIssue",
+        "pub fn result_read_complete(Read) -> Bool",
+        "pub fn result_read_job(Read) -> @catalog.QueryJob?",
+        "pub fn result_read_usage(Read) -> (Int, Int64)",
+        "pub fn retire_borrowed_read(Read) -> Result[Unit, ReadIssue]",
+        "pub fn start_accounted_read(PreparedRead, @catalog.QueryJob, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, @catalog.QueryLimits, Int) -> Result[Read, ReadStartFailure]",
+        "pub struct PreparedRead {",
+        "pub struct Read {",
+        "pub struct ReadStartFailure {"
+      ],
+      "operations": [
+        {
+          "name": "accept_query_page",
+          "declaration": "pub fn accept_query_page(Read, String?, Bytes) -> Result[Int, ReadIssue]"
+        },
+        {
+          "name": "bind_borrowed_read_transport",
+          "declaration": "pub fn bind_borrowed_read_transport(Read, () -> Bool) -> Result[Unit, ReadIssue]"
+        },
+        {
+          "name": "borrow_accounted_read",
+          "declaration": "pub fn borrow_accounted_read(PreparedRead, @client_row_source_host.RowRun, @catalog.QueryJob, @catalog.QueryLimits, Int) -> Result[Read, ReadIssue]"
+        },
+        {
+          "name": "capture_result_read",
+          "declaration": "pub fn capture_result_read(Read) -> Result[@client_row_source_host.RowSourceCapture, ReadIssue]"
+        },
+        {
+          "name": "close_result_read",
+          "declaration": "pub fn close_result_read(Read) -> Result[Unit, ReadIssue]"
+        },
+        {
+          "name": "finish_result_read",
+          "declaration": "pub fn finish_result_read(Read) -> Result[Unit, ReadIssue]"
+        },
+        {
+          "name": "interrupt_result_read",
+          "declaration": "pub fn interrupt_result_read(Read) -> Unit"
+        },
+        {
+          "name": "prepare_declared_read",
+          "declaration": "pub fn prepare_declared_read(@catalog.TableDescription, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @catalog.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[PreparedRead, ReadIssue]"
+        },
+        {
+          "name": "prepared_read_acquisition",
+          "declaration": "pub fn prepared_read_acquisition(PreparedRead) -> @client_row_source_host.RowAcquisition"
+        },
+        {
+          "name": "prepared_read_projection",
+          "declaration": "pub fn prepared_read_projection(PreparedRead) -> @catalog.ReadProjection"
+        },
+        {
+          "name": "read_start_failure_cleanup",
+          "declaration": "pub fn read_start_failure_cleanup(ReadStartFailure) -> Read?"
+        },
+        {
+          "name": "read_start_failure_issue",
+          "declaration": "pub fn read_start_failure_issue(ReadStartFailure) -> ReadIssue"
+        },
+        {
+          "name": "result_read_complete",
+          "declaration": "pub fn result_read_complete(Read) -> Bool"
+        },
+        {
+          "name": "result_read_job",
+          "declaration": "pub fn result_read_job(Read) -> @catalog.QueryJob?"
+        },
+        {
+          "name": "result_read_usage",
+          "declaration": "pub fn result_read_usage(Read) -> (Int, Int64)"
+        },
+        {
+          "name": "retire_borrowed_read",
+          "declaration": "pub fn retire_borrowed_read(Read) -> Result[Unit, ReadIssue]"
+        },
+        {
+          "name": "start_accounted_read",
+          "declaration": "pub fn start_accounted_read(PreparedRead, @catalog.QueryJob, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, @catalog.QueryLimits, Int) -> Result[Read, ReadStartFailure]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "BigQuery original page adaptation; Common retains acquisition, value Contract, capture and resource cleanup",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "accept_query_page",
+            "bind_borrowed_read_transport",
+            "borrow_accounted_read",
+            "capture_result_read",
+            "close_result_read",
+            "finish_result_read",
+            "interrupt_result_read",
+            "prepare_declared_read",
+            "prepared_read_acquisition",
+            "prepared_read_projection",
+            "read_start_failure_cleanup",
+            "read_start_failure_issue",
+            "result_read_complete",
+            "result_read_job",
+            "result_read_usage",
+            "retire_borrowed_read",
+            "start_accounted_read"
+          ],
+          "exports": [
+            "pub fn accept_query_page(Read, String?, Bytes) -> Result[Int, ReadIssue]",
+            "pub fn bind_borrowed_read_transport(Read, () -> Bool) -> Result[Unit, ReadIssue]",
+            "pub fn borrow_accounted_read(PreparedRead, @client_row_source_host.RowRun, @catalog.QueryJob, @catalog.QueryLimits, Int) -> Result[Read, ReadIssue]",
+            "pub fn capture_result_read(Read) -> Result[@client_row_source_host.RowSourceCapture, ReadIssue]",
+            "pub fn close_result_read(Read) -> Result[Unit, ReadIssue]",
+            "pub fn finish_result_read(Read) -> Result[Unit, ReadIssue]",
+            "pub fn interrupt_result_read(Read) -> Unit",
+            "pub fn prepare_declared_read(@catalog.TableDescription, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @catalog.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[PreparedRead, ReadIssue]",
+            "pub fn prepared_read_acquisition(PreparedRead) -> @client_row_source_host.RowAcquisition",
+            "pub fn prepared_read_projection(PreparedRead) -> @catalog.ReadProjection",
+            "pub fn read_start_failure_cleanup(ReadStartFailure) -> Read?",
+            "pub fn read_start_failure_issue(ReadStartFailure) -> ReadIssue",
+            "pub fn result_read_complete(Read) -> Bool",
+            "pub fn result_read_job(Read) -> @catalog.QueryJob?",
+            "pub fn result_read_usage(Read) -> (Int, Int64)",
+            "pub fn retire_borrowed_read(Read) -> Result[Unit, ReadIssue]",
+            "pub fn start_accounted_read(PreparedRead, @catalog.QueryJob, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, @catalog.QueryLimits, Int) -> Result[Read, ReadStartFailure]",
+            "pub struct PreparedRead {",
+            "pub struct Read {",
+            "pub struct ReadStartFailure {"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/bigquery/read/read.mbt",
+      "sha256": "da4f7f711f04e4c3a3129afbd466dc37d78231493a43909b7a44b94028038b11",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]fail_read",
+          "declaration": "[ T ] fail_read ( read : Read , issue : ReadIssue ) - > Result [ T , ReadIssue ]"
+        },
+        {
+          "name": "accept_query_page",
+          "declaration": "accept_query_page ( read : Read , requested_token : String ? , body : Bytes , ) - > Result [ Int , ReadIssue ]"
+        },
+        {
+          "name": "bind_borrowed_read_transport",
+          "declaration": "bind_borrowed_read_transport ( read : Read , observe_stop : ( ) - > Bool , ) - > Result [ Unit , ReadIssue ]"
+        },
+        {
+          "name": "borrow_accounted_read",
+          "declaration": "borrow_accounted_read ( prepared : PreparedRead , run : @ rows . RowRun , job : @ catalog . QueryJob , limits : @ catalog . QueryLimits , max_pages : Int , ) - > Result [ Read , ReadIssue ]"
+        },
+        {
+          "name": "capture_result_read",
+          "declaration": "capture_result_read ( read : Read , ) - > Result [ @ rows . RowSourceCapture , ReadIssue ]"
+        },
+        {
+          "name": "close_result_read",
+          "declaration": "close_result_read ( read : Read ) - > Result [ Unit , ReadIssue ]"
+        },
+        {
+          "name": "finish_result_read",
+          "declaration": "finish_result_read ( read : Read ) - > Result [ Unit , ReadIssue ]"
+        },
+        {
+          "name": "interrupt_result_read",
+          "declaration": "interrupt_result_read ( read : Read ) - > Unit"
+        },
+        {
+          "name": "new_read",
+          "declaration": "new_read ( prepared : PreparedRead , run : @ rows . RowRun , job : @ catalog . QueryJob , limits : @ catalog . QueryLimits , max_pages : Int , custody : ReadCustody , ) - > Read"
+        },
+        {
+          "name": "prepare_declared_read",
+          "declaration": "prepare_declared_read ( description : @ catalog . TableDescription , declaration : @ rows . RowDeclaration , requirement : @ planning . QueryRequirement , query_contract : String , evidence_contract : String , limits : @ catalog . DescriptionLimits , declaration_limits : @ rows . RowDeclarationLimits , ) - > Result [ PreparedRead , ReadIssue ]"
+        },
+        {
+          "name": "prepared_read_acquisition",
+          "declaration": "prepared_read_acquisition ( read : PreparedRead ) - > @ rows . RowAcquisition"
+        },
+        {
+          "name": "prepared_read_projection",
+          "declaration": "prepared_read_projection ( read : PreparedRead ) - > @ catalog . ReadProjection"
+        },
+        {
+          "name": "read_available",
+          "declaration": "read_available ( read : Read ) - > Bool"
+        },
+        {
+          "name": "read_start_failure_cleanup",
+          "declaration": "read_start_failure_cleanup ( value : ReadStartFailure ) - > Read ?"
+        },
+        {
+          "name": "read_start_failure_issue",
+          "declaration": "read_start_failure_issue ( value : ReadStartFailure ) - > ReadIssue"
+        },
+        {
+          "name": "result_read_complete",
+          "declaration": "result_read_complete ( read : Read ) - > Bool"
+        },
+        {
+          "name": "result_read_job",
+          "declaration": "result_read_job ( read : Read ) - > @ catalog . QueryJob ?"
+        },
+        {
+          "name": "result_read_usage",
+          "declaration": "result_read_usage ( read : Read ) - > ( Int , Int64 )"
+        },
+        {
+          "name": "retire_borrowed_read",
+          "declaration": "retire_borrowed_read ( read : Read ) - > Result [ Unit , ReadIssue ]"
+        },
+        {
+          "name": "start_accounted_read",
+          "declaration": "start_accounted_read ( prepared : PreparedRead , job : @ catalog . QueryJob , nonce : String , verify_transport : ( @ rows . RowAttempt ) - > Bool , ledger : @ resources . Ledger , transfer_bytes : Int64 , execution_scratch : Int64 , limits : @ catalog . QueryLimits , max_pages : Int , ) - > Result [ Read , ReadStartFailure ]"
+        },
+        {
+          "name": "valid_limits",
+          "declaration": "valid_limits ( limits : @ catalog . QueryLimits , max_pages : Int ) - > Bool"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "BigQuery original page adaptation; Common retains acquisition, value Contract, capture and resource cleanup",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]fail_read",
+            "accept_query_page",
+            "bind_borrowed_read_transport",
+            "borrow_accounted_read",
+            "capture_result_read",
+            "close_result_read",
+            "finish_result_read",
+            "interrupt_result_read",
+            "new_read",
+            "prepare_declared_read",
+            "prepared_read_acquisition",
+            "prepared_read_projection",
+            "read_available",
+            "read_start_failure_cleanup",
+            "read_start_failure_issue",
+            "result_read_complete",
+            "result_read_job",
+            "result_read_usage",
+            "retire_borrowed_read",
+            "start_accounted_read",
+            "valid_limits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
