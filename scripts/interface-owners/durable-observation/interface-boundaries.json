@@ -4955,7 +4955,8 @@
             "key",
             "signal",
             "maxResponseBytes",
-            "binding"
+            "binding",
+            "retainRunResponseOriginal"
           ],
           "async": false
         },
@@ -5195,6 +5196,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "requestRepresentation: response.requestRepresentation"
               }
             ],
             "identity": [
@@ -5375,6 +5380,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "const requestRepresentation = !retainRunResponseOriginal"
               }
             ],
             "extension": [
@@ -5467,6 +5476,18 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "physical conditional request representation after caller mutation"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "actual default Accept without inventing absent conditions"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "representation on the original fenced acquisition"
               }
             ]
           }
@@ -5494,6 +5515,10 @@
               {
                 "path": "adapters/site-node/https-credential-resource.mjs",
                 "anchor": "requestBodyText"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "requestRepresentation: response.requestRepresentation"
               }
             ],
             "identity": [
@@ -5530,6 +5555,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Run response resources:"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "const requestRepresentation = !retainRunResponseOriginal"
               }
             ],
             "extension": [
@@ -5546,12 +5575,24 @@
               {
                 "path": "adapters/site-node/https-credential-resource.test.mjs",
                 "anchor": "Run response original retains the exact immutable physical POST text without deriving it from length"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "physical conditional request representation after caller mutation"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "actual default Accept without inventing absent conditions"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "representation on the original fenced acquisition"
               }
             ]
           }
         }
       ],
-      "sha256": "5d036d85cbce2d9db83da1d332447921de5355a99416a3a755883f1afa5c2ecf",
+      "sha256": "3f5b43b246f60a5aa2dc7f4c14e2fdabd4b8aa9f373bbfff5082c0f275861f79",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",
