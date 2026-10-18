@@ -82,6 +82,7 @@ export async function effectHost(t, installation, state, {effect,
         limits.maxDepth));
       const stage = await installed.prepareCaptured({moon, control, store,
         execution, checkedHost: owned, prepared: facts.prepared,
+        compilation: facts.compilation,
         identity: facts.identity, plan,
         previewContext: {runDefinition: facts.definition,
           runInvocation: plan.invocationOwner, compiledPlan},
