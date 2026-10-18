@@ -5,6 +5,7 @@
 struct ClientInstalledSourceRead {
   mut original : ClientInstalledSourceRead?
   mut child : @resources.ImportedChildLedger?
+  mut managed_run : (ClientInstalledManagedRun, Int)?
   mut ledger : @resources.Ledger?
   mut owner : ClientLocalSequenceOwner?
   mut declaration : @row_source_host.RowDeclaration?
@@ -45,6 +46,7 @@ pub fn begin_installed_source_read(
   let value : ClientInstalledSourceRead = {
     original: None,
     child: Some(child),
+    managed_run: None,
     ledger: Some(ledger),
     owner: None,
     declaration: None,
@@ -76,6 +78,15 @@ fn require_installed_source_read_current(
     Ok(_) => ()
   }
   guard value.ledger is Some(ledger) else { return Err(Retired) }
+  if value.managed_run is Some((run, occurrence)) {
+    guard require_installed_managed_run(run) is Ok(original) &&
+      physical_equal(original, ledger) &&
+      run.reads.get(occurrence) is Some(Some(selected)) &&
+      physical_equal(selected, value) else {
+      return Err(ForeignOriginal)
+    }
+    return Ok(ledger)
+  }
   guard value.child is Some(child) else { return Err(Retired) }
   match @resources.check_imported_original_child_ledger(child, ledger) {
     Err(issue) => return Err(Import(issue))
@@ -171,6 +182,10 @@ pub fn attach_installed_source_read_acquisition(
     Ok(_) => ()
   }
   guard value.owner is Some(owner) else { return Err(Unbound) }
+  if value.managed_run is Some((_, occurrence)) &&
+    (stage != occurrence || source_index != 0) {
+    return Err(ForeignOriginal)
+  }
   let matches = match owner {
     Pure(prepared) =>
       @publication_host.client_query_requirement_matches_program(
@@ -342,5 +357,6 @@ pub fn retire_installed_source_read(
   value.owner = None
   value.ledger = None
   value.child = None
+  value.managed_run = None
   Ok(())
 }

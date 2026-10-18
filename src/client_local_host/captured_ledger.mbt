@@ -481,6 +481,25 @@ fn prepare_multi_captured_capacity_ledger_owned(
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
+  multi_captured_capacity_limits_owned(
+    owner, capacities, transport_bytes, transport_execution_bytes, registry_body,
+    values_body, fragment_body, ordered_body,
+  ).and_then(limits => @resources.create_ledger(limits).to_option())
+}
+
+///|
+/// The same checked inventory is used for legacy accounting and for an
+/// already admitted operational Run. Deriving limits does not issue capacity.
+fn multi_captured_capacity_limits_owned(
+  owner : ClientLocalSequenceOwner,
+  capacities : Array[(Int64, Int64)],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.LedgerLimits? {
   let graph = match owner {
     Pure(prepared) => @publication_host.prepared_client_graph(prepared)
     Effect(prepared) =>
@@ -572,14 +591,14 @@ fn prepare_multi_captured_capacity_ledger_owned(
   if compute_retained > 9223372036854775807L - native_retained {
     return None
   }
-  @resources.create_ledger({
+  Some({
     planning_work: 100000,
     attempts: count,
     holdings: count,
     transfer_bytes: transfer,
     retained_bytes: native_retained + compute_retained,
     execution_bytes: execution_capacity,
-  }).to_option()
+  })
 }
 
 ///|
@@ -915,6 +934,23 @@ fn prepare_multi_captured_installed_ledger_owned(
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
+  multi_captured_installed_limits_owned(
+    owner, capacities, transport_bytes, transport_execution_bytes, registry_body,
+    values_body, fragment_body, ordered_body,
+  ).and_then(limits => @resources.create_ledger(limits).to_option())
+}
+
+///|
+fn multi_captured_installed_limits_owned(
+  owner : ClientLocalSequenceOwner,
+  capacities : Array[ClientInstalledCaptureCapacity],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.LedgerLimits? {
   if capacities.length() != 2 {
     return None
   }
@@ -935,7 +971,7 @@ fn prepare_multi_captured_installed_ledger_owned(
       return None
     }
   }
-  prepare_multi_captured_capacity_ledger_owned(
+  multi_captured_capacity_limits_owned(
     owner,
     capacities.map(value => (value.retained_bytes, value.execution_bytes)),
     transport_bytes,
