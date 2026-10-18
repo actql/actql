@@ -447,17 +447,23 @@ export function restoreEffectRunNormalization(materials) {
 }
 
 /** Saved evidence is re-admitted, not reissued with a fresh policy or lifetime. */
-export function admitEffectRunMaterials(wire, definitionCid, profiles, original, expectedRequest) {
+export function admitEffectRunMaterials(wire, definitionCid, profiles, original, expectedRequest, sourcePrepared) {
   if (typeof wire !== 'string' || typeof definitionCid !== 'string') {
     throw new TypeError('InvalidRunHostRunMaterialsInput');
   }
   const selected = checkedProfileSelection(profiles, 'InvalidRunHostProfiles');
+  const source = sourcePrepared === undefined ? undefined : sourcePreparations.get(sourcePrepared);
+  if (sourcePrepared !== undefined && (source === undefined || !effectPreparations.has(sourcePrepared))) {
+    throw new TypeError('ForeignRunHostSourcePreparation');
+  }
   const restored = checked(owner.clientValuesHostAdmitEffectRunMaterials(wire,
     definitionCid, selected.textTime, selected.veca, selected.rela, selected.sga,
     selected.tea, selected.calendar, selected.textRank,
     original === undefined ? undefined : requireHandle(issuedEffectMaterials, original),
-    expectedRequest === undefined ? undefined : requireHandle(requests, expectedRequest)), 'RunHostEffectRestorationRejected');
+    expectedRequest === undefined ? undefined : requireHandle(requests, expectedRequest),
+    source?.value), 'RunHostEffectRestorationRejected');
   const prepared = handle(effectPreparations, owner.clientValuesHostRestoredEffectPrepared(restored), 'prepared-effect-program');
+  if (source !== undefined) sourcePreparations.set(prepared, source);
   const originalRequest = owner.clientValuesHostRestoredEffectRequest(restored);
   if (!Array.isArray(originalRequest) || originalRequest.length > 1) throw new Error('InvalidRunHostOriginalRequest');
   const request = originalRequest.length === 1 ? handle(requests, originalRequest[0], 'request-identity') : undefined;

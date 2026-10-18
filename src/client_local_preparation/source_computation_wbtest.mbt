@@ -35,6 +35,7 @@ fn source_computation_failure(value : Result[LocalSourceComputation, LocalSource
     Err(ArrayProfile(_)) => "array"
     Err(TargetOriginalsUnavailable) => "target-originals"
     Err(ReadOnly) => "read-only"
+    Err(Materials(_)) => "materials"
   }
 }
 

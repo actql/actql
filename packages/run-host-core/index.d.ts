@@ -181,7 +181,8 @@ export type RestoredEffectRun = Readonly<{prepared: PreparedEffectProgram;
 export function admitEffectRunMaterials(wire: string, definitionCid: string,
   profiles: Readonly<{textTime?: boolean; veca?: boolean; rela?: boolean;
     sga?: boolean; tea?: boolean; calendar?: boolean; textRank?: boolean}>,
-  original?: IssuedEffectRunMaterials, expectedRequest?: RequestIdentity): RestoredEffectRun;
+  original?: IssuedEffectRunMaterials, expectedRequest?: RequestIdentity,
+  sourcePrepared?: PreparedEffectProgram): RestoredEffectRun;
 /** Requires the exact admitted material object; does not grant approval. */
 export function restoreEffectRunNormalization(materials: RestoredEffectRun): RunEvidence;
 /** Original saved policy lifetime, not current Host authority or approval. */
