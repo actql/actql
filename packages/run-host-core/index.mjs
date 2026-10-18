@@ -2631,8 +2631,11 @@ function effectTaskProgressSnapshot(value) {
 // Read each native Array element once. Caller-owned iteration, some and slice
 // methods are not the supplier of the captured durable/claim facts.
 function effectProjectionArray(value, maximum) {
-  if (!Array.isArray(value) || value.length > maximum) throw new TypeError('InvalidRunHostEffectRunProjection');
+  if (!Array.isArray(value)) throw new TypeError('InvalidRunHostEffectRunProjection');
   const length = value.length;
+  if (!Number.isSafeInteger(length) || length < 0 || length > maximum) {
+    throw new TypeError('InvalidRunHostEffectRunProjection');
+  }
   const snapshot = [];
   for (let index = 0; index < length; index++) snapshot.push(value[index]);
   return snapshot;
