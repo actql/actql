@@ -294,3 +294,110 @@ test "BigQuery request bound terminates pending status without making a new Job"
   assert_false(@bigquery_read.job_read_remote_done(value))
   bigquery_assert_retired(read, ledger)
 }
+
+///|
+test "BigQuery pending result uses only the same result GET and cannot complete early" {
+  let (read, ledger) = bigquery_started_read("bq-pending-result", 24000L)
+  let value = bigquery_job_session(read)
+  bigquery_job_response(value, bigquery_job_status("DONE"))
+  let request = bigquery_job_request(value)
+  let original_path = @bigquery_read.job_request_path(request)
+  @bigquery_read.attempt_job_request(value, request).unwrap()
+  let pending = @utf8.encode(
+    "{\"jobReference\":{\"projectId\":\"acme-project\",\"jobId\":\"original_job-1\",\"location\":\"EU\"},\"jobComplete\":false}",
+  )
+  @bigquery_read.accept_job_response(value, request, 200, pending, pending).unwrap()
+  assert_false(@bigquery_read.job_read_complete(value))
+  assert_true(@bigquery_read.capture_result_read(read) is Err(_))
+  let next = bigquery_job_request(value)
+  assert_eq(@bigquery_read.job_request_method(next), "GET")
+  assert_eq(@bigquery_read.job_request_path(next), original_path)
+  @bigquery_read.attempt_job_request(value, next).unwrap()
+  let complete = bigquery_body(bigquery_rows())
+  @bigquery_read.accept_job_response(value, next, 200, complete, complete).unwrap()
+  assert_true(@bigquery_read.job_read_complete(value))
+  bigquery_assert_retired(read, ledger)
+}
+
+///|
+test "BigQuery malformed status and duplicate Job fields keep charged original without success" {
+  for
+    body in [
+      @utf8.encode("{\"kind\":\"bigquery#job\"}"),
+      @utf8.encode(
+        @utf8.decode(bigquery_job_status("DONE"))
+        .unwrap()
+        .replace(
+          old="\"state\":\"DONE\"",
+          new="\"state\":\"DONE\",\"state\":\"RUNNING\"",
+        ),
+      ),
+      bigquery_job_status("RUNNING", failed=true),
+    ] {
+    let (read, ledger) = bigquery_started_read("bq-invalid-job", 24000L)
+    let value = bigquery_job_session(read)
+    let request = bigquery_job_request(value)
+    @bigquery_read.attempt_job_request(value, request).unwrap()
+    assert_true(
+      @bigquery_read.accept_job_response(value, request, 200, body, body)
+      is Err(_),
+    )
+    assert_eq(
+      @resources.ledger_usage(ledger).transferred_bytes,
+      body.length().to_int64(),
+    )
+    assert_false(@bigquery_read.job_read_remote_done(value))
+    assert_true(@bigquery_read.capture_result_read(read) is Err(_))
+    bigquery_assert_retired(read, ledger)
+  }
+}
+
+///|
+test "BigQuery foreign and unattempted nominal requests cannot charge another original" {
+  let (read, ledger) = bigquery_started_read("bq-request-owner", 24000L)
+  let value = bigquery_job_session(read)
+  let (foreign_read, foreign_ledger) = bigquery_started_read(
+    "bq-request-owner-foreign", 24000L,
+  )
+  let foreign = bigquery_job_session(foreign_read)
+  let request = bigquery_job_request(value)
+  assert_true(
+    @bigquery_read.next_job_request(value) is Err(@bigquery_read.PendingRequest),
+  )
+  assert_true(
+    @bigquery_read.attempt_job_request(foreign, request)
+    is Err(@bigquery_read.WrongRequest),
+  )
+  assert_true(
+    @bigquery_read.mark_job_response_unknown(value, request)
+    is Err(@bigquery_read.NotAttempted),
+  )
+  assert_eq(@resources.ledger_usage(ledger).transferred_bytes, 0L)
+  assert_eq(@resources.ledger_usage(foreign_ledger).transferred_bytes, 0L)
+  bigquery_assert_retired(read, ledger)
+  bigquery_assert_retired(foreign_read, foreign_ledger)
+}
+
+///|
+test "BigQuery Job material bounds do not bind a refused preparation or change original SQL" {
+  let (read, ledger) = bigquery_started_read("bq-material-bound", 24000L)
+  assert_true(
+    @bigquery_read.prepare_job_read(read, -1L, 2, 0, 8, 4096) is Err(_),
+  )
+  assert_true(
+    @bigquery_read.prepare_job_read(read, 1000000L, 2, 0, 8, 10) is Err(_),
+  )
+  assert_true(
+    @bigquery_read.prepare_job_read(read, 1000000L, 0, 0, 8, 4096) is Err(_),
+  )
+  let value = bigquery_job_session(read)
+  let request = bigquery_job_request(value)
+  let body = @bigquery_read.job_request_body(request).unwrap()
+  assert_true(
+    body.contains(
+      "SELECT `ACCOUNT_ID`, `ACTIVE_USERS`, `TREND` FROM `acme-project`.`product`.`usage`",
+    ),
+  )
+  assert_true(body.contains("\"useLegacySql\":false"))
+  bigquery_assert_retired(read, ledger)
+}

@@ -1,4 +1,4 @@
-# Accounted BigQuery page admission
+# Accounted BigQuery query Job and page admission
 
 This package binds the original table description and checked Source declaration
 through Common's existing acquisition and carrier-schema issuer. It reserves no
@@ -24,8 +24,24 @@ Host may lend its already-begun original RowRun; that borrow must bind the same
 physical stop observer before admitting responses. It cannot finish, capture or
 close the Host's root. The original Host retains retirement responsibility.
 
+A Job transport projection may bind that same original read once, before its
+first request. It emits a single POST with the caller's original Job ID,
+selected metadata-bound SQL, explicit GoogleSQL mode and maximumBytesBilled.
+Only same-Job status GETs and result GETs follow. Request candidates and charged
+responses are nominal and one-shot; a missing response cannot repeat POST or
+mint another Job. Every response consumes the original transfer capacity before
+its selected physical decoder parses or decompresses it. The returned Job
+reference, query text, SQL mode and scan cap must match the original material.
+
+A matching DONE status establishes remote execution ended, independently of
+result success. A final error never becomes a Source; warnings alone are not a
+final error. A later HTTP refusal, socket close or local read retirement cannot
+confirm a previously accepted running Job ended. Result pending observations
+consume their original charge without inventing a data page. Bounded repeated
+GETs still refer to the same original Job and exact preceding page token.
+
 Job routing metadata is neither a launch/cancel grant nor proof of remote job
-termination. This package sends no request. Authentication, Job creation,
+termination. This package emits bounded request material and sends no request. Authentication, Job creation,
 provider cost limits, transport custody and current authorization remain with
 the selected Host/Site. Common capture tests and explicit stop-observer doubles
 are distinct from physical HTTPS, installed Source or live-service acceptance.
@@ -37,7 +53,7 @@ Unsupported value carriers remain named refusals in the existing catalog codec.
   acquisition, value-admission and capture Owners.
 - Inputs and outputs: original description/declaration/requirement, Job routing
   DATA, bounded bodies and explicit limits produce counts, original capture or
-  typed refusal. This interface creates no HTTP request or Source grant.
+  typed refusal. Request material is not dispatch authority or a Source grant.
 - Identity: the same acquisition, RowRun, projection, original Job and preceding
   page token remain bound. Equal schema bytes do not replace the acquisition's
   nominal Contract; runtime values are rechecked by its existing Owner.
@@ -45,7 +61,7 @@ Unsupported value carriers remain named refusals in the existing catalog codec.
   cleanup carrier. Borrowed readers cannot finish, capture or close the Host's
   Run. Retirement requires the original physical observer and Common cleanup.
 - Synchronization: ordered synchronous admission consumes one original page
-  charge; a second or foreign borrow refuses. Completion describes admitted
+  charge; one nominal request/response is outstanding, and a second or foreign borrow refuses. Completion describes admitted
   pages, not remote Job or transport termination.
 - Failure: schema/cursor/count/contract/transfer failures close admission without
   exposing a partial Source. Failed cleanup retains the same original Job and
@@ -55,11 +71,18 @@ Unsupported value carriers remain named refusals in the existing catalog codec.
 - Resources: the original Ledger reserves transfer, retention and execution.
   Explicit page/body/node/text/row bounds apply; logical limits do not fund an
   unrelated process, VM or provider domain.
-- Extension: Job creation, authentication, current authorization, billing limits
+- Extension: physical Job creation, authentication, current authorization, billing enforcement
   and physical transport remain with the existing Host/Site. Unsupported value
   carriers are refused rather than disguised as strings, JSON or rounded floats.
 - Verification: independent QueryIntegration cases exercise the real Common
   checked Source, exact decimal and SQL null capture, complete multi-page reads,
   malformed/foreign/cursor/total/transfer refusals, original Contract rebinding,
-  empty results, borrowed custody and uncertain cleanup. Stop-observer doubles
+  empty results, borrowed custody, uncertain cleanup, one-shot Job material, lost POST responses, foreign Jobs/configuration, request bounds and accepted-running-Job refusal. Stop-observer doubles
   do not establish physical HTTPS, installed Source or live-service acceptance.
+
+Provider transport follows the official [jobs.insert](https://docs.cloud.google.com/bigquery/docs/reference/rest/v2/jobs/insert),
+[jobs.get](https://docs.cloud.google.com/bigquery/docs/reference/rest/v2/jobs/get),
+[getQueryResults](https://docs.cloud.google.com/bigquery/docs/reference/rest/v2/jobs/getQueryResults)
+and [Job status/configuration](https://docs.cloud.google.com/bigquery/docs/reference/rest/v2/Job)
+contracts. SQL identifiers use the original names under GoogleSQL quoted-identifier
+escaping; neither names nor tokens are trimmed or normalized.
