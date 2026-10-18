@@ -198,7 +198,9 @@ pub fn NativeLocalAdoptionCapture::check_current(
     return self.reply(Some(AdoptionCaptureClosed))
   }
   if self.journal is Some(journal) {
-    return self.reply(journal.check_current().issue().map(AdoptionJournal))
+    return self.reply(
+      journal.check_current().issue().map(issue => AdoptionJournal(issue)),
+    )
   }
   self.reply(
     match self.opening {
