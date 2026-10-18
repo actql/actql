@@ -168,6 +168,14 @@ export function assertSourceManagedHostPreparation(originals, originalOwnedReque
   }
 }
 
+// Same live ingress lineage only. Copies, CIDs and retained cold DATA cannot
+// recreate a pending request or issue its Source installation/child.
+export function originalSourceManagedHostRequest(originals, derivedRequest) {
+  assertSourceManagedHostPreparation(originals);
+  return profiles.originalSourceRequest(originals.host, originals.installation,
+    originals.generation, derivedRequest);
+}
+
 // The selected Source Root captures this fixed original projection. A copied
 // packet, equal configuration or public view cannot reconstruct the private
 // registry's same Host/installation/generation association.
@@ -2583,7 +2591,8 @@ async function openInstalledHost(originalInstallation, preparation) {
   };
   const submissionService = installNodeClientSubmission({journal, moon,
     authorizedScope: value => hostConnection(value) ? authorizedScope(value) : undefined,
-    prepareSubmit, submit, lookupRequest: lookupHeld, checkSubmissionInput: check});
+    prepareSubmit, submit, lookupRequest: lookupHeld, checkSubmissionInput: check,
+    bindOwnedRequest: preparation?.bindSourceRequest});
   const checkpointOperations = checkpoints === undefined ? {} : {
     checkpoints: value => checkpoints.listCheckpoints({principalId: value.principalId,
       after: value.after, limit: value.limit,
@@ -3347,6 +3356,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   }
   const ingress = createNodeInProcessClientHost({
     authenticate: () => principalId,
+    bindOwnedRequest: preparation?.bindSourceRequest,
     ...hostOperations, maxRowBytes: 1024 * 1024,
   });
   const sourcePreparation = preparation?.sourcePreparation();
@@ -3578,6 +3588,11 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     return observed;
   }});
   const preparation = Object.freeze({host, initialControl,
+    bindSourceRequest(parent, derived) {
+      if (mockPreparation === undefined) return;
+      assertSourceManagedInstallationCurrent(sourceManaged, originals);
+      profiles.bindSourceRequest(host, originalInstallation, host, parent, derived);
+    },
     sourcePreparation() {
       if (mockPreparation === undefined) return undefined;
       // Missing or retired selected coverage cannot become an unselected SDK

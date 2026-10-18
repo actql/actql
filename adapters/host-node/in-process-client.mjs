@@ -60,6 +60,7 @@ function publicResultRows(response) {
 
 export function createNodeInProcessClientHost({
   authenticate, authorizeConnection, workspaceForPrincipal, negotiate, prepareSubmit, submit, submitIntent, submitNamedIntent, lookupSubmission,
+  bindOwnedRequest,
   attach, lookupRequest, stateService, resultService, observeRun, observeOwners, wait,
   cancel, lookupCancellation, cancelRequest, reconcile, checkpoints, checkpointReview, resolve,
   resources, inspectResource, peekResource, check, plan, inspectRun, runPlan, maxRowBytes, observe,
@@ -67,16 +68,25 @@ export function createNodeInProcessClientHost({
   if (typeof authenticate !== 'function' ||
       typeof authorizeConnection !== 'function' ||
       typeof negotiate !== 'function' ||
+      bindOwnedRequest !== undefined && typeof bindOwnedRequest !== 'function' ||
       !Number.isSafeInteger(maxRowBytes) || maxRowBytes < 1) {
     throw new TypeError('InvalidInProcessClientHostInstallation');
   }
   return Object.freeze({async perform(operation, body, signal) {
     try {
+      const tracksSource = bindOwnedRequest !== undefined &&
+        ['submit', 'submit-intent', 'submit-named-intent', 'restart-intent'].includes(operation);
+      const own = (parent, derived) => {
+        if (tracksSource && bindOwnedRequest(parent, derived) !== undefined) {
+          fail('SourceManagedPreparationUnavailable');
+        }
+        return derived;
+      };
       // Local rows use the existing JSONL request shape for wire admission.
       const prepared = prepareClientHostRequest(operation,
         operation === 'read' ? {...body, format: 'jsonl'} : body);
       if (prepared === undefined) fail('InvalidClientRequest');
-      body = prepared.body;
+      body = own(body, prepared.body);
       const {connection} = prepared;
       let principalId;
       try { principalId = await authenticate(); }
@@ -115,13 +125,13 @@ export function createNodeInProcessClientHost({
       }
       const invoke = async (handler, preparedProgram) => {
         if (typeof handler !== 'function') fail('ClientOperationUnavailable');
-        return handler(Object.freeze({principalId, connection,
+        return handler(own(body, Object.freeze({principalId, connection,
           ...Object.fromEntries(Object.entries(body).filter(([key]) =>
             key !== 'connection')),
           ...(signal === undefined || ['submit', 'submit-intent', 'submit-named-intent', 'restart-intent'].includes(operation)
             ? {} : {signal}),
           ...(preparedProgram === undefined ? {} : {preparedProgram}),
-        }));
+        })));
       };
       if (operation === 'connect') {
         const profile = await invoke(negotiate);

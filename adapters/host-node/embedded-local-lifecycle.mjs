@@ -105,14 +105,37 @@ export function createEmbeddedHostRegistry(sameInstallation) {
   // Source operational supplier covers the additional request reference and
   // Map backing before installing its consumer. This is not an issuer, grant,
   // request parser or evidence that the call's physical work has stopped.
-  assertSourceRequest(host, installation, generation, request) {
+  originalSourceRequest(host, installation, generation, request) {
     const entry = preparationFor(host, installation, generation);
     if (entry.closing || entry.failure !== undefined ||
         request === null || typeof request !== 'object') preparationChanged();
     for (const original of entry.handling.values()) {
-      if (original === request) return;
+      if (original !== undefined && (original.request === request ||
+          original.aliases.includes(request))) return original.request;
     }
     preparationChanged();
+  },
+  assertSourceRequest(host, installation, generation, request) {
+    this.originalSourceRequest(host, installation, generation, request);
+  },
+  bindSourceRequest(host, installation, generation, parent, derived) {
+    const originalRequest = this.originalSourceRequest(host, installation, generation, parent);
+    if (derived === null || typeof derived !== 'object') preparationChanged();
+    const entry = preparationFor(host, installation, generation);
+    let selected;
+    for (const original of entry.handling.values()) {
+      if (original === undefined) continue;
+      if (original.request === originalRequest) selected = original;
+      else if (original.request === derived || original.aliases.includes(derived)) preparationChanged();
+    }
+    if (derived === originalRequest || selected.aliases.includes(derived)) return;
+    // Selected private operational retention only. This does not change the
+    // public packet grammar, issue capacity or prove any clone's backing.
+    if (selected.aliases.length === 16) {
+      throw Object.assign(new Error('SourceManagedPreparationUnavailable'),
+        {code: 'SourceManagedPreparationUnavailable'});
+    }
+    selected.aliases.push(derived);
   },
   retirePreparation(host, installation, generation) {
     const entry = preparationFor(host, installation, generation);
@@ -363,7 +386,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         // Same pending operation, not a second request index or cache. The
         // supplier may retain an admitted original after this Promise retires;
         // deleting this association is neither a holding nor physical ACK.
-        opened.handling.set(pending, request);
+        opened.handling.set(pending, {request, aliases: []});
         pending.finally(() => {
           handling.delete(pending);
           opened.handling.delete(pending);
