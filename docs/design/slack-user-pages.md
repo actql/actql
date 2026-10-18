@@ -243,6 +243,10 @@ with both count and thread keys absent. Generic page DATA has no such original
 history occurrence and retains unknown count. Explicit zero, positive count and
 null preserve their meanings, including a positive count without thread
 metadata. Event, partial or retained-thread ambiguity never becomes zero.
+The known ordinary `bot_message` subtype is eligible under those same original
+history and absence conditions; its subtype alone is not a partial/thread hint.
+Unknown subtypes, event envelopes and changed/deleted/replied/broadcast cases do
+not gain this inference. A bot message with retained thread hints stays unknown.
 Other retained thread hints, such as `reply_users`, `latest_reply`, `root` or
 `parent_user_id`, keep a missing count unknown even when the two primary keys
 are absent; their contents are not evidence of an ordinary non-thread record.
