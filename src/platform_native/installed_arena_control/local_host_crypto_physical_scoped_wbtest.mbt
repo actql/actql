@@ -12,7 +12,7 @@ fn[T, E] Result::crypto_pair_value(
 ///|
 // Actual selected provider/components are required. The existing Runtime
 // conformance declarations are unchanged; this is not an installer profile.
-test "actual original Host pair binds Crypto and retains separate Library Read and domain ACKs" {
+fn local_host_crypto_physical_case(retain_closed : Bool) -> Unit raise {
   let root = @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").unwrap()
   let crypto_path = @env.get_env_var("ACTQL_TEST_CRYPTO_COMPONENT").unwrap()
   let sqlite_path = @env.get_env_var("ACTQL_TEST_SQLITE_COMPONENT").unwrap()
@@ -105,9 +105,16 @@ test "actual original Host pair binds Crypto and retains separate Library Read a
   let consumer = host
     .prepare_domain_original_read_consumer(read, 16L * page, 1024L * page)
     .crypto_pair_value("original operation 16")
+  let control = host
+    .prepare_local_host_read_crypto_control(pair, read)
+    .crypto_pair_value("original outer control registration")
+  let retained : Ref[@signature.OriginalCryptoComponent?] = Ref(None)
+  assert_false(control.attempted || control.closed)
+  assert_true(host.prepare_local_host_read_crypto_control(pair, read) is Err(_))
   host
   .enter_local_host_phase(pair, HostRead)
   .crypto_pair_value("original operation 17")
+  assert_true(host.prepare_local_host_read_crypto_control(pair, read) is Err(_))
   assert_true(
     host.prepare_local_host_read_crypto(
       pair,
@@ -120,7 +127,11 @@ test "actual original Host pair binds Crypto and retains separate Library Read a
       Resources(Read(Read(@resources.Resource(@resources.ExecutionLimit))))
     ),
   )
-  assert_true(read_domain.crypto_component is None)
+  assert_true(
+    read_domain.crypto_component is Some(original) &&
+    physical_equal(original, control) &&
+    !control.attempted,
+  )
   let component = match
     host
     .prepare_local_host_read_crypto(pair, read, crypto_path, 32L * page, 128)
@@ -128,9 +139,23 @@ test "actual original Host pair binds Crypto and retains separate Library Read a
     ReadyCrypto(value) => value
     PendingCrypto(_, _) => fail("phase=original Crypto Pending")
   }
+  assert_true(physical_equal(control, component) && component.attempted)
+  assert_true(
+    host.prepare_local_host_read_crypto(
+      pair,
+      read,
+      crypto_path,
+      32L * page,
+      128,
+    )
+    is Err(Crypto(Domain(@bootstrap.Bootstrap(@bootstrap.AlreadyConsumed)))),
+  )
   let original = host
     .current_crypto_component(component)
     .crypto_pair_value("original operation 19")
+  if retain_closed {
+    retained.val = Some(original)
+  }
   let outer = match
     original.new_library().crypto_pair_value("original operation 20") {
     @signature.ReadyCryptoLibrary(value) => value
@@ -180,8 +205,26 @@ test "actual original Host pair binds Crypto and retains separate Library Read a
   .close_crypto_component(component)
   .crypto_pair_value("original operation 30")
   assert_true(component.closed && component.component is None)
+  assert_true(
+    host.close_crypto_component({ ..component, })
+    is Err(Domain(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal))),
+  )
+  host
+  .close_crypto_component(control)
+  .crypto_pair_value("original repeated closed cleanup")
+  original
+  .close_checked()
+  .crypto_pair_value("original closed physical carrier cleanup")
   host.leave_local_host_phase(pair).crypto_pair_value("original operation 31")
   assert_true(consumer.scope == ConsumerScopeLeft)
+  if retain_closed {
+    assert_true(
+      host.close_local_host_resources(pair)
+      is Err(Read(Domain(@bootstrap.Bootstrap(@bootstrap.Physical(-3))))),
+    )
+    assert_false(read.closed || pair.closed)
+    retained.val = None
+  }
   match host.close_local_host_resources(pair) {
     Ok(_) => ()
     Err(Read(Domain(issue))) => fail("Read domain: " + @debug.to_string(issue))
@@ -200,4 +243,14 @@ test "actual original Host pair binds Crypto and retains separate Library Read a
   .crypto_pair_value("original operation 34")
   host.try_close().crypto_pair_value("original operation 35")
   assert_eq(process_test_close(descriptor), 0)
+}
+
+///|
+test "actual original pair Crypto closes with no external closed carrier alias" {
+  local_host_crypto_physical_case(false)
+}
+
+///|
+test "actual original pair keeps a closed physical Crypto carrier alias busy until release" {
+  local_host_crypto_physical_case(true)
 }
