@@ -4,12 +4,43 @@
 #include "moonbit.h"
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+#include "scoped_read.h"
+#define malloc actql_native_file_scoped_allocate
+#define free actql_native_file_scoped_free
+static char *inspection_scoped_strdup(const char *text) {
+  size_t length = strlen(text);
+  if (length == SIZE_MAX) return NULL;
+  char *copy = malloc(length + 1);
+  if (copy != NULL) memcpy(copy, text, length + 1);
+  return copy;
+}
+#define strdup inspection_scoped_strdup
+#endif
+
+static char *inspection_canonical_path(const char *path) {
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+  // Keep the canonical result in the same original Read allocation route.
+  // realpath(NULL) would allocate an unrelated libc-owned result instead.
+  char *resolved = malloc(PATH_MAX);
+  if (resolved == NULL) return NULL;
+  if (realpath(path, resolved) == NULL) {
+    free(resolved);
+    return NULL;
+  }
+  return resolved;
+#else
+  return realpath(path, NULL);
+#endif
+}
 
 // This owner only copies pinned read-only files. SQLite never opens the
 // unclassified source. The copy includes WAL; SHM is rebuilt on the copy.
@@ -297,8 +328,8 @@ static void *inspection_open_bounded(
     else if (slash == parent) parent[1] = 0;
     else *slash = 0;
   }
-  char *source_directory = parent == NULL ? NULL : realpath(parent, NULL);
-  char *scratch_directory = realpath(temporary, NULL);
+  char *source_directory = parent == NULL ? NULL : inspection_canonical_path(parent);
+  char *scratch_directory = inspection_canonical_path(temporary);
   free(parent);
   int safe_scratch = source_directory != NULL && scratch_directory != NULL;
   if (safe_scratch) {
