@@ -6,7 +6,7 @@
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing credential HTTPS scope, Account current fence and original Common RowRun borrower",
-      "sha256": "93fb33c13ed9ba907f74565a55ea5ea9f4048f8b881a79295a0357d422ca24e3",
+      "sha256": "5d42b4d973594a4783a17047e26d3ea3f9ccedb8d6b648e49f73558d6e8eeadd",
       "exports": [
         "SNOWFLAKE_SQL_READ_OPERATION",
         "readSnowflakeSqlApi"

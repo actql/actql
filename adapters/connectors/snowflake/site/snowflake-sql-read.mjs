@@ -78,6 +78,9 @@ export async function readSnowflakeSqlApi({moon, prepared, rowRun, limits,
   let read, statement, binding, bound = false, attempted = 0, exchanges = 0;
   let wireBytes = 0n, decodedBytes = 0n, lastStatus, lastExchange;
   let transportLost = false, result, failure, lastObservation, recordingFailure;
+  // JavaScript rejection reasons may be undefined; presence is independent
+  // of the original reason and of secondary recording/cleanup failures.
+  let failed = false, recordingFailed = false, cleanupFailed = false, cleanupFailure;
   let processingOriginal = true;
   let remoteStatementUnconfirmed = false;
   try {
@@ -131,7 +134,7 @@ export async function readSnowflakeSqlApi({moon, prepared, rowRun, limits,
         // Unit records only this original response loss; it is not an ACK,
         // retry permission or a successful Source observation.
         try { checked(moon.clientProgramSnowflakeRecordResponseLoss(statement, request)); }
-        catch (secondary) { recordingFailure = secondary; }
+        catch (secondary) { recordingFailed = true; recordingFailure = secondary; }
         throw error;
       }
       lastObservation = response;
@@ -149,7 +152,7 @@ export async function readSnowflakeSqlApi({moon, prepared, rowRun, limits,
       try { decoded = decodeResponse(response, bounds.maxBytes); }
       catch (error) {
         try { checked(moon.clientProgramSnowflakeRecordDecoderRefusal(statement, ticket)); }
-        catch (secondary) { recordingFailure = secondary; }
+        catch (secondary) { recordingFailed = true; recordingFailure = secondary; }
         throw error;
       }
       decodedBytes += BigInt(decoded.byteLength);
@@ -172,6 +175,7 @@ export async function readSnowflakeSqlApi({moon, prepared, rowRun, limits,
       statementHandle: runtimeField(original, 1), pages: runtimeField(usage, 0),
       rows: runtimeField(usage, 1), exchanges, wireBytes, decodedBytes, lastExchange});
   } catch (error) {
+    failed = true;
     failure = error;
     if (read !== undefined) moon.clientProgramSnowflakeInterruptRead(read);
   }
@@ -189,14 +193,19 @@ export async function readSnowflakeSqlApi({moon, prepared, rowRun, limits,
       if (read !== undefined) checked(moon.clientProgramSnowflakeRetireReadBorrow(read));
     }
   } catch (cleanupError) {
-    failure = Object.assign(new Error(failure?.code ?? 'SnowflakeReadCleanupPending',
-      {cause: failure ?? cleanupError}), {code: failure?.code ?? 'SnowflakeReadCleanupPending',
-      cleanupFailure: cleanupError});
+    cleanupFailed = true;
+    cleanupFailure = cleanupError;
+    if (!failed) {
+      failed = true;
+      failure = Object.assign(new Error('SnowflakeReadCleanupPending',
+        {cause: cleanupError}), {code: 'SnowflakeReadCleanupPending'});
+    }
   }
-  if (!stopped && failure === undefined) {
+  if (!stopped && !failed) {
+    failed = true;
     failure = Object.assign(new Error('SnowflakeReadCleanupPending'), {code: 'SnowflakeReadCleanupPending'});
   }
-  if (failure !== undefined) {
+  if (failed) {
     const original = statement === undefined ? undefined :
       moon.clientProgramSnowflakeStatementOriginal(statement);
     const outcome = !stopped || transportLost || remoteStatementUnconfirmed || lastStatus === 202 ||
@@ -207,8 +216,10 @@ export async function readSnowflakeSqlApi({moon, prepared, rowRun, limits,
     // does not grant disclosure or turn an HTTP reply into Source evidence.
     if (lastObservation !== undefined) Object.defineProperty(error, 'observation',
       {value: lastObservation});
-    if (recordingFailure !== undefined) Object.defineProperty(error, 'recordingFailure',
+    if (recordingFailed) Object.defineProperty(error, 'recordingFailure',
       {value: recordingFailure});
+    if (cleanupFailed) Object.defineProperty(error, 'cleanupFailure',
+      {value: cleanupFailure});
     error.originalStatement = Object.freeze({requestId: frame.requestId,
       statementHandle: original === undefined ? undefined : runtimeField(original, 1)});
     // Pending physical cleanup is already retained by this same Core root's
