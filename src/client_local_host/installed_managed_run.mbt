@@ -3,7 +3,7 @@
 /// capacity issuer. Source reads and the managed DAG borrow this one Ledger.
 struct ClientInstalledManagedRun {
   mut original : ClientInstalledManagedRun?
-  admission : @resources.NodeManagedRunAdmission
+  admission : @resources.NodeManagedRunAdmission[@publication_host.PreparedClientProgram]
   prepared : @publication_host.PreparedClientProgram
   request : @publication_host.ClientRequestIdentity
   mut ledger : @resources.Ledger?
@@ -87,10 +87,14 @@ pub fn installed_managed_run_requirements(
 /// Bind the resulting original checked Program/request; start/take the
 /// original imported child once, never once per Source occurrence.
 pub fn begin_installed_managed_run(
-  admission : @resources.NodeManagedRunAdmission,
+  admission : @resources.NodeManagedRunAdmission[@publication_host.PreparedClientProgram],
   prepared : @publication_host.PreparedClientProgram,
   request : @publication_host.ClientRequestIdentity,
 ) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
+  match @resources.check_node_managed_run_preparation(admission, prepared) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(_) => ()
+  }
   let identity = @publication_host.prepared_client_identity(prepared)
   if identity.program_definition_cid !=
     @publication_host.client_request_program_cid(request) ||
@@ -128,6 +132,10 @@ fn require_installed_managed_run(
     return Err(ForeignOriginal)
   }
   guard value.ledger is Some(ledger) else { return Err(Retired) }
+  match @resources.check_node_managed_run_preparation(value.admission, value.prepared) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(_) => ()
+  }
   match @resources.check_node_managed_run_admission(value.admission, ledger) {
     Err(issue) => return Err(Resource(issue))
     Ok(_) => ()

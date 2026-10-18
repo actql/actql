@@ -5,17 +5,18 @@
 #export_name("clientProgramNodeManagedRunPrepare")
 pub fn client_program_node_managed_run_prepare(
   original : @resources.OriginalNodeManagedRunReference,
+  prepared : @publication_host.PreparedClientProgram,
 ) -> Result[
-  @resources.NodeManagedRunAdmission,
+  @resources.NodeManagedRunAdmission[@publication_host.PreparedClientProgram],
   @resources.ImportedChildLedgerIssue,
 ] {
-  @resources.prepare_node_managed_run_admission(original)
+  @resources.prepare_node_managed_run_admission(original, prepared)
 }
 
 ///|
 #export_name("clientProgramInstalledManagedRunBegin")
 pub fn client_program_installed_managed_run_begin(
-  admission : @resources.NodeManagedRunAdmission,
+  admission : @resources.NodeManagedRunAdmission[@publication_host.PreparedClientProgram],
   prepared : @publication_host.PreparedClientProgram,
   request : @publication_host.ClientRequestIdentity,
 ) -> Result[
