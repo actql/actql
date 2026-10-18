@@ -26,7 +26,9 @@ test "original Slack ordinary history executes the public int64 zero predicate" 
       "{\"type\":\"message\",\"ts\":\"3.000000\",\"text\":\"explicit positive\",\"reply_count\":2}," +
       "{\"type\":\"message\",\"ts\":\"4.000000\",\"text\":\"retained parent\",\"thread_ts\":\"4.000000\"}," +
       "{\"type\":\"message\",\"ts\":\"5.000000\",\"text\":\"unknown count\",\"reply_count\":null}," +
-      "{\"type\":\"message\",\"ts\":\"6.000000\"}]}",
+      "{\"type\":\"message\",\"ts\":\"6.000000\"}," +
+      "{\"type\":\"message\",\"subtype\":\"bot_message\",\"ts\":\"7.000000\",\"text\":\"ordinary bot\"}," +
+      "{\"type\":\"message\",\"subtype\":\"bot_message\",\"ts\":\"8.000000\",\"text\":\"bot thread hint\",\"reply_users\":[]}]}",
     ),
   ).unwrap()
   assert_true(
@@ -82,7 +84,7 @@ test "original Slack ordinary history executes the public int64 zero predicate" 
       owner,
       0,
       @decode.elements(input_cursor(rows_wire)).unwrap(),
-      max_rows=6,
+      max_rows=8,
       run_limits().input_values,
     ).unwrap()
     assert_true(physical_equal(captured_owner(captured), owner))
@@ -90,7 +92,7 @@ test "original Slack ordinary history executes the public int64 zero predicate" 
     let generated = prepare_generated_sequence(
       registered_relation_contracts(),
       sequence,
-      [sequence_fragment_context(sequence, 0, 6L)],
+      [sequence_fragment_context(sequence, 0, 8L)],
       ["select_1"],
       100000,
       10000,
@@ -102,9 +104,10 @@ test "original Slack ordinary history executes the public int64 zero predicate" 
     }).unwrap()
     let output = test_row_output(completed_output(completed, Step(1)).unwrap())
     assert_eq(output.names, ["id"])
-    assert_eq(output.rows.length(), 2)
+    assert_eq(output.rows.length(), 3)
     assert_true(output.rows[0][0] is Text("C1:1.000001"))
     assert_true(output.rows[1][0] is Text("C1:2.000000"))
+    assert_true(output.rows[2][0] is Text("C1:7.000000"))
   }
 }
 
