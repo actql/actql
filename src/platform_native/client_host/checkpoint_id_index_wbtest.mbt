@@ -183,10 +183,41 @@ test "Journal rolls back the Run CAS and prior locator after checkpoint index co
   let original_custody = database
     .read("client_effect_custody", run_key)
     .unwrap()
-  let next = {
-    ..waiting,
-    checkpoint: Some({ ..checkpoint, artifact: replacement, }),
+  // Use the same persisted-artifact/state issuers as the original fixture;
+  // neither a mismatched state nor an early custody refusal reaches the CAS.
+  database
+  .insert(
+    "test_checkpoint_artifacts",
+    replacement.checkpoint_cid,
+    @utf8.encode(replacement.wire),
+  )
+  .unwrap()
+  |> ignore
+  let persisted = @checkpoint.confirm_checkpoint_persisted(
+    replacement,
+    @utf8.decode(
+      database
+      .read("test_checkpoint_artifacts", replacement.checkpoint_cid)
+      .unwrap().body,
+    ),
+  ).unwrap()
+  let state_wire = @checkpoint.issue_waiting_run_state(
+    persisted,
+    checkpoint.updated_at,
+    checkpoint.declared_results,
+    native_checkpoint_limits(),
+  ).unwrap()
+  let next_checkpoint = {
+    ..checkpoint,
+    artifact: replacement,
+    state: @checkpoint.admit_run_state_wire(
+      state_wire,
+      native_checkpoint_limits(),
+    ).unwrap(),
   }
+  let next_body = checkpoint_record_body(next_checkpoint).unwrap()
+  assert_true(read_checkpoint_record(next_body, waiting.definition) is Ok(_))
+  let next = { ..waiting, checkpoint: Some(next_checkpoint), }
   let mut observed_cas = false
   let mut observed_locator_removal = false
   let mut observed_collision = false
