@@ -1571,10 +1571,13 @@ refuses before physical acquisition. No scalar, source label or successful
 component test supplies that missing original.
 
 
-The selected command's trusted initial operational control may cover only the
-fixed loader, dependency-image and TLS/synchronization lifetime of its pinned
-SQLite and Crypto components. Its actual entry original and complete finite
-envelope must precede the first `dlopen`, including initializers. The Runtime's
+The selected command's trusted initial operational control covers the finite
+loader, dependency-image and TLS/synchronization lifetime of its pinned SQLite
+and Crypto components, together with the selected platform bookkeeping for
+directory, ACL and path operations. These are separate terms from each other
+and from actual Read-backed storage. Each helper requires its actual entry
+original and complete finite envelope before its first covered call. This
+includes the first `dlopen` and its initializers. The Runtime's
 hashed member observation retains its original Root/stat association; its path,
 digest and nominal Runtime association do not issue that initial original.
 A selected load consumes one original attempt, records even a failed load, and
@@ -1588,3 +1591,27 @@ replacement. Library/component shutdown and module-reference release remain
 separate acknowledgements. Dropping a successfully released module's member
 alias does not replenish the once-counted process/thread-lived initial terms,
 acknowledge every image/TLS retirement, or release the parent Read or backing.
+
+The command Runtime retains its stronger filesystem selection through current
+checks. Its selected Darwin census uses `getattrlistbulk` with one fixed
+65536-byte buffer and the existing bounded expected-name bitmap, both allocated
+through the original Read. It does not construct a libc DIR or request its
+union-directory prefetch and sort. The same original directory is checked for
+union selection before enumeration; that unsupported selection and an
+unsupported bulk operation refuse without switching to the generic census.
+Existing generic census callers keep their original behavior. Exact names,
+no-follow file kinds and before/after directory identity remain mandatory.
+
+The selected census retains its separate descriptor before enumeration and
+consumes its close exactly once. Active enumeration prevents parent Root close.
+An unconfirmed descriptor close stays with that same Root, even after the Root
+descriptor itself closes; its numeric descriptor cannot be retried or inferred
+released from a sibling acknowledgment. Read/context/backing retirement remains
+separate from either descriptor close.
+
+Journal inspection uses the same entry's bounded original scratch selection,
+captured before physical acquisition. It never re-reads the current environment
+to choose another directory. The copied committed DB/WAL and scratch namespace
+retain their existing identity and cleanup responsibilities. Captured path text
+is input correspondence; it cannot issue the initial platform holding or pay for
+path-helper internals, ACL objects, Read buffers or other allocations.
