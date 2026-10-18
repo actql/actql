@@ -395,6 +395,13 @@ pub fn slack_message_replies_page_row_count(
 }
 
 ///|
+pub fn slack_message_replies_page_has_next(
+  page : SlackMessageRepliesPage,
+) -> Bool {
+  page.original.next_cursor is Some(_) || page.original.has_more
+}
+
+///|
 pub fn slack_message_replies_page_rows_wire(
   page : SlackMessageRepliesPage,
   names : Array[String],

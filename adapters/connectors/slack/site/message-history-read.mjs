@@ -8,8 +8,10 @@ import {callHttpsCredentialResource} from '../../../site-node/https-credential-r
 import {requestTarget} from '../../../host-common/http-exchange.mjs';
 
 export const SLACK_MESSAGE_HISTORY_OPERATION = 'slack:messages:history';
+export const SLACK_MESSAGE_REPLIES_OPERATION = 'slack:messages:replies';
 export const SLACK_WORKSPACE_IDENTITY_OPERATION = 'slack:workspace:identity';
 const readers = new WeakMap();
+const replyReaders = new WeakMap();
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
 const arrayIsArray = Array.isArray, safeInteger = Number.isSafeInteger;
@@ -33,10 +35,27 @@ const providerExports = ['slackAdmitMessageHistoryPage','slackMessageHistoryRequ
   'slackProjectWorkspaceIdentity','slackWorkspaceIdentityMatches',
   'slackPrepareMessageHistory','slackBeginMessageHistory','slackMessageHistoryRequestJson',
   'slackMessageHistoryPageHasNext','slackNextMessageHistoryRequest','slackFinishMessageHistory','slackCloseMessageHistory'];
+const replyProviderExports = ['slackPrepareMessageReplies','slackMessageRepliesMatchesOriginal',
+  'slackBeginMessageReplies','slackMessageRepliesRequestMatches','slackMessageRepliesRequestJson',
+  'slackAdmitMessageRepliesPage','slackMessageRepliesPageHasNext','slackNextMessageRepliesRequest',
+  'slackFinishMessageReplies','slackMessageRepliesPageRowCount','slackMessageRepliesPageRowsWire',
+  'slackCloseMessageReplies'];
 const limitFields = ['maxResponseBytes','maxTotalResponseBytes','maxNodes','maxDepth',
   'maxRows','maxTotalRows','maxPages','pageSize','maxCursorBytes','maxIdentityBytes',
   'maxTargetBytes','maxValueNodes','maxValueTextBytes',
   'maxRowsWireBytes','maxRowsWireNodes','maxRowsWireDepth'];
+
+function captureProvider(moon,names,optional=false,code='SlackMessageOriginalRuntimeUnavailable') {
+  if (optional && names.every(name=>!Object.hasOwn(moon,name))) return undefined;
+  return Object.freeze(Object.fromEntries(names.map(name=>{
+    const descriptor=Object.getOwnPropertyDescriptor(moon,name);
+    if (!descriptor || !Object.hasOwn(descriptor,'value') || typeof descriptor.value!=='function') {
+      fail(code);
+    }
+    const callback=descriptor.value;
+    return [name,(...args)=>Reflect.apply(callback,moon,args)];
+  })));
+}
 
 export class SlackMessageHistoryReadFailure extends Error {
   constructor(cause, observations) {
@@ -56,12 +75,8 @@ function prepareRead({moon, workspaceId, channel, names, initialAuthorization, c
     fail('InvalidSlackMessageHistoryRead');
   }
   if (!moon || typeof moon !== 'object' || types.isProxy(moon)) fail('InvalidSlackMessageHistoryRead');
-  const provider = Object.freeze(Object.fromEntries(providerExports.map(name=>{
-    const descriptor=Object.getOwnPropertyDescriptor(moon,name);
-    if (!descriptor || !Object.hasOwn(descriptor,'value') || typeof descriptor.value !== 'function') fail('InvalidSlackMessageHistoryRead');
-    const callback=descriptor.value;
-    return [name,(...args)=>Reflect.apply(callback,moon,args)];
-  })));
+  const provider = captureProvider(moon,providerExports,false,'InvalidSlackMessageHistoryRead');
+  const replyProvider = captureProvider(moon,replyProviderExports,true);
   const context = ownInvocationContext({authorization:initialAuthorization,credential,limits,
     callbacks:{authorizationFor,current,chargeResponse,consumeObservation,consumePage}});
   if (providerExports.some(name=>typeof provider[name] !== 'function') ||
@@ -85,10 +100,10 @@ function prepareRead({moon, workspaceId, channel, names, initialAuthorization, c
       if (selected[previous] === name) fail('InvalidSlackMessageHistoryRead');
     }
   }
-  return Object.freeze({provider,context,workspaceId,channel,names:selected,signal});
+  return Object.freeze({provider,replyProvider,context,workspaceId,channel,names:selected,signal});
 }
 
-async function executeRead(prepared, received) {
+async function executeRead(prepared, received, retainPage, retainIdentity, retainExchange) {
   const {provider,context,workspaceId,channel,names,signal} = prepared, bound = context.limits;
   const observations = [];
   let history;
@@ -106,6 +121,7 @@ async function executeRead(prepared, received) {
         !invocationBindingsMatch(authorization.scope,context.scope)) fail('ForeignSlackMessageHistoryAuthorization');
     if (Buffer.byteLength(requestTarget(path,query)) > bound.maxTargetBytes) fail('SlackMessageHistoryTargetLimit');
     await verify(operation);
+    const exchange=retainExchange({authorization,operation,index,method,path,query,body});
     // The same opaque binding retains the actual original token across identity
     // and page calls. Each declared operation still claims its own grant/use;
     // an identity observation never grants conversations.history or channel-history access.
@@ -114,13 +130,15 @@ async function executeRead(prepared, received) {
         currentBeforeSend:()=>verify(operation)}),
       operation,method,path,query,body,headers:[['accept','application/json']],
       responseHeaders:[],maxResponseBytes:bound.maxResponseBytes,signal});
+    exchange.response=response;
     observations.push(response); received(response);
     const charge = await context.callbacks.chargeResponse(response.body);
+    exchange.charge=charge;
     await verify(operation);
     if (response.body.byteLength > bound.maxTotalResponseBytes - bytes) fail('SlackMessageHistoryResponseLimit');
     bytes += response.body.byteLength;
     if (!response.accepted || response.statusCode !== 200) fail('SlackMessageHistoryReadRejected');
-    return {response,charge};
+    return {response,charge,exchange};
   };
   try {
     const observed = await request(SLACK_WORKSPACE_IDENTITY_OPERATION,0,'POST','/api/auth.test',[],'{}');
@@ -129,6 +147,7 @@ async function executeRead(prepared, received) {
     if (!provider.slackWorkspaceIdentityMatches(identity,workspaceId)) fail('ForeignSlackWorkspace');
     await context.callbacks.consumeObservation(observed.charge);
     await verify(SLACK_WORKSPACE_IDENTITY_OPERATION);
+    retainIdentity(identity);
     // No team_id argument is used as an identity proof: Slack ignores it for
     // workspace tokens. The actual auth.test response and same retained token
     // must agree with the originally selected workspace before any data call.
@@ -145,16 +164,18 @@ async function executeRead(prepared, received) {
       const query=[['channel',original.channel],['limit',String(bound.pageSize)]];
       if (original.cursor!==null) query.push(['cursor',original.cursor]);
       if (original.latest!==null) query.push(['latest',original.latest],['inclusive','false']);
-      const {response,charge}=await request(SLACK_MESSAGE_HISTORY_OPERATION,index,'GET','/api/conversations.history',query);
+      const {response,charge,exchange}=await request(SLACK_MESSAGE_HISTORY_OPERATION,index,'GET','/api/conversations.history',query);
       const page=checked(provider.slackAdmitMessageHistoryPage(history,pending,response.body));
       const rowCount=provider.slackMessagePageRowCount(page);
       if (rowCount>bound.maxTotalRows-totalRows) fail('SlackMessageHistoryRowLimit');
       const rows=JSON.parse(checked(provider.slackMessagePageRowsWire(page,names,
         bound.maxRowsWireBytes,bound.maxRowsWireNodes,bound.maxRowsWireDepth)));
-      await context.callbacks.consumePage(rows,Object.freeze({charge}));
+      const retained=retainPage({page,pending,response,charge,rowCount,exchange});
+      await context.callbacks.consumePage(rows,Object.freeze({charge,originalPage:retained.token}));
       // The consumer may revoke currentness or request stop while awaiting.
       // Verify the same original before constructing the next Common request.
       await verify(SLACK_MESSAGE_HISTORY_OPERATION);
+      retained.consumed=true;
       totalRows+=rowCount;
       if (!provider.slackMessageHistoryPageHasNext(page)) {
         checked(provider.slackFinishMessageHistory(history,page));
@@ -182,7 +203,7 @@ export function createSlackMessageHistoryReader(options) {
   const original = prepareRead(options), stop = new AbortController();
   const signal = original.signal === undefined ? stop.signal : AbortSignal.any([original.signal,stop.signal]);
   const state = {prepared:Object.freeze({...original,signal}),stop,phase:'ready',
-    receivedResponses:0,receivedBodyBytes:0n};
+    receivedResponses:0,receivedBodyBytes:0n,observations:[],exchanges:[],pages:new Map(),workspaceIdentity:undefined};
   const handle = Object.freeze({
     async read() {
       const state = originalReader(this);
@@ -191,6 +212,12 @@ export function createSlackMessageHistoryReader(options) {
       try {
         const result = await executeRead(state.prepared,response=>{
           state.receivedResponses++; state.receivedBodyBytes += BigInt(response.body.byteLength);
+          state.observations.push(response);
+        },record=>{
+          const retained={...record,token:Object.freeze({}),consumed:false,selections:new Set()};
+          state.pages.set(retained.token,retained);return retained;
+        },identity=>{state.workspaceIdentity=identity;},exchange=>{
+          state.exchanges.push(exchange);return exchange;
         });
         state.phase = 'succeeded'; return result;
       } catch (cause) {state.phase = 'failed'; throw cause;}
@@ -204,5 +231,168 @@ export function createSlackMessageHistoryReader(options) {
     },
   });
   readers.set(handle,state);
+  return handle;
+}
+
+export class SlackMessageRepliesReadFailure extends Error {
+  constructor(cause,observations) {
+    super('SlackMessageRepliesReadFailed',{cause});
+    this.code='SlackMessageRepliesReadFailed';
+    Object.defineProperty(this,'observations',{value:Object.freeze(observations.slice())});
+  }
+}
+
+function originalReplyReader(handle) {
+  const state=replyReaders.get(handle);
+  if (!state) fail('ForeignSlackMessageRepliesReader');
+  return state;
+}
+
+function prepareReplyRead({historyReader,originalPage,index,names,initialAuthorization,credential,
+  authorizationFor,limits,current,chargeResponse,consumePage,signal}) {
+  const source=originalReader(historyReader),record=source.pages.get(originalPage);
+  if (source.phase!=='succeeded' || source.prepared.signal.aborted || !source.workspaceIdentity ||
+      !record?.consumed || !safeInteger(index) || index<0 || index>=record.rowCount ||
+      record.selections.has(index)) fail('ForeignSlackMessageRepliesSelection');
+  const provider=source.prepared.replyProvider;
+  if (!provider) fail('SlackMessageOriginalRuntimeUnavailable');
+  if ([authorizationFor,current,chargeResponse,consumePage].some(fn=>typeof fn!=='function')) {
+    fail('InvalidSlackMessageRepliesRead');
+  }
+  const context=ownInvocationContext({authorization:initialAuthorization,credential,limits,
+    callbacks:{authorizationFor,current,chargeResponse,consumePage}});
+  if (context.scope.operation!==SLACK_MESSAGE_REPLIES_OPERATION ||
+      !invocationBindingsMatch(context.scope,source.prepared.context.scope)) {
+    fail('ForeignSlackMessageRepliesAuthorization');
+  }
+  const old=source.prepared.context.credential,keys=Object.keys(old);
+  if (Object.keys(context.credential).length!==keys.length ||
+      keys.some(key=>context.credential[key]!==old[key])) fail('ForeignSlackMessageRepliesCredential');
+  const bound=context.limits;
+  if (![...limitFields,'maxComparisonNodes','maxComparisonDepth','maxComparisonTextBytes','maxWork']
+      .every(name=>positive(bound[name])) || bound.pageSize>1000) fail('InvalidSlackMessageRepliesRead');
+  const columns=ownColumnArray(source.prepared.provider.slackMessageColumnNames(),2147483647);
+  const selected=ownColumnArray(names,columns.length);
+  for (let i=0;i<selected.length;i++) {
+    let found=false;
+    for (let column=0;column<columns.length;column++) if (columns[column]===selected[i]) {found=true;break;}
+    if (typeof selected[i]!=='string' || !found) fail('InvalidSlackMessageRepliesRead');
+    for (let previous=0;previous<i;previous++) if (selected[i]===selected[previous]) fail('InvalidSlackMessageRepliesRead');
+  }
+  // This selection retains the original page/request/response/charge and reader.
+  // Neither its token nor the previous identity observation grants replies.
+  return Object.freeze({historyReader,source,record,index,provider,context,names:selected,signal});
+}
+
+async function executeReplyRead(prepared,received,retainControl,retainExchange) {
+  const {source,record,index,provider,context,names,signal}=prepared,bound=context.limits;
+  const observations=[];
+  let replies,totalRows=0,bytes=0;
+  const verify=async()=>{
+    signal.throwIfAborted();
+    await source.prepared.context.callbacks.current(SLACK_MESSAGE_REPLIES_OPERATION);
+    signal.throwIfAborted();
+    if (context.callbacks.current!==source.prepared.context.callbacks.current) {
+      await context.callbacks.current(SLACK_MESSAGE_REPLIES_OPERATION);
+      signal.throwIfAborted();
+    }
+  };
+  try {
+    await verify();
+    replies=checked(provider.slackPrepareMessageReplies(record.page,index,bound.maxResponseBytes,
+      bound.maxNodes,bound.maxDepth,Math.min(bound.maxRows,bound.pageSize),bound.maxCursorBytes,
+      bound.maxValueNodes,bound.maxValueTextBytes,bound.maxComparisonNodes,bound.maxComparisonDepth,
+      bound.maxComparisonTextBytes,bound.maxPages,bound.maxTotalRows,bound.maxTotalResponseBytes,bound.maxWork));
+    retainControl(replies);
+    if (!provider.slackMessageRepliesMatchesOriginal(replies,record.page,index)) {
+      fail('ForeignSlackMessageRepliesSelection');
+    }
+    let pending=checked(provider.slackBeginMessageReplies(replies)),target;
+    for (let ordinal=0;ordinal<bound.maxPages;ordinal++) {
+      await verify();
+      if (!provider.slackMessageRepliesRequestMatches(replies,pending)) fail('ForeignSlackMessageRepliesRequest');
+      const request=JSON.parse(provider.slackMessageRepliesRequestJson(pending));
+      if (target===undefined) target=request.ts;
+      if (request.channel!==source.prepared.channel || request.ts!==target || request.ordinal!==ordinal) {
+        fail('ForeignSlackMessageRepliesRequest');
+      }
+      const query=[['channel',request.channel],['ts',request.ts],['limit',String(bound.pageSize)]];
+      if (request.cursor!==null) query.push(['cursor',request.cursor]);
+      if (request.oldest!==null) query.push(['oldest',request.oldest],['inclusive','false']);
+      if (Buffer.byteLength(requestTarget('/api/conversations.replies',query))>bound.maxTargetBytes) {
+        fail('SlackMessageRepliesTargetLimit');
+      }
+      const authorization=ownInvocationAuthorization(await context.callbacks.authorizationFor(
+        Object.freeze({operation:SLACK_MESSAGE_REPLIES_OPERATION,index:ordinal})));
+      if (authorization.scope.operation!==SLACK_MESSAGE_REPLIES_OPERATION ||
+          !invocationBindingsMatch(authorization.scope,context.scope)) fail('ForeignSlackMessageRepliesAuthorization');
+      await verify();
+      const exchange=retainExchange({pending,authorization,request});
+      const response=await invokeScopedCredentialOperation({authorization,credential:context.credential,
+        callResource:options=>callHttpsCredentialResource({...options,currentBeforeSend:verify}),
+        operation:SLACK_MESSAGE_REPLIES_OPERATION,method:'GET',path:'/api/conversations.replies',query,
+        headers:[['accept','application/json']],responseHeaders:[],maxResponseBytes:bound.maxResponseBytes,signal});
+      exchange.response=response;
+      observations.push(response);received(response);
+      const charge=await context.callbacks.chargeResponse(response.body);
+      exchange.charge=charge;
+      await verify();
+      if (response.body.byteLength>bound.maxTotalResponseBytes-bytes) fail('SlackMessageRepliesResponseLimit');
+      bytes+=response.body.byteLength;
+      if (!response.accepted || response.statusCode!==200) fail('SlackMessageRepliesReadRejected');
+      const page=checked(provider.slackAdmitMessageRepliesPage(replies,pending,response.body));
+      exchange.page=page;
+      const rowCount=provider.slackMessageRepliesPageRowCount(page);
+      if (rowCount>bound.maxTotalRows-totalRows) fail('SlackMessageRepliesRowLimit');
+      const rows=JSON.parse(checked(provider.slackMessageRepliesPageRowsWire(page,names,
+        bound.maxRowsWireBytes,bound.maxRowsWireNodes,bound.maxRowsWireDepth)));
+      await context.callbacks.consumePage(rows,Object.freeze({charge}));
+      await verify();
+      totalRows+=rowCount;
+      if (!provider.slackMessageRepliesPageHasNext(page)) {
+        checked(provider.slackFinishMessageReplies(replies,page));
+        return Object.freeze({pages:ordinal+1,rowCount:totalRows,observations:Object.freeze(observations.slice())});
+      }
+      pending=checked(provider.slackNextMessageRepliesRequest(replies,page));
+    }
+    fail('SlackMessageRepliesPageLimit');
+  } catch (cause) {
+    throw new SlackMessageRepliesReadFailure(cause,observations);
+  } finally {
+    if (replies!==undefined) provider.slackCloseMessageReplies(replies);
+  }
+}
+
+export function createSlackMessageRepliesReader(options) {
+  const original=prepareReplyRead(options),stop=new AbortController();
+  const signals=[stop.signal,original.source.prepared.signal];
+  if (original.signal!==undefined) signals.push(original.signal);
+  const signal=AbortSignal.any(signals);
+  const state={prepared:Object.freeze({...original,signal}),stop,phase:'ready',observations:[],
+    exchanges:[],control:undefined,receivedBodyBytes:0n};
+  const handle=Object.freeze({
+    async read() {
+      const state=originalReplyReader(this);
+      if (state.phase!=='ready') fail('SlackMessageRepliesReaderAlreadyStarted');
+      state.phase='reading';
+      try {
+        const result=await executeReplyRead(state.prepared,response=>{
+          state.observations.push(response);state.receivedBodyBytes+=BigInt(response.body.byteLength);
+        },control=>{state.control=control;},exchange=>{
+          state.exchanges.push(exchange);return exchange;
+        });
+        state.phase='succeeded';return result;
+      } catch (cause) {state.phase='failed';throw cause;}
+    },
+    requestStop(reason) {originalReplyReader(this).stop.abort(reason);},
+    observe() {
+      const state=originalReplyReader(this);
+      return Object.freeze({phase:state.phase,stopRequested:state.prepared.signal.aborted,
+        receivedResponses:state.observations.length,receivedBodyBytes:state.receivedBodyBytes,
+        observationCustody:state.observations.length===0?'not-observed':'retained',cleanupConfirmed:false});
+    },
+  });
+  original.record.selections.add(original.index);
+  replyReaders.set(handle,state);
   return handle;
 }
