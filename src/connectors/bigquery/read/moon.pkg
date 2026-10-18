@@ -6,4 +6,5 @@ import {
   "actql/actql/query_planning" @planning,
   "actql/actql/physical_resources" @resources,
   "actql/actql/value_admission" @admitted,
+  "moonbitlang/core/encoding/utf8",
 }

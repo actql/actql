@@ -122,6 +122,7 @@ pub struct Read {
   priv limits : @catalog.QueryLimits
   priv max_pages : Int
   priv custody : ReadCustody
+  priv mut job_bound : Bool
   priv mut pages : Int
   priv mut rows : Int64
   priv mut total : Int64?
@@ -169,6 +170,7 @@ fn new_read(
     limits,
     max_pages,
     custody,
+    job_bound: false,
     pages: 0,
     rows: 0L,
     total: None,
@@ -332,27 +334,32 @@ pub fn accept_query_page(
   requested_token : String?,
   body : Bytes,
 ) -> Result[Int, ReadIssue] {
-  if !read_available(read) || read.finished {
+  if !read_available(read) || read.finished || read.job_bound {
     return Err(Closed)
   }
   let charge = match @rows.charge_row_run_page(read.run, body) {
     Ok(value) => value
     Err(issue) => return fail_read(read, Host(issue))
   }
-  if requested_token != read.next ||
-    read.pages >= read.max_pages ||
-    (read.pages > 0 && read.next is None) {
-    return fail_read(read, WrongPage)
-  }
   let page = match
-    @catalog.project_query_page(
-      read.prepared.projection,
-      read.job,
-      body,
-      read.limits,
-    ) {
+    @catalog.project_query_page(read.prepared.projection, read.job, body, read.limits) {
     Ok(value) => value
     Err(issue) => return fail_read(read, Page(issue))
+  }
+  accept_projected_query_page(read, charge, requested_token, page)
+}
+
+///|
+fn accept_projected_query_page(
+  read : Read,
+  charge : @rows.RowPageCharge,
+  requested_token : String?,
+  page : @catalog.QueryPage,
+) -> Result[Int, ReadIssue] {
+  if requested_token != read.next || read.pages >= read.max_pages ||
+    (read.pages > 0 && read.next is None) ||
+    !@catalog.query_page_matches_original(page, read.prepared.projection, read.job) {
+    return fail_read(read, WrongPage)
   }
   let total = @catalog.query_page_total_rows(page)
   if read.total is Some(original) && original != total {
