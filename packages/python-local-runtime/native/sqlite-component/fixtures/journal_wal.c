@@ -77,6 +77,7 @@ int main(int argc, char **argv) {
             assert(actql_journal_inspection_prepare_private_index(snapshot));
             assert(actql_journal_inspection_private_index_ready(snapshot));
         }
+        fprintf(stderr, "original inspection copy=%s\n", snapshot->copy);
         actql_native_sqlite_database *copy = actql_native_sqlite_open_journal_inspection_database(
             library, (moonbit_bytes_t)snapshot->copy, (int32_t)strlen(snapshot->copy), 65536);
         assert(copy != NULL);
