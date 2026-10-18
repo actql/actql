@@ -11288,7 +11288,11 @@
             "verification": [
               {
                 "path": "adapters/connectors/salesforce/test/salesforce-catalog-sync.test.mjs",
-                "anchor": "lost HTTPS reply remains uncertain across Effect ledger restart"
+                "anchor": "Site Collections do not turn malformed or rejected HTTP into success"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/installed-salesforce-effect-recovery.test.mjs",
+                "anchor": "an unknown row is never resent after a restart"
               }
             ]
           }
@@ -12082,7 +12086,11 @@
             "verification": [
               {
                 "path": "adapters/connectors/salesforce/test/salesforce-catalog-sync.test.mjs",
-                "anchor": "lost HTTPS reply remains uncertain across Effect ledger restart"
+                "anchor": "Site does not promote rejected or malformed writes to Effect success"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/installed-salesforce-effect-recovery.test.mjs",
+                "anchor": "an unknown row is never resent after a restart"
               }
             ]
           }
