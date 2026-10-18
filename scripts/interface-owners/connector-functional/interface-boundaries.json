@@ -10305,6 +10305,259 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/connectors/notion/host/project-connection.mjs",
+      "sha256": "422ea0cd08a36990a233a553d4d8fc40b2b7cac384f1572a76eb1fef812e74a3",
+      "exports": [
+        "loadInstalledNotionProjectConnection"
+      ],
+      "operations": [
+        {
+          "name": "current",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledNotionProjectConnection",
+          "parameters": [
+            "moon",
+            "providerMoon",
+            "project",
+            "name",
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledNotionProjectConnection/acquisition/acquisition",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledNotionProjectConnection/call/call",
+          "parameters": [
+            "method",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledNotionProjectConnection/fence/fence",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledNotionProjectConnection/fence/fence/fence",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledNotionProjectConnection/loadInstalledNotionProjectConnection",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledNotionProjectConnection/loadInstalledNotionProjectConnection#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledNotionProjectConnection/loadInstalledNotionProjectConnection#3",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledNotionProjectConnection/spend/spend",
+          "parameters": [
+            "amount"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledNotionProjectConnection/view/init:originalsForRuntime/init:originalsForRuntime",
+          "parameters": [
+            "commonRuntime",
+            "providerRuntime"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledNotionProjectConnection/view/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "ports",
+          "parameters": [
+            "receiver",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "ports/ports",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readLimits",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readLimits/readLimits",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "readLimits/readLimits#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-project-connections.mjs",
+        "node:fs/promises",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Notion original connection/Contract owner consuming the existing Project acquisition",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "current",
+            "fail/fail",
+            "loadInstalledNotionProjectConnection",
+            "loadInstalledNotionProjectConnection/acquisition/acquisition",
+            "loadInstalledNotionProjectConnection/call/call",
+            "loadInstalledNotionProjectConnection/fence/fence",
+            "loadInstalledNotionProjectConnection/fence/fence/fence",
+            "loadInstalledNotionProjectConnection/loadInstalledNotionProjectConnection",
+            "loadInstalledNotionProjectConnection/loadInstalledNotionProjectConnection#2",
+            "loadInstalledNotionProjectConnection/loadInstalledNotionProjectConnection#3",
+            "loadInstalledNotionProjectConnection/spend/spend",
+            "loadInstalledNotionProjectConnection/view/init:originalsForRuntime/init:originalsForRuntime",
+            "loadInstalledNotionProjectConnection/view/init:retire/init:retire",
+            "ports",
+            "ports/ports",
+            "positive/positive",
+            "readLimits",
+            "readLimits/readLimits",
+            "readLimits/readLimits#2",
+            "text/text"
+          ],
+          "exports": [
+            "loadInstalledNotionProjectConnection"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The Notion Host caller loads the original connections file"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/notion/host/project-connection.mjs",
+                "anchor": "export async function loadInstalledNotionProjectConnection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/notion/host/project-connection.mjs",
+                "anchor": "originalViews.get(this)!==state"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The view retains the original Project"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Common and provider callbacks and their receivers are captured before the file"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "failure is terminal for that view"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "An unconfirmed FD close propagates the original cleanup carrier"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "full original file, source/decode graph, entry UTF-8 encode"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The caller UTF-8 encodes the original entry span once"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/notion/test/project-connection.test.mjs",
+                "anchor": "actual Project file feeds the exact selected Notion entry"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
