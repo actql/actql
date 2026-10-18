@@ -1,5 +1,5 @@
 {
-  "source": "0a9ffa28608976fe94039baaeb3dfffd06f82d96",
+  "source": "623616dfb73778143ebb512695cbb272ee2fae4f",
   "qualification": "Operational functional reference supply; no product edit, authority transfer, representation promotion or runtime verification",
   "input": {
     "file": "c-r1-functional-primary-references-2a316.json",
@@ -7298,7 +7298,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-source.mjs",
-      "sha256": "f155d60c55f412fc6e2e8d260a25dcb7a945f5462a76517d66076879fe524b39",
+      "sha256": "bf1b7700e8fbce0245f9744ec7c29c1c96253fc9a182d67d79a81797a9b42212",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
@@ -7936,6 +7936,7 @@
             "grantLifetimeMs",
             "openCredentialJournal",
             "credentialFacts",
+            "runAcquisitionLimits",
             "closedCode",
             "grantCode"
           ],
@@ -7953,6 +7954,18 @@
         },
         {
           "name": "openRowSourceCredentialCustody/close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/close/close",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/closeRunBindings",
           "parameters": [],
           "async": false
         },
@@ -7985,12 +7998,96 @@
         },
         {
           "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody",
-          "parameters": [],
+          "parameters": [
+            "name"
+          ],
           "async": false
         },
         {
           "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#2",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#4",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition",
+          "parameters": [
+            "request",
+            "callbacks"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition/assertCurrent/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition/observeCurrent/observeCurrent",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#3",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#4",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition/originalRequest/originalRequest",
+          "parameters": [
+            "name"
+          ],
           "async": false
         },
         {
@@ -8474,7 +8571,22 @@
             "createInstalledRowSource/acquire/readerOptions/readerOptions#4",
             "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
             "createInstalledRowSource/captureCapacity/captureCapacity",
-            "createInstalledRowSource/createInstalledRowSource#7"
+            "createInstalledRowSource/createInstalledRowSource#7",
+            "openRowSourceCredentialCustody/close/close",
+            "openRowSourceCredentialCustody/closeRunBindings",
+            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#3",
+            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#4",
+            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#5",
+            "openRowSourceCredentialCustody/openRunAcquisition",
+            "openRowSourceCredentialCustody/openRunAcquisition/assertCurrent/assertCurrent",
+            "openRowSourceCredentialCustody/openRunAcquisition/assertCurrent/assertCurrent/assertCurrent",
+            "openRowSourceCredentialCustody/openRunAcquisition/init:close/init:close",
+            "openRowSourceCredentialCustody/openRunAcquisition/observeCurrent/observeCurrent",
+            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition",
+            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#2",
+            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#3",
+            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#4",
+            "openRowSourceCredentialCustody/openRunAcquisition/originalRequest/originalRequest"
           ],
           "exports": [
             "createInstalledRowSource",
@@ -8505,6 +8617,10 @@
               {
                 "path": "adapters/host-node/installation-metadata-site.test.mjs",
                 "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
               }
             ],
             "inputsOutputs": [
@@ -8535,6 +8651,10 @@
               {
                 "path": "adapters/host-node/installation-metadata-site.test.mjs",
                 "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
               }
             ],
             "identity": [
@@ -8573,6 +8693,10 @@
               {
                 "path": "adapters/host-node/installation-metadata-site.test.mjs",
                 "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
               }
             ],
             "ownership": [
@@ -8611,6 +8735,10 @@
               {
                 "path": "adapters/host-node/installation-metadata-site.test.mjs",
                 "anchor": "unsafe mutable Journal admission"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
               }
             ],
             "synchronization": [
@@ -8649,6 +8777,10 @@
               {
                 "path": "adapters/host-node/installation-metadata-site.test.mjs",
                 "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
               }
             ],
             "failure": [
@@ -8683,6 +8815,10 @@
               {
                 "path": "adapters/host-node/installation-metadata-site.test.mjs",
                 "anchor": "Account file revoked across await"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
               }
             ],
             "cancellation": [
@@ -8713,6 +8849,10 @@
               {
                 "path": "adapters/host-node/installation-metadata-site.test.mjs",
                 "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
               }
             ],
             "resources": [
@@ -8759,6 +8899,10 @@
               {
                 "path": "adapters/host-node/installation-metadata-site.test.mjs",
                 "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
               }
             ],
             "extension": [
@@ -8785,6 +8929,10 @@
               {
                 "path": "adapters/host-node/installation-metadata-site.test.mjs",
                 "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
               }
             ],
             "verification": [
@@ -8839,6 +8987,14 @@
               {
                 "path": "adapters/host-node/installation-metadata-site.test.mjs",
                 "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
+                "anchor": "run acquisition custody waits through the final response observation"
               }
             ]
           }

@@ -12022,13 +12022,16 @@
     },
     {
       "module": "adapters/host-node/installed-model.mjs",
-      "sha256": "ede7ac0cedd26883b63a499a088aac58f6a780063426cf5189a06f290891ae32",
+      "sha256": "3412344b15458fa7c9212e86038b0dc8ae7221b9abc4904114a26f6cc1008e38",
       "role": "physical-io",
       "exports": [
         "admitInstalledModelProvider",
         "admitInstalledModelProviderBinding",
+        "assertInstalledModelDefaultsAdoption",
+        "assertInstalledModelDefaultsPreparation",
         "installModelProviders",
         "installedModelEnvironment",
+        "prepareInstalledModelProviderDefaults",
         "readInstalledModelDependencies",
         "readInstalledModelExecution"
       ],
@@ -12049,6 +12052,25 @@
             "moon",
             "providerId",
             "physical"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertInstalledModelDefaultsAdoption",
+          "parameters": [
+            "provider",
+            "view",
+            "moon",
+            "providerId"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertInstalledModelDefaultsPreparation",
+          "parameters": [
+            "view",
+            "moon",
+            "providerId"
           ],
           "async": false
         },
@@ -12111,6 +12133,11 @@
         },
         {
           "name": "installModelProviders/installModelProviders#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/installModelProviders#4",
           "parameters": [
             "args"
           ],
@@ -12122,7 +12149,12 @@
           "async": false
         },
         {
-          "name": "installModelProviders/resolveTaskDefaults",
+          "name": "installModelProviders/resolveTaskDefaults/resolveTaskDefaults",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/resolveTaskDefaults/resolveTaskDefaults#2",
           "parameters": [
             "selectedModel",
             "taskMaxOutputTokens",
@@ -12131,16 +12163,85 @@
           "async": false
         },
         {
-          "name": "installModelProviders/resolveTaskDefaults/resolveTaskDefaults",
+          "name": "modelDefaultsCallbacks",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "modelDefaultsResolver",
+          "parameters": [
+            "moon",
+            "providerId",
+            "bindingOriginals",
+            "assertCurrent",
+            "receiver",
+            "reader",
+            "resolver",
+            "bindingReader",
+            "usageReader"
+          ],
+          "async": false
+        },
+        {
+          "name": "modelDefaultsResolver/resolveTaskDefaults",
+          "parameters": [
+            "selectedModel",
+            "taskMaxOutputTokens",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "installModelProviders/resolveTaskDefaults/resolveTaskDefaults#2",
+          "name": "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#2",
           "parameters": [
             "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledModelProviderDefaults",
+          "parameters": [
+            "moon",
+            "providerId",
+            "bindingOriginals",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledModelProviderDefaults/check/check",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledModelProviderDefaults/init:bindRegistration/init:bindRegistration",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledModelProviderDefaults/resolveTaskDefaults/resolveTaskDefaults",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledModelProviderDefaults/state/init:adopt/init:adopt",
+          "parameters": [
+            "runtime",
+            "id",
+            "source",
+            "current",
+            "installationCurrent"
           ],
           "async": false
         },
@@ -12277,7 +12378,6 @@
             "installModelProviders/installModelProviders#2",
             "installModelProviders/installModelProviders#3",
             "installModelProviders/requireEagerSdkStartup/requireEagerSdkStartup",
-            "installModelProviders/resolveTaskDefaults",
             "installModelProviders/resolveTaskDefaults/resolveTaskDefaults",
             "installModelProviders/resolveTaskDefaults/resolveTaskDefaults#2",
             "installedModelEnvironment",
@@ -12387,7 +12487,7 @@
               },
               {
                 "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "let defaultsOriginal, defaultsBounds, defaultsReadFailure;"
+                "anchor": "let original, bounds, readFailure;"
               }
             ],
             "synchronization": [
@@ -12427,7 +12527,7 @@
               },
               {
                 "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "if (defaultsReadFailure !== undefined) throw defaultsReadFailure.cause;"
+                "anchor": "if (readFailure !== undefined) throw readFailure.cause;"
               }
             ],
             "cancellation": [
@@ -12500,6 +12600,150 @@
               {
                 "path": "adapters/host-node/installed-model-defaults.actual.test.mjs",
                 "anchor": "test('actual Common failed profile read cannot replace original reader bounds or discard its refusal'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "assertInstalledModelDefaultsAdoption",
+            "assertInstalledModelDefaultsPreparation",
+            "installModelProviders/installModelProviders#4",
+            "modelDefaultsCallbacks",
+            "modelDefaultsResolver",
+            "modelDefaultsResolver/resolveTaskDefaults",
+            "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults",
+            "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#2",
+            "prepareInstalledModelProviderDefaults",
+            "prepareInstalledModelProviderDefaults/check/check",
+            "prepareInstalledModelProviderDefaults/init:bindRegistration/init:bindRegistration",
+            "prepareInstalledModelProviderDefaults/resolveTaskDefaults/resolveTaskDefaults",
+            "prepareInstalledModelProviderDefaults/state/init:adopt/init:adopt"
+          ],
+          "exports": [
+            "assertInstalledModelDefaultsAdoption",
+            "assertInstalledModelDefaultsPreparation",
+            "prepareInstalledModelProviderDefaults"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The private Host may prepare configuration defaults before it registers a"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "export function prepareInstalledModelProviderDefaults("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "return Object.freeze({value: original, resolved, binding, readUsage});"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "export async function prepareInstalledProjectModelTasks("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "preparedState.providerId !== providerId || preparedState.originals !== bindingSource"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "if (installedDefaults.get(provider) !== view) {"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "assertInstalledModelDefaultsAdoption(provider, task.providerDefaults, moon, task.providerId);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "const defaultsPreparations = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const retained = Object.freeze(tasks);"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "These preparation records, WeakMap associations, retained configuration Strings,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "const defaultsCallbacks = modelDefaultsCallbacks(moon);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "assertOriginals(runtime);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "spent = true;"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "if (readFailure !== undefined) throw readFailure.cause;"
+              },
+              {
+                "path": "adapters/host-node/model-task-candidate-binding.actual.test.mjs",
+                "anchor": "test('candidate adoption refuses copied/equal configuration and another runtime before Core installation'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "assertCurrent();"
+              },
+              {
+                "path": "adapters/host-node/model-task-candidate-binding.actual.test.mjs",
+                "anchor": "test('candidate files retain after-await current and pending original FD cleanup obligations'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "inventory. Candidate and installed views may overlap; their aliases and the"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "const nextBounds = retainModelDefaultsLimits(limits);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const bounds = snapshotLimits(limits);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "This connection neither acquires Model input nor issues startup, capacity,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "if (!candidate) return installedView(retained, originalsForRuntime);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/model-task-candidate-binding.actual.test.mjs",
+                "anchor": "test('actual Common Task candidates precede registration and retain the same defaults after adoption'"
+              },
+              {
+                "path": "adapters/host-node/model-task-candidate-binding.actual.test.mjs",
+                "anchor": "test('bound candidate currentness keeps both original project and actual registration fences'"
               }
             ]
           }
