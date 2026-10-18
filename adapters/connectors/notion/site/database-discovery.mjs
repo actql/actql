@@ -23,7 +23,7 @@ const selectedPorts=['notionSelectReadSource','notionReadSourceSelectionMatches'
   'notionReadSourceSelectionId','notionProjectSelectedReadSource','notionBindSelectedReadContracts'];
 const publicationPorts=['notionCaptureDatabaseReadSnapshot','notionDatabaseReadSnapshotMatches',
   'notionDatabaseReadSnapshotWire','notionDatabaseReadSnapshotSourceCid',
-  'notionReadDatabaseDeclarationOriginalJson','notionReadDatabaseDeclarationSourceCid',
+  'notionDatabaseReadDeclarationOriginalJson','notionReadDatabaseDeclarationSourceCid',
   'notionDatabaseOriginalJson','notionDataSourceOriginalJson'];
 function ownData(value,names,code){
   if(value===null||typeof value!=='object'||types.isProxy(value)||Object.getPrototypeOf(value)!==Object.prototype)fail(code);
@@ -241,7 +241,7 @@ export async function captureNotionDatabaseDiscoveryPublication(reader,result,li
     if(p.call('notionDatabaseReadSnapshotMatches',snapshot,result.selection,result.source,result.readContracts)!==true)fail('ForeignNotionDiscoveryPublication');
     const snapshotWire=checked(p.call('notionDatabaseReadSnapshotWire',snapshot));
     const snapshotSourceCid=checked(p.call('notionDatabaseReadSnapshotSourceCid',snapshot));
-    const declarationWire=checked(p.call('notionReadDatabaseDeclarationOriginalJson',result.declaration,bound.maxBytes));
+    const declarationWire=checked(p.call('notionDatabaseReadDeclarationOriginalJson',result.declaration,bound.maxBytes));
     const declarationSourceCid=p.call('notionReadDatabaseDeclarationSourceCid',result.declaration);
     p.assertCurrent();original.signal.throwIfAborted();
     const view=Object.freeze({publicationRequest:p.request,publicationOriginals:p.originals,

@@ -51,7 +51,8 @@ test('publication capture refuses copies mixed reader results and another captur
 test('publication origin is captured before I/O and copied requests or a missing original cannot issue live capture',async t=>{
   const f=await siteMetadataDiscoveryFixture(t);
   await f.run(async x=>{
-    assert.throws(()=>x.reader({publication:{...x.options.publication,request:{...x.options.publication.request}}}));
+    assert.throws(()=>x.reader({publication:{...x.options.publication,request:{...x.options.publication.request}}}),
+      {code:'ForeignInstalledSourcePublication'});
     const reader=x.reader({publication:undefined}),result=await reader.read();
     await assert.rejects(capture(reader,result,limits),{code:'NotionDiscoveryPublicationUnavailable'});
     assert.equal(f.state.requests.length,2);assert.equal(reader.observe().cleanupConfirmed,false);
@@ -60,20 +61,23 @@ test('publication origin is captured before I/O and copied requests or a missing
 
 test('live capture rechecks actual publication Account and Site after read and never reopens a failed capture',async t=>{
   for(const kind of ['profile','account','site']){
-    const f=await siteMetadataDiscoveryFixture(t);
+    const f=await siteMetadataDiscoveryFixture(t);let readCompleted=false;
     await assert.rejects(f.run(async x=>{
-      const reader=x.reader(),result=await reader.read();
+      const reader=x.reader(),result=await reader.read();readCompleted=true;
       const path=kind==='profile'?f.profilePath:kind==='account'?f.accountPath:x.sitePath;
       const document=JSON.parse(await readFile(path,'utf8'));
       if(kind==='profile')document.connectorId='foreign';
       if(kind==='account')document.entries[0].outcome='deny';
       if(kind==='site')document.siteGeneration++;
       await writeFile(path,JSON.stringify(document));
-      let failure;await assert.rejects(capture(reader,result,limits),cause=>{failure=cause;return true;});
+      let failure;await assert.rejects(capture(reader,result,limits),cause=>{
+        failure=cause;assert.notEqual(cause.code,'InvalidNotionDiscoveryPublication');
+        if(kind==='profile')assert.equal(cause.code,'InstalledSourcePublicationChanged');return true;});
       assert.equal(f.state.requests.length,2);assert.equal(reader.observe().cleanupConfirmed,false);
       // Propagate the actual failure through the original Host cleanup owner.
       throw failure;
     }));
+    assert.equal(readCompleted,true,'Current counter must reach the original successful read before replacement');
   }
 });
 
