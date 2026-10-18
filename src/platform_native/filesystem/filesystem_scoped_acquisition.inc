@@ -72,6 +72,17 @@ MOONBIT_FFI_EXPORT void *actql_native_filesystem_acquire_current_root(
   return result;
 }
 
+MOONBIT_FFI_EXPORT void *actql_native_filesystem_acquire_current_private_root(
+  moonbit_bytes_t path, int32_t length, int32_t diagnostic_ceiling
+) {
+  actql_filesystem_scoped_acquisition *result = actql_filesystem_new_acquisition(false);
+  actql_native_filesystem_root *root = NULL;
+  result->status = actql_native_filesystem_scoped_open_current_private_root(
+    path, length, diagnostic_ceiling, &root);
+  result->original = root;
+  return result;
+}
+
 MOONBIT_FFI_EXPORT void *actql_native_filesystem_acquire_scoped_reader(
   actql_native_filesystem_root *root, moonbit_bytes_t name, int32_t length,
   uint64_t device, uint64_t inode, int64_t size
