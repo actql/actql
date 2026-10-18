@@ -19,7 +19,7 @@ const get = WeakMap.prototype.get, set = WeakMap.prototype.set;
 const installations = new NativeWeakMap();
 const names = freeze(['prepareSourceManagedInstallation', 'assertSourceManagedInstallationCurrent',
   'beforeSourceSnapshot', 'bindSourceSnapshot', 'bindSourceRequest',
-  'finishSourceProducer', 'closeSourceManagedInstallation', 'sourceIntentCid']);
+  'finishSourceProducer', 'closeSourceManagedInstallation', 'sourceIntentCid', 'prepareSourceManagedRead']);
 const callbacks = names.map(name => {
   const d = descriptor(originalOwner, name);
   return d !== undefined && hasOwn(d, 'value') && typeof d.value === 'function' ? d.value : undefined;
@@ -134,6 +134,17 @@ export async function prepareSourceManagedInstallation(originals) {
       if (result !== undefined) unavailable();
     },
     assertCurrent() {current(state);},
+    prepareRead(originalDerivedRequest, originalDeclaration) {
+      current(state);
+      // The same captured Root follows the actual Host's retained transform
+      // binding, then checks its own receipt and declaration originals. This
+      // wrapper cannot construct a child from a declaration label or ordinal.
+      const read = invoke(8, [state.installation, state.originals,
+        originalDerivedRequest, originalDeclaration]);
+      if (read === null || typeof read !== 'object' || isPromise(read)) unavailable();
+      current(state);
+      return read;
+    },
     // A single original close flight. Cutting these aliases cannot return
     // shared VM byte credit; failure observations retain their real lifetime.
     close() {return close(state);},

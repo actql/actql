@@ -22,7 +22,7 @@ function fixture(t,{inventory=true,changeImage=false,publicNode=false}={}) {
   sources.set('spec/local-check-environment.json',Buffer.from('{"original":"ordinary-asset"}\n'));
   sources.set('initial-control-public-dispatch.cjs',readFileSync(new URL('../../packages/local-node/initial-control-public-dispatch.cjs',import.meta.url)));
   for(const name of ['node-public-initial-control-bootstrap.cjs','initial-control-installation-owner.cjs',
-    'initial-control-phase-envelope.cjs','initial-control-package-custody.cjs','initial-control-image-source.cjs',
+    'initial-control-phase-envelope.cjs','source-managed-phase-envelope.cjs','initial-control-package-custody.cjs','initial-control-image-source.cjs',
     'initial-control-image-loader.cjs','node-initial-control-installation.mjs','initial-control-host-input.mjs']) {
     sources.set('adapters/host-node/'+name,readFileSync(new URL('./'+name,import.meta.url)));
   }
