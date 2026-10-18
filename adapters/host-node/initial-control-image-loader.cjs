@@ -118,11 +118,12 @@ function installInitialControlImageLoader(groups) {
       const exportsProperty = held.module === undefined ? undefined : descriptor(held.module, 'exports');
       let same = held.module === undefined ? property === undefined :
         property !== undefined && hasOwn(property, 'value') && property.value === held.module &&
-        descriptor(held.module, 'filename')?.value === held.filename &&
         exportsProperty !== undefined && hasOwn(exportsProperty, 'value') &&
         exportsProperty.value === held.exports &&
-        (descriptor(held.module, 'loaded')?.value === true ||
-          held.loading && nativeApply(preloading, module, []) === true);
+        (held.jsonInterop ? jsonInteropRecord(held.module) :
+          descriptor(held.module, 'filename')?.value === held.filename &&
+          (descriptor(held.module, 'loaded')?.value === true ||
+            held.loading && nativeApply(preloading, module, []) === true));
       if (same && held.properties !== undefined) {
         const names = ownKeys(held.exports);
         same = names.length === held.properties.length;
@@ -137,6 +138,22 @@ function installInitialControlImageLoader(groups) {
       }
       if (!same) { invalidated = true; fail('InitialControlImageLoaderChanged'); }
     }
+  }
+  function jsonInteropRecord(value) {
+    // Node's synchronous ESM JSON translator publishes a completed two-field
+    // cache record, not a filename-bearing CommonJS Module. This exact header
+    // is accepted ONLY for delivered JSON below, with a same-Source tree check;
+    // it cannot authenticate an arbitrary cache preseed or CommonJS record.
+    if (value === null || typeof value !== 'object' || prototype(value) !== objectPrototype) return false;
+    const names = ownKeys(value);
+    if (names.length !== 2 || names[0] !== 'exports' || names[1] !== 'loaded') return false;
+    for (let index = 0; index < names.length; index++) {
+      const property = descriptor(value, names[index]);
+      if (property === undefined || !hasOwn(property, 'value') || property.writable !== true ||
+          property.enumerable !== true || property.configurable !== true ||
+          names[index] === 'loaded' && property.value !== true) return false;
+    }
+    return true;
   }
   function sealJsonOriginal(original, exported) {
     // Only selected JSON compiler metadata, not arbitrary CJS exports, library
@@ -197,7 +214,9 @@ function installInitialControlImageLoader(groups) {
       }
       const current = property.value, filenameProperty = descriptor(current, 'filename');
       const exportsProperty = descriptor(current, 'exports'), loadedProperty = descriptor(current, 'loaded');
-      if (filenameProperty?.value !== filename || exportsProperty === undefined ||
+      const jsonInterop = original.format === 'json' && filenameProperty === undefined &&
+        nativeApply(nativeMapHas, delivered, [original.url]) && jsonInteropRecord(current);
+      if ((!jsonInterop && filenameProperty?.value !== filename) || exportsProperty === undefined ||
           !hasOwn(exportsProperty, 'value') || typeof loadedProperty?.value !== 'boolean') {
         invalidated = true; fail('InitialControlImageLoaderChanged', original.path);
       }
@@ -223,7 +242,7 @@ function installInitialControlImageLoader(groups) {
       // Preexisting bootstrap records have their separate original Source duty.
       // Capturing their identity here never proves their already-executed body.
       loadedModules[loadedModules.length] = {filename, module: current, exports: exported,
-        loading: loadedProperty.value === false, properties};
+        loading: loadedProperty.value === false, jsonInterop, properties};
     }]);
     loadedCaptured = true;
     assertCurrent();

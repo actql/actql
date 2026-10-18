@@ -282,6 +282,14 @@ The original Module/tree/Source overlaps the second parse, comparison pairs,
 key/descriptor walk, node array, weak membership and native freeze workspace;
 sealing or later GC is not physical cleanup, a reservation or funding.
 
+Completed native ESM JSON translation can publish the original two-field
+`exports`/`loaded` cache record without a CommonJS `filename`. Only already
+Source-delivered JSON may use that exact header, with the same full Source/tree
+check, sealing and retained record/exports identity. A matching cache preseed
+without delivery remains refused, and CommonJS images still require their
+filename-bearing Module. This Node interop distinction does not authenticate
+prior cache ownership, nested library state or loader registration history.
+
 The original startup publishes its same immutable forwarder table before
 synchronous Host namespace initialization can reenter that Module. A missing
 captured callback must not be confused with a refusal from the original Owner

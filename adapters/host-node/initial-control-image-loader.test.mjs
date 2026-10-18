@@ -93,6 +93,65 @@ test('captured JSON metadata keeps its original nested records and arrays immuta
   assert.equal(result.status, 0, result.stderr);
 });
 
+test('original ESM JSON interop cache records retain the same Source tree and exact record before entry', t => {
+  const f = fixture(t, {'owner.mjs': 'import value from "./original.json" with {type:"json"};export default value;',
+    'original.json': '{"policy":{"maxRows":1},"values":[null,-0]}'});
+  const result = f.run([
+    'import assert from "node:assert/strict";',
+    'import{createRequire}from"node:module";const require=createRequire(import.meta.url);',
+    'assert.equal(require.cache[originalJsonFile],originalJsonRecord);',
+    'assert.ok(Object.isFrozen(originalJson.policy));assert.ok(Object.isFrozen(originalJson.values));',
+    'assert.ok(Object.is(originalJson.values[1],-0));',
+    'originalImageLoader.assertCurrent();',
+    'require.cache[originalJsonFile]={exports:originalJson};',
+    'assert.throws(()=>originalImageLoader.assertCurrent(),{code:"InitialControlImageLoaderChanged"});',
+  ].join('\n'), [
+    'globalThis.originalJson=require(require("node:path").join(root,"owner.mjs")).default;',
+    'globalThis.originalJsonFile=require.resolve(require("node:path").join(root,"original.json"));',
+    'globalThis.originalJsonRecord=require.cache[originalJsonFile];',
+    'const assert=require("node:assert/strict");',
+    'assert.deepEqual(Reflect.ownKeys(originalJsonRecord),["exports","loaded"]);',
+    'assert.equal(originalJsonRecord.loaded,true);',
+    'assert.equal(Object.getPrototypeOf(originalJsonRecord),Object.prototype);',
+    'originalImageLoader.captureLoadedModules();',
+  ].join('\n'));
+  assert.equal(result.status,0,result.stderr);
+});
+
+test('original ESM JSON interop cannot admit a modified parsed tree', t => {
+  const f = fixture(t, {'owner.mjs': 'import value from "./original.json" with {type:"json"};export default value;',
+    'original.json': '{"policy":{"maxRows":1}}'});
+  const result = f.run('throw new Error("EntryMustNotRun");', [
+    'const original=require(require("node:path").join(root,"owner.mjs")).default;',
+    'original.policy.maxRows=2;',
+    'originalImageLoader.captureLoadedModules();',
+  ].join('\n'));
+  assert.notEqual(result.status,0);assert.match(result.stderr,/InitialControlImageLoaderChanged/);
+  assert.doesNotMatch(result.stderr,/EntryMustNotRun/);
+});
+
+test('original ESM JSON interop never licenses an abbreviated CommonJS cache record', t => {
+  const f = fixture(t, {'original.cjs': 'module.exports={value:"original"};'});
+  const result = f.run('throw new Error("EntryMustNotRun");', [
+    'const file=require.resolve(require("node:path").join(root,"original.cjs"));',
+    'const value=require(file);require.cache[file]={exports:value};',
+    'originalImageLoader.captureLoadedModules();',
+  ].join('\n'));
+  assert.notEqual(result.status,0);assert.match(result.stderr,/InitialControlImageLoaderChanged/);
+  assert.doesNotMatch(result.stderr,/EntryMustNotRun/);
+});
+
+test('original ESM JSON interop refuses an equal cache preseed without Source delivery', t => {
+  const f = fixture(t, {'original.json': '{"policy":{"maxRows":1}}'});
+  const result = f.run('throw new Error("EntryMustNotRun");',
+    'originalImageLoader.captureLoadedModules();', [
+      'const filename=require.resolve('+JSON.stringify(join(f.images,'original.json'))+');',
+      'require("node:module")._cache[filename]={exports:{policy:{maxRows:1}},loaded:true};',
+    ].join('\n'));
+  assert.notEqual(result.status,0);assert.match(result.stderr,/InitialControlImageLoaderChanged/);
+  assert.doesNotMatch(result.stderr,/EntryMustNotRun/);
+});
+
 test('a nested JSON value changed before capture cannot substitute captured Source metadata', t => {
   const f = fixture(t, {'original.json': '{"policy":{"maxRows":1}}'});
   const result = f.run('throw new Error("EntryMustNotRun");', [
