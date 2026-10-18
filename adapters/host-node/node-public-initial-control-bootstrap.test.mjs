@@ -28,7 +28,8 @@ function fixture(t,{inventory=true,changeImage=false}={}) {
   sources.set('adapters/host-node/embedded-local.mjs',Buffer.from(
     'import{beginInitialControlInstallation,readInitialControlInstallationInput,readInitialControlInstallationAsset}from"./node-initial-control-installation.mjs";'+
     'export{snapshotInitialControlHostInput as readInitialControlHostInput}from"./initial-control-host-input.mjs";'+
-    'let originals;export function assertInitialControlHostPreparation(held){if(held!==originals)throw new Error("ForeignHostFixture");}'+
+    'let originals;export function assertInitialControlHostPreparation(held){'+
+    'if(!originals||["host","installation","generation","supplier","moduleLifetime"].some(name=>held[name]!==originals[name]))throw new Error("ForeignHostFixture");}'+
     'export async function connectInitialControlHostPreparation(kind,raw){'+
     'originals=Object.freeze({host:{},installation:{},generation:{},supplier:connectInitialControlHostPreparation,moduleLifetime:import.meta});'+
     'const scope=await beginInitialControlInstallation(originals,raw);'+
