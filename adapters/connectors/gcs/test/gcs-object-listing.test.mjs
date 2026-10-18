@@ -79,8 +79,24 @@ test('GCS timestamp Source DATA uses the same UTC instant while retaining the ex
   assert.equal(JSON.parse(state.charges[0].body).items[0].updated, reported);
 });
 
-test('unrepresentable GCS sub-millisecond timestamps refuse without rounding or issuing a Resource', async () => {
-  const reported = '2026-10-17T00:00:00.123001Z';
+test('GCS exact sub-millisecond timestamps retain the original physical report and Resource version', async () => {
+  for (const [reported, expected] of [
+    ['2026-10-17T00:00:00.123001Z', '2026-10-17T00:00:00.123001Z'],
+    ['2026-10-17T01:30:00.123456789+01:30', '2026-10-17T00:00:00.123456789Z'],
+    ['1969-12-31T23:59:59.999999999Z', '1969-12-31T23:59:59.999999999Z'],
+  ]) {
+    const {options, state} = fixture([{kind: 'storage#objects', items: [{...item, updated: reported}]}]);
+    await readGcsObjects(options);
+    assert.equal(state.rows[0][0].updated, expected);
+    assert.equal(state.rows[0][0].version, item.generation);
+    assert.equal(JSON.parse(state.charges[0].body).items[0].updated, reported);
+    assert.equal(state.resources.length, 1);
+    assert.deepEqual(state.events, ['current', 'send', 'charge', 'consume']);
+  }
+});
+
+test('unrepresentable GCS beyond-nine-digit timestamps refuse without rounding or issuing a Resource', async () => {
+  const reported = '2026-10-17T00:00:00.1234567891Z';
   const {options, state} = fixture([{kind: 'storage#objects', items: [{...item, updated: reported}]}]);
   await assert.rejects(readGcsObjects(options), {code: 'GcsInvalidObjectMetadata'});
   assert.equal(state.calls.length, 1);
