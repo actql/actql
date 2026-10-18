@@ -32,7 +32,8 @@ fn[T] NativeLocalJournalOriginalResources::query_while_read(
       return Err(issue)
     }
   }
-  match self.host.require_local_host_consuming_read_current(self.pair, self.read) {
+  match
+    self.host.require_local_host_consuming_read_current(self.pair, self.read) {
     Err(issue) => {
       self.interrupted = true
       return Err(OriginalResources(issue))
@@ -95,13 +96,14 @@ fn NativeLocalJournalReadQueries::access(
       self.query(() => submission_name_census_ffi(self.database)).unwrap_or(-1L)
     },
     transaction: operation => {
-      match self.query(() => {
-        match operation {
-          JournalBegin => self.database.begin_immediate()
-          JournalCommit => self.database.commit()
-          JournalRollback => self.database.rollback()
-        }
-      }) {
+      match
+        self.query(() => {
+          match operation {
+            JournalBegin => self.database.begin_immediate()
+            JournalCommit => self.database.commit()
+            JournalRollback => self.database.rollback()
+          }
+        }) {
         Ok(value) => value
         Err(issue) => Err(issue)
       }
@@ -122,9 +124,11 @@ fn[T] NativeLocalJournalOriginalResources::audit_read_stage(
       failure: None,
     }
     let result = audit(queries.access())
-    match queries.failure {
-      Some(original) => Err(original)
-      None => result
+    match (queries.failure, result) {
+      (Some(original), Err(Journal(TransactionUnknown))) =>
+        Err(InstallationReadTransactionFailure(original, TransactionUnknown))
+      (Some(original), _) => Err(original)
+      (None, value) => value
     }
   })
 }
