@@ -27267,7 +27267,7 @@
     {
       "module": "adapters/host-node/infer-trusted-node-preload.cjs",
       "responsibilityFacet": "primary",
-      "sha256": "fe21feb525e906a746ca63d246778584051adeb648082184e2c26ecd82852f4d",
+      "sha256": "a49db1346c75cf399a1e8806ef84ce90b3f514baad60ac30de885b187ad94fc1",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -27279,6 +27279,7 @@
         "commonjs:check",
         "commonjs:checkSdkEagerModules",
         "commonjs:checkSdkStaticModules",
+        "commonjs:connectInitialControlHostPreparation",
         "commonjs:readInitialControlInstallationAsset",
         "commonjs:readInitialControlInstallationInput",
         "commonjs:retire"
@@ -27387,6 +27388,14 @@
           "async": false
         },
         {
+          "name": "init:connectInitialControlHostPreparation/init:connectInitialControlHostPreparation",
+          "parameters": [
+            "kind",
+            "rawInput"
+          ],
+          "async": false
+        },
+        {
           "name": "init:readInitialControlInstallationAsset/init:readInitialControlInstallationAsset",
           "parameters": [
             "scope",
@@ -27483,6 +27492,7 @@
             "init:check/init:check",
             "init:checkSdkEagerModules/init:checkSdkEagerModules",
             "init:checkSdkStaticModules/init:checkSdkStaticModules",
+            "init:connectInitialControlHostPreparation/init:connectInitialControlHostPreparation",
             "init:readInitialControlInstallationAsset/init:readInitialControlInstallationAsset",
             "init:readInitialControlInstallationInput/init:readInitialControlInstallationInput",
             "init:retire/init:retire",
@@ -27504,6 +27514,7 @@
             "commonjs:check",
             "commonjs:checkSdkEagerModules",
             "commonjs:checkSdkStaticModules",
+            "commonjs:connectInitialControlHostPreparation",
             "commonjs:readInitialControlInstallationAsset",
             "commonjs:readInitialControlInstallationInput",
             "commonjs:retire"
@@ -27605,6 +27616,10 @@
               {
                 "path": "adapters/host-node/initial-control-preparation-input.test.mjs",
                 "anchor": "input projection binds its nominal Scope, five originals and original receiver"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ancestor public preload wrappers publish their same immutable null-prototype"
               }
             ],
             "ownership": [
@@ -27677,6 +27692,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
                 "anchor": "// This callback starts synchronously in the caller's original stack,"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "table before nested loading. A later exports replacement or Node's circular-"
               }
             ],
             "failure": [
@@ -27867,6 +27886,10 @@
               {
                 "path": "adapters/host-node/initial-control-preparation-input.test.mjs",
                 "anchor": "snapshot handoff refuses malformed or asynchronous results without observing them"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "the actual selected public preload consumes generated inventory without issuing a Scope"
               }
             ]
           }
@@ -27875,6 +27898,7 @@
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "./initial-control-installation-owner.cjs",
+        "./initial-control-package-custody.cjs",
         "./initial-control-package-original.cjs",
         "node:buffer",
         "node:http",
@@ -28908,7 +28932,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-installation-owner.cjs",
-      "sha256": "32386c67238c611a41bec49a46b4f7c8ce0b534714d8808a100b9992d9506c58",
+      "sha256": "c05cb010d56e61302125c10f70969ca9506fa728fd10354772cd18c53de73df6",
       "exports": [
         "commonjs:createInitialControlInstallationOwner"
       ],
@@ -29066,6 +29090,11 @@
           "async": false
         },
         {
+          "name": "createInitialControlInstallationOwner/requireOperational",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createInitialControlInstallationOwner/retainPreparation",
           "parameters": [
             "scope",
@@ -29170,6 +29199,7 @@
             "createInitialControlInstallationOwner/readAsset",
             "createInitialControlInstallationOwner/readInput",
             "createInitialControlInstallationOwner/remember",
+            "createInitialControlInstallationOwner/requireOperational",
             "createInitialControlInstallationOwner/retainPreparation",
             "createInitialControlInstallationOwner/retainPreparation/init:releaseReferences/init:releaseReferences",
             "createInitialControlInstallationOwner/stateFor",
@@ -29241,6 +29271,10 @@
               {
                 "path": "adapters/host-node/initial-control-preparation-input.test.mjs",
                 "anchor": "input projection binds its nominal Scope, five originals and original receiver"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ancestor public preload wrappers publish their same immutable null-prototype"
               }
             ],
             "ownership": [
@@ -29281,6 +29315,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
                 "anchor": "// This callback starts synchronously in the caller's original stack,"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "table before nested loading. A later exports replacement or Node's circular-"
               }
             ],
             "failure": [
@@ -29403,12 +29441,225 @@
               {
                 "path": "adapters/host-node/initial-control-preparation-input.test.mjs",
                 "anchor": "snapshot handoff refuses malformed or asynchronous results without observing them"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "the actual selected public preload consumes generated inventory without issuing a Scope"
               }
             ]
           }
         }
       ],
       "referenceQualification": "Original-custody state and nominal membership references. Explicit operational controls in tests are not the actual preload envelope supplier or normal Host acceptance."
+    },
+    {
+      "module": "adapters/host-node/initial-control-package-custody.cjs",
+      "sha256": "5374343f3a5f587557869279257a8dd08dcb5f8519579d2ebf6b8bd7f5b519ba",
+      "exports": [
+        "commonjs:captureInitialControlPackageCustody"
+      ],
+      "operations": [
+        {
+          "name": "captureInitialControlPackageCustody",
+          "parameters": [
+            "inventory",
+            "localRoot"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureInitialControlPackageCustody/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "captureInitialControlPackageCustody/captureDependency",
+          "parameters": [
+            "binding",
+            "from"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureInitialControlPackageCustody/captureGroup",
+          "parameters": [
+            "directory",
+            "facts",
+            "expectedName",
+            "expectedVersion"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureInitialControlPackageCustody/initializeHostNamespace",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "captureInitialControlPackageCustody/readAsset",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureInitialControlPackageCustody/resolvePackage",
+          "parameters": [
+            "name",
+            "from"
+          ],
+          "async": false
+        },
+        {
+          "name": "concrete/concrete",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "concrete/concrete/concrete",
+          "parameters": [
+            "part"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "own/own",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./initial-control-image-loader.cjs",
+        "./initial-control-image-source.cjs",
+        "node:fs",
+        "node:module",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing private Host/Resource installed package Source and namespace custody; not an operational issuer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "captureInitialControlPackageCustody",
+            "captureInitialControlPackageCustody/assertCurrent",
+            "captureInitialControlPackageCustody/captureDependency",
+            "captureInitialControlPackageCustody/captureGroup",
+            "captureInitialControlPackageCustody/initializeHostNamespace",
+            "captureInitialControlPackageCustody/readAsset",
+            "captureInitialControlPackageCustody/resolvePackage",
+            "concrete/concrete",
+            "concrete/concrete/concrete",
+            "fail/fail",
+            "own/own"
+          ],
+          "exports": [
+            "commonjs:captureInitialControlPackageCustody"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "anchor": "// Private installed-image custody, not an operational issuer."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "anchor": "function captureInitialControlPackageCustody(inventory, localRoot)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "anchor": "function captureDependency(binding, from)"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "a package identity mismatch refuses even when its captured files match the DATA facts"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "anchor": "// Held Sources, module/namespace records, loader hooks and caches remain the"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "anchor": "function initializeHostNamespace()"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "original Local and resolved dependency package before optional SDK and Host"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "a mismatched captured package image refuses before Host and entry compilation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "application-time package capture refuses before observing a caller inventory"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "anchor": "const groups = [], actualPackages = [], roots = new NativeMap(), mainSources = new NativeMap();"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same-phase envelope includes raw read backing and lookahead, concatenation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "or the presence of that operation alone does not enable dispatch, and only the"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "package custody loads the same captured Host Source and immutable asset before entry"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "selected dependency graph uses the actual resolved original package Sources"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "uncaptured Host dependencies cannot acquire package-image coverage"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Actual filesystem and Node loader component with a disclosed small Host fixture only. Original operational runtime/intake envelope, prior registration ownership, complete normal Host and business funding remain separate."
     },
     {
       "module": "adapters/host-node/initial-control-package-original.cjs",

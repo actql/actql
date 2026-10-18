@@ -2223,7 +2223,7 @@
     {
       "module": "packages/local-node/selected-infer-startup.cjs",
       "responsibilityFacet": "primary",
-      "sha256": "70465b923cffe2ff0036324a1e898abc20eea77c90973c3174f4a4059a1e9230",
+      "sha256": "cfb357c040088300181590476df64ce580c89d10b3e8041e137e21e0d23e06d4",
       "exports": [],
       "operations": [],
       "imports": [
@@ -2261,6 +2261,10 @@
               {
                 "path": "packages/local-node/selected-infer-startup.cjs",
                 "anchor": "'use strict';"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ancestor public preload wrappers publish their same immutable null-prototype"
               }
             ],
             "ownership": [
@@ -2281,6 +2285,10 @@
               {
                 "path": "packages/local-node/selected-infer-startup.cjs",
                 "anchor": "'use strict';"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "table before nested loading. A later exports replacement or Node's circular-"
               }
             ],
             "failure": [
@@ -2327,6 +2335,10 @@
               {
                 "path": "scripts/selected-infer-startup-entry.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "the actual selected public preload consumes generated inventory without issuing a Scope"
               }
             ]
           }
@@ -2823,7 +2835,7 @@
     {
       "module": "packages/node/selected-infer-startup.cjs",
       "responsibilityFacet": "primary",
-      "sha256": "f8fef994bca92ae052ec8d9d94ea9ab0e748977063fa42e0afdc41e83503206b",
+      "sha256": "edc1b69816758c5b6cc57ed805f10363ba4e06cf0206fc4e4eb818bd9ce63956",
       "exports": [],
       "operations": [],
       "imports": [
@@ -2861,6 +2873,10 @@
               {
                 "path": "packages/node/selected-infer-startup.cjs",
                 "anchor": "'use strict';"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ancestor public preload wrappers publish their same immutable null-prototype"
               }
             ],
             "ownership": [
@@ -2881,6 +2897,10 @@
               {
                 "path": "packages/node/selected-infer-startup.cjs",
                 "anchor": "'use strict';"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "table before nested loading. A later exports replacement or Node's circular-"
               }
             ],
             "failure": [
@@ -2927,6 +2947,10 @@
               {
                 "path": "scripts/selected-infer-startup-entry.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "the actual selected public preload consumes generated inventory without issuing a Scope"
               }
             ]
           }
