@@ -193,8 +193,13 @@ test "comment Source request chooses closed native subject and fixed read query 
       Some("cursor-original"),
     ).unwrap()
     let json = @json.parse(request) catch { _ => abort("invalid request JSON") }
-    assert_eq(json["variables"]["id"], Json::string("S_original"))
-    assert_eq(json["variables"]["first"], Json::number(100))
+    guard json is Object(root) else { abort("request not object") }
+    let expected : Json = {
+      "id": "S_original".to_json(),
+      "first": Json::number(100.0),
+      "after": "cursor-original".to_json(),
+    }
+    assert_eq(root.get("variables"), Some(expected))
     assert_true(request.contains("comments(first: $first"))
     assert_true(request.contains("fullDatabaseId"))
     assert_false(request.contains("mutation"))
