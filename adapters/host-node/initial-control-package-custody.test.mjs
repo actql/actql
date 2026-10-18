@@ -215,7 +215,7 @@ for (const route of ['local-node', 'node']) test('the actual eager '+route+' pre
     'const rootFile=require.resolve('+JSON.stringify(join(local, 'adapters/host-node/infer-trusted-node-preload.cjs'))+');const root=require(rootFile);',
     'const view={};assert.equal(root.associateHost(view,{runtime:process,host:{},installation:{},generation:{},supplier(){}}),view);',
     'let reads=0;const raw=new Proxy({},{ownKeys(){reads++;throw new Error("RawInput");}});',
-    'assert.throws(()=>root.beginInitialControlInstallation({},raw),{code:"NodeInitialControlAdmissionUnavailable"});',
+    'assert.throws(()=>root.beginInitialControlInstallation({},raw),{code:"NodeInitialControlOriginalChanged"});',
     'assert.throws(()=>root.connectInitialControlHostPreparation("open",raw),{code:"NodeInitialControlInputUnavailable"});',
     'assert.throws(()=>originalLocalDispatch.selectedInitialControlHostPreparation("open",raw),{code:"NodeInitialControlInputUnavailable"});',
     ...(route === 'node' ? ['assert.throws(()=>originalNodeDispatch.selectedInitialControlHostPreparation("open",raw),{code:"NodeInitialControlInputUnavailable"});'] : []),
