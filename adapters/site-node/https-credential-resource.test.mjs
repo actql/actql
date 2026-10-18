@@ -260,6 +260,68 @@ test('Run response original retains the exact immutable physical POST text witho
   assert.equal(setup.requests(), 1);
 });
 
+test('Run response original retains the physical conditional request representation after caller mutation', async t => {
+  let received;
+  const setup = await fixture(t, {onRequest(request, response) {
+    received = {accept: request.headers.accept,
+      acceptEncoding: request.headers['accept-encoding'],
+      ifMatch: request.headers['if-match']};
+    response.writeHead(200, {etag: '"original-response"',
+      'content-encoding': 'identity'});
+    response.end('{}');
+    return true;
+  }});
+  const selected = scope(setup.origin);
+  const grant = control.prepare(selected);
+  setup.journal.acceptGrant(setup.sign(grant), control);
+  const headers = [['accept', 'application/json'],
+    ['accept-encoding', 'identity'], ['if-match', '"original-target"']];
+  const response = await call(setup, grant, selected, 'representation', {
+    retainRunResponseOriginal: true,
+    operations: new Map([['records:read', {method: 'GET', path: '/records',
+      headers, responseHeaders: ['etag', 'content-encoding']}]]),
+    resolveSecret: async () => {
+      headers[0][1] = 'text/plain';
+      headers[1][1] = 'gzip';
+      headers[2][1] = '*';
+      return 'provider-secret';
+    },
+  });
+  const expected = {accept: 'application/json', acceptEncoding: 'identity',
+    ifMatch: '"original-target"'};
+  assert.deepEqual(received, expected);
+  withHttpsCredentialRunResponseOriginal(response, control, setup.journal, facts => {
+    assert.deepEqual(facts.requestRepresentation, expected);
+    assert.equal(Object.isFrozen(facts.requestRepresentation), true);
+    assert.throws(() => { facts.requestRepresentation.ifMatch = '*'; }, TypeError);
+    assert.deepEqual(facts.response.headers, [['etag', '"original-response"'],
+      ['content-encoding', 'identity']]);
+    assert.equal(Object.isFrozen(facts.response.headers), true);
+    assert.equal(Object.isFrozen(facts.response.headers[0]), true);
+    assert.equal(Object.hasOwn(facts.requestRepresentation, 'authorization'), false);
+    assert.equal(Object.hasOwn(facts.requestRepresentation, 'secret'), false);
+  });
+  assert.equal(Object.hasOwn(response, 'requestRepresentation'), false);
+  assert.equal(setup.journal.inspect(response.useCid).outcome, 'succeeded');
+  assert.equal(setup.requests(), 1);
+});
+
+test('Run response original retains the actual default Accept without inventing absent conditions', async t => {
+  const setup = await fixture(t);
+  const selected = scope(setup.origin);
+  const grant = control.prepare(selected);
+  setup.journal.acceptGrant(setup.sign(grant), control);
+  const response = await call(setup, grant, selected, 'default-representation',
+    {retainRunResponseOriginal: true});
+  withHttpsCredentialRunResponseOriginal(response, control, setup.journal, facts => {
+    assert.deepEqual(facts.requestRepresentation, {accept: 'application/json',
+      acceptEncoding: undefined, ifMatch: undefined});
+    assert.equal(Object.isFrozen(facts.requestRepresentation), true);
+  });
+  assert.equal(setup.requests(), 1);
+  assert.equal(setup.journal.inspect(response.useCid).outcome, 'succeeded');
+});
+
 test('Run response original refuses copies, foreign owners and default uncaptured responses', async t => {
   const setup = await fixture(t);
   const selected = scope(setup.origin);
