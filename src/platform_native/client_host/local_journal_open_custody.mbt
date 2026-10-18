@@ -81,34 +81,41 @@ pub fn NativeLocalAdoptionSession::open_existing_journal_with_custody(
   }
   match opened {
     Ok(host) => Ok(host)
-    Err(issue) => {
-      let (database, inner) = match issue {
-        DatabasePending(database, original) => (Some(database), original)
-        original => (None, original)
-      }
-      let acquisition : NativeLocalAdoptionOpenFailure = {
-        original_issue: inner,
-        source_root: Some(self.source_root),
-        parent: Some(self.parent),
-        root: Some(self.root),
-        managed: self.settings.managed.map(original => original.root),
-        lock: Some(self.lock),
-        root_acquisition: None,
-        lock_acquisition: None,
-        original_read_cleaned: false,
-      }
-      let original : NativeLocalJournalOpenFailure = {
-        original_issue: issue,
-        database,
-        initial_signing_failure: self.initial_signing_failure.val,
-        initial_signing_cleaned: false,
-        retained_read: self.read_cleanup,
-        retained_read_cleaned: false,
-        acquisition,
-      }
-      self.closed = true
-      self.journal_open_failure = Some(original)
-      Err(original)
-    }
+    Err(issue) => Err(self.retain_journal_open_failure(issue))
   }
+}
+
+///|
+// The existing opener and its cleanup keep this one original refusal carrier.
+fn NativeLocalAdoptionSession::retain_journal_open_failure(
+  self : NativeLocalAdoptionSession,
+  issue : NativeLocalAdoptionIssue,
+) -> NativeLocalJournalOpenFailure {
+  let (database, inner) = match issue {
+    DatabasePending(database, original) => (Some(database), original)
+    original => (None, original)
+  }
+  let acquisition : NativeLocalAdoptionOpenFailure = {
+    original_issue: inner,
+    source_root: Some(self.source_root),
+    parent: Some(self.parent),
+    root: Some(self.root),
+    managed: self.settings.managed.map(original => original.root),
+    lock: Some(self.lock),
+    root_acquisition: None,
+    lock_acquisition: None,
+    original_read_cleaned: false,
+  }
+  let original : NativeLocalJournalOpenFailure = {
+    original_issue: issue,
+    database,
+    initial_signing_failure: self.initial_signing_failure.val,
+    initial_signing_cleaned: false,
+    retained_read: self.read_cleanup,
+    retained_read_cleaned: false,
+    acquisition,
+  }
+  self.closed = true
+  self.journal_open_failure = Some(original)
+  original
 }
