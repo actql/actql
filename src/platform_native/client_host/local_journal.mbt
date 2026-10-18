@@ -165,52 +165,15 @@ fn NativeLocalAdoptionSession::open_journal_selected(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let marker = match self.root.inspect_generation("journal-initializing.json") {
-    Ok(value) => value
-    Err(issue) => return Err(Filesystem(issue))
-  }
-  let first = match marker {
-    None if self.existing_only => return Err(CustodyLost)
-    None => {
-      guard self.root.inspect_generation("client.sqlite3") is Ok(Some(file)) &&
-        file.device == ownership.device &&
-        file.inode == ownership.inode &&
-        file.size == 0L else {
-        return Err(CustodyLost)
-      }
+  let first = match self.prepare_journal_marker(ownership, adoption_body) {
+    Err(issue) => return Err(issue)
+    Ok(true) => true
+    Ok(false) =>
       match
-        local_adoption_write(
-          self.root,
-          "journal-initializing.json",
-          adoption_body,
-        ) {
-        Ok(_) => true
-        Err(issue) => return Err(issue)
-      }
-    }
-    Some(_) => {
-      let (body, _) = match
-        local_adoption_read(self.root, "journal-initializing.json", 8192L) {
+        self.inspect_retained_journal(library, max_snapshot_bytes, max_records) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
-      if body != adoption_body {
-        return Err(CustodyLost)
-      }
-      // The original commit may have succeeded. Inspect, never rerun bootstrap.
-      match
-        inspect_native_client_state(
-          library,
-          self.state_path + "/client.sqlite3",
-          131072L,
-          max_snapshot_bytes,
-          max_records,
-        ) {
-        Ok(Retained) => false
-        Ok(PhysicallyAbsent) => return Err(CustodyLost)
-        Err(issue) => return Err(Inspection(issue))
-      }
-    }
   }
   if !first && (initial_signing is Some(_) || initial_policy is Some(_)) {
     return Err(AmbiguousInitialization)
@@ -273,42 +236,12 @@ fn NativeLocalAdoptionSession::bind_journal(
       }
     _ => return Err(InvalidInput)
   }
-  if first {
-    match
-      initialize_native_local_client_custody(
-        database,
-        crypto,
-        adoption_body,
-        settings=Some(self.settings),
-        initial_signing=initial,
-      ) {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
-    }
-  }
-  match local_adoption_row(database, adoption_body) {
-    Ok(_) => ()
+  let (epoch, journal) = match
+    self.bind_journal_sqlite_originals(
+      database, crypto, adoption_body, first, initial, ttl_ms, max_records,
+    ) {
+    Ok(value) => value
     Err(issue) => return Err(issue)
-  }
-  let epoch = match
-    open_native_client_epoch_authority(database, crypto, ttl_ms) {
-    Ok(value) => value
-    Err(issue) => return Err(Epoch(issue))
-  }
-  let journal = match open_native_client_run_journal(database, max_records) {
-    Ok(value) => value
-    Err(issue) => return Err(Journal(issue))
-  }
-  match journal.submitted_intent_custody() {
-    Ok(_) => ()
-    Err(issue) => return Err(Journal(issue))
-  }
-  // Keep the inherited Run/Policy custody transaction. Only the new name
-  // extension's full census/HMAC scan belongs here at startup, not each lookup.
-  match
-    journal.transaction(() => journal.inspect_submitted_name_startup(epoch)) {
-    Ok(_) => ()
-    Err(issue) => return Err(Journal(issue))
   }
   match self.check_original() {
     Ok(_) => ()
