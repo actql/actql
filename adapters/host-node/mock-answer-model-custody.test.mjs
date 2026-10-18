@@ -42,6 +42,12 @@ function fixture() {
       return runtimeTupleFromFields(['original Task wire', 'original Task CID',
         'original prompt wire', 'original prompt CID']);
     },
+    clientProgramMockExecutionMaterials(actualProfile,value,...limits) {
+      assert.strictEqual(actualProfile,profile);assert.strictEqual(value,normalized);
+      assert.deepEqual(limits,[10,20,3,4,5,6,7,80]);
+      return runtimeTupleFromFields(['original execution wire','original execution CID',
+        'original retry wire','original retry CID','original backoff wire','original backoff CID']);
+    },
     clientProgramInstallOriginalMock(actualProfile, actualTask, value, actualAnswers, clock) {
       installs++;
       assert.strictEqual(actualProfile, profile); assert.strictEqual(actualTask, task);
@@ -58,7 +64,11 @@ function fixture() {
       assert.strictEqual(value, installation);
       return !busy;
     },
-    clientProgramProjectPublicModelTaskEnvironment() {assert.fail('NoEnvironmentRequest');},
+    clientProgramProjectPublicModelTaskEnvironment(wire,cid,tasks,...limits) {
+      assert.equal(wire,'original environment wire');assert.equal(cid,'original environment CID');
+      assert.deepEqual(tasks,[normalized]);assert.deepEqual(limits,[10,20,3,4,5,6,7,80]);
+      return runtimeTupleFromFields(['original projected environment','original projected CID',42]);
+    },
   };
   const normalized = {};
   const view = install(moon, Object.freeze([entry]), () => {
@@ -124,5 +134,22 @@ test('changed opaque Model provider refuses without a new normalization or insta
   assert.throws(() => bound.originalsForRuntime(f.moon), {code: 'ForeignInstalledMockModelOriginal'});
   assert.throws(f.bind, {code: 'ForeignInstalledMockModelOriginal'});
   assert.deepEqual(f.counts(), {installs: 1, normalizes: 1, retiredAnswers: 0});
+  f.view.retire(f.moon);
+});
+
+test('Mock Host material envelope retains exact Common execution and dependency bodies', () => {
+  const f=fixture(),bound=f.bind();
+  const installation=bound.modelInstallationForRuntime(f.moon,
+    'original environment wire','original environment CID');
+  assert.deepEqual(installation,{environmentWire:'original projected environment',
+    executionContracts:[{modelTaskCid:'original Task CID',bodyWire:'original execution wire',
+      cid:'original execution CID'}],
+    dependencyBodies:[{bodyWire:'original prompt wire',cid:'original prompt CID'},
+      {bodyWire:'original retry wire',cid:'original retry CID'},
+      {bodyWire:'original backoff wire',cid:'original backoff CID'}]});
+  assert.ok(Object.isFrozen(installation)&&Object.isFrozen(installation.executionContracts)&&
+    Object.isFrozen(installation.dependencyBodies));
+  assert.throws(()=>({...bound}).modelInstallationForRuntime(f.moon,
+    'original environment wire','original environment CID'),{code:'ForeignInstalledMockModelOriginal'});
   f.view.retire(f.moon);
 });
