@@ -1,5 +1,5 @@
 // GitHub's Issue read through the GraphQL API, bound to the published
-// repository's global node ID. The connector sends only two fixed, read-only
+// repository's global node ID. The connector sends only fixed, read-only
 // documents; callers supply typed variables, never query text. Every page
 // resolves the repository by `node(id:)`, so a different repository under the
 // same name is never read. Node IDs are opaque strings and compared exactly.
@@ -11,7 +11,7 @@ pub let repository_query : String = "query ActqlRepository($owner: String!, $nam
 ///|
 /// The fixed Issue page read. The repository is resolved by its published
 /// node ID on every page.
-pub let issues_query : String = "query ActqlIssues($id: ID!, $first: Int!, $after: String, $states: [IssueState!], $labels: [String!], $since: DateTime) { node(id: $id) { __typename ... on Repository { id databaseId nameWithOwner issues(first: $first, after: $after, states: $states, labels: $labels, filterBy: {since: $since}) { pageInfo { hasNextPage endCursor } nodes { number id title state body author { login } comments { totalCount } milestone { title } createdAt updatedAt closedAt } } } } }"
+pub let issues_query : String = "query ActqlIssues($id: ID!, $first: Int!, $after: String, $states: [IssueState!], $labels: [String!], $since: DateTime) { node(id: $id) { __typename ... on Repository { id databaseId nameWithOwner issues(first: $first, after: $after, states: $states, labels: $labels, filterBy: {since: $since}) { pageInfo { hasNextPage endCursor } nodes { number id title state stateReason body author { login } assignees(first: 100) { totalCount pageInfo { hasNextPage endCursor } nodes { login } } labels(first: 100) { totalCount pageInfo { hasNextPage endCursor } nodes { name } } comments { totalCount } milestone { title } createdAt updatedAt closedAt url } } } } }"
 
 ///|
 fn optional_json(value : String?) -> Json {
@@ -138,9 +138,69 @@ pub(all) struct GraphqlRepository {
 pub(all) struct GraphqlIssuePage {
   repository : GraphqlRepository
   rows : Array[IssueRow]
+  pending_fields : Array[IssueFieldContinuation]
   has_next_page : Bool
   end_cursor : String?
 } derive(Eq, Debug)
+
+///|
+pub(all) struct IssueFieldContinuation {
+  row_index : Int
+  field : String
+  after : String
+  total_count : Int64
+} derive(Eq, Debug)
+
+///|
+fn graphql_text_connection(
+  object : @decode.ObjectView,
+  name : String,
+  item_name : String,
+  body : Bytes,
+  max_bytes : Int,
+) -> Result[(Array[String], String?, Int64), IssuePageIssue] {
+  let cursor = match required_field(object, name) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard @decode.open_object(cursor) is Ok(connection) else {
+    return Err(InvalidField(name))
+  }
+  let values = match object_text_array(connection, "nodes", item_name) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if values.length() > 100 {
+    return Err(InvalidField(name))
+  }
+  let total = match
+    required_integer(connection, "totalCount", body, max_bytes) {
+    Ok(value) if value >= values.length().to_int64() && value <= 2147483647L =>
+      value
+    _ => return Err(InvalidField(name))
+  }
+  guard @decode.lookup(connection, "pageInfo") is Some(info_cursor) &&
+    @decode.open_object(info_cursor) is Ok(info) &&
+    @decode.lookup(info, "hasNextPage") is Some(next_cursor) &&
+    @decode.boolean(next_cursor) is Ok(has_next) else {
+    return Err(InvalidField(name))
+  }
+  let after = match nullable_text(info, "endCursor") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if has_next {
+    match after {
+      Some(value) if !value.is_empty() &&
+        value.length() <= 1024 &&
+        !values.is_empty() && values.length().to_int64() < total =>
+        Ok((values, Some(value), total))
+      _ => Err(InvalidField(name))
+    }
+  } else {
+    Ok((values, None, total))
+  }
+}
 
 ///|
 fn admit_body(
@@ -297,11 +357,13 @@ fn graphql_timestamp(
 /// See docs/reviews/2026-10-04-github-graphql-read.md for the field map.
 fn graphql_issue_row(
   object : @decode.ObjectView,
-) -> Result[IssueRow, IssuePageIssue] {
+  body_bytes : Bytes,
+  max_bytes : Int,
+) -> Result[(IssueRow, Array[(String, String, Int64)]), IssuePageIssue] {
   let number = match @decode.field(object, "number") {
     Present(value) =>
-      match @decode.safe_integer(value) {
-        Ok(number) if number > 0L => number
+      match original_integer(body_bytes, value, max_bytes) {
+        Some(number) if number > 0L && number <= 2147483647L => number
         _ => return Err(InvalidField("number"))
       }
     Missing => return Err(MissingRequiredField("number"))
@@ -341,6 +403,36 @@ fn graphql_issue_row(
       }
     Missing => return Err(MissingRequiredField("author"))
   }
+  let state_reason = match nullable_text(object, "stateReason") {
+    Ok(None) => None
+    Ok(Some("COMPLETED")) => Some("completed")
+    Ok(Some("DUPLICATE")) => Some("duplicate")
+    Ok(Some("NOT_PLANNED")) => Some("not_planned")
+    Ok(Some("REOPENED")) => Some("reopened")
+    Ok(Some(_)) => return Err(InvalidField("stateReason"))
+    Err(issue) => return Err(issue)
+  }
+  let url = match required_text(object, "url") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let pending = []
+  let arrays = []
+  for (name, item_name) in [("assignees", "login"), ("labels", "name")] {
+    let (values, after, total) = match
+      graphql_text_connection(object, name, item_name, body_bytes, max_bytes) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    match after {
+      Some(cursor) => pending.push((name, cursor, total))
+      None =>
+        if values.length().to_int64() != total {
+          return Err(InvalidField(name))
+        }
+    }
+    arrays.push(values)
+  }
   let milestone = match milestone_title(object) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -351,8 +443,8 @@ fn graphql_issue_row(
         Ok(connection) =>
           match @decode.lookup(connection, "totalCount") {
             Some(count) =>
-              match @decode.safe_integer(count) {
-                Ok(total) if total >= 0L => total
+              match original_integer(body_bytes, count, max_bytes) {
+                Some(total) if total >= 0L && total <= 2147483647L => total
                 _ => return Err(InvalidField("comments"))
               }
             None => return Err(MissingRequiredField("comments"))
@@ -376,19 +468,28 @@ fn graphql_issue_row(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  Ok({
-    number,
-    node_id,
-    title,
-    state,
-    body,
-    author,
-    comments,
-    milestone,
-    created_at,
-    updated_at,
-    closed_at,
-  })
+  Ok(
+    (
+      {
+        number,
+        node_id,
+        title,
+        state,
+        state_reason,
+        assignees: arrays[0],
+        labels: arrays[1],
+        url,
+        body,
+        author,
+        comments,
+        milestone,
+        created_at,
+        updated_at,
+        closed_at,
+      },
+      pending,
+    ),
+  )
 }
 
 ///|
@@ -459,14 +560,25 @@ pub fn project_issues_response(
     return Err(BudgetExceeded)
   }
   let rows = []
+  let pending_fields = []
   for item in nodes {
     guard @decode.open_object(item) is Ok(object) else {
       return Err(InvalidResponse)
     }
-    match graphql_issue_row(object) {
-      Ok(row) => rows.push(row)
+    match graphql_issue_row(object, body, limits.max_bytes) {
+      Ok((row, pending)) => {
+        for (field, after, total_count) in pending {
+          pending_fields.push({
+            row_index: rows.length(),
+            field,
+            after,
+            total_count,
+          })
+        }
+        rows.push(row)
+      }
       Err(issue) => return Err(Row(issue))
     }
   }
-  Ok({ repository, rows, has_next_page, end_cursor, })
+  Ok({ repository, rows, pending_fields, has_next_page, end_cursor, })
 }
