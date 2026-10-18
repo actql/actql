@@ -1,6 +1,6 @@
 {
   "scope": "image_compiler_parent_only",
-  "holding_sha256": "47a8387b4a2254a448f8e024b2135b34b5ec5c269908f85755181db69069623d",
+  "holding_sha256": "ef5e6bcb3034ae73392f43328bd6fd6e5e7e3b1c97b0da6d8afc4ca1b279ae50",
   "parent": {
     "bytes": 1073741824,
     "work": 20,
