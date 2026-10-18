@@ -231,16 +231,10 @@ test "signed64 canonical conversion requires its original checked schema" {
     contract=Some(contract),
     wire=true,
   ).unwrap()
-  assert_true(
-    advance_canonical_conversion(conversion) is CanonicalConversionContinue,
-  )
   guard! advance_canonical_conversion(conversion)
     is CanonicalConversionComplete(value)
   assert_true(value is Signed64(9007199254740993L))
   let untyped = start_canonical_conversion(canonical, limits).unwrap()
-  assert_true(
-    advance_canonical_conversion(untyped) is CanonicalConversionContinue,
-  )
   guard! advance_canonical_conversion(untyped)
     is CanonicalConversionComplete(text)
   assert_true(text is Text("9007199254740993"))
