@@ -1057,3 +1057,42 @@ Migration is complete only when existing product call sites use the MoonBit
 control and the superseded JavaScript decision code is removed. Temporary
 duplication must name its removal condition. Independent fixtures remain, but
 two product state machines are not retained as mutual tests.
+# Original Salesforce Account conditional target observations
+
+The Salesforce Target Observation owner has a distinct Account-by-record-ID
+read profile for strong conditional evidence. It uses the original read grant,
+one ordinary Credential use, the checked candidate's exact GET path and an
+empty body, with explicit JSON Accept and identity Accept-Encoding. It does
+not substitute a target read for a write decision or issue a mutation grant.
+
+Only that actual acquisition registers a private original. Its synchronous
+receiver requires the same candidate request, Catalog, runtime and Credential
+control/Journal, and verifies the original grant and use occurrence through the
+existing Credential receiver. Copied records, restored Catalogs and scalar
+ETag or CID values cannot register an acquisition. The existing target version
+continues to identify its original response and provider target; an HTTP ETag
+is a separate fact and never replaces that version.
+
+The conditional representation requires one strong ETag of at most 1024 HTTP
+header characters and either no content encoding or a single identity encoding.
+Quoted empty ETags are representable; weak tags, wildcard/list forms, missing
+tags and duplicate ETag headers are unsuitable. The Credential owner retains
+the actual raw-header multiplicities privately because Node's normalized
+singleton headers can conceal duplicates. It remains the sole response-byte
+membership and digest authority. These facts do not establish that a different
+object, external-ID path, collection, upsert or DELETE supports exact atomic
+conditions.
+
+The receiver rechecks original membership and bytes after the finisher and its
+result inspection, even when either throws. An observed integrity refusal is
+terminal after byte restoration. The original finisher exception and confirmed
+Journal outcome remain unchanged. Cancellation or retirement during the borrow
+cannot publish its result; neither changes a confirmed acquisition into an
+unentered use or permits a resend. Retirement drops only this receiver's
+references. Escaped aliases, the enclosing prepared child, actual response
+custody and physical cleanup retain their existing owners and accounting.
+
+This receiver does not mint conditional request identity, durable saved
+evidence, cold-restoration authority, write approval or physical cleanup ACK.
+Those remain separate admissions by the existing request, Preview, Store,
+Credential and Effect owners.
