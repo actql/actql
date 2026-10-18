@@ -62,6 +62,33 @@ fn project_cell(
   }
   match column.native_type {
     "TEXT" | "text" => admit_cell(cursor, column, budget)
+    // These are the output formats selected by the same original Statement
+    // request. Never guess whether a numeric timestamp denotes seconds or
+    // nanoseconds, or treat a civil/retained-offset value as UTC.
+    "DATE" | "date" => admit_cell(cursor, column, budget)
+    "TIMESTAMP_LTZ" | "timestamp_ltz" => {
+      guard column.scale is Some(scale) &&
+        text.length() == 30 &&
+        text[10] == 'T' &&
+        text[19] == '.' &&
+        text[29] == 'Z' else {
+        return Err(InvalidCell(column.name))
+      }
+      for index in 20 + (scale..<29) {
+        if text[index] != '0' {
+          return Err(ValueBeyondScale(column.name))
+        }
+      }
+      guard @admitted.normalize_timestamp_text(text, budget.text_bytes)
+        is Some(canonical) else {
+        return Err(InvalidCell(column.name))
+      }
+      converted_cursor(
+        { value: String(canonical), span: @decode.cursor_span(cursor), },
+        column,
+        budget,
+      )
+    }
     "FIXED" | "fixed" => {
       guard column.precision is Some(precision) && column.scale is Some(scale) else {
         return Err(InvalidColumn(column.name))
