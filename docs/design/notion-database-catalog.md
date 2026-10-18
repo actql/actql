@@ -1111,6 +1111,41 @@ hash workspace overlap. Bounded original-wire getters allocate a returned
 String with caller lifetime. Neither managed reference retirement nor these
 intake/work bounds prove physical cleanup or a numerical reservation.
 
+### Project-selected connection intake
+
+The Notion Host caller loads the original connections file through the existing
+Project owner and selects one explicitly named connection from that owner's
+checked inventory. Exact Unicode names are compared without normalization or
+first-entry fallback. A finite member count and work bound cover the complete
+selection scan, including unselected names. The selected connector must be
+Notion. The caller UTF-8 encodes the original entry span once and passes those
+bytes to the same Common public-connection reader; it never reconstructs JSON,
+interprets property Contracts or resolves an environment/file credential.
+
+Common and provider callbacks and their receivers are captured before the file
+await. The original Project acquisition's current fence is rechecked after
+read/close, before Connector admission and whenever its private returned view
+is consumed. Copied views, foreign runtimes and Projects refuse. Current-fence
+failure is terminal for that view even if a later observation would succeed.
+An unconfirmed FD close propagates the original cleanup carrier; Connector
+admission does not run and retry may close only that same FD, without rereading.
+
+The view retains the original Project, Project connections acquisition and
+record, logical name/index, exact entry String, typed Notion connection and
+both callback runtimes. Their callback records, current closure and receiver,
+full original file, source/decode graph, entry UTF-8 encode, copied Notion
+input, alias/value copies, Contracts and hash workspace can overlap. Explicit
+intake/selection limits are bounds, not a reservation. Retirement cuts only the
+view's own references; escaped DATA remains caller-owned, and neither retirement
+nor file close is metadata response retirement, installation/cold custody,
+credential authority, a physical ACK or numerical funding.
+
+Actual Project/Common/Notion file-boundary counters cover exact entry and
+declaration spans, exclusive credential references without secret I/O, bounded
+selection, absent/wrong-connector refusal, original callback/current identity
+and retained FD-close failure. They do not establish a published Source, an
+operational metadata supplier, saved-publication recovery or installed reads.
+
 The existing Catalog owner admits the public `databases` object once and retains
 its ordered exact Unicode aliases and the original value span for each existing
 database declaration. The single-declaration algorithm is shared, with one
