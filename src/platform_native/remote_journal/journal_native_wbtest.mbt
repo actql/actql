@@ -294,14 +294,12 @@ test "native Coordinator inspection retains primary and retry-only physical clea
     ),
   )
   let before = test_source_bytes(path)
-  let cleanup : CoordinatorInitializationCleanup = {
-    inspection: inspection_open(encoded, encoded.length()),
-    database: None,
-    pending: true,
-  }
+  let cleanup = capture_sqlite_inspection(
+    inspection_open(encoded, encoded.length()),
+    1048576L,
+  )
   let primary = inspect_coordinator_copy(
     library,
-    1048576L,
     cleanup,
     @remote.create_coordinator_dispatch_journal("native-coordinator").unwrap(),
   )

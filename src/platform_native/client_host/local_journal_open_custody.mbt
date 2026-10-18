@@ -146,6 +146,13 @@ fn NativeLocalJournalOpenFailure::cleanup_database(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  self.close_original_database()
+}
+
+///|
+fn NativeLocalJournalOpenFailure::close_original_database(
+  self : NativeLocalJournalOpenFailure,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
   if self.database is Some(database) {
     match database.close_checked() {
       Err(issue) => return Err(Physical(issue))
@@ -162,15 +169,44 @@ fn NativeLocalJournalOpenFailure::cleanup_database(
 fn retry_local_journal_inspection_cleanup(
   issue : NativeLocalAdoptionIssue,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
+  match original_local_journal_inspection_cleanup(issue) {
+    Some(original) => original.retry().map_err(issue => InspectionCleanup(issue))
+    None => Ok(())
+  }
+}
+
+///|
+fn original_local_journal_inspection_cleanup(
+  issue : NativeLocalAdoptionIssue,
+) -> @journal.CoordinatorInitializationCleanup? {
   match issue {
+    InspectionPending(_, _, original) => Some(original)
     Inspection(
       Inspection(@journal.InitializationCleanupPending(_, _, original), _)
-    ) => original.retry().map_err(issue => InspectionCleanup(issue))
-    DatabasePending(_, original) =>
-      retry_local_journal_inspection_cleanup(original)
-    OriginalResourceLeave(Some(original), _) =>
-      retry_local_journal_inspection_cleanup(original)
-    _ => Ok(())
+    ) => Some(original)
+    DatabasePending(_, original) => original_local_journal_inspection_cleanup(original)
+    OriginalResourceLeave(Some(original), _) => original_local_journal_inspection_cleanup(original)
+    _ => None
+  }
+}
+
+///|
+fn NativeLocalJournalOpenFailure::close_inspection_database(
+  self : NativeLocalJournalOpenFailure,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  match original_local_journal_inspection_cleanup(self.original_issue) {
+    Some(original) => original.close_database().map_err(issue => InspectionCleanup(issue))
+    None => Ok(())
+  }
+}
+
+///|
+fn NativeLocalJournalOpenFailure::close_inspection_snapshot(
+  self : NativeLocalJournalOpenFailure,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  match original_local_journal_inspection_cleanup(self.original_issue) {
+    Some(original) => original.close_snapshot().map_err(issue => InspectionCleanup(issue))
+    None => Ok(())
   }
 }
 

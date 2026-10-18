@@ -1342,3 +1342,20 @@ must obtain that original inspection Owner's close acknowledgement before
 releasing the adoption Roots or exclusive lock. Cleanup failure preserves both
 the immutable semantic refusal and the current cleanup cause; it does not
 repeat inspection, reopen the source database or authorize initialization.
+
+The original-pair inspection separates physical queries from row interpretation.
+The existing bounded snapshot is retained before leaving its Read preparation;
+its copied DB opens in the same pair's SQLite scope. Each custody query leaves
+the original Read scope, uses that same DB in SQLite, then resumes the original
+Read before UTF-8, canonical, Run, Policy or HMAC validation. The complete epoch,
+Run, Effect, cancellation, submitted-intent and named-startup predicates and
+transaction order are shared with the ordinary Journal entrance. A failed
+exchange stops subsequent queries and retains its original scope failure;
+transaction uncertainty remains independently fenced.
+
+The same inspection carrier retains any partial copy before a scope can fail.
+Its DB close and scratch cleanup have separate physical acknowledgements;
+scratch deletion cannot bypass a pending DB close. Refusal retains that carrier
+with its primary issue until cleanup completes, before the original Roots and
+lock can retire. Neither query routing nor scope resumption supplies another
+logical claim, a current permit, or a numerical resource profile.

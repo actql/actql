@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 
 const literal = text => '"' + [...text].map(c => {
   const cp = c.codePointAt(0);
@@ -27,6 +28,20 @@ export function generate(corpus) {
       assert.equal(c.contract.type, 'decimal');
       assert.ok(typeof c.coefficient === 'string' && /^(?:0|-?[1-9][0-9]*)$/.test(c.coefficient));
     }
+    if (Object.hasOwn(c, 'expected_wire') || Object.hasOwn(c, 'expected_wire_cid')) {
+      assert.equal(c.expected, 'accepted', 'wire evidence requires successful admission');
+      assert.equal(c.contract.type, 'timestamp', 'exact temporal wire fixture');
+      assert.equal(typeof c.value, 'string');
+      assert.equal(c.expected_wire, JSON.stringify(c.value), 'fixed original canonical wire');
+      assert.equal(c.expected_wire_cid, 'sha256:' + createHash('sha256').update(c.expected_wire).digest('hex'),
+        'independent exact wire preimage');
+    }
+    if (Object.hasOwn(c, 'peer') || Object.hasOwn(c, 'expected_order')) {
+      assert.equal(c.expected, 'accepted', 'ordering requires successful admission');
+      assert.equal(c.contract.type, 'timestamp');
+      assert.equal(typeof c.peer, 'string');
+      assert.ok([-1, 0, 1].includes(c.expected_order), 'exact temporal order');
+    }
     const admittedContract = mode === 'author'
       ? `contract(${literal(JSON.stringify(c.contract))})`
       : `@contract.read_checked(owned(parsed(${literal(JSON.stringify(c.contract))})), {max_nodes:100000,max_depth:20000,max_text_bytes:8000000}).unwrap()`;
@@ -38,6 +53,18 @@ export function generate(corpus) {
       lines.push('  match result.unwrap().value {',
         `    @value_admission.Decimal(value) => assert_eq(value.coefficient, ${literal(c.coefficient)})`,
         '    _ => assert_true(false)', '  }');
+    }
+    if (Object.hasOwn(c, 'expected_wire')) {
+      lines.push('  let output = @encode.writer(256, 4, 2)',
+        '  @value_admission.emit_checked_wire_value(result.unwrap(), output)',
+        `  let wire = @encode.finish(output)`,
+        `  assert_eq(wire, ${literal(c.expected_wire)})`,
+        '  let canonical = @identity.from_json(@json.parse(wire), 4, 2, 256, data_keys=true)',
+        `  assert_eq(@identity.cid_value(canonical, 256, 4, 2), ${literal(c.expected_wire_cid)})`);
+    }
+    if (Object.hasOwn(c, 'peer')) {
+      lines.push(`  let peer = @value_admission.admit(c, owned(parsed(${literal(JSON.stringify(c.peer))})), limits()).unwrap()`,
+        `  assert_eq(@value_admission.compare_key_values(result.unwrap(), peer).unwrap(), ${c.expected_order})`);
     }
     lines.push('}');
   }

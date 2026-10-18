@@ -17,18 +17,29 @@ extern "C" fn submission_name_census_ffi(database : @sqlite.Database) -> Int64 =
 // still the Native Journal's same-transaction monotonic CAS. Never reset either.
 fn NativeClientRunJournal::submitted_name_control(
   self : NativeClientRunJournal,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[(Int, Int64), NativeClientRunJournalIssue] {
   let issued = match
-    self.database.read("client_submission_name_custody", "issued") {
+    read_client_journal_value(
+      self.database,
+      "client_submission_name_custody",
+      "issued",
+      reads,
+    ) {
     Ok(value) => value
     Err(@sqlite.NotFound) => return Err(NamedSubmission(OriginalUnavailable))
     Err(issue) => return Err(Physical(issue))
   }
-  if submission_name_schema_ffi(self.database) != 1 {
+  if read_client_submission_name_schema(self.database, reads) != 1 {
     return Err(CustodyLost)
   }
   let retained = match
-    self.database.read("client_submission_name_custody", "retained") {
+    read_client_journal_value(
+      self.database,
+      "client_submission_name_custody",
+      "retained",
+      reads,
+    ) {
     Ok(value) => value
     Err(@sqlite.NotFound) => return Err(CustodyLost)
     Err(issue) => return Err(Physical(issue))
@@ -51,29 +62,41 @@ fn NativeClientRunJournal::submitted_name_control(
 fn NativeClientRunJournal::audit_submitted_names(
   self : NativeClientRunJournal,
   authority : NativeClientEpochAuthority,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   if !physical_equal(self.database, authority.database) {
     return Err(InvalidSubmission)
   }
-  let count = match self.submitted_name_control() {
+  let count = match self.submitted_name_control(reads~) {
     Ok((value, _)) => value
     Err(issue) => return Err(issue)
   }
-  if submission_name_census_ffi(self.database) != count.to_int64() {
+  if read_client_submission_name_census(self.database, reads) !=
+    count.to_int64() {
     return Err(CustodyLost)
   }
   // The namespace contains exactly the two original singleton coordinates.
   let mut control_cursor = ""
   for expected in ["issued", "retained"] {
     match
-      self.database.scan_after("client_submission_name_custody", control_cursor) {
+      scan_client_journal_value(
+        self.database,
+        "client_submission_name_custody",
+        control_cursor,
+        reads,
+      ) {
       Ok(row) if row.key == expected => control_cursor = row.key
       Err(issue) => return Err(Physical(issue))
       _ => return Err(CustodyLost)
     }
   }
   match
-    self.database.scan_after("client_submission_name_custody", control_cursor) {
+    scan_client_journal_value(
+      self.database,
+      "client_submission_name_custody",
+      control_cursor,
+      reads,
+    ) {
     Err(@sqlite.NotFound) => ()
     Err(issue) => return Err(Physical(issue))
     _ => return Err(CustodyLost)
@@ -82,7 +105,12 @@ fn NativeClientRunJournal::audit_submitted_names(
   let mut observed = 0
   while true {
     let row = match
-      self.database.scan_after("client_submission_names", cursor) {
+      scan_client_journal_value(
+        self.database,
+        "client_submission_names",
+        cursor,
+        reads,
+      ) {
       Ok(value) => value
       Err(@sqlite.NotFound) => break
       Err(issue) => return Err(Physical(issue))
@@ -91,7 +119,7 @@ fn NativeClientRunJournal::audit_submitted_names(
     if observed > count {
       return Err(CustodyLost)
     }
-    match self.authenticated_name_row(authority, row.key, row.body) {
+    match self.authenticated_name_row(authority, row.key, row.body, reads~) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
@@ -109,21 +137,29 @@ fn NativeClientRunJournal::audit_submitted_names(
 fn NativeClientRunJournal::inspect_submitted_name_startup(
   self : NativeClientRunJournal,
   authority : NativeClientEpochAuthority,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
-  match self.database.read("client_submission_name_custody", "issued") {
-    Ok(_) => self.audit_submitted_names(authority)
+  match
+    read_client_journal_value(
+      self.database,
+      "client_submission_name_custody",
+      "issued",
+      reads,
+    ) {
+    Ok(_) => self.audit_submitted_names(authority, reads~)
     Err(@sqlite.NotFound) => {
       for
         namespace_id in [
           "client_submission_name_custody", "client_submission_names",
         ] {
-        match self.database.scan_after(namespace_id, "") {
+        match
+          scan_client_journal_value(self.database, namespace_id, "", reads) {
           Err(@sqlite.NotFound) => ()
           Err(issue) => return Err(Physical(issue))
           _ => return Err(CustodyLost)
         }
       }
-      if submission_name_schema_ffi(self.database) != 0 {
+      if read_client_submission_name_schema(self.database, reads) != 0 {
         return Err(CustodyLost)
       }
       Ok(())

@@ -25,7 +25,7 @@ import {observeSalesforceTargetSet} from
 import {projectSalesforceSingleObservation,
   sendRawSalesforceSingleRecord} from '../site/salesforce-single-write.mjs';
 import {recoverCapturedSalesforceSingleRequests} from
-  './salesforce-effect-write.mjs';
+  './salesforce-effect-request-recovery.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});

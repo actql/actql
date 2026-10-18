@@ -257,8 +257,9 @@ fn client_journal_scan(
   database : @sqlite.Database,
   table_name : String,
   cursor : String,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[@host.ClientJournalPhysicalRow?, NativeClientRunJournalIssue] {
-  match database.scan_after(table_name, cursor) {
+  match scan_client_journal_value(database, table_name, cursor, reads) {
     Ok(row) =>
       Ok(Some({ key: row.key, body: row.body, revision: row.revision, }))
     Err(@sqlite.NotFound) => Ok(None)
@@ -271,8 +272,9 @@ fn client_journal_read(
   database : @sqlite.Database,
   table_name : String,
   key : String,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[@host.ClientJournalPhysicalRow?, NativeClientRunJournalIssue] {
-  match database.read(table_name, key) {
+  match read_client_journal_value(database, table_name, key, reads) {
     Ok(row) => Ok(Some({ key, body: row.body, revision: row.revision, }))
     Err(@sqlite.NotFound) => Ok(None)
     Err(issue) => Err(Physical(issue))
@@ -283,11 +285,12 @@ fn client_journal_read(
 fn run_journal_custody(
   database : @sqlite.Database,
   max_records : Int,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[(Int, Int64), NativeClientRunJournalIssue] {
   @host.inspect_client_run_journal_inventory(
     max_records,
-    (table_name, cursor) => client_journal_scan(database, table_name, cursor),
-    (table_name, key) => client_journal_read(database, table_name, key),
+    (table_name, cursor) => client_journal_scan(database, table_name, cursor, reads=reads),
+    (table_name, key) => client_journal_read(database, table_name, key, reads=reads),
     row => {
       let record = match
         read_run_record({ body: row.body, revision: row.revision, }) {
@@ -297,7 +300,7 @@ fn run_journal_custody(
       if row.key != @host.client_request_scope_cid(record.request) {
         return Err(CustodyLost)
       }
-      match confirm_effect_ledger_custody(database, record) {
+      match confirm_effect_ledger_custody(database, record, reads=reads) {
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
@@ -307,7 +310,7 @@ fn run_journal_custody(
         checkpoint: record.checkpoint.map(value => value.effect_ledger),
       })
     },
-    () => cancellation_custody(database, max_records).map(_ => ()),
+    () => cancellation_custody(database, max_records, reads=reads).map(_ => ()),
     CustodyLost,
   )
 }
@@ -317,13 +320,22 @@ pub fn open_native_client_run_journal(
   database : @sqlite.Database,
   max_records : Int,
 ) -> Result[NativeClientRunJournal, NativeClientRunJournalIssue] {
+  open_native_client_run_journal_with_reads(database, max_records)
+}
+
+///|
+fn open_native_client_run_journal_with_reads(
+  database : @sqlite.Database,
+  max_records : Int,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[NativeClientRunJournal, NativeClientRunJournalIssue] {
   if database.transaction_fenced() {
     return Err(Fenced)
   }
   if max_records < 1 || max_records > 1024 {
     return Err(CapacityExceeded)
   }
-  match run_journal_custody(database, max_records) {
+  match run_journal_custody(database, max_records, reads=reads) {
     Ok(_) =>
       Ok({
         database,
@@ -341,25 +353,34 @@ fn[T] NativeClientRunJournal::transaction(
   self : NativeClientRunJournal,
   work : () -> Result[T, NativeClientRunJournalIssue],
 ) -> Result[T, NativeClientRunJournalIssue] {
+  self.transaction_with_reads(work)
+}
+
+///|
+fn[T] NativeClientRunJournal::transaction_with_reads(
+  self : NativeClientRunJournal,
+  work : () -> Result[T, NativeClientRunJournalIssue],
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[T, NativeClientRunJournalIssue] {
   if self.fenced || self.database.transaction_fenced() {
     return Err(Fenced)
   }
   if self.publication_read_locked || self.transaction_active {
     return Err(Physical(@sqlite.Busy))
   }
-  match self.database.begin_immediate() {
+  match client_journal_transaction_operation(self.database, JournalBegin, reads) {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
   self.transaction_active = true
-  let result = match run_journal_custody(self.database, self.max_records) {
+  let result = match run_journal_custody(self.database, self.max_records, reads=reads) {
     Ok(_) => work()
     Err(issue) => Err(issue)
   }
   self.transaction_active = false
   match result {
     Ok(value) =>
-      match self.database.commit() {
+      match client_journal_transaction_operation(self.database, JournalCommit, reads) {
         Ok(_) => Ok(value)
         Err(_) => {
           self.fenced = true
@@ -368,7 +389,7 @@ fn[T] NativeClientRunJournal::transaction(
         }
       }
     Err(issue) =>
-      match self.database.rollback() {
+      match client_journal_transaction_operation(self.database, JournalRollback, reads) {
         Ok(_) => Err(issue)
         Err(_) => {
           self.fenced = true
@@ -383,9 +404,10 @@ fn[T] NativeClientRunJournal::transaction(
 fn NativeClientRunJournal::retained(
   self : NativeClientRunJournal,
   requested : @host.ClientRequestIdentity,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeClientRunRecord?, NativeClientRunJournalIssue] {
   let row = match
-    self.database.read("client_runs", @host.client_request_scope_cid(requested)) {
+    read_client_journal_value(self.database, "client_runs", @host.client_request_scope_cid(requested), reads) {
     Ok(value) => value
     Err(@sqlite.NotFound) => return Ok(None)
     Err(issue) => return Err(Physical(issue))

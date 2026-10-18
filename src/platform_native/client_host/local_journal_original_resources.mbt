@@ -1,12 +1,13 @@
 ///|
 // Retained originals inside the existing Journal capture, not another resource
-// Owner. Only an actual successful enter sets leave_pending; only its original
-// physical leave clears it. An interruption never supplies a cleanup ACK.
+// Owner. Only an actual successful enter sets active_phase; only its original
+// physical leave clears it. An interrupted exchange stays cleanup-only.
 priv struct NativeLocalJournalOriginalResources {
   host : @arena.InstalledArenaHost
   pair : @arena.InstalledArenaLocalHostResources
   read : @arena.InstalledArenaOriginalRead
-  mut leave_pending : Bool
+  mut active_phase : @arena.InstalledArenaLocalHostPhase?
+  mut interrupted : Bool
 }
 
 ///|
@@ -27,8 +28,15 @@ pub fn prepare_native_local_journal_capture_with_original_resources(
   {
     session,
     library: None,
-    original_resources: Some({ host, pair, read, leave_pending: false, }),
+    original_resources: Some({
+      host,
+      pair,
+      read,
+      active_phase: None,
+      interrupted: false,
+    }),
     opening_database: None,
+    opening_inspection: None,
     crypto,
     ttl_ms,
     max_records,
@@ -46,7 +54,7 @@ fn[T] NativeLocalJournalOriginalResources::stage(
   operation : () -> Result[T, NativeLocalAdoptionIssue],
   cleanup? : Bool = false,
 ) -> Result[T, NativeLocalAdoptionIssue] {
-  if self.leave_pending {
+  if self.active_phase is Some(_) || self.interrupted {
     return Err(OriginalResourceScopePending)
   }
   if !cleanup {
@@ -62,16 +70,26 @@ fn[T] NativeLocalJournalOriginalResources::stage(
     self.host.enter_local_host_phase(self.pair, phase)
   }
   match entered {
-    Err(issue) => return Err(OriginalResources(issue))
-    Ok(_) => self.leave_pending = true
+    Err(issue) => {
+      self.interrupted = true
+      return Err(OriginalResources(issue))
+    }
+    Ok(_) => self.active_phase = Some(phase)
   }
   let result = operation()
+  if self.interrupted {
+    return match result {
+      Err(issue) => Err(issue)
+      Ok(_) => Err(OriginalResourceScopePending)
+    }
+  }
   match self.host.leave_local_host_phase(self.pair) {
     Ok(_) => {
-      self.leave_pending = false
+      self.active_phase = None
       result
     }
     Err(issue) => {
+      self.interrupted = true
       let primary = match result {
         Err(original) => Some(original)
         Ok(_) => None
@@ -86,12 +104,13 @@ fn[T] NativeLocalJournalOriginalResources::stage(
 fn NativeLocalJournalOriginalResources::finish_pending_leave(
   self : NativeLocalJournalOriginalResources,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  if self.leave_pending {
+  if self.active_phase is Some(_) {
     match self.host.leave_local_host_phase(self.pair) {
       Err(issue) => return Err(OriginalResources(issue))
-      Ok(_) => self.leave_pending = false
+      Ok(_) => self.active_phase = None
     }
   }
+  self.interrupted = false
   Ok(())
 }
 
@@ -108,6 +127,10 @@ fn NativeLocalJournalCapture::open_original_journal(
     Err(issue) => {
       // Publish the actual DB into the original failure before clearing the
       // opening slot. A failed leave cannot discard a successfully opened DB.
+      let issue = match self.opening_inspection {
+        Some(inspection) => InspectionPending(None, issue, inspection)
+        None => issue
+      }
       let retained = match self.opening_database {
         Some(database) => DatabasePending(database, issue)
         None => issue
@@ -117,6 +140,7 @@ fn NativeLocalJournalCapture::open_original_journal(
         Some(original),
       )
       self.opening_database = None
+      self.opening_inspection = None
       Err(failure)
     }
   }
@@ -162,14 +186,7 @@ fn NativeLocalJournalCapture::open_original_journal_stages(
   let first = if marker {
     return Err(CustodyLost)
   } else {
-    match
-      original.stage(@arena.HostSqlite, fn() {
-        self.session.inspect_retained_journal(
-          library,
-          self.max_snapshot_bytes,
-          self.max_records,
-        )
-      }) {
+    match self.inspect_original_retained_journal(original, library) {
       Err(issue) => return Err(issue)
       Ok(value) => value
     }
@@ -202,7 +219,7 @@ fn NativeLocalJournalCapture::open_original_journal_stages(
     Ok(_) => ()
   }
   let (epoch, journal) = match
-    original.stage(@arena.HostSqlite, fn() {
+    original.audit_read_stage(database, fn(reads) {
       self.session.bind_journal_sqlite_originals(
         database,
         self.crypto,
@@ -211,6 +228,7 @@ fn NativeLocalJournalCapture::open_original_journal_stages(
         None,
         self.ttl_ms,
         self.max_records,
+        reads=Some(reads),
       )
     }) {
     Err(issue) => return Err(issue)
@@ -281,7 +299,9 @@ fn NativeLocalJournalOriginalResources::check_journal_current(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  self.stage(@arena.HostSqlite, fn() { host.check_binding_sqlite_original() })
+  self.audit_read_stage(host.database, reads => {
+    host.check_binding_sqlite_original(reads=Some(reads))
+  })
 }
 
 ///|
@@ -305,7 +325,22 @@ fn NativeLocalJournalOriginalResources::cleanup_journal_failure(
   match
     self.stage(
       @arena.HostSqlite,
-      fn() { failure.cleanup_database() },
+      fn() {
+        match failure.close_inspection_database() {
+          Err(issue) => return Err(issue)
+          Ok(_) => ()
+        }
+        failure.close_original_database()
+      },
+      cleanup=true,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match
+    self.stage(
+      @arena.HostRead,
+      fn() { failure.close_inspection_snapshot() },
       cleanup=true,
     ) {
     Err(issue) => return Err(issue)

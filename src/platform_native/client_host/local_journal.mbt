@@ -273,12 +273,13 @@ fn NativeLocalAdoptionSession::bind_journal(
 fn local_adoption_row(
   database : @sqlite.Database,
   body : Bytes,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  guard database.scan_after("client_local_adoption", "") is Ok(first) &&
+  guard scan_client_journal_value(database, "client_local_adoption", "", reads) is Ok(first) &&
     first.key == "adoption" &&
     first.revision == 0L &&
     first.body == body &&
-    database.scan_after("client_local_adoption", "adoption")
+    scan_client_journal_value(database, "client_local_adoption", "adoption", reads)
     is Err(@sqlite.NotFound) else {
     return Err(CustodyLost)
   }

@@ -3,6 +3,7 @@ import test from 'node:test';
 import {closeSync, fstatSync, mkdtempSync, openSync, readFileSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {createRequire} from 'node:module';
 import {createContext, runInContext} from 'node:vm';
 import ownerModule from './initial-control-installation-owner.cjs';
 
@@ -394,7 +395,8 @@ test('a generation cannot be reissued by reentry from its original current callb
 test('later Reflect Object and collection replacements cannot authenticate or discharge a scope', async () => {
   // Mutate a fresh test-only realm, never the test runner's native intrinsics.
   // This is an internal-state counter, not an actual preload envelope issuer.
-  const context = createContext({module: {exports: {}}, firstPending: true, secondPending: true});
+  const context = createContext({module: {exports: {}}, require: createRequire(import.meta.url),
+    firstPending: true, secondPending: true});
   runInContext(readFileSync(new URL('./initial-control-installation-owner.cjs', import.meta.url), 'utf8'), context);
   runInContext(`
     const owner = module.exports.createInitialControlInstallationOwner({
