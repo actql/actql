@@ -1542,3 +1542,30 @@ physical responsibility. Database, Library, snapshot, domain and adoption Lock
 acknowledgments remain separate and child-first. Heap exhaustion, lock refusal,
 partial initialization and COMMIT uncertainty retain their original carriers;
 there is no NORMAL-mode fallback, fresh acquisition, replay or capacity increase.
+
+
+The command profile keeps its later Native storage inventory separate from the
+initial argv/Command/parser envelope. Its one configured Crypto heap serves
+both Signature Libraries; its one configured SQLite heap contains DB/schema,
+statement/cache, bindings/results, original descriptor metadata and the private
+WAL index. Recovery and old/new pointer-array overlap are included within that
+same heap. Heap capacity is not added again for each phase or borrower.
+
+A snapshot bound constrains WAL frames, not the index to one region. The first
+region holds 4062 frames, later regions 4096; each region requests 32768 bytes.
+MEMSYS5 rounds requests within the selected heap and consumes its own control
+bytes. The original inspection connection and copy must acknowledge cleanup
+before the writer may use the serial phase bound. Pending cleanup retains the
+same profile, scope, original FD/errno and all aliases; it does not refill the
+Read or permit a second acquisition.
+
+The profile validates the actual parsed Journal limits against its captured
+pre-acquisition inventory. Native managed graphs, same-domain native buffers,
+SQLite external receivers, shared control and process/platform holdings have
+separate source-bound terms. Loader, mapped-image, pthread/TLS and native stack
+storage outside the domain cannot be paid by that domain's unused capacity.
+Computing their byte requirement is distinct from acquiring their original
+process/installer holding. Until that existing Owner provides the actual
+platform entrance, positive bounds remain insufficient and command preparation
+refuses before physical acquisition. No scalar, source label or successful
+component test supplies that missing original.

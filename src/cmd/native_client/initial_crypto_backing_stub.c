@@ -141,3 +141,11 @@ int32_t actql_initial_crypto_backing_close(actql_initial_crypto_backing *origina
   original->close_result = 1;
   return 1;
 }
+
+
+/* Observation only. The selected provider rounds its actual extents to these
+ * OS pages; this value neither acquires backing nor issues a capacity grant. */
+int64_t actql_native_command_storage_page_bytes(void) {
+  long bytes = sysconf(_SC_PAGESIZE);
+  return bytes > 0 ? (int64_t)bytes : 0;
+}
