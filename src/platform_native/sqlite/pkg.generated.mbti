@@ -6,7 +6,7 @@ import {
 }
 
 // Values
-pub fn load_current_component_with_custody(String, Int64, Int) -> Result[Library, NativeSqliteLibraryLoadError]
+pub fn load_current_component_with_custody(String, Int64, Int, command_member? : @filesystem.NativeObservedComponentMember?) -> Result[Library, NativeSqliteLibraryLoadError]
 
 pub fn load_library(String, diagnostic_ceiling? : Int?) -> Result[Library, NativeSqliteIssue]
 

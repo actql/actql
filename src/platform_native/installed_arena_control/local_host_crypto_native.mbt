@@ -53,6 +53,7 @@ pub fn InstalledArenaHost::prepare_local_host_read_crypto(
   path : String,
   heap_bytes : Int64,
   diagnostic_ceiling : Int,
+  command_member? : @filesystem.NativeObservedComponentMember? = None,
 ) -> Result[InstalledArenaCryptoAcquisition, InstalledArenaLocalHostCryptoIssue] {
   match self.require_local_host_consuming_read_current(pair, read) {
     Err(issue) => return Err(Resources(issue))
@@ -98,7 +99,7 @@ pub fn InstalledArenaHost::prepare_local_host_read_crypto(
     return Err(Crypto(Domain(@bootstrap.Bootstrap(@bootstrap.AlreadyConsumed))))
   }
   let primary = self.load_crypto_component_original(
-    record, path, heap_bytes, diagnostic_ceiling,
+    record, path, heap_bytes, diagnostic_ceiling, command_member~,
   )
   record.failed = primary is Some(_)
   match primary {

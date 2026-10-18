@@ -1569,3 +1569,22 @@ process/installer holding. Until that existing Owner provides the actual
 platform entrance, positive bounds remain insufficient and command preparation
 refuses before physical acquisition. No scalar, source label or successful
 component test supplies that missing original.
+
+
+The selected command's trusted initial operational control may cover only the
+fixed loader, dependency-image and TLS/synchronization lifetime of its pinned
+SQLite and Crypto components. Its actual entry original and complete finite
+envelope must precede the first `dlopen`, including initializers. The Runtime's
+hashed member observation retains its original Root/stat association; its path,
+digest and nominal Runtime association do not issue that initial original.
+A selected load consumes one original attempt, records even a failed load, and
+checks actual handle/symbol-image correspondence before initialization or use.
+Missing entry coverage cannot select a legacy diagnostic load instead.
+
+Normal component use keeps both the original domain-current fence and the
+selected load/member fence. Cleanup retains the same entered original child
+predicate after normal use is unavailable; it cannot reopen, sign or acquire a
+replacement. Library/component shutdown and module-reference release remain
+separate acknowledgements. Dropping a successfully released module's member
+alias does not replenish the once-counted process/thread-lived initial terms,
+acknowledge every image/TLS retirement, or release the parent Read or backing.

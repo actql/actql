@@ -60,6 +60,7 @@ pub fn InstalledArenaHost::prepare_sqlite_library(
   path : String,
   heap_bytes : Int64,
   diagnostic_ceiling : Int,
+  command_member? : @filesystem.NativeObservedComponentMember? = None,
 ) -> Result[InstalledArenaSqliteAcquisition, InstalledArenaSqliteIssue] {
   match self.require_domain_read_current(domain) {
     Err(issue) => return Err(Domain(issue))
@@ -91,7 +92,7 @@ pub fn InstalledArenaHost::prepare_sqlite_library(
       record.scope_open = true
       match
         @sqlite.load_current_component_with_custody(
-          path, heap_bytes, diagnostic_ceiling,
+          path, heap_bytes, diagnostic_ceiling, command_member~,
         ) {
         Ok(library) => record.library = Some(library)
         Err(@sqlite.RefusedBeforeAcquisition(issue)) =>

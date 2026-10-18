@@ -71,6 +71,8 @@ test "Native runtime package refuses missing observations and closes an empty pr
     read_scope_entered: false,
     sqlite: "",
     crypto: "",
+    command_sqlite_member: None,
+    command_crypto_member: None,
     ready: false,
     closed: false,
   }

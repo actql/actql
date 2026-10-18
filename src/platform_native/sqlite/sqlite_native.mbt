@@ -25,6 +25,16 @@ extern "C" fn load_current_component_ffi(
 ) -> Library = "actql_native_sqlite_load_current_component"
 
 ///|
+#borrow(path, component)
+extern "C" fn load_command_component_ffi(
+  path : Bytes,
+  length : Int,
+  diagnostic_ceiling : Int,
+  heap_bytes : Int64,
+  component : @filesystem.NativeObservedComponentMember,
+) -> Library = "actql_native_sqlite_load_command_component"
+
+///|
 #borrow(library)
 extern "C" fn library_acquired_ffi(library : Library) -> Bool = "actql_native_sqlite_library_acquired"
 
@@ -467,6 +477,7 @@ pub fn load_current_component_with_custody(
   path : String,
   heap_bytes : Int64,
   diagnostic_ceiling : Int,
+  command_member? : @filesystem.NativeObservedComponentMember? = None,
 ) -> Result[Library, NativeSqliteLibraryLoadError] {
   if heap_bytes < 4096L || heap_bytes > 2147483647L || diagnostic_ceiling <= 0 {
     return Err(RefusedBeforeAcquisition(InvalidLimit))
@@ -488,12 +499,14 @@ pub fn load_current_component_with_custody(
   if encoded.length() > 4096 {
     return Err(RefusedBeforeAcquisition(InvalidName))
   }
-  let library = load_current_component_ffi(
-    encoded,
-    encoded.length(),
-    diagnostic_ceiling,
-    heap_bytes,
-  )
+  let library = match command_member {
+    Some(component) => load_command_component_ffi(
+      encoded, encoded.length(), diagnostic_ceiling, heap_bytes, component,
+    )
+    None => load_current_component_ffi(
+      encoded, encoded.length(), diagnostic_ceiling, heap_bytes,
+    )
+  }
   if !library_acquired_ffi(library) {
     return Err(
       RefusedBeforeAcquisition(
