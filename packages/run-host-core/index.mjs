@@ -213,6 +213,22 @@ export function sourceProgramMaterialInput(prepared, environmentWire) {
     environmentWire, ...(parametersWire === undefined ? {} : {parametersWire})});
 }
 
+/** Exact authored input projection for saved-source correspondence. */
+export function sourceProgramSourceInput(prepared) {
+  const original = sourcePreparations.get(prepared);
+  if (original === undefined) throw new TypeError('ForeignRunHostSourcePreparation');
+  const fields = owner.clientValuesHostSourceProgramInput(original.value);
+  const parametersWire = owner.clientValuesHostSourceProgramParameters(original.value);
+  const parameterDeclarationsWire = owner.clientValuesHostSourceProgramDeclarations(original.value);
+  if (!Array.isArray(fields) || fields.length !== 2 || fields.some(x => typeof x !== 'string') ||
+      [parametersWire, parameterDeclarationsWire].some(x => x !== undefined && typeof x !== 'string')) {
+    throw new Error('InvalidRunHostOwnerResult');
+  }
+  return Object.freeze({document: fields[0], format: fields[1],
+    ...(parametersWire === undefined ? {} : {parametersWire}),
+    ...(parameterDeclarationsWire === undefined ? {} : {parameterDeclarationsWire})});
+}
+
 /** Re-admit saved originals; the Host still verifies current custody and Run. */
 export function restoreSourceProgram(originals, environment) {
   const keys = ['intentWire', 'intentCid', 'environmentCid', 'publicationWire'];

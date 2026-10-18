@@ -108,6 +108,8 @@ export interface SourceProgramOriginals {
 export function prepareSourceProgram(intent: SubmittedIntent,
   environment: CheckEnvironment, publicationWire: string): PreparedSourceProgram;
 export function sourceProgramOriginals(prepared: PreparedProgram | PreparedEffectProgram): SourceProgramOriginals;
+export function sourceProgramSourceInput(prepared: PreparedProgram | PreparedEffectProgram): Readonly<{
+  document: string; format: string; parametersWire?: string; parameterDeclarationsWire?: string}>;
 export function sourceProgramMaterialInput(prepared: PreparedProgram | PreparedEffectProgram,
   environmentWire: string): SourceFreeRunMaterialsInput;
 /** Host-authenticated saved originals; never rediscover publication on restore. */

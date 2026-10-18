@@ -12,6 +12,9 @@ pub struct LocalSourceComputation {
   publication : String
   document : String
   parameters : String?
+  source_document : String
+  source_format : String
+  declarations : String?
   preparation : LocalSourceComputationPreparation
 }
 
@@ -35,7 +38,7 @@ priv suberror LocalSourceStop {
 
 ///|
 fn[T] source_result(value : Result[T, LocalSourceComputationIssue]) -> T raise LocalSourceStop {
-  value.unwrap_or_else(issue => raise LocalSourceStop(issue))
+  match value { Ok(value) => value; Err(issue) => raise LocalSourceStop(issue) }
 }
 
 ///|
@@ -87,13 +90,13 @@ pub fn prepare_local_source_computation(
     None => return Err(Input)
   }
   let context = source_result(@publication.bind_published_query_context(environment, publication, declarations)
-    .map_err(Publication))
-  let table_writes = source_result(@publication.published_table_writes(environment, publication).map_err(Publication))
-  let update_targets = source_result(@publication.published_update_targets(environment, publication).map_err(Publication))
-  let store_targets = source_result(@publication.published_store_targets(environment, publication).map_err(Publication))
-  let command_targets = source_result(@publication.published_command_targets(environment, publication).map_err(Publication))
+    .map_err(LocalSourceComputationIssue::Publication))
+  let table_writes = source_result(@publication.published_table_writes(environment, publication).map_err(LocalSourceComputationIssue::Publication))
+  let update_targets = source_result(@publication.published_update_targets(environment, publication).map_err(LocalSourceComputationIssue::Publication))
+  let store_targets = source_result(@publication.published_store_targets(environment, publication).map_err(LocalSourceComputationIssue::Publication))
+  let command_targets = source_result(@publication.published_command_targets(environment, publication).map_err(LocalSourceComputationIssue::Publication))
   let lowered = source_result(@frontend.lower(document, selected, Some(context), table_writes~, update_targets~, store_targets~, command_targets~)
-    .map_err(Frontend))
+    .map_err(LocalSourceComputationIssue::Frontend))
   guard lowered.program is Some(parsed) else { return Err(Input) }
   for stage in @syntax.stages(parsed) {
     if !@syntax.effect_names(stage).is_empty() {
@@ -110,20 +113,24 @@ pub fn prepare_local_source_computation(
         update_targets=lowered.update_targets,
         store_targets=lowered.store_targets,
         command_targets=lowered.command_targets,
-      ).map_err(Effect))
+      ).map_err(LocalSourceComputationIssue::Effect))
       source_result(@frontend.check_array_profile(
         @checked.effect_program_static_checked_computation(
           @host.prepared_client_effect_computation_candidate(prepared),
         ), max_work=1000000, max_slots=100000,
-      ).map_err(ArrayProfile)) |> ignore
-      return Ok({intent, environment, publication, document: lowered.document, parameters: parameters_wire, preparation: Effect(prepared)})
+      ).map_err(LocalSourceComputationIssue::ArrayProfile)) |> ignore
+      return Ok({intent, environment, publication, document: lowered.document, parameters: parameters_wire,
+        source_document: document, source_format: spelling, declarations,
+        preparation: Effect(prepared)})
     }
   }
-  let prepared = source_result(@host.prepare_parsed_effect_free_client_program(parsed, environment, supplied, limits).map_err(Pure))
+  let prepared = source_result(@host.prepare_parsed_effect_free_client_program(parsed, environment, supplied, limits).map_err(LocalSourceComputationIssue::Pure))
   source_result(@frontend.check_array_profile(@strategy.graph_program(@host.prepared_client_graph(prepared)),
     max_work=1000000, max_slots=100000,
-  ).map_err(ArrayProfile)) |> ignore
-  Ok({intent, environment, publication, document: lowered.document, parameters: parameters_wire, preparation: Pure(prepared)})
+  ).map_err(LocalSourceComputationIssue::ArrayProfile)) |> ignore
+  Ok({intent, environment, publication, document: lowered.document, parameters: parameters_wire,
+    source_document: document, source_format: spelling, declarations,
+    preparation: Pure(prepared)})
   } catch { LocalSourceStop(issue) => Err(issue) }
 }
 
@@ -143,6 +150,11 @@ pub fn local_source_computation_originals(value : LocalSourceComputation) -> (St
 /// a replacement for the separately retained original submitted source.
 pub fn local_source_computation_material(value : LocalSourceComputation) -> (String, String?) {
   (value.document, value.parameters)
+}
+
+///|
+pub fn local_source_computation_source(value : LocalSourceComputation) -> (String, String, String?) {
+  (value.source_document, value.source_format, value.declarations)
 }
 
 ///|

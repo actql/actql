@@ -56,6 +56,19 @@ pub fn client_values_host_source_program_parameters(value : @local.LocalSourceCo
 }
 
 ///|
+#export_name("clientValuesHostSourceProgramInput")
+pub fn client_values_host_source_program_input(value : @local.LocalSourceComputation) -> Array[String] {
+  let (document, format, _) = @local.local_source_computation_source(value)
+  [document, format]
+}
+
+///|
+#export_name("clientValuesHostSourceProgramDeclarations")
+pub fn client_values_host_source_program_declarations(value : @local.LocalSourceComputation) -> String? {
+  @local.local_source_computation_source(value).2
+}
+
+///|
 #export_name("clientValuesHostSourceProgramRequest")
 pub fn client_values_host_source_program_request(value : @local.LocalSourceComputation,
   intent : @host.ClientSubmittedIntent, environment : @checked.CheckEnvironment,
