@@ -15,6 +15,7 @@ async function checkedInput(t, text, byteLength) {
     ? Response.json(profile) : Response.json({version: 'actql-check-outcome/0.1',
       reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'completed', report: {
         context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'invalid',
+        runnable: {verdict: 'no', reasons: [{code: 'query_syntax_invalid'}]},
         inputs: [{document_id: 'source', kind: 'text', revision, byte_length: byteLength}],
         reasons: [{code: 'query_syntax_invalid', location: {kind: 'text',
           document_id: 'source', revision, start_byte: 0, end_byte: 0,
@@ -93,6 +94,7 @@ async function checkedStructuredInput(t) {
     ? Response.json(profile) : Response.json({version: 'actql-check-outcome/0.1',
       reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'completed', report: {
         context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'invalid',
+        runnable: {verdict: 'no', reasons: [{code: 'supplied_parameters_invalid'}]},
         inputs: [{document_id: 'source', kind: 'text', revision, byte_length: 13},
           {document_id: 'parameters', kind: 'structured', revision, byte_length: 135}],
         reasons: [{code: 'supplied_parameters_invalid', location}], requirements: [],
