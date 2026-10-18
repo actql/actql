@@ -111,12 +111,6 @@ test "adoption capture keeps the same actual partial failure and lock until clos
   assert_true(physical_equal(capture.open().original_capture(), capture))
   assert_true(physical_equal(capture.original_failure().unwrap(), original))
   adoption_open_require_locked(borrowed)
-  adoption_open_fail_census_close(original.parent.unwrap(), 1)
-  assert_true(capture.close().issue() is Some(AdoptionOriginal(Filesystem(_))))
-  assert_false(capture.descriptor_cleanup_acknowledged())
-  assert_true(original.lock is Some(_))
-  assert_true(original.issue() is CustodyLost)
-  adoption_open_require_locked(borrowed)
   adoption_capture_test_close(capture)
   assert_true(original.issue() is CustodyLost)
   assert_true(physical_equal(capture.original_failure().unwrap(), original))
@@ -247,5 +241,47 @@ test "unconfirmed adoption retains its partial carrier without retry or cleanup 
   root.private_ownership().unwrap() |> ignore
   root.close().unwrap()
   assert_false(capture.descriptor_cleanup_acknowledged())
+  adoption_capture_test_pending.val = None
+}
+
+///|
+// Expected sticky Unknowns remain reachable through the test executable's
+// lifetime; explicit fixture descriptor retirement below is not their ACK.
+let adoption_capture_test_unknowns : Array[NativeLocalAdoptionCapture] = []
+
+///|
+test "adoption capture preserves a real Root close Unknown and never releases its original lock" {
+  let name = "adoption-capture-root-unknown"
+  let (_, source, borrowed, _) = local_selected_source(name)
+  let input = { ..adoption_capture_test_input(name), source_name: source, }
+  let capture = adoption_capture_test_retain(
+    prepare_native_local_existing_adoption_capture(input, epoch_test_crypto()).unwrap(),
+  )
+  assert_true(capture.open().issue() is Some(AdoptionOriginal(CustodyLost)))
+  let original = capture.original_failure().unwrap()
+  let root = original.source_root.unwrap()
+  adoption_open_fail_census_close(root, 1)
+  assert_true(root.check_directory_members([]) is Err(@filesystem.Cleanup(_)))
+  assert_true(
+    capture.close().issue()
+    is Some(AdoptionOriginal(Filesystem(@filesystem.Cleanup(_)))),
+  )
+  assert_false(capture.descriptor_cleanup_acknowledged())
+  assert_true(physical_equal(original.source_root.unwrap(), root))
+  assert_true(original.issue() is CustodyLost)
+  adoption_open_require_locked(borrowed)
+  assert_true(
+    capture.close().issue()
+    is Some(AdoptionOriginal(Filesystem(@filesystem.Cleanup(_)))),
+  )
+  assert_false(capture.descriptor_cleanup_acknowledged())
+  assert_true(capture.open().issue() is Some(AdoptionCaptureClosed))
+  // Isolated fixture cleanup only: it cannot turn the sticky Root outcome into
+  // capture cleanup success or authorize a replacement open through the holder.
+  original.lock.unwrap().close_checked().unwrap()
+  original.parent.unwrap().close().unwrap()
+  borrowed.close().unwrap()
+  assert_false(capture.descriptor_cleanup_acknowledged())
+  adoption_capture_test_unknowns.push(capture)
   adoption_capture_test_pending.val = None
 }
