@@ -322,6 +322,39 @@ test('Run response original retains the actual default Accept without inventing 
   assert.equal(setup.journal.inspect(response.useCid).outcome, 'succeeded');
 });
 
+test('Run response original retains representation on the original fenced acquisition', async t => {
+  let received;
+  const setup = await fixture(t, {onRequest(request, response) {
+    received = {accept: request.headers.accept,
+      acceptEncoding: request.headers['accept-encoding'],
+      ifMatch: request.headers['if-match']};
+    response.end('{}');
+    return true;
+  }});
+  const selected = scope(setup.origin);
+  const {binding, invoke} = boundFixture(setup, selected,
+    async () => 'provider-secret');
+  try {
+    const response = await invoke(selected, 'fenced-representation', {
+      retainRunResponseOriginal: true,
+      operations: new Map([['records:read', {method: 'GET', path: '/records',
+        headers: [['accept', 'application/json'], ['accept-encoding', 'identity'],
+          ['if-match', '"fenced-original"']]}]]),
+    });
+    const expected = {accept: 'application/json', acceptEncoding: 'identity',
+      ifMatch: '"fenced-original"'};
+    assert.deepEqual(received, expected);
+    withHttpsCredentialRunResponseOriginal(response, control, setup.journal, facts => {
+      assert.deepEqual(facts.requestRepresentation, expected);
+      assert.equal(Object.isFrozen(facts.requestRepresentation), true);
+    });
+    assert.equal(setup.journal.inspect(response.useCid).outcome, 'succeeded');
+    assert.equal(setup.requests(), 1);
+  } finally {
+    assert.equal(closeHttpsCredentialBinding(binding), 'closed');
+  }
+});
+
 test('Run response original refuses copies, foreign owners and default uncaptured responses', async t => {
   const setup = await fixture(t);
   const selected = scope(setup.origin);
