@@ -52,7 +52,8 @@ export function siteMetadataDiscoveryFixture(t){
         },current,
         chargeResponse:body=>{const charge=Object.freeze({originalBody:body});state.charges.push(charge);return charge;},
         consumeObservation:charge=>{assert(state.charges.includes(charge));assert(!state.observations.includes(charge));state.observations.push(charge);},
-        limits:metadataDiscoveryLimits,systemColumns:true};
+        limits:metadataDiscoveryLimits,systemColumns:true,
+        publication:{request:options.publicationRequest,originals:{...options,profile}}};
       return await callback({...f,site,sitePath,control:credential.control,
         journal:credential.journal,options:readerOptions,
         reader:changes=>createNotionDatabaseDiscovery({...readerOptions,...changes})});

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {checkNotionReadDeclarationSchema,notionReadDeclarationSchema} from './notion-read-contracts-schema.mjs';
+import {checkNotionReadDeclarationSchema,notionReadDeclarationSchema,notionReadDeclarationsSchema} from './notion-read-contracts-schema.mjs';
 import {project,structuralValidatorSource} from './generate-client-publication-wire.mjs';
 import {verifyIdentity} from './check-canonical-json.mjs';
 import {createHash} from 'node:crypto';
@@ -10,6 +10,48 @@ const protocol=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.js
 const declaration={id:'db',data_source_id:'source',read_contracts:{'n%3Ax':[
   {column:'amount',projection:'value',contract:{type:'decimal',nullable:false,precision:20,scale:2}},
 ]}};
+
+test('public database map reuses complete declaration grammar and rejects an invalid unused alias',async()=>{
+  const schema=notionReadDeclarationsSchema(protocol);
+  const {$schema,$defs,...declarationSchema}=notionReadDeclarationSchema(protocol);
+  assert.deepEqual(schema.additionalProperties,declarationSchema);
+  assert.deepEqual(schema.$defs,$defs);
+  assert.deepEqual(schema.propertyNames,{type:'string',minLength:1});
+  const { $defs:mapDefinitions, ...mapBody }=schema;
+  assert.deepEqual(mapDefinitions,$defs);
+  const projected={aliases:project(mapBody),value_contract:project($defs.value_contract)};
+  const source='const schemas='+JSON.stringify(projected)+';\n'+
+    structuralValidatorSource({extended:true})+'export const check=value=>valid(value,schemas.aliases);';
+  const reader=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+  for(const value of [{},{tasks:'db',accounts:declaration},{'é':'db','é':'db2'}])assert.equal(reader.check(value),true);
+  for(const value of [null,[], 'db',{'':'db'},{tasks:'db',unused:null},
+    {tasks:'db',unused:{id:'db2',read_contracts:{p:[{column:'x',projection:'value',contract:{type:'bad',nullable:false}}]}}}]){
+    assert.equal(reader.check(value),false);
+  }
+  for(const change of [p=>delete p.schemas.notion_database_read_declarations.additionalProperties,
+    p=>p.schemas.notion_database_read_declarations.propertyNames.minLength=0,
+    p=>p.schema_cids.notion_database_read_declarations='sha256:'+'0'.repeat(64)]){
+    const changed=structuredClone(protocol);change(changed);assert.throws(()=>checkNotionReadDeclarationSchema(changed));
+  }
+});
+
+test('independent alias source vectors keep every original value span and spelling',()=>{
+  const vectors=JSON.parse(readFileSync('spec/contracts/fixtures/notion-read-declarations-vectors.json','utf8')).vectors;
+  const hash=text=>'sha256:'+createHash('sha256').update(text,'utf8').digest('hex');
+  for(const vector of vectors){
+    assert.equal(hash(vector.source),vector.sourceCid);
+    const map=JSON.parse(vector.source);
+    assert.deepEqual(Object.keys(map),vector.entries.map(x=>x.alias));
+    for(const entry of vector.entries){
+      assert.equal(hash(entry.source),entry.sourceCid);
+      assert.deepEqual(JSON.parse(entry.source),map[entry.alias]);
+      assert(vector.source.includes(entry.source));
+      assert.notEqual(hash(entry.source+' '),entry.sourceCid);
+    }
+  }
+  assert.notEqual(vectors[2].entries[0].alias,vectors[2].entries[1].alias);
+  assert.notEqual(vectors[1].sourceCid,hash(JSON.stringify(JSON.parse(vectors[1].source))));
+});
 
 test('Notion structural declaration reuses the complete checked owner and registered pin',()=>{
   checkNotionReadDeclarationSchema(protocol);

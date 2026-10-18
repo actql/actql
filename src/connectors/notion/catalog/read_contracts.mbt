@@ -130,6 +130,27 @@ pub fn read_notion_database_read_declaration(
     Ok(value) => value
     Err(issue) => return Err(Metadata(issue))
   }
+  read_notion_database_read_declaration_cursor(
+    original_bytes,
+    original,
+    limits,
+    {
+      work: limits.max_work,
+      nodes: limits.contracts.max_nodes,
+      text: limits.contracts.max_text_bytes,
+    },
+  )
+}
+
+///|
+// Both public readers share this exact declaration algorithm. The alias-map
+// reader supplies one aggregate Contract/text/work budget across every member.
+fn read_notion_database_read_declaration_cursor(
+  original_bytes : Bytes,
+  original : @decode.Cursor,
+  limits : NotionReadContractLimits,
+  budget : NotionReadContractBudget,
+) -> Result[NotionDatabaseReadDeclaration, NotionReadContractIssue] {
   if @decode.text(original) is Ok(_) {
     let database_id = match
       read_contract_text(original, limits.metadata.max_identity_bytes) {
@@ -182,11 +203,6 @@ pub fn read_notion_database_read_declaration(
   }
   let columns = []
   let property_ids = []
-  let budget = {
-    work: limits.max_work,
-    nodes: limits.contracts.max_nodes,
-    text: limits.contracts.max_text_bytes,
-  }
   match @decode.field(root, "read_contracts") {
     Missing => ()
     Present(contracts) => {
