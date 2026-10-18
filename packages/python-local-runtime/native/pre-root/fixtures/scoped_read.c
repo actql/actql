@@ -490,12 +490,42 @@ static bool private_root_without_current(const char *directory) {
     return true;
 }
 #endif
+static bool allocation_failure_observation(void) {
+    actql_owned_capacity *lease=lease_new();
+    actql_read_context *context=context_new(lease);
+    assert(actql_read_context_retain(context)==0);
+    context_enter(lease,context);
+    size_t mi=stock_mi_allocations,file=stock_file_allocations;
+    assert(actql_native_file_scoped_allocate(lease->length)==NULL);
+    assert(read_allocation_observation.requested==lease->length);
+    assert(read_allocation_observation.known==1 && read_allocation_observation.depth==1);
+    assert(read_allocation_observation.active==1 && read_allocation_observation.current==1);
+    assert(read_allocation_observation.status==ACTQL_OWNED_EXHAUSTED);
+    assert(read_allocation_observation.occupied==lease->occupied_pages);
+    assert(read_allocation_observation.control==lease->control_pages);
+    assert(read_allocation_observation.pages==lease->page_count);
+    assert(read_allocation_observation.page_bytes==lease->page_size);
+    report_read_allocation_failure();
+    assert(stock_mi_allocations==mi && stock_file_allocations==file);
+    void *small=actql_native_file_scoped_allocate(3); assert(small);
+    actql_native_file_scoped_free(small);
+    context_leave(lease,context);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
+    finish(&lease,&context);
+    return true;
+}
+
 int main(int argc,char **argv) {
     struct rlimit core={0,0}; assert(setrlimit(RLIMIT_CORE,&core)==0);
     setbuf(stdout,NULL);
     if(argc==2 && strcmp(argv[1],"--fork-stock-only")==0) {
         bool ok=fork_stock();
         printf("{\"case\":\"fork-stock\",\"ok\":%s}\n",ok?"true":"false");
+        return ok?0:1;
+    }
+    if(argc==2 && strcmp(argv[1],"--allocation-diagnostic-only")==0) {
+        bool ok=allocation_failure_observation();
+        puts("{\"case\":\"same-original-allocation-failure-observation\",\"passed\":1,\"failed\":0}");
         return ok?0:1;
     }
     assert(argc==2);
