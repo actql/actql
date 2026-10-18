@@ -47,10 +47,14 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     return derived;
   };
   const ownedSnapshot = value => own(value, snapshot(value));
-  const prepareOwned = async (value, requestId) => {
+  const prepareOwned = (value, requestId) => {
     const request = own(value, {...value, requestId});
-    const prepared = await prepareSubmit(request);
-    return bindOwnedRequest === undefined ? prepared : own(request, prepared);
+    const prepared = prepareSubmit(request);
+    // Preserve the unselected caller's original single await. Only the
+    // selected Source retains an additional continuation for its nominal
+    // returned handle; that continuation issues no capacity or permission.
+    return bindOwnedRequest === undefined ? prepared :
+      Promise.resolve(prepared).then(original => own(request, original));
   };
   const unresolved = (submissionRef, code = 'submission_history_unresolvable') =>
     immutable({kind: 'unresolvable', submissionRef, problem: {code}});
