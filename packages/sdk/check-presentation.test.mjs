@@ -6,6 +6,7 @@ import {tmpdir} from 'node:os';
 import {join, relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {buildSync} from 'esbuild';
+import {packSdkFixture} from './packed-package.fixture.mjs';
 
 function assertBrowserClosure(bundle, checkInput) {
   const inputs = Object.keys(bundle.metafile.inputs);
@@ -30,9 +31,9 @@ test('packed SDK public exports and browser bundle include their presentation mo
   // Real tarballs and an external install expose missing transitive modules
   // that source imports and a dry-run inventory cannot exercise.
   const packages = ['client-wire', 'sdk'].map(name => {
-    const result = JSON.parse(run('npm', ['pack', '--json', '--cache', cache,
-      '--pack-destination', cache], fileURLToPath(new URL(`../${name}/`, import.meta.url))));
-    // npm can key workspace reports by package name instead of returning a list.
+    const result = [packSdkFixture({name, destination: cache, run,
+      directory: fileURLToPath(new URL(`../${name}/`, import.meta.url))})];
+    // The actual tarball supplies the package report, independently of stdout.
     const entries = Array.isArray(result) ? result : Object.values(result);
     assert.equal(entries.length, 1);
     assert.equal(entries[0].name, `@actql/${name}`);
