@@ -3545,7 +3545,26 @@ async function openInstalledHost(originalInstallation, preparation) {
         activationFlight = Promise.resolve().then(initializePublicationServices)
           .catch(cause => {
             activationFailure = {cause,cleanupObserved:false,statusObserved:false,retryObserved:false};
-            modelRuntimeClosing = true; throw cause;
+            modelRuntimeClosing = true;
+            // Retain successful observations as soon as the original failure
+            // is owned, before another continuation or the first shutdown can
+            // replace them. A failed getter has supplied no observation and
+            // remains retryable under this same holding, never a new owner.
+            try {
+              activationFailure.cleanup = cause?.cleanupHandle;
+              activationFailure.cleanupObserved = true;
+            } catch { /* The same failed initializer still owns this duty. */ }
+            if (activationFailure.cleanupObserved) {
+              try {
+                activationFailure.status = activationFailure.cleanup?.status;
+                activationFailure.statusObserved = true;
+              } catch { /* Retry only the still-unobserved getter at shutdown. */ }
+              try {
+                activationFailure.retry = activationFailure.cleanup?.retry;
+                activationFailure.retryObserved = true;
+              } catch { /* Status failure cannot discard another observed method. */ }
+            }
+            throw cause;
           });
       }
       return activationFlight;
