@@ -94,13 +94,19 @@ pub fn[P] cleanup_node_managed_run_admission(
       // original initialization outcome, not fabricated zero Ledger usage.
       // The fixed Root independently retains any external/unknown duties.
       value.attempted = true
-      match (value.abort_unpublished)() {
-        Err(issue) => return Err(issue)
-        Ok(_) => ()
-      }
+      // Latch the same original stop flight before invoking external code.
+      // Reentry observes Unknown; an uncertain outcome is never retried as a
+      // second mutating abort of this unpublished initialization.
       child.origin.stopping = true
       child.stop_attempted = true
-      child.stop_outcome = None
+      child.stop_outcome = Some(Unknown)
+      match (value.abort_unpublished)() {
+        Err(issue) => {
+          child.stop_outcome = Some(issue)
+          return Err(issue)
+        }
+        Ok(_) => child.stop_outcome = None
+      }
     }
   }
   value.cleaned = true
