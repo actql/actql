@@ -132,8 +132,13 @@ export function recoverCapturedSalesforceSingleRequests({
   const selected = selectedMemberIndexes(memberIndexes,
     recorded.members.length, maxMembers, 'InvalidSalesforceCapturedRequestRecovery');
   const retainedByIndex = new Map();
+  let originalPosition = 0;
   for (const entry of recovered.connectorRecovery) {
     const index = entry?.memberIndex;
+    if (memberIndexes === undefined && index !== originalPosition) {
+      fail('InvalidSalesforceCapturedRequestRecovery');
+    }
+    originalPosition++;
     if (!Number.isSafeInteger(index) || index < 0 ||
         index >= recorded.members.length || retainedByIndex.has(index)) {
       fail('InvalidSalesforceCapturedRequestRecovery');
