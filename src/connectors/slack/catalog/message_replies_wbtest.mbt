@@ -268,4 +268,17 @@ test "Slack replies page byte row work and emitted wire bounds remain independen
     })
     is Err(InvalidLimits),
   )
+  let replies = prepare_slack_message_replies(source, 0, replies_limits()).unwrap()
+  let request = begin_slack_message_replies(replies).unwrap()
+  let page = reply_page(
+    replies, request, "[{\"type\":\"message\",\"ts\":\"1.000001\"}]", ",\"has_more\":false",
+  ).unwrap()
+  assert_true(
+    slack_message_replies_page_rows_wire(page, ["id"], 1, 100, 8)
+    is Err(BudgetExceeded),
+  )
+  assert_true(
+    slack_message_replies_page_rows_wire(page, ["foreign"], 1024, 100, 8)
+    is Err(InvalidSelection(_)),
+  )
 }

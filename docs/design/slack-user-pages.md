@@ -288,3 +288,31 @@ observations and failed-result aliases, cancellation signal and in-flight
 Promises together. Common closing and a closed transport do not acknowledge
 retirement of escaped aliases or return a ReaderLoan. The actual Host supplier
 must cover that simultaneous graph before this private reader is admitted.
+
+### Original message reply pages
+
+The Catalog reply protocol selects one exact row of an admitted ordinary-history
+page. Its retained page and row occurrence, rather than equal JSON, identify the
+selection. A reply that already names its parent uses that exact `thread_ts`;
+otherwise the actual replies response must establish the parent. Terminal
+completion requires both the actual parent and the selected message. Generic
+message-page admission does not acquire ordinary-history completeness or infer a
+missing reply count.
+
+Each reply exchange has one nominal pending request. The protocol retains the
+entire admitted response-page prefix, exact cursor and timestamp tokens, and all
+original checked rows. Repeated IDs emit once only after bounded complete
+CheckedValue equality; a changed row refuses completion. Equality has explicit
+Value comparison limits independent from single-value admission limits, since
+comparing two valid values retains and charges both. Page, aggregate byte, row,
+comparison and work bounds remain separate. Exhaustion consumes the pending
+request and does not authorize replay.
+
+Cursor continuation is preferred. Ascending time continuation advances the
+exclusive `oldest` token using exact instant ordering, with no Number or Host Date
+conversion. Empty or nonprogressing continuation refuses completion. The physical
+caller must separately retain original responses, operation-specific uses,
+observation tickets and cleanup custody, and consume each prior response ticket
+before a dependent exchange. This DATA protocol supplies no transport authority,
+normal ReaderLoan or complete workspace coverage. Closing its control keeps
+retained aliases and is not a physical cleanup acknowledgment.
