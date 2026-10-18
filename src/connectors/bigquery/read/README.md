@@ -24,6 +24,13 @@ Host may lend its already-begun original RowRun; that borrow must bind the same
 physical stop observer before admitting responses. It cannot finish, capture or
 close the Host's root. The original Host retains retirement responsibility.
 
+The provider's total-row metadata allowance remains a nonnegative Int64. When
+borrowing an already-begun Host RowRun, it is compared as Int64 and is never
+converted into a capture allocation or another reservation. The Host's existing
+page and capture capacities still bound every admitted row. Starting an owned
+read separately requires an Int-representable capture bound before reserving
+its original RowRun; an oversized bound is refused without a cleanup carrier.
+
 A Job transport projection may bind that same original read once, before its
 first request. It emits a single POST with the caller's original Job ID,
 selected metadata-bound SQL, explicit GoogleSQL mode and maximumBytesBilled.
