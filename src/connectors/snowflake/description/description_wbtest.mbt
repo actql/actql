@@ -362,7 +362,7 @@ test "duplicate unknown and empty selections do not produce SQL" {
 
 ///|
 test "unsupported temporal binary columns stay explicit without disguising them" {
-  for kind in ["DATE", "TIME", "TIMESTAMP_NTZ", "TIMESTAMP_TZ", "BINARY"] {
+  for kind in ["TIME", "TIMESTAMP_NTZ", "TIMESTAMP_TZ", "BINARY"] {
     let rows = [
       metadata_row("ACCOUNT_ID", 1, "TEXT"),
       metadata_row("UNFINISHED", 2, kind),
@@ -385,6 +385,34 @@ test "unsupported temporal binary columns stay explicit without disguising them"
       prepare_read_projection(value, ["ACCOUNT_ID"], limits()) is Ok(_),
     )
   }
+}
+
+///|
+test "DATE and LTZ description retain native metadata while selecting existing temporal Contracts" {
+  let original = metadata_response(
+    [
+      metadata_row("DAY", 1, "DATE"),
+      metadata_row("INSTANT", 2, "TIMESTAMP_LTZ", nullable=true),
+    ],
+    total=2,
+    partition_counts=[2],
+  )
+  let value = project_table_description(target(), original, [], limits()).unwrap()
+  assert_true(description_matches_response(value, original))
+  assert_eq(description_column_type(value, 0), Some("DATE"))
+  assert_eq(description_column_type(value, 1), Some("TIMESTAMP_LTZ"))
+  assert_true(
+    description_column_contract(value, 0).unwrap().shape is @contract.Date,
+  )
+  assert_true(
+    description_column_contract(value, 1).unwrap().shape is @contract.Timestamp,
+  )
+  assert_true(description_column_contract(value, 1).unwrap().nullable)
+  let plan = prepare_read_projection(value, ["DAY", "INSTANT"], limits()).unwrap()
+  let (schema, _) = read_projection_schema(plan)
+  assert_eq(
+    schema, "{\"DAY\":{\"nullable\":false,\"type\":\"date\"},\"INSTANT\":{\"nullable\":true,\"type\":\"timestamp\"}}",
+  )
 }
 
 ///|
