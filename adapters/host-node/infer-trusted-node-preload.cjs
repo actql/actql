@@ -8,6 +8,7 @@ const {Readable} = require('node:stream');
 const {createRequire} = require('node:module');
 const {dirname, join} = require('node:path');
 const originalProcess = require('node:process');
+const applyOriginal = Reflect.apply;
 const {createInitialControlInstallationOwner} = require('./initial-control-installation-owner.cjs');
 // Selected runtime implementation duty: ONLY the V8 internal backing of these
 // two identity indices stays with this actual startup/module and escaped-handle
@@ -110,7 +111,7 @@ module.exports = {
     // Only the captured actual Host operation/receiver receives the same raw
     // input synchronously. It retains the same candidate and begins original
     // acquisition before copying; only its existing Client Promise may escape.
-    return Reflect.apply(consumer, startup.initialControlHostNamespace, [kind, rawInput]);
+    return applyOriginal(consumer, startup.initialControlHostNamespace, [kind, rawInput]);
   },
   beginInitialControlInstallation(originals, rawInput) {
     return initialControl.begin(originals, rawInput);

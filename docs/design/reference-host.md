@@ -195,6 +195,27 @@ byte backing, decoded String, hash and native decoder workspace overlap. Such
 byte custody alone does not establish the complete image loader, installation
 admission, current Host or preparation envelope.
 
+For a generated installed image inventory, the selected preload captures each
+original Local and resolved dependency package before optional SDK and Host
+namespace compilation. Each package's same-FD manifest and image bytes must
+match that inventory, while repeated dependency edges must resolve to the same
+original package, not an equal copy at another root. Those held Sources feed
+the private loader; the same synchronous receiver initializes the Host namespace
+and completes its Module handoff before entry. Source-only absence stays absent.
+The selected namespace and asset projection remain process/module holdings, not
+an operational intake issuer or a Host-level release acknowledgement. Stock
+resolver/bootstrap provenance and unselected library domains remain independent.
+
+Ancestor public preload wrappers publish their same immutable null-prototype
+table before nested loading. A later exports replacement or Node's circular-
+require warning prototype cannot stand in for that original receiver. Eager
+ESM consumers use the original synchronous CJS receiver rather than creating a
+static CJS/ESM import cycle. Private preparation dispatch captures only the actual
+Host namespace's operation and receiver; it refuses a missing operational Owner
+before touching the raw input or constructing a candidate. Image correspondence
+or the presence of that operation alone does not enable dispatch, and only the
+existing Client result may escape, never a Scope, issuer or capacity handle.
+
 Selected image loading supplies immutable captured Source to the original Node
 compiler rather than delegating the body to a later pathname read. Uncaptured
 dependencies and additional query-identified images require their own selected
