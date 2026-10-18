@@ -108,18 +108,47 @@ fn InitialCryptoOriginal::acquire(
     return Err(BackingUnavailable(self.backing.acquisition_issue()))
   }
   let profile = self.profile
-  let host = @initial_arena.prepare_installed_arena_host(
-    profile.source, profile.recipe, 1L, profile.arena_bytes,
-    profile.host_limits, profile.control_bytes,
-  ).map_err(issue => Host(issue))?
+  let host = match
+    @initial_arena.prepare_installed_arena_host(
+      profile.source,
+      profile.recipe,
+      1L,
+      profile.arena_bytes,
+      profile.host_limits,
+      profile.control_bytes,
+    ).map_err(issue => Host(issue)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   self.host = Some(host)
-  host.acquire_fd(self.backing.descriptor()).map_err(issue => Host(issue))?
-  let scope = host.borrow_backing().map_err(issue => Host(issue))?
+  match
+    host.acquire_fd(self.backing.descriptor()).map_err(issue => Host(issue)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let scope = match host.borrow_backing().map_err(issue => Host(issue)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   self.backing_scope = Some(scope)
-  host.enter_backing_borrow_scope(scope).map_err(issue => Host(issue))?
+  match host.enter_backing_borrow_scope(scope).map_err(issue => Host(issue)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   self.backing_entered = true
-  let domain = match host.prepare_domain(scope, self.backing.descriptor(),
-    profile.domain_bytes, profile.domain_limits).map_err(issue => Domain(issue))? {
+  let domain = match
+    (match
+      host
+      .prepare_domain(
+        scope,
+        self.backing.descriptor(),
+        profile.domain_bytes,
+        profile.domain_limits,
+      )
+      .map_err(issue => Domain(issue)) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }) {
     PreparedDomain(domain) => domain
     PendingDomain(domain, issue) => {
       self.domain = Some(domain)
@@ -127,15 +156,42 @@ fn InitialCryptoOriginal::acquire(
     }
   }
   self.domain = Some(domain)
-  host.transfer_domain(domain).map_err(issue => Domain(issue))?
-  host.leave_backing_borrow_scope(scope).map_err(issue => Host(issue))?
+  match host.transfer_domain(domain).map_err(issue => Domain(issue)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match host.leave_backing_borrow_scope(scope).map_err(issue => Host(issue)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   self.backing_entered = false
-  host.return_backing_borrow(scope).map_err(issue => Host(issue))?
+  match host.return_backing_borrow(scope).map_err(issue => Host(issue)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   self.backing_scope = None
-  host.prepare_domain_read(domain).map_err(issue => Domain(issue))?
-  let (_, path) = self.package_original.library_paths().map_err(_ => Unavailable)?
-  match host.prepare_crypto_component(domain, path,
-    profile.heap_bytes, profile.diagnostic_ceiling).map_err(issue => Component(issue))? {
+  match host.prepare_domain_read(domain).map_err(issue => Domain(issue)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let (_, path) = match
+    self.package_original.library_paths().map_err(_ => Unavailable) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    (match
+      host
+      .prepare_crypto_component(
+        domain,
+        path,
+        profile.heap_bytes,
+        profile.diagnostic_ceiling,
+      )
+      .map_err(issue => Component(issue)) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }) {
     ReadyCrypto(component) => self.component = Some(component)
     PendingCrypto(component, issue) => {
       self.component = Some(component)
@@ -149,14 +205,28 @@ fn InitialCryptoOriginal::acquire(
 fn InitialCryptoOriginal::require_current(
   self : InitialCryptoOriginal,
 ) -> Result[Unit, InitialCryptoIssue] {
-  if self.closing || self.closed || self.primary is Some(_) ||
-    !self.backing.current() || self.package_original.check_current() is Err(_) {
+  if self.closing ||
+    self.closed ||
+    self.primary is Some(_) ||
+    !self.backing.current() ||
+    self.package_original.check_current() is Err(_) {
     return Err(Unavailable)
   }
-  guard self.host is Some(host) && self.domain is Some(domain) &&
-    self.component is Some(component) else { return Err(Unavailable) }
-  host.require_domain_read_current(domain).map_err(issue => Domain(issue))?
-  host.current_crypto_component(component).map_err(issue => Component(issue))?
+  guard self.host is Some(host) &&
+    self.domain is Some(domain) &&
+    self.component is Some(component) else {
+    return Err(Unavailable)
+  }
+  match
+    host.require_domain_read_current(domain).map_err(issue => Domain(issue)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  (match
+    host.current_crypto_component(component).map_err(issue => Component(issue)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  })
   |> ignore
   Ok(())
 }
@@ -167,10 +237,21 @@ fn InitialCryptoOriginal::require_current(
 fn InitialCryptoOriginal::enter(
   self : InitialCryptoOriginal,
 ) -> Result[Unit, InitialCryptoIssue] {
-  self.require_current()?
-  if self.scope_open { return Err(Unavailable) }
-  self.host.unwrap().enter_domain_read(self.domain.unwrap())
-  .map_err(issue => Domain(issue))?
+  match self.require_current() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if self.scope_open {
+    return Err(Unavailable)
+  }
+  match
+    self.host
+    .unwrap()
+    .enter_domain_read(self.domain.unwrap())
+    .map_err(issue => Domain(issue)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   self.scope_open = true
   Ok(())
 }
@@ -179,9 +260,17 @@ fn InitialCryptoOriginal::enter(
 fn InitialCryptoOriginal::leave(
   self : InitialCryptoOriginal,
 ) -> Result[Unit, InitialCryptoIssue] {
-  if !self.scope_open { return Ok(()) }
-  self.host.unwrap().leave_domain_read(self.domain.unwrap())
-  .map_err(issue => Domain(issue))?
+  if !self.scope_open {
+    return Ok(())
+  }
+  match
+    self.host
+    .unwrap()
+    .leave_domain_read(self.domain.unwrap())
+    .map_err(issue => Domain(issue)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   self.scope_open = false
   Ok(())
 }
@@ -191,21 +280,45 @@ fn InitialCryptoOriginal::library(
   self : InitialCryptoOriginal,
   inner : Bool,
 ) -> Result[@local_crypto.Library, InitialCryptoIssue] {
-  self.require_current()?
-  if !self.scope_open { return Err(Unavailable) }
+  match self.require_current() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if !self.scope_open {
+    return Err(Unavailable)
+  }
   let retained = if inner { self.inner_library } else { self.outer_library }
-  if retained is Some(library) { return Ok(library) }
-  let component = self.host.unwrap().current_crypto_component(self.component.unwrap())
-    .map_err(issue => Component(issue))?
-  let acquired = component.new_library().map_err(issue => Signature(issue))?
+  if retained is Some(library) {
+    return Ok(library)
+  }
+  let component = match
+    self.host
+    .unwrap()
+    .current_crypto_component(self.component.unwrap())
+    .map_err(issue => Component(issue)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let acquired = match
+    component.new_library().map_err(issue => Signature(issue)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let (library, issue) = match acquired {
     ReadyCryptoLibrary(library) => (library, None)
     PendingCryptoLibrary(library, issue) => (library, Some(Signature(issue)))
   }
-  if inner { self.inner_library = Some(library) } else { self.outer_library = Some(library) }
+  if inner {
+    self.inner_library = Some(library)
+  } else {
+    self.outer_library = Some(library)
+  }
   match issue {
     None => Ok(library)
-    Some(issue) => { self.retain_primary(issue); Err(issue) }
+    Some(issue) => {
+      self.retain_primary(issue)
+      Err(issue)
+    }
   }
 }
 
@@ -216,12 +329,21 @@ fn InitialCryptoOriginal::library(
 fn InitialCryptoOriginal::close_checked(
   self : InitialCryptoOriginal,
 ) -> Result[Unit, InitialCryptoIssue] {
-  if self.closed { return Ok(()) }
+  if self.closed {
+    return Ok(())
+  }
   self.closing = true
-  self.leave()?
+  match self.leave() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   if self.host is Some(host) && self.domain is Some(domain) {
     if self.inner_library is Some(_) || self.outer_library is Some(_) {
-      host.enter_domain_read_cleanup(domain).map_err(issue => Domain(issue))?
+      match
+        host.enter_domain_read_cleanup(domain).map_err(issue => Domain(issue)) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
       self.scope_open = true
       if self.inner_library is Some(library) {
         match library.close_checked() {
@@ -235,25 +357,48 @@ fn InitialCryptoOriginal::close_checked(
           Err(issue) => return Err(Signature(issue))
         }
       }
-      self.leave()?
+      match self.leave() {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
     }
     if self.component is Some(component) {
-      host.close_crypto_component(component).map_err(issue => Component(issue))?
+      match
+        host
+        .close_crypto_component(component)
+        .map_err(issue => Component(issue)) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
       self.component = None
     }
-    host.close_domain_after_owner_ack(domain).map_err(issue => Domain(issue))?
+    match
+      host.close_domain_after_owner_ack(domain).map_err(issue => Domain(issue)) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
     self.domain = None
   }
   if self.host is Some(host) {
     if self.backing_scope is Some(scope) {
       if self.backing_entered {
-        host.leave_backing_borrow_scope(scope).map_err(issue => Host(issue))?
+        match
+          host.leave_backing_borrow_scope(scope).map_err(issue => Host(issue)) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
         self.backing_entered = false
       }
-      host.return_backing_borrow(scope).map_err(issue => Host(issue))?
+      match host.return_backing_borrow(scope).map_err(issue => Host(issue)) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
       self.backing_scope = None
     }
-    host.try_close().map_err(issue => Host(issue))?
+    match host.try_close().map_err(issue => Host(issue)) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
     self.host = None
   }
   if !self.backing.close_checked() {
