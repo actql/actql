@@ -5218,5 +5218,87 @@
     },
     "cid": "sha256:6030e6f28f5c30c4ad9cb3b159b67bf8ab6ad15cd92cc528418ea3345558ba12",
     "canonicalPreimage": "{\"ACTQL.expression_fragment/0.1\":{\"execution_contract\":{\"cid\":\"sha256:3c98c86d93920d4017cadb3163e5c595967ef67f11e1205e0528495467639c16\",\"file\":\"spec/contracts/actql-aoa.json\",\"pointer\":\"/execution_contracts/ACTQL.expression_fragment~10.1\"},\"inputs\":[\"relation\"],\"output\":\"relation\"},\"BRIDGE.events.to_rows\":{\"inputs\":[\"event_stream\"],\"output\":\"relation\"},\"BRIDGE.graph.to_edge_rows\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"BRIDGE.graph.to_node_rows\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"BRIDGE.rows.to_events\":{\"inputs\":[\"relation\"],\"output\":\"event_stream\"},\"BRIDGE.rows.to_graph\":{\"execution_contract\":{\"cid\":\"sha256:0979999a64bb47f7fcb0d113c0bbcab592ad0a268b548a8776f8fac4fd6f6d84\",\"file\":\"spec/contracts/actql-aoa.json\",\"pointer\":\"/execution_contracts/BRIDGE.rows.to_graph\"},\"finite_inputs\":{\"minimum_inputs\":0,\"repeated_input\":\"relation\"},\"output\":\"graph\"},\"BRIDGE.rows.to_vectors\":{\"inputs\":[\"relation\"],\"output\":\"vector_set\"},\"BRIDGE.vectors.to_rows\":{\"inputs\":[\"vector_set\"],\"output\":\"relation\"},\"EFFECT.plan\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.analytic\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.assert_all\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.assert_unique\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.cross_join\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"REL.dedupeRows\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.derive\":{\"execution_extensions\":{\"ordered_bindings\":{\"cid\":\"sha256:4afeaf3de16803c8a247a089c678bc0828a754f72ea9a78d38af1f392ab7451c\",\"file\":\"spec/contracts/actql-aoa.json\",\"pointer\":\"/execution_contracts/REL.derive.ordered\"}},\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.distinct\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.except_rows\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"REL.groupBy\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.intersect_rows\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"REL.join\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"REL.json.pick\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.limit\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.orderByStable\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.pivot\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.select\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.topk\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.topk_partitioned\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.unionAll\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"REL.unnest\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.unpivot\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.values\":{\"execution_contract\":{\"cid\":\"sha256:96c7925a693801dcb3bce9f3e2da9b4fd9ed39e517af90cbac0e1adbee5ad2ae\",\"file\":\"spec/contracts/actql-aoa.json\",\"pointer\":\"/execution_contracts/REL.values\"},\"inputs\":[],\"output\":\"relation\"},\"REL.watermark\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.where\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.window.fixed\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.window.lag\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.window.project\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.window.sliding\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"SGA.apply_delta\":{\"inputs\":[\"graph\",\"relation\"],\"output\":\"graph\"},\"SGA.bounds_check\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.components\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.degree_metrics\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.diff\":{\"inputs\":[\"graph\",\"graph\"],\"output\":\"relation\"},\"SGA.diff_structural\":{\"inputs\":[\"graph\",\"graph\"],\"output\":\"graph\"},\"SGA.equal\":{\"inputs\":[\"graph\",\"graph\"],\"output\":\"relation\"},\"SGA.graft\":{\"inputs\":[\"graph\",\"graph\"],\"output\":\"graph\"},\"SGA.match_edges\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.match_nodes\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.mean_structural\":{\"finite_inputs\":{\"minimum_inputs\":1,\"repeated_input\":\"graph\"},\"output\":\"graph\"},\"SGA.normalize\":{\"inputs\":[\"graph\"],\"output\":\"graph\"},\"SGA.reachable\":{\"input_alternatives\":[[\"graph\"],[\"graph\",\"relation\"]],\"output\":\"relation\"},\"SGA.shortest_path\":{\"input_alternatives\":[[\"graph\"],[\"graph\",\"relation\"],[\"graph\",\"relation\",\"relation\"]],\"output\":\"relation\"},\"SGA.subgraph\":{\"input_alternatives\":[[\"graph\"],[\"graph\",\"relation\"]],\"output\":\"graph\"},\"SGA.traverse\":{\"input_alternatives\":[[\"graph\"],[\"graph\",\"relation\"]],\"output\":\"relation\"},\"SGA.union_structural\":{\"finite_inputs\":{\"minimum_inputs\":2,\"repeated_input\":\"graph\"},\"output\":\"graph\"},\"TEA.calendar.bucket\":{\"execution_contract\":{\"cid\":\"sha256:8cbb70e4edcd1dd29deee777b44b3f09b9cee337b5495944ca895fa3065b6227\",\"file\":\"spec/contracts/actql-aoa.json\",\"pointer\":\"/execution_contracts/TEA.calendar.bucket\"},\"inputs\":[\"relation\"],\"output\":\"relation\"},\"TEA.calendar.series\":{\"execution_contract\":{\"cid\":\"sha256:040129c2ff63394a6b4804daf3a7c0641e2bdae4b524389d3c8c362e7e4dc13f\",\"file\":\"spec/contracts/actql-aoa.json\",\"pointer\":\"/execution_contracts/TEA.calendar.series\"},\"inputs\":[],\"output\":\"relation\"},\"TEA.dedupe\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.join.asof\":{\"inputs\":[\"event_stream\",\"relation\"],\"output\":\"relation\"},\"TEA.join.interval\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"TEA.sequence.match\":{\"inputs\":[\"event_stream\"],\"output\":\"relation\"},\"TEA.time_series\":{\"inputs\":[],\"output\":\"relation\"},\"TEA.watermark.label\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.window.fixed_label\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.window.session_assign\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.window.sliding_assign\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"VEC.knn_join\":{\"inputs\":[\"vector_set\",\"vector_set\"],\"output\":\"relation\"},\"VEC.merge_rankings\":{\"output\":\"relation\",\"policy_inputs\":{\"max\":{\"inputs\":[\"relation\",\"relation\"]},\"rrf\":{\"minimum_inputs\":2,\"repeated_input\":\"relation\"},\"weighted_sum\":{\"inputs\":[\"relation\",\"relation\"]}}},\"VEC.normalize_l2\":{\"inputs\":[\"vector_set\"],\"output\":\"vector_set\"},\"VEC.pool\":{\"inputs\":[\"vector_set\"],\"output\":\"vector_set\"},\"VEC.score_sort\":{\"inputs\":[\"vector_set\"],\"output\":\"vector_set\"}}"
-  }
+  },
+  "parameterIdentities": [
+    {
+      "integer": "-9223372036854775808",
+      "body": {
+        "version": "actql-parameter-values/0.1",
+        "values": {
+          "n": {
+            "$actql_value": [
+              "int64",
+              "-9223372036854775808"
+            ]
+          }
+        }
+      },
+      "canonicalPreimage": "{\"values\":{\"n\":{\"$actql_value\":[\"int64\",\"-9223372036854775808\"]}},\"version\":\"actql-parameter-values/0.1\"}",
+      "cid": "sha256:be7bca370b8f95a6cd7474b75ab5b83bff4e7daca6ee4d9cca72f72563604484"
+    },
+    {
+      "integer": "0",
+      "body": {
+        "version": "actql-parameter-values/0.1",
+        "values": {
+          "n": {
+            "$actql_value": [
+              "int64",
+              "0"
+            ]
+          }
+        }
+      },
+      "canonicalPreimage": "{\"values\":{\"n\":{\"$actql_value\":[\"int64\",\"0\"]}},\"version\":\"actql-parameter-values/0.1\"}",
+      "cid": "sha256:5345153373d6955897e5d7136c27260825c514d53dad37894b3c4c16c47d8282"
+    },
+    {
+      "integer": "9223372036854775807",
+      "body": {
+        "version": "actql-parameter-values/0.1",
+        "values": {
+          "n": {
+            "$actql_value": [
+              "int64",
+              "9223372036854775807"
+            ]
+          }
+        }
+      },
+      "canonicalPreimage": "{\"values\":{\"n\":{\"$actql_value\":[\"int64\",\"9223372036854775807\"]}},\"version\":\"actql-parameter-values/0.1\"}",
+      "cid": "sha256:356f379a3908c846a1c98641de748cba8d66650e82f044bb37b6cc2d86f4f5e3"
+    },
+    {
+      "integer": "9007199254740992",
+      "body": {
+        "version": "actql-parameter-values/0.1",
+        "values": {
+          "n": {
+            "$actql_value": [
+              "int64",
+              "9007199254740992"
+            ]
+          }
+        }
+      },
+      "canonicalPreimage": "{\"values\":{\"n\":{\"$actql_value\":[\"int64\",\"9007199254740992\"]}},\"version\":\"actql-parameter-values/0.1\"}",
+      "cid": "sha256:b7b18d0fdfb3ea9e787e673c7f2e655240de088d6f23a09f2a70da9b85c0e982"
+    },
+    {
+      "integer": "9007199254740993",
+      "body": {
+        "version": "actql-parameter-values/0.1",
+        "values": {
+          "n": {
+            "$actql_value": [
+              "int64",
+              "9007199254740993"
+            ]
+          }
+        }
+      },
+      "canonicalPreimage": "{\"values\":{\"n\":{\"$actql_value\":[\"int64\",\"9007199254740993\"]}},\"version\":\"actql-parameter-values/0.1\"}",
+      "cid": "sha256:fad4ccc185596e214a854f0f1801660b974a85ce7178934e335ede9646cfb2fc"
+    }
+  ]
 }

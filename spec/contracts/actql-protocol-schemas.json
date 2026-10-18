@@ -17279,10 +17279,10 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:370ecc4621411b0c38bc28371b2ff1ded846a13def2ef597d7eb11e038d9f6f8",
+  "artifact_registry_cid": "sha256:f0009e4b30120e887401739cc5a8c0bcfb84b84e7032b12268bfa0d3ca3040f5",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
-    "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
+    "parameter_values": "sha256:cf421ba9a3d602be0bf53fc646eb822c0fa96151a2c5cf72a2f271cc7c3a6d77",
     "invocation_bindings": "sha256:6471878465e3cf6c4af4bd7d2c161d578ab861770ec6a893c7e0de116dadbd41",
     "bound_invocation_template": "sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7",
     "source_evidence": "sha256:63485b767c477d6ed77853478eefbf7f3af055c2bfac78e915e2db8bb89b51bc",
@@ -18465,6 +18465,31 @@
                       "minContains": 1,
                       "maxContains": 1,
                       "description": "Pairs have unique names in strictly increasing UTF-16 order and include $actql_value. Values are recursively projected; pair arrays are structural, not projected business arrays."
+                    }
+                  ],
+                  "items": false,
+                  "minItems": 2,
+                  "maxItems": 2
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "$actql_value"
+              ],
+              "properties": {
+                "$actql_value": {
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "const": "int64"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^(?:0|-?[1-9][0-9]*)(?![\\s\\S])",
+                      "maxLength": 20
                     }
                   ],
                   "items": false,
