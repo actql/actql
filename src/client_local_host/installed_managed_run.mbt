@@ -19,6 +19,7 @@ pub(all) enum ClientInstalledManagedRunIssue {
   CleanupPending
   InsufficientCapacity
   Resource(@resources.ImportedChildLedgerIssue)
+  Ledger(@resources.LedgerIssue)
 }
 
 ///|
@@ -128,7 +129,13 @@ fn require_installed_managed_run(
   }
   guard value.ledger is Some(ledger) else { return Err(Retired) }
   match @resources.check_node_managed_run_admission(value.admission, ledger) {
-    Err(issue) => Err(Resource(issue))
+    Err(issue) => return Err(Resource(issue))
+    Ok(_) => ()
+  }
+  // Import currentness is not permission to mutate a parked inventory. Keep
+  // the same fence as the original Source-only path for every shared borrow.
+  match @resources.check_original_resources_mutable(ledger) {
+    Err(issue) => Err(Ledger(issue))
     Ok(_) => Ok(ledger)
   }
 }

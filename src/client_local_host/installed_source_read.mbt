@@ -26,6 +26,7 @@ pub(all) enum ClientInstalledSourceReadIssue {
   Import(@resources.ImportedChildLedgerIssue)
   Resource(@resources.LedgerIssue)
   Acquisition(@row_source_host.RowHostIssue)
+  ManagedRun(ClientInstalledManagedRunIssue)
 }
 
 ///|
@@ -79,8 +80,12 @@ fn require_installed_source_read_current(
   }
   guard value.ledger is Some(ledger) else { return Err(Retired) }
   if value.managed_run is Some((run, occurrence)) {
-    guard require_installed_managed_run(run) is Ok(original) &&
-      physical_equal(original, ledger) &&
+    let original = match require_installed_managed_run(run) {
+      Err(Ledger(issue)) => return Err(Resource(issue))
+      Err(issue) => return Err(ManagedRun(issue))
+      Ok(original) => original
+    }
+    guard physical_equal(original, ledger) &&
       run.reads.get(occurrence) is Some(Some(selected)) &&
       physical_equal(selected, value) else {
       return Err(ForeignOriginal)
