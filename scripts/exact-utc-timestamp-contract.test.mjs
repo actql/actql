@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
+import {gunzipSync} from 'node:zlib';
 import test from 'node:test';
 
 // Independent contract oracle; no Value parser, Host Date or product encoder.
@@ -52,7 +53,11 @@ test('the scalar law changes only the adopted exact temporal boundary',()=>{
 });
 
 test('the containing AoA body adopts the complete new scalar law and no other change',()=>{
-  const current=read('spec/contracts/actql-aoa.json');
+  // The complete UTC-adoption body precedes the separately adopted comparison
+  // extension. Its exact scalar edge is still the current scalar obligation.
+  const comparisonHistory=JSON.parse(gunzipSync(readFileSync('scripts/fixtures/pre-int64-comparison-literal-identities.json.gz')));
+  const current=comparisonHistory.records['spec/contracts/actql-aoa.json'];
+  assert.equal(read('spec/contracts/actql-aoa.json').rela_scalar_law_manifest_cid,current.rela_scalar_law_manifest_cid);
   const scalar=read('spec/dependencies/aoa-rela-scalar-laws.json');
   assert.deepEqual(current,{...original.aoa_contract,rela_scalar_law_manifest_cid:cid(scalar)});
   assert.notEqual(cid(current),cid(original.aoa_contract));

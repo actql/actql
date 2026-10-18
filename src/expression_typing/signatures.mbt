@@ -90,6 +90,47 @@ fn immediate_null(node : Node) -> Bool {
 }
 
 ///|
+fn immediate_number(node : Node) -> Bool {
+  node.tag == "literal" && @decode.view(node.body) is NumberValue(_)
+}
+
+///|
+// Only an independently typed peer supplies this comparison context. Source
+// Number values remain intact; no raw numeric spelling is recovered here.
+fn int64_comparison_context(
+  t : Types,
+  nodes : Array[Node],
+  ids : Array[Int],
+) -> Unit raise Stop {
+  let mut has_int64_peer = false
+  for id in ids {
+    spend(t.budget, nodes[id].source)
+    let child = nodes[id]
+    if !immediate_null(child) &&
+      !immediate_number(child) &&
+      resolve_type(t, child.inferred, child.source).shape is @contract.Signed64 {
+      has_int64_peer = true
+    }
+  }
+  if has_int64_peer {
+    for id in ids {
+      admit_int64_comparison_literal(t, nodes[id])
+    }
+  }
+}
+
+///|
+fn admit_int64_comparison_literal(t : Types, child : Node) -> Unit raise Stop {
+  spend(t.budget, child.source)
+  if child.tag == "literal" && @decode.view(child.body) is NumberValue(number) {
+    if @value.signed64_comparison_literal_value(number) is None {
+      fail(child.source, TypeMismatch("lossless signed64 comparison literal"))
+    }
+    child.inferred = primitive(t, Signed64Type, false, child.source)
+  }
+}
+
+///|
 fn comparable_operands(
   t : Types,
   nodes : Array[Node],
@@ -116,7 +157,7 @@ fn comparable_operands(
     }
     let c = resolve_type(t, child.inferred, child.source)
     if ordered &&
-      !["string", "number", "decimal", "boolean", "date", "timestamp"].contains(
+      !["string", "number", "int64", "decimal", "boolean", "date", "timestamp"].contains(
         type_name(c),
       ) {
       fail(child.source, TypeMismatch("author-orderable scalar"))
@@ -517,13 +558,25 @@ fn infer(
       }
       primitive(t, StringType, nullable, source)
     }
-    "array" | "#in_list" =>
+    "array" | "#in_list" => {
+      if tag == "#in_list" {
+        let ids = node.children.copy()
+        if node.parent is Some(parent) {
+          // Traversal has already checked the left operand before this list.
+          ids.push(nodes[parent].children[0])
+        }
+        int64_comparison_context(t, nodes, ids)
+      }
       put(
         t,
-        Sequence(peers(t, values, source), Some(values.length().to_int64())),
+        Sequence(
+          peers(t, node.children.map(id => nodes[id].inferred), source),
+          Some(values.length().to_int64()),
+        ),
         false,
         source,
       )
+    }
     "empty_array" => {
       let cursor = part(node.body, "items")
       let c = item_contract(t, cursor)
@@ -735,6 +788,9 @@ fn infer(
     | "between"
     | "is_distinct_from"
     | "nullif" => {
+      if tag != "nullif" {
+        int64_comparison_context(t, nodes, node.children)
+      }
       let cs = comparable_operands(
         t,
         nodes,
@@ -758,8 +814,16 @@ fn infer(
         Sequence(item, max_items) => (item, max_items)
         _ => fail(source, TypeMismatch("membership array"))
       }
-      // The independently known left operand can resolve NULL list items.
+      // A typed array item also supplies context to an immediate left Number.
+      // Empty unresolved lists do not supply a domain of their own.
       let left = nodes[node.children[0]]
+      if !immediate_null(left) {
+        let (item_head, _) = head(t, item, source)
+        if t.entries[item_head].kind is Leaf(c) && c.shape is @contract.Signed64 {
+          admit_int64_comparison_literal(t, left)
+        }
+      }
+      // The independently known left operand can resolve NULL list items.
       if immediate_null(left) {
         provide(t, left.inferred, item, source)
       } else {
@@ -767,9 +831,9 @@ fn infer(
       }
       let lc = operand(t, nodes, node, 0)
       let ic = resolve_type(t, item, source)
-      if !["string", "number", "decimal", "boolean", "date", "timestamp"].contains(
-          type_name(lc),
-        ) ||
+      if ![
+          "string", "number", "int64", "decimal", "boolean", "date", "timestamp",
+        ].contains(type_name(lc)) ||
         !@contract.key_comparable(lc, ic) {
         fail(source, TypeMismatch("membership element domain"))
       }

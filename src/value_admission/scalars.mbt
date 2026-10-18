@@ -165,3 +165,20 @@ fn valid_date(text : String) -> Bool {
 fn valid_timestamp(text : String) -> Bool {
   timestamp_instant(text) is Some(_)
 }
+
+///|
+/// Comparison-context DATA only. The original typed int64 peer and immediate
+/// Number-literal occurrence are checked by expression typing, not this helper.
+/// Bounds precede conversion: binary64 +2^63 must never saturate to int64 max.
+pub fn signed64_comparison_literal_value(number : Double) -> Value? {
+  if @scalar.read_integer_number(number) is None ||
+    number < -9223372036854775808.0 ||
+    number >= 9223372036854775808.0 {
+    return None
+  }
+  let integer = number.to_int64()
+  if integer.to_double() != number {
+    return None
+  }
+  Some(signed64_value(integer))
+}
