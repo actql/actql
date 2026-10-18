@@ -12,6 +12,8 @@ pub fn add_comment_request(String, String) -> Result[String, CommentRequestIssue
 
 pub let api_version : String
 
+pub fn begin_issue_page_read(Bytes, PageLimits, Int, String, Int64, String) -> Result[IssuePageRead, GraphqlResponseIssue]
+
 pub fn canonical_timestamp(String) -> String?
 
 pub fn classify_comment_response(Int, HeaderObservation, Bytes, PageLimits, String) -> CommentOutcome
@@ -23,6 +25,14 @@ pub let comment_subject_query : String
 pub fn comment_subject_request(String) -> Result[String, CommentRequestIssue]
 
 pub fn header_value(HeaderObservation, String) -> String?
+
+pub fn issue_page_read_accept(IssuePageRead, Bytes) -> Result[Unit, GraphqlResponseIssue]
+
+pub fn issue_page_read_close(IssuePageRead) -> Unit
+
+pub fn issue_page_read_finish(IssuePageRead) -> Result[GraphqlIssuePage, GraphqlResponseIssue]
+
+pub fn issue_page_read_next_request(IssuePageRead, Int) -> Result[String?, GraphqlResponseIssue]
 
 pub let issues_query : String
 
@@ -86,6 +96,7 @@ pub(all) enum ExchangeFailure {
 pub(all) struct GraphqlIssuePage {
   repository : GraphqlRepository
   rows : Array[IssueRow]
+  pending_fields : Array[IssueFieldContinuation]
   has_next_page : Bool
   end_cursor : String?
 } derive(Eq, @debug.Debug)
@@ -125,6 +136,21 @@ pub(all) struct HeaderObservation {
   entries : Array[(String, String)]
 } derive(Eq, @debug.Debug)
 
+pub(all) struct IssueFieldContinuation {
+  row_index : Int
+  field : String
+  after : String
+  total_count : Int64
+} derive(Eq, @debug.Debug)
+
+pub struct IssueFieldProgress {
+  row_index : Int
+  field : String
+  total_count : Int64
+  mut after : String
+  seen : Array[String]
+}
+
 pub(all) struct IssueFilters {
   state : String
   labels : Array[String]
@@ -146,13 +172,27 @@ pub(all) enum IssuePageIssue {
   InvalidField(String)
 } derive(Eq, @debug.Debug)
 
+pub struct IssuePageRead {
+  page : GraphqlIssuePage
+  limits : PageLimits
+  max_pages : Int
+  mut pages : Int
+  pending : Array[IssueFieldProgress]
+  mut index : Int
+  mut closed : Bool
+}
+
 pub(all) struct IssueRow {
   number : Int64
   node_id : String
   title : String
   state : String
+  state_reason : String?
   body : String?
   author : String?
+  assignees : Array[String]
+  labels : Array[String]
+  url : String
   comments : Int64
   milestone : String?
   created_at : String

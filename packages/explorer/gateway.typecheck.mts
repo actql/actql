@@ -5,6 +5,8 @@ declare const client: Client;
 declare const ref: RunReference;
 const gateway = createExplorerGateway({client, origin: 'http://127.0.0.1:43210'});
 const server = await startExplorerGateway({client});
+const gatewaySettlement: Promise<void> = gateway.close();
+void gatewaySettlement;
 const browser = createExplorerBrowserSource({origin: server.origin});
 await browser.connect(gateway.issueBootstrap().bootstrap);
 const launch = await browser.launchView();

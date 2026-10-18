@@ -20,7 +20,7 @@ fn issue_json(number : Int, extra : String) -> String {
   "\"," +
   "\"state\":\"open\",\"body\":null,\"user\":{\"login\":\"octo\"},\"comments\":2," +
   "\"created_at\":\"2026-10-01T00:00:00Z\",\"updated_at\":\"2026-10-02T00:00:00Z\"," +
-  "\"closed_at\":null,\"milestone\":null,\"labels\":[]" +
+  "\"closed_at\":null,\"milestone\":null,\"labels\":[],\"assignees\":[],\"state_reason\":null,\"html_url\":\"https://github.com/octo/hello/issues/1\"" +
   extra +
   "}"
 }
@@ -334,6 +334,10 @@ test "issue pages exclude pull requests and keep null distinct from omission" {
     author: Some("octo"),
     comments: 2L,
     milestone: None,
+    state_reason: None,
+    assignees: [],
+    labels: [],
+    url: "https://github.com/octo/hello/issues/1",
     created_at: "2026-10-01T00:00:00.000Z",
     updated_at: "2026-10-02T00:00:00.000Z",
     closed_at: None,
@@ -344,8 +348,9 @@ test "issue pages exclude pull requests and keep null distinct from omission" {
     Ok({ rows: [], excluded_pull_requests: 0, provider_items: 0, }),
   )
   // Omitting a nullable field is not the same as null.
-  let omitted = "[{\"number\":1,\"node_id\":\"I\",\"title\":\"t\",\"state\":\"open\",\"user\":null," +
-    "\"comments\":0,\"created_at\":\"a\",\"updated_at\":\"b\",\"closed_at\":null}]"
+  let omitted = "[" +
+    issue_json(1, "").replace(old="\"body\":null,", new="") +
+    "]"
   assert_eq(
     project_issue_page(@utf8.encode(omitted), limits()),
     Err(MissingRequiredField("body")),

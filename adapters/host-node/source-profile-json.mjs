@@ -5,6 +5,7 @@ import {createHash} from 'node:crypto';
 
 const profileByteLimit = 8 * 1024 * 1024;
 const chunkBytes = 64 * 1024;
+const applyOriginal = Reflect.apply;
 
 export async function readSourceProfileJson(path,
   {maxBytes = profileByteLimit, openFile = open} = {}) {
@@ -85,9 +86,21 @@ export async function installedRuntimeBundleCid(path, {openFile = open} = {}) {
 // close failure retains this same handle and retry, never a second read.
 async function withOriginalFile(path, openFile, consume) {
   let original = await openFile(path, 'r');
+  let originalClose;
+  const captureClose = () => {
+    const observed = original.close;
+    if (typeof observed !== 'function') {
+      throw new TypeError('InstalledSourceProfileCloseUnavailable');
+    }
+    originalClose = observed;
+  };
   let failure;
   let readFailed = false;
   try {
+    // Retain successful observation before any consumer await. Retry may
+    // observe a method only when setup never obtained one; it cannot replace
+    // an already captured close or use a different receiver to retire this FD.
+    captureClose();
     return await consume(original);
   } catch (cause) {
     readFailed = true;
@@ -95,10 +108,15 @@ async function withOriginalFile(path, openFile, consume) {
     throw cause;
   } finally {
     try {
-      if (await original.close() === false) {
+      // A failed setup observation already owns this FD. Preserve that cause
+      // and leave observation to its close-only retry, without starting intake
+      // or silently retrying a getter inside the same failed setup.
+      if (originalClose === undefined) throw failure;
+      if (await applyOriginal(originalClose, original, []) === false) {
         throw new TypeError('InstalledSourceProfileCleanupPending');
       }
       original = undefined;
+      originalClose = undefined;
     }
     catch (cause) {
       const first = cause;
@@ -110,10 +128,12 @@ async function withOriginalFile(path, openFile, consume) {
         flight = (async () => {
           if (original !== undefined) {
             try {
-              if (await original.close() === false) {
+              if (originalClose === undefined) captureClose();
+              if (await applyOriginal(originalClose, original, []) === false) {
                 throw new TypeError('InstalledSourceProfileCleanupPending');
               }
               original = undefined;
+              originalClose = undefined;
             } catch (error) { latest = error; throw error; }
           }
           return status();

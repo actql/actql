@@ -2223,11 +2223,24 @@
     {
       "module": "packages/local-node/selected-infer-startup.cjs",
       "responsibilityFacet": "primary",
-      "sha256": "70465b923cffe2ff0036324a1e898abc20eea77c90973c3174f4a4059a1e9230",
-      "exports": [],
-      "operations": [],
+      "sha256": "6312f7e0c046b6823614d1ec14abc4cb272d2fc83ad352c4883968c99c8f2d5f",
+      "exports": [
+        "commonjs:selectedInitialControlHostPreparation"
+      ],
+      "operations": [
+        {
+          "name": "connectInitialControlHostPreparation",
+          "parameters": [
+            "kind",
+            "rawInput"
+          ],
+          "async": false
+        }
+      ],
       "imports": [
-        "./adapters/host-node/infer-trusted-node-preload.cjs"
+        "./adapters/host-node/infer-trusted-node-preload.cjs",
+        "./initial-control-public-dispatch.cjs",
+        "node:module"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -2237,9 +2250,12 @@
       "contracts": [
         {
           "operations": [
-            "<module>"
+            "<module>",
+            "connectInitialControlHostPreparation"
           ],
-          "exports": [],
+          "exports": [
+            "commonjs:selectedInitialControlHostPreparation"
+          ],
           "attributes": {
             "responsibility": [
               {
@@ -2261,6 +2277,14 @@
               {
                 "path": "packages/local-node/selected-infer-startup.cjs",
                 "anchor": "'use strict';"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ancestor public preload wrappers publish their same immutable null-prototype"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
               }
             ],
             "ownership": [
@@ -2271,6 +2295,10 @@
               {
                 "path": "packages/local-node/selected-infer-startup.cjs",
                 "anchor": "'use strict';"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
               }
             ],
             "synchronization": [
@@ -2281,6 +2309,14 @@
               {
                 "path": "packages/local-node/selected-infer-startup.cjs",
                 "anchor": "'use strict';"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "table before nested loading. A later exports replacement or Node's circular-"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
               }
             ],
             "failure": [
@@ -2291,6 +2327,10 @@
               {
                 "path": "packages/local-node/selected-infer-startup.cjs",
                 "anchor": "'use strict';"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
               }
             ],
             "cancellation": [
@@ -2311,6 +2351,10 @@
               {
                 "path": "packages/local-node/selected-infer-startup.cjs",
                 "anchor": "'use strict';"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
               }
             ],
             "extension": [
@@ -2327,6 +2371,14 @@
               {
                 "path": "scripts/selected-infer-startup-entry.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "preload consumes generated inventory without issuing a Scope"
+              },
+              {
+                "path": "scripts/initial-control-public-dispatch.test.mjs",
+                "anchor": "actual wrapper child refusal preserves the same raw input and original function"
               }
             ]
           }
@@ -2667,7 +2719,7 @@
     {
       "module": "packages/node/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7c5c33aee4c17f34fd59eaf811b0e422007236d6aaf95d9166dd82a7a59a11e1",
+      "sha256": "b4167034b24024c8ece30fdfd59c6af8475f5f79b7f603c7f206e4837e7806f9",
       "exports": [
         "ClientError",
         "RequestHeld",
@@ -2704,11 +2756,14 @@
         }
       ],
       "imports": [
+        "./initial-control-public-dispatch.cjs",
         "@actql/sdk",
         "node:path"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [],
+      "unresolvedSyntax": [
+        "runtime-dependent module dependency requires original owner/artifact mapping"
+      ],
       "role": "physical-io",
       "owner": "existing public Client / installed Host port and Result reader boundary",
       "rationale": "Reviewed original facade, codec or explanation; current wire/Host/Core owns admission and meaning. Original typed refusal, pending cleanup, request identity and Unknown do not authorize resending. Type-only export declarations make no new runtime claim.",
@@ -2732,12 +2787,20 @@
               {
                 "path": "packages/node/index.mjs",
                 "anchor": "import {resolve} from 'node:path';"
+              },
+              {
+                "path": "packages/node/index.mjs",
+                "anchor": "// Capture the actual early private consumer once, not a later cache export or"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "packages/node/index.mjs",
                 "anchor": "import {resolve} from 'node:path';"
+              },
+              {
+                "path": "packages/node/index.mjs",
+                "anchor": "initialControlPublicDispatch, ['open', options]);"
               }
             ],
             "identity": [
@@ -2748,6 +2811,10 @@
               {
                 "path": "packages/node/index.mjs",
                 "anchor": "import {resolve} from 'node:path';"
+              },
+              {
+                "path": "packages/node/index.mjs",
+                "anchor": "// Capture the actual early private consumer once, not a later cache export or"
               }
             ],
             "ownership": [
@@ -2758,6 +2825,10 @@
               {
                 "path": "packages/node/index.mjs",
                 "anchor": "import {resolve} from 'node:path';"
+              },
+              {
+                "path": "packages/node/index.mjs",
+                "anchor": "// Capture the actual early private consumer once, not a later cache export or"
               }
             ],
             "synchronization": [
@@ -2768,6 +2839,10 @@
               {
                 "path": "packages/node/index.mjs",
                 "anchor": "import {resolve} from 'node:path';"
+              },
+              {
+                "path": "packages/node/index.mjs",
+                "anchor": "// Capture the actual early private consumer once, not a later cache export or"
               }
             ],
             "failure": [
@@ -2778,6 +2853,10 @@
               {
                 "path": "packages/node/index.mjs",
                 "anchor": "import {resolve} from 'node:path';"
+              },
+              {
+                "path": "packages/node/index.mjs",
+                "anchor": "// Capture the actual early private consumer once, not a later cache export or"
               }
             ],
             "cancellation": [
@@ -2788,6 +2867,10 @@
               {
                 "path": "packages/node/index.mjs",
                 "anchor": "import {resolve} from 'node:path';"
+              },
+              {
+                "path": "scripts/node-initial-control-open-routing.test.mjs",
+                "anchor": "selected refusal precedes Proxy observation and preserves the original pending cleanup"
               }
             ],
             "resources": [
@@ -2798,6 +2881,10 @@
               {
                 "path": "packages/node/index.mjs",
                 "anchor": "import {resolve} from 'node:path';"
+              },
+              {
+                "path": "packages/node/index.mjs",
+                "anchor": "// Capture the actual early private consumer once, not a later cache export or"
               }
             ],
             "extension": [
@@ -2808,12 +2895,24 @@
               {
                 "path": "packages/node/index.mjs",
                 "anchor": "import {resolve} from 'node:path';"
+              },
+              {
+                "path": "packages/node/index.mjs",
+                "anchor": "// Capture the actual early private consumer once, not a later cache export or"
               }
             ],
             "verification": [
               {
                 "path": "scripts/local-node-package-imports.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "scripts/node-initial-control-open-routing.test.mjs",
+                "anchor": "selected public open forwards omitted input synchronously before constructing a default packet"
+              },
+              {
+                "path": "scripts/node-initial-control-open-startup.test.mjs",
+                "anchor": "actual public open retains the selected unavailable original before raw observation"
               }
             ]
           }
@@ -2823,11 +2922,24 @@
     {
       "module": "packages/node/selected-infer-startup.cjs",
       "responsibilityFacet": "primary",
-      "sha256": "f8fef994bca92ae052ec8d9d94ea9ab0e748977063fa42e0afdc41e83503206b",
-      "exports": [],
-      "operations": [],
+      "sha256": "47cdd74832803f6f6fcac3e11c8f713d43493009ea0a488397b44c3b1d66b7cb",
+      "exports": [
+        "commonjs:selectedInitialControlHostPreparation"
+      ],
+      "operations": [
+        {
+          "name": "connectInitialControlHostPreparation",
+          "parameters": [
+            "kind",
+            "rawInput"
+          ],
+          "async": false
+        }
+      ],
       "imports": [
-        "@actql/local-node/selected-infer-startup"
+        "./initial-control-public-dispatch.cjs",
+        "@actql/local-node/selected-infer-startup",
+        "node:module"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -2837,9 +2949,12 @@
       "contracts": [
         {
           "operations": [
-            "<module>"
+            "<module>",
+            "connectInitialControlHostPreparation"
           ],
-          "exports": [],
+          "exports": [
+            "commonjs:selectedInitialControlHostPreparation"
+          ],
           "attributes": {
             "responsibility": [
               {
@@ -2861,6 +2976,14 @@
               {
                 "path": "packages/node/selected-infer-startup.cjs",
                 "anchor": "'use strict';"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ancestor public preload wrappers publish their same immutable null-prototype"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
               }
             ],
             "ownership": [
@@ -2871,6 +2994,10 @@
               {
                 "path": "packages/node/selected-infer-startup.cjs",
                 "anchor": "'use strict';"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
               }
             ],
             "synchronization": [
@@ -2881,6 +3008,14 @@
               {
                 "path": "packages/node/selected-infer-startup.cjs",
                 "anchor": "'use strict';"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "table before nested loading. A later exports replacement or Node's circular-"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
               }
             ],
             "failure": [
@@ -2891,6 +3026,10 @@
               {
                 "path": "packages/node/selected-infer-startup.cjs",
                 "anchor": "'use strict';"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
               }
             ],
             "cancellation": [
@@ -2911,6 +3050,10 @@
               {
                 "path": "packages/node/selected-infer-startup.cjs",
                 "anchor": "'use strict';"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Each public package's private `initial-control-public-dispatch.cjs` is loaded"
               }
             ],
             "extension": [
@@ -2927,6 +3070,14 @@
               {
                 "path": "scripts/selected-infer-startup-entry.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "preload consumes generated inventory without issuing a Scope"
+              },
+              {
+                "path": "scripts/initial-control-public-dispatch.test.mjs",
+                "anchor": "actual wrapper child refusal preserves the same raw input and original function"
               }
             ]
           }
@@ -12921,6 +13072,304 @@
               {
                 "path": "scripts/generate-client-host-wire.test.mjs",
                 "anchor": "SDK answer grammar projects existing Resolution and Evidence"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/local-node/initial-control-public-dispatch.cjs",
+      "sha256": "60a83e398669480025b25b9343b02ac76900b2c264e1a0039c21532326416f8a",
+      "exports": [
+        "commonjs:selectedInitialControlHostPreparation"
+      ],
+      "operations": [
+        {
+          "name": "<anonymous>",
+          "parameters": [
+            "kind",
+            "rawInput"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:module",
+        "node:path",
+        "node:process"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "existing public Client / installed Host port and Result reader boundary",
+      "rationale": "Private same-native-preload Client-only forwarding, captured before namespace reentry; no caller-created operational original, scope or byte authority.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "<anonymous>"
+          ],
+          "exports": [
+            "commonjs:selectedInitialControlHostPreparation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/local-node/initial-control-public-dispatch.cjs",
+                "anchor": "// Private Client-only delivery, never an application-time admission factory."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/local-node/initial-control-public-dispatch.cjs",
+                "anchor": "selectedInitialControlHostPreparation = function(kind, rawInput) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/local-node/initial-control-public-dispatch.cjs",
+                "anchor": "if (parent?.filename === filename && require.cache[filename] === parent &&"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "it captures the same wrapper's original Client-only function and receiver."
+              },
+              {
+                "path": "packages/local-node/initial-control-public-dispatch.cjs",
+                "anchor": "// native preload ancestor and same consumer resolution together."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/local-node/initial-control-public-dispatch.cjs",
+                "anchor": "const receiver = parent.exports;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The two wrapper tables/functions, child receiver/function references, private"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/local-node/initial-control-public-dispatch.cjs",
+                "anchor": "return apply(connect, receiver, [kind, rawInput]);"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The wrapper retains its child function and"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/local-node/initial-control-public-dispatch.cjs",
+                "anchor": "let selectedInitialControlHostPreparation;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary imports return an immutable `undefined` selection without loading a"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "physical retirement acknowledgement or numerical capacity. Private root-level"
+              },
+              {
+                "path": "packages/local-node/initial-control-public-dispatch.cjs",
+                "anchor": "return apply(connect, receiver, [kind, rawInput]);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "delivery tables/closures and captured native descriptor/path/module controls"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "original kind/raw aliases and argument forwarding workspace. These holdings"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "even though they are not public export subpaths."
+              },
+              {
+                "path": "packages/local-node/initial-control-public-dispatch.cjs",
+                "anchor": "// normal facade import neither loads that wrapper nor discovers a later table."
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/initial-control-public-dispatch.test.mjs",
+                "anchor": "ordinary private dispatch import does not load a wrapper or Root"
+              },
+              {
+                "path": "scripts/initial-control-public-dispatch.test.mjs",
+                "anchor": "late native-looking cache or caller table cannot become the selected original"
+              },
+              {
+                "path": "scripts/initial-control-public-dispatch.test.mjs",
+                "anchor": "another real preload cannot supply the private wrapper-parent original"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "preload consumes generated inventory without issuing a Scope"
+              },
+              {
+                "path": "scripts/initial-control-public-dispatch.test.mjs",
+                "anchor": "// A real but unrelated preload can forge a cache entry and Module parent."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/node/initial-control-public-dispatch.cjs",
+      "sha256": "2d1b8a90db6c7c1fe5eb0578f44e099c13cc555f0f15b67af35fd71c34ff9376",
+      "exports": [
+        "commonjs:selectedInitialControlHostPreparation"
+      ],
+      "operations": [
+        {
+          "name": "<anonymous>",
+          "parameters": [
+            "kind",
+            "rawInput"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:module",
+        "node:path",
+        "node:process"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "existing public Client / installed Host port and Result reader boundary",
+      "rationale": "Private same-native-preload Client-only forwarding, captured before namespace reentry; no caller-created operational original, scope or byte authority.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "<anonymous>"
+          ],
+          "exports": [
+            "commonjs:selectedInitialControlHostPreparation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/node/initial-control-public-dispatch.cjs",
+                "anchor": "// Private Client-only delivery, never an application-time admission factory."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/node/initial-control-public-dispatch.cjs",
+                "anchor": "selectedInitialControlHostPreparation = function(kind, rawInput) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/node/initial-control-public-dispatch.cjs",
+                "anchor": "if (parent?.filename === filename && require.cache[filename] === parent &&"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "it captures the same wrapper's original Client-only function and receiver."
+              },
+              {
+                "path": "packages/node/initial-control-public-dispatch.cjs",
+                "anchor": "// native preload ancestor and same consumer resolution together."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/node/initial-control-public-dispatch.cjs",
+                "anchor": "const receiver = parent.exports;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The two wrapper tables/functions, child receiver/function references, private"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/node/initial-control-public-dispatch.cjs",
+                "anchor": "return apply(connect, receiver, [kind, rawInput]);"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The wrapper retains its child function and"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/node/initial-control-public-dispatch.cjs",
+                "anchor": "let selectedInitialControlHostPreparation;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary imports return an immutable `undefined` selection without loading a"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "physical retirement acknowledgement or numerical capacity. Private root-level"
+              },
+              {
+                "path": "packages/node/initial-control-public-dispatch.cjs",
+                "anchor": "return apply(connect, receiver, [kind, rawInput]);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "delivery tables/closures and captured native descriptor/path/module controls"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "original kind/raw aliases and argument forwarding workspace. These holdings"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "even though they are not public export subpaths."
+              },
+              {
+                "path": "packages/node/initial-control-public-dispatch.cjs",
+                "anchor": "// normal facade import neither loads that wrapper nor discovers a later table."
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/initial-control-public-dispatch.test.mjs",
+                "anchor": "ordinary private dispatch import does not load a wrapper or Root"
+              },
+              {
+                "path": "scripts/initial-control-public-dispatch.test.mjs",
+                "anchor": "late native-looking cache or caller table cannot become the selected original"
+              },
+              {
+                "path": "scripts/initial-control-public-dispatch.test.mjs",
+                "anchor": "another real preload cannot supply the private wrapper-parent original"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "preload consumes generated inventory without issuing a Scope"
+              },
+              {
+                "path": "scripts/initial-control-public-dispatch.test.mjs",
+                "anchor": "// A real but unrelated preload can forge a cache entry and Module parent."
               }
             ]
           }

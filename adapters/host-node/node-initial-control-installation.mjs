@@ -26,13 +26,16 @@ const current = currentDescriptor !== undefined && hasOwn(currentDescriptor, 'va
 const assetDescriptor = ownDescriptor(startup, 'readInitialControlInstallationAsset');
 const readAsset = assetDescriptor !== undefined && hasOwn(assetDescriptor, 'value') &&
   typeof assetDescriptor.value === 'function' ? assetDescriptor.value : undefined;
+const inputDescriptor = ownDescriptor(startup, 'readInitialControlInstallationInput');
+const readInput = inputDescriptor !== undefined && hasOwn(inputDescriptor, 'value') &&
+  typeof inputDescriptor.value === 'function' ? inputDescriptor.value : undefined;
 
 // The actual startup must supply its nominal receiver, retaining the original
 // same Host/installation/generation/source/backend/recipe and complete finite
 // envelope before any covered work. No consumer-side fallback is permitted.
 //
 // The receiver contract is:
-//   begin(originals) -> original scope, or Promise of that SAME nominal scope
+//   begin(originals, rawInput?) -> original scope, or Promise of that SAME nominal scope
 //   assertCurrent(sameOriginals) -> void/throw
 //   retainPreparation(originalRecord, originalCleanupHandle?) -> original duty
 //   status() -> original pending observation
@@ -45,13 +48,13 @@ const readAsset = assetDescriptor !== undefined && hasOwn(assetDescriptor, 'valu
 // An asynchronous namespace initialization snapshots originals before awaiting;
 // callers await begin and check fixed nominal current before covered work. Its
 // original initialization failure/cleanupHandle is not replaced by this port.
-export function beginInitialControlInstallation(originals) {
+export function beginInitialControlInstallation(originals, rawInput) {
   if (begin === undefined) {
     const error = new NativeError('NodeInitialControlAdmissionUnavailable');
     error.code = 'NodeInitialControlAdmissionUnavailable';
     throw error;
   }
-  return apply(begin, startup, [originals]);
+  return apply(begin, startup, [originals, rawInput]);
 }
 
 // Membership is checked in the SAME private preload instance. In particular,
@@ -75,4 +78,17 @@ export function readInitialControlInstallationAsset(scope, sameOriginals, path) 
     throw error;
   }
   return apply(readAsset, startup, [scope, sameOriginals, path]);
+}
+
+// Original finite snapshot projection only, after synchronous original intake
+// and nominal begin. No enumeration, copy, caller callback or replacement
+// producer occurs here. Coverage must precede the raw packet's first ownKeys;
+// this port and a returned object cannot retroactively supply it.
+export function readInitialControlInstallationInput(scope, sameOriginals) {
+  if (readInput === undefined) {
+    const error = new NativeError('NodeInitialControlAdmissionUnavailable');
+    error.code = 'NodeInitialControlAdmissionUnavailable';
+    throw error;
+  }
+  return apply(readInput, startup, [scope, sameOriginals]);
 }

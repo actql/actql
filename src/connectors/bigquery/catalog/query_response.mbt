@@ -141,6 +141,7 @@ fn query_root(
 ///|
 fn native_kind(kind : String) -> String {
   match kind {
+    "INTEGER" => "INT64"
     "FLOAT" => "FLOAT64"
     "BOOLEAN" => "BOOL"
     "DECIMAL" => "NUMERIC"
@@ -408,7 +409,7 @@ fn query_cell_value(
     return Err(InvalidQueryCell(name))
   }
   match native_kind(column.original.native_type) {
-    "STRING" | "DATE" => query_checked(cursor, contract, name, budget)
+    "STRING" | "DATE" | "INT64" => query_checked(cursor, contract, name, budget)
     "NUMERIC" | "BIGNUMERIC" => {
       guard contract.shape is @contract.Decimal(precision~, scale~) else {
         return Err(QuerySchemaMismatch(name))

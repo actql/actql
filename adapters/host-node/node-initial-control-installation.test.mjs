@@ -5,7 +5,7 @@ import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {beginInitialControlInstallation, assertInitialControlInstallationCurrent,
-  readInitialControlInstallationAsset}
+  readInitialControlInstallationAsset, readInitialControlInstallationInput}
   from './node-initial-control-installation.mjs';
 
 // Current selected preload has no complete initial-control operational issuer.
@@ -45,6 +45,16 @@ test('a caller current method cannot authenticate an initial control scope', () 
   assert.equal(observed, 0);
 });
 
+test('the actual absent startup cannot acquire raw preparation input or project a supplied snapshot', () => {
+  let observations = 0;
+  const raw = new Proxy({}, {ownKeys() { observations++; throw new Error('RawOwnKeys'); },
+    get() { observations++; throw new Error('RawGet'); },
+    getOwnPropertyDescriptor() { observations++; throw new Error('RawDescriptor'); }});
+  assert.throws(() => beginInitialControlInstallation({}, raw), unavailable);
+  assert.throws(() => readInitialControlInstallationInput(raw, raw), unavailable);
+  assert.equal(observations, 0);
+});
+
 // Exercise the actual CJS startup and ESM consumer Sources through Node's real
 // synchronous namespace loader. Only the fixture's appended eager import is
 // new: no operational original, scope, Common runtime or Host is supplied.
@@ -59,7 +69,7 @@ function eagerOriginalNamespace(t, body) {
     readFileSync(new URL('infer-trusted-node-preload.cjs', import.meta.url), 'utf8') +
     '\nglobalThis.originalHostNamespace = require("./host.mjs");\n');
   writeFileSync(join(root, 'host.mjs'),
-    'export {beginInitialControlInstallation, assertInitialControlInstallationCurrent,readInitialControlInstallationAsset}' +
+    'export {beginInitialControlInstallation, assertInitialControlInstallationCurrent,readInitialControlInstallationAsset,readInitialControlInstallationInput}' +
     ' from "./node-initial-control-installation.mjs";\n' +
     'export * from "./infer-trusted-runtime-view.mjs";\n');
   // The intermediary deliberately does not match the selected public recipe.
@@ -87,6 +97,8 @@ test('eager original namespace captures the actual startup forwarders without a 
     'assert.throws(()=>original.assertInitialControlInstallationCurrent({}, packet),',
     '  {code:"NodeInitialControlAdmissionUnavailable"});',
     'assert.throws(()=>original.readInitialControlInstallationAsset({},packet,"spec/control.json"),',
+    '  {code:"NodeInitialControlAdmissionUnavailable"});',
+    'assert.throws(()=>original.readInitialControlInstallationInput({},packet),',
     '  {code:"NodeInitialControlAdmissionUnavailable"});',
     'assert.equal(reads, 0);',
   ].join('\n'));

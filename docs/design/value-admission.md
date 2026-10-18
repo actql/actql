@@ -217,6 +217,15 @@ belong to the existing clock consumers. Millisecond-only helpers refuse finer
 fractions instead of silently rounding them. A consumer without that connection
 is an implementation gap, not a restriction on the declared Timestamp domain.
 
+Calendar endpoint admission likewise retains exact original Timestamp strings
+and compares their instants, including mixed fractional lengths. It does not
+use a millisecond projection or UTF-16 ordering to define valid ranges. The
+current civil Calendar range lowering is still millisecond-only and returns its
+explicit precision-unavailable issue before conversion, rather than calling a
+valid finer Timestamp invalid or unwrapping a failed projection. Literal and
+bound Parameter endpoints share this separation; civil profile coverage and
+the existing year/range requirements are unchanged.
+
 Trusted-now, Credential expiry, authorization deadlines, rollback detection and
 provenance retain their original millisecond contracts and operational issuers.
 Civil Time, timezone-free DateTime and retained numeric offsets are separate

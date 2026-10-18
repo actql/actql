@@ -5,7 +5,10 @@ import * as moon from
   '../../../../_build/js/release/build/connectors/github/host_node/host_node.js';
 
 const issue = milestone => ({number: 1, id: 'I_1', node_id: 'I_1',
-  title: 'issue', state: 'OPEN', body: '', author: {login: 'octo'},
+  title: 'issue', state: 'OPEN', stateReason: null,
+  assignees: {totalCount: 0, pageInfo: {hasNextPage: false, endCursor: null}, nodes: []},
+  labels: {totalCount: 0, pageInfo: {hasNextPage: false, endCursor: null}, nodes: []},
+  url: 'https://github.com/octo/repo/issues/1', body: '', author: {login: 'octo'},
   comments: {totalCount: 0}, milestone,
   createdAt: '2026-10-01T00:00:00Z', updatedAt: '2026-10-02T00:00:00Z',
   closedAt: null});
@@ -15,7 +18,8 @@ const graph = value => JSON.parse(moon.githubIssuesPageJson(Buffer.from(
       pageInfo: {hasNextPage: false, endCursor: null}, nodes: [value]}}}})),
   100_000, 10_000, 32, 100, 'R_A', 17, 'octo/repo'));
 const rest = value => {
-  const node = {...value, state: 'open', user: value.author, comments: 0,
+  const node = {...value, state: 'open', state_reason: null, user: value.author, comments: 0,
+    assignees: [], labels: [], html_url: value.url,
     created_at: value.createdAt, updated_at: value.updatedAt, closed_at: null};
   return JSON.parse(moon.githubIssuePageJson(Buffer.from(JSON.stringify([node])),
     100_000, 10_000, 32, 100));

@@ -20,7 +20,7 @@ async function observations(t, {requestId = 'original-request', effects = ['save
       if (operation === 'cancel') return {kind: 'accepted', attemptRef: body.attemptRef,
         cancellation: {kind: 'accepted', ref: body.ref,
           cancelRef: {...body.ref, cancelId: body.cancelId, expectedRevision: body.expectedRevision}, revision: 7}};
-      if (operation === 'status') return {version: 'actql-run-state/0.1', run_id: 'run-a',
+      if (operation === 'status') return {version: 'actql-run-state/0.1', run_id: 'run-a', revision: 1,
         status: 'needs_reconciliation', updated_at: '2026-10-07T00:00:00.000Z',
         next_action: {kind: 'reconcile', effects}, result_available: false,
         result_availability: {answer: {state: 'unavailable', reason: 'not_published',

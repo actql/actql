@@ -204,6 +204,67 @@ byte backing, decoded String, hash and native decoder workspace overlap. Such
 byte custody alone does not establish the complete image loader, installation
 admission, current Host or preparation envelope.
 
+For a generated installed image inventory, the selected preload captures each
+original Local and resolved dependency package before optional SDK and Host
+namespace compilation. Each package's same-FD manifest and image bytes must
+match that inventory, while repeated dependency edges must resolve to the same
+original package, not an equal copy at another root. Those held Sources feed
+the private loader; the same synchronous receiver initializes the Host namespace
+and completes its Module handoff before entry. Source-only absence stays absent.
+The selected namespace and asset projection remain process/module holdings, not
+an operational intake issuer or a Host-level release acknowledgement. Stock
+resolver/bootstrap provenance and unselected library domains remain independent.
+
+The standard Node facade is a separate image domain, not a dependency of Local.
+Its generated facts identify its original public entry and dependencies, with
+an explicit edge to the same actual Local installation. When that facade is
+selected, the preload captures its Sources and checks that edge before any Host
+namespace compilation. Both Local and Node public ESM entries are initialized
+from the held Sources before the final Module handoff; later entry imports
+reuse those same namespaces. Missing facade coverage refuses that selected
+route, without loading an uncovered parent for Local-only delivery. Optional
+dependency preparation failure cannot leave a dangling package index in another
+image domain. These package facts and namespace identities remain correspondence
+DATA, not operational admissions or coverage of caller-owned opaque backing.
+The extra Source Strings, manifests, dependency paths, image/namespace records,
+graph traversal, compiler and loader workspace overlap the original Host and
+library domains. Module-cache retention or a Host close does not release them.
+
+Ancestor public preload wrappers publish their same immutable null-prototype
+table before nested loading. A later exports replacement or Node's circular-
+require warning prototype cannot stand in for that original receiver. Eager
+ESM consumers use the original synchronous CJS receiver rather than creating a
+static CJS/ESM import cycle. Private preparation dispatch captures only the actual
+Host namespace's operation and receiver; it refuses a missing operational Owner
+before touching the raw input or constructing a candidate. Image correspondence
+or the presence of that operation alone does not enable dispatch, and only the
+existing Client result may escape, never a Scope, issuer or capacity handle.
+
+Each public package's private `initial-control-public-dispatch.cjs` is loaded
+by its actual wrapper before child loading. During that native preload only,
+it captures the same wrapper's original Client-only function and receiver.
+The actual fixed preload argv, `internal/preload` ancestor and same consumer's
+selected entry resolution are required together; forged Module/cache parent
+records in an unrelated preload cannot enroll a callback.
+Ordinary imports return an immutable `undefined` selection without loading a
+wrapper or Root. Application-time cache metadata or a caller-supplied table
+cannot enroll a later dispatch. The wrapper retains its child function and
+receiver once the synchronous child load completes; namespace reentry before
+then refuses without observing raw input. Later exports/method replacement
+does not change either captured link. This source/module boundary still
+requires independent actual startup ownership and non-escape; it does not
+turn module metadata into operational admission.
+
+The two wrapper tables/functions, child receiver/function references, private
+delivery tables/closures and captured native descriptor/path/module controls
+remain in the selected module lifetime. Each call additionally retains its
+original kind/raw aliases and argument forwarding workspace. These holdings
+and partial child initialization overlap the original startup/preparation
+envelope. A frozen table, undefined selection or rejected call supplies no
+physical retirement acknowledgement or numerical capacity. Private root-level
+implementation files participate in the same ordinary package image inventory
+even though they are not public export subpaths.
+
 Selected image loading supplies immutable captured Source to the original Node
 compiler rather than delegating the body to a later pathname read. Uncaptured
 dependencies and additional query-identified images require their own selected
@@ -234,6 +295,42 @@ handoff cannot acquire pre-entry provenance by compiling later. Preexisting
 bootstrap bodies, nested export referents, stock resolution and fixed asset
 reads still need their independent selected-domain correspondence; this cache
 handoff alone is neither a complete loader proof nor an operational issuer.
+
+For selected JSON compiler metadata, the preload compares the actual Module's
+tree against a separate parse of the same captured Source before sealing its
+own records and arrays. Changed values, accessors or substituted alias graphs
+refuse before any node is sealed. The held Source identity is unchanged, while
+stock JSON BOM handling and primitive values are preserved. This does not
+freeze language prototypes, arbitrary CJS exports or application data, and it
+does not authenticate nested library state or earlier registration history.
+The original Module/tree/Source overlaps the second parse, comparison pairs,
+key/descriptor walk, node array, weak membership and native freeze workspace;
+sealing or later GC is not physical cleanup, a reservation or funding.
+
+Completed native ESM JSON translation can publish the original two-field
+`exports`/`loaded` cache record without a CommonJS `filename`. Only already
+Source-delivered JSON may use that exact header, with the same full Source/tree
+check, sealing and retained record/exports identity. A matching cache preseed
+without delivery remains refused, and CommonJS images still require their
+filename-bearing Module. This Node interop distinction does not authenticate
+prior cache ownership, nested library state or loader registration history.
+
+The selected preparation path also retains the native `String.prototype.trimEnd`
+used between its original environment Source and the existing normalizer.
+Replacing that method must not introduce an application callback into this
+declared control step. Ordinary unselected imports do not fix that method.
+The retained descriptor and method reference, original Source, trimmed result
+and normalizer workspace overlap under the same control lifetime. This narrow
+implementation fence does not establish coverage for every String operation,
+the VM heap or an operational supplier, and Host-view retirement is not native
+implementation retirement or physical cleanup.
+
+The original startup publishes its same immutable forwarder table before
+synchronous Host namespace initialization can reenter that Module. A missing
+captured callback must not be confused with a refusal from the original Owner
+merely because both report unavailable. Early table capture neither admits an
+installation nor covers initialization work: the original unavailable Owner
+remains unavailable until the independent selected operational original exists.
 
 Fixed control assets are projected from that same selected immutable Source
 holding through the private nominal installation port. It checks the original
@@ -287,6 +384,66 @@ after awaits and between original file acquisitions and Common admission.
 The existing file Owner first closes or retains an acquired FD, so a current
 refusal cannot lose it before cleanup custody. Getter failures on a thrown
 initialization value likewise remain under the retained cleanup phase.
+
+The selected startup may support an original producer-controlled preparation
+packet without making every public option object data-only. Its actual intake
+coverage must precede the first raw acquisition, own-key enumeration, spread,
+descriptor copy or clone, including refusal and partial-construction workspace.
+Frozen shape, a packet label, bounds or an alias count do not prove that
+coverage. A general object without it remains unsupported by this selected
+supplier, not an invalid public API value; existing unknown-field, type and
+duplicate-consent checks and unselected entrances retain their responsibilities.
+
+The private begin port passes the same raw input unobserved to the captured
+operational preparation callback synchronously, before namespace initialization
+can await. That supplier first retains its original intake responsibility and
+then invokes only its original bounded reader. It keeps the same snapshot and
+cleanup through initialization and failure. A fixed nominal/current projection
+returns that original snapshot after begin; it cannot reconstruct one, adopt a
+replacement or infer admission from the preparation Promise's resolved DATA.
+Callbacks and opaque handles remain original Owner borrows, not traversed or
+cloned closure graphs. Their backing and extended lifetimes, the raw/snapshot
+overlap, captured reader and receiver, scope alias and partial-failure holdings
+all stay in the same declared envelope. Managed alias retirement is not their
+physical cleanup ACK. This port does not itself supply the missing operational
+original or a public consumer's earlier intake coverage.
+
+The embedded consumer passes its raw options to this synchronous begin and,
+after initialization, reads only that original nominal input projection. It
+retains the packet in the same preparation record through Host adoption or
+failed initialization; it never rereads the caller as an input fallback. The
+private selected namespace exposes a pure bounded snapshot reader so the
+actual startup can capture its exact Source, rather than accept an application
+callback as the reader. This operation cannot issue the operational admission.
+
+The selected public-entry consumer initially supports omitted `open` input.
+It forwards that same `undefined` to the existing candidate's begin exactly
+once. The operational supplier, not a public default argument or facade copy,
+owns the empty packet's acquisition. The original path observation remains
+before initialization awaits, under the independently admitted prior startup
+envelope; its result or failure stays with the same preparation record through
+partial failure. After nominal/current admission, only that original empty
+packet becomes the existing Local mode/owner and project-local state-directory
+options. A nonempty replacement packet refuses without dropping its fields.
+The returned Client and `info.stateDir` describe that same registry Host and
+directory; no second open, candidate, installation or scope is issued. This
+finite producer support does not redefine other valid public option objects
+as invalid. Their complete before-copy supplier and original semantic
+validation remain necessary; unsupported selected inputs are unavailable.
+
+The reader preserves own data fields, enumerability, array holes, primitive
+String code units and shared immutable DATA without clamping, normalization or
+unknown-field dropping. Existing Owners still validate field meaning. Finite
+properties, nodes, depth, individual and aggregate String code units, array
+lengths, original-reference occurrences and traversal work are separate input
+allowances, not backing-byte amounts or a numerical profile. Explicit traversal
+frames, own-key arrays, paths, original and copied records and rejection overlap
+remain in the supplier's complete simultaneous envelope. Proxy/accessor/cyclic
+DATA without supported acquisition coverage remains unavailable on this
+selected path, not an invalid general public option. Original Host handles,
+callbacks and non-DATA values retain exact identity for their existing Owners;
+neither copying classifications nor original-reference counts authenticate
+those Owners, closure backing, current authority or physical retirement.
 
 On adoption, the candidate and root lease use the same registry entry and
 actual returned Host. A foreign returned child enters its acquired shutdown

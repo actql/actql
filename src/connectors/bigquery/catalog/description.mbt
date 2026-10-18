@@ -285,6 +285,8 @@ fn describe_column(
   } else {
     match native_type {
       "STRING" => Some(@contract.primitive(@contract.StringType, nullable~))
+      "INTEGER" | "INT64" =>
+        Some(@contract.primitive(@contract.Signed64Type, nullable~))
       "FLOAT" | "FLOAT64" =>
         Some(@contract.primitive(@contract.NumberType, nullable~))
       "BOOLEAN" | "BOOL" =>
@@ -313,8 +315,8 @@ fn describe_column(
           }
         }
       }
-      // Missing lossless Common carriers remain visible, including full
-      // INT64, BYTES, TIME, DATETIME and microsecond TIMESTAMP. Read-only WKT
+      // Missing lossless Common carriers remain visible, including
+      // BYTES, TIME, DATETIME and microsecond TIMESTAMP. Read-only WKT
       // GEOGRAPHY/INTERVAL/RANGE need their real provider spelling first.
       _ => None
     }
