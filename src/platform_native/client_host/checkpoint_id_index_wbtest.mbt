@@ -180,15 +180,40 @@ test "Journal rolls back the Run CAS and prior locator after checkpoint index co
   let occupied = database
     .read("client_checkpoint_id_index", collision_key)
     .unwrap()
+  let original_custody = database
+    .read("client_effect_custody", run_key)
+    .unwrap()
+  let next = {
+    ..waiting,
+    checkpoint: Some({ ..checkpoint, artifact: replacement, }),
+  }
   let mut observed_cas = false
   let mut observed_locator_removal = false
   let mut observed_collision = false
   assert_true(
     journal.transaction(() => {
-      let result = journal.save({
-        ..waiting,
-        checkpoint: Some({ ..checkpoint, artifact: replacement, }),
-      })
+      // Test-only staged checkpoint custody must match before save's original
+      // conjunctive custody check. The same outer transaction owns its rollback.
+      match
+        database.remove_exact(
+          "client_effect_custody",
+          run_key,
+          original_custody.revision,
+          original_custody.body,
+        ) {
+        Err(issue) => return Err(Physical(issue))
+        Ok(_) => ()
+      }
+      match
+        database.insert(
+          "client_effect_custody",
+          run_key,
+          effect_ledger_custody_body(next).unwrap(),
+        ) {
+        Err(issue) => return Err(Physical(issue))
+        Ok(_) => ()
+      }
+      let result = journal.save(next)
       observed_collision = result is Err(CustodyLost)
       let changed = database.read("client_runs", run_key).unwrap()
       observed_cas = changed.revision == original_run.revision + 1L &&
@@ -211,6 +236,11 @@ test "Journal rolls back the Run CAS and prior locator after checkpoint index co
   let retained_collision = database
     .read("client_checkpoint_id_index", collision_key)
     .unwrap()
+  let retained_custody = database
+    .read("client_effect_custody", run_key)
+    .unwrap()
+  assert_eq(retained_custody.revision, original_custody.revision)
+  assert_eq(retained_custody.body, original_custody.body)
   assert_eq(retained_run.revision, original_run.revision)
   assert_eq(retained_run.body, original_run.body)
   assert_eq(retained_locator.revision, original_locator.revision)
