@@ -210,6 +210,14 @@ export function renderInitialControlPackageOriginal({root, destination, inputs, 
     }
   }
   exported(manifest.exports);
+  // Private root-level implementation modules participate in the SAME normal
+  // package payload even when they are not public export subpaths. In
+  // particular, a pre-entry facade dispatch cannot be an uncaptured dependency.
+  for (const path of manifest.files ?? []) {
+    if (typeof path === 'string' && !path.includes('/') && /\.[cm]?js$/u.test(path)) {
+      exported('./' + path);
+    }
+  }
   const dependencies = dependencyImages(root, destination, manifest);
   const facts = [...images].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
     .map(([path, bytes]) => {

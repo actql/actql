@@ -240,6 +240,28 @@ before touching the raw input or constructing a candidate. Image correspondence
 or the presence of that operation alone does not enable dispatch, and only the
 existing Client result may escape, never a Scope, issuer or capacity handle.
 
+Each public package's private `initial-control-public-dispatch.cjs` is loaded
+by its actual wrapper before child loading. During that native preload only,
+it captures the same wrapper's original Client-only function and receiver.
+Ordinary imports return an immutable `undefined` selection without loading a
+wrapper or Root. Application-time cache metadata or a caller-supplied table
+cannot enroll a later dispatch. The wrapper retains its child function and
+receiver once the synchronous child load completes; namespace reentry before
+then refuses without observing raw input. Later exports/method replacement
+does not change either captured link. This source/module boundary still
+requires independent actual startup ownership and non-escape; it does not
+turn module metadata into operational admission.
+
+The two wrapper tables/functions, child receiver/function references, private
+delivery tables/closures and captured native descriptor/path/module controls
+remain in the selected module lifetime. Each call additionally retains its
+original kind/raw aliases and argument forwarding workspace. These holdings
+and partial child initialization overlap the original startup/preparation
+envelope. A frozen table, undefined selection or rejected call supplies no
+physical retirement acknowledgement or numerical capacity. Private root-level
+implementation files participate in the same ordinary package image inventory
+even though they are not public export subpaths.
+
 Selected image loading supplies immutable captured Source to the original Node
 compiler rather than delegating the body to a later pathname read. Uncaptured
 dependencies and additional query-identified images require their own selected

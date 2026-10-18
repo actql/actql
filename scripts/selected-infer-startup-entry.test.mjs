@@ -25,6 +25,8 @@ function installation(t) {
     put(join(destination, 'package.json'), JSON.stringify(manifest));
     put(join(destination, 'selected-infer-startup.cjs'),
       readFileSync(join(root, 'packages', name, 'selected-infer-startup.cjs')));
+    put(join(destination, 'initial-control-public-dispatch.cjs'),
+      readFileSync(join(root, 'packages', name, 'initial-control-public-dispatch.cjs')));
   }
   for (const name of ['infer-trusted-node-preload.cjs', 'initial-control-installation-owner.cjs',
     'initial-control-package-original.cjs',
@@ -40,7 +42,7 @@ const path = require.resolve('@actql/node/selected-infer-startup');
 const local = createRequire(path).resolve('@actql/local-node/selected-infer-startup');
 const mode = process.argv[2];
 const entry = require('@actql/node/selected-infer-startup');
-assert.deepEqual(Reflect.ownKeys(entry), []);
+assert.ok(Reflect.ownKeys(entry).every(key => key === 'selectedInitialControlHostPreparation'));
 assert.ok(Object.isFrozen(entry));
 const viewModule = await import(new URL('./adapters/host-node/infer-trusted-runtime-view.mjs',
   pathToFileURL(local)));
@@ -115,7 +117,7 @@ test('public Local selected startup uses its same package without the standard w
     readFileSync(join(fixture.local, 'package.json')));
   // A direct consumer has the same full source-copied package, not a symlink to
   // another installation. Its entry imports that SAME Local private fixture.
-  for (const name of ['selected-infer-startup.cjs', 'adapters/host-node/infer-trusted-node-preload.cjs',
+  for (const name of ['selected-infer-startup.cjs', 'initial-control-public-dispatch.cjs', 'adapters/host-node/infer-trusted-node-preload.cjs',
     'adapters/host-node/initial-control-installation-owner.cjs',
     'adapters/host-node/initial-control-package-original.cjs',
     'adapters/host-node/infer-trusted-runtime-view.mjs']) {
@@ -146,6 +148,8 @@ test('public recipe label cannot adopt another installation through an applicati
   fixture.put(foreign, readFileSync(join(fixture.node, 'selected-infer-startup.cjs'))
     .toString().replace("'@actql/local-node/selected-infer-startup'",
       JSON.stringify(join(fixture.local, 'selected-infer-startup.cjs'))));
+  fixture.put(join(dirname(foreign), 'initial-control-public-dispatch.cjs'),
+    readFileSync(join(fixture.node, 'initial-control-public-dispatch.cjs')));
   fixture.put(join(fixture.node, 'selected-infer-startup.cjs'),
     `require(${JSON.stringify(foreign)}); module.exports = Object.freeze({});\n`);
   child(fixture, ['--require', '@actql/node/selected-infer-startup'], 'absent');
