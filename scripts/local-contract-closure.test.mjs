@@ -64,7 +64,7 @@ test('the inherited text/time dependency preserves original ContentRef bytes bes
     assert.equal(machineCid(textTimeBase[key]), textTimeBase[key + '_cid']);
   }
   // A profile envelope including its own CID is not the inherited preimage.
-  assert.notEqual(machineCid({...textTimeBase, contract_cid: expected}), expected);
+  assert.notEqual(machineCid({...textTimeBase, contract_cid: vectors.currentCid}), vectors.currentCid);
   const changed = structuredClone(textTimeBase);
   changed.semantics.regex_flags.push('i');
   assert.notEqual(machineCid(changed), expected);
