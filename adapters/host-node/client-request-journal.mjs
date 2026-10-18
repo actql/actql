@@ -5,7 +5,7 @@ import {prepareInstalledRunStateObservation, issueInstalledRunControlObservation
   from '../host-common/run-state-observation.mjs';
 import {createHash, createHmac, randomBytes, timingSafeEqual} from 'node:crypto';
 import {closeSync, existsSync, fsyncSync, lstatSync,
-  mkdirSync, openSync, readFileSync, readdirSync,
+  mkdirSync, openSync, opendirSync, readFileSync,
   realpathSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {createSqliteTransaction, throwSqliteInitializationFailure} from
@@ -32,6 +32,69 @@ const instant = value => typeof value === 'string' &&
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
+const applyOriginal = Reflect.apply;
+
+// This is an inspection-work ceiling, not a stored-request limit, format
+// rule, physical capacity supplier or permission. Never materialize a complete
+// unbounded listing before checking it. Preserve the exact full-name snapshot
+// (including unrelated retained entries) for the existing currentness check.
+function journalDirectoryEntries(directory, maxInspectionEntries) {
+  let original = opendirSync(directory, {bufferSize: 1});
+  let originalClose, failed = false, primary;
+  const captureClose = () => {
+    if (originalClose !== undefined) return;
+    const selected = original.closeSync;
+    if (typeof selected !== 'function') throw new TypeError('JournalDirectoryCloseUnavailable');
+    originalClose = selected;
+  };
+  const close = () => {
+    if (original === undefined) return;
+    captureClose();
+    if (applyOriginal(originalClose, original, []) !== undefined) {
+      throw new TypeError('JournalDirectoryCleanupPending');
+    }
+    original = originalClose = undefined;
+  };
+  let entries;
+  try {
+    captureClose();
+    const read = original.readSync;
+    if (typeof read !== 'function') throw new TypeError('JournalDirectoryReadUnavailable');
+    entries = [];
+    for (;;) {
+      const entry = applyOriginal(read, original, []);
+      if (entry === null) break;
+      // One lookahead Dirent may coexist with the bounded retained names.
+      // Refusal neither drops it to pass nor calls SQLite on this directory.
+      if (entries.length === maxInspectionEntries) {
+        fail('ClientRequestJournalInspectionUnavailable');
+      }
+      entries.push(entry.name);
+    }
+    entries.sort();
+  } catch (cause) { failed = true; primary = cause; }
+  try { close(); }
+  catch (cause) {
+    const first = cause;
+    let latest = cause;
+    const status = () => Object.freeze({pending: original !== undefined,
+      errors: Object.freeze(first === latest ? [first] : [first, latest])});
+    const retry = () => {
+      try { close(); } catch (error) { latest = error; }
+      return status();
+    };
+    const carrier = Object.assign(new Error('ClientRequestJournalInspectionCleanupPending',
+      {cause: failed ? primary : cause}), {
+      code: 'ClientRequestJournalInspectionCleanupPending',
+      primaryFailure: failed ? primary : cause,
+      cleanupHandle: Object.freeze({status, retry}),
+    });
+    Object.defineProperty(carrier, 'cleanupPending', {get: () => status().pending});
+    throw carrier;
+  }
+  if (failed) throw primary;
+  return entries;
+}
 function syncDirectory(path) {
   const descriptor = openSync(path, 'r');
   try { fsyncSync(descriptor); }
@@ -722,8 +785,8 @@ function inspectCancellationStorage(database, enabled) {
 
 // A read-only SQLite connection can still create -shm beside a WAL database.
 // Inspect a private copy and refuse a source that changes during inspection.
-function inspectJournalSnapshot(directory, databasePath, markerPath) {
-  const entries = readdirSync(directory).sort();
+function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspectionEntries) {
+  const entries = journalDirectoryEntries(directory, maxInspectionEntries);
   const featurePath = join(directory, cancellationMarkerName);
   const enabled = entries.includes(cancellationMarkerName);
   if (enabled && (!lstatSync(featurePath).isFile() ||
@@ -780,16 +843,16 @@ function inspectJournalSnapshot(directory, databasePath, markerPath) {
       (!retirementEnabled || readFileSync(retirementPath).equals(retirementMarker)) &&
       (!restartEnabled || readFileSync(restartPath).equals(restartMarker)) &&
       (!nameEnabled || readFileSync(namePath).equals(nameMarker)) &&
-      JSON.stringify(readdirSync(directory).sort()) === JSON.stringify(entries)});
+      JSON.stringify(journalDirectoryEntries(directory, maxInspectionEntries)) === JSON.stringify(entries)});
 }
 
-function admitJournalDirectory(directory) {
+function admitJournalDirectory(directory, maxInspectionEntries) {
   if (!existsSync(directory)) return false;
   const state = lstatSync(directory);
   if (!state.isDirectory() || state.isSymbolicLink()) {
     fail('UnknownClientRequestJournalFormat');
   }
-  const entries = readdirSync(directory);
+  const entries = journalDirectoryEntries(directory, maxInspectionEntries);
   if (entries.length === 0) return false;
   const markerPath = join(directory, 'journal-format.json');
   if (!entries.includes('journal-format.json')) {
@@ -807,9 +870,10 @@ function admitJournalDirectory(directory) {
     fail('UnknownClientRequestJournalFormat');
   }
   try {
-    inspectJournalSnapshot(directory, databasePath, markerPath);
+    inspectJournalSnapshot(directory, databasePath, markerPath, maxInspectionEntries);
   } catch (cause) {
     if (cause?.cleanupPending) throw cause;
+    if (cause?.code === 'ClientRequestJournalInspectionUnavailable') throw cause;
     if (cause?.code === 'UnknownClientRequestJournalFormat') throw cause;
     fail('UnknownClientRequestJournalFormat', cause);
   }
@@ -818,19 +882,21 @@ function admitJournalDirectory(directory) {
 
 export function openClientRequestJournal(directory, {
   maxRecords = 100_000,
+  maxInspectionEntries = 100_000,
   maxRunDefinitionWireBytes = 65_536,
   submissionEpochTtlMs = maxEpochTtlMs,
   submissionEpochNow = Date.now,
   updateOriginalControl,
 } = {}) {
   if (!pathText(directory) || !Number.isSafeInteger(maxRecords) ||
+      !Number.isSafeInteger(maxInspectionEntries) || maxInspectionEntries < 1 ||
       maxRecords < 1 || !Number.isSafeInteger(maxRunDefinitionWireBytes) ||
       maxRunDefinitionWireBytes < 1024 ||
       !Number.isSafeInteger(submissionEpochTtlMs) || submissionEpochTtlMs < 1 ||
       submissionEpochTtlMs > maxEpochTtlMs || typeof submissionEpochNow !== 'function') {
     fail('InvalidClientRequestJournalConfiguration');
   }
-  const current = admitJournalDirectory(directory);
+  const current = admitJournalDirectory(directory, maxInspectionEntries);
   mkdirSync(directory, {recursive: true, mode: 0o700});
   const root = realpathSync(directory);
   const path = join(root, 'client-requests.sqlite3');
