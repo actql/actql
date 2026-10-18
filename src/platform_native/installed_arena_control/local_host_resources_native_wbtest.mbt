@@ -126,3 +126,36 @@ test "active Host phase refuses parent retirement without leaving or closing eit
   host.local_host_resources = None
   local_host_resources_finish_pending(host, read, sqlite)
 }
+
+///|
+test "failed SQLite context retirement retains both originals and never closes the Read early" {
+  let host = domain_test_host()
+  let (read, sqlite) = local_host_resources_pending(host)
+  // Unacquired identity fixture: empty Library cleanup can finish, but this
+  // domain has no physical read context, so retirement must remain refused.
+  let record : InstalledArenaLocalHostResources = {
+    host,
+    read,
+    sqlite,
+    active: None,
+    sqlite_context_retired: false,
+    closing: false,
+    closed: false,
+  }
+  host.local_host_resources = Some(record)
+  assert_true(host.close_local_host_resources(record) is Err(Domain(_)))
+  assert_true(
+    record.closing && !record.closed && !record.sqlite_context_retired,
+  )
+  assert_true(sqlite.closed && !read.closed && !read.physical_retired.val)
+  assert_true(host.close_local_host_resources(record) is Err(Domain(_)))
+  assert_true(sqlite.closed && !read.closed && !record.sqlite_context_retired)
+  assert_true(host.bind_local_host_resources(read, sqlite) is Err(Domain(_)))
+  assert_true(host.enter_local_host_phase(record, HostRead) is Err(Domain(_)))
+  assert_true(host.close_domain_after_owner_ack(read.domain) is Err(_))
+  assert_true(host.close_domain_after_owner_ack(sqlite.domain) is Err(_))
+  assert_true(host.try_close() is Err(@bootstrap.ReadersPending))
+  // No successful physical pair was ever bound in this fixture.
+  host.local_host_resources = None
+  local_host_resources_finish_pending(host, read, sqlite)
+}
