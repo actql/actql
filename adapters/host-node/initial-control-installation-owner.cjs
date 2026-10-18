@@ -96,9 +96,10 @@ function createInitialControlInstallationOwner(operational) {
         if (child.handle === undefined) {
           // A read can fail only after its managed preparation was retained.
           // Attach its original physical duty once, never replace a pending one.
-          child.cleanup = cleanupOriginal(handle);
           child.handle = handle;
           child.acknowledged = false;
+          try { child.cleanup = cleanupOriginal(handle); }
+          catch (cause) { remember(state, cause); throw cause; }
         }
       }
       return child.duty;
@@ -162,15 +163,17 @@ function createInitialControlInstallationOwner(operational) {
   function begin(originals) {
     if (assertOperational === undefined) unavailable();
     const held = snapshot(originals);
-    Reflect.apply(assertOperational, operational, [held]);
     if (generations.has(held.generation)) foreign();
+    // Consume before the original current callback: it may reenter this Owner.
+    // A refused attempt cannot recycle this generation into a second issue.
+    generations.add(held.generation);
+    Reflect.apply(assertOperational, operational, [held]);
     const state = {originals: held, children: new Map(), closing: false, closed: false,
       flight: undefined, firstError: undefined, lastError: undefined};
     const scope = Object.freeze({assertCurrent(sameOriginals) { assertCurrent(scope, sameOriginals); },
       retainPreparation(record, cleanupHandle) { return retainPreparation(scope, record, cleanupHandle); },
       status() { return observation(state); }, close() { return close(scope); }});
     scopes.set(scope, state);
-    generations.add(held.generation);
     return scope;
   }
   return Object.freeze({begin, assertCurrent});

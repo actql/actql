@@ -252,3 +252,28 @@ test('operational current callback cannot reentrantly close then authorize a sco
   assert.throws(() => owner.assertCurrent(scope, original), changed);
   assert.equal((await closing).pending, false);
 });
+
+test('failed late cleanup attachment keeps its original debt rather than restoring a managed-only duty', async () => {
+  const f = fixture(), record = {};
+  const duty = f.scope.retainPreparation(record);
+  const original = {status() { return {pending: false}; }};
+  assert.throws(() => f.scope.retainPreparation(record, original), changed);
+  assert.throws(() => f.scope.retainPreparation(record, {status() { return {pending: false}; }, retry() {}}), changed);
+  assert.equal(f.scope.retainPreparation(record), duty);
+  duty.releaseReferences(record);
+  assert.equal((await f.scope.close()).pending, true);
+  assert.equal(f.closes, 0);
+});
+
+test('a generation cannot be reissued by reentry from its original current callback', async () => {
+  const original = originals();
+  let owner, nested = 0;
+  const root = {assertCurrent() {
+    if (nested++ === 0) assert.throws(() => owner.begin(original), changed);
+  }, close() { return {pending: false}; }};
+  owner = createOwner(root);
+  const scope = owner.begin(original);
+  assert.equal(nested, 1);
+  assert.equal((await scope.close()).pending, false);
+  assert.throws(() => owner.begin(original), changed);
+});
