@@ -146,6 +146,43 @@ retire another child's duty. An explicit transfer accounts for simultaneous
 source and destination responsibility before cutting source aliases. A local
 view's retirement or Promise completion is not a physical acknowledgement.
 
+Private consumers authenticate an initial-control scope through the same
+preload Owner's nominal current check, not by invoking a method on a supplied
+object. That check binds the original Host, installation, generation, supplier
+and module lifetime, and rechecks closing after the original current callback.
+Copying a scope's methods or constructing another internal state-machine
+instance cannot add membership to the selected preload's instance.
+
+A preparation record is retained before fallible work. Repeating retention of
+that same record returns its original duty and may attach its original cleanup
+handle once; it cannot replace a pending handle. Managed-reference release is
+only a notice that the caller cut its own aliases. Captured cleanup methods and
+their original receiver remain held until their own status reports
+`pending: false`, independently of retry settlement. The scope closes only
+after every preparation duty and the original operational close acknowledge
+completion. Concurrent closes share one flight, completed siblings are not
+retried, and diagnostics retain the first and latest error records rather than
+an unbounded history. Escaped aliases remain the original envelope's duty.
+
+The original supplier may initialize its selected Host module namespace through
+one asynchronous flight. Begin snapshots all five original references and
+consumes the generation before that initialization; it checks original current
+afterward before returning the nominal scope. The caller awaits begin and uses
+the fixed Owner validator before importing Common or discovering the Project.
+An initialization failure preserves its original cause and cleanup duty; neither
+a provisional scope nor Promise settlement substitutes for that duty's ACK.
+
+The ordinary package builder derives a private image inventory from the exact
+rewritten adapter outputs, runtime images and selected dependency manifests.
+This generated Source is correspondence DATA, not an operational issuer. A
+same-FD image read checks its original extent, identity and complete digest,
+holds its immutable UTF-8 Source and closes that same descriptor before handing
+the Source onward. Close failure retains the original FD and close-only retry;
+it cannot return Source, reopen the image or retire a sibling. The temporary
+byte backing, decoded String, hash and native decoder workspace overlap. Such
+byte custody alone does not establish the complete image loader, installation
+admission, current Host or preparation envelope.
+
 This admission has no conversion to metadata HTTP, Source, Result, business Run,
 Model invocation, Content/driver or external-VM capacity or authority. Their
 existing Resource suppliers and current authorization remain separate. The
@@ -173,6 +210,36 @@ Pending initialization retains each original cleanup phase's first and latest
 failure, rather than accumulating an unbounded in-memory retry history. This
 bounded diagnostic projection neither completes that phase nor changes its
 original cause, cleanup receiver or retry authority.
+
+The same installed Host registry retains a preparation candidate under its
+actual Host identity before Project discovery. This candidate has no root
+lease. Only the selected startup's original module operation can validate its
+same Host, installation and generation, original `connectEmbeddedLocal`
+function and module lifetime. A namespace, public function, caller callback,
+copied record or equal configuration cannot reconstruct this membership.
+The startup independently supplies the operational admission; registry
+membership is not capacity, authority or coverage of earlier imports.
+
+The Local preparation awaits that admission before snapshotting options,
+importing Common or reading Project originals. Its original scope is checked
+after awaits and between original file acquisitions and Common admission.
+The existing file Owner first closes or retains an acquired FD, so a current
+refusal cannot lose it before cleanup custody. Getter failures on a thrown
+initialization value likewise remain under the retained cleanup phase.
+
+On adoption, the candidate and root lease use the same registry entry and
+actual returned Host. A foreign returned child enters its acquired shutdown
+custody before the pair refusal. Reusing an existing Host first retires only
+the unused preparation, then rechecks that original entry and its nonclosing
+lifetime after the await, before exposing another lease. Pending preparation
+cleanup does not close or replace the existing Host.
+
+Project views share one original retirement record. Existing Host cleanup or
+an unadopted preparation cuts its managed configuration/registry references;
+captured getters and downstream lookups then refuse. This does not rewrite
+escaped canonical DATA or acknowledge its physical storage, GC or capacity.
+Managed preparation aliases are cut before the same control's close, while
+runtime-view retirement remains behind its explicit original completion.
 
 ## Installed Effect cleanup
 
