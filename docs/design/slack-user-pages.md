@@ -243,6 +243,9 @@ with both count and thread keys absent. Generic page DATA has no such original
 history occurrence and retains unknown count. Explicit zero, positive count and
 null preserve their meanings, including a positive count without thread
 metadata. Event, partial or retained-thread ambiguity never becomes zero.
+Other retained thread hints, such as `reply_users`, `latest_reply`, `root` or
+`parent_user_id`, keep a missing count unknown even when the two primary keys
+are absent; their contents are not evidence of an ordinary non-thread record.
 Reactions and files keep their independent nullable/retained value rules.
 
 The public `thread_ts IS NULL AND reply_count = 0` predicate uses the common

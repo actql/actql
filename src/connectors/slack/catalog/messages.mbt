@@ -274,7 +274,12 @@ fn ordinary_history_without_thread(row : @decode.ObjectView) -> Bool {
   guard @decode.lookup(row, "text") is Some(text) && @decode.text(text) is Ok(_) else {
     return false
   }
-  for name in ["event_ts", "message", "previous_message", "deleted_ts"] {
+  for
+    name in [
+      "event_ts", "message", "previous_message", "deleted_ts", "root", "reply_users",
+      "reply_users_count", "latest_reply", "replies", "parent_user_id", "assistant_thread",
+      "is_thread_broadcast",
+    ] {
     if !(@decode.field(row, name) is Missing) {
       return false
     }
