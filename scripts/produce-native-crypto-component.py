@@ -101,7 +101,7 @@ def produce(output: Path, openssl: Path, clang: Path, sdk: Path) -> dict[str, ob
     dependencies = output / 'component.d'
     command = [str(clang), '-isysroot', str(sdk), '-std=c11', '-O2',
                '-mmacosx-version-min=' + recipe['minimum_macos'],
-               '-Wall', '-Wextra', '-Werror', '-dynamiclib', '-MMD', '-MF', str(dependencies),
+               '-Wall', '-Wextra', '-Werror', '-dynamiclib', '-MD', '-MF', str(dependencies),
                '-I', str(openssl / 'include'),
                '-I', str(ROOT / 'packages/python-local-runtime/native/pre-root'),
                str(SOURCE / 'component.c'), '-Wl,-load_hidden,' + str(archive),
@@ -109,8 +109,15 @@ def produce(output: Path, openssl: Path, clang: Path, sdk: Path) -> dict[str, ob
                '-Wl,-install_name,@rpath/' + library.name, '-o', str(library)]
     subprocess.run(command, cwd=ROOT, check=True)
     members = shlex.split(dependencies.read_text().replace('\\\n', '').split(': ', 1)[1])
+    header_aliases = {}
     for member in members:
         path = Path(member)
+        if path.is_relative_to(sdk):
+            resolved = path.resolve(strict=True)
+            if not resolved.is_relative_to(sdk):
+                raise ValueError('Crypto SDK header escapes selected SDK')
+            header_aliases[str(path)] = str(resolved)
+            path = resolved
         inputs[str(path)] = original(path)
     names = {line.split()[-1] for line in subprocess.check_output(
         ['/Library/Developer/CommandLineTools/usr/bin/nm', '-gU', str(library)], text=True).splitlines()}
@@ -121,6 +128,14 @@ def produce(output: Path, openssl: Path, clang: Path, sdk: Path) -> dict[str, ob
     dependencies_seen = [line.strip().split(' (', 1)[0] for line in links.splitlines()[1:]]
     if dependencies_seen != ['@rpath/' + library.name, '/usr/lib/libSystem.B.dylib']:
         raise ValueError('Crypto component has an independent provider or crypto dependency')
+    loads = subprocess.check_output(
+        ['/Library/Developer/CommandLineTools/usr/bin/otool', '-l', str(library)], text=True)
+    observed_minimum = re.search(
+        r'cmd LC_BUILD_VERSION\s+cmdsize \d+\s+platform 1\s+minos ([0-9.]+)', loads)
+    if not observed_minimum or version(observed_minimum[1]) != version(recipe['minimum_macos']):
+        raise ValueError('Crypto component deployment identity mismatch')
+    if 'cmd LC_RPATH' in loads:
+        raise ValueError('Crypto component requires an ambient library search path')
     undefined = subprocess.check_output(
         ['/Library/Developer/CommandLineTools/usr/bin/nm', '-u', str(library)], text=True)
     required = ('actql_native_owned_current', 'actql_native_owned_allocate', 'actql_native_owned_retire',
@@ -138,7 +153,8 @@ def produce(output: Path, openssl: Path, clang: Path, sdk: Path) -> dict[str, ob
               'provider_binding': 'existing process provider; actual original binding required before first allocation',
               'command': command, 'inputs': inputs, 'exports': sorted(names), 'links': links,
               'undefined': undefined, 'archive_minimum_macos': sorted(set(archive_minimums), key=version),
-              'archive_object_count': len(archive_minimums), 'library': original(library),
+              'archive_object_count': len(archive_minimums), 'minimum_macos': observed_minimum[1],
+              'compiler_header_aliases': header_aliases, 'library': original(library),
               'license': original(output / 'OPENSSL-LICENSE.txt'),
               'notice': original(output / 'CRYPTO-NOTICE')}
     (output / 'producer.json').write_text(json.dumps(result, indent=2) + '\n')
