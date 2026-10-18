@@ -1,0 +1,75 @@
+///|
+/// Native PullRequest fields additional to the shared Issue-shaped columns.
+/// These values are observations, not merge permission or mutation selectors.
+struct PullRequestNativeFields {
+  base : String
+  head : String
+  draft : Bool
+  mergeable : Bool?
+  merged_at : String?
+  merged_by : String?
+  review_decision : String?
+} derive(Eq, Debug)
+
+///|
+fn graphql_nullable_actor(
+  object : @decode.ObjectView,
+  name : String,
+) -> Result[String?, IssuePageIssue] {
+  match @decode.field(object, name) {
+    Missing => Err(MissingRequiredField(name))
+    ExplicitNull => Ok(None)
+    Present(cursor) => {
+      guard @decode.open_object(cursor) is Ok(actor) else {
+        return Err(InvalidField(name))
+      }
+      graphql_text(actor, "login").map(Some)
+    }
+  }
+}
+
+///|
+fn graphql_pull_request_fields(
+  object : @decode.ObjectView,
+) -> Result[PullRequestNativeFields, IssuePageIssue] {
+  let base = match graphql_text(object, "baseRefName") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let head = match graphql_text(object, "headRefName") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let draft_cursor = match required_field(object, "isDraft") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let draft = match @decode.boolean(draft_cursor) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidField("isDraft"))
+  }
+  let mergeable = match graphql_text(object, "mergeable") {
+    Ok("MERGEABLE") => Some(true)
+    Ok("CONFLICTING") => Some(false)
+    Ok("UNKNOWN") => None
+    Ok(_) => return Err(InvalidField("mergeable"))
+    Err(issue) => return Err(issue)
+  }
+  let merged_at = match graphql_timestamp(object, "mergedAt", true) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let merged_by = match graphql_nullable_actor(object, "mergedBy") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let review_decision = match nullable_text(object, "reviewDecision") {
+    Ok(None) => None
+    Ok(Some("APPROVED")) => Some("approved")
+    Ok(Some("CHANGES_REQUESTED")) => Some("changes_requested")
+    Ok(Some("REVIEW_REQUIRED")) => Some("review_required")
+    Ok(Some(_)) => return Err(InvalidField("reviewDecision"))
+    Err(issue) => return Err(issue)
+  }
+  Ok({ base, head, draft, mergeable, merged_at, merged_by, review_decision, })
+}
