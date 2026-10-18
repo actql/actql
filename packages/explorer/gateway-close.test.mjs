@@ -226,6 +226,12 @@ test('settlement removes the original read before admitting its replacement into
     assert.equal(maximum, 4, 'Retained original reads and newly admitted reads share the same four-call bound');
     assert.equal(overlap.status, 429, 'The old invocation still owns its slot until collection removal');
     assert.equal(calls, 4);
+    const following = await gateway.fetch(new Request(`${origin}/api/read/checkpoints`, {
+      method: 'POST', headers, body: '{}',
+    }));
+    assert.equal(following.status, 200, 'The same slot is available after original removal');
+    assert.equal(calls, 5);
+    assert.equal(maximum, 4);
   } finally {
     for (const original of originals) original.resolve({items: []});
     await Promise.all(responses);
