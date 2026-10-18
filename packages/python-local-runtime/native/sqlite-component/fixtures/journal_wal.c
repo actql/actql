@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
             read_original(copy); /* The committed row is still in copied WAL. */
             assert(library->exec(copy->database,
                 "DELETE FROM actql_records", NULL, NULL, NULL) == SQLITE_READONLY);
-            assert(actql_journal_inspection_validate_source(snapshot));
+            assert(actql_journal_inspection_validate(snapshot));
             assert(actql_journal_inspection_private_index_ready(snapshot));
         } else {
             assert(!copy->opened && copy->database == NULL);
