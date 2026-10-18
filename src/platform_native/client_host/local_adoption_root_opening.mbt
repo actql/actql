@@ -20,7 +20,7 @@ pub fn begin_existing_native_local_host_adoption_with_custody(
   configuration_files? : Array[String] = [],
   managed_root_path? : String? = None,
 ) -> Result[NativeLocalAdoptionSession, NativeLocalAdoptionOpenFailure] {
-  begin_existing_native_local_host_adoption_original_roots(
+  begin_native_local_host_adoption_with_original_root_custody(
     parent_path,
     state_name,
     source_path,
@@ -54,7 +54,7 @@ pub fn begin_existing_native_local_host_adoption_in_current_read_context_with_cu
   configuration_files? : Array[String] = [],
   managed_root_path? : String? = None,
 ) -> Result[NativeLocalAdoptionSession, NativeLocalAdoptionOpenFailure] {
-  begin_existing_native_local_host_adoption_original_roots(
+  begin_native_local_host_adoption_with_original_root_custody(
     parent_path,
     state_name,
     source_path,
@@ -62,6 +62,37 @@ pub fn begin_existing_native_local_host_adoption_in_current_read_context_with_cu
     account_id,
     crypto,
     CurrentOriginalReadRoots(diagnostic_ceiling),
+    configuration_files~,
+    managed_root_path~,
+  )
+}
+
+///|
+/// The existing explicit installer may initialize through its actual entered
+/// Read as well as reopen retained originals. The original Account, selection,
+/// marker and exclusive Session determine eligibility; a scope is not a claim.
+/// Every partial Root/Reader/lock remains in the same returned failure carrier.
+pub fn begin_native_local_host_adoption_in_current_read_context_with_custody(
+  parent_path : String,
+  state_name : String,
+  source_path : String,
+  source_name : String,
+  account_id : String,
+  crypto : @crypto.Library,
+  diagnostic_ceiling : Int,
+  configuration_files? : Array[String] = [],
+  managed_root_path? : String? = None,
+  existing_only? : Bool = false,
+) -> Result[NativeLocalAdoptionSession, NativeLocalAdoptionOpenFailure] {
+  begin_native_local_host_adoption_with_original_root_custody(
+    parent_path,
+    state_name,
+    source_path,
+    source_name,
+    account_id,
+    crypto,
+    CurrentOriginalReadRoots(diagnostic_ceiling),
+    existing_only~,
     configuration_files~,
     managed_root_path~,
   )
