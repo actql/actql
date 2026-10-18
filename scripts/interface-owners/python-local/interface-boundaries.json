@@ -63466,19 +63466,7 @@
             "_OriginalAdoptionFunctions/__init__",
             "_require_adoption_retired"
           ],
-          "exports": [
-            "Any",
-            "Callable",
-            "NoReturn",
-            "TYPE_CHECKING",
-            "annotations",
-            "bind",
-            "byref",
-            "c_int32",
-            "c_uint16",
-            "c_void_p",
-            "isfinite"
-          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -63646,9 +63634,12 @@
             "Any",
             "Callable",
             "NoReturn",
+            "TYPE_CHECKING",
             "annotations",
             "bind",
             "byref",
+            "c_int32",
+            "c_uint16",
             "c_void_p",
             "isfinite"
           ],
