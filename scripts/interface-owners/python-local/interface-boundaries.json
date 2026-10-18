@@ -30257,7 +30257,7 @@
           ]
         }
       ],
-      "sha256": "29771aeede1ef021eed5c5dc5d3afa9deeaeda36d93a8a29c26a561e6b5e6db0",
+      "sha256": "39bc731d7697546f3c432c07d51f9aceae12d7931918bf193324153d0b6f18c2",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "existing installed Host/domain and Native process Holder",
@@ -30317,6 +30317,10 @@
               {
                 "path": "src/platform_native/installed_arena_control/process_native.mbt",
                 "anchor": "struct InstalledArenaProcess {"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Private physical Core preparation"
               }
             ],
             "inputsOutputs": [
@@ -30331,6 +30335,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_process_custody.py",
                 "anchor": "def _slots("
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Private physical Core preparation"
               }
             ],
             "identity": [
@@ -30345,6 +30353,10 @@
               {
                 "path": "src/platform_native/installed_arena_entry/process_shim.c",
                 "anchor": "static int same_process("
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Private physical Core preparation"
               }
             ],
             "ownership": [
@@ -30359,6 +30371,10 @@
               {
                 "path": "src/platform_native/installed_arena_entry/process_shim.c",
                 "anchor": "int actql_process_finish_closed_data("
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Private physical Core preparation"
               }
             ],
             "synchronization": [
@@ -30373,6 +30389,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_process_custody.py",
                 "anchor": "def _enter("
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Private physical Core preparation"
               }
             ],
             "failure": [
@@ -30387,6 +30407,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_process_custody.py",
                 "anchor": "except BaseException as error:"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Private physical Core preparation"
               }
             ],
             "cancellation": [
@@ -30409,6 +30433,10 @@
               {
                 "path": "src/platform_native/installed_arena_control/process_child_native.mbt",
                 "anchor": "pub fn InstalledArenaHost::request_process_child_stop("
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Private physical Core preparation"
               }
             ],
             "resources": [
@@ -30423,6 +30451,10 @@
               {
                 "path": "src/platform_native/installed_arena_control/process_child_native.mbt",
                 "anchor": "pub fn InstalledArenaHost::prepare_process_child("
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Private physical Core preparation"
               }
             ],
             "extension": [
@@ -30437,6 +30469,10 @@
               {
                 "path": "scripts/generate-local-native-shim-bindings.py",
                 "anchor": "def render("
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Private physical Core preparation"
               }
             ],
             "verification": [
@@ -30467,6 +30503,18 @@
               {
                 "path": "scripts/fixtures/python-native-process-stop-request.py",
                 "anchor": "# ACTUAL original child stop request."
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Private physical Core preparation"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_physical_core_preparation.py",
+                "anchor": "def test_lost_process_current_retains_same_inputs_and_original_unknown_without_replay("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_physical_core_preparation.py",
+                "anchor": "def test_duplicate_busy_foreign_and_retired_processes_do_not_rebind("
               }
             ]
           }
