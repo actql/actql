@@ -12,6 +12,10 @@
 __attribute__((weak)) actql_native_command_platform_original *
 actql_native_command_platform_current(void) { return NULL; }
 
+int actql_native_command_platform_available(void) {
+  return actql_native_command_platform_current() != NULL;
+}
+
 __attribute__((weak)) actql_native_command_platform_load *
 actql_native_command_platform_begin_load(
     actql_native_command_platform_original *original,

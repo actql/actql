@@ -46,6 +46,11 @@ const char *actql_native_observed_component_member_manifest_sha256(
 actql_native_command_platform_original *
 actql_native_command_platform_current(void);
 
+/* Private pre-acquisition observation only. The actual original stays with
+ * this Owner and is required again by every load; this is not a constructor,
+ * transferable capacity or a substitute for the complete selected envelope. */
+int actql_native_command_platform_available(void);
+
 /* Before dlopen, including all module initializers. The same Runtime has
  * already observed and hashed this member through its retained Root/Reader.
  * The implementation checks that actual member again through its filesystem
