@@ -146,6 +146,15 @@ def main() -> None:
     except _OriginalHostResourcesError as error:
         assert not error.unknown and error.fact is not None and error.fact.issue_family > 0
     with pair.scope('read', cleanup=True):
+        # Probe the normal C transport's refusal before its Native operation.
+        # Calling the Python operational port here would truthfully retain an
+        # unconfirmed FFI result; cleanup does not gain normal hash permission.
+        rejected = c.c_void_p()
+        byte = (c.c_ubyte * 1)(0)
+        assert crypto._functions.hmac(crypto._host, crypto._pair, crypto._read,
+            crypto._component, crypto._library, byte, 1, byte, 1, c.byref(rejected)) == 2
+        assert rejected.value is None and not crypto._closed
+        step('stopped original Read keeps normal hash dispatch refused inside cleanup')
         crypto.close()
         assert crypto._closed and all(slot.value is None for slot in crypto._slots())
         component.close()
@@ -161,7 +170,7 @@ def main() -> None:
     assert host._closed and backing._closed and descriptor.closed
     assert all(domain._closed for domain in domains)
     step('original domains loan Host backing and descriptor confirm their separate retirement')
-    assert len(cases) == 11
+    assert len(cases) == 12
     loaded = {}
     for name, module in list(sys.modules.items()):
         if name == 'actql_sdk' or name.startswith('actql_sdk.'):
