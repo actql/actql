@@ -23,7 +23,7 @@ const own = (value, name) => {
   if (property === undefined || !hasOwn(property, 'value')) fail('InvalidInitialControlPackageImage');
   return property.value;
 };
-const optional = (value, name) => {
+const optionalField = (value, name) => {
   const property = descriptor(value, name);
   if (property === undefined) return undefined;
   if (!hasOwn(property, 'value')) fail('InvalidInitialControlPackageImage');
@@ -57,7 +57,7 @@ function captureInitialControlPackageCustody(inventory, localRoot, consumerEntry
       const fact = facts[index], path = own(fact, 'path');
       if (!concrete(path) || apply(setHas, names, [path])) fail('InvalidInitialControlPackageImage');
       apply(setAdd, names, [path]);
-      const release = optional(fact, 'npmRelease');
+      const release = optionalField(fact, 'npmRelease');
       if (release !== undefined && (path !== 'package.json' ||
           expectedReleaseVersion === undefined || own(release, 'version') !== expectedReleaseVersion)) {
         fail('InvalidInitialControlPackageImage');
@@ -80,8 +80,8 @@ function captureInitialControlPackageCustody(inventory, localRoot, consumerEntry
     groups[groups.length] = freeze({root: directory, images: freeze(selected)});
     return {manifest, representation};
   }
-  const local = captureGroup(root, images, '@actql/local-node', optional(inventory, 'localVersion'),
-    optional(inventory, 'localReleaseVersion'));
+  const local = captureGroup(root, images, '@actql/local-node', optionalField(inventory, 'localVersion'),
+    optionalField(inventory, 'localReleaseVersion'));
   function resolvePackage(name, from) {
     const originalRequire = createRequire(join(from, 'package.json'));
     let entry;
@@ -123,7 +123,7 @@ function captureInitialControlPackageCustody(inventory, localRoot, consumerEntry
     actualPackages[index] = directory;
     apply(mapSet, roots, [directory, index]);
     captureGroup(directory, own(selected, 'images'), name, own(selected, 'version'),
-      optional(selected, 'releaseVersion'), local.representation);
+      optionalField(selected, 'releaseVersion'), local.representation);
     const next = own(selected, 'dependencies');
     if (!array(next)) fail('InvalidInitialControlPackageImage');
     for (let item = 0; item < next.length; item++) captureDependency(next[item], directory);
@@ -156,7 +156,7 @@ function captureInitialControlPackageCustody(inventory, localRoot, consumerEntry
         fail('InitialControlPackageImageChanged');
       }
       captureGroup(nodeRoot, own(publicNode, 'images'), '@actql/node', own(publicNode, 'version'),
-        optional(publicNode, 'releaseVersion'), local.representation);
+        optionalField(publicNode, 'releaseVersion'), local.representation);
     }
     let localBound = false;
     function publicDependency(binding, from) {
