@@ -500,14 +500,24 @@ const table = module.exports = {
   beforeSourceSnapshot(original, originals, kind, input, options) {
     const entry = sourceCurrent(original, originals);
     if (entry.receipt !== undefined) sourceUnavailable();
-    // First ownKeys/clone is covered by the separately declared Source phase,
-    // not an initial-control credit or admission of the resulting DATA.
-    const snapshot = apply(state.source.input, state.namespace,
-      [kind, input, options, state.sourceEnvelope.inputLimits]);
-    if (snapshot.originalReferences.length !== 0) sourceUnavailable();
     const receipt = freeze(Object.create(null));
-    entry.receipt = {original: receipt, snapshot, body: undefined, request: undefined, finished: false};
-    return receipt;
+    const producer = entry.receipt = {original: receipt, snapshot: undefined,
+      body: undefined, request: undefined, finished: false};
+    // First ownKeys/clone is covered by the separately declared Source phase,
+    // not an initial-control credit or admission of the resulting DATA. Retain
+    // the one attempt before this fallible read: rejection cannot refill it.
+    try {
+      producer.snapshot = apply(state.source.input, state.namespace,
+        [kind, input, options, state.sourceEnvelope.inputLimits]);
+      if (producer.snapshot.originalReferences.length !== 0) sourceUnavailable();
+      sourceCurrent(original, originals);
+      return receipt;
+    } catch (cause) {
+      sourceFailure(entry, cause);
+      producer.finished = true;
+      entry.closing = true;
+      throw cause;
+    }
   },
   bindSourceSnapshot(original, originals, receipt, body) {
     const entry = sourceCurrent(original, originals), producer = sourceReceipt(entry, receipt);
