@@ -146,6 +146,24 @@ retire another child's duty. An explicit transfer accounts for simultaneous
 source and destination responsibility before cutting source aliases. A local
 view's retirement or Promise completion is not a physical acknowledgement.
 
+Private consumers authenticate an initial-control scope through the same
+preload Owner's nominal current check, not by invoking a method on a supplied
+object. That check binds the original Host, installation, generation, supplier
+and module lifetime, and rechecks closing after the original current callback.
+Copying a scope's methods or constructing another internal state-machine
+instance cannot add membership to the selected preload's instance.
+
+A preparation record is retained before fallible work. Repeating retention of
+that same record returns its original duty and may attach its original cleanup
+handle once; it cannot replace a pending handle. Managed-reference release is
+only a notice that the caller cut its own aliases. Captured cleanup methods and
+their original receiver remain held until their own status reports
+`pending: false`, independently of retry settlement. The scope closes only
+after every preparation duty and the original operational close acknowledge
+completion. Concurrent closes share one flight, completed siblings are not
+retried, and diagnostics retain the first and latest error records rather than
+an unbounded history. Escaped aliases remain the original envelope's duty.
+
 This admission has no conversion to metadata HTTP, Source, Result, business Run,
 Model invocation, Content/driver or external-VM capacity or authority. Their
 existing Resource suppliers and current authorization remain separate. The
