@@ -592,6 +592,7 @@ fn test_observe_journal_reply(
 
 ///|
 test "test-only original issue observer keeps phase and transaction causes" {
+  let _observer = test_observe_journal_reply
   let tags : Array[Int] = []
   test_observe_adoption(
     InstallationReadTransactionFailure(
@@ -604,7 +605,7 @@ test "test-only original issue observer keeps phase and transaction causes" {
     tag => tags.push(tag),
     32,
   )
-  inspect(tags, content="[122, 125, 1, 105, 702, 1000, 1105, -41, 506]")
+  assert_eq(tags, [122, 125, 1, 105, 702, 1000, 1105, -41, 506])
 }
 
 ///|
@@ -622,8 +623,8 @@ test "test-only original issue observer never renders private SQL diagnostics" {
     32,
   )
   assert_eq(first, second)
-  inspect(first, content="[115, 1204]")
+  assert_eq(first, [115, 1204])
   let bounded : Array[Int] = []
   test_observe_adoption(CustodyLost, tag => bounded.push(tag), 0)
-  inspect(bounded, content="[9999]")
+  assert_eq(bounded, [9999])
 }
