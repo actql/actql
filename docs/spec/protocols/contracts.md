@@ -953,6 +953,36 @@ delivery,
 preview, or receipts. The non-secret reference itself is bound by the source
 contract so changing the host binding invalidates checked source evidence.
 
+<a id="notion-public-connection"></a>
+
+<!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/schemas/notion_public_connection sha256:2bf010f67678837163c6954e842acfde3c3a2d30ea29be4eff43cc56b7c30cb8 -->
+
+#### Original public Notion connection
+
+<!-- requirement-block: notion-public-connection.closed-shape notion-public-connection.credential-reference-choice notion-public-connection.reference-text notion-public-connection.credential-refusal notion-public-connection.no-secret-io notion-public-connection.checked-databases notion-public-connection.exact-source-identities notion-public-connection.no-reencoding notion-public-connection.absence notion-public-connection.structural-bounds notion-public-connection.aggregate-work notion-public-connection.same-source-cursor notion-public-connection.no-partial-exhaustion notion-public-connection.no-authority -->
+A public Notion connection MUST be a closed object containing `connector` equal
+to `notion`, `credentials`, and optionally `databases`. Credentials MUST be the
+closed object `{integration_token: reference}`, where reference is exactly one
+of `{env: String}` and `{path: String}`. The reference MUST be nonempty, contain
+no U+0000 and retain its exact Unicode spelling. Inline secret values, unknown
+credential names, nulls and ambiguous references MUST be rejected. Admission
+MUST NOT look up the environment, resolve a path or read a secret.
+
+When present, `databases` MUST use the same original alias-map and checked
+declaration admission below, including unused entries. The connection, map and
+each declaration MUST retain their respective exact UTF-8 SOURCE identities;
+they MUST NOT be replaced by re-encoded JSON or one another. An absent map and
+an explicit empty map MUST remain distinct. Neither proves workspace coverage.
+
+Whole-connection input byte, node and depth bounds and an explicit credential
+reference-byte bound MUST apply before operational use. One remaining work
+budget MUST charge the full input bytes, one plus reference UTF-16 length,
+the retained map-span bytes and existing aggregate declaration work. The same
+admitted source cursor MUST supply nested declarations; budget exhaustion MUST
+reject the complete connection without a successful prefix. Credential
+references and SOURCE identities MUST NOT establish a secret-material original,
+installation, Account decision, issuer, grant, permission or physical funding.
+
 <a id="notion-read-declarations"></a>
 
 <!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/schemas/notion_database_read_declarations sha256:1bae79fa45a3cd055d58f9f9860f90fe2c2d3839396b932e6d8e65ae22de3c83 -->

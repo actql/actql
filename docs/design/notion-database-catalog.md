@@ -767,6 +767,42 @@ Unknown journals and keys. They do not establish a normal operational issuer,
 complete page inventory, numerical funding, installed publication or live
 Notion acceptance.
 
+### Completing an exact original page title
+
+The same Catalog property-item engine has a distinct private origin for an
+exact Page title. It scans every retained property occurrence under the
+original response, property-count, identity and work bounds. Exactly one
+actual `type: "title"` property selects its original id and value cursor;
+the display name and inline title fragment do not select or complete it.
+Missing, duplicate or malformed selections refuse. This branch does not
+invent a data-source Catalog, query response or query row for workspace,
+page or block parents.
+
+The original Page carries a private self seal. A title request retains that
+same Page, actual property id and original value cursor, and its subsequent
+requests retain the existing response chain. Equal bytes, copied records and
+separately admitted Pages are not interchangeable. Query-property requests
+and exact-page title requests remain distinct origins; neither can fill the
+other's checked row or completion receiver.
+
+Only a terminal chain concatenates its ordered, exact `plain_text` segments
+through the existing String ValueAdmission and bounded emitter. Repetitions
+and Unicode remain unchanged; an empty completed chain is an empty String.
+The existing page/item/byte/node/text/cursor/work bounds, repeated-cursor
+refusal and foreign-original checks apply without a budget reset. Existing
+query request and completed-value wire bytes are unchanged. No new schema,
+version or canonical identity domain is introduced.
+
+The private origin variant and cached request coordinates add layout and
+reference costs to the shared request record, including its legacy branch.
+Every Page observation also retains a seal cell and self reference. The
+original Page/raw/decode tree, title cursor, all response pages/items/cursor
+history, traversal vector, StringBuilder, source value, checked value and
+Encoder workspace may overlap. These costs belong to the same installation
+and acquisition inventory; bounds and terminal cursors are neither numerical
+funding nor physical cleanup acknowledgments. A physical caller still needs
+its original property-specific Site use, current checks and response custody.
+
 ## Checked rows from exact page originals
 
 An exact-page observation can enter the same complete checked row Owner used
@@ -1093,6 +1129,61 @@ and aliases are not a reservation or free backing. Failure keeps its original
 error and custody; all reader observations retain cleanupConfirmed false.
 
 ## Public database alias originals
+
+The public connection reader admits the documented `connector`, `databases`
+and `credentials.integration_token` fields in Common. Environment and file
+references are exclusive, nonempty exact text; they never trigger secret or
+filesystem I/O during admission. The original connection, optional map and
+per-database value spans have distinct SOURCE identities. Absent and explicit
+empty maps remain distinct and neither supplies complete workspace membership.
+The existing admitted source cursor feeds the same alias-map algorithm, with
+one remaining work and checked-Contract budget rather than another JSON parser
+or a per-member reset. Installed Site/current/issuer/custody remain separate.
+
+The connection retains its owned raw input, self-reference, reference-kind/text
+and optional original map. The source tree and cursors can retain the full input
+while the exact map-span copy, per-value copies, aliases, checked Contracts and
+hash workspace overlap. Bounded original-wire getters allocate a returned
+String with caller lifetime. Neither managed reference retirement nor these
+intake/work bounds prove physical cleanup or a numerical reservation.
+
+### Project-selected connection intake
+
+The Notion Host caller loads the original connections file through the existing
+Project owner and selects one explicitly named connection from that owner's
+checked inventory. Exact Unicode names are compared without normalization or
+first-entry fallback. A finite member count and work bound cover the complete
+selection scan, including unselected names. The selected connector must be
+Notion. The supplied name's work is admitted before scanning it or opening the
+connections file; each candidate's work is admitted before its text comparison.
+The caller UTF-8 encodes the original entry span once and passes those
+bytes to the same Common public-connection reader; it never reconstructs JSON,
+interprets property Contracts or resolves an environment/file credential.
+
+Common and provider callbacks and their receivers are captured before the file
+await. The original Project acquisition's current fence is rechecked after
+read/close, before Connector admission and whenever its private returned view
+is consumed. Copied views, foreign runtimes and Projects refuse. Current-fence
+failure is terminal for that view even if a later observation would succeed.
+An unconfirmed FD close propagates the original cleanup carrier; Connector
+admission does not run and retry may close only that same FD, without rereading.
+
+The view retains the original Project, Project connections acquisition and
+record, logical name/index, exact entry String, typed Notion connection and
+both callback runtimes. Their callback records, current closure and receiver,
+full original file, source/decode graph, entry UTF-8 encode, copied Notion
+input, alias/value copies, Contracts and hash workspace can overlap. Explicit
+intake/selection limits are bounds, not a reservation. Retirement cuts only the
+view's selected DATA/callback-reference record. A retained failure and escaped
+DATA keep their own lifetimes; neither retirement
+nor file close is metadata response retirement, installation/cold custody,
+credential authority, a physical ACK or numerical funding.
+
+Actual Project/Common/Notion file-boundary counters cover exact entry and
+declaration spans, exclusive credential references without secret I/O, bounded
+selection, absent/wrong-connector refusal, original callback/current identity
+and retained FD-close failure. They do not establish a published Source, an
+operational metadata supplier, saved-publication recovery or installed reads.
 
 The existing Catalog owner admits the public `databases` object once and retains
 its ordered exact Unicode aliases and the original value span for each existing

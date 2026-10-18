@@ -4,6 +4,8 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField, runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
 import {installedProjectOriginalsForRuntime} from './installed-project-configuration.mjs';
 import {readBoundedConfigurationUtf8} from './source-profile-json.mjs';
+import {assertInstalledModelDefaultsPreparation,
+  assertInstalledModelDefaultsAdoption} from './installed-model.mjs';
 
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 const boundFields = Object.freeze(['contractDepth', 'contractNodes', 'contractTextBytes',
@@ -36,6 +38,19 @@ function snapshotLimits(value) {
 // the Host still funds all retained originals and read/decode/hash overlap.
 export async function loadInstalledProjectModelTasks(moon, project, providers,
   {limits, assertCurrent, openFile = open} = {}) {
+  return loadProjectModelTasks(moon, project, providers, {limits, assertCurrent, openFile}, false);
+}
+
+// Candidate Task DATA can precede the physical assembler that needs its exact
+// Common-issued Task/prompt identities. It cannot project a Run environment
+// until the same original defaults are adopted by actual installed Providers.
+export async function prepareInstalledProjectModelTasks(moon, project, defaults,
+  {limits, assertCurrent, openFile = open} = {}) {
+  return loadProjectModelTasks(moon, project, defaults, {limits, assertCurrent, openFile}, true);
+}
+
+async function loadProjectModelTasks(moon, project, providers,
+  {limits, assertCurrent, openFile}, candidate) {
   const original = installedProjectOriginalsForRuntime(project, moon);
   if (typeof project.directory !== 'string' || !project.directory ||
       typeof assertCurrent !== 'function' || typeof openFile !== 'function' ||
@@ -102,6 +117,7 @@ export async function loadInstalledProjectModelTasks(moon, project, providers,
     if (provider === undefined || typeof provider.resolveTaskDefaults !== 'function') {
       fail('InstalledModelDefaultsUnavailable');
     }
+    if (candidate) assertInstalledModelDefaultsPreparation(provider, moon, providerId);
     const defaults = provider.resolveTaskDefaults(model, undefined, readerBounds);
     // Common reuses the declaration's own token override; this preliminary
     // default read supplies only the retained original configuration profile.
@@ -123,35 +139,63 @@ export async function loadInstalledProjectModelTasks(moon, project, providers,
     if (Map.prototype.get.call(providers, providerId) !== provider) {
       fail('InstalledModelDefaultsForeignOriginal');
     }
-    provider.assertNewTrustedRuntime?.();
+    if (candidate) assertInstalledModelDefaultsPreparation(provider, moon, providerId);
+    else provider.assertNewTrustedRuntime?.();
     tasks.push(Object.freeze({name, file, path, wire, task, selection, providerId,
-      provider, defaults, normalized, taskWire, taskCid, promptWire, promptCid}));
+      ...(candidate ? {providerDefaults: provider} : {provider}),
+      defaults, normalized, taskWire, taskCid, promptWire, promptCid}));
   }
   const retained = Object.freeze(tasks);
   function originalsForRuntime(runtime) {
     if (runtime !== moon) fail('ForeignInstalledProjectRuntime');
     check();
     for (const task of retained) {
-      if (Map.prototype.get.call(providers, task.providerId) !== task.provider) {
+      const originalProvider = candidate ? task.providerDefaults : task.provider;
+      if (Map.prototype.get.call(providers, task.providerId) !== originalProvider) {
         fail('InstalledModelDefaultsForeignOriginal');
       }
-      task.provider.assertNewTrustedRuntime?.();
+      if (candidate) assertInstalledModelDefaultsPreparation(originalProvider, moon, task.providerId);
+      else originalProvider.assertNewTrustedRuntime?.();
     }
     return retained;
   }
+  function installedView(installedTasks, assertOriginals) {
+    return Object.freeze({originalsForRuntime: assertOriginals,
+      projectEnvironmentForRuntime(runtime, wire, evidenceCid) {
+        assertOriginals(runtime);
+        if (typeof wire !== 'string' || typeof evidenceCid !== 'string') {
+          fail('InvalidInstalledProjectEnvironment');
+        }
+        const projection = checked(call('environment', wire, evidenceCid,
+          installedTasks.map(task => task.normalized), ...coreBounds));
+        const environmentWire = runtimeField(projection, 0), identity = runtimeField(projection, 1);
+        const work = runtimeField(projection, 2);
+        if (typeof environmentWire !== 'string' || typeof identity !== 'string' ||
+            !Number.isSafeInteger(work) || work < 0) fail('InvalidHostRuntimeResult');
+        assertOriginals(runtime);
+        return Object.freeze({environmentWire, evidenceCid: identity, work});
+      }});
+  }
+  if (!candidate) return installedView(retained, originalsForRuntime);
   return Object.freeze({originalsForRuntime,
-    projectEnvironmentForRuntime(runtime, wire, evidenceCid) {
-      originalsForRuntime(runtime);
-      if (typeof wire !== 'string' || typeof evidenceCid !== 'string') {
-        fail('InvalidInstalledProjectEnvironment');
-      }
-      const projection = checked(call('environment', wire, evidenceCid,
-        retained.map(task => task.normalized), ...coreBounds));
-      const environmentWire = runtimeField(projection, 0), identity = runtimeField(projection, 1);
-      const work = runtimeField(projection, 2);
-      if (typeof environmentWire !== 'string' || typeof identity !== 'string' ||
-          !Number.isSafeInteger(work) || work < 0) fail('InvalidHostRuntimeResult');
-      originalsForRuntime(runtime);
-      return Object.freeze({environmentWire, evidenceCid: identity, work});
+    bindInstalledProviders(installed) {
+      originalsForRuntime(moon);
+      if (!(installed instanceof Map)) fail('InvalidInstalledProjectTaskInstallation');
+      const bound = Object.freeze(retained.map(task => {
+        const provider = Map.prototype.get.call(installed, task.providerId);
+        assertInstalledModelDefaultsAdoption(provider, task.providerDefaults, moon, task.providerId);
+        return Object.freeze({...task, provider});
+      }));
+      const assertBound = runtime => {
+        originalsForRuntime(runtime);
+        for (const task of bound) {
+          if (Map.prototype.get.call(installed, task.providerId) !== task.provider) {
+            fail('InstalledModelDefaultsForeignOriginal');
+          }
+          assertInstalledModelDefaultsAdoption(task.provider, task.providerDefaults, moon, task.providerId);
+        }
+        return bound;
+      };
+      return installedView(bound, assertBound);
     }});
 }

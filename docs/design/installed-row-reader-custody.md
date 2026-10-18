@@ -1,5 +1,33 @@
 # Original installed row reader custody
 
+## Original public connection declarations
+
+The existing Project configuration Owner admits the closed connectors document
+and keeps each connection's logical name, Connector locator and exact original
+UTF-8 value span. It validates the entire bounded envelope, including unused
+members and duplicate keys; it does not interpret vendor fields or grant a
+credential use. Each selected Connector's own reader admits its complete entry.
+The outer document, connection entry and any declaration inside that entry are
+distinct original byte sequences, not interchangeable source identities.
+
+The Node acquisition stage accepts only the original issued Project and runtime,
+resolves the original locator relative to its captured directory, and retains
+the exact text from the existing bounded strict-UTF8 reader. It captures the
+original Common callbacks before I/O and checks installation currentness after
+the same awaited read and close. A missing or invalid selected document cannot
+become an absent/source-free declaration. Close failure retains the original
+file responsibility; it does not trigger another read. The projected originals
+remain DATA, not publication custody, a Catalog, a read grant or an installation.
+
+The existing installation inventory must cover the Project and view references,
+captured callbacks/current closure, path and raw text, parsed tree and retained
+entry strings, plus simultaneous read/decode workspace. The 65536-byte intake
+ceiling is not a physical reservation or proof of adequate funding. Actual
+publication, durable custody, Connector preparation and Run adoption remain
+separate duties of their existing Owners.
+
+## Accounted row acquisition
+
 The provider-neutral installed row adapter may select a supplemental ordinary
 reader envelope in its existing trusted installation. Its private
 `providerReader` contains the original Common `ExecutionCapacity` declaration
@@ -49,6 +77,43 @@ layout and lifetime are part of the same selected envelope, not free control
 bytes. Only after original Core close and capture cleanup succeed may the
 Host sever its reader/method backreferences. This reference retirement is not
 GC or a physical release acknowledgement of another Owner's resources.
+## Original credential acquisition retirement
+
+The existing Row Credential Site can explicitly select bounded Run-acquisition
+custody. Its trusted installer supplies positive `maxBindings` and
+`maxSecretBytes`, together with the original immutable Site profile, issuer,
+resolver and Journal. Omission refuses the new acquisition entry; it does not
+supply a normal numerical profile or change existing Run callers.
+
+`openRunAcquisition` snapshots the original Run request and synchronous/current
+observation callbacks before invoking them. It uses the same existing signing
+path and seventeen-field grant preimage. The returned authorization and private
+credential envelope retain the same control, Journal and resolver; the physical
+binding keeps original material across separately claimed operations. Every
+awaited observation is followed by the captured current fence. A copied scope,
+matching CID or callback result cannot create an issuer, new permission or
+current authorization.
+
+The parent Site owns every selected binding before returning a borrow. Its
+close first retires those original bindings, including pending resolver,
+response and socket custody, and only then invokes the captured original
+Journal close with its original receiver. An unconfirmed child cannot release
+the parent Journal. Failed Journal close remains pending in that same custody;
+confirmed child and Journal retirement are not repeated. The metadata
+alternative and existing Run callers retain their distinct purposes and
+existing scope rules.
+
+The binding count bounds retained original entries, not only currently open
+sockets. Closing a child does not replenish that declared count or reclaim its
+escaped credential/current/authorization aliases. The original acquisition's
+budget must cover the entries, callbacks, request snapshots, immutable
+credential borrows, grant/use references, material, response/error aliases and
+simultaneous physical workspace through cleanup. No response loss or Unknown
+claim is retried by cleanup. Journal retirement does not reconcile that claim,
+authenticate a saved publication, release another Owner's holding or establish
+GC/physical-byte reclamation. Actual Host/Account admission, funding and durable
+publication remain independent requirements of their existing Owners.
+
 ## Installation publication storage association
 
 The existing publication Owner has a separate closed storage-association DATA

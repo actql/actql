@@ -1,0 +1,48 @@
+{
+  "qualification": "Independent exact UTF-8 SOURCE identities; credential references are not secret material or authority.",
+  "vectors": [
+    {
+      "name": "environment-exact-spans",
+      "source": " \r\n{\"connector\":\"notion\",\"databases\":{ \"tasks\":{\r\n \"id\": \"d\\u0062\", \"unique\":\"external_id\"\r\n}, \"accounts\":\"db2\" },\"credentials\":{\"integration_token\":{\"env\":\"NOTION_\\u0054OKEN\"}}}\n",
+      "sourceCid": "sha256:078c79d275bc233077852d6d4978dabb2c67f4a36a2501633533c57ec7db2ec7",
+      "credentialKind": "env",
+      "credentialReference": "NOTION_TOKEN",
+      "databases": {
+        "source": "{ \"tasks\":{\r\n \"id\": \"d\\u0062\", \"unique\":\"external_id\"\r\n}, \"accounts\":\"db2\" }",
+        "sourceCid": "sha256:ba9169d3b58205fe27e65a206ac61cb700d640e7bf7a55f9156266b68ec7fb39",
+        "entries": [
+          {
+            "alias": "tasks",
+            "source": "{\r\n \"id\": \"d\\u0062\", \"unique\":\"external_id\"\r\n}",
+            "sourceCid": "sha256:1db3ff7fc211435df8f536e5f41c05a629671443d05f18c691c96b1dd1ae6229"
+          },
+          {
+            "alias": "accounts",
+            "source": "\"db2\"",
+            "sourceCid": "sha256:805f3c0d4970db42ffda0fff19c64d45e1ad9ae0554a2f8018d9512eeb89eda3"
+          }
+        ]
+      }
+    },
+    {
+      "name": "file-and-empty",
+      "source": "{\"credentials\":{\"integration_token\":{\"path\":\"./keys/café.token\"}},\"connector\":\"notion\",\"databases\":{}}",
+      "sourceCid": "sha256:b51e75acf1dbdfea83b3ab4baf53072343e7e6c5c7798367e2f251ea696fd372",
+      "credentialKind": "path",
+      "credentialReference": "./keys/café.token",
+      "databases": {
+        "source": "{}",
+        "sourceCid": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "entries": []
+      }
+    },
+    {
+      "name": "absent-databases",
+      "source": "{\"connector\":\"notion\",\"credentials\":{\"integration_token\":{\"env\":\"N\"}}}",
+      "sourceCid": "sha256:f431c71288efcc6451762e2ceb45bd5fa763b15a8fbfbfbe927c7bd2eb91087e",
+      "credentialKind": "env",
+      "credentialReference": "N",
+      "databases": null
+    }
+  ]
+}

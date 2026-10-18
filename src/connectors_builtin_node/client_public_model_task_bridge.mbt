@@ -1,4 +1,12 @@
 ///|
+#export_name("clientProgramPublicModelTaskName")
+pub fn client_program_public_model_task_name(
+  task : @check_environment.PublicModelTaskDeclaration,
+) -> String {
+  @check_environment.public_model_task_declaration_identity(task).0
+}
+
+///|
 /// Private actual-runtime projection. Parsing, defaults, original correspondence
 /// and canonical Task material stay with Common; no Host DATA builds a handle.
 #export_name("clientProgramReadPublicModelTask")
