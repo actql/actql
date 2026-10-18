@@ -16771,7 +16771,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -16878,7 +16878,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -28224,7 +28224,7 @@
               },
               {
                 "path": "adapters/host-node/node-initial-control-installation.mjs",
-                "anchor": "const startup = require('./infer-trusted-node-preload.cjs');"
+                "anchor": "const startup = require(ordinary ? './node-public-initial-control-bootstrap.cjs' : './infer-trusted-node-preload.cjs');"
               },
               {
                 "path": "adapters/host-node/initial-control-static-assets.test.mjs",
@@ -42910,7 +42910,7 @@
               },
               {
                 "path": "adapters/host-node/node-initial-control-installation.mjs",
-                "anchor": "const startup = require('./infer-trusted-node-preload.cjs');"
+                "anchor": "const startup = require(ordinary ? './node-public-initial-control-bootstrap.cjs' : './infer-trusted-node-preload.cjs');"
               },
               {
                 "path": "adapters/host-node/initial-control-static-assets.test.mjs",
