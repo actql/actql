@@ -9,12 +9,15 @@ const {join, dirname} = require('node:path');
 const {getHeapStatistics} = require('node:v8');
 const {isMainThread,threadId} = require('node:worker_threads');
 const {isProxy} = require('node:util').types;
+const {Buffer} = require('node:buffer');
+const {open: openSourceFile} = require('node:fs/promises');
 const processOriginal = require('node:process');
 const apply = Reflect.apply, descriptor = Object.getOwnPropertyDescriptor;
 const own = Object.hasOwn, freeze = Object.freeze;
 const {createInitialControlInstallationOwner} = require('./initial-control-installation-owner.cjs');
 const {declareOrdinaryInitialControlPhaseEnvelope, inspectOrdinaryInitialControlPhaseEnvelope}
   = require('./initial-control-phase-envelope.cjs');
+const {declareSourceManagedPhaseEnvelope} = require('./source-managed-phase-envelope.cjs');
 const fail = code => {throw Object.assign(new TypeError(code), {code});};
 const unavailable = () => fail('NodeInitialControlAdmissionUnavailable');
 const inputUnavailable = () => fail('NodeInitialControlInputUnavailable');
@@ -27,6 +30,298 @@ const localRoot = join(__dirname,'..','..');
 const delivery = module.parent;
 const loadingModule = module;
 let state, firstFailure, preparation, intake, closed = false;
+// These originals belong to this actual installed prefix, not to an exported
+// factory accepting a runtime label, caller callback, capacity or trust flag.
+let sourceInstallation;
+const sourceChildren = new WeakMap();
+const sourceUnavailable = () => fail('SourceManagedPreparationUnavailable');
+const sourceTypedArrayPrototype = Object.getPrototypeOf(Object.getPrototypeOf(Buffer.prototype));
+const sourceOperations = freeze([
+  [Buffer, 'alloc'], [Buffer, 'isBuffer'], [Buffer.prototype, 'subarray'], [Buffer.prototype, 'equals'],
+  [sourceTypedArrayPrototype, 'buffer'], [sourceTypedArrayPrototype, 'byteOffset'],
+  [sourceTypedArrayPrototype, 'byteLength'],
+].map(([receiver, name]) => freeze({receiver, name, property: descriptor(receiver, name)})));
+const sourceAlloc = sourceOperations[0].property?.value;
+const sourceIsBuffer = sourceOperations[1].property?.value;
+const sourceSubarray = sourceOperations[2].property?.value;
+const sourceEquals = sourceOperations[3].property?.value;
+const sourceArrayBuffer = sourceOperations[4].property?.get;
+const sourceByteOffset = sourceOperations[5].property?.get;
+const sourceByteLength = sourceOperations[6].property?.get;
+function sourceOperationsChanged() {
+  const entry = sourceInstallation;
+  const cause = entry?.operationFailure?.cause ?? Object.assign(
+    new TypeError('SourceManagedPreparationUnavailable'), {code: 'SourceManagedPreparationUnavailable'});
+  if (entry !== undefined) {
+    entry.operationFailure ??= freeze({cause});
+    entry.closing = true;
+    sourceFailure(entry, cause);
+  }
+  throw cause;
+}
+function assertSourceOperationsCurrent() {
+  if (![sourceAlloc, sourceIsBuffer, sourceSubarray, sourceEquals,
+    sourceArrayBuffer, sourceByteOffset, sourceByteLength].every(value => typeof value === 'function')) sourceOperationsChanged();
+  for (const held of sourceOperations) {
+    const current = descriptor(held.receiver, held.name), original = held.property;
+    if (current === undefined || original === undefined || current.value !== original.value ||
+        current.get !== original.get || current.set !== original.set ||
+        current.writable !== original.writable || current.enumerable !== original.enumerable ||
+        current.configurable !== original.configurable) sourceOperationsChanged();
+  }
+}
+function sourceBackingRange(value, bytes) {
+  // Native typed-array accessors reject a Proxy/fake without invoking its
+  // getters. A valid Buffer wrapper is still not a distinct physical holding.
+  if (isProxy(value) || !apply(sourceIsBuffer, Buffer, [value]) ||
+      apply(sourceByteLength, value, []) !== bytes) sourceUnavailable();
+  return freeze({buffer: apply(sourceArrayBuffer, value, []),
+    offset: apply(sourceByteOffset, value, []), bytes});
+}
+function allocateSourceBacking(entry, bytes) {
+  assertSourceOperationsCurrent();
+  entry.backingUnknown = true;
+  const value = apply(sourceAlloc, Buffer, [bytes]);
+  // Retain every constructor observation before validation/current checks.
+  entry.backings.push(value);
+  const range = sourceBackingRange(value, bytes);
+  entry.backingUnknown = false;
+  if (entry.backingRanges.some(original => original.buffer === range.buffer)) sourceUnavailable();
+  entry.backingRanges.push(range);
+  assertSourceOperationsCurrent();
+  return value;
+}
+function sourceOriginal(original, held, allowClosing = false) {
+  const entry = sourceInstallation;
+  if (entry === undefined || entry.original !== original || entry.originals !== held ||
+      entry.closed || (!allowClosing && entry.closing)) sourceUnavailable();
+  return entry;
+}
+function sourceCurrent(original, held) {
+  const entry = sourceOriginal(original, held);
+  assertSamePreparation(held);
+  assertSourceOperationsCurrent();
+  apply(state.source.validator, state.namespace, [held]);
+  return entry;
+}
+function sourceReceipt(entry, receipt) {
+  if (entry.receipt === undefined || entry.receipt.original !== receipt) sourceUnavailable();
+  return entry.receipt;
+}
+function sourceFailure(entry, cause) {
+  const error = freeze({cause});
+  entry.firstError ??= error;
+  entry.latestError = error;
+}
+function sourceStatus(entry) {
+  return freeze({pending: !entry.closed, fdPending: entry.file !== undefined,
+    backingUnknown: entry.backingUnknown,
+    childrenPending: entry.children.some(child => !child.stopped || !child.released),
+    physicalBackingReleased: false});
+}
+async function closeSource(entry) {
+  entry.closing = true;
+  if (entry.closeFlight !== undefined) return entry.closeFlight;
+  const flight = (async () => {
+    if (entry.backingUnknown) return sourceStatus(entry);
+    if (entry.receipt !== undefined && !entry.receipt.finished) return sourceStatus(entry);
+    if (entry.children.some(child => !child.stopped || !child.released || child.flight !== undefined)) {
+      return sourceStatus(entry);
+    }
+    if (entry.openFlight !== undefined) {
+      try {await entry.openFlight;} catch (cause) {sourceFailure(entry, cause);}
+    }
+    if (entry.file !== undefined) {
+      try {
+        if (entry.fileClose === undefined) entry.fileClose = entry.file.close;
+        if (typeof entry.fileClose !== 'function' || await apply(entry.fileClose, entry.file, []) === false) {
+          sourceUnavailable();
+        }
+        entry.file = undefined;
+        entry.fileClose = entry.fileRead = entry.fileStat = undefined;
+      } catch (cause) {sourceFailure(entry, cause);return sourceStatus(entry);}
+    }
+    entry.closed = true;
+    // Body backings and escaped byte aliases remain charged for their actual
+    // process lifetime. This managed retirement never returns byte credit.
+    entry.bundle = undefined;
+    return sourceStatus(entry);
+  })();
+  entry.closeFlight = flight;
+  try {return await flight;} finally {if (entry.closeFlight === flight) entry.closeFlight = undefined;}
+}
+async function prepareSource(held) {
+  if (state === undefined || sourceInstallation !== undefined || state.source === undefined ||
+      Object.values(state.source).some(value => typeof value !== 'function')) sourceUnavailable();
+  assertSamePreparation(held);
+  const original = freeze(Object.create(null));
+  const entry = sourceInstallation = {original, originals: held, bundle: undefined,
+    closing: false, closed: false, children: [], receipt: undefined,
+    file: undefined, fileClose: undefined, fileRead: undefined, fileStat: undefined,
+    fileIdentity: undefined, openFlight: undefined, closeFlight: undefined,
+    firstError: undefined, latestError: undefined, backings: [], backingRanges: [],
+    backingUnknown: false, lookahead: undefined};
+  try {
+    // Real distinct ArrayBuffers, not an unused arena lent to another allocator.
+    // The two original full-document acquisitions retain these independent
+    // backings even though the same file/managed declarations are shared.
+    for (let ordinal = 0; ordinal < state.sourceEnvelope.limits.sourceOccurrences; ordinal++) {
+      allocateSourceBacking(entry, state.sourceEnvelope.limits.responseBytes);
+    }
+    entry.lookahead = allocateSourceBacking(entry, 1);
+    sourceCurrent(original, held);
+    await apply(state.source.prepare, state.namespace, [held, original]);
+    sourceCurrent(original, held);
+    const bundle = apply(state.source.read, state.namespace, [held]);
+    if (bundle === null || typeof bundle !== 'object' || !Object.isFrozen(bundle) ||
+        typeof bundle.dataPath !== 'string' || bundle.dataPath.length > 65536 ||
+        !Array.isArray(bundle.sources) || bundle.sources.length !== state.sourceEnvelope.limits.sourceOccurrences) sourceUnavailable();
+    entry.bundle = bundle;
+    sourceCurrent(original, held);
+    return original;
+  } catch (cause) {
+    entry.closing = true;
+    sourceFailure(entry, cause);
+    const carrier = new Error('SourceManagedInstallationCleanupPending', {cause});
+    carrier.code = 'SourceManagedInstallationCleanupPending';
+    carrier.cleanupHandle = freeze({status: () => sourceStatus(entry), retry: () => closeSource(entry)});
+    throw carrier;
+  }
+}
+function assertSourceRequest(entry, derived) {
+  sourceCurrent(entry.original, entry.originals);
+  // Only the captured actual Host namespace can follow its own bounded
+  // clone/preparation chain back to the original pending SDK packet.
+  const request = apply(state.source.request, state.namespace, [entry.originals, derived]);
+  if (entry.receipt === undefined || entry.receipt.request !== request || entry.receipt.finished) sourceUnavailable();
+  return request;
+}
+function sourceFileIdentity(value) {
+  return [value.dev, value.ino, value.size, value.mtimeNs, value.ctimeNs];
+}
+async function assertSourceFile(entry) {
+  const observed = await apply(entry.fileStat, entry.file, [{bigint: true}]);
+  const identity = sourceFileIdentity(observed);
+  if (!observed.isFile() || observed.size > BigInt(state.sourceEnvelope.limits.responseBytes)) sourceUnavailable();
+  if (entry.fileIdentity === undefined) entry.fileIdentity = identity;
+  else if (identity.some((value, ordinal) => value !== entry.fileIdentity[ordinal])) sourceUnavailable();
+}
+async function readSourceBytes(entry, child) {
+  assertSourceRequest(entry, child.derived);
+  if (!child.admitted || child.stopped || child.released || child.readAttempted) sourceUnavailable();
+  child.readAttempted = true;
+  const flight = (async () => {
+    if (entry.openFlight === undefined) {
+      entry.openFlight = (async () => {
+        // This happens only at the existing authorized read consumer, never
+        // during Project/connection metadata preparation or a Source snapshot.
+        entry.file = await openSourceFile(entry.bundle.dataPath, 'r');
+        entry.fileClose = entry.file.close;
+        entry.fileRead = entry.file.read;
+        entry.fileStat = entry.file.stat;
+        if (![entry.fileClose, entry.fileRead, entry.fileStat].every(value => typeof value === 'function')) {
+          sourceUnavailable();
+        }
+      })();
+    }
+    await entry.openFlight;
+    assertSourceRequest(entry, child.derived);
+    await assertSourceFile(entry);
+    assertSourceRequest(entry, child.derived);
+    let used = 0;
+    const backing = entry.backings[child.ordinal], range = entry.backingRanges[child.ordinal];
+    while (used < range.bytes) {
+      const {bytesRead} = await apply(entry.fileRead, entry.file, [backing, used, range.bytes - used, used]);
+      assertSourceRequest(entry, child.derived);
+      if (!Number.isSafeInteger(bytesRead) || bytesRead < 0 || bytesRead > range.bytes - used) sourceUnavailable();
+      if (bytesRead === 0) break;
+      used += bytesRead;
+    }
+    if (used === range.bytes) {
+      const {bytesRead} = await apply(entry.fileRead, entry.file, [entry.lookahead, 0, 1, used]);
+      assertSourceRequest(entry, child.derived);
+      if (bytesRead !== 0) sourceUnavailable();
+    }
+    await assertSourceFile(entry);
+    assertSourceRequest(entry, child.derived);
+    const bytes = apply(sourceSubarray, backing, [0, used]);
+    const observed = sourceBackingRange(bytes, used);
+    if (observed.buffer !== range.buffer || observed.offset !== range.offset) sourceUnavailable();
+    const sibling = entry.children.find(value => value !== child && value.bytes !== undefined);
+    if (sibling !== undefined && apply(sourceEquals, bytes, [sibling.bytes]) !== true) sourceUnavailable();
+    assertSourceRequest(entry, child.derived);
+    child.bytes = bytes;
+    return bytes;
+  })();
+  child.flight = flight;
+  try {return await flight;} catch (cause) {sourceFailure(entry, cause);throw cause;}
+  finally {if (child.flight === flight) child.flight = undefined;}
+}
+function prepareSourceRead(original, held, derived, declaration) {
+  const entry = sourceCurrent(original, held);
+  assertSourceRequest(entry, derived);
+  const ordinal = entry.bundle.sources.findIndex(value => value.declaration === declaration);
+  if (ordinal < 0 || entry.children.some(value => value.ordinal === ordinal)) sourceUnavailable();
+  const originalSource = freeze(Object.create(null));
+  const child = {entry, ordinal, derived, originalSource, portsTaken: false,
+    admitted: false, stopped: false, released: false, readAttempted: false,
+    flight: undefined, bytes: undefined, usage: undefined};
+  entry.children.push(child);
+  sourceChildren.set(originalSource, child);
+  return freeze({originalSource,
+    readOriginalBytes() {return readSourceBytes(entry, child);},
+    close() {child.released = true;return freeze({pending: child.flight !== undefined});},
+    status() {return freeze({pending: !child.stopped || !child.released || child.flight !== undefined,
+      fdPending: entry.file !== undefined, physicalBackingReleased: false});}});
+}
+function prepareOriginalSourceChildPorts(original) {
+  // A missing original is refused without inspecting a caller reference.
+  const child = sourceChildren.get(original);
+  if (child === undefined || child.portsTaken) return null;
+  assertSourceRequest(child.entry, child.derived);
+  child.portsTaken = true;
+  const envelope = state.sourceEnvelope, partition = envelope.occurrencePartitions[child.ordinal];
+  const quotas = [BigInt(Math.floor(envelope.limits.sourceWork / envelope.limits.sourceOccurrences)),
+    BigInt(partition.responses), BigInt(partition.responses), BigInt(partition.responseBackingBytes),
+    BigInt(partition.responseBackingBytes), BigInt(envelope.limits.decodedWireBytes)];
+  const current = () => {
+    if (child.stopped || child.entry.closing || child.entry.receipt?.finished) return 1;
+    try {assertSourceRequest(child.entry, child.derived);return 0;}
+    catch {return 1;}
+  };
+  return freeze({
+    status(operation) {
+      if (operation === 2) {
+        if (!child.admitted || child.stopped || child.usage === undefined || child.flight !== undefined) return -42;
+        child.stopped = true;
+        return 0;
+      }
+      if (operation === 1) return current();
+      if (current() !== 0) return -42;
+      if (operation === 0) {
+        if (child.admitted) return -42;
+        child.admitted = true;
+      } else return -42;
+      return 0;
+    },
+    limit(ordinal) {return Number.isInteger(ordinal) && ordinal >= 0 && ordinal < quotas.length ? quotas[ordinal] : -42n;},
+    report(planning, attempts, holdings, transferred, uncertain, reservedTransfer,
+      heldBytes, reservedRetention, reservedExecution, peakRetention) {
+      // Core supplies this usage; these counters never acknowledge the FD or
+      // return the actual process-lived response ArrayBuffers to a sibling.
+      if (!child.admitted || child.stopped || ![planning, attempts, holdings].every(Number.isSafeInteger) ||
+          planning < 0 || attempts < 0 || holdings < 0 || BigInt(planning) > quotas[0] ||
+          BigInt(attempts) > quotas[1] || BigInt(holdings) > quotas[2] ||
+          ![transferred, uncertain, reservedTransfer, heldBytes, reservedRetention, reservedExecution, peakRetention]
+            .every(value => typeof value === 'bigint' && value >= 0n) ||
+          transferred + uncertain + reservedTransfer > quotas[3] ||
+          heldBytes + reservedRetention > quotas[4] || peakRetention > quotas[4] || reservedExecution > quotas[5]) return -42;
+      child.usage = freeze({planning, attempts, holdings, transferred, uncertain, reservedTransfer,
+        heldBytes, reservedRetention, reservedExecution, peakRetention});
+      return 0;
+    },
+  });
+}
 const inputLimits = freeze({maxProperties:40,maxNodes:40,maxDepth:4,
   maxStringCodeUnits:4096,maxTotalStringCodeUnits:8192,maxArrayItems:0,maxOpaqueAliases:0,maxWork:65536});
 // Capture actual prefix-time descriptors without evaluating a global accessor
@@ -152,6 +447,55 @@ const table = module.exports = {
   assertInitialControlInstallationCurrent(scope,originals) {return owner.assertCurrent(scope,originals);},
   readInitialControlInstallationInput(scope,originals) {return owner.readInput(scope,originals);},
   readInitialControlInstallationAsset(scope,originals,path) {return owner.readAsset(scope,originals,path);},
+  prepareSourceManagedInstallation: prepareSource,
+  assertSourceManagedInstallationCurrent(original, originals) {sourceCurrent(original, originals);},
+  beforeSourceSnapshot(original, originals, kind, input, options) {
+    const entry = sourceCurrent(original, originals);
+    if (entry.receipt !== undefined) sourceUnavailable();
+    // First ownKeys/clone is covered by the separately declared Source phase,
+    // not an initial-control credit or admission of the resulting DATA.
+    const snapshot = apply(state.source.input, state.namespace,
+      [kind, input, options, state.sourceEnvelope.inputLimits]);
+    if (snapshot.originalReferences.length !== 0) sourceUnavailable();
+    const receipt = freeze(Object.create(null));
+    entry.receipt = {original: receipt, snapshot, body: undefined, request: undefined, finished: false};
+    return receipt;
+  },
+  bindSourceSnapshot(original, originals, receipt, body) {
+    const entry = sourceCurrent(original, originals), producer = sourceReceipt(entry, receipt);
+    if (producer.body !== undefined || producer.finished || body === null ||
+        typeof body !== 'object' || isProxy(body) || !Object.isFrozen(body) ||
+        body.kind !== producer.snapshot.packet.kind || body.input !== producer.snapshot.packet.input) sourceUnavailable();
+    producer.body = body;
+  },
+  bindSourceRequest(original, originals, receipt, body, request) {
+    const entry = sourceCurrent(original, originals), producer = sourceReceipt(entry, receipt);
+    if (producer.body !== body || producer.request !== undefined || producer.finished ||
+        request === null || typeof request !== 'object' || isProxy(request)) sourceUnavailable();
+    // The receiving Host's fixed transform binding must later recover this
+    // same original, rather than identifying a clone by fields or intent CID.
+    producer.request = request;
+  },
+  sourceIntentCid(original, originals, receipt, body) {
+    const entry = sourceCurrent(original, originals), producer = sourceReceipt(entry, receipt);
+    if (producer.body !== body || producer.finished) sourceUnavailable();
+    const identity = apply(state.source.intent, state.namespace, [originals, original, body]);
+    sourceCurrent(original, originals);
+    return identity;
+  },
+  finishSourceProducer(original, originals, receipt, terminal) {
+    const entry = sourceOriginal(original, originals, true), producer = sourceReceipt(entry, receipt);
+    if (terminal !== 'returned' && terminal !== 'failed') sourceUnavailable();
+    producer.finished = true;
+    producer.snapshot = undefined;
+    // Children retain their actual request/byte duties; producer settlement is
+    // not their logical stop, physical FD close or returned backing credit.
+  },
+  closeSourceManagedInstallation(original, originals) {
+    return closeSource(sourceOriginal(original, originals, true));
+  },
+  prepareSourceManagedRead: prepareSourceRead,
+  prepareOriginalSourceChildPorts,
 };
 Object.setPrototypeOf(table,null);
 // Same synchronous receiver handoff for the Host namespace while it loads;
@@ -169,6 +513,9 @@ try {
   // The actual prefix owns its fixed initialization and ordinary compiler
   // disposition before loading the generated inventory or covered images.
   const declaration = declareOrdinaryInitialControlPhaseEnvelope(getHeapStatistics().heap_size_limit);
+  // Adopt the separate joint Source recipe before namespace, managed Source
+  // metadata or raw SDK acquisition. This is not a second whole VM allowance.
+  const sourceEnvelope = declareSourceManagedPhaseEnvelope(declaration);
   const runtime = freeze({node:processOriginal.versions.node,v8:processOriginal.versions.v8,
     openssl:processOriginal.versions.openssl,platform:processOriginal.platform,arch:processOriginal.arch,
     eager:false,libraries:freeze({...processOriginal.versions})});
@@ -199,7 +546,16 @@ try {
   const reader = field(namespace,'readInitialControlHostInput');
   if ([consumer,validator,reader].some(value=>typeof value !== 'function')) unavailable();
   assertIntrinsicsCurrent();
-  state = {declaration,runtime,envelope,inventory,images,namespace,consumer,validator,reader,prefixIntrinsics};
+  const source = {};
+  for (const [name, exported] of Object.entries({prepare: 'prepareInstalledMockSourcePreparation',
+    read: 'readInstalledMockPreparation', validator: 'assertSourceManagedHostPreparation',
+    request: 'originalSourceManagedHostRequest', intent: 'sourceManagedSubmittedIntentCid',
+    input: 'readSourceManagedOriginalInput'})) {
+    const entry = descriptor(namespace, exported);
+    source[name] = entry !== undefined && own(entry, 'value') ? entry.value : undefined;
+  }
+  freeze(source);
+  state = {declaration,runtime,envelope,sourceEnvelope,inventory,images,namespace,consumer,validator,reader,source,prefixIntrinsics};
 } catch(cause) {
   // Keep original FD/namespace/compile failure and its close-only duty. A
   // failed prefix never becomes a second factory or a retrying image read.
