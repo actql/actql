@@ -70,7 +70,10 @@ fn[T] NativeLocalJournalOriginalResources::stage(
     self.host.enter_local_host_phase(self.pair, phase)
   }
   match entered {
-    Err(issue) => return Err(OriginalResources(issue))
+    Err(issue) => {
+      self.interrupted = true
+      return Err(OriginalResources(issue))
+    }
     Ok(_) => self.active_phase = Some(phase)
   }
   let result = operation()
