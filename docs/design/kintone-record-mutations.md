@@ -530,10 +530,40 @@ Form bytes, Record Number, a partial page or an unrelated checked value document
 cannot reconstruct this custody. The checks remain DATA correspondence, not a
 current read/write decision, sealed Preview or applied Effect.
 
-CREATE's connector-specific required/default-field observation and its same
-request custody are a following necessary connection; the common CREATE
-projection does not invent that original vendor evidence. No new bridge or
-runtime capability is advertised by the pure Mapping API alone.
+The kintone CREATE projection uses the same complete original Form to select
+required request members. The [Add Records contract](https://kintone.dev/en/docs/kintone/rest-api/records/add-records/)
+requires explicit required fields even when their Form metadata also contains
+a default. Optional omitted fields remain omitted in the original request;
+the provider's eventual values are not intended writes or reconstructed
+postimages. The [Form Fields response](https://kintone.dev/en/docs/kintone/rest-api/apps/form/get-form-fields/)
+supplies each original required flag. A missing flag cannot become false, a
+default cannot become a source value, and an automatically generated or
+positively observed Lookup destination cannot become a required caller write.
+
+The bounded Catalog projection checks every original lookup mapping before
+collecting required input names. The same Row Owner then binds CREATE/none,
+the full retained Relation Contract, actual writable sources, required fields
+and existing create permission into its Mapping. The kintone wrapper privately
+copies required, written and omittable names; escaped Mapping metadata cannot
+weaken request correspondence. Every record must retain that same physical
+Form and exactly the intended field inventory, subject only to explicit
+optional omission. Equal Form bytes, a compatible declaration or an extra
+unmapped write cannot replace those originals.
+
+Unsupported required carriers and table-row requirements remain unfinished
+supplier connections and refuse this finite projection; they do not restrict
+readable Relation schemas or declare the full Connector complete. The ordinary
+provider's required-value validation still applies. No new bridge, current
+authority, absence/create decision, sealed Preview, physical request or runtime
+capability is advertised by this pure Mapping connection. Actual installed
+CREATE, original response funding and approval/apply/recovery remain required.
+
+The requirement projection's temporary copied-destination map, required-name
+array and bounded comparisons overlap the original Form and its names. Caller
+field/work bounds precede output. Mapping construction retains the original
+Relation/Contract, canonical body and private required/write/omit arrays beside
+the original checked request values. Those finite metadata limits do not
+reserve or retire any simultaneous holding or numerical funding.
 
 The UPDATE wrapper snapshots its before-field inventory through the same Row
 Owner's bounded projection of the immutable Mapping body. It does not reread
@@ -551,3 +581,44 @@ physical claim/approval/response/cleanup duties remain unchanged. This private
 name-array retention and its bounded Mapping-body Decode/Contract projection
 overlap the original declaration, Mapping and checked request; they are not a
 numerical reservation or a release acknowledgement.
+
+
+The mapped CREATE caller connects intended value rows to that same original
+Form and CREATE Mapping. It does not reconstruct provider records to obtain
+checked values. The existing Source, Decode, Value and Encode Owners admit the
+bounded original JSON array and native representations; the original Mapping
+retains a nominal self-reference so a copy of its private fields is refused.
+
+- Mapped CREATE responsibility: the Catalog admits intended values under the
+  original Form, the Row Mapping checks the complete written/omitted/required
+  inventory, and the thin Node caller delegates to the existing raw write port.
+- Mapped CREATE inputs and outputs: an exact array of intended records becomes
+  the same original request and native body. The checked Common value JSON is
+  a bounded DATA projection, never an observed provider result or default.
+- Mapped CREATE identity: retain the same nominal Mapping, original declaration,
+  Form and request correspondence. Field codes and text are not normalized;
+  equal reconstructed metadata and copied Mapping fields do not substitute.
+- Mapped CREATE ownership: the existing Effect Owner must supply its durable
+  claim, approved Preview and current authority. The thin caller owns none of
+  those responsibilities and does not create another physical send path.
+- Mapped CREATE synchronization: finish pure admission before I/O. The existing
+  raw port retains Account, Credential Site and binding current fences before
+  sends and after awaited responses; no pure match replaces those fences.
+- Mapped CREATE failure: malformed, foreign, missing-required, unmapped and
+  unrepresentable values refuse before I/O. Response loss retains the original
+  Journal Unknown and cannot cause a retry, new lookup or insertion claim.
+- Mapped CREATE cancellation: the original raw port and caller custody keep
+  cancellation and cleanup duties. This projection adds no close, settlement,
+  retry or release acknowledgement and cannot turn pending into completion.
+- Mapped CREATE resources: input bytes, Source tree, Decode cursor, checked
+  cells, per-record encoded native documents, complete request writer/output
+  and retained intended values overlap. Mapping inventories plus its nominal
+  self-reference remain held with the original Form. All byte/node/depth/field/
+  record limits are explicit physical bounds, not numerical funding evidence.
+- Mapped CREATE extension: required unsupported carriers and table-row writes
+  remain unfinished. This private caller does not advertise full installed
+  CREATE, targeted Preview/recovery, new carrier support or a normal profile.
+- Mapped CREATE verification: the independent two-record TLS oracle is retained
+  alongside original-form/mapping refusal, real Account denial, credential
+  rotation, response loss/no-resend and retained response/current tests. These
+  are source-qualified components, not pristine installed or live acceptance.
