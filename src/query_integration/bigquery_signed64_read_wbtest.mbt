@@ -31,7 +31,7 @@ fn bigquery_signed64_preparation() -> @bigquery_read.PreparedRead raise {
             "BigQuery Signed64 pipeline " +
             stage.to_string() +
             ": " +
-            @debug.to_string(issue),
+            @debug.to_string(issue.kind),
           )
         SourceView(Program(_)) => fail("BigQuery Signed64 Source view Program")
         SourceView(Binding(_)) => fail("BigQuery Signed64 Source view Binding")
