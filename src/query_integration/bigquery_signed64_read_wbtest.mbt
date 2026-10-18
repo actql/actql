@@ -12,11 +12,31 @@ fn bigquery_signed64_fields() -> Array[Json] {
 }
 
 ///|
+fn bigquery_signed64_preparation() -> @bigquery_read.PreparedRead raise {
+  bigquery_read_preparation(
+    description=Some(
+      bigquery_read_description(fields=Some(bigquery_signed64_fields())),
+    ),
+  ).unwrap() catch {
+    @program_check.LocalConstructionFailure::Source(cause) =>
+      match cause {
+        Requests(_) => fail("BigQuery Signed64 source request admission")
+        RequestForm(_) => fail("BigQuery Signed64 request form")
+        Checks(_) => fail("BigQuery Signed64 checked source")
+        Identity(_) => fail("BigQuery Signed64 original identity")
+        Declarations(_) => fail("BigQuery Signed64 declaration")
+        Registration(_) => fail("BigQuery Signed64 registration")
+        SourceView(_) => fail("BigQuery Signed64 Source view")
+        _ => fail("BigQuery Signed64 source capacity or declaration inventory")
+      }
+    other => raise other
+  }
+}
+
+///|
 test "BigQuery Signed64 crosses original checked Source RowRun and capture without rounding" {
   let fields = bigquery_signed64_fields()
-  let prepared = bigquery_read_preparation(
-    description=Some(bigquery_read_description(fields=Some(fields))),
-  ).unwrap()
+  let prepared = bigquery_signed64_preparation()
   let body = bigquery_body(
     [
       bigquery_row("a1", "-9223372036854775808", "down".to_json()),
@@ -67,9 +87,7 @@ test "BigQuery Signed64 crosses original checked Source RowRun and capture witho
 ///|
 test "BigQuery Signed64 overflow consumes the original page charge without partial Source" {
   let fields = bigquery_signed64_fields()
-  let prepared = bigquery_read_preparation(
-    description=Some(bigquery_read_description(fields=Some(fields))),
-  ).unwrap()
+  let prepared = bigquery_signed64_preparation()
   let body = bigquery_body(
     [
       bigquery_row("a1", "9007199254740993", "down".to_json()),
