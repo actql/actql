@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <pthread.h>
 #include BOOTSTRAP_SOURCE
 
 /* Physical adapter conformance only. These real C loans/scopes do not issue
@@ -52,11 +53,22 @@ static void original_finish(struct original_read_fixture *value) {
     moonbit_decref(value->loan); moonbit_decref(value->extent);
     moonbit_decref(value->backing);
 }
+struct foreign_read_observation { actql_bootstrap_domain *domain; int status; };
+static void *foreign_read_current(void *raw) {
+    struct foreign_read_observation *value = raw;
+    value->status = actql_bootstrap_read_context_entered(value->domain);
+    return NULL;
+}
 int main(void) {
     struct original_read_fixture a = original_new(), b = original_new();
     assert(actql_bootstrap_read_context_status(a.domain) == 0);
     assert(actql_bootstrap_read_context_entered(a.domain) == ACTQL_OWNED_INVALID);
     assert(actql_bootstrap_enter_read_context(a.domain) == 0);
+    assert(actql_bootstrap_read_context_entered(a.domain) == 0);
+    struct foreign_read_observation foreign = {a.domain, 999};
+    pthread_t thread;
+    assert(pthread_create(&thread, NULL, foreign_read_current, &foreign) == 0);
+    assert(pthread_join(thread, NULL) == 0 && foreign.status == ACTQL_OWNED_INVALID);
     assert(actql_bootstrap_read_context_entered(a.domain) == 0);
     assert(actql_bootstrap_read_context_entered(b.domain) == ACTQL_OWNED_INVALID);
     assert(actql_bootstrap_enter_read_context(a.domain) == 0);
