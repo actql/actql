@@ -52,7 +52,7 @@ test "UPDATE candidate keeps full key cardinality separate from the complete bef
   ).unwrap()
   assert_eq(
     update_candidate_statement(value),
-    "UPDATE \"PRODUCT\".\"USAGE\".\"USAGE_30D\" AS \"ACTQL_TARGET\" SET \"TREND\" = ? WHERE \"ACTQL_TARGET\".\"ACCOUNT_ID\" IS NOT DISTINCT FROM ? AND (SELECT COUNT(*) FROM \"PRODUCT\".\"USAGE\".\"USAGE_30D\" AS \"ACTQL_KEYS\" WHERE \"ACTQL_KEYS\".\"ACCOUNT_ID\" IS NOT DISTINCT FROM ?) = 1 AND \"ACTQL_TARGET\".\"ACCOUNT_ID\" IS NOT DISTINCT FROM ? AND \"ACTQL_TARGET\".\"ACTIVE_USERS\" IS NOT DISTINCT FROM TO_DECIMAL(?, 38, 0) AND \"ACTQL_TARGET\".\"TREND\" IS NOT DISTINCT FROM NULL",
+    "UPDATE \"PRODUCT\".\"USAGE\".\"USAGE_30D\" AS \"ACTQL_TARGET\" SET \"TREND\" = ? WHERE TO_BINARY(\"ACTQL_TARGET\".\"ACCOUNT_ID\", 'UTF-8') IS NOT DISTINCT FROM TO_BINARY(?, 'UTF-8') AND (SELECT COUNT(*) FROM \"PRODUCT\".\"USAGE\".\"USAGE_30D\" AS \"ACTQL_KEYS\" WHERE TO_BINARY(\"ACTQL_KEYS\".\"ACCOUNT_ID\", 'UTF-8') IS NOT DISTINCT FROM TO_BINARY(?, 'UTF-8')) = 1 AND TO_BINARY(\"ACTQL_TARGET\".\"ACCOUNT_ID\", 'UTF-8') IS NOT DISTINCT FROM TO_BINARY(?, 'UTF-8') AND \"ACTQL_TARGET\".\"ACTIVE_USERS\" IS NOT DISTINCT FROM TO_DECIMAL(?, 38, 0) AND TO_BINARY(\"ACTQL_TARGET\".\"TREND\", 'UTF-8') IS NOT DISTINCT FROM TO_BINARY(NULL, 'UTF-8')",
   )
   assert_eq(
     update_candidate_bindings(value),
@@ -149,4 +149,82 @@ test "UPDATE preserves a read-only unsupported non-null JSON carrier as named re
   assert_true(prepare_update_candidate(original, "K", key,
     [("K", key), ("J", json)], [("J", json)], update_limits())
     is Err(UnsupportedWriteType("J", "VARIANT")))
+}
+
+///|
+test "UPDATE quoted identifiers preserve exact Unicode and doubled quotes" {
+  let database = "D\""
+  let schema = "S😀"
+  let table = "T\"; DELETE FROM secret; --"
+  let rows = [
+    metadata_row("K\"", 1, "TEXT", database~, schema~, table~),
+    metadata_row("V😀", 2, "TEXT", database~, schema~, table~),
+  ]
+  let original = project_table_description(
+    table_target(database, schema, table, 4096).unwrap(),
+    metadata_response(rows, total=2, partition_counts=[2]), [], limits(),
+  ).unwrap()
+  let key = write_value(original, 0, @admitted.text_value("key", 4096).unwrap())
+  let value = write_value(original, 1, @admitted.text_value("e\u{0301}", 4096).unwrap())
+  let candidate = prepare_update_candidate(original, "K\"", key,
+    [("K\"", key), ("V😀", value)], [("V😀", value)], update_limits()).unwrap()
+  assert_true(update_candidate_statement(candidate).has_prefix(
+    "UPDATE \"D\"\"\".\"S😀\".\"T\"\"; DELETE FROM secret; --\" AS ",
+  ))
+  assert_true(update_candidate_statement(candidate).contains(
+    "TO_BINARY(\"ACTQL_KEYS\".\"K\"\"\", 'UTF-8')",
+  ))
+  assert_true(update_candidate_bindings(candidate).contains("e\u{0301}"))
+  assert_false(update_candidate_bindings(candidate).contains("é"))
+}
+
+///|
+test "UPDATE scalar character limits do not count UTF16 units or normalize text" {
+  let rows = [metadata_row("K", 1, "TEXT"), metadata_row("V", 2, "TEXT", length=Some(1))]
+  let original = project_table_description(target(),
+    metadata_response(rows, total=2, partition_counts=[2]), [], limits()).unwrap()
+  let key = write_value(original, 0, @admitted.text_value("key", 4096).unwrap())
+  let emoji = write_value(original, 1, @admitted.text_value("😀", 4096).unwrap())
+  let before = [("K", key), ("V", emoji)]
+  assert_true(prepare_update_candidate(original, "K", key, before,
+    [("V", emoji)], update_limits()) is Ok(_))
+  let separate = write_value(original, 1, @admitted.text_value("e\u{0301}", 4096).unwrap())
+  assert_true(prepare_update_candidate(original, "K", key, before,
+    [("V", separate)], update_limits()) is Err(InvalidValue("V")))
+}
+
+///|
+test "UPDATE parameter text does not consume the independent statement byte bound" {
+  let rows = [metadata_row("K", 1, "TEXT"), metadata_row("V", 2, "TEXT", length=Some(6000))]
+  let original = project_table_description(target(),
+    metadata_response(rows, total=2, partition_counts=[2]), [], limits()).unwrap()
+  let key = write_value(original, 0, @admitted.text_value("key", 4096).unwrap())
+  let old = write_value(original, 1, @admitted.text_value("old", 4096).unwrap())
+  let large = "x".repeat(5000)
+  let changed = @admitted.checked_text_value(large,
+    description_column_contract(original, 1).unwrap()).unwrap()
+  let bounded = { ..update_limits(), max_value_text_bytes: 16384,
+    max_statement_bytes: 1024, max_body_bytes: 16384 }
+  let result = prepare_update_candidate(original, "K", key, [("K", key), ("V", old)],
+    [("V", changed)], bounded).unwrap()
+  assert_true(update_candidate_statement(result).length() < 1024)
+  assert_true(update_candidate_bindings(result).contains(large))
+}
+
+///|
+test "UPDATE bindings above nine retain exact ordinal placeholder correspondence" {
+  let names = ["K", "A", "B", "C"]
+  let rows = names.mapi((index, name) => metadata_row(name, index + 1, "TEXT"))
+  let original = project_table_description(target(),
+    metadata_response(rows, total=4, partition_counts=[4]), [], limits()).unwrap()
+  let entries = [
+    ("K", write_value(original, 0, @admitted.text_value("k", 4096).unwrap())),
+    ("A", write_value(original, 1, @admitted.text_value("a", 4096).unwrap())),
+    ("B", write_value(original, 2, @admitted.text_value("b", 4096).unwrap())),
+    ("C", write_value(original, 3, @admitted.text_value("c", 4096).unwrap())),
+  ]
+  let value = prepare_update_candidate(original, "K", entries[0].1,
+    entries, entries, update_limits()).unwrap()
+  assert_eq(update_candidate_bindings(value),
+    "{\"1\":{\"type\":\"TEXT\",\"value\":\"k\"},\"10\":{\"type\":\"TEXT\",\"value\":\"c\"},\"2\":{\"type\":\"TEXT\",\"value\":\"a\"},\"3\":{\"type\":\"TEXT\",\"value\":\"b\"},\"4\":{\"type\":\"TEXT\",\"value\":\"c\"},\"5\":{\"type\":\"TEXT\",\"value\":\"k\"},\"6\":{\"type\":\"TEXT\",\"value\":\"k\"},\"7\":{\"type\":\"TEXT\",\"value\":\"k\"},\"8\":{\"type\":\"TEXT\",\"value\":\"a\"},\"9\":{\"type\":\"TEXT\",\"value\":\"b\"}}")
 }

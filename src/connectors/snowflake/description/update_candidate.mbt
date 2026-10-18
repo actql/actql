@@ -190,6 +190,27 @@ fn update_parameter(
 }
 
 ///|
+fn update_match(
+  budget : UpdateBudget,
+  alias : String,
+  field : DescriptionColumn,
+  value : @admitted.CheckedValue,
+) -> Unit raise UpdateStop {
+  let binary_text = ["TEXT", "VARCHAR", "STRING"].contains(field.native_type)
+  // Provider column collation must not weaken the exact original text
+  // comparison. UTF-8 conversion is explicit, including for SQL NULL.
+  if binary_text { update_sql(budget, "TO_BINARY(") }
+  update_identifier(budget, alias)
+  update_sql(budget, ".")
+  update_identifier(budget, field.name)
+  if binary_text { update_sql(budget, ", 'UTF-8')") }
+  update_sql(budget, " IS NOT DISTINCT FROM ")
+  if binary_text { update_sql(budget, "TO_BINARY(") }
+  update_parameter(budget, field, value)
+  if binary_text { update_sql(budget, ", 'UTF-8')") }
+}
+
+///|
 pub fn prepare_update_candidate(
   description : TableDescription,
   key_name : String,
@@ -253,25 +274,19 @@ pub fn prepare_update_candidate(
       update_sql(budget, " = ")
       update_parameter(budget, field, value)
     }
-    update_sql(budget, " WHERE \"ACTQL_TARGET\".")
-    update_identifier(budget, key_name)
-    update_sql(budget, " IS NOT DISTINCT FROM ")
-    update_parameter(budget, key_value.0, key_value.1)
+    update_sql(budget, " WHERE ")
+    update_match(budget, "ACTQL_TARGET", key_value.0, key_value.1)
     // Cardinality covers ALL matching target-key rows, not only rows that
     // also match this before-image. This clause alone proves no concurrency
     // guarantee for a later physical request or transaction.
     update_sql(budget, " AND (SELECT COUNT(*) FROM ")
     update_table(budget, description.target)
-    update_sql(budget, " AS \"ACTQL_KEYS\" WHERE \"ACTQL_KEYS\".")
-    update_identifier(budget, key_name)
-    update_sql(budget, " IS NOT DISTINCT FROM ")
-    update_parameter(budget, key_value.0, key_value.1)
+    update_sql(budget, " AS \"ACTQL_KEYS\" WHERE ")
+    update_match(budget, "ACTQL_KEYS", key_value.0, key_value.1)
     update_sql(budget, ") = 1")
     for (field, value) in before {
-      update_sql(budget, " AND \"ACTQL_TARGET\".")
-      update_identifier(budget, field.name)
-      update_sql(budget, " IS NOT DISTINCT FROM ")
-      update_parameter(budget, field, value)
+      update_sql(budget, " AND ")
+      update_match(budget, "ACTQL_TARGET", field, value)
     }
     @encode.begin_object(writer)
     for index, (kind, value) in budget.bindings {
