@@ -110,3 +110,46 @@ test('comment read cannot disclose after a prior enumeration body changes during
   assert.throws(() => withHttpsCredentialRunResponseOriginal(responses[0],
     context.credential.control, context.journal, () => {}), {code: 'RemoteCredentialRunResponseChanged'});
 });
+
+
+test('comment consumer refusal preserves the accepted original page stop envelope', async t => {
+  const context = await setup(t, world(), {accounted: true});
+  const cause = new Error('original page consumer refusal');
+  const acceptedRows = [];
+  const error = await failed(context.read({consumePage: async (rows, page, charge) => {
+    if (page === 2) throw cause;
+    context.rowRun.page(rows, page, charge);
+    acceptedRows.push(...rows);
+  }}));
+  assert.equal(context.fixture.seen().length, 3);
+  assert.deepEqual(acceptedRows, [row('9007199254740993', '7', {author: ' é ', body: '  é\n é  '})]);
+  assert.deepEqual(context.rowRun.counts(), {charges: 3, observations: 1});
+  assert.equal(context.journal.recover().length, 3);
+  assert.ok(context.journal.recover().every(use => use.outcome === 'succeeded'));
+  assert.equal(error.stopped, true);
+  assert.equal(error.code, 'GitHubPageNotAdmitted');
+  assert.equal(error.cause, cause);
+  assert.equal(error.complete, undefined);
+  assert.deepEqual(error.acceptedPages, [{page: 1,
+    useCid: context.journal.recover().find(use => use.useId === 'read-0-1').useCid, rows: 1}]);
+  assert.deepEqual(error.unfetched, {after: undefined, page: 2});
+});
+
+test('comment enumeration consumer refusal preserves the original stop envelope before dependent send', async t => {
+  const context = await setup(t, world(), {accounted: true});
+  const cause = new Error('original enumeration consumer refusal');
+  let pages = 0;
+  const error = await failed(context.read({consumeObservation: async () => { throw cause; },
+    consumePage: () => { pages++; }}));
+  assert.equal(context.fixture.seen().length, 1);
+  assert.equal(pages, 0);
+  assert.deepEqual(context.rowRun.counts(), {charges: 1, observations: 0});
+  assert.equal(context.journal.recover().length, 1);
+  assert.equal(context.journal.recover()[0].outcome, 'succeeded');
+  assert.equal(error.stopped, true);
+  assert.equal(error.code, 'GitHubObservationNotAdmitted');
+  assert.equal(error.cause, cause);
+  assert.equal(error.complete, undefined);
+  assert.deepEqual(error.acceptedPages, []);
+  assert.deepEqual(error.unfetched, {after: undefined, page: 1});
+});
