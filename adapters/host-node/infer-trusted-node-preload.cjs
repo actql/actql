@@ -97,14 +97,17 @@ const initialControl = createInitialControlInstallationOwner(undefined);
 // initialization can reenter this Module. Capturing it is not an operational
 // admission; the original unavailable Owner still handles every early call.
 module.exports = {
-  beginInitialControlInstallation(originals) {
-    return initialControl.begin(originals);
+  beginInitialControlInstallation(originals, rawInput) {
+    return initialControl.begin(originals, rawInput);
   },
   assertInitialControlInstallationCurrent(scope, sameOriginals) {
     return initialControl.assertCurrent(scope, sameOriginals);
   },
   readInitialControlInstallationAsset(scope, sameOriginals, path) {
     return initialControl.readAsset(scope, sameOriginals, path);
+  },
+  readInitialControlInstallationInput(scope, sameOriginals) {
+    return initialControl.readInput(scope, sameOriginals);
   },
   associateHost(view, originals) {
     // Missing early startup is None, not native/module coverage or success.
