@@ -1,5 +1,5 @@
 // GitHub's Issue read at the Site, bound to the published repository's
-// global node ID. Every page is one POST of the provider's fixed read-only
+// global node ID. Every outer or nested page is a POST of a fixed read-only
 // GraphQL document with typed variables; this driver never sends query text
 // of its own and has no name-addressed fallback. The provider MoonBit decides
 // every meaning (projection, identity, cursor, failure class); this driver
@@ -11,6 +11,7 @@
 // a page or row ceiling, a revoked decision or a transport failure stops the
 // read with its accepted pages and the unfetched cursor kept. Raw header
 // values are not retained. Nothing is retried.
+import {checked} from '../../../host-common/runtime-result.mjs';
 import {invokeScopedCredentialOperation} from
   '../../../host-common/owned-invocation-context.mjs';
 
@@ -51,11 +52,16 @@ function checkLimits(limits) {
 // that exact admission ticket before the next request.
 export async function readGitHubIssuesByNode({moon, repository,
   filters = {state: 'all', labels: []}, credential, callResource,
-  authorizationFor, limits, chargePage, consumePage, signal}) {
+  authorizationFor, limits, chargePage, consumeObservation, consumePage, signal}) {
   if (!moon || typeof moon.githubIssuesRequestJson !== 'function' ||
+      ['githubIssuePageReadBegin', 'githubIssuePageReadNextRequestJson',
+        'githubIssuePageReadAccept', 'githubIssuePageReadFinishJson',
+        'githubIssuePageReadClose', 'githubGraphqlReadIssueJson']
+        .some(name => typeof moon[name] !== 'function') ||
       typeof authorizationFor !== 'function' || !credential ||
       typeof callResource !== 'function' ||
       (chargePage !== undefined && typeof chargePage !== 'function') ||
+      (consumeObservation !== undefined && typeof consumeObservation !== 'function') ||
       typeof repository?.nodeId !== 'string' ||
       !Number.isSafeInteger(repository.databaseId) ||
       typeof repository.nameWithOwner !== 'string') {
@@ -77,37 +83,45 @@ export async function readGitHubIssuesByNode({moon, repository,
   let after;
   let page = 1;
   let pending = true;
+  let requests = 0;
+  let lastBasis;
   const stopped = (code, details) => fail(code, {stopped: true,
     acceptedPages: Object.freeze([...accepted]),
     unfetched: pending ? Object.freeze({after, page}) : undefined,
     ...details});
-  while (pending) {
+  const decoded = value => {
+    try { return checked(value); }
+    catch (cause) {
+      const refusal = JSON.parse(moon.githubGraphqlReadIssueJson(cause));
+      stopped(refusalCodes[refusal.kind] ?? 'GitHubGraphQLRefused',
+        {refusal, ...(refusal.kind === 'RateLimited' ? {basis: lastBasis} : {})});
+    }
+  };
+  // All physical calls, including child connections, share the original
+  // request ceiling, credential grant and current-read callback. No retry.
+  const exchange = async body => {
     signal?.throwIfAborted();
-    if (accepted.length >= owned.maxPages) stopped('GitHubReadPageLimit');
-    const request = JSON.parse(moon.githubIssuesRequestJson(repository.nodeId,
-      owned.perPage, after !== undefined, after ?? '', filters.state, labels,
-      filters.since !== undefined, filters.since ?? ''));
-    if (request.refused) stopped('InvalidGitHubReadRequest',
-      {refusal: request.refused});
+    if (requests >= owned.maxPages) stopped('GitHubReadPageLimit');
+    if (lastBasis?.remaining === 0) stopped('GitHubRateLimited', {basis: lastBasis});
     let response;
     let charge;
     try {
-      const authorization = await authorizationFor(accepted.length);
+      const authorization = await authorizationFor(requests);
       signal?.throwIfAborted();
+      requests += 1;
       response = await invokeScopedCredentialOperation({
         authorization, credential, callResource,
         operation: GITHUB_GRAPHQL_READ_OPERATION, method: 'POST',
-        path: GITHUB_GRAPHQL_PATH, headers, body: request.body,
+        path: GITHUB_GRAPHQL_PATH, headers, body,
         responseHeaders, maxRequestBytes: owned.maxRequestBytes,
         maxResponseBytes: owned.maxBytes, signal,
       });
-      // Charge the full envelope, including refused or malformed bodies.
       charge = await chargePage?.(response.body);
     } catch (cause) {
       stopped(cause?.code ?? 'GitHubReadInterrupted', {cause});
     }
     const [names, values] = pairs(response.headers);
-    const basis = JSON.parse(moon.githubRateLimitBasisJson(names, values));
+    lastBasis = JSON.parse(moon.githubRateLimitBasisJson(names, values));
     if (!response.accepted || response.statusCode !== 200) {
       const failure = JSON.parse(moon.githubClassifyFailureJson(
         response.statusCode, names, values));
@@ -116,15 +130,45 @@ export async function readGitHubIssuesByNode({moon, repository,
       }
       stopped('GitHubReadRejected', {failure});
     }
-    const projected = JSON.parse(moon.githubIssuesPageJson(response.body,
+    return {response, charge};
+  };
+  while (pending) {
+    signal?.throwIfAborted();
+    const request = JSON.parse(moon.githubIssuesRequestJson(repository.nodeId,
+      owned.perPage, after !== undefined, after ?? '', filters.state, labels,
+      filters.since !== undefined, filters.since ?? ''));
+    if (request.refused) stopped('InvalidGitHubReadRequest',
+      {refusal: request.refused});
+    const {response, charge} = await exchange(request.body);
+    const original = decoded(moon.githubIssuePageReadBegin(response.body,
       owned.maxBytes, owned.maxNodes, owned.maxDepth, owned.perPage,
       repository.nodeId, repository.databaseId, repository.nameWithOwner));
-    if (projected.refused) {
-      stopped(refusalCodes[projected.refused.kind] ?? 'GitHubGraphQLRefused',
-        {refusal: projected.refused,
-          ...(projected.refused.kind === 'RateLimited' ? {basis} : {})});
+    let current;
+    try {
+      for (;;) {
+        const next = JSON.parse(decoded(moon.githubIssuePageReadNextRequestJson(
+          original, owned.perPage)));
+        if (next.body === null) break;
+        // An accounted child body has its own admission ticket. Never hide it
+        // as another row page or accept it without the original observation port.
+        if (chargePage !== undefined && consumeObservation === undefined) {
+          stopped('GitHubObservationNotAdmitted');
+        }
+        const child = await exchange(next.body);
+        decoded(moon.githubIssuePageReadAccept(original, child.response.body));
+        if (consumeObservation !== undefined) {
+          try { await consumeObservation(child.charge); }
+          catch (cause) {
+            stopped(cause?.code ?? 'GitHubObservationNotAdmitted', {cause});
+          }
+        }
+      }
+      current = JSON.parse(decoded(moon.githubIssuePageReadFinishJson(original)));
+    } finally {
+      // Codec alias retirement does not acknowledge a transport, RowRun or
+      // physical resource. Their original owners retain those duties.
+      moon.githubIssuePageReadClose(original);
     }
-    const current = projected.page;
     if (rows.length + current.rows.length > owned.maxRows) {
       stopped('GitHubReadRowLimit');
     }
@@ -151,7 +195,7 @@ export async function readGitHubIssuesByNode({moon, repository,
     page += 1;
     // An accepted page with no remaining quota is kept; the read stops
     // before the next request instead of spending one it cannot make.
-    if (basis.remaining === 0) stopped('GitHubRateLimited', {basis});
+    if (lastBasis.remaining === 0) stopped('GitHubRateLimited', {basis: lastBasis});
   }
   return Object.freeze({rows: Object.freeze(rows),
     pages: Object.freeze(accepted), complete: true});

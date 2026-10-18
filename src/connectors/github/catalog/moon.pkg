@@ -7,3 +7,7 @@ import {
   "actql/actql/decode_scalar" @scalar,
   "moonbitlang/core/encoding/utf8",
 }
+
+import {
+  "moonbitlang/core/json",
+} for "wbtest"
