@@ -35,6 +35,62 @@ let state, firstFailure, preparation, intake, closed = false;
 let sourceInstallation;
 const sourceChildren = new WeakMap();
 const sourceUnavailable = () => fail('SourceManagedPreparationUnavailable');
+const sourceTypedArrayPrototype = Object.getPrototypeOf(Object.getPrototypeOf(Buffer.prototype));
+const sourceOperations = freeze([
+  [Buffer, 'alloc'], [Buffer, 'isBuffer'], [Buffer.prototype, 'subarray'], [Buffer.prototype, 'equals'],
+  [sourceTypedArrayPrototype, 'buffer'], [sourceTypedArrayPrototype, 'byteOffset'],
+  [sourceTypedArrayPrototype, 'byteLength'],
+].map(([receiver, name]) => freeze({receiver, name, property: descriptor(receiver, name)})));
+const sourceAlloc = sourceOperations[0].property?.value;
+const sourceIsBuffer = sourceOperations[1].property?.value;
+const sourceSubarray = sourceOperations[2].property?.value;
+const sourceEquals = sourceOperations[3].property?.value;
+const sourceArrayBuffer = sourceOperations[4].property?.get;
+const sourceByteOffset = sourceOperations[5].property?.get;
+const sourceByteLength = sourceOperations[6].property?.get;
+function sourceOperationsChanged() {
+  const entry = sourceInstallation;
+  const cause = entry?.operationFailure?.cause ?? Object.assign(
+    new TypeError('SourceManagedPreparationUnavailable'), {code: 'SourceManagedPreparationUnavailable'});
+  if (entry !== undefined) {
+    entry.operationFailure ??= freeze({cause});
+    entry.closing = true;
+    sourceFailure(entry, cause);
+  }
+  throw cause;
+}
+function assertSourceOperationsCurrent() {
+  if (![sourceAlloc, sourceIsBuffer, sourceSubarray, sourceEquals,
+    sourceArrayBuffer, sourceByteOffset, sourceByteLength].every(value => typeof value === 'function')) sourceOperationsChanged();
+  for (const held of sourceOperations) {
+    const current = descriptor(held.receiver, held.name), original = held.property;
+    if (current === undefined || original === undefined || current.value !== original.value ||
+        current.get !== original.get || current.set !== original.set ||
+        current.writable !== original.writable || current.enumerable !== original.enumerable ||
+        current.configurable !== original.configurable) sourceOperationsChanged();
+  }
+}
+function sourceBackingRange(value, bytes) {
+  // Native typed-array accessors reject a Proxy/fake without invoking its
+  // getters. A valid Buffer wrapper is still not a distinct physical holding.
+  if (isProxy(value) || !apply(sourceIsBuffer, Buffer, [value]) ||
+      apply(sourceByteLength, value, []) !== bytes) sourceUnavailable();
+  return freeze({buffer: apply(sourceArrayBuffer, value, []),
+    offset: apply(sourceByteOffset, value, []), bytes});
+}
+function allocateSourceBacking(entry, bytes) {
+  assertSourceOperationsCurrent();
+  entry.backingUnknown = true;
+  const value = apply(sourceAlloc, Buffer, [bytes]);
+  // Retain every constructor observation before validation/current checks.
+  entry.backings.push(value);
+  const range = sourceBackingRange(value, bytes);
+  entry.backingUnknown = false;
+  if (entry.backingRanges.some(original => original.buffer === range.buffer)) sourceUnavailable();
+  entry.backingRanges.push(range);
+  assertSourceOperationsCurrent();
+  return value;
+}
 function sourceOriginal(original, held, allowClosing = false) {
   const entry = sourceInstallation;
   if (entry === undefined || entry.original !== original || entry.originals !== held ||
@@ -44,6 +100,7 @@ function sourceOriginal(original, held, allowClosing = false) {
 function sourceCurrent(original, held) {
   const entry = sourceOriginal(original, held);
   assertSamePreparation(held);
+  assertSourceOperationsCurrent();
   apply(state.source.validator, state.namespace, [held]);
   return entry;
 }
@@ -58,6 +115,7 @@ function sourceFailure(entry, cause) {
 }
 function sourceStatus(entry) {
   return freeze({pending: !entry.closed, fdPending: entry.file !== undefined,
+    backingUnknown: entry.backingUnknown,
     childrenPending: entry.children.some(child => !child.stopped || !child.released),
     physicalBackingReleased: false});
 }
@@ -65,6 +123,7 @@ async function closeSource(entry) {
   entry.closing = true;
   if (entry.closeFlight !== undefined) return entry.closeFlight;
   const flight = (async () => {
+    if (entry.backingUnknown) return sourceStatus(entry);
     if (entry.receipt !== undefined && !entry.receipt.finished) return sourceStatus(entry);
     if (entry.children.some(child => !child.stopped || !child.released || child.flight !== undefined)) {
       return sourceStatus(entry);
@@ -100,22 +159,23 @@ async function prepareSource(held) {
     closing: false, closed: false, children: [], receipt: undefined,
     file: undefined, fileClose: undefined, fileRead: undefined, fileStat: undefined,
     fileIdentity: undefined, openFlight: undefined, closeFlight: undefined,
-    firstError: undefined, latestError: undefined, backings: [], lookahead: undefined};
+    firstError: undefined, latestError: undefined, backings: [], backingRanges: [],
+    backingUnknown: false, lookahead: undefined};
   try {
     // Real distinct ArrayBuffers, not an unused arena lent to another allocator.
     // The two original full-document acquisitions retain these independent
     // backings even though the same file/managed declarations are shared.
     for (let ordinal = 0; ordinal < state.sourceEnvelope.limits.sourceOccurrences; ordinal++) {
-      entry.backings.push(Buffer.alloc(state.sourceEnvelope.limits.responseBytes));
+      allocateSourceBacking(entry, state.sourceEnvelope.limits.responseBytes);
     }
-    entry.lookahead = Buffer.alloc(1);
+    entry.lookahead = allocateSourceBacking(entry, 1);
     sourceCurrent(original, held);
     await apply(state.source.prepare, state.namespace, [held, original]);
     sourceCurrent(original, held);
     const bundle = apply(state.source.read, state.namespace, [held]);
     if (bundle === null || typeof bundle !== 'object' || !Object.isFrozen(bundle) ||
         typeof bundle.dataPath !== 'string' || bundle.dataPath.length > 65536 ||
-        !Array.isArray(bundle.sources) || bundle.sources.length !== entry.backings.length) sourceUnavailable();
+        !Array.isArray(bundle.sources) || bundle.sources.length !== state.sourceEnvelope.limits.sourceOccurrences) sourceUnavailable();
     entry.bundle = bundle;
     sourceCurrent(original, held);
     return original;
@@ -169,24 +229,27 @@ async function readSourceBytes(entry, child) {
     await assertSourceFile(entry);
     assertSourceRequest(entry, child.derived);
     let used = 0;
-    const backing = entry.backings[child.ordinal];
-    while (used < backing.length) {
-      const {bytesRead} = await apply(entry.fileRead, entry.file, [backing, used, backing.length - used, used]);
+    const backing = entry.backings[child.ordinal], range = entry.backingRanges[child.ordinal];
+    while (used < range.bytes) {
+      const {bytesRead} = await apply(entry.fileRead, entry.file, [backing, used, range.bytes - used, used]);
       assertSourceRequest(entry, child.derived);
-      if (!Number.isSafeInteger(bytesRead) || bytesRead < 0 || bytesRead > backing.length - used) sourceUnavailable();
+      if (!Number.isSafeInteger(bytesRead) || bytesRead < 0 || bytesRead > range.bytes - used) sourceUnavailable();
       if (bytesRead === 0) break;
       used += bytesRead;
     }
-    if (used === backing.length) {
+    if (used === range.bytes) {
       const {bytesRead} = await apply(entry.fileRead, entry.file, [entry.lookahead, 0, 1, used]);
       assertSourceRequest(entry, child.derived);
       if (bytesRead !== 0) sourceUnavailable();
     }
     await assertSourceFile(entry);
     assertSourceRequest(entry, child.derived);
-    const bytes = backing.subarray(0, used);
+    const bytes = apply(sourceSubarray, backing, [0, used]);
+    const observed = sourceBackingRange(bytes, used);
+    if (observed.buffer !== range.buffer || observed.offset !== range.offset) sourceUnavailable();
     const sibling = entry.children.find(value => value !== child && value.bytes !== undefined);
-    if (sibling !== undefined && !bytes.equals(sibling.bytes)) sourceUnavailable();
+    if (sibling !== undefined && apply(sourceEquals, bytes, [sibling.bytes]) !== true) sourceUnavailable();
+    assertSourceRequest(entry, child.derived);
     child.bytes = bytes;
     return bytes;
   })();

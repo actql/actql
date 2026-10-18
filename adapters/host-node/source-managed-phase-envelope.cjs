@@ -49,6 +49,7 @@ function declareSourceManagedPhaseEnvelope(controlDeclaration) {
       'intent preimage/hash Promise and pending/context records',
       'Host original request, preparation and original Environment',
       'same pending Host request and at most sixteen original derived-pointer aliases',
+      'selected Buffer allocator/operation descriptors and native distinct-backing range originals',
       'Common parse/check/compile graph, contracts and acquisition',
       'RowRun, captured row/value cursors and bounded canonical output',
       'callbacks/receivers, first/latest failures, partial cleanup and escaped aliases']),

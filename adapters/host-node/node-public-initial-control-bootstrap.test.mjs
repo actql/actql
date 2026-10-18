@@ -192,3 +192,55 @@ test('ordinary Source changed same FD version refuses without issuing a replacem
     'assert.equal((await client.scope.close()).pending,false);');
   assert.equal(result.status,0,result.stderr);
 });
+
+test('ordinary Source refuses a replaced allocator before calling it',t=>{
+  const f=fixture(t,{source:true});
+  const result=f.run(
+    'import assert from"node:assert/strict";import{Buffer}from"node:buffer";import{createRequire}from"node:module";import{connect}from"@actql/local-node";'+
+    'const client=await connect({mode:"local",installation:{directory:".actql"},profile:"mock"});'+
+    'const root=createRequire(import.meta.url)('+JSON.stringify(join(f.root,'adapters/host-node/node-public-initial-control-bootstrap.cjs'))+');'+
+    'const original=Buffer.alloc;let calls=0;Buffer.alloc=function(){calls++;throw new Error("ReplacedAllocatorMustNotRun");};'+
+    'let failure;try{await root.prepareSourceManagedInstallation(client.originals);}catch(error){failure=error;}finally{Buffer.alloc=original;}'+
+    'assert.equal(calls,0);assert.equal(failure.code,"SourceManagedInstallationCleanupPending");assert.equal(failure.cause.code,"SourceManagedPreparationUnavailable");'+
+    'assert.equal((await failure.cleanupHandle.retry()).pending,false);'+
+    'await assert.rejects(root.prepareSourceManagedInstallation(client.originals),{code:"SourceManagedPreparationUnavailable"});'+
+    'assert.equal((await client.scope.close()).pending,false);');
+  assert.equal(result.status,0,result.stderr);
+});
+
+test('ordinary Source refuses distinct same-sized Buffer wrappers over one physical backing',t=>{
+  const f=fixture(t,{source:true});
+  const result=f.run(
+    'import assert from"node:assert/strict";import{Buffer}from"node:buffer";import{createRequire}from"node:module";'+
+    'const original=Buffer.alloc,shared=original(1048576),returned=[];'+
+    'Buffer.alloc=function(size){if(size!==1048576)return Reflect.apply(original,Buffer,[size]);const value=Buffer.from(shared.buffer,shared.byteOffset,size);returned.push(value);return value;};'+
+    'const{connect}=await import("@actql/local-node");'+
+    'const client=await connect({mode:"local",installation:{directory:".actql"},profile:"mock"});'+
+    'const root=createRequire(import.meta.url)('+JSON.stringify(join(f.root,'adapters/host-node/node-public-initial-control-bootstrap.cjs'))+');'+
+    'let failure;try{await root.prepareSourceManagedInstallation(client.originals);}catch(error){failure=error;}finally{Buffer.alloc=original;}'+
+    'assert.equal(returned.length,2);assert.notEqual(returned[0],returned[1]);assert.equal(returned[0].length,1048576);assert.equal(returned[1].length,1048576);assert.equal(returned[0].buffer,returned[1].buffer);'+
+    'assert.equal(failure.code,"SourceManagedInstallationCleanupPending");assert.equal(failure.cause.code,"SourceManagedPreparationUnavailable");'+
+    'const closed=await failure.cleanupHandle.retry();assert.equal(closed.pending,false);assert.equal(closed.physicalBackingReleased,false);'+
+    'assert.equal((await client.scope.close()).pending,false);');
+  assert.equal(result.status,0,result.stderr);
+});
+
+for (const operation of ['subarray','equals']) {
+  test('ordinary Source refuses replaced '+operation+' without dispatch and never revives after restoration',t=>{
+    const f=fixture(t,{source:true});
+    const result=f.run(
+      'import assert from"node:assert/strict";import{Buffer}from"node:buffer";import{createRequire}from"node:module";import{connect}from"@actql/local-node";'+
+      'const client=await connect({mode:"local",installation:{directory:".actql"},profile:"mock"});'+
+      'const root=createRequire(import.meta.url)('+JSON.stringify(join(f.root,'adapters/host-node/node-public-initial-control-bootstrap.cjs'))+');'+
+      'const source=await root.prepareSourceManagedInstallation(client.originals),receipt=root.beforeSourceSnapshot(source,client.originals,"aql","SELECT original",{}),body=Object.freeze({kind:"aql",input:"SELECT original",parameters:null});'+
+      'root.bindSourceSnapshot(source,client.originals,receipt,body);const request=Object.freeze({body}),derived=Object.freeze({});client.bindFixtureRequest(request,derived);root.bindSourceRequest(source,client.originals,receipt,body,request);'+
+      'const reads=client.declarations.map(decl=>root.prepareSourceManagedRead(source,client.originals,derived,decl)),ports=reads.map(read=>root.prepareOriginalSourceChildPorts(read.originalSource));for(const port of ports)assert.equal(port.status(0),0);'+
+      'await reads[0].readOriginalBytes();const name='+JSON.stringify(operation)+',original=Buffer.prototype[name];let calls=0;Buffer.prototype[name]=function(){calls++;throw new Error("ReplacedBackingMethodMustNotRun");};'+
+      'try{await assert.rejects(reads[1].readOriginalBytes(),{code:"SourceManagedPreparationUnavailable"});}finally{Buffer.prototype[name]=original;}'+
+      'assert.equal(calls,0);assert.throws(()=>root.assertSourceManagedInstallationCurrent(source,client.originals),{code:"SourceManagedPreparationUnavailable"});'+
+      'for(let index=0;index<2;index++){assert.equal(ports[index].report(0,0,0,0n,0n,0n,0n,0n,0n,0n),0);assert.equal(ports[index].status(2),0);reads[index].close();}'+
+      'root.finishSourceProducer(source,client.originals,receipt,"failed");const closed=await root.closeSourceManagedInstallation(source,client.originals);assert.equal(closed.pending,false);assert.equal(closed.fdPending,false);assert.equal(closed.physicalBackingReleased,false);'+
+      'assert.equal((await client.scope.close()).pending,false);');
+    assert.equal(result.status,0,result.stderr);
+  });
+}
