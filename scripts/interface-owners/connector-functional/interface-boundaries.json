@@ -7325,7 +7325,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-source.mjs",
-      "sha256": "700f14ef4a1489a6f4655277f3b261923c23dca88cc0a8f84c3e654327410a71",
+      "sha256": "c7ab3ffb2e8752708b32e792a4f995c9c33e91cb05b4a86d1f8c2b7a4e7f163e",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
@@ -7414,6 +7414,7 @@
             "retainedRelationOutput",
             "occurrence",
             "ledger",
+            "originalOperationScope",
             "captureOnly"
           ],
           "async": true
@@ -9659,6 +9660,7 @@
         "../site-node/https-credential-resource.mjs",
         "../site-node/remote-credential-signature.mjs",
         "../site-node/sqlite-credential-journal.mjs",
+        "./client-source-operation.mjs",
         "./installed-host-cleanup.mjs",
         "./installed-row-listing.mjs",
         "./installed-row-run.mjs",
