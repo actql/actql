@@ -4,6 +4,7 @@ package "actql/actql/connectors/snowflake/description"
 import {
   "actql/actql/client_row_source_host",
   "actql/actql/connectors/snowflake/catalog",
+  "actql/actql/value_admission",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
@@ -33,6 +34,8 @@ pub fn generate_read_declaration(ReadProjection, String, String, String, @client
 
 pub fn prepare_read_projection(TableDescription, Array[String], DescriptionLimits) -> Result[ReadProjection, DescriptionIssue]
 
+pub fn prepare_update_candidate(TableDescription, String, @value_admission.CheckedValue, Array[(String, @value_admission.CheckedValue)], Array[(String, @value_admission.CheckedValue)], UpdateCandidateLimits) -> Result[UpdateCandidate, UpdateCandidateIssue]
+
 pub fn project_table_description(TableTarget, @catalog.ResultSet, Array[@catalog.Partition], DescriptionLimits) -> Result[TableDescription, DescriptionIssue]
 
 pub fn read_projection_fields(ReadProjection) -> Array[String]
@@ -46,6 +49,18 @@ pub fn read_projection_schema(ReadProjection) -> (String, String)
 pub fn read_projection_statement(ReadProjection) -> String
 
 pub fn table_target(String, String, String, Int) -> Result[TableTarget, DescriptionIssue]
+
+pub fn update_candidate_assignments(UpdateCandidate) -> Array[(String, @value_admission.CheckedValue)]
+
+pub fn update_candidate_before_image(UpdateCandidate) -> Array[(String, @value_admission.CheckedValue)]
+
+pub fn update_candidate_bindings(UpdateCandidate) -> String
+
+pub fn update_candidate_key(UpdateCandidate) -> (String, @value_admission.CheckedValue)
+
+pub fn update_candidate_matches_description(UpdateCandidate, TableDescription) -> Bool
+
+pub fn update_candidate_statement(UpdateCandidate) -> String
 
 // Errors
 
@@ -84,6 +99,33 @@ pub struct TableDescription {
 
 pub struct TableTarget {
   // private fields
+}
+
+pub struct UpdateCandidate {
+  // private fields
+}
+
+pub(all) enum UpdateCandidateIssue {
+  InvalidLimits
+  Limit
+  EmptyUpdate
+  UnknownField(String)
+  DuplicateField(String)
+  IncompleteBeforeImage
+  DifferentBeforeImageKey
+  UnsupportedWriteType(String, String)
+  InvalidValue(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct UpdateCandidateLimits {
+  max_fields : Int
+  max_comparison_work : Int
+  max_value_nodes : Int
+  max_value_text_bytes : Int
+  max_value_depth : Int
+  max_statement_bytes : Int
+  max_body_bytes : Int
+  max_body_nodes : Int
 }
 
 // Type aliases

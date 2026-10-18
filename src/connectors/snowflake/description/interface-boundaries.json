@@ -293,7 +293,7 @@
     {
       "module": "src/connectors/snowflake/description/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "0a358255101c7fa70e52a0051cf21b940bdc3ede9fbdc28e16c1c302026ee41a",
+      "sha256": "177030fdbf4d0512f8e814c8b2e6f852a2f886d73f9d1f823ff5bff0308fcd3f",
       "role": "connector-semantics",
       "owner": "Snowflake original metadata projection; Common owns contracts, encoding and relation declaration issuance",
       "exports": [
@@ -309,6 +309,7 @@
         "pub fn description_response_count(TableDescription) -> Int",
         "pub fn generate_read_declaration(ReadProjection, String, String, String, @client_row_source_host.RowDeclarationLimits) -> Result[@client_row_source_host.RowDeclaration, @client_row_source_host.RowHostIssue]",
         "pub fn prepare_read_projection(TableDescription, Array[String], DescriptionLimits) -> Result[ReadProjection, DescriptionIssue]",
+        "pub fn prepare_update_candidate(TableDescription, String, @value_admission.CheckedValue, Array[(String, @value_admission.CheckedValue)], Array[(String, @value_admission.CheckedValue)], UpdateCandidateLimits) -> Result[UpdateCandidate, UpdateCandidateIssue]",
         "pub fn project_table_description(TableTarget, @catalog.ResultSet, Array[@catalog.Partition], DescriptionLimits) -> Result[TableDescription, DescriptionIssue]",
         "pub fn read_projection_fields(ReadProjection) -> Array[String]",
         "pub fn read_projection_matches_description(ReadProjection, TableDescription) -> Bool",
@@ -316,9 +317,16 @@
         "pub fn read_projection_schema(ReadProjection) -> (String, String)",
         "pub fn read_projection_statement(ReadProjection) -> String",
         "pub fn table_target(String, String, String, Int) -> Result[TableTarget, DescriptionIssue]",
+        "pub fn update_candidate_assignments(UpdateCandidate) -> Array[(String, @value_admission.CheckedValue)]",
+        "pub fn update_candidate_before_image(UpdateCandidate) -> Array[(String, @value_admission.CheckedValue)]",
+        "pub fn update_candidate_bindings(UpdateCandidate) -> String",
+        "pub fn update_candidate_key(UpdateCandidate) -> (String, @value_admission.CheckedValue)",
+        "pub fn update_candidate_matches_description(UpdateCandidate, TableDescription) -> Bool",
+        "pub fn update_candidate_statement(UpdateCandidate) -> String",
         "pub struct ReadProjection {",
         "pub struct TableDescription {",
-        "pub struct TableTarget {"
+        "pub struct TableTarget {",
+        "pub struct UpdateCandidate {"
       ],
       "operations": [
         {
@@ -370,6 +378,10 @@
           "declaration": "pub fn prepare_read_projection(TableDescription, Array[String], DescriptionLimits) -> Result[ReadProjection, DescriptionIssue]"
         },
         {
+          "name": "prepare_update_candidate",
+          "declaration": "pub fn prepare_update_candidate(TableDescription, String, @value_admission.CheckedValue, Array[(String, @value_admission.CheckedValue)], Array[(String, @value_admission.CheckedValue)], UpdateCandidateLimits) -> Result[UpdateCandidate, UpdateCandidateIssue]"
+        },
+        {
           "name": "project_table_description",
           "declaration": "pub fn project_table_description(TableTarget, @catalog.ResultSet, Array[@catalog.Partition], DescriptionLimits) -> Result[TableDescription, DescriptionIssue]"
         },
@@ -396,6 +408,30 @@
         {
           "name": "table_target",
           "declaration": "pub fn table_target(String, String, String, Int) -> Result[TableTarget, DescriptionIssue]"
+        },
+        {
+          "name": "update_candidate_assignments",
+          "declaration": "pub fn update_candidate_assignments(UpdateCandidate) -> Array[(String, @value_admission.CheckedValue)]"
+        },
+        {
+          "name": "update_candidate_before_image",
+          "declaration": "pub fn update_candidate_before_image(UpdateCandidate) -> Array[(String, @value_admission.CheckedValue)]"
+        },
+        {
+          "name": "update_candidate_bindings",
+          "declaration": "pub fn update_candidate_bindings(UpdateCandidate) -> String"
+        },
+        {
+          "name": "update_candidate_key",
+          "declaration": "pub fn update_candidate_key(UpdateCandidate) -> (String, @value_admission.CheckedValue)"
+        },
+        {
+          "name": "update_candidate_matches_description",
+          "declaration": "pub fn update_candidate_matches_description(UpdateCandidate, TableDescription) -> Bool"
+        },
+        {
+          "name": "update_candidate_statement",
+          "declaration": "pub fn update_candidate_statement(UpdateCandidate) -> String"
         }
       ],
       "contracts": [
@@ -414,13 +450,20 @@
             "description_response_count",
             "generate_read_declaration",
             "prepare_read_projection",
+            "prepare_update_candidate",
             "project_table_description",
             "read_projection_fields",
             "read_projection_matches_description",
             "read_projection_relation_view",
             "read_projection_schema",
             "read_projection_statement",
-            "table_target"
+            "table_target",
+            "update_candidate_assignments",
+            "update_candidate_before_image",
+            "update_candidate_bindings",
+            "update_candidate_key",
+            "update_candidate_matches_description",
+            "update_candidate_statement"
           ],
           "exports": [
             "pub fn description_column_contract(TableDescription, Int) -> @value_contract.Contract?",
@@ -435,6 +478,7 @@
             "pub fn description_response_count(TableDescription) -> Int",
             "pub fn generate_read_declaration(ReadProjection, String, String, String, @client_row_source_host.RowDeclarationLimits) -> Result[@client_row_source_host.RowDeclaration, @client_row_source_host.RowHostIssue]",
             "pub fn prepare_read_projection(TableDescription, Array[String], DescriptionLimits) -> Result[ReadProjection, DescriptionIssue]",
+            "pub fn prepare_update_candidate(TableDescription, String, @value_admission.CheckedValue, Array[(String, @value_admission.CheckedValue)], Array[(String, @value_admission.CheckedValue)], UpdateCandidateLimits) -> Result[UpdateCandidate, UpdateCandidateIssue]",
             "pub fn project_table_description(TableTarget, @catalog.ResultSet, Array[@catalog.Partition], DescriptionLimits) -> Result[TableDescription, DescriptionIssue]",
             "pub fn read_projection_fields(ReadProjection) -> Array[String]",
             "pub fn read_projection_matches_description(ReadProjection, TableDescription) -> Bool",
@@ -442,9 +486,16 @@
             "pub fn read_projection_schema(ReadProjection) -> (String, String)",
             "pub fn read_projection_statement(ReadProjection) -> String",
             "pub fn table_target(String, String, String, Int) -> Result[TableTarget, DescriptionIssue]",
+            "pub fn update_candidate_assignments(UpdateCandidate) -> Array[(String, @value_admission.CheckedValue)]",
+            "pub fn update_candidate_before_image(UpdateCandidate) -> Array[(String, @value_admission.CheckedValue)]",
+            "pub fn update_candidate_bindings(UpdateCandidate) -> String",
+            "pub fn update_candidate_key(UpdateCandidate) -> (String, @value_admission.CheckedValue)",
+            "pub fn update_candidate_matches_description(UpdateCandidate, TableDescription) -> Bool",
+            "pub fn update_candidate_statement(UpdateCandidate) -> String",
             "pub struct ReadProjection {",
             "pub struct TableDescription {",
-            "pub struct TableTarget {"
+            "pub struct TableTarget {",
+            "pub struct UpdateCandidate {"
           ],
           "attributes": {
             "responsibility": [
@@ -502,6 +553,157 @@
               {
                 "path": "src/connectors/snowflake/description/description_wbtest.mbt",
                 "anchor": "test \"existing Common owner issues the complete decimal relation declaration\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/snowflake/description/update_candidate.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "dde69d76b6fd452f79effa4a18051848a775493b7869079e58da8f369c392e15",
+      "role": "connector-semantics",
+      "owner": "Snowflake metadata-bound UPDATE request DATA; Common owns original Contracts, checked values and encoding; Mapping/Effect owns Preview, authority and physical outcome",
+      "exports": [],
+      "operations": [
+        {
+          "name": "prepare_update_candidate",
+          "declaration": "prepare_update_candidate ( description : TableDescription , key_name : String , key : @ admitted . CheckedValue , before_image : Array [ ( String , @ admitted . CheckedValue ) ] , assignments : Array [ ( String , @ admitted . CheckedValue ) ] , limits : UpdateCandidateLimits , ) - > Result [ UpdateCandidate , UpdateCandidateIssue ]"
+        },
+        {
+          "name": "update_candidate_assignments",
+          "declaration": "update_candidate_assignments ( value : UpdateCandidate , ) - > Array [ ( String , @ admitted . CheckedValue ) ]"
+        },
+        {
+          "name": "update_candidate_before_image",
+          "declaration": "update_candidate_before_image ( value : UpdateCandidate , ) - > Array [ ( String , @ admitted . CheckedValue ) ]"
+        },
+        {
+          "name": "update_candidate_bindings",
+          "declaration": "update_candidate_bindings ( value : UpdateCandidate ) - > String"
+        },
+        {
+          "name": "update_candidate_key",
+          "declaration": "update_candidate_key ( value : UpdateCandidate , ) - > ( String , @ admitted . CheckedValue )"
+        },
+        {
+          "name": "update_candidate_matches_description",
+          "declaration": "update_candidate_matches_description ( value : UpdateCandidate , description : TableDescription , ) - > Bool"
+        },
+        {
+          "name": "update_candidate_statement",
+          "declaration": "update_candidate_statement ( value : UpdateCandidate ) - > String"
+        },
+        {
+          "name": "update_field",
+          "declaration": "update_field ( description : TableDescription , name : String , budget : UpdateBudget , ) - > DescriptionColumn raise UpdateStop"
+        },
+        {
+          "name": "update_identifier",
+          "declaration": "update_identifier ( budget : UpdateBudget , name : String , ) - > Unit raise UpdateStop"
+        },
+        {
+          "name": "update_match",
+          "declaration": "update_match ( budget : UpdateBudget , table_alias : String , field : DescriptionColumn , value : @ admitted . CheckedValue , ) - > Unit raise UpdateStop"
+        },
+        {
+          "name": "update_parameter",
+          "declaration": "update_parameter ( budget : UpdateBudget , field : DescriptionColumn , value : @ admitted . CheckedValue , ) - > Unit raise UpdateStop"
+        },
+        {
+          "name": "update_sql",
+          "declaration": "update_sql ( budget : UpdateBudget , text : String ) - > Unit raise UpdateStop"
+        },
+        {
+          "name": "update_table",
+          "declaration": "update_table ( budget : UpdateBudget , target : TableTarget , ) - > Unit raise UpdateStop"
+        },
+        {
+          "name": "update_values",
+          "declaration": "update_values ( description : TableDescription , values : Array [ ( String , @ admitted . CheckedValue ) ] , budget : UpdateBudget , ) - > Array [ ( DescriptionColumn , @ admitted . CheckedValue ) ] raise UpdateStop"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepare_update_candidate",
+            "update_candidate_assignments",
+            "update_candidate_before_image",
+            "update_candidate_bindings",
+            "update_candidate_key",
+            "update_candidate_matches_description",
+            "update_candidate_statement",
+            "update_field",
+            "update_identifier",
+            "update_match",
+            "update_parameter",
+            "update_sql",
+            "update_table",
+            "update_values"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Pure synchronous material projection starts no I/O or attempt; the Host retains cancellation and cleanup responsibility."
+            },
+            "resources": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/snowflake/description/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/snowflake/description/update_candidate_wbtest.mbt",
+                "anchor": "test \"UPDATE candidate keeps full key cardinality separate from the complete before image\""
+              },
+              {
+                "path": "src/connectors/snowflake/description/update_candidate_wbtest.mbt",
+                "anchor": "test \"UPDATE SQL NULL and typed JSON null remain different original values\""
               }
             ]
           }
