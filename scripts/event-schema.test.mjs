@@ -109,3 +109,37 @@ test('interval joins require closed temporal operands and preserve repeated equa
   assert.deepEqual(s.properties.right.required,['start','end']);
   assert.equal(s.properties.select.minProperties,1);
 });
+
+// This checks only the closed endpoint spelling. Gregorian validity and exact
+// instant semantics remain with the existing Common Timestamp owner.
+test('authored event endpoints extend precision without widening operational clocks',()=>{
+  const schemas=eventSchemas();
+  for(const name of ['time_series','calendar_series']) {
+    const stamp=new RegExp(schemas[name].properties.start.oneOf[0].pattern);
+    for(const fraction of ['000','123','1234','123456','123456789'])
+      assert.ok(stamp.test(`1970-01-01T00:00:00.${fraction}Z`),fraction);
+    for(const value of ['1970-01-01T00:00:00.12Z',
+      '1970-01-01T00:00:00.1230Z','1970-01-01T00:00:00.000000000Z',
+      '1970-01-01T00:00:00.1234567891Z','1970-01-01T00:00:00.123+00:00',
+      '1970-01-01 00:00:00.123Z','1970-01-01T00:00:00.123Z\n'])
+      assert.ok(!stamp.test(value),value);
+    assert.deepEqual(schemas[name].properties.start.oneOf[1],
+      schemas[name].properties.end.oneOf[1]);
+  }
+  const registry=JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json'));
+  let operational=0;
+  function visit(value) {
+    if(!value||typeof value!=='object')return;
+    for(const [key,child] of Object.entries(value)) {
+      if(key==='observed_at'&&child?.pattern) {
+        const stamp=new RegExp(child.pattern);
+        assert.ok(stamp.test('1970-01-01T00:00:00.123Z'));
+        assert.ok(!stamp.test('1970-01-01T00:00:00.123000001Z'));
+        operational++;
+      }
+      visit(child);
+    }
+  }
+  visit(registry.artifact_schemas);
+  assert.ok(operational>0,'the existing operational observations were inspected');
+});

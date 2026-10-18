@@ -34,6 +34,7 @@ pub(all) enum RowIssue {
   NestItemLimitRequired
   NestItemLimit(Int)
   NestEnvelope(NestEnvelopeScope)
+  TemporalPrecisionUnavailable
 }
 
 ///|

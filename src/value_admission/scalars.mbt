@@ -163,23 +163,22 @@ fn valid_date(text : String) -> Bool {
 
 ///|
 fn valid_timestamp(text : String) -> Bool {
-  if text.length() != 24 ||
-    !valid_date(text) ||
-    text[10] != 'T' ||
-    text[13] != ':' ||
-    text[16] != ':' ||
-    text[19] != '.' ||
-    text[23] != 'Z' {
-    return false
+  timestamp_instant(text) is Some(_)
+}
+
+///|
+/// Comparison-context DATA only. The original typed int64 peer and immediate
+/// Number-literal occurrence are checked by expression typing, not this helper.
+/// Bounds precede conversion: binary64 +2^63 must never saturate to int64 max.
+pub fn signed64_comparison_literal_value(number : Double) -> Value? {
+  if @scalar.read_integer_number(number) is None ||
+    number < -9223372036854775808.0 ||
+    number >= 9223372036854775808.0 {
+    return None
   }
-  match
-    (
-      digits(text, 11, 13),
-      digits(text, 14, 16),
-      digits(text, 17, 19),
-      digits(text, 20, 23),
-    ) {
-    (Some(h), Some(m), Some(s), Some(_)) => h < 24 && m < 60 && s < 60
-    _ => false
+  let integer = number.to_int64()
+  if integer.to_double() != number {
+    return None
   }
+  Some(signed64_value(integer))
 }

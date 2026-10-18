@@ -8,11 +8,15 @@ import {
 // Values
 pub fn compare(Coordinate, @bigint.BigInt) -> Int
 
+pub fn compare_coordinates(Coordinate, Coordinate) -> Int
+
 pub fn exact_binary64_boundary(@bigint.BigInt) -> Double?
 
 pub fn from_finite_number(Double) -> Coordinate?
 
 pub fn from_timestamp_milliseconds(Int64) -> Coordinate
+
+pub fn from_timestamp_parts(Int64, Int) -> Coordinate?
 
 pub fn latest_start(Coordinate, Int64, Int64) -> @bigint.BigInt
 
@@ -21,7 +25,7 @@ pub fn latest_start(Coordinate, Int64, Int64) -> @bigint.BigInt
 // Types and methods
 pub struct Coordinate {
   coefficient : @bigint.BigInt
-  exponent : Int
+  denominator : @bigint.BigInt
 }
 
 // Type aliases

@@ -192,7 +192,8 @@ pub fn advance_complete_order(
             }
             Timestamp(value) => {
               begin_order_value(out, "timestamp")
-              @encode.string_value(out, value)
+              // A sort token, never the Value wire or its identity preimage.
+              @encode.string_value(out, timestamp_order_text(value).unwrap())
               @encode.end_array(out)
             }
             Decimal(value) => {

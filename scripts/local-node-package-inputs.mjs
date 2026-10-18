@@ -13,6 +13,7 @@ const hostRuntimes = [
   'retained_host_bridge', 'process_host_bridge', 'checkpoint_runtime_node',
 ];
 const hostAdapters = [
+  'adapters/host-node/infer-trusted-node-preload.cjs',
   'adapters/host-node/entry.mjs',
   'adapters/host-node/embedded-local.mjs',
   'adapters/host-node/captured-duckdb-source.mjs',

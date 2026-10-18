@@ -1196,6 +1196,7 @@ pub(all) enum CalendarIssue {
   MissingCalendarParameter(String)
   InvalidCalendarParameter(String)
   CalendarRange(@calendar_options.IssueKind)
+  CalendarTimestampPrecisionUnavailable
 } derive(Eq, @debug.Debug)
 
 pub struct CanonicalOccurrence {

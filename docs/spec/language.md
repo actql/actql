@@ -741,7 +741,7 @@ The primitive value domains are:
 | `int64` | Exact signed 64-bit integers ([Exact signed integers](#signed64-values)). |
 | `boolean` | `true` or `false`. |
 | `decimal` | Precision, scale, and exact base-10 coefficient ([Exact decimal values](#decimal-values)). |
-| `timestamp` | Canonical UTC `YYYY-MM-DDTHH:mm:ss.sssZ`; offsets and leap-second spellings are invalid. |
+| `timestamp` | Canonical exact UTC `YYYY-MM-DDTHH:mm:ss` with three to nine fractional digits and `Z`; offsets and leap-second spellings are invalid. |
 | `date` | Canonical `YYYY-MM-DD`; distinct from a timestamp. |
 
 `json` provides no recursive static field evidence. `object` and `array`
@@ -1018,11 +1018,43 @@ returns null; an absent declared property violates the input contract.
 Parameter declarations reuse the recursive value domains with the parameter-specific
 default and nullability rules in [Parameters and binding](#parameters).
 
+### Exact UTC temporal values
+
 `date` and `timestamp` use the proleptic Gregorian calendar with years
 0000 through 9999 and valid month/day combinations. Timestamps require hours
-00–23, minutes/seconds 00–59, and exactly three fractional digits in UTC.
-Leap seconds and out-of-range dates fail. These value rules apply without the
-optional text-time profile, which only adds transformations over the domain.
+00–23, minutes/seconds 00–59, and three to nine fractional digits in UTC.
+A millisecond-aligned instant retains exactly three digits; finer instants omit
+only trailing fractional zeros beyond those three places. Leap seconds and
+out-of-range dates fail. These value rules apply without the optional text-time
+profile, which only adds transformations over the domain.
+
+<!-- requirement-block: value-contracts.exact-utc-canonical-fraction -->
+Timestamp admission MUST preserve exact instants through nanoseconds, accept
+only that canonical three-to-nine-digit spelling, and reject redundant extra
+trailing zeros, fewer than three digits, more than nine digits, offsets, invalid
+calendar values and formerly invalid separators or year spellings. Physical
+normalization of an original vendor spelling is separate from authored canonical
+conversion and retains the original source.
+
+<!-- requirement-block: value-contracts.exact-utc-comparison-and-key -->
+Timestamp equality, key correspondence, scalar and recursive ordering MUST agree
+on exact instants, including mixed fractional lengths and instants before the
+epoch. UTF-16 comparison of variable-length fractional wire strings is not that
+order. Internal order representations may pad fractions without rewriting the
+Value wire, Parameter value, saved input or original identity.
+
+<!-- requirement-block: value-contracts.exact-utc-legacy-value-identity -->
+Every previously canonical millisecond Value MUST retain its exact wire bytes
+and Value CID. This does not retain a stale CID for a changed normative, schema
+or law body or any containing contract. Timestamp remains distinct from civil
+Time, timezone-free DateTime and an original retained-offset representation.
+
+<!-- requirement-block: value-contracts.exact-utc-authority-clock-separation -->
+Trusted-now, expiry, authorization deadlines, rollback and provenance clocks
+MUST retain their separate original millisecond operational contracts; a finer
+Timestamp Value supplies neither a trusted observation nor authority. A
+millisecond-only projection refuses a nonrepresentable fraction without rounding
+or truncation.
 
 <a id="signed64-values"></a>
 
@@ -1068,6 +1100,32 @@ Assignment and common-type joining MUST preserve the `int64` leaf under the
 existing recursive structure, extents and nullability rules without implicit
 coercion to or from Number, Decimal or Text. `int64` is KeyComparable and
 AuthorOrderable only with that same logical domain.
+
+<!-- requirement-block: signed64-values.comparison-literal-context signed64-values.comparison-literal-operand-order -->
+Equality, distinctness, ordering, BETWEEN and scalar membership predicates MUST
+use an independently typed `int64` peer to contextually admit an immediate
+numeric literal only when its existing admitted finite binary64 Number value
+is integral, lies within `[-2^63, 2^63)`, and converts losslessly to the same
+signed integer. Check these bounds before integer conversion, including the
+exclusive upper endpoint. Operand order MUST NOT affect this rule. Membership
+uses the original typed item domain, including each immediate list occurrence;
+an untyped empty list does not supply a domain. Conflicting typed peers remain
+incompatible, and existing literal-NULL refusal, null-safe comparison and
+nullable-value behavior remain unchanged.
+
+<!-- requirement-block: signed64-values.comparison-literal-normalization signed64-values.comparison-literal-no-raw-reinterpretation signed64-values.comparison-literal-no-nonliteral-conversion -->
+Comparison context MUST preserve the original Number literal body and its
+normalized source. It MUST NOT reinterpret a raw numeric spelling after Number
+admission or recover lost precision on emit, re-admission or cold reconstruction.
+For example, `9007199254740993` already admitted as Number
+`9007199254740992` keeps that integer in this context. The checked operand lowers
+to exact `int64` and uses its existing decimal-String value wire. Original typed
+`int64` Parameters supply the full signed range and distinct adjacent integers
+above 2^53. This exception is not schema-directed JSON Number admission to an
+`int64` contract or a new full-range numeric-literal grammar. Nonliteral Number
+fields, Parameters, arithmetic expressions, casts and other computed values,
+Decimal and Text MUST NOT acquire this conversion. All retained original and
+typed records, text, traversal and work remain charged to the existing owners.
 
 <!-- requirement-block: signed64-values.no-implicit-arithmetic-overload -->
 Adding this value domain MUST NOT widen existing arithmetic signatures,
@@ -2463,7 +2521,7 @@ The conversion/boundary truth table is normative:
 | `to_string(decimal)` | fixed-scale canonical decimal text |
 | `to_string(boolean)` | `true` or `false` |
 | `to_string(timestamp)`, `to_string(date)` | unchanged canonical temporal spelling |
-| `to_timestamp(string)` | canonical millisecond UTC `Z` spelling only; offsets fail |
+| `to_timestamp(string)` | canonical exact UTC `Z` spelling with three to nine fractional digits and no redundant extra trailing zeros; offsets fail |
 | `modulo(a,b)` | truncating remainder with dividend sign; zero divisor fails |
 | `sqrt(x)` | negative fails |
 | `sin(x)`, `cos(x)`, `tan(x)` | finite Number circular functions in radians; null propagates |
@@ -3008,7 +3066,10 @@ or other pattern consumer interprets the resulting string under its own law.
 
 <!-- requirement-block: expression-text.a-comparison-with-a-literal-null-operand-must-be-rejected -->
 Unadorned numeric literals denote finite binary64 `number`, including those
-with a fractional part or exponent. Negative zero is invalid. Decimal values
+with a fractional part or exponent. The explicit [signed64 comparison-context
+rule](#signed64-values) may admit that existing Number value under an original
+`int64` peer; it does not change the Number literal body or recover its raw
+spelling. Negative zero is invalid. Decimal values
 use explicit `to_decimal`/`try_decimal` conversion, decimal parameters, or
 decimal fields; no decimal/binary64 promotion is inferred. `/` is number
 division even for integral operands; decimal division uses `decimal_divide`.
@@ -5670,7 +5731,8 @@ a distinct shape in [session](#session) and MUST NOT be inferred from either ope
 <!-- requirement-block: event-clocks.timestamp-or-integer-milliseconds -->
 Clock fields consumed by `to_events`, `sequence`, `row_window`, `watermark_rows`,
 `asof_join` and `interval_join` MUST use one non-null domain: a typed UTC
-`timestamp` or a finite exact safe-integer number of UTC milliseconds.
+`timestamp` with its exact admitted precision or a finite exact safe-integer
+number of UTC milliseconds.
 This applies to each side of a temporal join and to both Relation and Events
 inputs. Timestamp conversion is internal, with the source column retained in
 its original type and value. No rounding, string conversion or host-clock
@@ -5705,9 +5767,10 @@ preserves `events`.
 The `to_events` body MUST contain exactly `id` and `time` field references on
 its Relation input, with the time source having a non-null UTC timestamp
 or exact integer-millisecond number contract. Other field types may remain unknown, and the retained payload field
-set may be open. A timestamp source is converted to the internal numeric UTC-millisecond
-clock without replacing its authored payload value or inserting a public
-`event_time_ms` alias. The Event carrier retains the source role and its clock
+set may be open. A timestamp source uses an internal exact rational
+UTC-millisecond clock without replacing its authored payload value or inserting
+a public `event_time_ms` alias. A fractional millisecond is retained exactly,
+not converted to a rounded binary64 Number. The Event carrier retains the source role and its clock
 encoding separately; clock-consuming operations validate values and perform the
 required conversion before temporal arithmetic. An explicitly authored clock
 field on an existing Event carrier uses the same clock domain, including a
@@ -5744,11 +5807,15 @@ identities to strings or replacing them with CIDs.
 <!-- requirement-block: event-bridges.every-relation-form-tea-time-field-must-have-complete-typed-evidence event-bridges.unknown-nullable-date-only-string-or-other-time-evidence-is-rejected -->
 Every relation-form TEA time field MUST have complete typed evidence as either
 a non-null `timestamp` or a non-null `number` containing UTC epoch
-milliseconds. For a typed `timestamp`, the compiler inserts a reserved,
-collision-checked `REL.derive` using `date_diff(authored_time,
-1970-01-01T00:00:00.000Z, ms)` before the event bridge, records
-the fixed UTC epoch-millisecond carrier law in the checked Plan, and preserves the authored
-timestamp in public relation results. A numeric field passes through
+milliseconds. For a typed `timestamp`, the compiler records an exact UTC epoch-millisecond
+projection from that same original field in the checked Plan and preserves the
+authored timestamp in public relation results. The internal carrier measures
+rational milliseconds exactly, including negative fractional milliseconds; it
+is not the public Number result of ordinary `date_diff`. The former
+`date_diff(authored_time, 1970-01-01T00:00:00.000Z, ms)` projection does not
+establish this extended law. Ordinary `date_diff` retains its fixed-unit
+quotient truncated toward zero: minus one nanosecond is earlier than the epoch
+even though its ordinary difference in milliseconds is zero. A numeric field passes through
 unchanged. Unknown, nullable, date-only, string, or other time evidence is
 rejected; an explicit not-null filter may refine nullable evidence, but the
 compiler MUST NOT guess a parse, timezone, or null policy.
@@ -5808,7 +5875,7 @@ of duration/step. No timezone or calendar arithmetic is implicit.
 
 <!-- requirement-block: time-series.source-arguments -->
 The closed `time_series` body MUST contain exactly `start`, `end` and `step`.
-Each endpoint is a canonical UTC millisecond timestamp string or a whole
+Each endpoint is a canonical exact UTC timestamp string or a whole
 Parameter reference with a non-null timestamp declaration. Step uses the shared
 positive safe-integer millisecond literal, fixed duration token or whole non-null
 number/duration Parameter forms. Literal endpoint validity and reversed ranges
@@ -6066,8 +6133,8 @@ an authored option. Explicit null is not omission for any optional member.
 
 <!-- requirement-block: asof-join.temporal-domains -->
 Both time fields MUST have complete non-null number or timestamp contracts.
-Number values are safe-integer UTC milliseconds; timestamp values use canonical
-UTC millisecond precision and are mechanically converted to that clock for
+Number values are safe-integer UTC milliseconds; timestamp values retain their
+exact admitted precision and use the same exact rational-millisecond clock for
 matching without changing their authored values or contracts. The two fields
 may use different representations of this same clock. `tolerance` uses
 `MillisecondValue`: a positive safe-integer millisecond number, a positive fixed
@@ -10771,7 +10838,7 @@ SequenceConstraints := at least two uniquely labeled pattern elements; generated
   clocks on Relation and Events accept timestamps or integer milliseconds;
   canonical completion inserts by: [], overlap: disallow, contiguity: adjacent.
 CalendarUnit := day | week | month | quarter | year
-CalendarTimestamp := canonical UTC millisecond timestamp in years 0001..9999 | ParamRef
+CalendarTimestamp := canonical exact UTC timestamp in years 0001..9999 | ParamRef
 CalendarBucketBody := {time: Field, into: OutputFieldName, unit: CalendarUnit,
   timezone: nonempty string, week_start?: monday | sunday}
 CalendarSeriesBody := {start: CalendarTimestamp, end: CalendarTimestamp,
@@ -11188,7 +11255,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:b41122ab0e54f2088d0fd1f98679643c8ceeb479168db6051637d2ca5f941e1f
+../../spec/contracts/actql-aoa.json# sha256:899be6a80ef655f4460e4a0414ec2ef861110b63c19f257de7a5579efa09470c
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
@@ -11197,11 +11264,11 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:ed54dd0a56f4bfc7811a600db137ae5b32b24c2819a81ab69c7c5f06d349da7b
+../../spec/contracts/actql-expressions.json# sha256:707fd38ee8c0e32b24b700b55364414362b6cbf01f99405d4fde455a8243cd35
 ../../spec/contracts/actql-expressions.json#/schemas/expression sha256:5c7ab5c2189768003f4cc1cf5665b3c42ef1bc47497e606a46938fc1dfa40c77
 ../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:c37306c98c772f79f11782503522843430c0867b0bf903248fe9933cb477fb6f
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:bb8faf6038bb2b548b25b994d5baf926d2052a4611d1608191bab2d296251725
+../../spec/contracts/actql-expressions.json#/laws sha256:3f1929f52bc30393c75865d82bcec1d18afd76540dff3dc7786b253c0ce1487b
 ../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:46609f6f81679938a14f2b79e6f750d242b841684f9a00d911568efded652905
 ../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:e3b47a961be9b92970dd52c9415208821fbac6b9d7c3ea28e573e02603194fc9
 ```

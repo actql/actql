@@ -229,7 +229,8 @@ uses `{version: "actql-vectors-contract/0.1", records, ids, components}`.
 `records` is a complete non-null checked object contract. All role names are
 canonical ordinary field names resolving exactly to fields in that record.
 Event `id` is non-null KeyComparable, and `time` is a non-null number or timestamp
-with the existing UTC-millisecond interpretation. Vector `ids` is a nonempty
+with the exact rational UTC-millisecond interpretation for Timestamp and the
+unchanged safe-integer millisecond domain for numeric row clocks. Vector `ids` is a nonempty
 ordered list of distinct non-null KeyComparable fields; `components` is a
 different field with a non-null vector contract, which supplies dimensions.
 Array order is retained, not sorted or deduplicated. The Check Environment
@@ -820,6 +821,20 @@ Connector Catalog, SourceView, Command, and AoA semantic contract identities.
 Implementation-package pinning belongs to Host deployment and supply-chain
 verification, not the portable program lock. Runtime schema snapshots and
 Resource observations belong to plan and receipt evidence, not the program lock.
+
+<!-- requirement-block: catalog-and-lock.slack-ordinary-history-reply-count -->
+The Slack messages Catalog projection MUST preserve an explicit `reply_count`
+as its exact admitted nonnegative `int64`; an explicit null remains unknown,
+and malformed, negative or overflowing counts are refused. Only an original
+admitted complete ordinary history record with both `reply_count` and
+`thread_ts` genuinely absent may project exact `int64` zero. A thread parent,
+reply, partial record, event ambiguity or unsupported completeness remains
+unknown or refused. This rule is an ActQL projection, not a general vendor
+count guarantee. Explicit positive counts with absent thread metadata are not
+a new contradiction. Preserve exact original `ts` and `thread_ts`, and do not
+apply this inference to reactions, files or other missing fields. Equal
+response DATA, a Source label or a caller Bool cannot supply the original
+history membership or observation/current/custody obligations.
 
 <!-- requirement-block: catalog-and-lock.canonical-preimage -->
 The Catalog self-CID MUST hash the complete canonical Catalog excluding only its
@@ -1774,7 +1789,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:edee55ae7ec48df63965c6de9356936b45b6d25dc8c5bd2c7738df26075f1427 -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:9efa186558e562852090b637504e965234a3b846bbb1cf87547e8ad5df060e0f -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:3c07ce1eb5eeba94cb2be58d56f38ee200645a6b5cbcc554230b5811f5a03a9b -->
 
 <a id="parameter-value-projection"></a>
@@ -2815,7 +2830,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:341a4525d3d871b79f08e2b4604938bbec84d371016a8ce73d1be15a25abd14f
+../../../spec/contracts/actql-check-environment.json# sha256:b51a15f3272b0f6d2a2883b3ecfcc71ace3ebe3ead27e087a194f8aeaa542bd5
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:621725e41f803d118b749abf99a40f4c23e2bd3fb15078912c69ff7f82c6f85a
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:27cb211cc9578f9b5fac27dc3d75c5236b13eebe501224b14f21eafbccda2d25
@@ -2856,11 +2871,11 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/caller_input_intent sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/initial_input_artifact_set sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:b8e6589db46655b4ae93a7cb89c4e7037262da96d534e01fa3956ca314058347
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:9780f9423f41edecb7d920e49b3b6dd122dc916c1ab7ee3720de790357b43d4c
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/result_plan sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_fact_manifest sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:634a3b0921b17e9e2e72c6b12d9651b4a6e9685d4208a91de1cb98500490be7c
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:b7ef9aa8bde3be48f82ba74b6cdb253fa936050881285fe5f53f942946b65f08
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:692b481d25e23400f0f81e0ddade946aba2dafca4dd2f1fe6c22c7e15e5122c1
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_reason sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:ee1c0c7799d2dd30aa084ec5699078cf14ada0687ac6bb9e48e1f714789a8535

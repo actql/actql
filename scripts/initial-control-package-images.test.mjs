@@ -51,6 +51,76 @@ function fixture(t) {
   return {root, destination, put, inputs, outputs, absent, options, render, read};
 }
 
+function addPublicNode(f, dependencies = {'@actql/local-node': '0.0.0-development',
+  '@actql/sdk': '0.0.0-development'}) {
+  f.put('packages/node/package.json', JSON.stringify({name: '@actql/node',
+    version: '0.0.0-development', type: 'module', exports: './index.mjs',
+    files: ['index.mjs', 'selected-infer-startup.cjs'], dependencies}));
+  f.put('packages/node/index.mjs', 'export const facade = "original-node-facade";\n');
+  f.put('packages/node/selected-infer-startup.cjs', 'module.exports = {};\n');
+  for (const name of ['sdk', 'local-node']) {
+    symlinkSync(join(f.root, 'packages', name), join(f.root, 'node_modules/@actql', name));
+  }
+}
+
+test('the public Node facade has distinct Source facts and the same Local dependency binding', t => {
+  const f = fixture(t); addPublicNode(f);
+  const value = f.read(f.render());
+  assert.equal(value.localPublicModule, 'index.mjs');
+  assert.equal(value.publicNodeCoverage, 'prepared');
+  assert.equal(value.publicNode.name, '@actql/node');
+  assert.equal(value.publicNode.images.find(item => item.path === 'index.mjs').sha256,
+    sha('export const facade = "original-node-facade";\n'));
+  assert.deepEqual(value.publicNode.dependencies.find(item => item.name === '@actql/local-node'),
+    {name: '@actql/local-node', local: true});
+  assert.equal(value.packages[value.publicNode.dependencies.find(item => item.name === '@actql/sdk').package].name,
+    '@actql/sdk');
+  assert.equal(value.images.some(item => item.sha256 === value.publicNode.images[0].sha256), false);
+  assert.equal(f.render().includes(Buffer.from(f.root)), false);
+});
+
+test('optional SDK rollback cannot leave dangling package indices in public Node coverage', t => {
+  const f = fixture(t); addPublicNode(f, {'@actql/local-node': '0.0.0-development',
+    '@actql/provider-ai-sdk': '0.0.0-development'});
+  f.put('packages/provider-ai-sdk/package.json', JSON.stringify({name: '@actql/provider-ai-sdk',
+    version: '0.0.0-development', type: 'module', exports: './index.mjs', files: ['index.mjs'],
+    dependencies: {'@actql/missing-original': '0.0.0-development'}}));
+  f.put('packages/provider-ai-sdk/index.mjs', 'export const optional = true;\n');
+  symlinkSync(join(f.root, 'packages/provider-ai-sdk'), join(f.root, 'node_modules/@actql/provider-ai-sdk'));
+  const value = f.read(f.render());
+  assert.equal(value.optionalSdkCoverage, 'unprepared');
+  assert.equal(value.publicNodeCoverage, 'unprepared');
+  assert.equal(value.publicNode, null);
+  assert.equal(value.packages.length, 2);
+});
+
+test('private root implementation files stay in the ordinary Local and public Node images', t => {
+  const f = fixture(t); addPublicNode(f);
+  for (const name of ['local-node', 'node']) {
+    const file = 'packages/' + name + '/package.json';
+    const manifest = JSON.parse(readFileSync(join(f.root, file), 'utf8'));
+    manifest.files = [...new Set([...(manifest.files ?? []), 'initial-control-public-dispatch.cjs'])];
+    f.put(file, JSON.stringify(manifest));
+    f.put('packages/' + name + '/initial-control-public-dispatch.cjs',
+      'module.exports=Object.freeze({selectedInitialControlHostPreparation:undefined});\n');
+  }
+  const first = f.read(f.render());
+  const local = first.images.find(value => value.path === 'initial-control-public-dispatch.cjs');
+  const node = first.publicNode.images.find(value => value.path === 'initial-control-public-dispatch.cjs');
+  assert.equal(local.sha256, node.sha256);
+  f.put('packages/local-node/initial-control-public-dispatch.cjs', 'module.exports={changed:true};\n');
+  const second = f.read(f.render());
+  assert.notEqual(second.images.find(value => value.path === local.path).sha256, local.sha256);
+  assert.equal(second.publicNode.images.find(value => value.path === node.path).sha256, node.sha256);
+  unlinkSync(join(f.destination, 'initial-control-public-dispatch.cjs'));
+  assert.throws(f.render, /ENOENT/);
+});
+
+test('public Node exact Local version conflicts remain errors rather than absent coverage', t => {
+  const f = fixture(t); addPublicNode(f, {'@actql/local-node': '0.0.1'});
+  assert.throws(f.render, /WrongInitialControlDependencyVersion:@actql\/local-node/);
+});
+
 test('ordinary rendered adapter and runtime bytes produce one deterministic private image Source', t => {
   const f = fixture(t), bytes = f.render(), value = f.read(bytes);
   assert.equal(value.images.length, 6);
