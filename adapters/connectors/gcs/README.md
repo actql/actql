@@ -328,6 +328,34 @@ reusing the GET, a bounded output or dropping a local projection is not free
 workspace, a reservation or a physical cleanup ACK. The generic same-Site
 driver/capture/Run recovery and normal funding remain separate connections.
 
+### Original DELETE target capture
+
+`borrowOwnedGcsObjectDeleteTarget` borrows only the original DELETE request
+retained by its preparation child. Its receiver and request must be the same
+originals; a copy, a PATCH-purpose binding or a request re-admitted from DATA
+without that live child's current callback cannot substitute. The callback is
+checked before and after the portable projection, including reentrant child
+retirement during that projection.
+
+The row contains the exact object-name identity, the original GET response-byte
+CID, and the checked `name`, nullable `content_type` and typed nullable user
+`metadata` before value. Absent metadata remains NULL, a present empty map stays
+an empty Json value, and only the reserved private marker is excluded. There is
+no invented after, authored SET value, marker or successful-delete receipt. The
+physical request remains bodyless and retains both generation preconditions.
+
+The existing selection, capture, Preview and Run owners must still bind this
+row to the original checked DELETE Header/Mapping and independently enforce
+current read/write authority and dispatch custody. Equal selection bytes/CIDs
+do not prove DELETE purpose. This borrowed view alone does not install that
+driver, authenticate saved material, fund a physical loan or complete recovery.
+Retiring the view drops only its request/binding aliases; the original child
+continues to own response, physical binding and pending cleanup duties.
+
+The portable before-map/typed Json value, writer and parsed projection, original
+request/raw response, escaped row and view/current closures overlap the same
+preparation envelope. Their byte limits are not a reservation or an ACK.
+
 ### Retained upload target observations
 
 The upload-target receiver consumes the complete retained before-GET response,

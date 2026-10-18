@@ -365,6 +365,18 @@ pub fn gcs_object_request_body(
 }
 
 ///|
+#export_name("gcsObjectDeleteEffectTarget")
+pub fn gcs_object_delete_effect_target(
+  binding : @catalog.ObjectMutationBinding,
+  request : @catalog.ObjectMutationRequest,
+  max_bytes : Int,
+) -> Result[String, GcsFailure] {
+  @catalog.object_delete_effect_target_json(binding, request, max_bytes).map_err(
+    Request,
+  )
+}
+
+///|
 #export_name("gcsObjectRequestChanges")
 pub fn gcs_object_request_changes(
   binding : @catalog.ObjectMutationBinding,
