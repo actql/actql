@@ -35,3 +35,10 @@ pub fn Root::open_child_with_custody(
 ) -> Result[Root, NativeRootOpenFailure] {
   Err({ original_issue: UnsupportedTarget, root: None, })
 }
+
+///|
+pub fn Root::require_current_original_read(
+  _self : Root,
+) -> Result[Unit, NativeFilesystemIssue] {
+  Err(UnsupportedTarget)
+}
