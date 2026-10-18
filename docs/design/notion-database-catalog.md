@@ -1042,3 +1042,48 @@ failure/cleanup custody. Their explicit component capacity and installed
 metadata originals do not prove ordinary public installation, full workspace
 inventory, current Host publication persistence, physical retirement or normal
 numerical funding.
+
+
+### Live discovery publication capture
+
+A discovery reader may retain the original Host publication request and its
+exact eight-pair originals before metadata I/O. This optional path requires the
+existing installation-metadata control, the same original Subject, declaration
+SOURCE identity, actor/runtime/connector and original selected scope. The
+existing Host request assertion runs before and after awaited current checks;
+Site, Account, material, egress and funding still require their own actual
+supplier. A structurally matching control or Subject fields do not issue those
+rights. The legacy reader without this optional path remains unchanged.
+
+Only the same reader's successful, exact returned result may issue one opaque
+publication capture. Capture rechecks current and abort before constructing the
+existing Common snapshot from the original selection/source/checked Contracts.
+Copied results, another reader, a missing original request, wrong scope and a
+second capture refuse. No caller-supplied snapshot/body/CID is a capture input.
+Capture retains both separately scoped database/schema grants and scope tokens,
+actual returned use CIDs and responses, occurrence ids, ordered GET targets and
+response charges. It hashes each actual body before awaited caller callbacks;
+the exact retained database/schema text must reproduce that digest and length.
+Thus a raw alias mutated during charge cannot silently become the saved
+observation. The original declaration text and snapshot wire/CID are projected
+only by their existing Common getters, with the same bounded codec.
+
+The capture's private getter returns provenance DATA even after retirement for
+owned cleanup or durable lookup; it never re-admits currentness. The Host/Source
+semantic binder must independently admit its actual Store key/namespace/holding,
+generation and current operational originals. This token is not cold custody,
+issuer authority, a credential, cleanup confirmation or a Run. Cold admission
+constructs new local originals only after that independent saved custody gate.
+Neither publication retirement nor copied wire can reconstruct this live token.
+
+Each reader now retains its successful result alias, capture phase/failure and
+bounded two-operation record array. The optional publication record retains
+original request/eight-pair, original Common Subject/control, eight captured
+provider callbacks plus original receiver and call/assert closures. Operation
+records hold grant/scope/use-id/use-CID, response, target/occurrence, digest and
+byte length; hash workspace overlaps the raw body and charge callbacks. The
+capture WeakMap token/view, copied operation-reference array, exact retained
+text/UTF-8/hash workspace and snapshot codec overlap the same result, raw
+observations, response tickets and original Catalog/Contract graph. These bounds
+and aliases are not a reservation or free backing. Failure keeps its original
+error and custody; all reader observations retain cleanupConfirmed false.
