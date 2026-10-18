@@ -31,9 +31,10 @@ static int actql_filesystem_reader_context_begin(
   return actql_filesystem_context_begin(reader->read_context);
 }
 
-static int actql_native_filesystem_scoped_open_root(
+static int actql_native_filesystem_scoped_open_root_kind(
   actql_read_context *context, moonbit_bytes_t path, int32_t length,
-  int32_t diagnostic_ceiling, actql_native_filesystem_root **output
+  int32_t diagnostic_ceiling, bool private_root,
+  actql_native_filesystem_root **output
 ) {
   if (output == NULL || *output != NULL || diagnostic_ceiling <= 0)
     return ACTQL_OWNED_INVALID;
@@ -45,13 +46,31 @@ static int actql_native_filesystem_scoped_open_root(
     int released = actql_read_context_release_after_owner_ack(context);
     return released == ACTQL_OWNED_OK ? status : released;
   }
-  actql_native_filesystem_root *root =
-    actql_native_filesystem_open_root_with_diagnostics(
+  actql_native_filesystem_root *root = private_root
+    ? actql_native_filesystem_open_private_root_with_diagnostics(
+      path, length, diagnostic_ceiling)
+    : actql_native_filesystem_open_root_with_diagnostics(
       path, length, diagnostic_ceiling);
   root->read_context = context;
   root->read_context_user = true;
   *output = root; // Publish original failure custody before leaving the scope.
   return actql_read_context_leave(context);
+}
+
+static int actql_native_filesystem_scoped_open_root(
+  actql_read_context *context, moonbit_bytes_t path, int32_t length,
+  int32_t diagnostic_ceiling, actql_native_filesystem_root **output
+) {
+  return actql_native_filesystem_scoped_open_root_kind(
+    context, path, length, diagnostic_ceiling, false, output);
+}
+
+static int actql_native_filesystem_scoped_open_private_root(
+  actql_read_context *context, moonbit_bytes_t path, int32_t length,
+  int32_t diagnostic_ceiling, actql_native_filesystem_root **output
+) {
+  return actql_native_filesystem_scoped_open_root_kind(
+    context, path, length, diagnostic_ceiling, true, output);
 }
 
 static int actql_native_filesystem_scoped_open_child_root(

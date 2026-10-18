@@ -231,7 +231,7 @@ fn protocol_test_effect_member(
   kind +
   "\",\"target\":\"Object\",\"effect_identity_cid\":\"" +
   cid +
-  "\",\"preview_strength\":\"blind\",\"source_binding_cid\":\"" +
+  "\",\"preview_strength\":\"targeted\",\"source_binding_cid\":\"" +
   cid +
   "\",\"capability_evidence_cid\":\"" +
   cid +
@@ -301,6 +301,37 @@ test "Effect Preview member schema keeps Command and Mapping branches distinct" 
       nodes,
       member_index,
       protocol_test_effect_member("command", command, "true"),
+    ),
+  )
+}
+
+///|
+test "Effect Preview strength uses current closed facts and refuses blind" {
+  let (nodes, effects_index) = protocol_test_property_node("effect_preview", [
+    "effects",
+  ])
+  let member_index = match nodes[effects_index] {
+    ArrayRule(items, _, _, _) => items
+    _ => abort("Expected Effect member array")
+  }
+  let command = ",\"contract\":\"command:fixture\",\"resolved_command_contract_cid\":\"" +
+    "sha256:" +
+    "a".repeat(64) +
+    "\""
+  let targeted = protocol_test_effect_member("command", command, "false")
+  assert_true(protocol_test_accepts(nodes, member_index, targeted))
+  assert_true(
+    protocol_test_accepts(
+      nodes,
+      member_index,
+      targeted.replace(old="\"targeted\"", new="\"full_diff\""),
+    ),
+  )
+  assert_false(
+    protocol_test_accepts(
+      nodes,
+      member_index,
+      targeted.replace(old="\"targeted\"", new="\"blind\""),
     ),
   )
 }

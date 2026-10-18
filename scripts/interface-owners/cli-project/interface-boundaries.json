@@ -104,9 +104,10 @@
     },
     {
       "module": "packages/native-cli/lib/project-scaffold.mjs",
-      "sha256": "272d8c3466237be90d69b892f92913282d8124d7a4b5a747c7807666d9647225",
+      "sha256": "74e4f6ec847a939ae9dc49fc7e3cb9c08201d51d02dc118d66a3d9c7cf9956db",
       "exports": [
         "projectInitArguments",
+        "projectInitialAdoptionArguments",
         "scaffoldProject"
       ],
       "operations": [
@@ -129,6 +130,13 @@
           "name": "projectInitArguments",
           "parameters": [
             "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectInitialAdoptionArguments",
+          "parameters": [
+            "project"
           ],
           "async": false
         },
@@ -171,12 +179,14 @@
             "emptyDirectory/emptyDirectory",
             "fail/fail",
             "projectInitArguments",
+            "projectInitialAdoptionArguments",
             "same/same",
             "scaffoldProject",
             "scaffoldProject/checkRoot/checkRoot"
           ],
           "exports": [
             "projectInitArguments",
+            "projectInitialAdoptionArguments",
             "scaffoldProject"
           ],
           "attributes": {
@@ -188,6 +198,10 @@
               {
                 "path": "packages/native-cli/lib/project-scaffold.mjs",
                 "anchor": "export function scaffoldProject("
+              },
+              {
+                "path": "src/cmd/native_client/local_initial_signing_adoption.mbt",
+                "anchor": "// policy: the original Native Session proves eligibility and owns all cleanup."
               }
             ],
             "inputsOutputs": [
@@ -198,12 +212,20 @@
               {
                 "path": "packages/native-cli/lib/project-scaffold.mjs",
                 "anchor": "export function projectInitArguments(args)"
+              },
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "export function projectInitialAdoptionArguments(project)"
               }
             ],
             "identity": [
               {
                 "path": "packages/native-cli/lib/project-scaffold.mjs",
                 "anchor": "// Host, issue a key, adopt configuration or report a runnable mock installation."
+              },
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "// no fresh-state witness, default signer, grant or permission itself."
               }
             ],
             "ownership": [

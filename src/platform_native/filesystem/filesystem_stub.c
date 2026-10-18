@@ -95,6 +95,10 @@ typedef struct {
   bool cleanup_requested;
   bool cancelled;
   bool create_conflict;
+  bool preserve_names;
+  // 0: not attempted, 1: retired, -1: consumed/unconfirmed; never reclose.
+  int32_t close_result;
+  char *close_error;
 } actql_native_filesystem_writer;
 
 typedef struct {
@@ -514,11 +518,18 @@ static bool actql_writer_name_matches(
 }
 
 static int actql_close_writer_file(actql_native_filesystem_writer *writer) {
+  if (writer->close_result != 0) return writer->close_result > 0 ? 0 : -1;
   if (writer->fd < 0) return 0;
   int descriptor = writer->fd;
+  // Consume the original descriptor before the foreign close. No return path
+  // may retry its integer or acknowledge an unconfirmed retirement.
   writer->fd = -1;
-  if (close(descriptor) == 0) return 0;
-  actql_replace_errno_error(&writer->error, "close writer", errno);
+  writer->close_result = -1;
+  if (close(descriptor) == 0) {
+    writer->close_result = 1;
+    return 0;
+  }
+  actql_replace_errno_error(&writer->close_error, "close writer", errno);
   return -1;
 }
 
@@ -636,11 +647,11 @@ static void actql_native_filesystem_lock_finalize(void *value) {
 
 static void actql_native_filesystem_writer_finalize(void *value) {
   actql_native_filesystem_writer *writer = value;
-  if (writer->fd >= 0) {
-    close(writer->fd);
-    writer->fd = -1;
-  }
-  if (writer->root != NULL && writer->root->fd >= 0) {
+  (void)actql_close_writer_file(writer);
+  // An unconfirmed close cannot authorize unlinking partial material. Keep
+  // the original names for inspection even when this handle is dropped.
+  if (!writer->preserve_names && writer->close_result >= 0 &&
+      writer->root != NULL && writer->root->fd >= 0) {
     if (writer->final_present && writer->final_name != NULL &&
         (!writer->sealed || writer->cleanup_requested)) {
       struct stat status;
@@ -670,9 +681,11 @@ static void actql_native_filesystem_writer_finalize(void *value) {
   free(writer->staging_name);
   free(writer->final_name);
   free(writer->error);
+  free(writer->close_error);
   writer->staging_name = NULL;
   writer->final_name = NULL;
   writer->error = NULL;
+  writer->close_error = NULL;
   if (writer->root != NULL) {
     moonbit_decref(writer->root);
     writer->root = NULL;
@@ -801,26 +814,26 @@ static int actql_open_contained_directory(char *text) {
   return current;
 }
 
+static bool actql_package_namespace_close(actql_native_filesystem_root *, int);
+static int actql_package_namespace_walk(actql_native_filesystem_root *);
+
 static bool actql_private_root_namespace(
   actql_native_filesystem_root *root,
   const struct stat *original
 ) {
-  if (root->custody_path == NULL) return false;
-  char *copy = strdup(root->custody_path);
-  if (copy == NULL) return false;
-  int descriptor = actql_open_contained_directory(copy);
-  free(copy);
+  if (root->namespace_cleanup_unconfirmed) return false;
+  int descriptor = actql_package_namespace_walk(root);
   if (descriptor < 0) return false;
   struct stat current;
   bool matches = fstat(descriptor, &current) == 0 &&
     current.st_dev == original->st_dev && current.st_ino == original->st_ino &&
     current.st_nlink > 0 && current.st_uid == geteuid() &&
     (current.st_mode & 0777) == 0700;
-  return close(descriptor) == 0 && matches;
+  return actql_package_namespace_close(root, descriptor) && matches;
 }
 
-// Additive package namespace observation. Unlike the legacy private-mode walk,
-// every temporary close is observed and an Unknown stays on the same Root.
+// Existing observed namespace walk, shared by package and private-current
+// observations. Every temporary close retains Unknown on the same Root.
 static bool actql_package_namespace_close(
   actql_native_filesystem_root *root, int descriptor
 ) {
@@ -830,9 +843,11 @@ static bool actql_package_namespace_close(
     result = -1; error_number = EIO;
   }
   if (result == 0) return true;
-  root->namespace_cleanup_unconfirmed = true;
-  actql_replace_bounded_errno_error(&root->namespace_cleanup_error,
-    root->diagnostic_ceiling, "close package namespace observation", error_number);
+  if (!root->namespace_cleanup_unconfirmed) {
+    root->namespace_cleanup_unconfirmed = true;
+    actql_replace_bounded_errno_error(&root->namespace_cleanup_error,
+      root->diagnostic_ceiling, "close package namespace observation", error_number);
+  }
   actql_replace_bounded_error(&root->error, root->diagnostic_ceiling,
     root->namespace_cleanup_error);
   return false;
@@ -1039,6 +1054,11 @@ int32_t actql_native_filesystem_private_root_identity(
   actql_native_filesystem_root *root
 ) {
   if (root == NULL || root->fd < 0) return 0;
+  if (root->namespace_cleanup_unconfirmed) {
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling,
+      root->namespace_cleanup_error);
+    return 0;
+  }
   root->result_device = 0;
   root->result_inode = 0;
   struct stat status;
@@ -1047,9 +1067,14 @@ int32_t actql_native_filesystem_private_root_identity(
     return 0;
   }
   if (!S_ISDIR(status.st_mode) || status.st_nlink == 0 || status.st_uid != geteuid() ||
-      (status.st_mode & 0777) != 0700 || !actql_private_root_acl(root->fd) ||
-      !actql_private_root_namespace(root, &status)) {
+      (status.st_mode & 0777) != 0700 || !actql_private_root_acl(root->fd)) {
     actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "Host root is not user-owned and private");
+    return 0;
+  }
+  if (!actql_private_root_namespace(root, &status)) {
+    if (!root->namespace_cleanup_unconfirmed)
+      actql_replace_bounded_error(&root->error, root->diagnostic_ceiling,
+        "Host root is not user-owned and private");
     return 0;
   }
   root->result_device = (uint64_t)status.st_dev;
@@ -1068,6 +1093,9 @@ void *actql_native_filesystem_open_private_root_with_diagnostics(
   );
   memset(root, 0, sizeof(*root));
   root->fd = -1;
+  // No descriptor has been acquired. Failed validation/open may retire only
+  // this rejected constructor; it must not fabricate a physical close.
+  root->close_result = 1;
   root->diagnostic_ceiling = diagnostic_ceiling;
   if (diagnostic_ceiling < 0) return root;
   if (length <= 1 || length > 4096) {
@@ -1095,13 +1123,56 @@ void *actql_native_filesystem_open_private_root_with_diagnostics(
   // dot/dot-dot as a containment escape. The supplied path remains unchanged.
   root->fd = actql_open_contained_directory(text);
   int open_error = errno;
+  if (root->fd >= 0) root->close_result = 0;
   free(text);
   if (root->fd < 0) {
     actql_replace_bounded_errno_error(&root->error, root->diagnostic_ceiling, "open private Host root", open_error);
   } else if (!actql_native_filesystem_private_root_identity(root)) {
-    close(root->fd);
-    root->fd = -1;
+    // Retain the original close outcome separately from the privacy refusal.
+    // An unconfirmed consumed fd must never be closed again by its number.
+    actql_native_filesystem_root_close(root);
   }
+  return root;
+}
+
+// Custody entrance uses the same Root, privacy predicate and existing observed
+// walk. Early path/namespace close Unknown cannot become a no-FD cleanup ACK.
+void *actql_native_filesystem_open_private_root_with_custody_diagnostics(
+  moonbit_bytes_t path, int32_t length, int32_t diagnostic_ceiling
+) {
+  actql_native_filesystem_root *root = moonbit_make_external_object(
+    actql_native_filesystem_root_finalize, sizeof(actql_native_filesystem_root));
+  memset(root, 0, sizeof(*root)); root->fd = -1; root->close_result = 1;
+  root->diagnostic_ceiling = diagnostic_ceiling;
+  if (diagnostic_ceiling < 0) return root;
+  if (length <= 1 || length > 4096) {
+    actql_replace_bounded_error(&root->error, diagnostic_ceiling, "invalid private Host root path");
+    return root;
+  }
+  char *text = actql_copy_text(path, length);
+  if (text == NULL) {
+    actql_replace_bounded_error(&root->error, diagnostic_ceiling, "root path allocation failed");
+    return root;
+  }
+  if (text[0] != '/' || text[length - 1] == '/' || (int32_t)strlen(text) != length) {
+    free(text);
+    actql_replace_bounded_error(&root->error, diagnostic_ceiling, "invalid private Host root path");
+    return root;
+  }
+  root->custody_path = text;
+  int descriptor = actql_package_namespace_walk(root), open_error = errno;
+  if (descriptor < 0) {
+    if (root->namespace_cleanup_unconfirmed) {
+      root->close_result = -1;
+      actql_replace_bounded_error(&root->close_error, diagnostic_ceiling,
+        root->namespace_cleanup_error);
+    } else actql_replace_bounded_errno_error(&root->error, diagnostic_ceiling,
+      "open private Host root", open_error);
+    return root;
+  }
+  root->fd = descriptor; root->close_result = 0;
+  if (!actql_native_filesystem_private_root_identity(root))
+    actql_native_filesystem_root_close(root);
   return root;
 }
 
@@ -1504,6 +1575,15 @@ moonbit_bytes_t actql_native_filesystem_root_error(
     root == NULL ? 0 : root->diagnostic_ceiling);
 }
 
+// Constructor refusal is separate from a later/unconfirmed cleanup outcome.
+// The same Root remains retained; this projection admits no usable directory.
+moonbit_bytes_t actql_native_filesystem_root_acquisition_error(
+  actql_native_filesystem_root *root
+) {
+  return actql_copy_diagnostic(root == NULL ? "invalid Store root" : root->error,
+    root == NULL ? 0 : root->diagnostic_ceiling);
+}
+
 // Same opaque Lock close path for successful and rejected acquisition.
 int32_t actql_native_filesystem_lock_close_checked(actql_native_filesystem_lock *lock);
 
@@ -1684,16 +1764,14 @@ void *actql_native_filesystem_create_writer(
   struct stat status;
   if (fstat(writer->fd, &status) != 0) {
     int stat_error = errno;
-    close(writer->fd);
-    writer->fd = -1;
-    unlinkat(root->fd, writer->staging_name, 0);
+    // Retain the actual rejected constructor and descriptor. Its caller must
+    // acknowledge that original close; unknown metadata cannot authorize unlink.
+    writer->preserve_names = true;
     actql_replace_errno_error(&writer->error, "inspect staging file", stat_error);
     return writer;
   }
   if (!S_ISREG(status.st_mode) || status.st_size != 0) {
-    close(writer->fd);
-    writer->fd = -1;
-    unlinkat(root->fd, writer->staging_name, 0);
+    writer->preserve_names = true;
     actql_replace_error(&writer->error, "staging file is not empty and regular");
     return writer;
   }
@@ -1720,7 +1798,8 @@ int32_t actql_native_filesystem_writer_conflict(
 moonbit_bytes_t actql_native_filesystem_writer_error(
   actql_native_filesystem_writer *writer
 ) {
-  return actql_copy_bytes(writer == NULL ? "invalid writer" : writer->error);
+  return actql_copy_bytes(writer == NULL ? "invalid writer" :
+    writer->close_result < 0 ? writer->close_error : writer->error);
 }
 
 int32_t actql_native_filesystem_writer_append(
@@ -1764,6 +1843,7 @@ int32_t actql_native_filesystem_writer_seal(
   moonbit_bytes_t name,
   int32_t length
 ) {
+  if (writer != NULL && writer->close_result < 0) return -1;
   if (writer == NULL || !writer->ready || writer->cancelled ||
       writer->cleanup_requested) {
     return 3;
@@ -1976,10 +2056,33 @@ int32_t actql_native_filesystem_writer_adopt_name(
   return 0;
 }
 
+// Retire only this descriptor while retaining all owned names for inspection.
+// No contents/seal/publication/whole-cleanup acknowledgement is issued here.
+int32_t actql_native_filesystem_writer_close_retaining_files(
+  actql_native_filesystem_writer *writer
+) {
+  if (writer == NULL) return 0;
+  writer->preserve_names = true;
+  writer->cleanup_requested = true;
+  if (actql_close_writer_file(writer) != 0) return -1;
+  if (writer->close_result != 0 &&
+      (writer->root == NULL || writer->root->fd < 0)) {
+    actql_replace_error(&writer->error, "retained partial Store root is unavailable");
+    return -1;
+  }
+  if (writer->close_result != 0 && actql_sync_root(writer->root) != 0) {
+    actql_replace_errno_error(&writer->error, "sync retained partial files", errno);
+    return -1;
+  }
+  return 0;
+}
+
 int32_t actql_native_filesystem_writer_cancel(
   actql_native_filesystem_writer *writer
 ) {
-  if (writer == NULL || !writer->ready) return 0;
+  if (writer == NULL) return 0;
+  if (writer->close_result < 0) return -1;
+  if (!writer->ready) return 0;
   if (writer->cancelled) return 0;
   writer->cleanup_requested = true;
   writer->sealed = false;
@@ -2023,7 +2126,10 @@ int32_t actql_native_filesystem_writer_sealed(
 int32_t actql_native_filesystem_writer_pending_cleanup(
   actql_native_filesystem_writer *writer
 ) {
-  if (writer == NULL || !writer->ready || writer->cancelled) return 0;
+  if (writer == NULL) return 0;
+  if (writer->close_result < 0) return 1;
+  if (writer->preserve_names && writer->fd >= 0) return 1;
+  if (!writer->ready || writer->cancelled) return 0;
   if (writer->cleanup_requested) {
     return writer->staging_present || writer->final_present;
   }
@@ -2670,6 +2776,29 @@ MOONBIT_FFI_EXPORT int32_t actql_native_filesystem_scoped_open_current_root(
   (void)diagnostic_ceiling;
   (void)output;
   return -1; /* ACTQL_OWNED_INVALID; no active scoped provider was selected. */
+#endif
+}
+
+/* Same current original, with the existing private Root constructor's complete
+ * namespace/owner/mode/ACL checks. No generic Root or stock allocation fallback
+ * is admitted when the current original read context is unavailable. */
+MOONBIT_FFI_EXPORT int32_t actql_native_filesystem_scoped_open_current_private_root(
+  moonbit_bytes_t path, int32_t length, int32_t diagnostic_ceiling,
+  actql_native_filesystem_root **output
+) {
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+  if (output == NULL || *output != NULL || diagnostic_ceiling <= 0)
+    return ACTQL_OWNED_INVALID;
+  actql_read_context *context = actql_bootstrap_current_read_context();
+  if (context == NULL) return ACTQL_OWNED_INVALID;
+  return actql_native_filesystem_scoped_open_private_root(
+    context, path, length, diagnostic_ceiling, output);
+#else
+  (void)path;
+  (void)length;
+  (void)diagnostic_ceiling;
+  (void)output;
+  return -1;
 #endif
 }
 

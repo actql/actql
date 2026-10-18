@@ -26,6 +26,14 @@ extern "C" fn acquire_current_root_ffi(
 ) -> ScopedReadAcquisition = "actql_native_filesystem_acquire_current_root"
 
 ///|
+#borrow(path)
+extern "C" fn acquire_current_private_root_ffi(
+  path : Bytes,
+  length : Int,
+  diagnostic_ceiling : Int,
+) -> ScopedReadAcquisition = "actql_native_filesystem_acquire_current_private_root"
+
+///|
 #borrow(root, name)
 extern "C" fn acquire_scoped_child_root_ffi(
   root : Root,
@@ -85,6 +93,26 @@ pub fn open_root_in_current_read_context_with_custody(
   path : String,
   diagnostic_ceiling : Int,
 ) -> Result[Root, NativeRootOpenFailure] {
+  open_current_root_with_custody(path, diagnostic_ceiling, private_root=false)
+}
+
+///|
+/// Requires the same original current read as the generic Root entrance and
+/// preserves every existing private namespace/owner/mode/ACL check. It issues
+/// no context, capacity, filesystem permission or installation authority.
+pub fn open_private_root_in_current_read_context_with_custody(
+  path : String,
+  diagnostic_ceiling : Int,
+) -> Result[Root, NativeRootOpenFailure] {
+  open_current_root_with_custody(path, diagnostic_ceiling, private_root=true)
+}
+
+///|
+fn open_current_root_with_custody(
+  path : String,
+  diagnostic_ceiling : Int,
+  private_root~ : Bool,
+) -> Result[Root, NativeRootOpenFailure] {
   if diagnostic_ceiling <= 0 {
     return Err({ original_issue: InvalidLimit, root: None, })
   }
@@ -92,11 +120,15 @@ pub fn open_root_in_current_read_context_with_custody(
     return Err({ original_issue: scoped_read_refusal(-1), root: None, })
   }
   let encoded = @utf8.encode(path)
-  let result = acquire_current_root_ffi(
-    encoded,
-    encoded.length(),
-    diagnostic_ceiling,
-  )
+  let result = if private_root {
+    acquire_current_private_root_ffi(
+      encoded,
+      encoded.length(),
+      diagnostic_ceiling,
+    )
+  } else {
+    acquire_current_root_ffi(encoded, encoded.length(), diagnostic_ceiling)
+  }
   let status = acquisition_status_ffi(result)
   guard acquisition_has_original_ffi(result) else {
     return Err({ original_issue: scoped_read_refusal(status), root: None, })

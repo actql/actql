@@ -31,6 +31,8 @@ pub struct FormFieldMetadata {
   calculation_format : String?
   priv path : Array[String]
   priv options : Array[String]?
+  priv write_expression : String?
+  priv write_lookup_targets : Array[String]?
 } derive(Eq)
 
 ///|
@@ -97,6 +99,41 @@ fn form_digits(text : String) -> Bool {
 }
 
 ///|
+// Missing lookup means this field has no mapping. A hidden or malformed
+// lookup cannot prove the absence of destinations elsewhere in the Form.
+// Retain this write evidence without changing the existing readable carriers.
+fn form_write_lookup_targets(object : @decode.ObjectView) -> Array[String]? {
+  match @decode.field(object, "lookup") {
+    Missing => Some([])
+    ExplicitNull => None
+    Present(value) => {
+      guard @decode.open_object(value) is Ok(lookup) &&
+        @decode.lookup(lookup, "fieldMappings") is Some(mappings) else {
+        return None
+      }
+      // The provider also documents an empty string for no mappings.
+      if @decode.text(mappings) == Ok("") {
+        return Some([])
+      }
+      guard @decode.array_length(mappings) is Some(count) else { return None }
+      let targets = []
+      for index in 0..<count {
+        guard @decode.element_at(mappings, index) is Some(mapping) &&
+          @decode.open_object(mapping) is Ok(entry) &&
+          form_text(entry, "field") is Some(target) &&
+          !target.is_empty() &&
+          form_text(entry, "relatedField") is Some(source) &&
+          !source.is_empty() else {
+          return None
+        }
+        targets.push(target)
+      }
+      Some(targets)
+    }
+  }
+}
+
+///|
 fn form_field_metadata(
   value : @decode.Cursor,
   key : String,
@@ -140,6 +177,8 @@ fn form_field_metadata(
     calculation_format,
     path,
     options,
+    write_expression: form_text(object, "expression"),
+    write_lookup_targets: form_write_lookup_targets(object),
   })
 }
 

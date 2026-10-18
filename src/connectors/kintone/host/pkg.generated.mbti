@@ -6,6 +6,8 @@ import {
   "actql/actql/connectors/kintone/catalog",
   "actql/actql/encode_core",
   "actql/actql/query_planning",
+  "actql/actql/run_publication",
+  "moonbitlang/core/debug",
 }
 
 // Values
@@ -17,13 +19,37 @@ pub fn borrow_record_read(PreparedRecordRead, @client_row_source_host.RowRun, @c
 
 pub fn declare_records(@catalog.FormFieldCatalog, @catalog.AppNumberSettings?, Array[String], String, String, String, @catalog.RecordValueLimits, @client_row_source_host.RowDeclarationLimits) -> Result[RecordDeclaration, RecordReadIssue]
 
+pub fn prepare_record_create_execution_request(RecordCreateMapping, Bytes, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue]
+
+pub fn prepare_record_create_mapping(RecordDeclaration, String, Array[@client_row_source_host.RowMappingSource], String, @client_row_source_host.RowDeclarationLimits) -> Result[RecordCreateMapping, @client_row_source_host.RowMappingIssue]
+
 pub fn prepare_record_delete_mapping(RecordDeclaration, String, String, @client_row_source_host.RowDeclarationLimits) -> Result[RecordDeleteMapping, @client_row_source_host.RowMappingIssue]
 
 pub fn prepare_record_delete_preview(RecordDeleteMapping, @catalog.OriginalRecordTarget, @catalog.RecordValueLimits, @catalog.RecordMutationLimits) -> Result[RecordDeletePreview, RecordReadIssue]
 
 pub fn prepare_record_read(RecordDeclaration, @query_planning.QueryRequirement, String, String) -> Result[PreparedRecordRead, RecordReadIssue]
 
+pub fn prepare_record_update_mapping(RecordDeclaration, String, Array[@client_row_source_host.RowMappingSource], String, @client_row_source_host.RowDeclarationLimits) -> Result[RecordUpdateMapping, @client_row_source_host.RowMappingIssue]
+
+pub fn project_record_create_preview_outcome(RecordCreateMapping, @catalog.RecordCreateRequest, @catalog.RecordCreateAcknowledgement, @run_publication.EffectPreviewIdentity, Int, Int, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[RecordCreatePreviewOutcome, RecordCreateOutcomeIssue]
+
 pub fn recheck_record_read_form(RecordRead, Bytes, @catalog.FormFieldLimits) -> Result[Unit, RecordReadIssue]
+
+pub fn record_create_mapping(RecordCreateMapping) -> @client_row_source_host.RowMapping
+
+pub fn record_create_mapping_is_original(RecordCreateMapping) -> Bool
+
+pub fn record_create_mapping_matches_declaration(RecordCreateMapping, RecordDeclaration) -> Bool
+
+pub fn record_create_mapping_matches_request(RecordCreateMapping, @catalog.RecordCreateRequest) -> Bool
+
+pub fn record_create_preview_outcome_matches(RecordCreatePreviewOutcome, RecordCreateMapping, @catalog.RecordCreateRequest, @run_publication.EffectPreviewIdentity, Int, Int) -> Bool
+
+pub fn record_create_preview_outcome_response_sha256(RecordCreatePreviewOutcome) -> String
+
+pub fn record_create_preview_outcome_row_cid(RecordCreatePreviewOutcome) -> String
+
+pub fn record_create_preview_outcome_wire(RecordCreatePreviewOutcome) -> String
 
 pub fn record_declaration(RecordDeclaration) -> @client_row_source_host.RowDeclaration
 
@@ -61,12 +87,39 @@ pub fn record_read_page_ids(RecordRead) -> Result[Array[String], RecordReadIssue
 
 pub fn record_request_cursor(Array[String]) -> Result[String?, RecordReadIssue]
 
+pub fn record_update_mapping(RecordUpdateMapping) -> @client_row_source_host.RowMapping
+
+pub fn record_update_mapping_matches_declaration(RecordUpdateMapping, RecordDeclaration) -> Bool
+
+pub fn record_update_mapping_matches_request(RecordUpdateMapping, @catalog.RecordUpdateRequest) -> Bool
+
 pub fn retire_record_read(RecordRead) -> Result[Unit, RecordReadIssue]
 
 // Errors
 
 // Types and methods
 pub struct PreparedRecordRead {
+  // private fields
+}
+
+pub(all) enum RecordCreateExecutionIssue {
+  Catalog(@catalog.RecordCreateJsonIssue)
+  MappingMismatch
+} derive(Eq, @debug.Debug)
+
+pub struct RecordCreateMapping {
+  // private fields
+}
+
+pub enum RecordCreateOutcomeIssue {
+  MappingMismatch
+  ForeignPreview
+  Values(@catalog.RecordCreateJsonIssue)
+  Response(@catalog.RecordMutationIssue)
+  Preview(@run_publication.EffectRowOutcomeIssue)
+} derive(@debug.Debug)
+
+pub struct RecordCreatePreviewOutcome {
   // private fields
 }
 
@@ -98,6 +151,10 @@ pub enum RecordReadIssue {
   Catalog(@catalog.RecordValueIssue)
   Page(@catalog.RecordPageIssue)
   Host(@client_row_source_host.RowHostIssue)
+}
+
+pub struct RecordUpdateMapping {
+  // private fields
 }
 
 // Type aliases

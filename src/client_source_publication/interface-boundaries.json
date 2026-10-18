@@ -1,0 +1,109 @@
+{
+  "qualification": "Original preparation ownership and source-reference coverage only; not installation, physical supplier or numerical funding",
+  "declarations": [
+    {
+      "module": "src/client_source_publication/installation_preparation_read.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "a7792310bbce5478a598856a21b202e3574a3343ed39d4d84fa126e1c3d759c9",
+      "role": "common-semantics",
+      "owner": "Existing Source publication preparation; original Resource read and workspace custody remain with the same installing Host",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]enter_installation_preparation_read",
+          "declaration": "[ T ] enter_installation_preparation_read ( value : InstallationPreparationRead [ T ] , origin : T , ) - > Result [ Unit , @ resources . OriginalReadIssue ]"
+        },
+        {
+          "name": "[T]installation_preparation_read_current",
+          "declaration": "[ T ] installation_preparation_read_current ( value : InstallationPreparationRead [ T ] , origin : T , ) - > Bool"
+        },
+        {
+          "name": "[T]prepare_installation_preparation_read",
+          "declaration": "[ T ] prepare_installation_preparation_read ( pair : @ buffers . OriginalWorkspaceRead [ T ] , origin : T , loan : @ buffers . WorkspaceLoan , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ InstallationPreparationRead [ T ] , @ resources . OriginalReadIssue ]"
+        },
+        {
+          "name": "[T]retire_installation_preparation_read",
+          "declaration": "[ T ] retire_installation_preparation_read ( value : InstallationPreparationRead [ T ] , origin : T , ) - > Result [ Unit , @ resources . OriginalReadIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]enter_installation_preparation_read",
+            "[T]installation_preparation_read_current",
+            "[T]prepare_installation_preparation_read",
+            "[T]retire_installation_preparation_read"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "- Verification:"
+              },
+              {
+                "path": "src/client_source_publication/installation_preparation_read_wbtest.mbt",
+                "anchor": "test \"installation preparation retains the original consumer after the read-pair borrow is consumed\""
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

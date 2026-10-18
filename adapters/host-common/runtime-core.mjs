@@ -1,5 +1,7 @@
 import {runtimeField, runtimeIsError, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';
 import {checked} from './runtime-result.mjs';
+import {createLocalSigningMetadata} from './local-signing-metadata.mjs';
+import {createInstallationPreparationMetadata} from './installation-preparation-metadata.mjs';
 import {publicationAction} from './publication-action.mjs';
 import {validWirePlanViewShape} from '../../packages/client-wire/index.mjs';
 import {
@@ -1847,6 +1849,8 @@ function publicationControl(moon) {
   const admissionTokens = new WeakMap();
   const compiledRunTokens = new WeakMap();
   const originalRunPlanTokens = new WeakMap();
+  const originalInferRunTokens = new WeakMap();
+  const restoredInferRuns = new WeakSet();
   const serializationPlanTokens = new WeakMap();
   const serializationGenerationTokens = new WeakMap();
   const serializationInputEvidenceTokens = new WeakMap();
@@ -2351,6 +2355,97 @@ function publicationControl(moon) {
       compiledRunResult(moon.clientProgramCheckLogicalMapBinding(evidenceToken(map), token(plan),
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostOriginalMapRejected');
       return original.planViewWire;
+    },
+    // First admission retains only the actual compiler owner and its original
+    // Result policy. A copied wire cannot supply the journal's original ticket.
+    captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer' ||
+          !moon.clientProgramCompiledRunMatches(value, checkedProgram) ||
+          !moon.clientProgramMatchesRequestIdentity(checkedProgram, request) ||
+          !moon.clientProgramCheckCompiledRunDefinition(value, token(definition))) {
+        throw new TypeError('Foreign Client original Infer Run');
+      }
+      const resultPolicyOriginal = compiledSourceFreeResultPolicy(compiled);
+      if (resultPolicyOriginal === undefined) throw new TypeError('Missing Client original Infer Result policy');
+      const materialsWire = compiledRunResult(moon.clientProgramIssueInferRunMaterials(
+        value, token(definition), environment, parameters), 'RunHostInferMaterialsRejected');
+      const selected = Object.freeze({});
+      originalInferRunTokens.set(selected, Object.freeze({
+        original: Object.freeze({materialsWire, resultPolicyOriginal}),
+        runDefinitionCid: definition.identity,
+        request,
+        prepared: compiled.preparedEvidence.wire, authorization: compiled.authorization.wire,
+      }));
+      return selected;
+    },
+    originalInferRunAdmissionEvidence(selected, definition, request, evidence) {
+      const retained = originalInferRunTokens.get(selected);
+      token(definition);
+      if (retained === undefined || retained.runDefinitionCid !== definition.identity ||
+          retained.request !== request || retained.prepared !== evidence?.prepared ||
+          retained.authorization !== evidence?.authorization) {
+        throw new TypeError('Foreign Client original Infer admission');
+      }
+      return retained.original;
+    },
+    // The same journal's already selected Run supplies the expected original.
+    // Current installation, authority and physical input custody are not read or
+    // issued here. The returned preparation and graph must stay together.
+    admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits) {
+      token(definition);
+      issuanceLimits(limits, 'Original Infer Run');
+      const keys = original === null || typeof original !== 'object' || Array.isArray(original)
+        ? [] : Object.keys(original);
+      if (keys.length !== 2 || !keys.includes('materialsWire') || !keys.includes('resultPolicyOriginal') ||
+          typeof original.materialsWire !== 'string' || original.materialsWire.length === 0 ||
+          Buffer.byteLength(original.materialsWire) > limits.maxWireBytes ||
+          !Array.isArray(profiles) || profiles.length !== 7 || profiles.some(value => typeof value !== 'boolean')) {
+        throw new TypeError('Invalid Client original Infer materials');
+      }
+      const policy = control.admitSourceFreeResultPolicy(original.resultPolicyOriginal, limits);
+      const materials = compiledRunResult(moon.clientProgramAdmitInferRunMaterials(
+        original.materialsWire, definition.identity, ...profiles), 'RunHostInferMaterialsRejected');
+      let value = compiledRunResult(moon.clientProgramInferRunMaterialsCompiled(materials),
+        'RunHostInferMaterialsRejected');
+      const prepared = moon.clientProgramInferRunMaterialsPrepared(materials);
+      const graph = moon.clientProgramInferRunMaterialsGraph(materials);
+      if (graph === undefined || !moon.clientProgramMatchesRequestIdentity(prepared, request) ||
+          !moon.clientProgramCheckCompiledRunDefinition(value, token(definition)) ||
+          inspectEvidence(moon.clientProgramCompiledRunPrepared(value)).wire !== evidence?.prepared ||
+          inspectEvidence(moon.clientProgramCompiledRunAuthorization(value)).wire !== evidence?.authorization) {
+        throw new TypeError('Foreign Client original Infer materials');
+      }
+      value = compiledRunResult(moon.clientProgramBindCompiledInferResultPolicy(value,
+        policy.cid, policy.wire, limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
+      'RunHostResultPolicyRejected');
+      const compiled = Object.freeze({kind: 'infer',
+        template: inspectEvidence(moon.clientProgramCompiledRunTemplate(value)),
+        compiledPlan: inspect(moon.clientProgramCompiledRunPlan(value)),
+        preparedEvidence: inspectEvidence(moon.clientProgramCompiledRunPrepared(value)),
+        authorization: inspectEvidence(moon.clientProgramCompiledRunAuthorization(value)),
+        admission: inspectAdmission(moon.clientProgramCompiledRunAdmission(value))});
+      compiledRunTokens.set(compiled, value);
+      const restored = Object.freeze({compiled, prepared, graph, runDefinition: definition});
+      restoredInferRuns.add(restored);
+      return restored;
+    },
+    checkRestoredClientInferRunOwner(restored, checkedProgram) {
+      if (!restoredInferRuns.has(restored) || restored.prepared !== checkedProgram) {
+        throw new TypeError('Foreign Client restored Infer Run');
+      }
+      control.checkClientCompiledRunOwner(restored.compiled, checkedProgram);
+      return restored;
+    },
+    checkedClientCompiledInferOriginal(compiled, checkedProgram, definition) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer' ||
+          !moon.clientProgramCheckCompiledRunDefinition(value, token(definition))) {
+        throw new TypeError('Foreign Client original Infer compilation');
+      }
+      const original = moon.clientProgramCompiledInferOriginal(value, checkedProgram);
+      if (original === undefined) throw new TypeError('Foreign Client original Infer preparation');
+      return Object.freeze({graph: runtimeField(original, 0), execution: runtimeField(original, 1)});
     },
     prepareCheckedClientCompiledRun(checkedProgram, kind, policy, inferGraph) {
       if (!['values', 'tasks', 'infer', 'serialization'].includes(kind)) {
@@ -6067,6 +6162,10 @@ export function runtimeCore(moon) {
     remoteTransferControl: remoteTransferControl(moon),
     remoteStandardSourceControl: remoteStandardSourceControl(moon),
     remoteCredentialControl: remoteCredentialControl(moon),
+    // Explicit private DATA view, not an installed issuer or signing permit.
+    // Keep older unused runtime routes lazy; actual callers require this ABI.
+    localSigningMetadata: () => createLocalSigningMetadata(moon),
+    installationPreparationMetadata: () => createInstallationPreparationMetadata(moon),
     effectApplicationControl: effectApplicationControl(moon),
     remoteBundleControl: remoteBundleControl(moon),
     publicationControl: publications,

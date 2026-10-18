@@ -60,7 +60,7 @@ fn inspect_fixture() -> (
     "\",\"runDefinitionCid\":\"" +
     run.identity +
     "\"}"
-  let state = "{\"version\":\"actql-run-state/0.1\",\"run_id\":\"original\",\"status\":\"running\"," +
+  let state = "{\"version\":\"actql-run-state/0.1\",\"run_id\":\"original\",\"revision\":0,\"status\":\"running\"," +
     "\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"next_action\":{\"kind\":\"none\"},\"result_available\":false," +
     "\"result_availability\":{},\"control\":{\"revision\":17,\"cancellation_requested\":false,\"physical_stop\":\"unknown\"}}"
   (run, prepared, authorization, ref_wire, state)
@@ -125,6 +125,8 @@ test "current Run Inspect preserves exact original facts and unknown pending obs
   ).unwrap()
   assert_true(default_wire.contains("\"static_plan\":false"))
   assert_eq(interactive_integer(current, "control_revision"), Some(17L))
+  let legacy = @json.object_field(current, "legacy_state").unwrap()
+  assert_eq(interactive_integer(legacy, "revision"), Some(0L))
   for field in ["pause_pending", "expiry_pending", "cleanup_pending"] {
     assert_true(@json.object_field(current, field) is None)
   }
@@ -179,7 +181,7 @@ test "Run Inspect refuses swapped original evidence ref state and snapshot" {
 ///|
 test "Run Inspect does not synthesize missing control revision or resume origin" {
   let (run, prepared, authorization, ref_wire, state) = inspect_fixture()
-  let without_control = "{\"version\":\"actql-run-state/0.1\",\"run_id\":\"original\",\"status\":\"running\"," +
+  let without_control = "{\"version\":\"actql-run-state/0.1\",\"run_id\":\"original\",\"revision\":0,\"status\":\"running\"," +
     "\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"next_action\":{\"kind\":\"none\"},\"result_available\":false,\"result_availability\":{}}"
   for changed in [without_control, state.replace(old="running", new="resuming")] {
     assert_true(
@@ -208,6 +210,19 @@ test "Run Inspect does not synthesize missing control revision or resume origin"
       256,
       1000,
       32,
+    )
+    is Err(ControlReadContract(_)),
+  )
+}
+
+///|
+test "Run Inspect rejects missing state revision despite a valid original control" {
+  let (run, prepared, authorization, ref_wire, state) = inspect_fixture()
+  let missing = state.replace(old="\"revision\":0,", new="")
+  let snapshot = inspect_fixture_snapshot(run, ref_wire, missing)
+  assert_true(
+    project_current_interactive_run_view(
+      run, prepared, authorization, ref_wire, missing, snapshot, 65536, 1000, 32,
     )
     is Err(ControlReadContract(_)),
   )

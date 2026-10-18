@@ -164,7 +164,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "2c5cb459a2541f69f3e30c54ff5d80ed13717e4c290d3e4d10d36f5b89299dc2",
+      "sha256": "7a00ae0f6227aae3587ea81c33da722ef0dc9dc5e0be551bbbcc9adc10e104d3",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -1552,6 +1552,25 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal",
+          "parameters": [
+            "original",
+            "definition",
+            "request",
+            "evidence",
+            "profiles",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:admitTablePreviewClaim/init:admitTablePreviewClaim",
           "parameters": [
             "preview",
@@ -2081,6 +2100,18 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:captureOriginalClientInferRun/init:captureOriginalClientInferRun",
+          "parameters": [
+            "compiled",
+            "checkedProgram",
+            "definition",
+            "request",
+            "environment",
+            "parameters"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:captureOriginalClientRunPlan/init:captureOriginalClientRunPlan",
           "parameters": [
             "compiled",
@@ -2149,6 +2180,15 @@
           "parameters": [
             "compiled",
             "checkedEffect"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:checkedClientCompiledInferOriginal/init:checkedClientCompiledInferOriginal",
+          "parameters": [
+            "compiled",
+            "checkedProgram",
+            "definition"
           ],
           "async": false
         },
@@ -2271,6 +2311,14 @@
             "preview",
             "wire",
             "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner",
+          "parameters": [
+            "restored",
+            "checkedProgram"
           ],
           "async": false
         },
@@ -3522,6 +3570,16 @@
           "name": "publicationControl/init:originalClientInferNodeReadStateRead/init:originalClientInferNodeReadStateRead",
           "parameters": [
             "writer"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:originalInferRunAdmissionEvidence/init:originalInferRunAdmissionEvidence",
+          "parameters": [
+            "selected",
+            "definition",
+            "request",
+            "evidence"
           ],
           "async": false
         },
@@ -6456,9 +6514,7 @@
         },
         {
           "name": "runtimeCore/runtimeCore",
-          "parameters": [
-            "value"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -6472,21 +6528,26 @@
         {
           "name": "runtimeCore/runtimeCore#10",
           "parameters": [
-            "transfer"
+            "value",
+            "receipt"
           ],
           "async": false
         },
         {
           "name": "runtimeCore/runtimeCore#11",
           "parameters": [
-            "progress"
+            "receipt",
+            "transfer",
+            "source",
+            "bytes",
+            "retained"
           ],
           "async": false
         },
         {
           "name": "runtimeCore/runtimeCore#12",
           "parameters": [
-            "progress"
+            "transfer"
           ],
           "async": false
         },
@@ -6500,8 +6561,7 @@
         {
           "name": "runtimeCore/runtimeCore#14",
           "parameters": [
-            "progress",
-            "value"
+            "progress"
           ],
           "async": false
         },
@@ -6515,7 +6575,8 @@
         {
           "name": "runtimeCore/runtimeCore#16",
           "parameters": [
-            "progress"
+            "progress",
+            "value"
           ],
           "async": false
         },
@@ -6542,10 +6603,7 @@
         },
         {
           "name": "runtimeCore/runtimeCore#2",
-          "parameters": [
-            "value",
-            "task"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -6565,6 +6623,20 @@
         {
           "name": "runtimeCore/runtimeCore#22",
           "parameters": [
+            "progress"
+          ],
+          "async": false
+        },
+        {
+          "name": "runtimeCore/runtimeCore#23",
+          "parameters": [
+            "progress"
+          ],
+          "async": false
+        },
+        {
+          "name": "runtimeCore/runtimeCore#24",
+          "parameters": [
             "value",
             "bytes",
             "nodes"
@@ -6572,7 +6644,7 @@
           "async": false
         },
         {
-          "name": "runtimeCore/runtimeCore#23",
+          "name": "runtimeCore/runtimeCore#25",
           "parameters": [
             "value"
           ],
@@ -6580,6 +6652,21 @@
         },
         {
           "name": "runtimeCore/runtimeCore#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "runtimeCore/runtimeCore#4",
+          "parameters": [
+            "value",
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "runtimeCore/runtimeCore#5",
           "parameters": [
             "value",
             "source",
@@ -6590,29 +6677,11 @@
           "async": false
         },
         {
-          "name": "runtimeCore/runtimeCore#4",
-          "parameters": [
-            "value",
-            "transfer",
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "runtimeCore/runtimeCore#5",
-          "parameters": [
-            "value",
-            "transfer",
-            "confirmed"
-          ],
-          "async": false
-        },
-        {
           "name": "runtimeCore/runtimeCore#6",
           "parameters": [
             "value",
             "transfer",
-            "retained"
+            "bytes"
           ],
           "async": false
         },
@@ -6629,18 +6698,17 @@
           "name": "runtimeCore/runtimeCore#8",
           "parameters": [
             "value",
-            "receipt"
+            "transfer",
+            "retained"
           ],
           "async": false
         },
         {
           "name": "runtimeCore/runtimeCore#9",
           "parameters": [
-            "receipt",
+            "value",
             "transfer",
-            "source",
-            "bytes",
-            "retained"
+            "confirmed"
           ],
           "async": false
         },
@@ -7473,6 +7541,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "### Original authentication dependencies"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
               }
             ],
             "inputsOutputs": [
@@ -7491,6 +7563,14 @@
               {
                 "path": "src/remote_credential/authentication.mbt",
                 "anchor": "pub fn[Material] prepare_credential_authentication_request("
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "originalInputs(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {"
               }
             ],
             "identity": [
@@ -7509,6 +7589,14 @@
               {
                 "path": "src/remote_credential/authentication.mbt",
                 "anchor": "!physical_equal(request.parent, parent)"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
               }
             ],
             "ownership": [
@@ -7527,6 +7615,14 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The installed\nCredential supplier must admit the real material"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const owned = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
               }
             ],
             "synchronization": [
@@ -7545,6 +7641,14 @@
               {
                 "path": "src/remote_credential/authentication.mbt",
                 "anchor": "after\n/// awaits."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
               }
             ],
             "failure": [
@@ -7563,6 +7667,14 @@
               {
                 "path": "adapters/host-common/remote-credential-control.test.mjs",
                 "anchor": "actual authentication bridge rejects equal-data original substitution"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
               }
             ],
             "cancellation": [
@@ -7581,6 +7693,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "An uncertain auth\nresponse retains the original use"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
               }
             ],
             "resources": [
@@ -7603,6 +7719,14 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "The pair adds two retained records"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
               }
             ],
             "extension": [
@@ -7621,6 +7745,14 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "Canonical grant/use bodies and their initial identities are\nunchanged."
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
               }
             ],
             "verification": [
@@ -7647,6 +7779,18 @@
               {
                 "path": "src/remote_credential/authentication_wbtest.mbt",
                 "anchor": "authentication rejects every foreign parent scope and grant retarget"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -8001,11 +8145,433 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "runtimeCore/runtimeCore#24"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "The Node Host's private Local-signing metadata view delegates exact grant/use"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "export function createLocalSigningMetadata(moon)"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
+                "anchor": "pub fn client_local_signing_use_prepare("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "fail('ForeignLocalSigningMetadata')"
+              },
+              {
+                "path": "src/remote_credential/local_signing_use.mbt",
+                "anchor": "current_scope != grant.scope"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "let grants = new WeakMap(), scopes = new WeakMap(), uses = new WeakMap();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "It does not stop signing, forget a pending claim, acknowledge key"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "Reflect.apply(methods[name], moon, args)"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Callbacks and their runtime receiver are captured once."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "fail('LocalSigningMetadataRuntimeUnavailable')"
+              },
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "fail('LocalSigningMetadataRetired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Account/issuer, request/Checkpoint/Run, durable original-use and outcome duties"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "independently. Its private maps/tokens/callbacks, decoded metadata and writer"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "view-local references; copied or foreign references cannot cross the seam."
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "localSigningMetadata: () => createLocalSigningMetadata(moon)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-signing-metadata.integration.test.mjs",
+                "anchor": "same actual Credential Owner preserves independent signing grant"
+              },
+              {
+                "path": "adapters/host-node/local-signing-metadata.integration.test.mjs",
+                "anchor": "the full expected original purpose/key/Checkpoint/Run/request scope"
+              },
+              {
+                "path": "adapters/host-node/local-signing-metadata.integration.test.mjs",
+                "anchor": "retiring only the metadata view refuses escaped references"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "runtimeCore/runtimeCore#25"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The private Node metadata view captures the selected Common callbacks and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "export function createInstallationPreparationMetadata(moon)"
+              },
+              {
+                "path": "scripts/generate-credential-scope-binding.mjs",
+                "anchor": "export function renderInstallationPreparationBridge("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "fail('ForeignInstallationPreparationMetadata')"
+              },
+              {
+                "path": "src/remote_credential/installation_preparation_grant.mbt",
+                "anchor": "physical_equal(original.subject, actual.subject) && original == actual"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "let subjects = new WeakMap(), scopes = new WeakMap(), grants = new WeakMap();"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "the view cuts its own six maps' original-value references"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "Reflect.apply(methods[name], moon, args)"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The view performs no asynchronous work, authentication or durable claim."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "fail('InstallationPreparationRuntimeUnavailable')"
+              },
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "fail('InstallationPreparationMetadataRetired')"
+              },
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "Object.getOwnPropertyDescriptors(value)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "request, original key/use/Unknown responsibility, journal claim or escaped"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "their actual escaped lifetime; WeakMap/retirement/GC is not a byte refund or"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "The view's records, six maps, aliases, callbacks/receiver, field"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-credential-scope-binding.mjs",
+                "anchor": "export function checkInstallationPreparationBridge("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "installationPreparationMetadata: () => createInstallationPreparationMetadata(moon)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installation-preparation-metadata.integration.test.mjs",
+                "anchor": "metadata actual Common subject scope and grant preserve independent originals"
+              },
+              {
+                "path": "adapters/host-node/installation-preparation-metadata.integration.test.mjs",
+                "anchor": "metadata equal admitted subject DATA cannot replace the original control scope"
+              },
+              {
+                "path": "scripts/installation-preparation-binding.test.mjs",
+                "anchor": "metadata typed bridge derives constructor and projection together from the same Owner"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal",
+            "publicationControl/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal",
+            "publicationControl/init:captureOriginalClientInferRun/init:captureOriginalClientInferRun",
+            "publicationControl/init:originalInferRunAdmissionEvidence/init:originalInferRunAdmissionEvidence"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The private Node binding projects the Program from the actual compiled owner"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters) {"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const retained = originalInferRunTokens.get(selected);"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('first Infer journal admission refuses copied or other-control tickets and raw evidence'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const originalInferRunTokens = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (originalInferRun !== undefined) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const outcome = transact('accept', 'ClientRequestAcceptanceUnknown',"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('Infer material and Run roll back together when original journal custody COMMIT fails'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (original === undefined) fail('ClientRequestInferEvidenceMissing');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('saved Infer reader refuses altered original Task materials Run program and admission correspondence'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The existing stop, Unknown and cleanup obligations are unchanged."
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "assert.equal(saved.physicalStartReserved, false);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The Node ticket, its WeakMap entry, saved material/Result-policy Strings, journal"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('Infer original copies use the existing aggregate evidence bound before durable acceptance'"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "That returned pair is not itself Host restoration:"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('legacy Infer material absence is not backfilled and changed originals do not replace a saved Run'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('original Infer codec restores one nominal preparation graph and same complete Run without current defaults'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('another process reads the same Journal original pair after an acceptance reply is discarded'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:checkedClientCompiledInferOriginal/init:checkedClientCompiledInferOriginal",
+            "publicationControl/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "originalInputs(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const owned = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              }
+            ]
+          }
         }
       ],
       "imports": [
         "../../packages/client-wire/index.mjs",
         "./compiler-binding.generated.mjs",
+        "./installation-preparation-metadata.mjs",
+        "./local-signing-metadata.mjs",
         "./publication-action.mjs",
         "./result-output-limits.mjs",
         "./runtime-result.mjs"
@@ -8481,7 +9047,7 @@
     },
     {
       "module": "adapters/host-node/infer-operation.mjs",
-      "sha256": "50c914fc3e7f45a7a2368752a3b72805220b0f6d7e1546dd8773013bc9da77c1",
+      "sha256": "1627e3327fbbc71c305c2b051d1978781af7d1d5879956f2321b2ca926af330d",
       "role": "physical-io",
       "exports": [
         "openNodeComposedInferProvider",
@@ -8757,6 +9323,13 @@
           "parameters": [
             "registration",
             "persistence"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/init:bindModelRawCapture/init:bindModelRawCapture/init:bindModelRawCapture",
+          "parameters": [
+            "next"
           ],
           "async": false
         },
@@ -9370,6 +9943,23 @@
           "async": false
         },
         {
+          "name": "prepareWithOriginalRawSetter",
+          "parameters": [
+            "prepare",
+            "request",
+            "notification",
+            "retain"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareWithOriginalRawSetter/set/set",
+          "parameters": [
+            "callback"
+          ],
+          "async": false
+        },
+        {
           "name": "selectOriginalInferMetadataAcquisition",
           "parameters": [
             "handle",
@@ -9575,6 +10165,8 @@
             "openNodeInferOperation/stop",
             "openNodeInferOperation/stop/stop",
             "pending/pending",
+            "prepareWithOriginalRawSetter",
+            "prepareWithOriginalRawSetter/set/set",
             "selectOriginalInferMetadataAcquisition",
             "selectOriginalInferResourceCodecAcquisition",
             "selectOriginalInferStoreBootstrapAcquisition",
@@ -9584,7 +10176,8 @@
             "withNodeInferResult/cancel/cancel",
             "withNodeInferResult/retained/init:retry/init:retry",
             "withNodeInferResult/retained/retained",
-            "withNodeInferResult/withNodeInferResult"
+            "withNodeInferResult/withNodeInferResult",
+            "openNodeInferOperation/operation/init:bindModelRawCapture/init:bindModelRawCapture/init:bindModelRawCapture"
           ],
           "exports": [
             "openNodeComposedInferProvider",
@@ -9702,7 +10295,17 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./infer-io-notification.mjs",
+        "./infer-original-installation.mjs",
+        "./infer-raw-capture.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
@@ -10428,7 +11031,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-continuation.mjs",
-      "sha256": "3d0924637313dc9b6873756d4b17c87bb2b03e908c0112e124f3333a34f6ec4a",
+      "sha256": "628db51c88e518b8643808717d990e159730726b50d6b2abf269b391b53a6fd4",
       "role": "physical-io",
       "exports": [
         "installNodeModelContinuation"
@@ -11395,17 +11998,40 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/authorization-gate.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/diagnostic-observer.mjs",
+        "../host-common/runtime-result.mjs",
+        "./client-checkpoints.mjs",
+        "./infer-entry-persistence.mjs",
+        "./infer-evaluation-evidence.mjs",
+        "./infer-original-installation.mjs",
+        "./infer-physical-observation.mjs",
+        "./infer-raw-capture.mjs",
+        "./infer-raw-selection.mjs",
+        "./installed-model-originals.mjs",
+        "./local-account-config.mjs",
+        "./sqlite-checkpoint-journal.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-model.mjs",
-      "sha256": "ede7ac0cedd26883b63a499a088aac58f6a780063426cf5189a06f290891ae32",
+      "sha256": "3412344b15458fa7c9212e86038b0dc8ae7221b9abc4904114a26f6cc1008e38",
       "role": "physical-io",
       "exports": [
         "admitInstalledModelProvider",
         "admitInstalledModelProviderBinding",
+        "assertInstalledModelDefaultsAdoption",
+        "assertInstalledModelDefaultsPreparation",
         "installModelProviders",
         "installedModelEnvironment",
+        "prepareInstalledModelProviderDefaults",
         "readInstalledModelDependencies",
         "readInstalledModelExecution"
       ],
@@ -11426,6 +12052,25 @@
             "moon",
             "providerId",
             "physical"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertInstalledModelDefaultsAdoption",
+          "parameters": [
+            "provider",
+            "view",
+            "moon",
+            "providerId"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertInstalledModelDefaultsPreparation",
+          "parameters": [
+            "view",
+            "moon",
+            "providerId"
           ],
           "async": false
         },
@@ -11488,6 +12133,11 @@
         },
         {
           "name": "installModelProviders/installModelProviders#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/installModelProviders#4",
           "parameters": [
             "args"
           ],
@@ -11499,7 +12149,12 @@
           "async": false
         },
         {
-          "name": "installModelProviders/resolveTaskDefaults",
+          "name": "installModelProviders/resolveTaskDefaults/resolveTaskDefaults",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/resolveTaskDefaults/resolveTaskDefaults#2",
           "parameters": [
             "selectedModel",
             "taskMaxOutputTokens",
@@ -11508,16 +12163,85 @@
           "async": false
         },
         {
-          "name": "installModelProviders/resolveTaskDefaults/resolveTaskDefaults",
+          "name": "modelDefaultsCallbacks",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "modelDefaultsResolver",
+          "parameters": [
+            "moon",
+            "providerId",
+            "bindingOriginals",
+            "assertCurrent",
+            "receiver",
+            "reader",
+            "resolver",
+            "bindingReader",
+            "usageReader"
+          ],
+          "async": false
+        },
+        {
+          "name": "modelDefaultsResolver/resolveTaskDefaults",
+          "parameters": [
+            "selectedModel",
+            "taskMaxOutputTokens",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "installModelProviders/resolveTaskDefaults/resolveTaskDefaults#2",
+          "name": "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#2",
           "parameters": [
             "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledModelProviderDefaults",
+          "parameters": [
+            "moon",
+            "providerId",
+            "bindingOriginals",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledModelProviderDefaults/check/check",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledModelProviderDefaults/init:bindRegistration/init:bindRegistration",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledModelProviderDefaults/resolveTaskDefaults/resolveTaskDefaults",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledModelProviderDefaults/state/init:adopt/init:adopt",
+          "parameters": [
+            "runtime",
+            "id",
+            "source",
+            "current",
+            "installationCurrent"
           ],
           "async": false
         },
@@ -11654,7 +12378,6 @@
             "installModelProviders/installModelProviders#2",
             "installModelProviders/installModelProviders#3",
             "installModelProviders/requireEagerSdkStartup/requireEagerSdkStartup",
-            "installModelProviders/resolveTaskDefaults",
             "installModelProviders/resolveTaskDefaults/resolveTaskDefaults",
             "installModelProviders/resolveTaskDefaults/resolveTaskDefaults#2",
             "installedModelEnvironment",
@@ -11764,7 +12487,7 @@
               },
               {
                 "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "let defaultsOriginal, defaultsBounds, defaultsReadFailure;"
+                "anchor": "let original, bounds, readFailure;"
               }
             ],
             "synchronization": [
@@ -11804,7 +12527,7 @@
               },
               {
                 "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "if (defaultsReadFailure !== undefined) throw defaultsReadFailure.cause;"
+                "anchor": "if (readFailure !== undefined) throw readFailure.cause;"
               }
             ],
             "cancellation": [
@@ -11877,6 +12600,150 @@
               {
                 "path": "adapters/host-node/installed-model-defaults.actual.test.mjs",
                 "anchor": "test('actual Common failed profile read cannot replace original reader bounds or discard its refusal'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "assertInstalledModelDefaultsAdoption",
+            "assertInstalledModelDefaultsPreparation",
+            "installModelProviders/installModelProviders#4",
+            "modelDefaultsCallbacks",
+            "modelDefaultsResolver",
+            "modelDefaultsResolver/resolveTaskDefaults",
+            "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults",
+            "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#2",
+            "prepareInstalledModelProviderDefaults",
+            "prepareInstalledModelProviderDefaults/check/check",
+            "prepareInstalledModelProviderDefaults/init:bindRegistration/init:bindRegistration",
+            "prepareInstalledModelProviderDefaults/resolveTaskDefaults/resolveTaskDefaults",
+            "prepareInstalledModelProviderDefaults/state/init:adopt/init:adopt"
+          ],
+          "exports": [
+            "assertInstalledModelDefaultsAdoption",
+            "assertInstalledModelDefaultsPreparation",
+            "prepareInstalledModelProviderDefaults"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The private Host may prepare configuration defaults before it registers a"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "export function prepareInstalledModelProviderDefaults("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "return Object.freeze({value: original, resolved, binding, readUsage});"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "export async function prepareInstalledProjectModelTasks("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "preparedState.providerId !== providerId || preparedState.originals !== bindingSource"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "if (installedDefaults.get(provider) !== view) {"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "assertInstalledModelDefaultsAdoption(provider, task.providerDefaults, moon, task.providerId);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "const defaultsPreparations = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const retained = Object.freeze(tasks);"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "These preparation records, WeakMap associations, retained configuration Strings,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "const defaultsCallbacks = modelDefaultsCallbacks(moon);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "assertOriginals(runtime);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "spent = true;"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "if (readFailure !== undefined) throw readFailure.cause;"
+              },
+              {
+                "path": "adapters/host-node/model-task-candidate-binding.actual.test.mjs",
+                "anchor": "test('candidate adoption refuses copied/equal configuration and another runtime before Core installation'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "assertCurrent();"
+              },
+              {
+                "path": "adapters/host-node/model-task-candidate-binding.actual.test.mjs",
+                "anchor": "test('candidate files retain after-await current and pending original FD cleanup obligations'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "inventory. Candidate and installed views may overlap; their aliases and the"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "const nextBounds = retainModelDefaultsLimits(limits);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const bounds = snapshotLimits(limits);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "This connection neither acquires Model input nor issues startup, capacity,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "if (!candidate) return installedView(retained, originalsForRuntime);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/model-task-candidate-binding.actual.test.mjs",
+                "anchor": "test('actual Common Task candidates precede registration and retain the same defaults after adoption'"
+              },
+              {
+                "path": "adapters/host-node/model-task-candidate-binding.actual.test.mjs",
+                "anchor": "test('bound candidate currentness keeps both original project and actual registration fences'"
               }
             ]
           }
@@ -18774,6 +19641,997 @@
               {
                 "path": "src/remote_transfer_abi/pkg.generated.mbti",
                 "anchor": "pub fn transfer_active_at(@remote_transfer.RemoteTransferRequest, Int64) -> Bool"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-common/local-signing-metadata.mjs",
+      "sha256": "4fd8fd6205507a38c02f4a32198a5fcb56abbafb7a58d8d54e6f2019d6e9f846",
+      "exports": [
+        "createLocalSigningMetadata"
+      ],
+      "operations": [
+        {
+          "name": "createLocalSigningMetadata",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/active/active",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/createLocalSigningMetadata",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/createLocalSigningMetadata#2",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/createLocalSigningMetadata#3",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/createLocalSigningMetadata#4",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/createLocalSigningMetadata#5",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/init:admitGrant/init:admitGrant",
+          "parameters": [
+            "wire",
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/init:admitUse/init:admitUse",
+          "parameters": [
+            "grantToken",
+            "wire",
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/init:checkUseBinding/init:checkUseBinding",
+          "parameters": [
+            "token",
+            "trustedNowMilliseconds",
+            "revoked",
+            "expectedScope"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/init:grantLimits/init:grantLimits",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/init:originalScope/init:originalScope",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/init:prepareUse/init:prepareUse",
+          "parameters": [
+            "grantToken",
+            "useId",
+            "trustedNowMilliseconds",
+            "usedCount",
+            "revoked",
+            "expectedScope"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/init:retireMetadataView/init:retireMetadataView",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/init:useProjection/init:useProjection",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/original/original",
+          "parameters": [
+            "map",
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/retain/retain",
+          "parameters": [
+            "map",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningMetadata/time/time",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Credential metadata Owner, Node opaque view and original Host lifetime",
+      "rationale": "Delegates all grant/use meaning to Credential; view-local references are not current authority or a durable claim",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createLocalSigningMetadata",
+            "createLocalSigningMetadata/active/active",
+            "createLocalSigningMetadata/call/call",
+            "createLocalSigningMetadata/createLocalSigningMetadata",
+            "createLocalSigningMetadata/createLocalSigningMetadata#2",
+            "createLocalSigningMetadata/createLocalSigningMetadata#3",
+            "createLocalSigningMetadata/createLocalSigningMetadata#4",
+            "createLocalSigningMetadata/createLocalSigningMetadata#5",
+            "createLocalSigningMetadata/init:admitGrant/init:admitGrant",
+            "createLocalSigningMetadata/init:admitUse/init:admitUse",
+            "createLocalSigningMetadata/init:checkUseBinding/init:checkUseBinding",
+            "createLocalSigningMetadata/init:grantLimits/init:grantLimits",
+            "createLocalSigningMetadata/init:originalScope/init:originalScope",
+            "createLocalSigningMetadata/init:prepareUse/init:prepareUse",
+            "createLocalSigningMetadata/init:retireMetadataView/init:retireMetadataView",
+            "createLocalSigningMetadata/init:useProjection/init:useProjection",
+            "createLocalSigningMetadata/methods/methods",
+            "createLocalSigningMetadata/original/original",
+            "createLocalSigningMetadata/retain/retain",
+            "createLocalSigningMetadata/time/time",
+            "fail/fail"
+          ],
+          "exports": [
+            "createLocalSigningMetadata"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "The Node Host's private Local-signing metadata view delegates exact grant/use"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "export function createLocalSigningMetadata(moon)"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
+                "anchor": "pub fn client_local_signing_use_prepare("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "fail('ForeignLocalSigningMetadata')"
+              },
+              {
+                "path": "src/remote_credential/local_signing_use.mbt",
+                "anchor": "current_scope != grant.scope"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "let grants = new WeakMap(), scopes = new WeakMap(), uses = new WeakMap();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "It does not stop signing, forget a pending claim, acknowledge key"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "Reflect.apply(methods[name], moon, args)"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Callbacks and their runtime receiver are captured once."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "fail('LocalSigningMetadataRuntimeUnavailable')"
+              },
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "fail('LocalSigningMetadataRetired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Account/issuer, request/Checkpoint/Run, durable original-use and outcome duties"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "independently. Its private maps/tokens/callbacks, decoded metadata and writer"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "view-local references; copied or foreign references cannot cross the seam."
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "localSigningMetadata: () => createLocalSigningMetadata(moon)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-signing-metadata.integration.test.mjs",
+                "anchor": "same actual Credential Owner preserves independent signing grant"
+              },
+              {
+                "path": "adapters/host-node/local-signing-metadata.integration.test.mjs",
+                "anchor": "the full expected original purpose/key/Checkpoint/Run/request scope"
+              },
+              {
+                "path": "adapters/host-node/local-signing-metadata.integration.test.mjs",
+                "anchor": "retiring only the metadata view refuses escaped references"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-common/installation-preparation-fields.generated.mjs",
+      "sha256": "a9e983c76fb30c3081a1b3a7b5d719845c9af6e471007555264dde7ee861b71e",
+      "exports": [
+        "installationPreparationRequestKeys",
+        "installationPreparationSubjectKeys",
+        "installationPreparationSubjectKinds"
+      ],
+      "operations": [],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "Existing Credential installation-metadata DATA Owner and Node original-reference view",
+      "rationale": "Typed original DATA projection only; operational Host/issuer/current/funding and physical custody stay separate",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "installationPreparationRequestKeys",
+            "installationPreparationSubjectKeys",
+            "installationPreparationSubjectKinds"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The private Node metadata view captures the selected Common callbacks and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "export function createInstallationPreparationMetadata(moon)"
+              },
+              {
+                "path": "scripts/generate-credential-scope-binding.mjs",
+                "anchor": "export function renderInstallationPreparationBridge("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "fail('ForeignInstallationPreparationMetadata')"
+              },
+              {
+                "path": "src/remote_credential/installation_preparation_grant.mbt",
+                "anchor": "physical_equal(original.subject, actual.subject) && original == actual"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "let subjects = new WeakMap(), scopes = new WeakMap(), grants = new WeakMap();"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "the view cuts its own six maps' original-value references"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "Reflect.apply(methods[name], moon, args)"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The view performs no asynchronous work, authentication or durable claim."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "fail('InstallationPreparationRuntimeUnavailable')"
+              },
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "fail('InstallationPreparationMetadataRetired')"
+              },
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "Object.getOwnPropertyDescriptors(value)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "request, original key/use/Unknown responsibility, journal claim or escaped"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "their actual escaped lifetime; WeakMap/retirement/GC is not a byte refund or"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "The view's records, six maps, aliases, callbacks/receiver, field"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-credential-scope-binding.mjs",
+                "anchor": "export function checkInstallationPreparationBridge("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "installationPreparationMetadata: () => createInstallationPreparationMetadata(moon)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installation-preparation-metadata.integration.test.mjs",
+                "anchor": "metadata actual Common subject scope and grant preserve independent originals"
+              },
+              {
+                "path": "adapters/host-node/installation-preparation-metadata.integration.test.mjs",
+                "anchor": "metadata equal admitted subject DATA cannot replace the original control scope"
+              },
+              {
+                "path": "scripts/installation-preparation-binding.test.mjs",
+                "anchor": "metadata typed bridge derives constructor and projection together from the same Owner"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-common/installation-preparation-metadata.mjs",
+      "sha256": "c8187ef427d3afd103f2b731046af6b75bc09e81da462f39afb173f1c1e0d30c",
+      "exports": [
+        "createInstallationPreparationMetadata"
+      ],
+      "operations": [
+        {
+          "name": "createInstallationPreparationMetadata",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/active/active",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/createInstallationPreparationMetadata",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/own/own",
+          "parameters": [
+            "map",
+            "token",
+            "subject"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/rawScope/rawScope",
+          "parameters": [
+            "token",
+            "subject"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/retain/retain",
+          "parameters": [
+            "map",
+            "value",
+            "subject"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/scopeFields/scopeFields",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/subjectFields/subjectFields",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:admitSubject/init:admitSubject",
+          "parameters": [
+            "wire",
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject",
+          "parameters": [
+            "subject"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#2",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#4",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#5",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#6",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#7",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#8",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#9",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:admitJson/init:admitJson",
+          "parameters": [
+            "wire",
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:admitSignatureEnvelope/init:admitSignatureEnvelope",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:admitSignatureEnvelope/init:admitSignatureEnvelope/init:admitSignatureEnvelope",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:admitUse/init:admitUse",
+          "parameters": [
+            "token",
+            "wire",
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:authorizeUse/init:authorizeUse",
+          "parameters": [
+            "token",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:prepare/init:prepare",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:prepareSignatureEnvelope/init:prepareSignatureEnvelope",
+          "parameters": [
+            "token",
+            "key",
+            "signature"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:prepareUse/init:prepareUse",
+          "parameters": [
+            "token",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:projection/init:projection",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:scopeFields/init:scopeFields",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/registerGrant/registerGrant",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:prepareScope/init:prepareScope",
+          "parameters": [
+            "subject",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:prepareScope/init:prepareScope/init:prepareScope",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:prepareSubject/init:prepareSubject",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:prepareSubject/init:prepareSubject/args/args",
+          "parameters": [
+            "key",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/init:retireMetadataView/init:retireMetadataView",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/view",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstallationPreparationMetadata/view/view#2",
+          "parameters": [
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "data",
+          "parameters": [
+            "value",
+            "keys"
+          ],
+          "async": false
+        },
+        {
+          "name": "data/data",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "data/data#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "fields",
+          "parameters": [
+            "values",
+            "keys",
+            "kinds"
+          ],
+          "async": false
+        },
+        {
+          "name": "fields/fields",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fields/fields#2",
+          "parameters": [
+            "key",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "integer/integer",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "invalid/invalid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "stringProjection",
+          "parameters": [
+            "value",
+            "length"
+          ],
+          "async": false
+        },
+        {
+          "name": "stringProjection/stringProjection",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "time/time",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./installation-preparation-fields.generated.mjs",
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Credential installation-metadata DATA Owner and Node original-reference view",
+      "rationale": "Typed original DATA projection only; operational Host/issuer/current/funding and physical custody stay separate",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInstallationPreparationMetadata",
+            "createInstallationPreparationMetadata/active/active",
+            "createInstallationPreparationMetadata/call/call",
+            "createInstallationPreparationMetadata/createInstallationPreparationMetadata",
+            "createInstallationPreparationMetadata/methods/methods",
+            "createInstallationPreparationMetadata/own/own",
+            "createInstallationPreparationMetadata/rawScope/rawScope",
+            "createInstallationPreparationMetadata/retain/retain",
+            "createInstallationPreparationMetadata/scopeFields/scopeFields",
+            "createInstallationPreparationMetadata/subjectFields/subjectFields",
+            "createInstallationPreparationMetadata/text/text",
+            "createInstallationPreparationMetadata/view/init:admitSubject/init:admitSubject",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#2",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#3",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#4",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#5",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#6",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#7",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#8",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/control#9",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:admitJson/init:admitJson",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:admitSignatureEnvelope/init:admitSignatureEnvelope",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:admitSignatureEnvelope/init:admitSignatureEnvelope/init:admitSignatureEnvelope",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:admitUse/init:admitUse",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:authorizeUse/init:authorizeUse",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:prepare/init:prepare",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:prepareSignatureEnvelope/init:prepareSignatureEnvelope",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:prepareUse/init:prepareUse",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:projection/init:projection",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/control/init:scopeFields/init:scopeFields",
+            "createInstallationPreparationMetadata/view/init:forSubject/init:forSubject/registerGrant/registerGrant",
+            "createInstallationPreparationMetadata/view/init:prepareScope/init:prepareScope",
+            "createInstallationPreparationMetadata/view/init:prepareScope/init:prepareScope/init:prepareScope",
+            "createInstallationPreparationMetadata/view/init:prepareSubject/init:prepareSubject",
+            "createInstallationPreparationMetadata/view/init:prepareSubject/init:prepareSubject/args/args",
+            "createInstallationPreparationMetadata/view/init:retireMetadataView/init:retireMetadataView",
+            "createInstallationPreparationMetadata/view/view",
+            "createInstallationPreparationMetadata/view/view#2",
+            "data",
+            "data/data",
+            "data/data#2",
+            "fail/fail",
+            "fields",
+            "fields/fields",
+            "fields/fields#2",
+            "integer/integer",
+            "invalid/invalid",
+            "stringProjection",
+            "stringProjection/stringProjection",
+            "time/time"
+          ],
+          "exports": [
+            "createInstallationPreparationMetadata"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The private Node metadata view captures the selected Common callbacks and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "export function createInstallationPreparationMetadata(moon)"
+              },
+              {
+                "path": "scripts/generate-credential-scope-binding.mjs",
+                "anchor": "export function renderInstallationPreparationBridge("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "fail('ForeignInstallationPreparationMetadata')"
+              },
+              {
+                "path": "src/remote_credential/installation_preparation_grant.mbt",
+                "anchor": "physical_equal(original.subject, actual.subject) && original == actual"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "let subjects = new WeakMap(), scopes = new WeakMap(), grants = new WeakMap();"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "the view cuts its own six maps' original-value references"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "Reflect.apply(methods[name], moon, args)"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The view performs no asynchronous work, authentication or durable claim."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "fail('InstallationPreparationRuntimeUnavailable')"
+              },
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "fail('InstallationPreparationMetadataRetired')"
+              },
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "Object.getOwnPropertyDescriptors(value)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "request, original key/use/Unknown responsibility, journal claim or escaped"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "their actual escaped lifetime; WeakMap/retirement/GC is not a byte refund or"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "The view's records, six maps, aliases, callbacks/receiver, field"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-credential-scope-binding.mjs",
+                "anchor": "export function checkInstallationPreparationBridge("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "installationPreparationMetadata: () => createInstallationPreparationMetadata(moon)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installation-preparation-metadata.integration.test.mjs",
+                "anchor": "metadata actual Common subject scope and grant preserve independent originals"
+              },
+              {
+                "path": "adapters/host-node/installation-preparation-metadata.integration.test.mjs",
+                "anchor": "metadata equal admitted subject DATA cannot replace the original control scope"
+              },
+              {
+                "path": "scripts/installation-preparation-binding.test.mjs",
+                "anchor": "metadata typed bridge derives constructor and projection together from the same Owner"
               }
             ]
           }

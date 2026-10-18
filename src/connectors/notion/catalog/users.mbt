@@ -365,3 +365,10 @@ pub fn notion_user_list_schema_wire(
     }
   }
 }
+
+///|
+/// The original reader rejects duplicate ids within and across response pages.
+/// This declaration does not issue a Reference or mutation identity.
+pub fn notion_user_list_facts_wire() -> String {
+  "{\"relation_keys\":{\"candidate_keys\":[[\"id\"]]}}"
+}

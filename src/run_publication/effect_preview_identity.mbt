@@ -467,9 +467,51 @@ fn emit_authored_effect_preview(
               member_cids is Some(cids) {
               @encode.string_value(writer, cids[member_index])
             } else if member_name == "row_order" {
+              // Changes retain source/Plan enumeration. Dispatch order is a
+              // separate canonical inventory of the same original rows.
+              let kind = @json.object_field(effect, "effect_kind")
+              let target_order = if kind is Some(@json.String("update")) ||
+                kind is Some(@json.String("upsert")) ||
+                kind is Some(@json.String("delete")) {
+                let targets : Array[String] = []
+                for change in changes {
+                  guard @json.object_field(change, "target_row_identity")
+                    is Some(target) else {
+                    return Err(InvalidMember)
+                  }
+                  targets.push(
+                    @json.stringify_value(
+                      target, max_wire_bytes, max_nodes, max_depth,
+                    ),
+                  )
+                }
+                match
+                  derive_effect_target_row_inventory(
+                    targets,
+                    changes.length(),
+                    max_wire_bytes,
+                    max_nodes,
+                    max_depth,
+                  ) {
+                  Ok(order) => Some(order)
+                  Err(issue) => return Err(issue)
+                }
+              } else {
+                None
+              }
               @encode.begin_array(writer)
-              for row in rows[member_index] {
-                @encode.string_value(writer, row)
+              match target_order {
+                Some(order) =>
+                  for source_index in order {
+                    @encode.string_value(
+                      writer,
+                      rows[member_index][source_index],
+                    )
+                  }
+                None =>
+                  for row in rows[member_index] {
+                    @encode.string_value(writer, row)
+                  }
               }
               @encode.end_array(writer)
             } else if member_name == "changes" {

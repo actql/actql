@@ -18,6 +18,7 @@ This document owns capture, admission, run-identity-model, checkpoint-invariants
 
 - [Terms](#execution-terms)
 - [Run execution](#effects-and-execution)
+- [Scoped initial Node control preparation](#initial-node-control-preparation)
 - [Managed retained execution profile](#managed-retained-execution)
 - [Capture, execution, and replay](#capture-and-replay)
 - [Program and stage execution](#stage-execution)
@@ -99,11 +100,49 @@ Resolution and dispatch-time revalidation rules ([Checkpoints and Resolutions](#
 not undo a successful Run or authorize replay of its Effects; retry delivery
 against the materialized Results instead.
 
+<a id="initial-node-control-preparation"></a>
+
+### Scoped initial Node control preparation
+
+The selected trusted Node startup may include bounded original Project,
+configuration and Task intake, normalization and Host preparation records in
+its finite initial control scope. This is an explicit scoped implementation
+assumption, not a universal V8/RSS lease or adoption of a Native arena.
+A separate per-object V8 physical lease is not required merely to initialize
+this declared scope. Numerical release profiles remain independently selected.
+
+<!-- requirement-block: initial-node-control.original-before-work -->
+The existing Host/Resource installer MUST issue an installation-only nominal
+operational admission from the actual selected startup, source, backend,
+recipe, Host, installation and generation before the covered work, rather than
+issuing or reconstructing it from DATA, runtime references, a Boolean, a CID,
+a Ledger or a future Run reservation.
+
+<!-- requirement-block: initial-node-control.complete-selected-envelope -->
+Admission MUST cover the complete same-phase simultaneous holdings and overlap
+of the selected raw and decoded inputs, parser and normalizer intermediates,
+original records, closures, actual module/runtime/library domains and partial
+failure custody, refusing an unbounded or unaccounted selected component and
+never retrospectively funding an earlier import, discovery or installation.
+
+<!-- requirement-block: initial-node-control.scope-separation -->
+This initial admission MUST NOT supply capacity or authority for metadata HTTP,
+Source acquisition, Result handling, a business Run, Model invocation, Content
+or its physical driver, or an external VM; each retains its independently
+admitted original supplier, scope and current authorization.
+
+<!-- requirement-block: initial-node-control.retained-custody -->
+Preparation aliases MUST remain accounted to the same original lifetime until
+real owning cleanup acknowledgement or an explicitly admitted transfer accounts
+for overlapping responsibility, preserving current checks, child-first cleanup
+and uncertain duties without treating close initiation, Promise settlement,
+reference retirement or garbage collection as physical acknowledgement.
+
 <a id="managed-retained-execution"></a>
 
 ### Managed retained execution profile
 
-<!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json# sha256:4fbaedc48f7386a6b379b8190d9526c8950ea505defe24115baad2cce7810077 -->
+<!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json# sha256:0c727bf78c1ab4cb1a62243e35ee49cd841e49b1fa3d66aa2f381f4222b17573 -->
 <!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json#/schemas/identity_status sha256:6e7214696a897447a4e6210f97dfc60530ba98353fc7915082fb3a02c1a23352 -->
 <!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json#/schemas/physical_manifest sha256:335f62ce6abd4d68cc79130d3e2ca3af800d03ffc40d359f5af1d856e34fd850 -->
 
@@ -664,7 +703,7 @@ two transfers are not hidden or conflated with logical output rows.
 
 ### Fixed-input filter/select Compute capacity
 
-<!-- machine-import: ../../spec/contracts/actql-fixed-compute-capacity.json# sha256:65d84800fb462f842e4ba38118c3e23b2441a7d1620fbf979705439d8b9dad8d -->
+<!-- machine-import: ../../spec/contracts/actql-fixed-compute-capacity.json# sha256:51f1dbacf7c4646d53031b8e4ec516b032e684c6f3bdd8a59fdd90adc26a43e4 -->
 The [fixed-input capacity profile](../../spec/contracts/actql-fixed-compute-capacity.json)
 applies to filter followed by select over one completed, retained ProducerRead.
 It clarifies the application of the existing consumer capacity law, and fixes

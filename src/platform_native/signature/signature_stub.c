@@ -662,3 +662,5 @@ cleanup:
   free(scratch);
   return result;
 }
+
+#include "key_generation.h"

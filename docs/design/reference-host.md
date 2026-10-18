@@ -114,6 +114,43 @@ Replacing them with storage-independent transition guarantees requires a
 separately reviewed semantic change and failure/concurrency evidence.
 
 
+## Initial Node control and preparation
+
+The selected Node startup may admit bounded original Project, configuration and
+Task intake and Host preparation records in its explicitly declared initial
+control lifetime. The [execution boundary](../spec/execution.md#initial-node-control-preparation)
+owns this scope. It is not confined to fixed preload wrappers, but it is also
+not a general V8/RSS lease, a Native arena adopted by JS, or a numerical release
+profile. A separate physical lease for each V8 object is not a prerequisite to
+initializing this declared trusted control scope.
+
+The actual private bootstrap issues its installation-only nominal admission
+before the covered work. It retains the selected startup, source, backend,
+recipe and same Host/installation/generation originals. An eight-reference
+runtime view, parsed bounds, matching source digest, caller Boolean or Ledger
+cannot issue that admission. Earlier imports and Project discovery cannot be
+charged retrospectively when a Host is associated later.
+
+The same-phase envelope includes raw read backing and lookahead, concatenation
+and strict decoding, retained text and parser cursors, normalization writers,
+preimages and hash workspace, original configuration/registry/Task/default
+records, indices, arrays, closures and escaped aliases. Selected module images,
+runtime internals and libraries remain explicit implementation domains, not
+zero-cost constants. A bound on input text alone does not cover these overlaps,
+and unselected callbacks or libraries do not inherit coverage.
+
+Preparation material remains with that original lifetime through partial
+construction and uncertain cleanup. The existing Host shutdown retains each
+original child and its cleanup receiver; successful sibling cleanup cannot
+retire another child's duty. An explicit transfer accounts for simultaneous
+source and destination responsibility before cutting source aliases. A local
+view's retirement or Promise completion is not a physical acknowledgement.
+
+This admission has no conversion to metadata HTTP, Source, Result, business Run,
+Model invocation, Content/driver or external-VM capacity or authority. Their
+existing Resource suppliers and current authorization remain separate. The
+initial trust boundary introduces no Owner, Ledger, queue or scheduler.
+
 ## Installed Effect cleanup
 
 The installed Effect Site retains target-read authorization, input pins,
@@ -151,3 +188,49 @@ account deny always prevents dispatch. Project configuration never grants
 itself authority, and an invalid configured policy never falls back to these
 defaults. Mock fixture replacement remains explicit and cannot substitute
 fixture credentials or permissions into a real connection.
+
+### Purpose-confined initial Local signing issuer
+
+The original explicit Local initialization/adoption may retain an internal
+issuance responsibility for the same physical Store and installed key
+generation. This is a narrow operational admission inside the existing trusted
+Host/installation and Credential boundary. It is not an authority inferred from
+Host adoption, parsed signer metadata, public-key identity or possession of a
+PEM, and it does not change the explicit Native issuer-file/Account route.
+
+The initialization/adoption originals must authenticate the actual issuer
+identity and an explicit finite signing expiry/use policy. Missing originals
+stay unavailable, including on cold open. Do not derive a policy from the
+Submission epoch, assume a use count or create a synthetic issuer selection.
+Named selection cannot silently become the default. The machine-user identity
+comes from the actual trusted installation/current actor, not a caller label.
+
+The selected new default policy allows one physical use for an exact
+purpose-bound operation and at most 300000 milliseconds from the first durable
+issue's actual trusted sample. The existing packaged default-asset generator
+supplies a distinct closed original, not an execution profile. Retain it at
+explicit first initialization. Common formats the issuer identity as
+`local-signing/` plus that original initialization intent CID, not a later Host
+CID or a new identity domain. These DATA projections cannot authenticate the
+original installation or create an operational issuer.
+
+The first durable issue persists its actual sample and absolute expiry, capped
+by any earlier original key/authorization validity. Checked time arithmetic
+refuses invalid/uncertain/expired observations and overflow. Reopen, history,
+repeated answer and Unknown do not renew that original. A missing legacy policy
+cannot be backfilled by calling the packaged getter. Configured named signers
+do not use this default-only policy.
+
+Confine issuance to the existing original request/Submission/Run/attempt/unit,
+Checkpoint/kind, purpose, key configuration/generation, preimage and finite use.
+Current actor, Reviewer/Host-attestation purpose, Run read, Account and key/sign
+authority remain independent requirements. This connection grants no generic
+credential issue, Source/Model/Effect or dispatch authority. Authenticate and
+persist the original grant and durably claim the original use before signing,
+with current rechecks around callbacks. Uncertain commits/signatures retain the
+same original duty; no replacement key/grant/use, re-signing or resend. Recovery
+and saved-outcome reads cannot initialize missing originals or issue again.
+
+The [Local signing contract](../../spec/contracts/local-signing-credential.md)
+owns this distinction and the unchanged grant/use bytes. A metadata/key
+component test is not evidence of initialized default or installed approval.

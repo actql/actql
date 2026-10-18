@@ -81,6 +81,58 @@ default. An explicit Task token count replaces a default, even if larger;
 independent hard ceilings still belong to original bound execution admission.
 Current settings do not rewrite canonical Task identity or saved Run settings.
 
+The existing bounded Run-materials codec retains the normalized Task inside
+its original Environment and the original selected INFER execution contract.
+The dedicated installed-INFER reader checks that same saved Program and
+parameters, reconstructs the ordinary installed graph, and re-admits its saved
+prepared invocation, authorization and complete Run definition CID. It does not
+consult a current project registry or repeat default selection. Projection is
+limited to the codec's existing single installed, non-serialized INFER form;
+custom dependency graphs refuse before projection rather than emitting an
+unrestorable bundle. Other compositions retain their distinct original-material
+paths; this is not a language restriction or permission to discard them.
+
+The reconstructed preparation and graph are a new in-process nominal pair
+which must be used together. A caller cannot graft the old graph onto the new
+preparation, use an equal CID as physical custody, or adopt these materials as
+current authority. The original request/restrictions, provider registration,
+Store and Journal custody, resource admission, fixed input and current dispatch
+gates remain mandatory at the physical consumer. This codec supplies none of
+those permissions or cleanup acknowledgements. Ordinary Values and Source
+readers keep their previous INFER-field refusal and absent-field encoding.
+
+The private Node binding projects the Program from the actual compiled owner
+and admits the retained check Environment and supplied Parameter Values through
+that same codec. Its first-admission ticket is local to the existing runtime
+control; copied DATA, another control or another preparation cannot supply it.
+It captures the same opaque original request after Common checks both Program
+and Parameter Values. Another request, even with those same two CIDs, cannot
+consume this first-admission ticket.
+The request Journal stores the material bytes and original Result data policy
+in its existing admission-evidence row, atomically with the same Run and custody
+commit. Duplicate acceptance requires identical originals; a legacy missing
+original is not backfilled. The existing aggregate evidence bound also covers
+these bytes, rather than assigning a separate uncharged allowance.
+
+Reading those saved originals reconstructs the preparation, graph, compiled
+admission and original Run as one pair and separately re-admits the saved Result
+policy, checking Program and Parameter Values against the request re-admitted
+from the same original journal row. The reader never selects current Task defaults or issues a replacement
+authorization. That returned pair is not itself Host restoration: the physical
+caller must still bind its original submitted intent, fixed input/Store/Journal
+custody and independently current installation, authority and resource gates.
+The existing stop, Unknown and cleanup obligations are unchanged.
+
+Projection and admission overlap the retained Environment/Program/parameters,
+execution-contract text, codec output, parsed cursors, checked compilation and
+original admission evidence. Rechecking the installed graph is bounded work,
+not free planning. Those holdings and decode/compile workspace belong to the
+existing Host/Run phase inventory; a material CID supplies no numerical lease.
+The Node ticket, its WeakMap entry, saved material/Result-policy Strings, journal
+JSON/UTF-8 and SQLite copies, parsed saved input, restored compilation, returned
+pair and concurrent original/reader workspace belong to that same inventory.
+Freezing the returned DATA or forgetting a local ticket is not physical release.
+
 The public input/output field maps normalize through the existing ValueContract
 Owner. Their checked schema, not the shorthand text, supplies schema identity.
 Neither normalization path manufactures missing data-handling policy, a prompt,
@@ -88,6 +140,33 @@ an installed Provider, a request reservation or mock answers. Candidate DATA can
 precede actual Host registration where the original factory needs the resulting
 Task identity, but the existing original registration and Task admission must
 then bind the same captured configuration/revision, not a replacement.
+
+The private Host may prepare configuration defaults before it registers a
+Task-specific physical assembler. This stage captures the same three original
+configuration records and runtime and uses the existing Common reader once.
+It has no Provider or invocation callback. Its project Task view exposes checked
+candidate materials, but not an installed check-Environment projection.
+
+The later physical registration must explicitly adopt that exact frozen
+configuration snapshot through the same preparation. Copied or equal-wire
+records, another runtime/provider and a second installation are refused before
+creating a Core Provider. The installed project view retains the same Task,
+selection, normalization and Common defaults rather than rereading files or
+reissuing their canonical identities. It projects the ordinary Environment only
+after checking the actual installed Provider map and that original adoption.
+Both the initial configuration-current predicate and the actual registration's
+new-borrow/current predicate remain required. The latter must retain the exact
+initial Host predicate, not another closure with apparently equivalent checks.
+Ordinary legacy registration and
+its single-attempt defaults reader retain their existing behaviour.
+
+These preparation records, WeakMap associations, retained configuration Strings,
+reader callbacks, Task views and binding closures belong to the same Host
+inventory. Candidate and installed views may overlap; their aliases and the
+original decode/normalization workspace must be included together. A spent
+registration cannot move the candidate to another installation after failure.
+This connection neither acquires Model input nor issues startup, capacity,
+handling truth, egress, a resource loan, send authority or cleanup acknowledgment.
 
 Records, per-model generation values, selection references, bounded parser and
 decoder workspace, temporary name index, normalized wire and checked Contract
@@ -153,6 +232,38 @@ This representation does not advertise normal numerical startup, an installable
 public Provider package or live Model support. Host-specific layout and all
 simultaneous holdings still require the original resource supplier. Public
 execution and package acceptance remain separate from private registration.
+
+### Per-request raw persistence binding
+
+The original Common execution prepares its finite request/cursor inventory
+before issuing the complete prepared CallSet. A selected raw SDK cursor retains
+one synchronous callback during its own preflight constructor; one execution
+can therefore retain several such callbacks. The installed continuation binds
+all of them once to its same original raw registration and selected Store. A
+private nominal factory is consumed during that synchronous binding and gives
+each request a distinct existing single-Call persistence port. Each port still
+checks its actual Call against Common's registration and refuses another Call
+or raw object. This is adapter projection, not another slot scheduler, send
+gate, registration or Call. A directly supplied legacy persistence function
+keeps its single-Call semantics.
+
+The original preparation envelope must cover the callback-reference array and
+per-preflight setter/cell overlap before preparation. It also covers the
+one-shot factory descriptor and constructor workspace, each child port and
+every retained holding reference: the count is the complete prepared inventory,
+not the active window. The factory drops its original captures after the
+synchronous attempt; escaped constructor callbacks cannot mint more ports.
+Each child keeps its own raw/Store/read cleanup, and an unstarted or retired
+child cannot retire a sibling. The parent keeps all original holding aliases
+until Common confirms the entire operation's cleanup; dropping these aliases
+is not Store data deletion, GC, capacity release or a physical ACK. Neither the
+later CallSet nor a successful binding supplies that funding. Copied/foreign persistence
+still refuses before any callback. A partial binding failure is one-shot: it
+cannot retry already bound children, and unbound cursors remain with Common's
+same cleanup census. The auxiliary callbacks are dropped after the binding
+attempt or original cleanup, without claiming raw, SDK, Store or physical
+retirement. A directly supplied legacy callback retains its exclusive route;
+it cannot mix with deferred per-request callbacks.
 
 ## Public Task originals and applicable handling
 
@@ -244,7 +355,72 @@ child duties complete; Unknown or pending child cleanup retains responsibility.
 This connection supplies static checked materials, not execution dependencies,
 same-Run recovery, a physical Model supplier, permission or whole-phase funding.
 
+### Original INFER materials in the installed Host
+
+First admission of the ordinary single installed INFER graph captures the
+Environment and serialized Parameter Values actually used by its preparation.
+The existing preparation membership retains these immutable original inputs;
+current project/provider defaults are not substituted when issuing its saved
+Run materials. The opaque first-admission ticket enters the existing request
+Journal transaction with the same prepared/authorization evidence and Run.
+
+After the original Model input custody is authenticated, the Host reads the
+request identity, Definition and material evidence from that same Journal.
+The existing Common inverse reconstructs and checks the entire saved Run. Its
+original preparation, compiled admission and graph stay together in the same
+Host preparation membership. A private restored-membership index rejects a
+copied bundle; it does not create a second execution Owner or a resume permit.
+Planning uses the original admission and Definition without issuing another
+Run or extending its lifetime. The Model selection borrows that same graph's
+original execution contract; current Provider/dependency, Account, egress,
+physical-input, reservation, claim, cancellation and cleanup gates remain.
+
+Other live graph profiles retain their existing first-admission behavior, but
+missing original single-graph materials are not permission to reconstruct an
+ordinary cold continuation from current configuration. Legacy missing evidence
+and unsupported durable graph forms remain unavailable rather than silently
+acquiring a new original. Effect continuation retains its distinct original
+compilation and existing custody path.
+
+The preparation membership's Environment/Parameter snapshot, restored bundle
+reference, private restored-membership backing, compiled/prepared/graph/Run
+references, serialized material and Result policy, and Journal decode/UTF8/
+SQLite copies overlap the original retained Model input and cleanup duties.
+They belong to the existing Host/Run phase inventory; weak membership and
+reference retirement are neither zero cost, GC evidence nor physical ACK.
+
 ### Original project profile choice
+
+#### Original mock answer materials
+
+The existing Model Owner admits the selected `task`/`answers` document against
+the same original public Task declaration's output Contract. `default` and
+every `by_key` value, including unused entries, are checked under aggregate
+value node/text and document/work limits. Key labels remain exact data; this
+admission neither establishes input-key uniqueness nor selects an answer for a
+request. Empty declared answers remain empty, not an invented default. Equal
+Task identifiers, copied inventories and retired originals cannot replace the
+same declaration/inventory pair. Escaped checked values retain their own
+Contract references after inventory retirement.
+
+The private Node installation reader acquires only the original selected
+profile's named answer files and their registered Task files. Task locators
+are relative to the original registry; answer locators are relative to the
+original project configuration. The same captured runtime, project/profile
+pair and currentness callback survive each awaited read/close. Replacing a file
+does not rewrite a retained original. Read/close failure keeps the existing
+original-FD cleanup carrier and does not retry the read.
+
+All wires, source/decoded trees, typed default/entry values, exact key strings,
+project/profile/Task references, selection traversal, reader buffers and
+callback/view closures overlap until their original retirement. The Host funds
+that complete inventory independently; finite bounds are not funding. Managed
+retirement drops these aliases only, not escaped values, physical cleanup or
+capacity. Original file acquisition/admission is not installation of mock
+records, a Model invocation, policy/default resolution, a Provider grant,
+durable Run adoption or a supported complete mock execution profile. Existing
+unsupported Host profile entry points continue to refuse until those suppliers
+are connected.
 
 The same project configuration Owner selects an explicit profile override or
 the original project's default without changing either original. Selection

@@ -30,6 +30,8 @@ fn select_native_local_configuration(
   names : Array[String],
   managed_path : String?,
   crypto : @crypto.Library,
+  custody? : NativeLocalAdoptionOpenFailure? = None,
+  root_opening? : NativeLocalAdoptionRootOpening = LegacyPrivateRoots,
 ) -> Result[NativeLocalConfigurationSelection, NativeLocalAdoptionIssue] {
   if names.length() > 8 {
     return Err(ConfigurationLimit)
@@ -59,9 +61,13 @@ fn select_native_local_configuration(
       if path.length() > 4096 {
         return Err(InvalidInput)
       }
-      let root = match @filesystem.open_private_root(path) {
+      let root = match
+        local_adoption_open_private_root(path, custody, root_opening~) {
         Ok(value) => value
-        Err(issue) => return Err(Filesystem(issue))
+        Err(issue) => return Err(issue)
+      }
+      if custody is Some(original) {
+        original.managed = Some(root)
       }
       let ownership = match root.private_ownership() {
         Ok(value) => value

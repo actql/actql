@@ -20,6 +20,8 @@ pub fn bind_installed_arena_live_channel_child_reply(InstalledArenaHost, Install
 
 pub fn bind_installed_arena_live_channel_reply(InstalledArenaHost, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[InstalledArenaHost, InstalledArenaDomain], Int64, Int64, Int64) -> InstalledArenaLiveChannelReply
 
+pub fn bind_installed_local_host_resources_reply(InstalledArenaHost, InstalledArenaOriginalRead, InstalledArenaSqliteLibrary) -> InstalledArenaLocalHostResourcesReply
+
 pub fn borrow_installed_arena_backing_reply(InstalledArenaHost) -> InstalledArenaBackingReply
 
 pub fn capacity_installed_sqlite_lookup_reply(InstalledArenaHost, InstalledArenaSqliteLookup, String, String) -> InstalledArenaSqliteDatabaseReply
@@ -80,6 +82,8 @@ pub fn initialize_installed_sqlite_database_reply(InstalledArenaHost, InstalledA
 
 pub fn insert_installed_sqlite_database_reply(InstalledArenaHost, InstalledArenaSqliteDatabase, String, String, Bytes) -> InstalledArenaSqliteDatabaseReply
 
+pub fn installed_arena_capacity_scalar(InstalledArenaHost, Int) -> Int64
+
 pub fn installed_arena_worker_selection_reply(InstalledArenaHost) -> InstalledArenaWorkerSelectionReply
 
 pub fn installed_worker_selection_data(InstalledArenaWorkerSelection) -> Result[(String, Bytes, Int64), @host_bootstrap.NativeBootstrapIssue]
@@ -107,6 +111,8 @@ pub fn operate_installed_arena_channel_ledger_reply(InstalledArenaHost, Installe
 pub fn operate_installed_arena_live_channel_reply(InstalledArenaHost, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[InstalledArenaHost, InstalledArenaDomain], Int) -> InstalledArenaLiveChannelReply
 
 pub fn operate_installed_arena_process_reply(InstalledArenaHost, InstalledArenaDomain, InstalledArenaProcess, Int) -> InstalledArenaProcessReply
+
+pub fn operate_installed_local_host_resources_reply(InstalledArenaHost, InstalledArenaLocalHostResources, Int) -> InstalledArenaLocalHostResourcesReply
 
 pub fn prepare_installed_arena_channel_ledger_reply(InstalledArenaHost, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[InstalledArenaHost, InstalledArenaDomain]) -> InstalledArenaChannelLedgerReply
 
@@ -245,14 +251,18 @@ pub fn InstalledArenaHost::admit_live_channel(Self, InstalledArenaDomain, @host_
 pub fn InstalledArenaHost::allocate(Self, Int64) -> Result[InstalledArenaAllocation, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::bind_live_channel_child(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain], Int) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::bind_live_channel_vm(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain], Int64, Int64, Int64) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
+pub fn InstalledArenaHost::bind_local_host_resources(Self, InstalledArenaOriginalRead, InstalledArenaSqliteLibrary) -> Result[InstalledArenaLocalHostResources, InstalledArenaLocalHostResourcesIssue]
 pub fn InstalledArenaHost::borrow(Self, InstalledArenaAllocation) -> Result[InstalledArenaBorrow, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::borrow_backing(Self) -> Result[InstalledArenaBackingBorrow, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::borrow_domain_original_read(Self, InstalledArenaOriginalRead) -> Result[(@client_host_buffers.OriginalWorkspaceRead[InstalledArenaOriginalRead], @client_host_buffers.WorkspaceLoan), InstalledArenaOriginalReadIssue]
+pub fn InstalledArenaHost::borrow_local_host_read(Self, InstalledArenaLocalHostResources) -> Result[(@client_host_buffers.OriginalWorkspaceRead[InstalledArenaOriginalRead], @client_host_buffers.WorkspaceLoan), InstalledArenaLocalHostResourcesIssue]
+pub fn InstalledArenaHost::borrow_local_host_sqlite(Self, InstalledArenaLocalHostResources) -> Result[@sqlite.Library, InstalledArenaLocalHostResourcesIssue]
 pub fn[T] InstalledArenaHost::call_sqlite_database(Self, InstalledArenaSqliteDatabase, (@sqlite.Database) -> Result[T, @sqlite.NativeSqliteIssue]) -> InstalledArenaSqliteDatabaseCall[T]
 pub fn[T] InstalledArenaHost::call_sqlite_lookup(Self, InstalledArenaSqliteLookup, (@sqlite.NativeLookupRead) -> Result[T, @sqlite.NativeSqliteIssue]) -> InstalledArenaSqliteDatabaseCall[T]
 pub fn InstalledArenaHost::close_domain_after_owner_ack(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::close_domain_original_read(Self, InstalledArenaOriginalRead) -> Result[Unit, InstalledArenaOriginalReadIssue]
 pub fn InstalledArenaHost::close_domain_read(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
+pub fn InstalledArenaHost::close_local_host_resources(Self, InstalledArenaLocalHostResources) -> Result[Unit, InstalledArenaLocalHostResourcesIssue]
 pub fn InstalledArenaHost::close_prepared_process(Self, InstalledArenaDomain, InstalledArenaProcess) -> Result[Unit, @host_bootstrap.NativeBackedProcessRegionIssue]
 pub fn InstalledArenaHost::close_sqlite_database(Self, InstalledArenaSqliteDatabase) -> Result[Unit, InstalledArenaSqliteIssue]
 pub fn InstalledArenaHost::close_sqlite_library(Self, InstalledArenaSqliteLibrary) -> Result[Unit, InstalledArenaSqliteIssue]
@@ -265,11 +275,14 @@ pub fn InstalledArenaHost::enter_domain_original_read(Self, InstalledArenaOrigin
 pub fn InstalledArenaHost::enter_domain_original_read_cleanup(Self, InstalledArenaOriginalRead) -> Result[Unit, InstalledArenaOriginalReadIssue]
 pub fn InstalledArenaHost::enter_domain_read(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::enter_domain_read_cleanup(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
+pub fn InstalledArenaHost::enter_local_host_cleanup(Self, InstalledArenaLocalHostResources, InstalledArenaLocalHostPhase) -> Result[Unit, InstalledArenaLocalHostResourcesIssue]
+pub fn InstalledArenaHost::enter_local_host_phase(Self, InstalledArenaLocalHostResources, InstalledArenaLocalHostPhase) -> Result[Unit, InstalledArenaLocalHostResourcesIssue]
 pub fn InstalledArenaHost::finish_sqlite_lookup(Self, InstalledArenaSqliteLookup) -> InstalledArenaSqliteDatabaseCall[Unit]
 pub fn InstalledArenaHost::leave_backing_borrow_scope(Self, InstalledArenaBackingBorrow) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::leave_domain(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::leave_domain_original_read(Self, InstalledArenaOriginalRead) -> Result[Unit, InstalledArenaOriginalReadIssue]
 pub fn InstalledArenaHost::leave_domain_read(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
+pub fn InstalledArenaHost::leave_local_host_phase(Self, InstalledArenaLocalHostResources) -> Result[Unit, InstalledArenaLocalHostResourcesIssue]
 pub fn InstalledArenaHost::live_channel_capacities(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain]) -> Result[(Int64, Int64), @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::live_channel_limits(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain]) -> Result[@physical_resources.LedgerLimits, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::live_channel_state(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain]) -> Result[@physical_resources.BackedExecutionLiveState, @host_bootstrap.NativeBackedExecutionIssue]
@@ -297,6 +310,7 @@ pub fn InstalledArenaHost::require_current(Self) -> Result[Unit, @host_bootstrap
 pub fn InstalledArenaHost::require_domain_current(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::require_domain_original_read_current(Self, InstalledArenaOriginalRead) -> Result[Unit, InstalledArenaOriginalReadIssue]
 pub fn InstalledArenaHost::require_domain_read_current(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
+pub fn InstalledArenaHost::require_local_host_resources_current(Self, InstalledArenaLocalHostResources) -> Result[Unit, InstalledArenaLocalHostResourcesIssue]
 pub fn InstalledArenaHost::require_process_current(Self, InstalledArenaDomain, InstalledArenaProcess) -> Result[Unit, @host_bootstrap.NativeBackedProcessRegionIssue]
 pub fn InstalledArenaHost::restrict_process_transport(Self, InstalledArenaDomain, InstalledArenaProcess) -> Result[Unit, @host_bootstrap.NativeBackedProcessRegionIssue]
 pub fn InstalledArenaHost::retire(Self, InstalledArenaAllocation) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
@@ -320,6 +334,30 @@ pub fn InstalledArenaLiveChannelReply::original_channel(Self) -> @host_bootstrap
 pub fn InstalledArenaLiveChannelReply::original_domain(Self) -> InstalledArenaDomain
 pub fn InstalledArenaLiveChannelReply::original_host(Self) -> InstalledArenaHost
 pub fn InstalledArenaLiveChannelReply::state_tag(Self) -> Int
+
+pub(all) enum InstalledArenaLocalHostPhase {
+  HostRead
+  HostSqlite
+} derive(Eq)
+
+type InstalledArenaLocalHostResources
+
+pub(all) enum InstalledArenaLocalHostResourcesIssue {
+  Read(InstalledArenaOriginalReadIssue)
+  Sqlite(InstalledArenaSqliteIssue)
+  Domain(@host_bootstrap.NativeBackedExecutionIssue)
+}
+
+type InstalledArenaLocalHostResourcesReply
+pub fn InstalledArenaLocalHostResourcesReply::close_confirmed(Self) -> Bool
+pub fn InstalledArenaLocalHostResourcesReply::issue_family(Self) -> Int
+pub fn InstalledArenaLocalHostResourcesReply::issue_origin(Self) -> Int
+pub fn InstalledArenaLocalHostResourcesReply::operation_tag(Self) -> Int
+pub fn InstalledArenaLocalHostResourcesReply::original_host(Self) -> InstalledArenaHost
+pub fn InstalledArenaLocalHostResourcesReply::original_read(Self) -> InstalledArenaOriginalRead
+pub fn InstalledArenaLocalHostResourcesReply::original_resources(Self) -> InstalledArenaLocalHostResources?
+pub fn InstalledArenaLocalHostResourcesReply::original_sqlite(Self) -> InstalledArenaSqliteLibrary
+pub fn InstalledArenaLocalHostResourcesReply::sqlite_host(Self) -> InstalledArenaHost
 
 pub(all) enum InstalledArenaOperation {
   Prepare

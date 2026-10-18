@@ -57,9 +57,30 @@ test('generated Client–Host guards and types match the machine contract',
     assert.equal(outputs.types, await readFile(new URL(
       '../packages/client-wire/client-host.generated.d.ts', import.meta.url),
     'utf8'));
+    assert.equal(outputs.checkpointAnswers, await readFile(new URL(
+      '../packages/sdk/internal/checkpoint-answer-contract.generated.mjs', import.meta.url), 'utf8'));
     assert.equal(outputs.runWait, await readFile(new URL(
       '../src/run_publication/run_wait.generated.mbt', import.meta.url), 'utf8'));
   });
+
+test('SDK answer grammar projects existing Resolution and Evidence without changing other targets', async () => {
+  const original = buildClientHostWire(registry, protocol);
+  const changed = structuredClone(protocol);
+  changed.artifact_schemas.checkpoint_resolution.properties.decision.enum = ['rejected'];
+  const result = buildClientHostWire(registry, changed);
+  assert.notEqual(result.checkpointAnswers, original.checkpointAnswers);
+  for (const key of ['module', 'types', 'native', 'nativeTests', 'runWait']) {
+    assert.equal(result[key], original[key], key);
+  }
+  const guard = await import('data:text/javascript;base64,' + Buffer.from(original.checkpointAnswers).toString('base64'));
+  assert.equal(guard.validAnswerResolution({}), false);
+  const evidence = JSON.parse(await readFile(new URL(
+    '../portability/corpus/checkpoint-resolution-signatures.json', import.meta.url), 'utf8'));
+  const resolution = evidence.cases.find(value => value.kind === 'checkpoint_resolution').artifact;
+  assert.equal(guard.validAnswerResolution(resolution), true);
+  assert.equal(guard.validAnswerResolution({...resolution, extra: true}), false);
+  assert.equal(guard.validAnswerResolution({...resolution, prepare_attempt_id: 'foreign'}), false);
+});
 
 test('Native observation-only guards remain tested without adding a CLI operation', () => {
   const output = buildClientHostWire(registry, protocol);

@@ -1,0 +1,50 @@
+{
+  "qualification": "Independent original UTF-8 input/value spans; SOURCE hashes, not canonical semantic Contract or authority.",
+  "vectors": [
+    {
+      "name": "empty",
+      "source": "{}",
+      "sourceCid": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "entries": []
+    },
+    {
+      "name": "ordered-original-spans",
+      "source": " {\r\n \"tasks\" : {\r\n  \"marker\":\"actql_request\", \"id\":\"db\", \"unique\":\"external_id\"\r\n}, \"accounts\":\"db2\" }\r\n",
+      "sourceCid": "sha256:4afcf01c3cbff9e542fde3f944189cab4abfcfcc53dc4d810a3d84d7dc80cbc5",
+      "entries": [
+        {
+          "alias": "tasks",
+          "source": "{\r\n  \"marker\":\"actql_request\", \"id\":\"db\", \"unique\":\"external_id\"\r\n}",
+          "sourceCid": "sha256:3f0c63de5b3f48d55c567b69285e721c23ee2a6746cd85a9e96ef009748dc9c7"
+        },
+        {
+          "alias": "accounts",
+          "source": "\"db2\"",
+          "sourceCid": "sha256:805f3c0d4970db42ffda0fff19c64d45e1ad9ae0554a2f8018d9512eeb89eda3"
+        }
+      ]
+    },
+    {
+      "name": "unicode-escaped-values",
+      "source": "{\"é\":\"d\\u0062\",\"é\":\"db2\",\"😀\":\"db3\"}",
+      "sourceCid": "sha256:655c523de7c47d168196df396052e950dd2287e38deb5d1263ddc6a844d2cefc",
+      "entries": [
+        {
+          "alias": "é",
+          "source": "\"d\\u0062\"",
+          "sourceCid": "sha256:64f703ca78baa3d3050f4ffc12f14441a1ad42faa3b3f946797fa1e78919a7c5"
+        },
+        {
+          "alias": "é",
+          "source": "\"db2\"",
+          "sourceCid": "sha256:805f3c0d4970db42ffda0fff19c64d45e1ad9ae0554a2f8018d9512eeb89eda3"
+        },
+        {
+          "alias": "😀",
+          "source": "\"db3\"",
+          "sourceCid": "sha256:a212337bf9d650bee6404bec2586de6c6d41dd6ce2683eb87ce4650ff3833a72"
+        }
+      ]
+    }
+  ]
+}

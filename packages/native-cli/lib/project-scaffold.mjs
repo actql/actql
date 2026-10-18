@@ -101,6 +101,14 @@ export function scaffoldProject(directory, template) {
     stateDirectory: join(root, '.actql'), files: Object.freeze(created)});
 }
 
+// This private argv selection requests explicit initial creation; the Native
+// session must independently prove exclusive first initialization. It supplies
+// no fresh-state witness, default signer, grant or permission itself.
+export function projectInitialAdoptionArguments(project) {
+  return Object.freeze(['--mode', 'local', '--config', project.configuration,
+    '--state-dir', project.stateDirectory, 'adopt', '--initialize-signing']);
+}
+
 // Parse only the public project-creation spelling. Runtime, approval and Host
 // suppliers remain fixed by the installed Native package, never by options.
 export function projectInitArguments(args) {

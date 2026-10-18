@@ -9,7 +9,7 @@ import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {compilerBindingTargets, generateCompilerBindings} from './generate-js-compiler-bindings.mjs';
 import {generateActionBindings} from './generate-js-action-bindings.mjs';
-import {checkCredentialScopeBinding} from './generate-credential-scope-binding.mjs';
+import {checkCredentialScopeBinding, checkInstallationPreparationBinding, checkInstallationPreparationBridge} from './generate-credential-scope-binding.mjs';
 
 // In-process evidence from this existing checker, not serialized sidecar data.
 // Retain original-root identity and immutable output records after checks run.
@@ -26,12 +26,15 @@ export function interfaceGenerationFreshness(root) {
   generateCompilerBindings(url, false);
   generateActionBindings(url, false);
   checkCredentialScopeBinding(root);
+  checkInstallationPreparationBinding(root);
+  checkInstallationPreparationBridge(root);
   const generators = ['generate-client-host-wire.mjs', 'generate-client-publication-wire.mjs',
     'generate-interactive-run-control-wire.mjs', 'generate-python-client-wire.mjs',
     'lowering-registry-vectors.mjs', 'native-cli-default-assets.mjs',
     'compilation-manifests.mjs', 'query-acquisition-contract.mjs',
     'query-process-evidence.mjs', 'query-two-receipt.mjs',
-    'query-resource-scopes.mjs', 'check-query-evidence-fixtures.mjs'];
+    'query-resource-scopes.mjs', 'check-query-evidence-fixtures.mjs',
+    'fixed-compute-capacity.mjs', 'managed-runtime-vectors.mjs'];
   assert.equal(new Set(generators).size, generators.length, 'Duplicate generation freshness check');
   for (const name of generators) execFileSync(process.execPath, [join(root, 'scripts', name), '--check'], {
     cwd: root, timeout: 15000, maxBuffer: 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
@@ -54,5 +57,5 @@ export function interfaceGenerationFreshness(root) {
   Object.freeze(generated);
   checkedBindings.set(generated, realpathSync(root));
   return {qualification: 'read-only-generation-freshness; not-target-or-artifact-admission', generated,
-    checked: ['compiler-bindings', 'action-bindings', 'credential-fields', ...generators, ...localGenerators, ...assemblies]};
+    checked: ['compiler-bindings', 'action-bindings', 'credential-fields', 'installation-preparation-fields', 'installation-preparation-bridge', ...generators, ...localGenerators, ...assemblies]};
 }

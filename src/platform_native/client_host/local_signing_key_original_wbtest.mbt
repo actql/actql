@@ -7,6 +7,12 @@ let signing_original_public_a_body : String =
 let signing_original_public_a_cid : String = "sha256:e749b44f58f00aea7462fff44345be1406f64320d52984005ad478213afa4b74"
 
 ///|
+// Same original two permission tuples in the Account Owner's required lexical
+// entry order. The previous permutation remains an explicit refusal below.
+let signing_original_role_account_wire : String =
+  #|{"version":"actql-execution-account-config/0.1","account_id":"operator","entries":[{"entry_id":"independent-reviewer-resolve","outcome":"allow","principal":{"any_of":["reviewer"]},"connection":{"any_of":["review-cli"]},"resource":{"any_of":["run"]},"operation":{"any_of":["resolve"]},"exclusions":[]},{"entry_id":"original-host-key-sign","outcome":"allow","principal":{"any_of":["host-signer"]},"connection":{"any_of":["host-cli"]},"resource":{"any_of":["key/host-attestation-2026"]},"operation":{"any_of":["sign"]},"exclusions":[]}]}
+
+///|
 // Matching Native definitions only until explicitly allocated. Files contain
 // synthetic descriptor text, not private PEMs; no grant, claim or signature.
 let signing_original_public_a : String =
@@ -47,9 +53,42 @@ fn signing_original_write(file : String, body : Bytes) -> Unit {
 }
 
 ///|
+// Closed phase labels only: never print native error payloads, configuration,
+// public/private key bytes or retained rows while diagnosing fixture admission.
+fn signing_original_adoption_diagnostic(
+  value : Result[NativeLocalAdoptionSession, NativeLocalAdoptionIssue],
+  phase : String,
+) -> NativeLocalAdoptionSession {
+  if value is Err(issue) {
+    let kind = match issue {
+      InvalidInput => "input"
+      ConfigurationLimit => "limit"
+      Configuration(_) => "configuration"
+      ForeignAccount => "account"
+      UninstalledBootstrapProfile => "bootstrap-profile"
+      CustodyLost => "custody"
+      SourceChanged => "source"
+      AmbiguousInitialization => "initialization"
+      Encoding => "encoding"
+      Crypto(_) => "crypto"
+      Filesystem(@filesystem.Lock(_)) => "filesystem-lock"
+      Filesystem(@filesystem.InvalidName) => "filesystem-name"
+      Filesystem(@filesystem.GenerationMismatch) => "filesystem-generation"
+      Filesystem(_) => "filesystem"
+      ReadAcquisitionFailure(_) => "read-acquisition"
+      ReadPending(_, _) => "read-cleanup"
+      _ => "other"
+    }
+    println("signing-original fixture admission: " + phase + ":" + kind)
+  }
+  value.unwrap()
+}
+
+///|
 fn signing_original_host(
   name : String,
   existing? : Bool = false,
+  parent_path? : String? = None,
 ) -> (NativeLocalHostConnection, String) {
   let key_file = name + ".signing.json"
   let private_file = name + ".descriptor"
@@ -72,7 +111,9 @@ fn signing_original_host(
     diagnostic_ceiling=Some(64),
   ).unwrap()
   let host = begin_native_local_host_adoption(
-      @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap(),
+      parent_path.unwrap_or(
+        @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap(),
+      ),
       name + ".host",
       @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap(),
       account_file,
@@ -98,12 +139,22 @@ fn signing_original_binding(
 }
 
 ///|
+// The custody census verifies exact existing reservations through the caller's
+// transaction. Preserve the same observation without allowing a new reservation
+// or weakening the SQLite transaction precondition in production.
+fn signing_original_custody(host : NativeLocalHostConnection) -> (Int, Int64) {
+  host.journal
+  .transaction(() => host.installation_custody().map_err(_ => CustodyLost))
+  .unwrap()
+}
+
+///|
 test "Local signing missing restore never installs and replay reopen keep the same HMAC row" {
   let name = "signing-original-reopen"
   let (host, file) = signing_original_host(name)
   let binding = signing_original_binding(host, file)
   assert_true(binding.restore_signing_key_original() is Err(_))
-  assert_eq(host.installation_custody().unwrap().0, 0)
+  assert_eq(signing_original_custody(host).0, 0)
   let original = binding.capture_signing_key_original().unwrap()
   let row = host.database
     .read("client_local_installation_originals", file)
@@ -148,7 +199,7 @@ test "Local signing missing restore never installs and replay reopen keep the sa
     restored.database.read("client_local_installation_originals", file).unwrap().body,
     row.body,
   )
-  assert_eq(restored.installation_custody().unwrap().0, 1)
+  assert_eq(signing_original_custody(restored).0, 1)
   restored.close().unwrap()
 }
 
@@ -187,7 +238,19 @@ test "Local signing original authenticates exact role scope config and Host with
       is Err(CustodyLost),
     )
   }
-  let (foreign, _) = signing_original_host("signing-original-foreign")
+  // Adoption locks are scoped to the actual parent. Keep the original Host
+  // alive and create the foreign epoch under its own physical parent instead
+  // of competing for the original parent's live installation lock.
+  let fixture_path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  @filesystem.open_private_root(fixture_path)
+  .unwrap()
+  .create_directory("signing-original-foreign-parent")
+  .unwrap()
+  |> ignore
+  let (foreign, _) = signing_original_host(
+    "signing-original-foreign",
+    parent_path=Some(fixture_path + "/signing-original-foreign-parent"),
+  )
   assert_true(
     read_local_installation_projection(foreign, binding.file, packet)
     is Err(CustodyLost),
@@ -281,12 +344,20 @@ test "Local signing byte identical file replacement cannot become the old key ge
     host.database.read("client_local_installation_originals", file).unwrap().body,
     before.body,
   )
-  assert_eq(host.installation_custody().unwrap().0, 1)
+  assert_eq(signing_original_custody(host).0, 1)
   host.close().unwrap()
 }
 
 ///|
 test "Local signing roles reject same raw32 across differently encoded public originals" {
+  let original_permutation =
+    #|{"version":"actql-execution-account-config/0.1","account_id":"operator","entries":[{"entry_id":"original-host-key-sign","outcome":"allow","principal":{"any_of":["host-signer"]},"connection":{"any_of":["host-cli"]},"resource":{"any_of":["key/host-attestation-2026"]},"operation":{"any_of":["sign"]},"exclusions":[]},{"entry_id":"independent-reviewer-resolve","outcome":"allow","principal":{"any_of":["reviewer"]},"connection":{"any_of":["review-cli"]},"resource":{"any_of":["run"]},"operation":{"any_of":["resolve"]},"exclusions":[]}]}
+  assert_eq(
+    @authorization.admit_account_configuration_json(original_permutation).map(_ => {
+      ()
+    }),
+    Err(@authorization.NonCanonicalOrder("$.entries[1].entry_id")),
+  )
   for
     (name, public_key, same_file, expected) in [
       (
@@ -338,26 +409,25 @@ test "Local signing roles reject same raw32 across differently encoded public or
         reviewer_descriptor, b"synthetic-file-projection-only",
       )
     }
-    let account = local_reviewer_account.replace_all(
-      old="\"original-client-read\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"cli\"]},\"resource\":{\"any_of\":[\"run\"]},\"operation\":{\"any_of\":[\"read\"]}",
-      new="\"original-host-key-sign\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"host-signer\"]},\"connection\":{\"any_of\":[\"host-cli\"]},\"resource\":{\"any_of\":[\"key/host-attestation-2026\"]},\"operation\":{\"any_of\":[\"sign\"]}",
-    )
+    let account = signing_original_role_account_wire
     signing_original_write(account_file, @utf8.encode(account))
     let crypto = @crypto.load_library(
       @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY").unwrap(),
       diagnostic_ceiling=Some(64),
     ).unwrap()
     let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
-    let host = begin_native_local_host_adoption(
-        path,
-        name + ".host",
-        path,
-        account_file,
-        "operator",
-        crypto,
-        configuration_files=[host_file, reviewer_file, registration_file],
+    let host = signing_original_adoption_diagnostic(
+        begin_native_local_host_adoption(
+          path,
+          name + ".host",
+          path,
+          account_file,
+          "operator",
+          crypto,
+          configuration_files=[host_file, reviewer_file, registration_file],
+        ),
+        name,
       )
-      .unwrap()
       .open_journal(local_journal_test_library(), crypto, 100.0, 8, 8388608L)
       .unwrap()
     let reviewer = host
@@ -377,14 +447,7 @@ test "Local signing roles reject same raw32 across differently encoded public or
     let result = binding.capture_signing_key_original()
     assert_eq(result is Ok(_), expected)
     assert_true(original.require_current_key() is Ok(_))
-    assert_eq(
-      host.installation_custody().unwrap().0,
-      if expected {
-        2
-      } else {
-        1
-      },
-    )
+    assert_eq(signing_original_custody(host).0, if expected { 2 } else { 1 })
     host.close().unwrap()
   }
 }
@@ -446,10 +509,22 @@ test "Local signing and preparation cannot borrow the same original descriptor i
       fail("independent Account fixture changed")
     }
     let signing_entry = "{\"entry_id\":\"original-host-key-sign\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"host-signer\"]},\"connection\":{\"any_of\":[\"host-cli\"]},\"resource\":{\"any_of\":[\"key/host-attestation-2026\"]},\"operation\":{\"any_of\":[\"sign\"]},\"exclusions\":[]}"
-    let account = original_account[0:original_account.length() - 2].to_owned() +
+    let original_permutation = original_account[0:original_account.length() - 2].to_owned() +
       "," +
       signing_entry +
       "]}"
+    assert_eq(
+      @authorization.admit_account_configuration_json(original_permutation).map(_ => {
+          ()
+        },
+      ),
+      Err(@authorization.NonCanonicalOrder("$.entries[2].entry_id")),
+    )
+    // Keep the same three original tuples in the existing Account order.
+    let account = original_account.replace_all(
+      old="\"entries\":[",
+      new="\"entries\":[" + signing_entry + ",",
+    )
     signing_original_write(account_file, @utf8.encode(account))
     let crypto = @crypto.load_library(
       @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY").unwrap(),
@@ -496,7 +571,7 @@ test "Local signing and preparation cannot borrow the same original descriptor i
         is Err(SigningJournal(ChangedIntent)),
       )
     }
-    assert_eq(host.installation_custody().unwrap().0, 1)
+    assert_eq(signing_original_custody(host).0, 1)
     assert_eq(
       host.database.capacity_usage("client_local_settings").unwrap().reserved_bytes,
       8192L,
@@ -573,7 +648,7 @@ test "legacy authenticated signing row remains immutable and cannot recapture pu
     }
   })
   .unwrap()
-  assert_eq(host.installation_custody().unwrap().0, 1)
+  assert_eq(signing_original_custody(host).0, 1)
   assert_eq(
     read_local_installation_projection(host, binding.file, packet).unwrap(),
     projection,
@@ -589,7 +664,7 @@ test "legacy authenticated signing row remains immutable and cannot recapture pu
     .unwrap()
   assert_eq(retained.revision, 0L)
   assert_eq(retained.body, packet)
-  assert_eq(host.installation_custody().unwrap().0, 1)
+  assert_eq(signing_original_custody(host).0, 1)
   let usage = host.database.capacity_usage("client_local_settings").unwrap()
   assert_eq(usage.reserved_bytes, 8192L)
   assert_eq(usage.reserved_objects, 1L)

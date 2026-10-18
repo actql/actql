@@ -17,6 +17,7 @@ pub(all) enum NotionQueryIssue {
   SchemaChanged(String)
   InvalidProperty(String)
   UnsupportedEntry(String)
+  IncompleteQuery
 } derive(Eq, Debug)
 
 ///|
@@ -62,11 +63,45 @@ fn query_metadata_text(
 }
 
 ///|
+// Provider completeness is independent of cursor exhaustion. The vendor status
+// object is optional; present fields retain their exact documented types.
+fn check_query_request_status(
+  root : @decode.ObjectView,
+) -> Result[Unit, NotionQueryIssue] {
+  match @decode.field(root, "request_status") {
+    Missing => Ok(())
+    Present(value) => {
+      guard @decode.closed_object(value, ["type", "incomplete_reason"])
+        is Ok(status) &&
+        @decode.lookup(status, "type") is Some(kind) &&
+        @decode.text(kind) is Ok(kind) else {
+        return Err(InvalidResponse)
+      }
+      match @decode.field(status, "incomplete_reason") {
+        Missing => ()
+        Present(reason) =>
+          if @decode.text(reason) != Ok("query_result_limit_reached") {
+            return Err(InvalidResponse)
+          }
+        _ => return Err(InvalidResponse)
+      }
+      match kind {
+        "complete" => Ok(())
+        "incomplete" => Err(IncompleteQuery)
+        _ => Err(InvalidResponse)
+      }
+    }
+    _ => Err(InvalidResponse)
+  }
+}
+
+///|
 fn original_query_row(
   source : NotionDataSourceCatalog,
   original : @decode.Cursor,
   raw : Bytes,
-  limits : NotionQueryLimits,
+  max_properties : Int,
+  max_identity_bytes : Int,
 ) -> Result[OriginalNotionQueryRow, NotionQueryIssue] {
   guard @decode.open_object(original) is Ok(row) &&
     @decode.lookup(row, "object") is Some(kind) &&
@@ -79,7 +114,7 @@ fn original_query_row(
   guard @decode.lookup(row, "id") is Some(id) else {
     return Err(InvalidResponse)
   }
-  let id = match query_metadata_text(id, limits.metadata.max_identity_bytes) {
+  let id = match query_metadata_text(id, max_identity_bytes) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -102,7 +137,7 @@ fn original_query_row(
     @decode.object_length(properties) == Some(source.properties.length()) else {
     return Err(SchemaChanged(id))
   }
-  if source.properties.length() > limits.metadata.max_properties {
+  if source.properties.length() > max_properties {
     return Err(BudgetExceeded)
   }
   let selected = []
@@ -156,6 +191,12 @@ pub fn project_notion_query_page(
     @decode.boolean(has_more) is Ok(has_more) else {
     return Err(InvalidResponse)
   }
+  // Refuse a capped query on every response before exposing rows or starting
+  // any dependent property read, even when its terminal cursor is null.
+  match check_query_request_status(root) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   if count > 100 {
     return Err(InvalidResponse)
   }
@@ -180,7 +221,8 @@ pub fn project_notion_query_page(
         source,
         @decode.element_at(results, index).unwrap(),
         raw,
-        limits,
+        limits.metadata.max_properties,
+        limits.metadata.max_identity_bytes,
       ) {
       Ok(value) => value
       Err(issue) => return Err(issue)

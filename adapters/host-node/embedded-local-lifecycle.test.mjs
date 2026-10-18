@@ -17,7 +17,7 @@ const deferred = () => {
   return {promise, resolve};
 };
 function fixture({perform, sourceClose, drain, open, observationClose,
-  stopModelRuntime, retireModelRuntime} = {}) {
+  stopModelRuntime, retireModelRuntime, answerCheckpoint} = {}) {
   const calls = [];
   let opens = 0;
   const registry = createEmbeddedHostRegistry((left, right) => left === right);
@@ -26,7 +26,7 @@ function fixture({perform, sourceClose, drain, open, observationClose,
       opens++;
       if (open) await open();
       return {
-        port: {async perform(operation, body, signal) {
+        port: {...(answerCheckpoint === undefined ? {} : {answerCheckpoint}), async perform(operation, body, signal) {
           calls.push(operation);
           if (operation === 'connect') return profile;
           if (perform) return perform(operation, body, signal);
@@ -59,6 +59,63 @@ test('ordinary Client close retires the original runtime once after all actual c
   await Promise.all([b.close(),b.close()]);
   await a.close();await b.close();
   assert.equal(stopped,1);assert.equal(retired,1);
+});
+
+test('same Host lease keeps a pending original Checkpoint answer until its settlement', async () => {
+  const entered = deferred(), released = deferred();
+  const summary = {checkpointId: 'original', checkpointCid: cid('a'),
+    kind: 'effect_set', phase: 'commit', subject: {kind: 'run_unit', runId: 'original-run',
+      runDefinitionCid: cid('b')}, requiredArtifact: {type: 'effect_set_preview', cid: cid('c')},
+    reviewProjectionCid: cid('d'), requirements: ['effect_scope_approved'],
+    createdAt: '2026-10-18T00:00:00.000Z', expiresAt: '2027-01-01T00:00:00.000Z', humanSummary: 'Original'};
+  let signatures = 0;
+  const f = fixture({perform(operation, body) {
+    assert.equal(operation, 'checkpoints'); assert.equal(body.checkpointId, 'original');
+    return {items: [summary]};
+  }, async answerCheckpoint(observed, decision) {
+    assert.equal(typeof this.perform, 'function');
+    assert.equal(observed.checkpointId, 'original'); assert.equal(decision, 'approved');
+    signatures++; entered.resolve(); await released.promise;
+    return {}; // Deliberately no signed success or physical ACK in this double.
+  }});
+  const client = await f.acquire();
+  const pending = client.approve('original').catch(error => error);
+  await entered.promise;
+  let closed = false;
+  const closing = client.close().then(() => {closed = true;});
+  await Promise.resolve(); await Promise.resolve();
+  assert.equal(closed, false); assert.equal(f.calls.includes('store'), false);
+  released.resolve();
+  assert.equal((await pending).code, 'ClientClosed');
+  await closing;
+  assert.equal(signatures, 1); assert.equal(f.calls.filter(value => value === 'store').length, 1);
+  assert.equal(f.calls.includes('resolve'), false);
+});
+
+test('a malformed original answer port closes the acquired Host through its same shutdown', async () => {
+  const f = fixture({answerCheckpoint: 42});
+  await assert.rejects(f.acquire(), {message: 'InvalidLocalCheckpointAnswerPort'});
+  assert.equal(f.calls.filter(value => value === 'store').length, 1);
+  assert.equal(f.calls.filter(value => value === 'journal').length, 1);
+});
+
+test('throwing original answer acquisition retains the same unfinished Host cleanup', async () => {
+  let cleanupReady = false, storeCloses = 0;
+  const registry = createEmbeddedHostRegistry(() => true);
+  const host = {port: {get answerCheckpoint() {throw new Error('private-key-selection-failure');},
+    async perform() {return profile;}},
+    dispatchOwner: {drain() {}}, retireTerminalEffects() {},
+    journal: {close() {}}, store: {close() {storeCloses++;}}, diagnostic: {close() {}},
+    sourceProfile: {close() {if (!cleanupReady) throw new Error('original-cleanup-pending');}}};
+  const error = await registry.connect('/test/failing-original', 'same', async () => host, options)
+    .catch(error => error);
+  assert.equal(error.code, 'InstalledLocalConnectionCleanupPending');
+  assert.equal(error.cleanupPending, true); assert.equal(storeCloses, 1);
+  assert.doesNotMatch(inspect(error, {showHidden: true, depth: 8}), /private-key-selection-failure/);
+  await assert.rejects(error.cleanupHandle.retry(), failure => failure === error);
+  cleanupReady = true;
+  assert.deepEqual(await error.cleanupHandle.retry(), {pending: false});
+  assert.equal(storeCloses, 1);
 });
 
 test('failed final cleanup retains the runtime and the same shutdown for retry',async()=>{

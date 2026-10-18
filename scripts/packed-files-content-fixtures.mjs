@@ -12,6 +12,7 @@ const fixtureDirectory = 'adapters/host-node/fixtures/';
 export const contentFixtureFiles = Object.freeze([
   'content-command-restart.mjs', 'content-command-host.fixture.mjs',
   'content-command.fixture.mjs', 'content-command-custody.fixture.mjs',
+  'content-command-stage.fixture.mjs',
   'generated-content.fixture.mjs', 'file-listing-source.fixture.mjs',
   'generated-model-installation.fixture.mjs',
 ].map(name => fixtureDirectory + name).concat([

@@ -43,7 +43,7 @@ pub fn NativeLocalReviewerProofMaterials::require_original_signing_scope(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  match self.key.require_reviewer_signing_key_scope(scope) {
+  match self.key.require_signing_key_scope(scope) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -55,10 +55,7 @@ pub fn NativeLocalReviewerProofMaterials::require_original_signing_scope(
   // key file. Export compares that same Root/file generation without invoking
   // another caller callback; it cannot retire the already-fenced capture.
   // This is original projection custody, not private/public-key correspondence.
-  match self.key.projection.export_original() {
-    Ok(original) if original == self.key.exported => Ok(())
-    Ok(_) | Err(_) => Err(ProofKey(SigningOriginalUnavailable))
-  }
+  self.key.finish_original_projection()
 }
 
 ///|
@@ -94,27 +91,23 @@ pub fn NativeLocalReviewerProofMaterials::prepare_signing_scope(
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
-  let key = self.key
-  let account = key.account
-  let (_, _, principal, _, _, key_id, _, _) = @credential_resource.native_local_signing_key_selection_projection(
-    account.selection,
-  )
+  let key = self.key.scope_fields()
   let checkpoint = self.original.artifact
   let scope : @credential.LocalSigningCredentialScope = {
-    account_configuration_cid: account.account_configuration_cid,
-    account_id: account.account_id,
+    account_configuration_cid: key.account_configuration_cid,
+    account_id: key.account_id,
     attempt_id,
-    authority_scope_cid: account.scope,
+    authority_scope_cid: key.authority_scope_cid,
     checkpoint_cid: checkpoint.checkpoint_cid,
     checkpoint_id: checkpoint.checkpoint.checkpoint_id,
     checkpoint_kind: checkpoint.checkpoint.kind,
-    host_adoption_cid: account.host.adoption_cid,
-    key_configuration_cid: account.file.content_cid,
-    key_generation_cid: key.generation_cid,
-    key_id,
-    key_public_key_cid: key.public_key.cid(),
+    host_adoption_cid: key.host_adoption_cid,
+    key_configuration_cid: key.key_configuration_cid,
+    key_generation_cid: key.key_generation_cid,
+    key_id: key.key_id,
+    key_public_key_cid: key.key_public_key_cid,
     preimage: self.proof.preimage(),
-    principal,
+    principal: key.principal,
     request_cid: request,
     request_scope_cid: logical_scope,
     run_definition_cid: self.reviewer.original.run_definition_cid,

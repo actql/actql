@@ -4,6 +4,7 @@
 pub struct RecordDeleteMapping {
   priv original : RecordDeclaration
   priv mapping : @rows.RowMapping
+  priv before_fields : Array[String]
 }
 
 ///|
@@ -25,7 +26,17 @@ pub fn prepare_record_delete_mapping(
       approval,
       limits,
     ) {
-    Ok(mapping) => Ok({ original, mapping, })
+    Ok(mapping) => {
+      let names = match @rows.row_mapping_target_fields(mapping, limits) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      Ok({
+        original,
+        mapping,
+        before_fields: names.filter(name => name != "$id"),
+      })
+    }
     Err(issue) => Err(issue)
   }
 }
@@ -66,15 +77,9 @@ fn record_delete_mapping_page_matches(
   mapping : RecordDeleteMapping,
   page : @catalog.OriginalRecordPage,
 ) -> Bool {
-  guard mapping.original.declaration.views.search_by(view => {
-      view.resource == mapping.mapping.resource
-    })
-    is Some(index) else {
-    return false
-  }
-  let expected = mapping.original.declaration.views[index].fields.filter(name => {
-    name != "$id"
-  })
+  // Escaped declaration arrays are metadata, not the immutable selected
+  // Contract. Retain the original Mapping body's fields before returning it.
+  let expected = mapping.before_fields
   let names = @catalog.record_page_columns(page)
   names.length() == expected.length() &&
   names.all(name => expected.contains(name)) &&

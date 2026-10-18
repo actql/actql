@@ -2,6 +2,24 @@
 // the existing installed Source/Effect, credential and Store own physical work.
 
 ///|
+#export_name("gcsObjectRestoreMutationValue")
+pub fn gcs_object_restore_mutation_value(
+  binding : @catalog.ObjectMutationBinding,
+  name : String,
+  status : Int,
+  headers : Array[(String, String)],
+  response : Bytes,
+  response_sha256 : String,
+  changes : Bytes,
+  body : String,
+  request_cid : String,
+) -> Result[@catalog.ObjectMutationRequest, GcsFailure] {
+  @catalog.restore_object_mutation_value_wire(
+    binding, name, status, headers, response, response_sha256, changes, body, request_cid,
+  ).map_err(issue => Request(issue))
+}
+
+///|
 #export_name("gcsObjectResponseMatches")
 pub fn gcs_object_response_matches(
   binding : @catalog.ObjectMutationBinding,
@@ -71,6 +89,25 @@ pub fn gcs_object_mutation_kind(
     PatchMetadata => "patch_metadata"
     DeleteObject => "delete"
   }
+}
+
+///|
+// Same provider Mapping owner as the portable declaration consumer. This is
+// bounded DATA, not an installed original, grant or funded preparation port.
+#export_name("gcsObjectMutationMappingJson")
+pub fn gcs_object_mutation_mapping_json(
+  binding : @catalog.ObjectMutationBinding,
+  declared_wire : String,
+  connector_id : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @catalog.ObjectUploadDeclarationIssue] {
+  @catalog.object_mutation_mapping_json(binding, declared_wire, connector_id, {
+    max_bytes,
+    max_nodes,
+    max_depth,
+  })
 }
 
 ///|
@@ -344,6 +381,19 @@ pub fn gcs_object_request_body(
   @catalog.object_mutation_body_for(binding, request).map_err(issue => {
     Request(issue)
   })
+}
+
+///|
+#export_name("gcsObjectDeleteEffectTarget")
+pub fn gcs_object_delete_effect_target(
+  binding : @catalog.ObjectMutationBinding,
+  request : @catalog.ObjectMutationRequest,
+  max_bytes : Int,
+) -> Result[String, GcsFailure] {
+  @catalog.object_delete_effect_target_json(binding, request, max_bytes).map_err(issue => {
+      Request(issue)
+    },
+  )
 }
 
 ///|

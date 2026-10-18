@@ -1,5 +1,5 @@
 {
-  "source": "3e626100845be286750e71383ebaad29fcd71208",
+  "source": "623616dfb73778143ebb512695cbb272ee2fae4f",
   "qualification": "Existing binding Owner reference index, not semantic or artifact admission proof",
   "inputs": [
     {
@@ -15618,7 +15618,7 @@
     {
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "2c5cb459a2541f69f3e30c54ff5d80ed13717e4c290d3e4d10d36f5b89299dc2",
+      "sha256": "7a00ae0f6227aae3587ea81c33da722ef0dc9dc5e0be551bbbcc9adc10e104d3",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -17007,6 +17007,25 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal",
+          "parameters": [
+            "original",
+            "definition",
+            "request",
+            "evidence",
+            "profiles",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:admitTablePreviewClaim/init:admitTablePreviewClaim",
           "parameters": [
             "preview",
@@ -17536,6 +17555,18 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:captureOriginalClientInferRun/init:captureOriginalClientInferRun",
+          "parameters": [
+            "compiled",
+            "checkedProgram",
+            "definition",
+            "request",
+            "environment",
+            "parameters"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:captureOriginalClientRunPlan/init:captureOriginalClientRunPlan",
           "parameters": [
             "compiled",
@@ -17604,6 +17635,15 @@
           "parameters": [
             "compiled",
             "checkedEffect"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:checkedClientCompiledInferOriginal/init:checkedClientCompiledInferOriginal",
+          "parameters": [
+            "compiled",
+            "checkedProgram",
+            "definition"
           ],
           "async": false
         },
@@ -17726,6 +17766,14 @@
             "preview",
             "wire",
             "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner",
+          "parameters": [
+            "restored",
+            "checkedProgram"
           ],
           "async": false
         },
@@ -18977,6 +19025,16 @@
           "name": "publicationControl/init:originalClientInferNodeReadStateRead/init:originalClientInferNodeReadStateRead",
           "parameters": [
             "writer"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:originalInferRunAdmissionEvidence/init:originalInferRunAdmissionEvidence",
+          "parameters": [
+            "selected",
+            "definition",
+            "request",
+            "evidence"
           ],
           "async": false
         },
@@ -21911,9 +21969,7 @@
         },
         {
           "name": "runtimeCore/runtimeCore",
-          "parameters": [
-            "value"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -21927,21 +21983,26 @@
         {
           "name": "runtimeCore/runtimeCore#10",
           "parameters": [
-            "transfer"
+            "value",
+            "receipt"
           ],
           "async": false
         },
         {
           "name": "runtimeCore/runtimeCore#11",
           "parameters": [
-            "progress"
+            "receipt",
+            "transfer",
+            "source",
+            "bytes",
+            "retained"
           ],
           "async": false
         },
         {
           "name": "runtimeCore/runtimeCore#12",
           "parameters": [
-            "progress"
+            "transfer"
           ],
           "async": false
         },
@@ -21955,8 +22016,7 @@
         {
           "name": "runtimeCore/runtimeCore#14",
           "parameters": [
-            "progress",
-            "value"
+            "progress"
           ],
           "async": false
         },
@@ -21970,7 +22030,8 @@
         {
           "name": "runtimeCore/runtimeCore#16",
           "parameters": [
-            "progress"
+            "progress",
+            "value"
           ],
           "async": false
         },
@@ -21997,10 +22058,7 @@
         },
         {
           "name": "runtimeCore/runtimeCore#2",
-          "parameters": [
-            "value",
-            "task"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -22020,6 +22078,20 @@
         {
           "name": "runtimeCore/runtimeCore#22",
           "parameters": [
+            "progress"
+          ],
+          "async": false
+        },
+        {
+          "name": "runtimeCore/runtimeCore#23",
+          "parameters": [
+            "progress"
+          ],
+          "async": false
+        },
+        {
+          "name": "runtimeCore/runtimeCore#24",
+          "parameters": [
             "value",
             "bytes",
             "nodes"
@@ -22027,7 +22099,7 @@
           "async": false
         },
         {
-          "name": "runtimeCore/runtimeCore#23",
+          "name": "runtimeCore/runtimeCore#25",
           "parameters": [
             "value"
           ],
@@ -22035,6 +22107,21 @@
         },
         {
           "name": "runtimeCore/runtimeCore#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "runtimeCore/runtimeCore#4",
+          "parameters": [
+            "value",
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "runtimeCore/runtimeCore#5",
           "parameters": [
             "value",
             "source",
@@ -22045,29 +22132,11 @@
           "async": false
         },
         {
-          "name": "runtimeCore/runtimeCore#4",
-          "parameters": [
-            "value",
-            "transfer",
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "runtimeCore/runtimeCore#5",
-          "parameters": [
-            "value",
-            "transfer",
-            "confirmed"
-          ],
-          "async": false
-        },
-        {
           "name": "runtimeCore/runtimeCore#6",
           "parameters": [
             "value",
             "transfer",
-            "retained"
+            "bytes"
           ],
           "async": false
         },
@@ -22084,18 +22153,17 @@
           "name": "runtimeCore/runtimeCore#8",
           "parameters": [
             "value",
-            "receipt"
+            "transfer",
+            "retained"
           ],
           "async": false
         },
         {
           "name": "runtimeCore/runtimeCore#9",
           "parameters": [
-            "receipt",
+            "value",
             "transfer",
-            "source",
-            "bytes",
-            "retained"
+            "confirmed"
           ],
           "async": false
         },
@@ -22158,6 +22226,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
               }
             ],
             "inputsOutputs": [
@@ -22168,6 +22240,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "originalInputs(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {"
               }
             ],
             "identity": [
@@ -22178,6 +22258,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
               }
             ],
             "ownership": [
@@ -22188,6 +22276,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const owned = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
               }
             ],
             "synchronization": [
@@ -22198,6 +22294,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
               }
             ],
             "failure": [
@@ -22208,6 +22312,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
               }
             ],
             "cancellation": [
@@ -22218,6 +22330,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
               }
             ],
             "resources": [
@@ -22228,6 +22344,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
               }
             ],
             "extension": [
@@ -22238,6 +22362,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
               }
             ],
             "verification": [
@@ -22252,6 +22384,18 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -25010,11 +25154,433 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "runtimeCore/runtimeCore#24"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "The Node Host's private Local-signing metadata view delegates exact grant/use"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "export function createLocalSigningMetadata(moon)"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
+                "anchor": "pub fn client_local_signing_use_prepare("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "fail('ForeignLocalSigningMetadata')"
+              },
+              {
+                "path": "src/remote_credential/local_signing_use.mbt",
+                "anchor": "current_scope != grant.scope"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "let grants = new WeakMap(), scopes = new WeakMap(), uses = new WeakMap();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "It does not stop signing, forget a pending claim, acknowledge key"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "Reflect.apply(methods[name], moon, args)"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Callbacks and their runtime receiver are captured once."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "fail('LocalSigningMetadataRuntimeUnavailable')"
+              },
+              {
+                "path": "adapters/host-common/local-signing-metadata.mjs",
+                "anchor": "fail('LocalSigningMetadataRetired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Account/issuer, request/Checkpoint/Run, durable original-use and outcome duties"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "independently. Its private maps/tokens/callbacks, decoded metadata and writer"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "view-local references; copied or foreign references cannot cross the seam."
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "localSigningMetadata: () => createLocalSigningMetadata(moon)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-signing-metadata.integration.test.mjs",
+                "anchor": "same actual Credential Owner preserves independent signing grant"
+              },
+              {
+                "path": "adapters/host-node/local-signing-metadata.integration.test.mjs",
+                "anchor": "the full expected original purpose/key/Checkpoint/Run/request scope"
+              },
+              {
+                "path": "adapters/host-node/local-signing-metadata.integration.test.mjs",
+                "anchor": "retiring only the metadata view refuses escaped references"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "runtimeCore/runtimeCore#25"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The private Node metadata view captures the selected Common callbacks and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "export function createInstallationPreparationMetadata(moon)"
+              },
+              {
+                "path": "scripts/generate-credential-scope-binding.mjs",
+                "anchor": "export function renderInstallationPreparationBridge("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "fail('ForeignInstallationPreparationMetadata')"
+              },
+              {
+                "path": "src/remote_credential/installation_preparation_grant.mbt",
+                "anchor": "physical_equal(original.subject, actual.subject) && original == actual"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "let subjects = new WeakMap(), scopes = new WeakMap(), grants = new WeakMap();"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "the view cuts its own six maps' original-value references"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "Reflect.apply(methods[name], moon, args)"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The view performs no asynchronous work, authentication or durable claim."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "fail('InstallationPreparationRuntimeUnavailable')"
+              },
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "fail('InstallationPreparationMetadataRetired')"
+              },
+              {
+                "path": "adapters/host-common/installation-preparation-metadata.mjs",
+                "anchor": "Object.getOwnPropertyDescriptors(value)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "request, original key/use/Unknown responsibility, journal claim or escaped"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "their actual escaped lifetime; WeakMap/retirement/GC is not a byte refund or"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "The view's records, six maps, aliases, callbacks/receiver, field"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-credential-scope-binding.mjs",
+                "anchor": "export function checkInstallationPreparationBridge("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "installationPreparationMetadata: () => createInstallationPreparationMetadata(moon)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installation-preparation-metadata.integration.test.mjs",
+                "anchor": "metadata actual Common subject scope and grant preserve independent originals"
+              },
+              {
+                "path": "adapters/host-node/installation-preparation-metadata.integration.test.mjs",
+                "anchor": "metadata equal admitted subject DATA cannot replace the original control scope"
+              },
+              {
+                "path": "scripts/installation-preparation-binding.test.mjs",
+                "anchor": "metadata typed bridge derives constructor and projection together from the same Owner"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal",
+            "publicationControl/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal",
+            "publicationControl/init:captureOriginalClientInferRun/init:captureOriginalClientInferRun",
+            "publicationControl/init:originalInferRunAdmissionEvidence/init:originalInferRunAdmissionEvidence"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The private Node binding projects the Program from the actual compiled owner"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters) {"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const retained = originalInferRunTokens.get(selected);"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('first Infer journal admission refuses copied or other-control tickets and raw evidence'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const originalInferRunTokens = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (originalInferRun !== undefined) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const outcome = transact('accept', 'ClientRequestAcceptanceUnknown',"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('Infer material and Run roll back together when original journal custody COMMIT fails'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (original === undefined) fail('ClientRequestInferEvidenceMissing');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('saved Infer reader refuses altered original Task materials Run program and admission correspondence'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The existing stop, Unknown and cleanup obligations are unchanged."
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "assert.equal(saved.physicalStartReserved, false);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The Node ticket, its WeakMap entry, saved material/Result-policy Strings, journal"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('Infer original copies use the existing aggregate evidence bound before durable acceptance'"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "That returned pair is not itself Host restoration:"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('legacy Infer material absence is not backfilled and changed originals do not replace a saved Run'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('original Infer codec restores one nominal preparation graph and same complete Run without current defaults'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('another process reads the same Journal original pair after an acceptance reply is discarded'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:checkedClientCompiledInferOriginal/init:checkedClientCompiledInferOriginal",
+            "publicationControl/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "originalInputs(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const owned = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              }
+            ]
+          }
         }
       ],
       "imports": [
         "../../packages/client-wire/index.mjs",
         "./compiler-binding.generated.mjs",
+        "./installation-preparation-metadata.mjs",
+        "./local-signing-metadata.mjs",
         "./publication-action.mjs",
         "./result-output-limits.mjs",
         "./runtime-result.mjs"
@@ -35720,7 +36286,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e842a937bf3b333ebef98e6ca9e6dc8cd390c8267855bb98ad685b8bb768befd",
+      "sha256": "7a62d537847dc53f78783affd66c30e0025a90b5e2deec28d680a80247d859dd",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -35839,6 +36405,11 @@
         },
         {
           "name": "openInstalledHost/admitDefinition/admitDefinition/accepted/accepted",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/admitDefinition/admitDefinition/accepted/accepted/originalInferRun/originalInferRun",
           "parameters": [],
           "async": false
         },
@@ -36586,6 +37157,16 @@
             "requestIdentity"
           ],
           "async": true
+        },
+        {
+          "name": "openInstalledHost/prepareSubmit/prepareSubmit",
+          "parameters": [
+            "original",
+            "definition",
+            "request",
+            "evidence"
+          ],
+          "async": false
         },
         {
           "name": "openInstalledHost/projectRunObservation/projectRunObservation",
@@ -37384,6 +37965,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "### Original short-query continuation"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
               }
             ],
             "inputsOutputs": [
@@ -37398,6 +37983,14 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"readOnly\": {\"const\": true}"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "originalInputs(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {"
               }
             ],
             "identity": [
@@ -37412,6 +38005,14 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_cid("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
               }
             ],
             "ownership": [
@@ -37426,6 +38027,14 @@
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "assertSubmittedIntent(prepared, intent)"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const owned = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
               }
             ],
             "synchronization": [
@@ -37440,6 +38049,14 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
               }
             ],
             "failure": [
@@ -37454,6 +38071,14 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
               }
             ],
             "cancellation": [
@@ -37468,6 +38093,10 @@
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
               }
             ],
             "resources": [
@@ -37482,6 +38111,14 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "max_bytes > 1048576"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
               }
             ],
             "extension": [
@@ -37496,6 +38133,14 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
               }
             ],
             "verification": [
@@ -37518,6 +38163,18 @@
               {
                 "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -41064,6 +41721,111 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openInstalledHost/admitDefinition/admitDefinition/accepted/accepted/originalInferRun/originalInferRun",
+            "openInstalledHost/prepareSubmit/prepareSubmit"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "originalInputs(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const owned = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -42853,7 +43615,7 @@
     {
       "module": "adapters/host-node/infer-operation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "50c914fc3e7f45a7a2368752a3b72805220b0f6d7e1546dd8773013bc9da77c1",
+      "sha256": "1627e3327fbbc71c305c2b051d1978781af7d1d5879956f2321b2ca926af330d",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -43130,6 +43892,13 @@
           "parameters": [
             "registration",
             "persistence"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/init:bindModelRawCapture/init:bindModelRawCapture/init:bindModelRawCapture",
+          "parameters": [
+            "next"
           ],
           "async": false
         },
@@ -43740,6 +44509,23 @@
         {
           "name": "pending/pending",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareWithOriginalRawSetter",
+          "parameters": [
+            "prepare",
+            "request",
+            "notification",
+            "retain"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareWithOriginalRawSetter/set/set",
+          "parameters": [
+            "callback"
+          ],
           "async": false
         },
         {
@@ -44501,7 +45287,8 @@
             "openNodeInferOperation/run/run#2",
             "openNodeInferOperation/runtimeCurrent/runtimeCurrent",
             "openNodeInferOperation/stop",
-            "openNodeInferOperation/stop/stop"
+            "openNodeInferOperation/stop/stop",
+            "openNodeInferOperation/operation/init:bindModelRawCapture/init:bindModelRawCapture/init:bindModelRawCapture"
           ],
           "exports": [
             "openNodeInferOperation"
@@ -44713,6 +45500,119 @@
               {
                 "path": "adapters/host-node/infer-operation.mjs",
                 "anchor": "pending"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareWithOriginalRawSetter",
+            "prepareWithOriginalRawSetter/set/set"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "prepareWithOriginalRawSetter"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "prepareWithOriginalRawSetter"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "prepareWithOriginalRawSetter"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "prepareWithOriginalRawSetter"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "prepareWithOriginalRawSetter"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "prepareWithOriginalRawSetter"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "prepareWithOriginalRawSetter"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "prepareWithOriginalRawSetter"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "prepareWithOriginalRawSetter"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "prepareWithOriginalRawSetter"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -45300,20 +46200,47 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./infer-io-notification.mjs",
+        "./infer-original-installation.mjs",
+        "./infer-raw-capture.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "6e76d39ff96987a99afafc358fc00a9235f4db151e49e156c5939098e1981499",
+      "sha256": "d6a1c11c9683de2a3953ff0ba4cb22c1973f78c96af8b7162516eaa0ebbfcf5a",
       "role": "physical-io",
       "owner": "A — existing Model raw custody projection",
       "exports": [
+        "bindOriginalModelRawTransportPersistence",
         "createModelRawCaptureStorePort",
         "createModelRawTransportPersistence",
+        "createModelRawTransportPersistenceFactory",
         "originalModelRawTransportPersistenceMatches"
       ],
       "operations": [
+        {
+          "name": "bindOriginalModelRawTransportPersistence",
+          "parameters": [
+            "persistence",
+            "operation",
+            "registration",
+            "bind"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindOriginalModelRawTransportPersistence/bindOriginalModelRawTransportPersistence",
+          "parameters": [],
+          "async": false
+        },
         {
           "name": "createModelRawCaptureStorePort",
           "parameters": [
@@ -45428,6 +46355,23 @@
         },
         {
           "name": "createModelRawTransportPersistence/wake/wake",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createModelRawTransportPersistenceFactory",
+          "parameters": [
+            "store",
+            "moon",
+            "registration",
+            "retainHolding",
+            "notify",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createModelRawTransportPersistenceFactory/createModelRawTransportPersistenceFactory",
           "parameters": [],
           "async": false
         },
@@ -46180,8 +47124,166 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "bindOriginalModelRawTransportPersistence",
+            "bindOriginalModelRawTransportPersistence/bindOriginalModelRawTransportPersistence"
+          ],
+          "exports": [
+            "bindOriginalModelRawTransportPersistence"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Per-request raw persistence binding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "export function createModelRawTransportPersistenceFactory({store, moon, registration,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "original.registration === registration;"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "prepare: () => createModelRawTransportPersistence({store, moon, registration,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "if (original?.prepare !== undefined) originalTransportPorts.delete(persistence);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "throw new TypeError('ForeignInferRawCapturePersistence');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "persist.cleanup = call => {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "not the active window. The factory drops its original captures after the"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "keeps its single-Call semantics."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-physical-preflight-context.test.mjs",
+                "anchor": "test('each prepared request saves its original raw Call"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-selection.test.mjs",
+                "anchor": "test('failed factory binding retains the original child"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createModelRawTransportPersistenceFactory",
+            "createModelRawTransportPersistenceFactory/createModelRawTransportPersistenceFactory"
+          ],
+          "exports": [
+            "createModelRawTransportPersistenceFactory"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Per-request raw persistence binding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "export function createModelRawTransportPersistenceFactory({store, moon, registration,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "original.registration === registration;"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "prepare: () => createModelRawTransportPersistence({store, moon, registration,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "if (original?.prepare !== undefined) originalTransportPorts.delete(persistence);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "throw new TypeError('ForeignInferRawCapturePersistence');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-raw-capture.mjs",
+                "anchor": "persist.cleanup = call => {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "not the active window. The factory drops its original captures after the"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "keeps its single-Call semantics."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-physical-preflight-context.test.mjs",
+                "anchor": "test('each prepared request saves its original raw Call"
+              },
+              {
+                "path": "adapters/host-node/infer-raw-selection.test.mjs",
+                "anchor": "test('failed factory binding retains the original child"
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/private-publication-holding.mjs",
+        "../host-common/runtime-result.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
@@ -47701,7 +48803,7 @@
     {
       "module": "adapters/host-node/installed-model-continuation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "3d0924637313dc9b6873756d4b17c87bb2b03e908c0112e124f3333a34f6ec4a",
+      "sha256": "628db51c88e518b8643808717d990e159730726b50d6b2abf269b391b53a6fd4",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -49555,19 +50657,42 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/authorization-gate.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/diagnostic-observer.mjs",
+        "../host-common/runtime-result.mjs",
+        "./client-checkpoints.mjs",
+        "./infer-entry-persistence.mjs",
+        "./infer-evaluation-evidence.mjs",
+        "./infer-original-installation.mjs",
+        "./infer-physical-observation.mjs",
+        "./infer-raw-capture.mjs",
+        "./infer-raw-selection.mjs",
+        "./installed-model-originals.mjs",
+        "./local-account-config.mjs",
+        "./sqlite-checkpoint-journal.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-model.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "ede7ac0cedd26883b63a499a088aac58f6a780063426cf5189a06f290891ae32",
+      "sha256": "3412344b15458fa7c9212e86038b0dc8ae7221b9abc4904114a26f6cc1008e38",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "admitInstalledModelProvider",
         "admitInstalledModelProviderBinding",
+        "assertInstalledModelDefaultsAdoption",
+        "assertInstalledModelDefaultsPreparation",
         "installModelProviders",
         "installedModelEnvironment",
+        "prepareInstalledModelProviderDefaults",
         "readInstalledModelDependencies",
         "readInstalledModelExecution"
       ],
@@ -49588,6 +50713,25 @@
             "moon",
             "providerId",
             "physical"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertInstalledModelDefaultsAdoption",
+          "parameters": [
+            "provider",
+            "view",
+            "moon",
+            "providerId"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertInstalledModelDefaultsPreparation",
+          "parameters": [
+            "view",
+            "moon",
+            "providerId"
           ],
           "async": false
         },
@@ -49650,6 +50794,11 @@
         },
         {
           "name": "installModelProviders/installModelProviders#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/installModelProviders#4",
           "parameters": [
             "args"
           ],
@@ -49661,7 +50810,12 @@
           "async": false
         },
         {
-          "name": "installModelProviders/resolveTaskDefaults",
+          "name": "installModelProviders/resolveTaskDefaults/resolveTaskDefaults",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installModelProviders/resolveTaskDefaults/resolveTaskDefaults#2",
           "parameters": [
             "selectedModel",
             "taskMaxOutputTokens",
@@ -49670,16 +50824,85 @@
           "async": false
         },
         {
-          "name": "installModelProviders/resolveTaskDefaults/resolveTaskDefaults",
+          "name": "modelDefaultsCallbacks",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "modelDefaultsResolver",
+          "parameters": [
+            "moon",
+            "providerId",
+            "bindingOriginals",
+            "assertCurrent",
+            "receiver",
+            "reader",
+            "resolver",
+            "bindingReader",
+            "usageReader"
+          ],
+          "async": false
+        },
+        {
+          "name": "modelDefaultsResolver/resolveTaskDefaults",
+          "parameters": [
+            "selectedModel",
+            "taskMaxOutputTokens",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "installModelProviders/resolveTaskDefaults/resolveTaskDefaults#2",
+          "name": "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#2",
           "parameters": [
             "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledModelProviderDefaults",
+          "parameters": [
+            "moon",
+            "providerId",
+            "bindingOriginals",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledModelProviderDefaults/check/check",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledModelProviderDefaults/init:bindRegistration/init:bindRegistration",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledModelProviderDefaults/resolveTaskDefaults/resolveTaskDefaults",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledModelProviderDefaults/state/init:adopt/init:adopt",
+          "parameters": [
+            "runtime",
+            "id",
+            "source",
+            "current",
+            "installationCurrent"
           ],
           "async": false
         },
@@ -50096,7 +51319,7 @@
               },
               {
                 "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "let defaultsOriginal, defaultsBounds, defaultsReadFailure;"
+                "anchor": "let original, bounds, readFailure;"
               }
             ],
             "synchronization": [
@@ -50128,7 +51351,7 @@
               },
               {
                 "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "if (defaultsReadFailure !== undefined) throw defaultsReadFailure.cause;"
+                "anchor": "if (readFailure !== undefined) throw readFailure.cause;"
               }
             ],
             "cancellation": [
@@ -50437,7 +51660,6 @@
             "installModelProviders/installModelProviders#2",
             "installModelProviders/installModelProviders#3",
             "installModelProviders/requireEagerSdkStartup/requireEagerSdkStartup",
-            "installModelProviders/resolveTaskDefaults",
             "installModelProviders/resolveTaskDefaults/resolveTaskDefaults",
             "installModelProviders/resolveTaskDefaults/resolveTaskDefaults#2"
           ],
@@ -50506,7 +51728,7 @@
               },
               {
                 "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "let defaultsOriginal, defaultsBounds, defaultsReadFailure;"
+                "anchor": "let original, bounds, readFailure;"
               }
             ],
             "synchronization": [
@@ -50538,7 +51760,7 @@
               },
               {
                 "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "if (defaultsReadFailure !== undefined) throw defaultsReadFailure.cause;"
+                "anchor": "if (readFailure !== undefined) throw readFailure.cause;"
               }
             ],
             "cancellation": [
@@ -51107,7 +52329,7 @@
               },
               {
                 "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "let defaultsOriginal, defaultsBounds, defaultsReadFailure;"
+                "anchor": "let original, bounds, readFailure;"
               }
             ],
             "synchronization": [
@@ -51123,7 +52345,7 @@
               },
               {
                 "path": "adapters/host-node/installed-model.mjs",
-                "anchor": "if (defaultsReadFailure !== undefined) throw defaultsReadFailure.cause;"
+                "anchor": "if (readFailure !== undefined) throw readFailure.cause;"
               }
             ],
             "cancellation": [
@@ -51159,6 +52381,150 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "assertInstalledModelDefaultsAdoption",
+            "assertInstalledModelDefaultsPreparation",
+            "installModelProviders/installModelProviders#4",
+            "modelDefaultsCallbacks",
+            "modelDefaultsResolver",
+            "modelDefaultsResolver/resolveTaskDefaults",
+            "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults",
+            "modelDefaultsResolver/resolveTaskDefaults/resolveTaskDefaults#2",
+            "prepareInstalledModelProviderDefaults",
+            "prepareInstalledModelProviderDefaults/check/check",
+            "prepareInstalledModelProviderDefaults/init:bindRegistration/init:bindRegistration",
+            "prepareInstalledModelProviderDefaults/resolveTaskDefaults/resolveTaskDefaults",
+            "prepareInstalledModelProviderDefaults/state/init:adopt/init:adopt"
+          ],
+          "exports": [
+            "assertInstalledModelDefaultsAdoption",
+            "assertInstalledModelDefaultsPreparation",
+            "prepareInstalledModelProviderDefaults"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The private Host may prepare configuration defaults before it registers a"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "export function prepareInstalledModelProviderDefaults("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "return Object.freeze({value: original, resolved, binding, readUsage});"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "export async function prepareInstalledProjectModelTasks("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "preparedState.providerId !== providerId || preparedState.originals !== bindingSource"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "if (installedDefaults.get(provider) !== view) {"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "assertInstalledModelDefaultsAdoption(provider, task.providerDefaults, moon, task.providerId);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "const defaultsPreparations = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const retained = Object.freeze(tasks);"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "These preparation records, WeakMap associations, retained configuration Strings,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "const defaultsCallbacks = modelDefaultsCallbacks(moon);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "assertOriginals(runtime);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "spent = true;"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "if (readFailure !== undefined) throw readFailure.cause;"
+              },
+              {
+                "path": "adapters/host-node/model-task-candidate-binding.actual.test.mjs",
+                "anchor": "test('candidate adoption refuses copied/equal configuration and another runtime before Core installation'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "assertCurrent();"
+              },
+              {
+                "path": "adapters/host-node/model-task-candidate-binding.actual.test.mjs",
+                "anchor": "test('candidate files retain after-await current and pending original FD cleanup obligations'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "inventory. Candidate and installed views may overlap; their aliases and the"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "const nextBounds = retainModelDefaultsLimits(limits);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const bounds = snapshotLimits(limits);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "This connection neither acquires Model input nor issues startup, capacity,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "if (!candidate) return installedView(retained, originalsForRuntime);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/model-task-candidate-binding.actual.test.mjs",
+                "anchor": "test('actual Common Task candidates precede registration and retain the same defaults after adoption'"
+              },
+              {
+                "path": "adapters/host-node/model-task-candidate-binding.actual.test.mjs",
+                "anchor": "test('bound candidate currentness keeps both original project and actual registration fences'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -51174,7 +52540,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "26481ec41f95fbfd0575e8cd9a83d455067866bf633ec66b76e64a66b3dbf68a",
+      "sha256": "33c4d1a6b11a2ab7c34275c42092143a63b61645e7fec78b6de9e733563adc02",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -51572,6 +52938,27 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/basePreflight/basePreflight/basePreflight/basePreflight",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/basePreflight/basePreflight/basePreflight/versioned/versioned",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/basePreflight/basePreflight/basePreflight/versioned/versioned#2",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/basePreflight/basePreflight/basePreflight#2",
           "parameters": [
             "member"
@@ -51925,7 +53312,6 @@
         {
           "name": "createRowEffectStage/claimsOf/claimsOf/claimsOf/claimsOf",
           "parameters": [
-            "change",
             "rowIndex"
           ],
           "async": false
@@ -52077,6 +53463,28 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/orderedSourceIndexes",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/positions/positions",
+          "parameters": [
+            "row",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/ownerOf/ownerOf",
           "parameters": [
             "member"
@@ -52109,7 +53517,8 @@
             "applyPreview",
             "ledger",
             "targetReads",
-            "assertCurrent"
+            "assertCurrent",
+            "dispatchIndexes"
           ],
           "async": false
         },
@@ -52369,6 +53778,14 @@
           "parameters": [
             "member",
             "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries/claimBySource/claimBySource",
+          "parameters": [
+            "sourceIndex",
+            "dispatchIndex"
           ],
           "async": false
         },
@@ -53792,6 +55209,9 @@
             "createRowEffectStage/observeRows/observeRows",
             "createRowEffectStage/observeRows/observeRows/observeRows",
             "createRowEffectStage/openLedger/openLedger",
+            "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes",
+            "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/orderedSourceIndexes",
+            "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/positions/positions",
             "createRowEffectStage/ownerOf/ownerOf",
             "createRowEffectStage/permissionsOf/permissionsOf",
             "createRowEffectStage/permissionsOf/permissionsOf/rule/rule",
@@ -53833,6 +55253,7 @@
             "createRowEffectStage/readDecision/readDecision",
             "createRowEffectStage/recoveredEntries/recoveredEntries",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries",
+            "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries/claimBySource/claimBySource",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries/entries",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries/rows/rows",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries/rows/rows#2",
@@ -53884,6 +55305,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Responsibility: the existing installed Row Effect retains the original"
               }
             ],
             "inputsOutputs": [
@@ -53905,11 +55330,15 @@
               },
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "rowIndex, authorizationForRow, assertCurrent})` (command or guarded write)"
+                "anchor": "rowIndex, authorizationForRow, assertCurrent})`"
               },
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Inputs and outputs: `observeTargets` retains the original present"
               }
             ],
             "identity": [
@@ -53936,6 +55365,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Identity: original request target and observation identity must match; the"
               }
             ],
             "ownership": [
@@ -53966,6 +55399,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Ownership: existing capture/request children retain original reads and their"
               }
             ],
             "synchronization": [
@@ -53996,6 +55433,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Synchronization: insert-side UPSERT emits before absent and a not-applicable"
               }
             ],
             "failure": [
@@ -54026,6 +55467,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The ordinary caller uses its existing finite Host `maxWork`"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Failure: absent observations with before/version fields, unknown presence,"
               }
             ],
             "cancellation": [
@@ -54052,6 +55497,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Cancellation: observation completion is not physical stop or release. Original"
               }
             ],
             "resources": [
@@ -54086,6 +55535,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "The ordinary caller uses its existing finite Host `maxWork`"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Resources: bounded observation envelope copies, original before references,"
               }
             ],
             "extension": [
@@ -54112,6 +55565,10 @@
               {
                 "path": "docs/design/short-command-input-capture.md",
                 "anchor": "## Ordinary member capture"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Extension: the additive public driver union restricts absence to UPSERT and"
               }
             ],
             "verification": [
@@ -54170,6 +55627,18 @@
               {
                 "path": "adapters/host-node/command-original-grouping-budget.test.mjs",
                 "anchor": "ordinary capture uses finite Host grouping work"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Verification: `installed-row-upsert-absence.integration.test.mjs` uses actual"
+              },
+              {
+                "path": "src/run_publication/effect_target_inventory_wbtest.mbt",
+                "anchor": "test \"target order retains original indexes and exact canonical data keys\""
+              },
+              {
+                "path": "adapters/host-node/installed-row-upsert-absence.integration.test.mjs",
+                "anchor": "test('same saved mixed UPSERT restores original source requests and canonical claims without authority or send'"
               }
             ]
           }
@@ -56003,6 +57472,76 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createRowEffectStage/basePreflight/basePreflight/basePreflight/basePreflight",
+            "createRowEffectStage/basePreflight/basePreflight/basePreflight/versioned/versioned",
+            "createRowEffectStage/basePreflight/basePreflight/basePreflight/versioned/versioned#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Responsibility: the existing installed Row Effect retains the original"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Inputs and outputs: `observeTargets` retains the original present"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Identity: original request target and observation identity must match; the"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Ownership: existing capture/request children retain original reads and their"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Synchronization: insert-side UPSERT emits before absent and a not-applicable"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Failure: absent observations with before/version fields, unknown presence,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Cancellation: observation completion is not physical stop or release. Original"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Resources: bounded observation envelope copies, original before references,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Extension: the additive public driver union restricts absence to UPSERT and"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Verification: `installed-row-upsert-absence.integration.test.mjs` uses actual"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -56688,7 +58227,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "52a77e2461feaa8cb08edff9302ff2d60d1e3e4ccb98afbaeecbd0902f6abd7e",
+      "sha256": "bf1b7700e8fbce0245f9744ec7c29c1c96253fc9a182d67d79a81797a9b42212",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -57325,6 +58864,7 @@
             "grantLifetimeMs",
             "openCredentialJournal",
             "credentialFacts",
+            "runAcquisitionLimits",
             "closedCode",
             "grantCode"
           ],
@@ -57346,6 +58886,18 @@
           "async": false
         },
         {
+          "name": "openRowSourceCredentialCustody/close/close",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/closeRunBindings",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openRowSourceCredentialCustody/ensureOpen/ensureOpen",
           "parameters": [],
           "async": false
@@ -57356,13 +58908,114 @@
           "async": false
         },
         {
-          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody",
+          "name": "openRowSourceCredentialCustody/installationMetadataJournal",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#2",
+          "name": "openRowSourceCredentialCustody/installationMetadataJournal/init:close/init:close",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/installationMetadataJournal/installationMetadataJournal",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#2",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition",
+          "parameters": [
+            "request",
+            "callbacks"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition/assertCurrent/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition/observeCurrent/observeCurrent",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#3",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#4",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/openRunAcquisition/originalRequest/originalRequest",
+          "parameters": [
+            "name"
+          ],
           "async": false
         },
         {
@@ -57372,6 +59025,16 @@
             "runInvocationCid",
             "taskAttempt",
             "dispatchRequestCid",
+            "maxUses"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/signInstallationMetadata",
+          "parameters": [
+            "metadataControl",
+            "scope",
+            "expiresUnixMilliseconds",
             "maxUses"
           ],
           "async": false
@@ -57391,6 +59054,7 @@
             "ca",
             "admitsApprovalTarget",
             "admitsEffectTargetRead",
+            "installationMetadata",
             "responseHeaders",
             "now",
             "grantLifetimeMs",
@@ -57492,6 +59156,202 @@
         },
         {
           "name": "openRowSourceCredentialSite/synchronous/synchronous",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstallationMetadataSite/account/account",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/accountMethods/accountMethods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/callAccount/callAccount",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/current/current",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstallationMetadataSite/data/data",
+          "parameters": [
+            "value",
+            "keys"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/data/data/data",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/data/data/data#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/ensureCurrent/ensureCurrent",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/factsFor/factsFor",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach",
+          "parameters": [
+            "originalCustody"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:credential/init:credential",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant",
+          "parameters": [
+            "target",
+            "metadataOccurrenceId",
+            "useId",
+            "expiresUnixMilliseconds",
+            "maxUses"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/site",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/site#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/invalid/invalid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/pair/pair",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/prepareInstallationMetadataSite",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/prepareInstallationMetadataSite#2",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/prepareInstallationMetadataSite#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/profileCurrent/profileCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/profileCurrent/profileCurrent/profileCurrent",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/selectedProfile/selectedProfile",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/synchronous/synchronous",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/synchronous/synchronous/synchronous",
           "parameters": [],
           "async": false
         },
@@ -57679,6 +59539,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The ordinary row Source Check Environment assembly preserves"
               }
             ],
             "ownership": [
@@ -57729,6 +59593,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The ordinary row Source Check Environment assembly preserves"
               }
             ],
             "extension": [
@@ -57753,6 +59621,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/connectors/notion/test/database-read-source-preparation.test.mjs",
+                "anchor": "enum survives installed Check Environment and SQL/AQL preparation"
               }
             ]
           }
@@ -58373,7 +60245,22 @@
             "openRowSourceCredentialCustody/init:closeOnce/init:closeOnce",
             "openRowSourceCredentialCustody/openRowSourceCredentialCustody",
             "openRowSourceCredentialCustody/openRowSourceCredentialCustody#2",
-            "openRowSourceCredentialCustody/sign"
+            "openRowSourceCredentialCustody/sign",
+            "openRowSourceCredentialCustody/close/close",
+            "openRowSourceCredentialCustody/closeRunBindings",
+            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#3",
+            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#4",
+            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#5",
+            "openRowSourceCredentialCustody/openRunAcquisition",
+            "openRowSourceCredentialCustody/openRunAcquisition/assertCurrent/assertCurrent",
+            "openRowSourceCredentialCustody/openRunAcquisition/assertCurrent/assertCurrent/assertCurrent",
+            "openRowSourceCredentialCustody/openRunAcquisition/init:close/init:close",
+            "openRowSourceCredentialCustody/openRunAcquisition/observeCurrent/observeCurrent",
+            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition",
+            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#2",
+            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#3",
+            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#4",
+            "openRowSourceCredentialCustody/openRunAcquisition/originalRequest/originalRequest"
           ],
           "exports": [
             "openRowSourceCredentialSite",
@@ -58388,6 +60275,18 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The installed Row Credential Site accepts this alternative"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
               }
             ],
             "inputsOutputs": [
@@ -58398,6 +60297,18 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Each registered metadata occurrence retains its original selected target,"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
               }
             ],
             "identity": [
@@ -58408,6 +60319,18 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "pair, original declaration alongside its source CID, Account gate and captured"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
               }
             ],
             "ownership": [
@@ -58418,6 +60341,18 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Admission failure returns the existing initialization cleanup Owner with the"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "unsafe mutable Journal admission"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
               }
             ],
             "synchronization": [
@@ -58428,6 +60363,18 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Before signing, the Site checks the bounded Host-profile observation, actual"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
               }
             ],
             "failure": [
@@ -58438,6 +60385,18 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "occurrences cannot issue another grant, and observed Account/profile failure"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "Account file revoked across await"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
               }
             ],
             "cancellation": [
@@ -58448,6 +60407,18 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Publication completion, failure and abort close new-operation admission."
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
               }
             ],
             "resources": [
@@ -58462,6 +60433,18 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "## Installed Row Site physical custody"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The simultaneous preparation inventory includes bounded issuer PEM bytes and"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
               }
             ],
             "extension": [
@@ -58472,6 +60455,18 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The legacy Run Site retains its existing signing and close behavior."
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
               }
             ],
             "verification": [
@@ -58486,6 +60481,22 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "exact Scope, current authorization and confirmed same-Journal claim. This"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
+                "anchor": "run acquisition custody waits through the final response observation"
               }
             ]
           }
@@ -58526,6 +60537,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The ordinary row Source Check Environment assembly preserves"
               }
             ],
             "ownership": [
@@ -58576,6 +60591,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The ordinary row Source Check Environment assembly preserves"
               }
             ],
             "extension": [
@@ -58600,6 +60619,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/connectors/notion/test/database-read-source-preparation.test.mjs",
+                "anchor": "enum survives installed Check Environment and SQL/AQL preparation"
               }
             ]
           }
@@ -58941,6 +60964,155 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openRowSourceCredentialCustody/installationMetadataJournal",
+            "openRowSourceCredentialCustody/installationMetadataJournal/init:close/init:close",
+            "openRowSourceCredentialCustody/installationMetadataJournal/installationMetadataJournal",
+            "openRowSourceCredentialCustody/signInstallationMetadata",
+            "prepareInstallationMetadataSite",
+            "prepareInstallationMetadataSite/account/account",
+            "prepareInstallationMetadataSite/accountMethods/accountMethods",
+            "prepareInstallationMetadataSite/callAccount/callAccount",
+            "prepareInstallationMetadataSite/current/current",
+            "prepareInstallationMetadataSite/data/data",
+            "prepareInstallationMetadataSite/data/data/data",
+            "prepareInstallationMetadataSite/data/data/data#2",
+            "prepareInstallationMetadataSite/ensureCurrent/ensureCurrent",
+            "prepareInstallationMetadataSite/factsFor/factsFor",
+            "prepareInstallationMetadataSite/init:attach/init:attach",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:close/init:close",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:credential/init:credential",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant#2",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/site",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/site#2",
+            "prepareInstallationMetadataSite/invalid/invalid",
+            "prepareInstallationMetadataSite/pair/pair",
+            "prepareInstallationMetadataSite/positive/positive",
+            "prepareInstallationMetadataSite/prepareInstallationMetadataSite",
+            "prepareInstallationMetadataSite/prepareInstallationMetadataSite#2",
+            "prepareInstallationMetadataSite/prepareInstallationMetadataSite#3",
+            "prepareInstallationMetadataSite/selectedProfile/selectedProfile",
+            "prepareInstallationMetadataSite/synchronous/synchronous",
+            "prepareInstallationMetadataSite/synchronous/synchronous/synchronous",
+            "prepareInstallationMetadataSite/init:close/init:close",
+            "prepareInstallationMetadataSite/profileCurrent/profileCurrent",
+            "prepareInstallationMetadataSite/profileCurrent/profileCurrent/profileCurrent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The installed Row Credential Site accepts this alternative"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Each registered metadata occurrence retains its original selected target,"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "pair, original declaration alongside its source CID, Account gate and captured"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Admission failure returns the existing initialization cleanup Owner with the"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "unsafe mutable Journal admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Before signing, the Site checks the bounded Host-profile observation, actual"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "occurrences cannot issue another grant, and observed Account/profile failure"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "Account file revoked across await"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Publication completion, failure and abort close new-operation admission."
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The simultaneous preparation inventory includes bounded issuer PEM bytes and"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Closing that Site or its Journal does not retire"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The legacy Run Site retains its existing signing and close behavior."
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "exact Scope, current authorization and confirmed same-Journal claim. This"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "adapters/connectors/notion/test/site-metadata-discovery.test.mjs",
+                "anchor": "actual original Site signs and claims separate database and dependent schema uses through Notion discovery"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -58954,15 +61126,19 @@
         "../site-node/https-credential-resource.mjs",
         "../site-node/remote-credential-signature.mjs",
         "../site-node/sqlite-credential-journal.mjs",
+        "./installed-host-cleanup.mjs",
         "./installed-row-listing.mjs",
         "./installed-row-run.mjs",
+        "./installed-source.mjs",
         "./local-account-config.mjs",
         "./ordinary-source-binding.mjs",
+        "./source-profile-json.mjs",
         "node:crypto",
         "node:fs/promises",
         "node:path",
         "node:perf_hooks",
-        "node:timers/promises"
+        "node:timers/promises",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -60756,7 +62932,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "3c8489ba987d207badea97e5c5b93b63730cba8816c0e870ce139e65d51a4f0e",
+      "sha256": "1012f8e39bfc04bd0a9db034ca9e2852f541ea72c28d7ebabe87e7f884183640",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -60772,6 +62948,7 @@
         "inferTaskRunAdmission",
         "localContractLimits",
         "localOutputLimits",
+        "restoreInferTaskRunAdmission",
         "selectInstalledSerializationGraph",
         "serializationTaskPublicationPlan",
         "serializationTaskRunAdmission",
@@ -61097,6 +63274,15 @@
           "async": false
         },
         {
+          "name": "restoreInferTaskRunAdmission",
+          "parameters": [
+            "control",
+            "preparedProgram",
+            "restored"
+          ],
+          "async": false
+        },
+        {
           "name": "retainOriginalPlan",
           "parameters": [
             "plan",
@@ -61225,6 +63411,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
               }
             ],
             "inputsOutputs": [
@@ -61235,6 +63425,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "originalInputs(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {"
               }
             ],
             "identity": [
@@ -61245,6 +63443,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
               }
             ],
             "ownership": [
@@ -61255,6 +63461,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const owned = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
               }
             ],
             "synchronization": [
@@ -61265,6 +63479,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
               }
             ],
             "failure": [
@@ -61275,6 +63497,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
               }
             ],
             "cancellation": [
@@ -61285,6 +63515,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
               }
             ],
             "resources": [
@@ -61295,6 +63529,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
               }
             ],
             "extension": [
@@ -61305,6 +63547,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
               }
             ],
             "verification": [
@@ -61319,6 +63569,18 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -64509,8 +66771,122 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "restoreInferTaskRunAdmission"
+          ],
+          "exports": [
+            "restoreInferTaskRunAdmission"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "originalInputs(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored}) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const owned = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./local-values-capacity.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/table-operation-preview.mjs",
@@ -116250,6 +118626,289 @@
         "path": "scripts/check-js-compiler-bindings.mjs",
         "anchor": "'--check'"
       }
+    },
+    {
+      "module": "adapters/connectors/notion/host/database-reader.mjs",
+      "sha256": "b7630c2737ceb0bdcb82ddabf57020bb38010bc9a1b7ecbb23b350c356abee15",
+      "exports": [
+        "createNotionDatabaseReaderFactory"
+      ],
+      "operations": [
+        {
+          "name": "createNotionDatabaseReaderFactory",
+          "parameters": [
+            "moon",
+            "snapshot",
+            "site",
+            "capacity",
+            "resource",
+            "limits",
+            "maxSecretBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/authorizationFor/authorizationFor",
+          "parameters": [
+            "input"
+          ],
+          "async": true
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/closeTransport/closeTransport",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/coordinates/coordinates",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
+          "parameters": [
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#3",
+          "parameters": [
+            "rows",
+            "ticket"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/invoke/invoke",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/selectedProperty/selectedProperty",
+          "parameters": [
+            "selected"
+          ],
+          "async": true
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/verify/verify",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/provider/provider/provider",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "data",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "methods",
+          "parameters": [
+            "value",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "../site/data-source-read.mjs",
+        "../site/property-item-read.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "supplemental",
+      "role": "generated-binding",
+      "owner": "Existing Notion Catalog original schema/pending requests and installed ordinary RowRun/Site Credential caller",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createNotionDatabaseReaderFactory",
+            "createNotionDatabaseReaderFactory/call/call",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/authorizationFor/authorizationFor",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/closeTransport/closeTransport",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/coordinates/coordinates",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:observe/init:observe",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#3",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/invoke/invoke",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/selectedProperty/selectedProperty",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/verify/verify",
+            "createNotionDatabaseReaderFactory/provider/provider",
+            "createNotionDatabaseReaderFactory/provider/provider/provider",
+            "data",
+            "fail/fail",
+            "methods",
+            "methods/methods",
+            "positive/positive",
+            "text/text"
+          ],
+          "exports": [
+            "createNotionDatabaseReaderFactory"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The trusted installed database reader factory adapts"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Its inputs are an authenticated installed snapshot"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Snapshot getters retain the same original read-contract pair"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Each prepared reader retains the original RowRun identifiers"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Every awaited Account/current check is followed"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Missing capacity, foreign snapshots, wrong operations"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Stop aborts that original child"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The original phase inventory includes factory"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Extension uses these existing snapshot"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/notion/test/database-row-reader.test.mjs",
+                "anchor": "ordinary original database RowRun captures exact typed rows"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

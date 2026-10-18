@@ -31,6 +31,63 @@ source, toolchain, actual counts and mutation results retain their individual
 qualifications. No new compiled runtime, installed public product acceptance,
 Provider service operation, or numerical profile is established by this index.
 
+## Installation metadata DATA alternative
+
+The existing field generator separately reads
+`InstallationPreparationSubjectFields` and
+`InstallationPreparationCredentialScope` from `src/remote_credential`. It emits
+`installation-preparation-fields.generated.mjs`: eleven original subject keys
+and six per-use request keys. The opaque subject is not flattened into a CID
+or primitive constructor. A new Common field, omitted output or unsupported
+field shape fails freshness; the ordinary interface check runs this check too.
+The old thirteen Run invocation fields remain byte-identical.
+
+| Attribute | Existing authority and executable reference |
+| --- | --- |
+| Responsibility | `src/remote_credential/installation_preparation_subject.mbt`; `installation_preparation_grant.mbt`: closed DATA only |
+| Inputs/outputs | `InstallationPreparationSubjectFields`; `InstallationPreparationCredentialScope`; generated subject/request keys |
+| Identity | `InstallationPreparationSubject::cid`; `InstallationPreparationCredentialGrant::cid`; exact original declaration source bytes remain distinct from semantic Contracts |
+| Ownership | `installation_preparation_scope_matches`: same opaque original subject; the actual Host/Site/credential and physical journal remain separate |
+| Synchronization | Pure DATA construction and admission perform no asynchronous action or current permission check |
+| Failure | Existing `RemoteCredentialIssue`; closed/canonical body, original subject and exact per-use mismatch refusal |
+| Cancellation | No I/O is started here; this projection cannot acknowledge cancellation or pending physical cleanup |
+| Resources | Explicit input/field/writer/decoder bounds and retained originals; these bounds do not supply funding |
+| Extension | `generate-credential-scope-binding.mjs`: `checkInstallationPreparationBinding`; normal `interfaceGenerationFreshness` |
+| Verification | `installation_preparation_wbtest.mbt`; `installation-metadata-credential-contract.test.mjs`; `installation-preparation-binding.test.mjs` |
+
+The UTF-16 input lower-bound check precedes UTF-8 encoding. Subject/Grant/Use
+readers retain their independent 8192/16384/4096 UTF-8 input limits; admitted
+field bounds permit complete multibyte values, not a smaller ASCII-only route.
+Their source snapshot, encode/decode/hash workspace, canonical wire and
+original subject/grant/use references can overlap. Physical supplier and
+cleanup custody must cover that actual lifetime before an operational caller
+is connected. Cold DATA admission does not supply that operational original,
+claim an ordinal or permit retry. The private
+`installation-preparation-metadata.mjs` view and its canonical Node/RelA
+bridges project these originals without supplying the actual Host request,
+current Account/issuer or metadata resource supplier.
+
+The view captures its actual runtime methods and receiver once, retains each
+original behind a view-local opaque handle, and binds each returned control to
+one same original subject. Grant projection is a named DATA record; the old
+Run control and its seventeen-field projection remain distinct. Subject/Scope
+constructors and primitive field projections are generated from Common; the
+generated kinds preserve numeric fields without hand-maintained layout rules.
+The existing compiler-binding shim alone unwraps raised results. The Node
+bridge destructures Common tuples before projecting explicit protocol arrays.
+
+The actual-runtime cases in
+`adapters/host-node/installation-preparation-metadata.integration.test.mjs`
+exercise exact independent subject/grant/use preimages, copied/foreign/mixed
+scope refusal, per-operation/current-time/revocation/quota refusal, the existing
+signature helper with explicit fixture keys, original callback receivers,
+retirement and abnormal-result refusal. A cited test is not its execution
+receipt. Fixture signing is not an authenticated operational issuer or a
+durable use. The view's records, six maps, aliases, callbacks/receiver, field
+snapshots, generated vectors, writer/decoder/preimage workspace and escaped
+closures/bytes retain their actual overlapping lifetime independently of any
+later physical call and current permission.
+
 
 ## Same-acquisition private credential binding
 
@@ -90,6 +147,28 @@ callback cannot turn into an unsent proof for an earlier attempt or bypass the
 original nominal use. Legacy omission remains compatible, not evidence that a
 call checked current Host policy across the resolver await. HubSpot account
 observation selects its already captured original current callback here.
+
+### Original Run current fences
+
+A Run binding may explicitly capture `assertCurrent` as the original synchronous
+Host/Site fence. Selecting it also requires the original awaited
+`currentBeforeSend` observation. Both checks run before the nominal claim,
+after the resolver await before physical send, and after the response await
+before disclosure; the original Journal authorizes the same use again at the
+final boundary. The synchronous callback receives no arguments or receiver,
+and must return `undefined`. A Promise or boolean is not a current certificate.
+Omitting this fence retains the existing caller behavior, rather than supplying
+current-Host evidence implicitly.
+
+During a final awaited observation the same binding retains its original bounded
+response. Refusal keeps that response with the original binding until confirmed
+retirement; it is not returned to a Connector. An unconfirmed outcome remains
+with the original Journal and binding, blocks another claim or send, and is not
+committed again by the error path. Physical binding retirement does not resolve
+an Unknown Journal use, authenticate a saved publication, reclaim escaped
+response aliases or supply a resource profile. The callback closure, response
+alias, retained error and original control/Journal/material overlap remain in
+the acquisition's retention inventory until their actual owners retire them.
 
 The real Owner cases in `https-credential-resource.test.mjs` cover separately
 counted identity/page operations, rotation before a page and across resolver or
@@ -423,3 +502,141 @@ The component TLS fixture routes the fixed Google HTTP/TLS server name only to
 its own local server; it uses actual RSA, Common, signed Journal and SQLite while
 issuing no live Google request or installed material authority. That qualification
 does not establish ordinary installed or public authentication acceptance.
+
+### Same-journal installation metadata admission
+
+The existing SQLite Credential Journal selects the closed
+`installation-metadata` control explicitly. Its frozen named grant projection
+retains the same control's original Subject and Scope tokens. The Common
+control checks their membership and same-Subject correspondence; JSON, equal
+CIDs, inherited fields, copied tokens or a legacy array do not substitute those
+originals. The original Run control still uses its exact 17-member projection,
+and both controls retain the existing four-member use projection. Unknown
+control purposes are refused, rather than interpreted as the Run layout.
+
+Signature admission still uses the existing configured issuer/public-key map
+and canonical Common signature reader. The existing tables, bounds,
+transactions, use ordinals, revocation, outcome and close protocol do not
+change. The actual signature-admitted claim grant remains beside its original
+use. Reopening the same Journal does not refund an already claimed or Unknown
+use or make a replay eligible for another physical send. A lost COMMIT reply
+retains the existing typed uncertainty and original cause; it does not trigger
+an automatic second acceptance or claim.
+
+This admission is not an operational Host preparation, Account authorization,
+current Site/material observation, egress decision or resource grant. Each
+metadata operation still needs its own original occurrence and actual current
+authority. The trusted Host must retain the actual publication request and
+original declaration/database selection; later query/property reads use their
+own authority. Retaining signed DATA does not restore a retired preparation or
+create a new request for an old Run.
+
+The named projection, its own-property descriptors, six-field snapshot and
+Common Subject/Scope field projections overlap the original grant/wire,
+signature, original tokens and prepared transaction state. These are bounded
+DATA workspaces, not an adopted normal numerical profile. The existing
+Journal remains the sole persistence/claim Owner; the actual Host/Site and
+resource suppliers retain their independent duties.
+
+The actual Common/SQLite counters are in
+`adapters/site-node/installation-metadata-credential-journal.integration.test.mjs`.
+They exercise original operation correspondence, copied/foreign refusal,
+purpose separation, durable claim/Unknown/reopen, expiry/revocation and COMMIT
+uncertainty. Explicit fixture Subjects and signing keys do not prove physical
+metadata acquisition, installed authentication or the complete publication to
+Run recovery path.
+
+### Original installation metadata HTTPS binding
+
+The existing scoped invocation envelope retains an installation Scope token
+through its original Common control. `ownInvocationAuthorization` and
+`invocationBindingsMatch` accept that control explicitly; the latter checks
+both tokens against the same retained Subject. `invocationScopeFields` provides
+only the original request DATA needed by the driver. It neither clones a token
+into a primitive record nor interprets an empty opaque object as absent legacy
+Run fields. Existing Run scope envelopes retain their primitive snapshot rules.
+
+The same HTTPS Credential binding retains that control, journal, resolver and
+the Subject fields projected with the generated declaration vector. Every
+metadata call still has its own signed grant, exact operation/occurrence,
+GET/origin/path/empty-body correspondence and nominal journal use. A missing
+binding, foreign Scope, substituted request or unsupported authentication
+dependency refuses before sending. No metadata operation falls back to a Run
+grant or to an unavailable authentication exchange.
+
+A metadata binding requires the original private synchronous `assertCurrent`
+fence in addition to the awaited `currentBeforeSend` observation. The Host/Site
+supplier must bind these to the actual publication request, checked profile,
+current Account/issuer/Site/material/egress and original resource preparation.
+The publication request alone proves none of those permissions or resources.
+The physical boundary checks the synchronous fence after awaited observations,
+immediately before claim, after secret resolution and before request
+construction, and after the response/socket acknowledgement before disclosure.
+Promise and boolean returns are refusals. Reentrant retirement and cancellation
+are checked again after the fence; its return value never issues authority.
+
+The first selected secret stays private in that original binding. Later calls
+re-observe the same resolver under current authority and refuse replacement
+material rather than sending it or re-probing another account. Response-loss
+and post-response current refusal retain the original Unknown use. A fallible
+outcome COMMIT is not repeated by the exception path; the original failure is
+retained and blocks another send through that binding. Retirement closes new
+admission and retains active work until the existing physical request/socket
+and invocation release protocol acknowledges it.
+
+The simultaneous inventory adds only an original Scope/control alias in the
+owned invocation, the generated Subject-field snapshot and synchronous callback
+in the existing binding, and its original pending-outcome error reference. A
+resolver call overlaps its grant CID, Subject and request DATA envelope with
+the original bounded secret. The response body/header backing survives the
+awaited current check; original socket/callback cleanup remains independent.
+This inventory does not establish a numerical reservation, material provenance
+or a normal profile. Component fixtures use actual Host publication selection,
+Common, SQLite and controlled loopback TLS with explicit private fixture
+Account/current/signing material; they are not operational installation or
+live-provider acceptance.
+
+### Original Run response correspondence
+
+The existing HTTPS Credential Owner can explicitly retain correspondence for a
+legacy Run-purpose response. This is independent of installation-metadata
+Subjects: neither control nor use is converted between those purposes.
+
+- Run response responsibility: the Credential Owner retains the actual claim's
+  signature-admitted grant and use. It does not re-admit a use CID to fabricate
+  a physical acquisition or supply a new publication issuer.
+- Run response inputs and outputs: `retainRunResponseOriginal` opts one call
+  into private correspondence. The exact returned response, same control and
+  same Journal admit a synchronous private receiver; ordinary response keys and
+  default calls are unchanged. No secret, resolver or token material is exposed.
+- Run response identity: the original response is a nominal WeakMap member.
+  Copied responses, foreign control/Journal references and installation-metadata
+  controls refuse. The original immutable Run-scope envelope, actual method,
+  exact path, body length and response digest accompany the actual opaque pair.
+- Run response ownership: one private record retains the original grant/use,
+  control/Journal/scope aliases, response/body backing and fixed request facts.
+  Escaped receiver references remain in the caller's original lifetime and
+  capacity inventory; alias retirement is not physical release or Store ACK.
+- Run response synchronization: correspondence becomes receivable only after
+  confirmed outcome recording. It is historical DATA, not current Site,
+  Account, credential-generation, approval, dispatch or publication authority.
+- Run response failure: response loss and unconfirmed COMMIT expose no original
+  response, and the capture path does not repeat the outcome COMMIT. Changed
+  response bytes permanently refuse that record. A receiver exception cannot
+  reclassify the confirmed Journal outcome or trigger another provider request.
+- Run response cancellation: original claim, Unknown/non-resend, active socket
+  and cleanup duties remain with the existing acquisition and Credential Owners.
+  Receiving DATA adds no cancel, close, reservation return or release ACK.
+- Run response resources: the opt-in record and frozen fact record overlap the
+  original bounded body, grant/use/scope, control and Journal references. One
+  SHA-256 workspace and digest String cover at most the original response bound;
+  verification repeats that bounded hash without copying the body. Caller-held
+  responses and escaped originals require whole-phase supply; this is no normal
+  numerical-profile adoption or independent byte grant.
+- Run response extension: this private legacy-purpose connection does not issue
+  an installation-metadata Subject/use, saved publication holding, cold local
+  Catalog, Provider success, terminal Run state or independent cleanup Owner.
+- Run response verification: actual Common/SQLite/TLS cases check same-claim
+  physical identity, copied/foreign rejection, byte mutation, receiver errors,
+  lost replies, COMMIT uncertainty and purpose separation. These components do
+  not establish complete installed publication, recovery or live service.
