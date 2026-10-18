@@ -107,7 +107,7 @@ fn new_property_item_request(
   let (page_id, property_id, kind) = match origin {
     QueryProperty(row, property) =>
       (row.id, property.metadata.id, property.metadata.kind)
-    PageTitleProperty(page, _, _, id, _) => (page.id, id, "title")
+    PageTitleProperty(page, id, _) => (page.id, id, "title")
   }
   let request = {
     original_self,
@@ -169,10 +169,10 @@ pub fn notion_property_item_request_matches(
   match request.origin {
     QueryProperty(original, property) =>
       physical_equal(original, row) &&
-      match notion_query_row_property_at(row, property_index) {
+      (match notion_query_row_property_at(row, property_index) {
         Some(selected) => physical_equal(property, selected)
         None => false
-      }
+      })
     _ => false
   }
 }
