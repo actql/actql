@@ -5,6 +5,7 @@ import {dirname, join} from 'node:path';
 import {resolveControlSchema} from './interactive-run-control-schema.mjs';
 import {amountMicroPattern} from './interactive-run-control-contract.mjs';
 import {generateEffectReviewVectors} from './effect-review-projection-vectors.mjs';
+import {checkInstallationPublicationStorageSchema} from './installation-publication-storage-contract.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const source = join(root, 'spec/contracts/actql-protocol-schemas.json');
@@ -12,6 +13,7 @@ const output = join(
   root, 'src/run_publication/protocol_schema.generated.mbt',
 );
 const document = JSON.parse(readFileSync(source, 'utf8'));
+checkInstallationPublicationStorageSchema(document);
 const stage = JSON.parse(readFileSync(join(root,
   'spec/contracts/actql-stage-contracts.json'), 'utf8'));
 const profiles = JSON.parse(readFileSync(join(root,
@@ -587,6 +589,13 @@ roots.set('run_state:true', emitSchema(document.artifact_schemas.run_state));
 registerArtifactSchema('review_projection', {
   schema: 'review_projection', identity: 'review_projection_cid',
 });
+
+// Installation storage association is private DATA, not Run evidence. Append
+// its owned descriptor without renumbering any existing contract rules.
+if (document.artifact_schemas.installation_publication_storage_binding !== undefined) {
+  roots.set('installation_publication_storage_binding:true',
+    emitSchema(document.artifact_schemas.installation_publication_storage_binding));
+}
 
 // Keep compiler text segments finite without concatenating temporary rule
 // arrays. Each helper borrows the same destination. Capacity uses the pinned

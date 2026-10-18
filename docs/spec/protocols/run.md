@@ -996,6 +996,33 @@ An accepted request after physical start MUST NOT rewrite a committed success
 or an uncertain publication outcome. Physical stop confirmation remains
 independent of Result availability and delivery completion.
 
+<a id="installation-publication-storage-association"></a>
+
+### Installation publication storage association
+
+<!-- requirement-block: installation-publication-storage.closed-data installation-publication-storage.exact-store installation-publication-storage.identity installation-publication-storage.not-authority -->
+The private `actql-installation-publication-storage-binding/0.1` DATA body MUST
+contain exactly `key_generation_cid`, `private_namespace`, `store_authority_cid`,
+`store_contract_wire` and `version`, with SHA-256 content identifiers for the two
+CID fields and `publication-private` for `private_namespace`.
+The embedded String MUST retain the exact existing Local Store contract bytes
+in `version`, `isolation`, `store_authority_cid` order, with version
+`actql-local-publication-store/0.1`, isolation `execution-namespace`, and the same
+outer Store authority. Reordering or re-encoding that embedded contract is not
+an equivalent original. The bounded Common reader MUST accept only the existing
+canonical JSON encoding and the expected SHA-256 identity of the complete UTF-8
+bytes without a self field or exclusions, refusing extra, missing, null,
+duplicate, noncanonical or inconsistent fields and an unexpected identity.
+This association MUST NOT be treated as an admitted Store, original metadata
+observation, durable publication or generation admission, Credential use,
+current authority, cleanup acknowledgement or physical resource funding.
+Actual original Store membership and installation publication custody remain
+independent duties of their existing consuming Owners; matching DATA or
+public CIDs cannot manufacture those originals. Existing Model/Run evidence
+purposes and bytes remain unchanged.
+
+<!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/installation_publication_storage_binding sha256:99aa1c53014df8cb2bbaeef9768d461d55a7fcf0e765f8cc1d7c0ee496565b0d -->
+
 <a id="resident-effect-resume-transport"></a>
 
 ### Resident Effect resume transport
