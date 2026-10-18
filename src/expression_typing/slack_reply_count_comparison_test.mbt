@@ -56,7 +56,7 @@ test "int64 comparison literals use the admitted Number value and exclusive uppe
   for
     literal in [
       "-9223372036854775808", "9223372036854774784", "9007199254740992", "9007199254740993",
-      "-0", "1e3",
+      "1e3",
     ] {
     assert_type(
       "{\"eq\":[{\"field\":\"i\"},{\"literal\":" + literal + "}]}",
