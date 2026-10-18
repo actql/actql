@@ -27,7 +27,7 @@ typedef int (*key_init_fn)(EVP_PKEY_CTX *);
 typedef int (*keygen_fn)(EVP_PKEY_CTX *, EVP_PKEY **);
 typedef void (*key_context_free_fn)(EVP_PKEY_CTX *);
 typedef void (*key_free_fn)(EVP_PKEY *);
-typedef int (*der_fn)(const EVP_PKEY *, unsigned char **);
+typedef int (*raw_key_fn)(const EVP_PKEY *, unsigned char *, size_t *);
 typedef void (*memory_functions_fn)(CRYPTO_malloc_fn *, CRYPTO_realloc_fn *, CRYPTO_free_fn *);
 
 int main(int argc, char **argv) {
@@ -83,7 +83,8 @@ int main(int argc, char **argv) {
         assert(!memcmp(digest, expected, sizeof expected)); EVP_MD_CTX_free(md);
         GET(key_context_fn, EVP_PKEY_CTX_new_id); GET(key_init_fn, EVP_PKEY_keygen_init);
         GET(keygen_fn, EVP_PKEY_keygen); GET(key_context_free_fn, EVP_PKEY_CTX_free);
-        GET(key_free_fn, EVP_PKEY_free); GET(der_fn, i2d_PrivateKey); GET(der_fn, i2d_PUBKEY);
+        GET(key_free_fn, EVP_PKEY_free); GET(raw_key_fn, EVP_PKEY_get_raw_private_key);
+        GET(raw_key_fn, EVP_PKEY_get_raw_public_key);
         EVP_PKEY_CTX *key_context = EVP_PKEY_CTX_new_id(EVP_PKEY_ED25519, NULL); assert(key_context);
         assert(EVP_PKEY_keygen_init(key_context) == 1);
         EVP_PKEY *key = NULL;
@@ -104,8 +105,15 @@ int main(int argc, char **argv) {
             while ((code = error()) != 0) {char message[256]; text(code, message, sizeof message); fprintf(stderr, "%s\n", message);}
         }
         assert(generated == 1 && key);
-        unsigned char private_der[48], public_der[44], *priv = private_der, *pub = public_der;
-        assert(i2d_PrivateKey(key, &priv) == 48 && i2d_PUBKEY(key, &pub) == 44);
+        /* Use the existing signature key-generation path, not the different
+         * generic i2d_PrivateKey serialization choice. RFC 8410 has fixed
+         * PKCS#8/SPKI prefixes followed by the exact 32-byte key material. */
+        unsigned char private_der[48] = {0x30,0x2e,0x02,0x01,0x00,0x30,0x05,0x06,
+            0x03,0x2b,0x65,0x70,0x04,0x22,0x04,0x20};
+        unsigned char public_der[44] = {0x30,0x2a,0x30,0x05,0x06,0x03,0x2b,0x65,0x70,0x03,0x21,0x00};
+        size_t private_size = 32, public_size = 32;
+        assert(EVP_PKEY_get_raw_private_key(key, private_der + 16, &private_size) == 1 && private_size == 32);
+        assert(EVP_PKEY_get_raw_public_key(key, public_der + 12, &public_size) == 1 && public_size == 32);
         memset(private_der, 0, sizeof private_der);
         assert(actql_crypto_component_inventory(held) == 0 && held[3] > baseline[3]);
         EVP_PKEY_free(key); EVP_PKEY_CTX_free(key_context);

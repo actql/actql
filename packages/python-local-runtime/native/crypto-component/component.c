@@ -201,7 +201,7 @@ void *actql_crypto_component_symbol(const char *name) {
 #define SYMBOL(value) if (!strcmp(name, #value)) return (void *)value
     SYMBOL(BIO_new_mem_buf); SYMBOL(BIO_free); SYMBOL(PEM_read_bio_PUBKEY);
     SYMBOL(PEM_read_bio_PrivateKey); SYMBOL(EVP_PKEY_free); SYMBOL(EVP_PKEY_get_base_id);
-    SYMBOL(EVP_PKEY_get_raw_public_key); SYMBOL(EVP_MD_CTX_new); SYMBOL(EVP_MD_CTX_free);
+    SYMBOL(EVP_PKEY_get_raw_public_key); SYMBOL(EVP_PKEY_get_raw_private_key); SYMBOL(EVP_MD_CTX_new); SYMBOL(EVP_MD_CTX_free);
     SYMBOL(EVP_DigestVerifyInit); SYMBOL(EVP_DigestVerify); SYMBOL(EVP_sha256);
     SYMBOL(EVP_DigestInit_ex); SYMBOL(EVP_DigestUpdate); SYMBOL(EVP_DigestFinal_ex);
     SYMBOL(EVP_DigestSignInit); SYMBOL(EVP_DigestSign); SYMBOL(ERR_get_error);
