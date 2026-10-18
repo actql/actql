@@ -24,6 +24,19 @@ fn binary64_order_text(value : Double) -> String {
 }
 
 ///|
+// Flipping only the sign bit maps exact signed order to fixed-width hex order.
+// No conversion through binary64, Decimal, or an overflowing absolute value.
+fn signed64_order_text(value : Int64) -> String {
+  let ordered = value.reinterpret_as_uint64() ^ 0x8000000000000000UL
+  let out = StringBuilder()
+  for shift = 60; shift >= 0; shift = shift - 4 {
+    let digit = ((ordered >> shift) & 15UL).to_int()
+    out.write_char(key_hex_digits[digit].to_int().unsafe_to_char())
+  }
+  out.to_string()
+}
+
+///|
 fn fixed_digits(value : Int, width : Int) -> String {
   let text = value.to_string()
   "0".repeat(width - text.length()) + text
@@ -80,6 +93,7 @@ pub fn typed_key_order_text(
 ) -> Result[String, KeyOrderIssue] {
   match (checked.value, checked.contract.shape) {
     (Number(value), @contract.Number) => Ok(binary64_order_text(value))
+    (Signed64(value), @contract.Signed64) => Ok(signed64_order_text(value))
     (Boolean(value), @contract.Boolean) => Ok(if value { "1" } else { "0" })
     (Text(value), @contract.Text(_))
     | (Date(value), @contract.Date)

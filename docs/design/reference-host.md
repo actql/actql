@@ -153,6 +153,15 @@ and module lifetime, and rechecks closing after the original current callback.
 Copying a scope's methods or constructing another internal state-machine
 instance cannot add membership to the selected preload's instance.
 
+The prepared embedded Host obtains its fixed check-environment source through
+that same nominal scope and five originals. The private startup projects the
+already captured package image; the Host does not reread its pathname or fall
+back to current file contents when that projection is unavailable. The original
+String remains in its selected module/preparation lifetime, including escaped
+aliases; this borrow is neither a new issuer nor a physical release acknowledgement.
+Independent Host entries without this preparation retain their own acquisition
+obligations and do not inherit the embedded startup admission.
+
 An eager original Host namespace may capture the startup's already-published
 immutable CJS forwarders through the same synchronous private receiver. This
 avoids a static CJS/ESM require cycle without deferring authentication to entry
@@ -340,6 +349,28 @@ overlap, captured reader and receiver, scope alias and partial-failure holdings
 all stay in the same declared envelope. Managed alias retirement is not their
 physical cleanup ACK. This port does not itself supply the missing operational
 original or a public consumer's earlier intake coverage.
+
+The embedded consumer passes its raw options to this synchronous begin and,
+after initialization, reads only that original nominal input projection. It
+retains the packet in the same preparation record through Host adoption or
+failed initialization; it never rereads the caller as an input fallback. The
+private selected namespace exposes a pure bounded snapshot reader so the
+actual startup can capture its exact Source, rather than accept an application
+callback as the reader. This operation cannot issue the operational admission.
+
+The reader preserves own data fields, enumerability, array holes, primitive
+String code units and shared immutable DATA without clamping, normalization or
+unknown-field dropping. Existing Owners still validate field meaning. Finite
+properties, nodes, depth, individual and aggregate String code units, array
+lengths, original-reference occurrences and traversal work are separate input
+allowances, not backing-byte amounts or a numerical profile. Explicit traversal
+frames, own-key arrays, paths, original and copied records and rejection overlap
+remain in the supplier's complete simultaneous envelope. Proxy/accessor/cyclic
+DATA without supported acquisition coverage remains unavailable on this
+selected path, not an invalid general public option. Original Host handles,
+callbacks and non-DATA values retain exact identity for their existing Owners;
+neither copying classifications nor original-reference counts authenticate
+those Owners, closure backing, current authority or physical retirement.
 
 On adoption, the candidate and root lease use the same registry entry and
 actual returned Host. A foreign returned child enters its acquired shutdown

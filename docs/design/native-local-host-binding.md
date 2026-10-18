@@ -1153,8 +1153,8 @@ identity. This does not issue permission or select a normal numerical profile.
 Claiming transitions the existing Resource claim into its consuming phase. The
 old available-pair port consequently becomes unavailable and is not reinterpreted
 as another usable read. Consumer currentness uses the existing Resource
-consumer snapshot/token/phase checks and the same physical domain. Physical
-entry consumes the existing start transition once; a failed entry does not reset
+consumer snapshot/token/phase checks and the same physical domain. The first
+physical entry consumes the existing start transition once; a failed entry does not reset
 it or make another claim eligible. Leaving acknowledges only the original
 physical scope, including during cleanup, rather than final material retirement.
 
@@ -1172,3 +1172,20 @@ capacity. Retiring one managed alias does not establish that all row, schema,
 renderer or final Writer aliases have retired. Material transfer and final stdout
 write/flush require their own original receipts; without the actual supplier and
 complete profile the material path remains unavailable.
+
+A consuming execution may use serial physical Read scopes separated by SQLite
+work. Its logical Resource entry remains one-shot. Only a successful leave of
+that same registered consumer permits physical resumption, with current Host,
+domain, claim and WorkspaceLoan checked again. Failed or unconfirmed physical
+entry/leave permanently keeps that view cleanup-only; a later available context
+cannot revive it. The same pair retains the consuming view and never restores
+its spent available-read port. Scope leave does not retire managed aliases or
+acknowledge material, domain, Library or Host cleanup.
+
+A retained Native filesystem Root can be checked against the caller's actual
+current original Read context without exporting that context or an address.
+The check rejects legacy Roots, retired descriptors and a different active
+domain even when their paths or ownership observations match. The existing
+Adoption Session applies the same physical check to each Root it owns; this
+neither substitutes for its full current/adoption fence nor combines Read and
+SQLite stages into one ambient scope.

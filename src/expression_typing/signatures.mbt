@@ -3,6 +3,7 @@ fn type_name(c : @contract.Contract) -> String {
   match c.shape {
     @contract.Text(_) => "string"
     @contract.Number => "number"
+    @contract.Signed64 => "int64"
     @contract.Boolean => "boolean"
     @contract.Date => "date"
     @contract.Timestamp => "timestamp"

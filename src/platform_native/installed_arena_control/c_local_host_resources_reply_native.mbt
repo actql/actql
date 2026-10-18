@@ -157,3 +157,29 @@ pub fn InstalledArenaLocalHostResourcesReply::close_confirmed(
   self.original is Some(original) &&
   original.closed
 }
+
+///|
+/// A separate closed operation needs the caller's complete explicit quote.
+/// The issued consumer stays in this same pair's read; no integer handle or
+/// reconstructed loan is exported, and ordinary operation tags cannot claim it.
+pub fn claim_installed_local_host_read_reply(
+  host : InstalledArenaHost,
+  original : InstalledArenaLocalHostResources,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> InstalledArenaLocalHostResourcesReply {
+  let issue = match
+    host.prepare_local_host_read_consumer(
+      original, retained_bytes, execution_bytes,
+    ) {
+    Ok(_) => None
+    Err(issue) => Some(issue)
+  }
+  {
+    operation: 9,
+    read: original.read,
+    sqlite: original.sqlite,
+    original: Some(original),
+    issue,
+  }
+}

@@ -24049,7 +24049,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "control = await beginInitialControlInstallation(originals);"
+                "anchor": "control = await beginInitialControlInstallation(originals, options);"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -24498,7 +24498,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "control = await beginInitialControlInstallation(originals);"
+                "anchor": "control = await beginInitialControlInstallation(originals, options);"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -35019,7 +35019,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "control = await beginInitialControlInstallation(originals);"
+                "anchor": "control = await beginInitialControlInstallation(originals, options);"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -35827,7 +35827,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "control = await beginInitialControlInstallation(originals);"
+                "anchor": "control = await beginInitialControlInstallation(originals, options);"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -55467,7 +55467,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "control = await beginInitialControlInstallation(originals);"
+                "anchor": "control = await beginInitialControlInstallation(originals, options);"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -55742,7 +55742,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "control = await beginInitialControlInstallation(originals);"
+                "anchor": "control = await beginInitialControlInstallation(originals, options);"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -55938,7 +55938,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "control = await beginInitialControlInstallation(originals);"
+                "anchor": "control = await beginInitialControlInstallation(originals, options);"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",

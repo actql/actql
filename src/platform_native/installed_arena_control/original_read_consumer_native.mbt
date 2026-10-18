@@ -1,4 +1,14 @@
 ///|
+// A physical sub-scope of the same one-shot consuming execution. An attempted
+// foreign call is cleanup-only until its actual result is retained here.
+priv enum InstalledArenaOriginalReadConsumerScope {
+  ConsumerScopeNew
+  ConsumerScopeOpen
+  ConsumerScopeLeft
+  ConsumerScopeCleanupOnly
+} derive(Eq)
+
+///|
 /// The existing read Owner's issued consuming view. The original read keeps
 /// this reference until its existing physical close/settlement succeeds.
 /// No Ledger, copied descriptor, second reservation or cleanup state escapes.
@@ -9,6 +19,7 @@ struct InstalledArenaOriginalReadConsumer {
   workspace : @buffers.WorkspaceLoan
   retained_bytes : Int64
   execution_bytes : Int64
+  mut scope : InstalledArenaOriginalReadConsumerScope
 }
 
 ///|
@@ -48,6 +59,7 @@ pub fn InstalledArenaHost::prepare_domain_original_read_consumer(
     workspace,
     retained_bytes,
     execution_bytes,
+    scope: ConsumerScopeNew,
   }
   read.consumer = Some(view)
   Ok(view)
@@ -87,7 +99,8 @@ pub fn InstalledArenaHost::require_domain_original_read_consumer_current(
     Ok(_) => ()
   }
   let read = view.read
-  if !read.ready ||
+  if view.scope == ConsumerScopeCleanupOnly ||
+    !read.ready ||
     read.closing ||
     read.closed ||
     view.workspace.closing ||
@@ -147,7 +160,7 @@ pub fn InstalledArenaHost::enter_domain_original_read_consumer(
     Err(issue) => return Err(Read(issue))
     Ok(_) => ()
   }
-  self.enter_domain_read(view.read.domain).map_err(issue => Domain(issue))
+  self.enter_original_consumer_scope(view)
 }
 
 ///|
@@ -162,5 +175,49 @@ pub fn InstalledArenaHost::leave_domain_original_read_consumer(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  self.leave_domain_original_read(view.read)
+  let normal = view.scope == ConsumerScopeOpen
+  // An interruption or failed leave must never publish a reusable sub-scope.
+  view.scope = ConsumerScopeCleanupOnly
+  match self.leave_domain_original_read(view.read) {
+    Err(issue) => Err(issue)
+    Ok(_) => {
+      if normal {
+        view.scope = ConsumerScopeLeft
+      }
+      Ok(())
+    }
+  }
+}
+
+///|
+fn InstalledArenaHost::enter_original_consumer_scope(
+  self : InstalledArenaHost,
+  view : InstalledArenaOriginalReadConsumer,
+) -> Result[Unit, InstalledArenaOriginalReadIssue] {
+  view.scope = ConsumerScopeCleanupOnly
+  match self.enter_domain_read(view.read.domain) {
+    Err(issue) => Err(Domain(issue))
+    Ok(_) => {
+      view.scope = ConsumerScopeOpen
+      Ok(())
+    }
+  }
+}
+
+///|
+/// Resume only this same consuming execution after an actual successful leave.
+/// This enters no second Resource claim, ticket, reservation or logical read.
+/// A failed/unknown physical entry or leave remains cleanup-only permanently.
+pub fn InstalledArenaHost::resume_domain_original_read_consumer_scope(
+  self : InstalledArenaHost,
+  view : InstalledArenaOriginalReadConsumer,
+) -> Result[Unit, InstalledArenaOriginalReadIssue] {
+  match self.require_domain_original_read_consumer_current(view) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if view.scope != ConsumerScopeLeft {
+    return Err(Read(@resources.SpentClaim))
+  }
+  self.enter_original_consumer_scope(view)
 }

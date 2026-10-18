@@ -91,6 +91,9 @@ def main() -> None:
         diagnostic_ceiling=128)
     pair = _OriginalHostResourcesCustody._bind_original(read, sqlite, pair_functions)
     step('original Host binds one Python pair with the same provider and distinct domains')
+    assert pair.claim_read(16 * page, 1024 * page).operation == 9
+    assert pair._phase is None and not read._scope_open
+    step('same original Read claim precedes physical work without a new Python handle or phase')
     calls: list[int] = []
     native_operate = pair_functions.operate
 

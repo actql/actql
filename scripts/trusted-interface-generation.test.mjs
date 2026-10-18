@@ -25,6 +25,7 @@ test('genuine checked generator outputs qualify original compiler and action pro
   assert(checked.checked.includes('native-cli-default-assets.mjs'));
   assert(checked.checked.includes('compilation-manifests.mjs'));
   assert(checked.checked.includes('catalog-body-dependencies.mjs'));
+  assert(checked.checked.includes('check-stage-semantics.mjs'));
   for (const name of ['query-acquisition-contract.mjs', 'query-process-evidence.mjs',
     'query-two-receipt.mjs', 'query-resource-scopes.mjs', 'check-query-evidence-fixtures.mjs',
     'fixed-compute-capacity.mjs', 'managed-runtime-vectors.mjs']) {
@@ -150,4 +151,18 @@ test('ordinary genuine freshness refuses a stale Program grammar interpretation 
     assert.match(String(error), /catalog-body-dependencies\.mjs/u);
     return true;
   });
+});
+
+// A current expression body must be the actual Stage pointer used by closure.
+test('ordinary genuine freshness refuses a stale Stage expression contract pin', t => {
+  const root = process.env.ACTQL_I6_INPUT_ROOT ?? process.cwd();
+  const relative = 'src/program_references/stage_expression_contract.generated.mbt';
+  const scratch = shadowOriginal(root, relative);
+  t.after(() => rmSync(scratch, {recursive: true}));
+  const path = join(scratch, relative);
+  const original = readFileSync(path, 'utf8');
+  const stale = original.replace(/sha256:[a-f0-9]{64}/u, 'sha256:' + '0'.repeat(64));
+  assert.notEqual(stale, original);
+  writeFileSync(path, stale);
+  assert.throws(() => interfaceGenerationFreshness(scratch), /check-stage-semantics\.mjs/u);
 });

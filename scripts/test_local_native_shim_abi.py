@@ -72,6 +72,16 @@ class NativeShimBindingTests(unittest.TestCase):
         self.assertEqual([name for name, _ in PARAMETERS['actql_host_resources_operate_into']],
             ['host', 'original', 'operation', 'reply'])
 
+    def test_original_read_claim_has_distinct_int64_quote_roles_and_persistent_reply(self):
+        from ctypes import c_void_p, c_int64, c_int, POINTER
+        from actql_sdk._local_native_shim_abi import SIGNATURES, PARAMETERS
+        args,result=SIGNATURES['actql_host_resources_claim_read_into']
+        self.assertEqual(args,[c_void_p,c_void_p,c_int64,c_int64,POINTER(c_void_p)])
+        self.assertIs(result,c_int)
+        self.assertEqual([name for name,_ in PARAMETERS['actql_host_resources_claim_read_into']],
+                         ['host','original','retained_bytes','execution_bytes','reply'])
+        self.assertNotIn('actql_host_resources_claim_consumer_handle',SIGNATURES)
+
     def test_unknown_symbol_cannot_bind_or_call_owner(self):
         from actql_sdk._local_native_shim_abi import bind
         class Library:

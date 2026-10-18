@@ -6,7 +6,7 @@
       "responsibilityFacet": "primary",
       "role": "generated-binding",
       "owner": "Same-runtime BigQuery and Common wrappers; RelA source is the generated mirror of the same Owner",
-      "sha256": "0ac1473d87119bbcf686c26ca564f25e589b27fcd23e6d1b0751f7ad09d130be",
+      "sha256": "051283ed08064f810df6ee448dd277675e618ccdebf209a44a7007db7a4efcea",
       "exports": [],
       "operations": [
         {
@@ -58,6 +58,26 @@
           "declaration": "client_program_bigquery_job_original ( value : @ bigquery_read . JobRead , ) - > ( String , String , String )"
         },
         {
+          "name": "client_program_bigquery_job_original_record",
+          "declaration": "client_program_bigquery_job_original_record ( value : @ bigquery_read . JobRead , limits : @ bigquery_read . JobRecordLimits , ) - > Result [ @ bigquery_read . JobOriginalRecord , @ bigquery_read . JobRecordIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_job_original_record_matches_request",
+          "declaration": "client_program_bigquery_job_original_record_matches_request ( value : @ bigquery_read . JobRead , request : @ bigquery_read . JobRequest , record : @ bigquery_read . JobOriginalRecord , ) - > Bool"
+        },
+        {
+          "name": "client_program_bigquery_job_original_record_material",
+          "declaration": "client_program_bigquery_job_original_record_material ( value : @ bigquery_read . JobOriginalRecord , ) - > ( String , String , String , String , String , String )"
+        },
+        {
+          "name": "client_program_bigquery_job_original_record_wire",
+          "declaration": "client_program_bigquery_job_original_record_wire ( value : @ bigquery_read . JobOriginalRecord , ) - > String"
+        },
+        {
+          "name": "client_program_bigquery_job_record_limits",
+          "declaration": "client_program_bigquery_job_record_limits ( max_bytes : Int , max_nodes : Int , max_depth : Int , max_job_bytes : Int , max_material_bytes : Int , ) - > @ bigquery_read . JobRecordLimits"
+        },
+        {
           "name": "client_program_bigquery_job_remote_done",
           "declaration": "client_program_bigquery_job_remote_done ( value : @ bigquery_read . JobRead , ) - > Bool"
         },
@@ -84,6 +104,10 @@
         {
           "name": "client_program_bigquery_read_acquisition",
           "declaration": "client_program_bigquery_read_acquisition ( read : @ bigquery_read . PreparedRead , ) - > @ client_row_source_host . RowAcquisition"
+        },
+        {
+          "name": "client_program_bigquery_read_job_original_record",
+          "declaration": "client_program_bigquery_read_job_original_record ( bytes : Bytes , limits : @ bigquery_read . JobRecordLimits , ) - > Result [ @ bigquery_read . JobOriginalRecord , @ bigquery_read . JobRecordIssue ]"
         },
         {
           "name": "client_program_bigquery_read_usage",
@@ -122,6 +146,11 @@
             "client_program_bigquery_interrupt_read",
             "client_program_bigquery_job_complete",
             "client_program_bigquery_job_original",
+            "client_program_bigquery_job_original_record",
+            "client_program_bigquery_job_original_record_matches_request",
+            "client_program_bigquery_job_original_record_material",
+            "client_program_bigquery_job_original_record_wire",
+            "client_program_bigquery_job_record_limits",
             "client_program_bigquery_job_remote_done",
             "client_program_bigquery_next_request",
             "client_program_bigquery_original_job",
@@ -129,6 +158,7 @@
             "client_program_bigquery_prepare_read",
             "client_program_bigquery_query_limits",
             "client_program_bigquery_read_acquisition",
+            "client_program_bigquery_read_job_original_record",
             "client_program_bigquery_read_usage",
             "client_program_bigquery_record_decoder_refusal",
             "client_program_bigquery_record_response_loss",
@@ -206,7 +236,7 @@
       "responsibilityFacet": "primary",
       "role": "generated-binding",
       "owner": "Same-runtime BigQuery and Common wrappers; RelA source is the generated mirror of the same Owner",
-      "sha256": "8ebaeb7280278634d685fc6983f14d788124ad3274d41ec4bf8b2f50d344045d",
+      "sha256": "8df6031674cce04ebe8d208b56d7698f7758c3f6febc38987c3349cf07c42bd7",
       "exports": [],
       "operations": [
         {
@@ -258,6 +288,26 @@
           "declaration": "client_program_bigquery_job_original ( value : @ bigquery_read . JobRead , ) - > ( String , String , String )"
         },
         {
+          "name": "client_program_bigquery_job_original_record",
+          "declaration": "client_program_bigquery_job_original_record ( value : @ bigquery_read . JobRead , limits : @ bigquery_read . JobRecordLimits , ) - > Result [ @ bigquery_read . JobOriginalRecord , @ bigquery_read . JobRecordIssue ]"
+        },
+        {
+          "name": "client_program_bigquery_job_original_record_matches_request",
+          "declaration": "client_program_bigquery_job_original_record_matches_request ( value : @ bigquery_read . JobRead , request : @ bigquery_read . JobRequest , record : @ bigquery_read . JobOriginalRecord , ) - > Bool"
+        },
+        {
+          "name": "client_program_bigquery_job_original_record_material",
+          "declaration": "client_program_bigquery_job_original_record_material ( value : @ bigquery_read . JobOriginalRecord , ) - > ( String , String , String , String , String , String )"
+        },
+        {
+          "name": "client_program_bigquery_job_original_record_wire",
+          "declaration": "client_program_bigquery_job_original_record_wire ( value : @ bigquery_read . JobOriginalRecord , ) - > String"
+        },
+        {
+          "name": "client_program_bigquery_job_record_limits",
+          "declaration": "client_program_bigquery_job_record_limits ( max_bytes : Int , max_nodes : Int , max_depth : Int , max_job_bytes : Int , max_material_bytes : Int , ) - > @ bigquery_read . JobRecordLimits"
+        },
+        {
           "name": "client_program_bigquery_job_remote_done",
           "declaration": "client_program_bigquery_job_remote_done ( value : @ bigquery_read . JobRead , ) - > Bool"
         },
@@ -284,6 +334,10 @@
         {
           "name": "client_program_bigquery_read_acquisition",
           "declaration": "client_program_bigquery_read_acquisition ( read : @ bigquery_read . PreparedRead , ) - > @ client_row_source_host . RowAcquisition"
+        },
+        {
+          "name": "client_program_bigquery_read_job_original_record",
+          "declaration": "client_program_bigquery_read_job_original_record ( bytes : Bytes , limits : @ bigquery_read . JobRecordLimits , ) - > Result [ @ bigquery_read . JobOriginalRecord , @ bigquery_read . JobRecordIssue ]"
         },
         {
           "name": "client_program_bigquery_read_usage",
@@ -322,6 +376,11 @@
             "client_program_bigquery_interrupt_read",
             "client_program_bigquery_job_complete",
             "client_program_bigquery_job_original",
+            "client_program_bigquery_job_original_record",
+            "client_program_bigquery_job_original_record_matches_request",
+            "client_program_bigquery_job_original_record_material",
+            "client_program_bigquery_job_original_record_wire",
+            "client_program_bigquery_job_record_limits",
             "client_program_bigquery_job_remote_done",
             "client_program_bigquery_next_request",
             "client_program_bigquery_original_job",
@@ -329,6 +388,7 @@
             "client_program_bigquery_prepare_read",
             "client_program_bigquery_query_limits",
             "client_program_bigquery_read_acquisition",
+            "client_program_bigquery_read_job_original_record",
             "client_program_bigquery_read_usage",
             "client_program_bigquery_record_decoder_refusal",
             "client_program_bigquery_record_response_loss",

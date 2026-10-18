@@ -6,7 +6,7 @@
     {
       "module": "packages/client-wire/client-host.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "94a79d3e88751af086400b20e49c40a217a13d72b7bf137d21d830b535d42de4",
+      "sha256": "95d2432758a5ce2d3efaa7a3c1fbf634fb0b4172545309aab2ca9aa95a0692fe",
       "exports": [
         "ClientHostOperation",
         "WireAdmissionShape",
@@ -142,6 +142,10 @@
               {
                 "path": "docs/spec/language.md",
                 "anchor": "#### Text enumeration constraints"
+              },
+              {
+                "path": "docs/design/value-contracts.md",
+                "anchor": "## Distinct signed64 contracts"
               }
             ],
             "identity": [
@@ -156,6 +160,10 @@
               {
                 "path": "docs/spec/language.md",
                 "anchor": "#### Text enumeration constraints"
+              },
+              {
+                "path": "docs/design/value-contracts.md",
+                "anchor": "## Distinct signed64 contracts"
               }
             ],
             "ownership": [
@@ -202,6 +210,10 @@
               {
                 "path": "docs/spec/language.md",
                 "anchor": "#### Text enumeration constraints"
+              },
+              {
+                "path": "docs/design/value-contracts.md",
+                "anchor": "## Distinct signed64 contracts"
               }
             ],
             "verification": [
@@ -224,6 +236,10 @@
               {
                 "path": "scripts/protocol-value-contracts.test.mjs",
                 "anchor": "actual generated structural type validator keeps enum shape"
+              },
+              {
+                "path": "scripts/signed64-contract.test.mjs",
+                "anchor": "test('Signed64 check facts extend exactly"
               }
             ]
           }

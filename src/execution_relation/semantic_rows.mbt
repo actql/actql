@@ -263,6 +263,7 @@ fn admitted_rank(value : @admitted.Value) -> Int {
     @admitted.Vector(_) => 9
     @admitted.Reference(_) => 10
     @admitted.JsonData(_) => 11
+    @admitted.Signed64(_) => 12
   }
 }
 
@@ -283,6 +284,8 @@ fn compare_admitted_value(
       compare_complete_scalar(Boolean(a), Boolean(b), control)
     (@admitted.Number(a), @admitted.Number(b)) =>
       compare_complete_scalar(Number(a), Number(b), control)
+    (@admitted.Signed64(a), @admitted.Signed64(b)) =>
+      Ok(if a < b { -1 } else if a > b { 1 } else { 0 })
     (@admitted.Text(a), @admitted.Text(b)) =>
       compare_complete_scalar(Text(a), Text(b), control)
     (@admitted.Date(a), @admitted.Date(b)) =>

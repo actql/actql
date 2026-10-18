@@ -166,7 +166,10 @@ fn advance_logical_measure_impl(
         }
         match v {
           @admitted.JsonData(payload) => cursor.stack.push(Read(payload, depth))
-          @admitted.Null | @admitted.Number(_) | @admitted.Boolean(_) => ()
+          @admitted.Null
+          | @admitted.Number(_)
+          | @admitted.Boolean(_)
+          | @admitted.Signed64(_) => ()
           @admitted.Text(s) | @admitted.Date(s) | @admitted.Timestamp(s) =>
             if !logical_measure_text(cursor, s) {
               return Err(LogicalWorkLimit)

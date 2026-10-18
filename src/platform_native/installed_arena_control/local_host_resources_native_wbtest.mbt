@@ -167,3 +167,30 @@ test "failed SQLite context retirement retains both originals and never closes t
   host.local_host_resources = None
   local_host_resources_finish_pending(host, read, sqlite)
 }
+
+///|
+test "unregistered Host pair cannot claim a read through explicit or ordinary operation replies" {
+  let host = domain_test_host()
+  let (read, sqlite) = local_host_resources_pending(host)
+  let copy : InstalledArenaLocalHostResources = {
+    host,
+    read,
+    sqlite,
+    active: None,
+    sqlite_context_retired: false,
+    closing: false,
+    closed: false,
+  }
+  let claim = claim_installed_local_host_read_reply(host, copy, 7L, 11L)
+  assert_eq(claim.operation_tag(), 9)
+  assert_true(claim.issue is Some(Domain(_)))
+  assert_false(claim.close_confirmed())
+  assert_true(
+    claim.original_resources() is Some(value) && physical_equal(value, copy),
+  )
+  let ordinary = operate_installed_local_host_resources_reply(host, copy, 9)
+  assert_eq(ordinary.operation_tag(), 0)
+  assert_true(ordinary.issue is Some(Domain(_)))
+  assert_true(host.local_host_resources is None && read.consumer is None)
+  local_host_resources_finish_pending(host, read, sqlite)
+}

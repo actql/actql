@@ -13,6 +13,7 @@ const cid = value => 'sha256:' + createHash('sha256').update(sorted(value)).dige
 const catalog = JSON.parse(readFileSync(root + 'spec/contracts/actql-check-reason-catalog.json'));
 const registry = JSON.parse(readFileSync(root + 'spec/contracts/actql-protocol-schemas.json'));
 const fixed = JSON.parse(readFileSync(root + 'portability/corpus/text-enumeration-identities.json'));
+const current = JSON.parse(readFileSync(root + 'portability/corpus/signed64-identities.json'));
 const reason = structuredClone(catalog.reason_schema);
 for (const variant of reason.properties.facts.oneOf) {
   if (variant.properties.admission) variant.properties.admission.properties.contract_schema_cid.const = cid(registry.schemas.canonical_value_contract);
@@ -34,10 +35,10 @@ for (const declarations of [undefined, {'é': {type: 'string'}, 'e\u0301': {type
   }
 }
 test('independent structured Program schema and preserved Unicode context identities', () => {
-  assert.equal(reasonCid, fixed.checkSchemas.reason.cid);
-  assert.equal(outcomeCid, fixed.checkSchemas.outcome.cid);
-  assert.deepEqual(vectors.map(value => value.preimage), fixed.currentStructuredCheckContexts.map(value => value.preimage));
-  assert.deepEqual(vectors.map(value => value.reference), fixed.currentStructuredCheckContexts.map(value => value.reference));
+  assert.equal(reasonCid, current.checkSchemas.reason.cid);
+  assert.equal(outcomeCid, current.checkSchemas.outcome.cid);
+  assert.deepEqual(vectors.map(value => value.preimage), current.currentStructuredCheckContexts.map(value => value.preimage));
+  assert.deepEqual(vectors.map(value => value.reference), current.currentStructuredCheckContexts.map(value => value.reference));
 });
 
 // Preserve earlier fixed Unicode contexts under their original schema identity.

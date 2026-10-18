@@ -37,6 +37,7 @@ class _OriginalHostResourcesFunctions:
         self.library = library
         self.bind = bind_native(library, 'actql_host_resources_bind_into')
         self.operate = bind_native(library, 'actql_host_resources_operate_into')
+        self.claim_read = bind_native(library, 'actql_host_resources_claim_read_into')
         self.originals = bind_native(library, 'actql_host_resources_originals_into')
         self.operation = bind_native(library, 'actql_host_resources_operation')
         self.origin = bind_native(library, 'actql_host_resources_issue_origin')
@@ -200,7 +201,8 @@ class _OriginalHostResourcesCustody:
     def _refused_bind_data_retired(self) -> bool:
         return self._closed and not self._bound and self._unknown is None
 
-    def _call(self, operation: int) -> _OriginalHostResourcesFact:
+    def _call(self, operation: int, *, claim_quote: tuple[int, int] | None = None
+              ) -> _OriginalHostResourcesFact:
         if self._unknown is not None:
             raise self._unknown
         if (self._closed or self._original.value is None
@@ -209,6 +211,13 @@ class _OriginalHostResourcesCustody:
         for parent in (self._read, self._sqlite, self._read._domain, self._sqlite._domain):
             if parent._unknown is not None:
                 raise parent._unknown
+        if ((operation == 9) != (claim_quote is not None)
+                or (claim_quote is not None
+                    and (type(claim_quote) is not tuple or len(claim_quote) != 2
+                         or any(type(value) is not int or not -(1 << 63) <= value < (1 << 63)
+                                for value in claim_quote)
+                         or self._phase is not None))):
+            raise ValueError('Original read claim transport is unavailable')
         out = byref(self._reply)
         outputs = tuple(byref(slot) for slot in self._slots())
         known: _OriginalHostResourcesError | None = None
@@ -216,7 +225,11 @@ class _OriginalHostResourcesCustody:
         try:
             try:
                 self._drop()
-                self._status(self._functions.operate(self._host, self._original, operation, out))
+                if claim_quote is None:
+                    self._status(self._functions.operate(self._host, self._original, operation, out))
+                else:
+                    self._status(self._functions.claim_read(self._host, self._original,
+                        claim_quote[0], claim_quote[1], out))
                 fact = self._fact(operation)
                 if fact.issue_origin:
                     known = self._issue(fact)
@@ -249,6 +262,14 @@ class _OriginalHostResourcesCustody:
 
     def current(self) -> _OriginalHostResourcesFact:
         return self._call(2)
+
+    def claim_read(self, retained_bytes: int, execution_bytes: int) -> _OriginalHostResourcesFact:
+        """Forward the complete original quote before any consuming phase.
+
+        Native owns issuance/current and keeps the consumer in this same pair.
+        This projection creates no Python permit or replacement read handle.
+        """
+        return self._call(9, claim_quote=(retained_bytes, execution_bytes))
 
     def leave_scope(self) -> None:
         if self._phase is None:

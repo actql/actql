@@ -1787,6 +1787,14 @@
       "line": 112,
       "count": 1,
       "reason": "Reviewed malformed-version refusal fixture from #2474. Exact negative occurrence only: the current project metadata reader rejects this body as InvalidConfiguration; no writer or adopted version."
+    },
+    {
+      "path": "adapters/connectors/bigquery/test/bigquery-node-bridge.test.mjs",
+      "token": "actql.bigquery-job-original/0.2",
+      "contextSha256": "997d108b4aee546e2ef5cd5b992caf8582f463634663d03b39f1b933d555e7e7",
+      "line": 118,
+      "count": 1,
+      "reason": "Reviewed malformed-format rejection vector for the original BigQuery Job record. This one frozen source context permits no production writer, contract upgrade or additional occurrence."
     }
   ]
 }

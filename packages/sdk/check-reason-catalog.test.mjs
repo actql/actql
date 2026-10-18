@@ -1,11 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {verifyIdentity} from '../../scripts/check-canonical-json.mjs';
 import {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry, explainCheckReason} from './index.mjs';
 // Independent fixed migration pins: not generated from this catalog.
 const reasonCid = 'sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742';
+const current = JSON.parse(readFileSync(new URL('../../portability/corpus/signed64-identities.json', import.meta.url))).checkSchemas.reason;
+const previous = JSON.parse(readFileSync(new URL('../../portability/corpus/text-enumeration-identities.json', import.meta.url)));
 test('public check catalog exposes separate readonly presentation metadata without authority', () => {
+  assert.equal(previous.checkSchemas.previousOriginal.reasonCid, reasonCid);
+  verifyIdentity(current.body, current.cid, current.canonicalPreimage);
   assert.deepEqual(getCheckReasonCatalogInfo(), {version: 'actql-check-reason-catalog/0.1',
-    revision: '2026-10-16.1', reasonSchemaCid: reasonCid});
+    revision: '2026-10-16.1', reasonSchemaCid: current.cid});
   const entry = getCheckReasonCatalogEntry('parameter_value_required');
   assert.equal(entry.family, 'requirement');
   assert.equal(entry.default_severity, 'info');
