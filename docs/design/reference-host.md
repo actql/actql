@@ -612,7 +612,7 @@ contracts and evidence members. The `salesforce.accounts` read alias refers to
 the original `Account` resource; it does not rename the UPDATE target or issue
 an Effect Mapping.
 
-The declared Snowflake `active_users` type is logical Int64. Its later physical
+The declared Snowflake `active_users` type is logical Int64. Its physical
 JSON codec must preserve full signed64 values without a binary64 round trip;
 an admitted Number is not implicitly promoted. Salesforce `Risk_Reason__c`
 is declared nullable Text even when all initial fixture values are null.
@@ -641,6 +641,42 @@ and its installation provenance; a readable Source alias cannot supply it.
 `salesforce:record:update` remains an operation requirement, not a current grant,
 and the Mapping requires review. Neither construction nor successful checking
 observes a target version, writes a row or confirms an approval.
+
+#### Original physical Mock records
+
+The existing Row Source owner accepts the full original Mock JSON document
+under both installed Relation declarations. It consumes the selected RowRun's
+own pending byte ticket before decoding, and requires the same acquisition,
+prepared input schema and original declared view. A foreign declaration,
+copied view, another attempt's ticket or repeated admission cannot substitute.
+The ticket accounts for bytes; equal length is not original-body provenance.
+The Host must retain the actual body, file/current observation and operation
+correspondence independently.
+
+Strict preserving parsing retains exact field spelling and numeric byte spans.
+The two connection/resource objects are closed, each explicit file key must
+match its original declared candidate key, and duplicate physical keys refuse.
+Both complete tables, every row and every declared field are admitted before
+any selected row is appended. Missing fields remain distinct from explicit
+nullable values. A projected-out column or unconsumed relation cannot hide an
+invalid physical value in this selected document.
+
+For the original Int64 contract, the physical profile takes an ASCII integer
+number token from that same parser span and original bytes. It never converts
+the parser's binary64 value to Int64, and does not accept an external String,
+fraction, exponent token, negative zero or overflow as an integer observation.
+Canonical decimal String encoding is an internal schema-directed Value wire,
+not a relabelled physical Text cell. Selected values use the checked input's
+exact Contract objects and enter its existing typed-row receiver. Query request,
+Parameter, residual filtering and eventual capture remain with the same
+acquisition; no Source completion or current grant follows from decoding.
+
+The shared full-file holding, each Run's independent ticket, parser String and
+Nodes/spans, decoded tree, both schema/key originals, temporary checked cells,
+selected row arrays, integer text/cursor conversion and append workspace may
+overlap. Byte/node/depth/row/work bounds remain independent and are not funding.
+Failure aborts only the same attempt. Data-reference retirement, ticket
+consumption and successful row append are not physical cleanup acknowledgements.
 
 ### Purpose-confined initial Local signing issuer
 
