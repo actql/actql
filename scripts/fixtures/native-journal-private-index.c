@@ -61,12 +61,21 @@ int main(int argc, char **argv) {
     assert(access(index, F_OK) == -1 && errno == ENOENT);
     assert(inspection_close(owner));
   } else {
+    if (strcmp(argv[1], "collision") == 0) {
+      fd = open(index, O_WRONLY | O_CREAT | O_EXCL, 0600);
+      assert(fd >= 0 && write(fd, "foreign", 7) == 7 && close(fd) == 0);
+    }
     fail_stat = strcmp(argv[1], "stat-failure") == 0;
     fail_close = strcmp(argv[1], "close-unknown") == 0;
     int ready = actql_journal_inspection_prepare_private_index(owner);
-    assert(close_count == before + 1);
+    assert(close_count == before + (strcmp(argv[1], "collision") != 0));
     assert(!actql_journal_inspection_prepare_private_index(owner));
-    if (strcmp(argv[1], "close-unknown") == 0) {
+    if (strcmp(argv[1], "collision") == 0) {
+      assert(!ready && !owner->private_index_created);
+      assert(!inspection_close(owner));
+      struct stat current;
+      assert(lstat(index, &current) == 0 && current.st_size == 7);
+    } else if (strcmp(argv[1], "close-unknown") == 0) {
       assert(!ready && owner->private_index_close_unknown);
       int original = observed_descriptor;
       int reused = open("/dev/null", O_RDONLY);

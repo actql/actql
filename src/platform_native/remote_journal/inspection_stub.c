@@ -22,6 +22,7 @@ typedef struct {
   int descriptors[2];
   int output_descriptor;
   int private_index_attempted;
+  int private_index_created;
   int private_index_ready;
   int private_index_close_unknown;
   int private_index_descriptor;
@@ -85,14 +86,15 @@ static int inspection_close(actql_journal_inspection *owner) {
     }
   }
   if (owner->copy != NULL) {
-    if (owner->private_index_ready) {
+    if (owner->private_index_attempted && !owner->absent) {
       char *path = inspection_suffix(owner->copy, "-shm");
       if (path == NULL) return 0;
       struct stat current;
       int status = lstat(path, &current);
-      int same = status == 0 &&
+      int same = owner->private_index_created &&
+        (!owner->private_index_ready || (status == 0 &&
         current.st_dev == owner->private_index_identity.st_dev &&
-        current.st_ino == owner->private_index_identity.st_ino;
+        current.st_ino == owner->private_index_identity.st_ino));
       int missing = status != 0 && errno == ENOENT;
       free(path);
       if (!same && !missing) {
@@ -151,6 +153,7 @@ int32_t actql_journal_inspection_prepare_private_index(
     inspection_error(owner, "create private inspection index failed");
     return 0;
   }
+  owner->private_index_created = 1;
   owner->private_index_descriptor = descriptor;
   // Confirmed open custody precedes the first stat. A stat failure still
   // consumes exactly this original close; it does not require a later identity.
