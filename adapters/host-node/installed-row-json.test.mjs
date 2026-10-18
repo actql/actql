@@ -15,8 +15,8 @@ import test from 'node:test';
 import {inspect} from 'node:util';
 import {withFixtureConnector} from
   '../host-common/connector-manifest.fixture.mjs';
-import {effectHost, moon} from
-  '../connectors/salesforce/test/installed-salesforce-effect.fixture.mjs';
+import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import {effectHost} from './fixtures/installed-row-effect.fixture.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
 import {createLocalAuthorizationGate} from './local-account-config.mjs';
 import {installNodeClientEffectProgramPreparation} from './client-program-preparation.mjs';
@@ -61,7 +61,7 @@ function programFor(payload) {
   }], results: {answer: {from: {stage: 'source', result: 'rows'}}}};
 }
 
-async function mappingEnvironment(payloadContract = {nullable: false, type: 'json'}) {
+async function mappingEnvironment(payloadContract = {nullable: false, type: 'json'}, kind = 'update') {
   const environment = JSON.parse(await readFile(new URL(
     '../../spec/local-check-environment.json', import.meta.url), 'utf8'));
   const schema = {additional_properties: false, fields: {
@@ -72,12 +72,12 @@ async function mappingEnvironment(payloadContract = {nullable: false, type: 'jso
     connector_manifest_cid: withFixtureConnector(environment, target),
     conversions: [], mapping_contract_cid: '', mapping_ref: mappingRef,
     minimum_approval: 'none',
-    permission_rules: [{effect_kind: 'update', permissions: ['scope:update'],
-      selector_class: 'id', write_fields: ['payload']}],
+    permission_rules: [{effect_kind: kind, permissions: [`scope:${kind}`],
+      selector_class: kind === 'create' ? 'none' : 'id', write_fields: ['payload']}],
     primary_identity: 'Id', required_fields: [],
     required_permissions: [],
     resource_identity_cid: cid({resource: target}),
-    row_mapping: {},
+    row_mapping: kind === 'create' ? {payload: {field: 'payload', null_behavior: 'reject'}} : {},
     schema: 'actql.mapping_contract/0.1', target_ref: target,
     target_schema: schema, target_schema_identity: cid(schema),
     version: 'fixture', writable_fields: ['payload'],
@@ -96,8 +96,8 @@ async function mappingEnvironment(payloadContract = {nullable: false, type: 'jso
 
 async function installationFor(t, {changeRequestValue, payloadContract, beforePayload,
   stopBeforeProjection = false, responsePayload = {ok: true},
-  requestChildMode, targetReadOutcome = 'allow'} = {}) {
-  const {environmentWire, mapping} = await mappingEnvironment(payloadContract);
+  requestChildMode, targetReadOutcome = 'allow', kind = 'update'} = {}) {
+  const {environmentWire, mapping} = await mappingEnvironment(payloadContract, kind);
   const root = await mkdtemp(join(tmpdir(), 'actql-installed-row-json-'));
   const closers = [];
   const effects = [];
@@ -113,11 +113,11 @@ async function installationFor(t, {changeRequestValue, payloadContract, beforePa
   const description = {version: 'fixture-json-update/0.1', resource: 'records',
     writable_fields: ['payload']};
   const observationCid = cid(description);
-  const requestCid = request => cid({operation: 'update', target,
-    selector: request.target, value: request.value,
+  const requestCid = request => cid({operation: kind, target,
+    ...(kind === 'create' ? {} : {selector: request.target}), value: request.value,
     ...(request.beforeVersionCid === undefined ? {} : {before_version_cid: request.beforeVersionCid})});
   const requestFor = (value, selector, beforeVersionCid) => {
-    assert.equal(selector, recordId);
+    assert.equal(selector, kind === 'create' ? undefined : recordId);
     preparedValues.push(structuredClone(value));
     const requestValue = changeRequestValue === undefined
       ? structuredClone(value) : changeRequestValue(value);
@@ -132,7 +132,8 @@ async function installationFor(t, {changeRequestValue, payloadContract, beforePa
       for (const close of closers.reverse()) await close();
     } finally {
       for (const effect of effects) effect.close();
-      await rm(root, {recursive: true, force: true});
+      if (process.env.ACTQL_TEST_PRESERVE_SCRATCH !== '1') await rm(root, {recursive: true, force: true});
+      else t.diagnostic(`Retained original row Effect fixture: ${root}`);
     }
   });
   const accountConfiguration = dataJson({
@@ -164,7 +165,7 @@ async function installationFor(t, {changeRequestValue, payloadContract, beforePa
         return Object.freeze({});
       },
       issueEffectGrant({operation, decision, resource, subjectCid}) {
-        assert.equal(operation, 'fixture:update');
+        assert.equal(operation, `fixture:${kind}`);
         assert.equal(resource, 'records');
         assert.equal(decision.action, 'dispatch');
         assert.equal(decision.boundary, 'effect_commit');
@@ -186,7 +187,7 @@ async function installationFor(t, {changeRequestValue, payloadContract, beforePa
         bindingCid: cid({binding: 'installed-json-fixture'}),
         ledgerRoot: join(root, 'effect-ledger'),
         driver: {
-          kinds: ['update'], writeOperation: () => 'fixture:update',
+          kinds: [kind], writeOperation: () => `fixture:${kind}`,
           targetRead: {operation: 'fixture:read'},
           describe: async () => description,
           prepareRequest({value, selector}) {
@@ -205,6 +206,10 @@ async function installationFor(t, {changeRequestValue, payloadContract, beforePa
             return Object.freeze({
               async prepare() {
                 original.prepares++;
+                if (kind === 'create') {
+                  assert.equal(context.rowIndex, undefined);
+                  assert.equal(context.authorizationForRow, undefined);
+                } else {
                 assert.equal(context.rowIndex, 0);
                 context.assertCurrent?.();
                 // A substituted argument cannot choose another row's grant.
@@ -212,12 +217,13 @@ async function installationFor(t, {changeRequestValue, payloadContract, beforePa
                 context.assertCurrent?.();
                 assert.match(authorization.useId, /-0-\d+$/u,
                   'the child cannot substitute another row index into its read use');
+                }
                 const observed = structuredClone(before);
                 if (requestChildMode === 'failure' || requestChildMode === 'pending-failure') {
                   throw Object.assign(new Error('FixtureGuardedPrepareFailed'),
                     {code: 'FixtureGuardedPrepareFailed'});
                 }
-                const request = requestFor(context.value, context.selector, cid(observed));
+                const request = requestFor(context.value, context.selector, kind === 'create' ? undefined : cid(observed));
                 preparedBefore.set(request, observed);
                 return {request, requestCid: requestCid(request)};
               },
@@ -253,7 +259,7 @@ async function installationFor(t, {changeRequestValue, payloadContract, beforePa
           requestCid,
           async send({request}) {
             assert.ok(Buffer.byteLength(request.wire, 'utf8') <= transportLimit);
-            assert.equal(request.target, recordId);
+            assert.equal(request.target, kind === 'create' ? undefined : recordId);
             sends.push(request.wire);
             before = structuredClone(request.value);
             const body = Buffer.from(dataJson({record_id: recordId,
@@ -587,3 +593,64 @@ for (const [label, payload, nullable, expected] of [
     assert.deepEqual(JSON.parse(saved.outcomeJson).typed_outcome.result.echoed, expected);
   });
 }
+
+
+function createChildProgram() {
+  return {version: 'actql/0.1', id: 'installed-create-original-child', stages: [{
+    id: 'source', inputs: {}, steps: [{values: {schema: {
+      payload: {type: 'string', nullable: false}}, rows: [{payload: 'original create'}]}, as: 'selected'}],
+    results: {rows: {from: 'selected', fields: ['payload']}},
+    effects: {save: {create: {target, mapping: mappingRef, from: {result: 'rows'}}}},
+  }], results: {answer: {from: {stage: 'source', result: 'rows'}}}};
+}
+
+test('CREATE uses its original request child and retains it through capture release', async t => {
+  const installation = await installationFor(t, {kind: 'create',
+    payloadContract: {type: 'string', nullable: false}, requestChildMode: 'normal'});
+  const host = await effectHost(t, installation, join(installation.root, 'host'),
+    {effect: await installation.load()});
+  const run = await host.run(createChildProgram(), 'create-original-child');
+  assert.equal(run.started.value.status, 'published');
+  assert.equal(installation.requestChildren.length, 1,
+    'CREATE must consume the installed original child rather than silently use the pure fallback');
+  const child = installation.requestChildren[0];
+  assert.equal(child.prepares, 1); assert.equal(child.pending, true);
+  assert.equal(installation.sends.length, 1); assert.equal(installation.writeGrants(), 1);
+  await host.outcomes[0].stage.releaseInputs();
+  assert.equal(child.pending, false); assert.equal(child.releases, 1);
+});
+
+test('CREATE child preparation failure retires that original child without a write', async t => {
+  const installation = await installationFor(t, {kind: 'create',
+    payloadContract: {type: 'string', nullable: false}, requestChildMode: 'failure'});
+  const host = await effectHost(t, installation, join(installation.root, 'host'),
+    {effect: await installation.load()});
+  const failure = await host.run(createChildProgram(), 'create-child-failure').catch(error => error);
+  assert.equal(failure?.code, 'FixtureGuardedPrepareFailed', diagnostic(failure));
+  assert.equal(installation.requestChildren.length, 1);
+  assert.equal(installation.requestChildren[0].prepares, 1);
+  assert.equal(installation.requestChildren[0].pending, false);
+  assert.equal(installation.requestChildren[0].releases, 1);
+  assert.equal(installation.writeGrants(), 0); assert.deepEqual(installation.sends, []);
+});
+
+test('CREATE child pending cleanup retains the original failure and parent duty until ACK', async t => {
+  const installation = await installationFor(t, {kind: 'create',
+    payloadContract: {type: 'string', nullable: false}, requestChildMode: 'pending-failure'});
+  const host = await effectHost(t, installation, join(installation.root, 'host'),
+    {effect: await installation.load()});
+  const failure = await host.run(createChildProgram(), 'create-child-pending').catch(error => error);
+  assert.equal(failure?.cleanupPending, true, diagnostic(failure));
+  assert.equal(failure.primaryFailure?.code, 'FixtureGuardedPrepareFailed');
+  const child = installation.requestChildren[0], handle = failure.cleanupHandle;
+  assert.equal(child.pending, true); assert.ok(handle);
+  try {
+    assert.equal((await handle.retry()).pending, true);
+    assert.equal(failure.cleanupHandle, handle); assert.equal(child.prepares, 1);
+    assert.equal(installation.writeGrants(), 0); assert.deepEqual(installation.sends, []);
+  } finally {
+    child.allowRetire = true;
+    assert.equal((await handle.retry()).pending, false);
+    assert.equal(child.pending, false);
+  }
+});

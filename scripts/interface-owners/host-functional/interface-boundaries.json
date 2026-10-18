@@ -6024,7 +6024,7 @@
     {
       "module": "adapters/host-common/private-publication-holding.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "49d39bcf3f0a3531b75d67d372ac5cdc6711e809ded14ed9231c144e700bd9ff",
+      "sha256": "493b47cae61e4982affd1a9b2dd09aae3bdcb7b50e6a0c498d16f1d10942f70e",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -6305,6 +6305,14 @@
               {
                 "path": "adapters/host-common/private-publication-holding.test.mjs",
                 "anchor": "test('private holding reconciles a lost durable commit acknowledgement',"
+              },
+              {
+                "path": "adapters/store-local/installation-publication-custody.test.mjs",
+                "anchor": "unknown installation commit retains the same preparation until original durability confirms"
+              },
+              {
+                "path": "docs/design/execution-completion-storage.md",
+                "anchor": "## Saved installation-publication physical custody"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
