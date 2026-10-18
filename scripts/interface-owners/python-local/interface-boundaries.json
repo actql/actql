@@ -1,5 +1,5 @@
 {
-  "source": "49b9badb0f2ecfb5b8aa0623754bd821fb9a6e67",
+  "source": "8f59ee10f3cf5a9d8f38c3c5a5f835d6c87b655d",
   "syntaxProjectionSha256": "4a31ecaf4ac9e25c4558a6363ef836ef44d22cbc792e2ae1cd9c05bbdc05c888",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
@@ -41,7 +41,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_runtime_abi.py",
-      "sha256": "bce38283c8ab4c9f35989d9ad59c261c6b78c54170c97c666f2abbb6d8f2f1b5",
+      "sha256": "47355825f6749fa57b2937b5fdbb0ea82cdecf73919ea76dee559ecc500017f3",
       "generator": {
         "path": "scripts/generate-local-native-runtime-binding.py",
         "anchor": "def outputs("
@@ -35398,7 +35398,7 @@
           ]
         }
       ],
-      "sha256": "bce38283c8ab4c9f35989d9ad59c261c6b78c54170c97c666f2abbb6d8f2f1b5",
+      "sha256": "47355825f6749fa57b2937b5fdbb0ea82cdecf73919ea76dee559ecc500017f3",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -35426,6 +35426,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Private Native transport declarations"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "inputsOutputs": [
@@ -35444,6 +35448,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Private Native transport declarations"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/packaged_runtime_shim.c",
+                "anchor": "actql_packaged_runtime_capture_host_resources_utf16_into"
               }
             ],
             "identity": [
@@ -35458,6 +35470,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/local_host_resources_runtime_native.mbt",
+                "anchor": "pub fn InstalledArenaHost::require_local_host_consuming_read_current("
               }
             ],
             "ownership": [
@@ -35472,6 +35492,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "synchronization": [
@@ -35482,6 +35506,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime_abi.py",
                 "anchor": "def bind(library: Any) -> dict[str, Any]:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "failure": [
@@ -35496,6 +35524,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "cancellation": [
@@ -35506,6 +35538,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime_abi.py",
                 "anchor": "def bind(library: Any) -> dict[str, Any]:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "resources": [
@@ -35520,6 +35556,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "src/platform_native/client_host/local_packaged_runtime.mbt",
+                "anchor": "open_native_local_packaged_runtime_in_original_host_resources("
               }
             ],
             "extension": [
@@ -35530,6 +35574,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime_abi.py",
                 "anchor": "def bind(library: Any) -> dict[str, Any]:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "verification": [
@@ -35540,6 +35588,22 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime_abi.py",
                 "anchor": "def bind(library: Any) -> dict[str, Any]:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_runtime.py",
+                "anchor": "def test_capture_uses_the_same_bound_pair_without_direct_read_or_second_claim("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_runtime.py",
+                "anchor": "def test_lost_pair_capture_reply_keeps_partial_slots_and_never_calls_direct_capture("
+              },
+              {
+                "path": "scripts/fixtures/python-original-host-resources.py",
+                "anchor": "step('Runtime aliases retain outer retirement until their own physical and data cleanup ACK')"
               }
             ]
           }
@@ -35576,6 +35640,10 @@
               {
                 "path": "scripts/local-native-runtime-binding.json",
                 "anchor": "callback_declaration"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "inputsOutputs": [
@@ -35586,6 +35654,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime_abi.py",
                 "anchor": "\"\"\"Generated private same-library declarations; do not edit.\"\"\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/packaged_runtime_shim.c",
+                "anchor": "actql_packaged_runtime_capture_host_resources_utf16_into"
               }
             ],
             "identity": [
@@ -35596,6 +35672,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime_abi.py",
                 "anchor": "\"\"\"Generated private same-library declarations; do not edit.\"\"\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/local_host_resources_runtime_native.mbt",
+                "anchor": "pub fn InstalledArenaHost::require_local_host_consuming_read_current("
               }
             ],
             "ownership": [
@@ -35606,6 +35690,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime_abi.py",
                 "anchor": "\"\"\"Generated private same-library declarations; do not edit.\"\"\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "synchronization": {
@@ -35619,6 +35707,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime_abi.py",
                 "anchor": "\"\"\"Generated private same-library declarations; do not edit.\"\"\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "cancellation": {
@@ -35632,6 +35724,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime_abi.py",
                 "anchor": "\"\"\"Generated private same-library declarations; do not edit.\"\"\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "src/platform_native/client_host/local_packaged_runtime.mbt",
+                "anchor": "open_native_local_packaged_runtime_in_original_host_resources("
               }
             ],
             "extension": [
@@ -35642,6 +35742,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime_abi.py",
                 "anchor": "\"\"\"Generated private same-library declarations; do not edit.\"\"\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "verification": [
@@ -35652,6 +35756,22 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime_abi.py",
                 "anchor": "\"\"\"Generated private same-library declarations; do not edit.\"\"\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_runtime.py",
+                "anchor": "def test_capture_uses_the_same_bound_pair_without_direct_read_or_second_claim("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_runtime.py",
+                "anchor": "def test_lost_pair_capture_reply_keeps_partial_slots_and_never_calls_direct_capture("
+              },
+              {
+                "path": "scripts/fixtures/python-original-host-resources.py",
+                "anchor": "step('Runtime aliases retain outer retirement until their own physical and data cleanup ACK')"
               }
             ]
           }
@@ -35670,6 +35790,7 @@
       ],
       "imports": [
         "._local_native_control_custody",
+        "._local_native_host_resources",
         "._local_native_original_read",
         "._local_native_runtime_abi",
         "__future__",
@@ -35832,7 +35953,7 @@
           ]
         }
       ],
-      "sha256": "440382e60f01f55ed8819e731bbcbda7ada8239faa93e22f9b761fec65d66a12",
+      "sha256": "fb27e6488d377c256003959117c0e940459c4bb0298c8d5f0474ae0ad89d87b0",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -35876,6 +35997,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "inputsOutputs": [
@@ -35898,6 +36023,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/packaged_runtime_shim.c",
+                "anchor": "actql_packaged_runtime_capture_host_resources_utf16_into"
               }
             ],
             "identity": [
@@ -35912,6 +36045,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/local_host_resources_runtime_native.mbt",
+                "anchor": "pub fn InstalledArenaHost::require_local_host_consuming_read_current("
               }
             ],
             "ownership": [
@@ -35926,6 +36067,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "synchronization": [
@@ -35936,6 +36081,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
                 "anchor": "class _OriginalPackagedRuntimeCustody:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "failure": [
@@ -35950,6 +36099,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "cancellation": [
@@ -35960,6 +36113,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
                 "anchor": "class _OriginalPackagedRuntimeCustody:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "resources": [
@@ -35974,6 +36131,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "src/platform_native/client_host/local_packaged_runtime.mbt",
+                "anchor": "open_native_local_packaged_runtime_in_original_host_resources("
               }
             ],
             "extension": [
@@ -35984,6 +36149,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
                 "anchor": "class _OriginalPackagedRuntimeCustody:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "verification": [
@@ -36002,6 +36171,22 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
                 "anchor": "class _OriginalPackagedRuntimeCustody:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_runtime.py",
+                "anchor": "def test_capture_uses_the_same_bound_pair_without_direct_read_or_second_claim("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_runtime.py",
+                "anchor": "def test_lost_pair_capture_reply_keeps_partial_slots_and_never_calls_direct_capture("
+              },
+              {
+                "path": "scripts/fixtures/python-original-host-resources.py",
+                "anchor": "step('Runtime aliases retain outer retirement until their own physical and data cleanup ACK')"
               }
             ]
           }
@@ -36033,6 +36218,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "inputsOutputs": [
@@ -36055,6 +36244,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/packaged_runtime_shim.c",
+                "anchor": "actql_packaged_runtime_capture_host_resources_utf16_into"
               }
             ],
             "identity": [
@@ -36069,6 +36266,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/local_host_resources_runtime_native.mbt",
+                "anchor": "pub fn InstalledArenaHost::require_local_host_consuming_read_current("
               }
             ],
             "ownership": [
@@ -36083,6 +36288,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "synchronization": [
@@ -36093,6 +36302,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
                 "anchor": "class _OriginalPackagedRuntimeError(RuntimeError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "failure": [
@@ -36107,6 +36320,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "cancellation": [
@@ -36117,6 +36334,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
                 "anchor": "class _OriginalPackagedRuntimeError(RuntimeError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "resources": [
@@ -36131,6 +36352,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "src/platform_native/client_host/local_packaged_runtime.mbt",
+                "anchor": "open_native_local_packaged_runtime_in_original_host_resources("
               }
             ],
             "extension": [
@@ -36141,6 +36370,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
                 "anchor": "class _OriginalPackagedRuntimeError(RuntimeError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "verification": [
@@ -36159,6 +36392,22 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
                 "anchor": "class _OriginalPackagedRuntimeError(RuntimeError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_runtime.py",
+                "anchor": "def test_capture_uses_the_same_bound_pair_without_direct_read_or_second_claim("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_runtime.py",
+                "anchor": "def test_lost_pair_capture_reply_keeps_partial_slots_and_never_calls_direct_capture("
+              },
+              {
+                "path": "scripts/fixtures/python-original-host-resources.py",
+                "anchor": "step('Runtime aliases retain outer retirement until their own physical and data cleanup ACK')"
               }
             ]
           }
@@ -36190,6 +36439,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "inputsOutputs": [
@@ -36212,6 +36465,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/packaged_runtime_shim.c",
+                "anchor": "actql_packaged_runtime_capture_host_resources_utf16_into"
               }
             ],
             "identity": [
@@ -36226,6 +36487,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/local_host_resources_runtime_native.mbt",
+                "anchor": "pub fn InstalledArenaHost::require_local_host_consuming_read_current("
               }
             ],
             "ownership": [
@@ -36240,6 +36509,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "synchronization": [
@@ -36250,6 +36523,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
                 "anchor": "class _OriginalPackagedRuntimeFunctions:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "failure": [
@@ -36264,6 +36541,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "cancellation": [
@@ -36274,6 +36555,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
                 "anchor": "class _OriginalPackagedRuntimeFunctions:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "resources": [
@@ -36288,6 +36573,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "src/platform_native/client_host/local_packaged_runtime.mbt",
+                "anchor": "open_native_local_packaged_runtime_in_original_host_resources("
               }
             ],
             "extension": [
@@ -36298,6 +36591,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
                 "anchor": "class _OriginalPackagedRuntimeFunctions:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "verification": [
@@ -36316,6 +36613,22 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
                 "anchor": "class _OriginalPackagedRuntimeFunctions:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_runtime.py",
+                "anchor": "def test_capture_uses_the_same_bound_pair_without_direct_read_or_second_claim("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_runtime.py",
+                "anchor": "def test_lost_pair_capture_reply_keeps_partial_slots_and_never_calls_direct_capture("
+              },
+              {
+                "path": "scripts/fixtures/python-original-host-resources.py",
+                "anchor": "step('Runtime aliases retain outer retirement until their own physical and data cleanup ACK')"
               }
             ]
           }
@@ -36346,6 +36659,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "inputsOutputs": [
@@ -36368,6 +36685,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/packaged_runtime_shim.c",
+                "anchor": "actql_packaged_runtime_capture_host_resources_utf16_into"
               }
             ],
             "identity": [
@@ -36382,6 +36707,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/local_host_resources_runtime_native.mbt",
+                "anchor": "pub fn InstalledArenaHost::require_local_host_consuming_read_current("
               }
             ],
             "ownership": [
@@ -36396,6 +36729,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "synchronization": [
@@ -36406,6 +36743,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
                 "anchor": "def _exact_utf16(value: str, maximum: int, *, exact: int | None = None) -> Any:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "failure": [
@@ -36420,6 +36761,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "cancellation": [
@@ -36430,6 +36775,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
                 "anchor": "def _exact_utf16(value: str, maximum: int, *, exact: int | None = None) -> Any:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "resources": [
@@ -36444,6 +36793,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "src/platform_native/client_host/local_packaged_runtime.mbt",
+                "anchor": "open_native_local_packaged_runtime_in_original_host_resources("
               }
             ],
             "extension": [
@@ -36454,6 +36811,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
                 "anchor": "def _exact_utf16(value: str, maximum: int, *, exact: int | None = None) -> Any:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "verification": [
@@ -36472,6 +36833,22 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
                 "anchor": "def _exact_utf16(value: str, maximum: int, *, exact: int | None = None) -> Any:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_runtime.py",
+                "anchor": "def test_capture_uses_the_same_bound_pair_without_direct_read_or_second_claim("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_runtime.py",
+                "anchor": "def test_lost_pair_capture_reply_keeps_partial_slots_and_never_calls_direct_capture("
+              },
+              {
+                "path": "scripts/fixtures/python-original-host-resources.py",
+                "anchor": "step('Runtime aliases retain outer retirement until their own physical and data cleanup ACK')"
               }
             ]
           }
@@ -36510,6 +36887,10 @@
               {
                 "path": "src/platform_native/installed_arena_entry/main_native.mbt",
                 "anchor": "extern \"C\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "inputsOutputs": [
@@ -36520,6 +36901,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
                 "anchor": "\"\"\"Thin transport of the existing scoped Native Runtime and original carrier."
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/packaged_runtime_shim.c",
+                "anchor": "actql_packaged_runtime_capture_host_resources_utf16_into"
               }
             ],
             "identity": [
@@ -36530,6 +36919,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
                 "anchor": "\"\"\"Thin transport of the existing scoped Native Runtime and original carrier."
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/local_host_resources_runtime_native.mbt",
+                "anchor": "pub fn InstalledArenaHost::require_local_host_consuming_read_current("
               }
             ],
             "ownership": [
@@ -36540,6 +36937,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
                 "anchor": "\"\"\"Thin transport of the existing scoped Native Runtime and original carrier."
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "synchronization": {
@@ -36553,6 +36954,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
                 "anchor": "\"\"\"Thin transport of the existing scoped Native Runtime and original carrier."
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "cancellation": {
@@ -36566,6 +36971,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
                 "anchor": "\"\"\"Thin transport of the existing scoped Native Runtime and original carrier."
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "src/platform_native/client_host/local_packaged_runtime.mbt",
+                "anchor": "open_native_local_packaged_runtime_in_original_host_resources("
               }
             ],
             "extension": [
@@ -36576,6 +36989,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
                 "anchor": "\"\"\"Thin transport of the existing scoped Native Runtime and original carrier."
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
               }
             ],
             "verification": [
@@ -36594,6 +37011,22 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_runtime.py",
                 "anchor": "\"\"\"Thin transport of the existing scoped Native Runtime and original carrier."
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Private packaged Runtime C binding"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_runtime.py",
+                "anchor": "def test_capture_uses_the_same_bound_pair_without_direct_read_or_second_claim("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_runtime.py",
+                "anchor": "def test_lost_pair_capture_reply_keeps_partial_slots_and_never_calls_direct_capture("
+              },
+              {
+                "path": "scripts/fixtures/python-original-host-resources.py",
+                "anchor": "step('Runtime aliases retain outer retirement until their own physical and data cleanup ACK')"
               }
             ]
           }

@@ -5,7 +5,7 @@
   "contract": "docs/design/python-local-abi.md",
   "owner": "src/platform_native/client_host/local_packaged_runtime_reply_native.mbt",
   "callback_source": "src/platform_native/installed_arena_entry/main_native.mbt",
-  "callback_declaration": "extern \"C\" fn register_original_packaged_runtime_roots( capture : FuncRef[ ( @control.InstalledArenaHost, @control.InstalledArenaOriginalRead, String, String, String, String, Int, ) -> @runtime.NativeLocalPackagedRuntimeReply, ], current : FuncRef[ (@runtime.NativeLocalPackagedRuntime) -> @runtime.NativeLocalPackagedRuntimeReply, ], close : FuncRef[ (@runtime.NativeLocalPackagedRuntime) -> @runtime.NativeLocalPackagedRuntimeReply, ], host : FuncRef[ (@runtime.NativeLocalPackagedRuntimeReply) -> @control.InstalledArenaHost?, ], original : FuncRef[ (@runtime.NativeLocalPackagedRuntimeReply) -> @control.InstalledArenaOriginalRead?, ], runtime : FuncRef[ (@runtime.NativeLocalPackagedRuntimeReply) -> @runtime.NativeLocalPackagedRuntime?, ], operation : FuncRef[(@runtime.NativeLocalPackagedRuntimeReply) -> Int], issue : FuncRef[(@runtime.NativeLocalPackagedRuntimeReply) -> Int], ) -> Unit = \"actql_native_control_register_packaged_runtime_roots\"",
+  "callback_declaration": "extern \"C\" fn register_original_packaged_runtime_roots( capture : FuncRef[ ( @control.InstalledArenaHost, @control.InstalledArenaOriginalRead, String, String, String, String, Int, ) -> @runtime.NativeLocalPackagedRuntimeReply, ], current : FuncRef[ (@runtime.NativeLocalPackagedRuntime) -> @runtime.NativeLocalPackagedRuntimeReply, ], close : FuncRef[ (@runtime.NativeLocalPackagedRuntime) -> @runtime.NativeLocalPackagedRuntimeReply, ], host : FuncRef[ (@runtime.NativeLocalPackagedRuntimeReply) -> @control.InstalledArenaHost?, ], original : FuncRef[ (@runtime.NativeLocalPackagedRuntimeReply) -> @control.InstalledArenaOriginalRead?, ], runtime : FuncRef[ (@runtime.NativeLocalPackagedRuntimeReply) -> @runtime.NativeLocalPackagedRuntime?, ], operation : FuncRef[(@runtime.NativeLocalPackagedRuntimeReply) -> Int], issue : FuncRef[(@runtime.NativeLocalPackagedRuntimeReply) -> Int], capture_pair : FuncRef[ ( @control.InstalledArenaHost, @control.InstalledArenaOriginalRead, @control.InstalledArenaLocalHostResources, String, String, String, String, Int, ) -> @runtime.NativeLocalPackagedRuntimeReply, ], ) -> Unit = \"actql_native_control_register_packaged_runtime_roots\"",
   "thread": "same original serialized Host thread; no callback reentry",
   "failure": "nonzero transport preserves original persistent slots; Owner issue is separate; response loss stays Unknown",
   "cleanup": "inner Runtime ACK does not retire outer parent read/Host; no close replay after Unknown",
@@ -24,6 +24,77 @@
           "name": "read",
           "type": "read",
           "meaning": "borrow same original parent read"
+        },
+        {
+          "name": "root",
+          "type": "utf16",
+          "meaning": "borrow exact root UTF16 without normalization"
+        },
+        {
+          "name": "root_units",
+          "type": "i32",
+          "meaning": "UTF16 code units; 1..4096"
+        },
+        {
+          "name": "source",
+          "type": "utf16",
+          "meaning": "borrow exact source UTF16 without normalization"
+        },
+        {
+          "name": "source_units",
+          "type": "i32",
+          "meaning": "UTF16 code units; exact 40"
+        },
+        {
+          "name": "platform",
+          "type": "utf16",
+          "meaning": "borrow exact platform UTF16 without normalization"
+        },
+        {
+          "name": "platform_units",
+          "type": "i32",
+          "meaning": "UTF16 code units; 1..32"
+        },
+        {
+          "name": "manifest",
+          "type": "utf16",
+          "meaning": "borrow exact manifest UTF16 without normalization"
+        },
+        {
+          "name": "manifest_units",
+          "type": "i32",
+          "meaning": "UTF16 code units; exact 64"
+        },
+        {
+          "name": "ceiling",
+          "type": "i32",
+          "meaning": "positive diagnostic bytes within adopted workspace"
+        },
+        {
+          "name": "reply",
+          "type": "reply_slot",
+          "meaning": "persistent empty owned-reply output slot"
+        }
+      ]
+    },
+    {
+      "name": "capture_host_resources_utf16_into",
+      "result": "int",
+      "parameters": [
+        {
+          "name": "host",
+          "type": "host",
+          "meaning": "borrow original Host"
+        },
+        {
+          "name": "read",
+          "type": "read",
+          "meaning": "borrow same original parent read"
+        },
+        {
+          "name": "resources",
+          "type": "resources",
+          "meaning": "borrow the same original Host resource pair and its already claimed Read; no replacement consumer or funding"
         },
         {
           "name": "root",
