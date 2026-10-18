@@ -3400,7 +3400,8 @@ export async function connectEmbeddedLocal(options) {
   // The actual Host generation and original installation are allocated here,
   // not reconstructed from a later view, Project DATA or current config. Their
   // minimal candidate record belongs to the selected prior startup envelope.
-  const host = {}, originalInstallation = {};
+  const host = {};
+  let originalInstallation = {};
   let originals = Object.freeze({host, installation: originalInstallation,
     generation: host, supplier: connectEmbeddedLocal, moduleLifetime: import.meta});
   profiles.registerPreparation(host, originalInstallation, host);
@@ -3416,6 +3417,9 @@ export async function connectEmbeddedLocal(options) {
     }
     projectProfile = project = moon = referenceRetirement = undefined;
     for (const key of Object.keys(record)) record[key] = undefined;
+    // This private installation bag holds backreferences, not canonical DATA.
+    // Its opaque identity remains the same for the original cleanup pair.
+    for (const key of Object.keys(originalInstallation)) originalInstallation[key] = undefined;
     duty?.releaseReferences(record);
     referencesRetired = true;
   }
@@ -3424,10 +3428,12 @@ export async function connectEmbeddedLocal(options) {
     retirePreparationReferences();
     const observed = await Reflect.apply(controlClose, control, []);
     if (observed?.pending === false) {
+      if (observedClose !== undefined) return observedClose;
       if (!adopted) profiles.retirePreparation(host, originalInstallation, host);
       // Retain the actual original observation, not a newly authored ACK.
       observedClose = observed;
       control = controlClose = originals = duty = undefined;
+      originalInstallation = undefined;
     }
     return observed;
   }});
