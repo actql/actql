@@ -59419,6 +59419,376 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+      "sha256": "23c299463713c138dc0e3b1201e1ea074dea9395f5d4ac5e54ba09f60f2c4354",
+      "exports": [
+        "commonjs:assertInitialControlInstallationCurrent",
+        "commonjs:beginInitialControlInstallation",
+        "commonjs:readInitialControlInstallationAsset",
+        "commonjs:readInitialControlInstallationInput",
+        "commonjs:selectedInitialControlHostPreparation"
+      ],
+      "operations": [
+        {
+          "name": "<anonymous>",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertIntrinsicsCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "assertPrefixCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "assertSamePreparation",
+          "parameters": [
+            "held"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertSupportedIntrinsics",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectInitialControlHostPreparation",
+          "parameters": [
+            "kind",
+            "raw"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "field/field",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "inputUnavailable/inputUnavailable",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "operational/init:close/init:close",
+          "parameters": [
+            "held"
+          ],
+          "async": false
+        },
+        {
+          "name": "operational/init:prepare/init:prepare",
+          "parameters": [
+            "held",
+            "raw"
+          ],
+          "async": false
+        },
+        {
+          "name": "operational/init:readAsset/init:readAsset",
+          "parameters": [
+            "held",
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "operational/init:readInput/init:readInput",
+          "parameters": [
+            "held"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameOriginals",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:assertInitialControlInstallationCurrent/init:assertInitialControlInstallationCurrent",
+          "parameters": [
+            "scope",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:beginInitialControlInstallation/init:beginInitialControlInstallation",
+          "parameters": [
+            "originals",
+            "raw"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:readInitialControlInstallationAsset/init:readInitialControlInstallationAsset",
+          "parameters": [
+            "scope",
+            "originals",
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/init:readInitialControlInstallationInput/init:readInitialControlInstallationInput",
+          "parameters": [
+            "scope",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "unavailable/unavailable",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./initial-control-installation-owner.cjs",
+        "./initial-control-package-custody.cjs",
+        "./initial-control-package-original.cjs",
+        "./initial-control-phase-envelope.cjs",
+        "node:buffer",
+        "node:module",
+        "node:path",
+        "node:process",
+        "node:util",
+        "node:v8",
+        "node:worker_threads"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "owner": "Existing private Host/Resource initial-control installation and original preparation custody",
+      "role": "physical-io",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "<anonymous>",
+            "assertIntrinsicsCurrent",
+            "assertPrefixCurrent",
+            "assertSamePreparation",
+            "assertSupportedIntrinsics",
+            "connectInitialControlHostPreparation",
+            "fail/fail",
+            "field/field",
+            "inputUnavailable/inputUnavailable",
+            "operational/init:close/init:close",
+            "operational/init:prepare/init:prepare",
+            "operational/init:readAsset/init:readAsset",
+            "operational/init:readInput/init:readInput",
+            "sameOriginals",
+            "table/init:assertInitialControlInstallationCurrent/init:assertInitialControlInstallationCurrent",
+            "table/init:beginInitialControlInstallation/init:beginInitialControlInstallation",
+            "table/init:readInitialControlInstallationAsset/init:readInitialControlInstallationAsset",
+            "table/init:readInitialControlInstallationInput/init:readInitialControlInstallationInput",
+            "unavailable/unavailable"
+          ],
+          "exports": [
+            "commonjs:assertInitialControlInstallationCurrent",
+            "commonjs:beginInitialControlInstallation",
+            "commonjs:readInitialControlInstallationAsset",
+            "commonjs:readInitialControlInstallationInput",
+            "commonjs:selectedInitialControlHostPreparation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "// Actual installed public-package prefix."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function connectInitialControlHostPreparation(kind,raw)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "function sameOriginals(left,right)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Scope closure acknowledges"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "// FIRST enumeration."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "firstFailure = freeze({cause});"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "// prefix. Never clear/reissue merely because a Promise rejected."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/initial-control-phase-envelope.cjs",
+                "anchor": "function declareOrdinaryInitialControlPhaseEnvelope(heapCeilingBytes)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "still require their separate original suppliers."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "anchor": "ordinary connected Local HTTP selection stays unselected without traversing Host fields"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing original Host/Resource responsibility references; neither syntax coverage nor a helper call supplies operational business capacity or installed acceptance."
+    },
+    {
+      "module": "adapters/host-node/source-managed-phase-envelope.cjs",
+      "sha256": "f1381411882c7c9d05eb445162ac95d7d61a904fd913b4f61ac9c26d4aeb88c1",
+      "exports": [
+        "commonjs:declareSourceManagedPhaseEnvelope"
+      ],
+      "operations": [
+        {
+          "name": "declareSourceManagedPhaseEnvelope",
+          "parameters": [
+            "controlDeclaration"
+          ],
+          "async": false
+        },
+        {
+          "name": "declareSourceManagedPhaseEnvelope/declareSourceManagedPhaseEnvelope",
+          "parameters": [
+            "ordinal"
+          ],
+          "async": false
+        },
+        {
+          "name": "unavailable/unavailable",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "owner": "Existing Resource and Host Source phase accounting; DATA is not an operational admission",
+      "role": "physical-io",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "declareSourceManagedPhaseEnvelope",
+            "declareSourceManagedPhaseEnvelope/declareSourceManagedPhaseEnvelope",
+            "unavailable/unavailable"
+          ],
+          "exports": [
+            "commonjs:declareSourceManagedPhaseEnvelope"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "// Selected Source recipe DATA, not a startup/Source issuer or an external"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "function declareSourceManagedPhaseEnvelope(controlDeclaration)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "return freeze({limits,inputLimits,controlDeclaration,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "lifetime:'same-original-process-and-escaped-Source-lifetime'"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "// and adopts this additional scope before any SDK snapshot/preparation."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "const unavailable = () => {throw Object.assign(new NativeError('SourceManagedEnvelopeUnavailable'),"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "replenishedOnSourceClose:false"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "const simultaneousBytes = controlDeclaration.bytes + externalBytes;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "// must cover these BEFORE use; this calculation supplies no Buffer/FD/TLS."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.test.mjs",
+                "anchor": "control and Source share one managed/native domain while external overlaps are additive"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing original Host/Resource responsibility references; neither syntax coverage nor a helper call supplies operational business capacity or installed acceptance."
     }
   ],
   "generated": [],
