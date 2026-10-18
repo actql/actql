@@ -18,6 +18,16 @@ test('installation publication storage DATA schema has exact registered identity
   assert.doesNotThrow(() => emitSchema(schema));
 });
 
+test('ordinary publication generation rejects a removed or weakened storage declaration', () => {
+  const registry = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json', 'utf8'));
+  const missing = structuredClone(registry);
+  delete missing.artifact_schemas.installation_publication_storage_binding;
+  assert.throws(() => checkInstallationPublicationStorageSchema(missing));
+  const changed = structuredClone(registry);
+  changed.artifact_schemas.installation_publication_storage_binding.additionalProperties = true;
+  assert.throws(() => checkInstallationPublicationStorageSchema(changed));
+});
+
 test('installation storage independent fixed vector is consumed by actual Common', () => {
   // The contract's raw Store serialization is intentionally not lexically sorted.
   const authority = 'sha256:' + '1'.repeat(64), key = 'sha256:' + '2'.repeat(64);

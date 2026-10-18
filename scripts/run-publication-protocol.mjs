@@ -5,6 +5,7 @@ import {dirname, join} from 'node:path';
 import {resolveControlSchema} from './interactive-run-control-schema.mjs';
 import {amountMicroPattern} from './interactive-run-control-contract.mjs';
 import {generateEffectReviewVectors} from './effect-review-projection-vectors.mjs';
+import {checkInstallationPublicationStorageSchema} from './installation-publication-storage-contract.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const source = join(root, 'spec/contracts/actql-protocol-schemas.json');
@@ -12,6 +13,7 @@ const output = join(
   root, 'src/run_publication/protocol_schema.generated.mbt',
 );
 const document = JSON.parse(readFileSync(source, 'utf8'));
+checkInstallationPublicationStorageSchema(document);
 const stage = JSON.parse(readFileSync(join(root,
   'spec/contracts/actql-stage-contracts.json'), 'utf8'));
 const profiles = JSON.parse(readFileSync(join(root,

@@ -58,7 +58,12 @@ pub fn prepare_installation_publication_storage_binding(
     Ok(value) => value
     Err(_) => return Err(Encoding)
   }
-  Ok({ wire, identity: "sha256:" + digest, store_authority_cid, key_generation_cid, })
+  Ok({
+    wire,
+    identity: "sha256:" + digest,
+    store_authority_cid,
+    key_generation_cid,
+  })
 }
 
 ///|
@@ -71,22 +76,33 @@ pub fn read_installation_publication_storage_binding(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[InstallationPublicationStorageBinding, PublicationContractIssue] {
+  // Reject the code-unit lower bound before allocating the preserving UTF-8
+  // input. The full parser/Writer still checks exact bytes, nodes and depth.
+  if max_wire_bytes < 1 || max_nodes < 1 || max_depth < 1 {
+    return Err(InvalidLimits)
+  }
+  if wire.length() > max_wire_bytes || !valid_contract_cid(expected_cid) {
+    return Err(InvalidWire)
+  }
   let value = match
-    parse_contract_wire(wire, max_wire_bytes, max_nodes, max_depth, data_keys=true) {
+    parse_contract_wire(
+      wire,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      data_keys=true,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   if !validate_generated_protocol_shape(
-      "installation_publication_storage_binding",
-      value,
-      true,
-      max_wire_bytes,
-      max_nodes,
+      "installation_publication_storage_binding", value, true, max_wire_bytes, max_nodes,
       max_depth,
     ) {
     return Err(InvalidField("installation_publication_storage_binding"))
   }
-  guard contract_string_from_value(value, "store_contract_wire") is Some(contract) &&
+  guard contract_string_from_value(value, "store_contract_wire")
+    is Some(contract) &&
     contract_string_from_value(value, "store_authority_cid") is Some(authority) &&
     contract_string_from_value(value, "key_generation_cid") is Some(generation) else {
     return Err(InvalidObject)
