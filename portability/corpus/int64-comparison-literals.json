@@ -1,0 +1,124 @@
+{
+  "version": "actql-int64-comparison-vectors/0.1",
+  "prior_expression_contract_cid": "sha256:ed54dd0a56f4bfc7811a600db137ae5b32b24c2819a81ab69c7c5f06d349da7b",
+  "current_expression_contract_cid": "sha256:707fd38ee8c0e32b24b700b55364414362b6cbf01f99405d4fde455a8243cd35",
+  "literals": [
+    {
+      "source_number": "0",
+      "normalized_number": "0",
+      "signed64": "0",
+      "lowered_body": {
+        "op": "literal",
+        "body": "0"
+      },
+      "lowered_preimage": "{\"body\":\"0\",\"op\":\"literal\"}",
+      "lowered_cid": "sha256:2e93e7f3ed1fa6eaca992de857903c3028d6de7b874c88e9136d1259da450451"
+    },
+    {
+      "source_number": "-9223372036854775808",
+      "normalized_number": "-9223372036854776000",
+      "signed64": "-9223372036854775808",
+      "lowered_body": {
+        "op": "literal",
+        "body": "-9223372036854775808"
+      },
+      "lowered_preimage": "{\"body\":\"-9223372036854775808\",\"op\":\"literal\"}",
+      "lowered_cid": "sha256:be78f3d5daa8cdef940e4fe7c4a8f8e660c8da3de666472188b3f4615aaf75fb"
+    },
+    {
+      "source_number": "9007199254740992",
+      "normalized_number": "9007199254740992",
+      "signed64": "9007199254740992",
+      "lowered_body": {
+        "op": "literal",
+        "body": "9007199254740992"
+      },
+      "lowered_preimage": "{\"body\":\"9007199254740992\",\"op\":\"literal\"}",
+      "lowered_cid": "sha256:a3fce1749b2083470bd200b7fc4b128465159140b55ce27fedac94733d83a5ac"
+    },
+    {
+      "source_number": "9007199254740993",
+      "normalized_number": "9007199254740992",
+      "signed64": "9007199254740992",
+      "lowered_body": {
+        "op": "literal",
+        "body": "9007199254740992"
+      },
+      "lowered_preimage": "{\"body\":\"9007199254740992\",\"op\":\"literal\"}",
+      "lowered_cid": "sha256:a3fce1749b2083470bd200b7fc4b128465159140b55ce27fedac94733d83a5ac"
+    },
+    {
+      "source_number": "9223372036854774784",
+      "normalized_number": "9223372036854775000",
+      "signed64": "9223372036854774784",
+      "lowered_body": {
+        "op": "literal",
+        "body": "9223372036854774784"
+      },
+      "lowered_preimage": "{\"body\":\"9223372036854774784\",\"op\":\"literal\"}",
+      "lowered_cid": "sha256:70a18c2e1c08b9914f6e7889fcbbf425277b691db012ef6f214c662e34b093d9"
+    }
+  ],
+  "rejected_numbers": [
+    "9223372036854775808",
+    "9223372036854775807",
+    "-9223372036854777856",
+    "0.5",
+    "1e100"
+  ],
+  "typed_parameters": [
+    {
+      "value": "-9223372036854775808",
+      "identity_body": {
+        "$actql_value": [
+          "int64",
+          "-9223372036854775808"
+        ]
+      },
+      "canonical_preimage": "{\"$actql_value\":[\"int64\",\"-9223372036854775808\"]}",
+      "cid": "sha256:fe1e7c97aed5f218c2f67e5655db47987cc80d0215d1805ea04b58c470f37866"
+    },
+    {
+      "value": "9007199254740992",
+      "identity_body": {
+        "$actql_value": [
+          "int64",
+          "9007199254740992"
+        ]
+      },
+      "canonical_preimage": "{\"$actql_value\":[\"int64\",\"9007199254740992\"]}",
+      "cid": "sha256:374b494fe35f39a1cf6b07dc0f4e928779324af16f8d13bdc03a745e4a572bbb"
+    },
+    {
+      "value": "9007199254740993",
+      "identity_body": {
+        "$actql_value": [
+          "int64",
+          "9007199254740993"
+        ]
+      },
+      "canonical_preimage": "{\"$actql_value\":[\"int64\",\"9007199254740993\"]}",
+      "cid": "sha256:eb7db9503d65ed89d1145c144355ab960ad3cb8e32079de3d737442fd72d4400"
+    },
+    {
+      "value": "9223372036854775807",
+      "identity_body": {
+        "$actql_value": [
+          "int64",
+          "9223372036854775807"
+        ]
+      },
+      "canonical_preimage": "{\"$actql_value\":[\"int64\",\"9223372036854775807\"]}",
+      "cid": "sha256:ce8cd771c40338b8413ea6e1a9003b95b7a104e810de57db94b0069440cdad34"
+    }
+  ],
+  "ordinary_number_literal": {
+    "body": {
+      "op": "literal",
+      "body": 0
+    },
+    "canonical_preimage": "{\"body\":0,\"op\":\"literal\"}",
+    "cid": "sha256:e41d0a6976b71e15ce48f37318595eb76eba4d18abefc3895de143baf4f613fe"
+  },
+  "history_archive_sha256": "a3acd9eb3ad73658e6c14383a5164eb7b97e6839bfd7e1f0b7fb57b368c7c43f"
+}

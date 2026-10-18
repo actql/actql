@@ -34,6 +34,7 @@ import {
 
 import {
   "actql/actql/infer_typing" @infer,
+  "actql/actql/connectors/slack/catalog" @slack,
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/bench",

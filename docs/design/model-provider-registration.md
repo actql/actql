@@ -41,7 +41,14 @@ configuration file. It is not parsed a second time after the registry await.
 The captured Common callbacks retain their original runtime receiver across I/O.
 
 The existing bounded Reader owns the same file descriptor through read and
-close. Pending or failed close returns its original retry/status handle, not
+close. It captures the original close function and receiver before beginning
+intake and retains them through pending close; replacing the method later
+cannot retire that FD. If setup cannot observe a close function, the same FD
+stays pending without intake. Only its close-only retry may repeat that
+uncompleted observation, and a successful capture is never replaced.
+The callback, receiver and capture closure remain part of the original holding
+until acknowledged close, separately from escaped input and parsed records.
+Pending or failed close returns its original retry/status handle, not
 the text or a substitute project. A pending read remains pending; caller
 abandonment does not acknowledge close. Configuration and registry acquisition
 are sequential, not an atomic filesystem snapshot or an installation-current

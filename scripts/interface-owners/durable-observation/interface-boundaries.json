@@ -5490,6 +5490,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Run response inputs and outputs:"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "requestBodyText"
               }
             ],
             "identity": [
@@ -5538,12 +5542,16 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Run response verification:"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "Run response original retains the exact immutable physical POST text without deriving it from length"
               }
             ]
           }
         }
       ],
-      "sha256": "a1cfadcf372fd17eedfa018456a3fd8593c9afebdb1ba23bdb4fb51409cae1d4",
+      "sha256": "5d036d85cbce2d9db83da1d332447921de5355a99416a3a755883f1afa5c2ecf",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",

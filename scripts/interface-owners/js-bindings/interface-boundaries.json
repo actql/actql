@@ -36300,7 +36300,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e75d1c1c87dec77a5060876a22aae4c4211519f67e65f5f14c65cbaa7711fc0f",
+      "sha256": "accd94117639b8575f8229725afe4bf0abc664e53964362045ffbe3aba0b4b48",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -36364,6 +36364,13 @@
           "name": "connectEmbeddedLocal/initialControl/init:close/init:close",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:readAsset/init:readAsset",
+          "parameters": [
+            "path"
+          ],
+          "async": false
         },
         {
           "name": "connectEmbeddedLocal/preparation/init:readEnvironmentSource/init:readEnvironmentSource",
@@ -42372,6 +42379,82 @@
               {
                 "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
                 "anchor": "test('the selected Host consumer forwards only omitted open input without a raw observation'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:readAsset/init:readAsset"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The prepared installed Host uses this same projection for its fixed numeric"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "readAsset(path) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "return readInitialControlInstallationAsset(control, originals, path);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The private preparation method, original String aliases, decoded trees and"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "scope, five references and currentness before and after the captured supplier"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/initial-control-fixed-assets.test.mjs",
+                "anchor": "missing captured fixed asset never falls back to a pathname and retains the original cleanup duty"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/initial-control-fixed-assets.test.mjs",
+                "anchor": "current refusal after a fixed asset callback preserves the same original pending custody"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "canonical encodings overlap the same preparation/image lifetime. Borrowing an"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "entrances retain their independent existing file-acquisition responsibility."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/initial-control-fixed-assets.test.mjs",
+                "anchor": "prepared Host fixed assets use the same original Scope and captured bytes without pathname reads"
+              },
+              {
+                "path": "adapters/host-node/initial-control-fixed-assets.test.mjs",
+                "anchor": "copied foreign and changed original pairs refuse before every captured fixed asset read"
+              },
+              {
+                "path": "adapters/host-node/initial-control-fixed-assets.test.mjs",
+                "anchor": "a retired preparation cannot borrow any fixed asset after its same original close"
               }
             ]
           }
@@ -53091,7 +53174,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "33c4d1a6b11a2ab7c34275c42092143a63b61645e7fec78b6de9e733563adc02",
+      "sha256": "e607bee52e6925ca3fb40204134f790ed72dbba5d8d714f4ab8d8d1c116d2372",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -54093,7 +54176,8 @@
           "parameters": [
             "memberIndex",
             "rowIndex",
-            "claim"
+            "claim",
+            "currentPreflight"
           ],
           "async": true
         },
@@ -54131,14 +54215,14 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/current/current/current#2",
+          "name": "createRowEffectStage/physicalRoute/physicalRoute/current/current/refreshed/refreshed",
           "parameters": [
             "row"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/physicalRoute/physicalRoute/current/current/current#3",
+          "name": "createRowEffectStage/physicalRoute/physicalRoute/current/current/refreshed/refreshed#2",
           "parameters": [
             "value"
           ],
@@ -55774,8 +55858,8 @@
             "createRowEffectStage/physicalRoute/physicalRoute/current/current",
             "createRowEffectStage/physicalRoute/physicalRoute/current/current/capabilities/capabilities",
             "createRowEffectStage/physicalRoute/physicalRoute/current/current/current",
-            "createRowEffectStage/physicalRoute/physicalRoute/current/current/current#2",
-            "createRowEffectStage/physicalRoute/physicalRoute/current/current/current#3",
+            "createRowEffectStage/physicalRoute/physicalRoute/current/current/refreshed/refreshed",
+            "createRowEffectStage/physicalRoute/physicalRoute/current/current/refreshed/refreshed#2",
             "createRowEffectStage/prepareCaptured",
             "createRowEffectStage/prepareCaptured/dispatches/dispatches",
             "createRowEffectStage/prepareCaptured/prepareCaptured",
@@ -55920,6 +56004,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Identity: original request target and observation identity must match; the"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "currentsByPreflight.get(currentPreflight)"
               }
             ],
             "ownership": [
@@ -56090,6 +56178,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Resources: bounded observation envelope copies, original before references,"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "currentsByPreflight.set(refreshed, Object.freeze(fresh))"
               }
             ],
             "extension": [
@@ -56190,6 +56282,10 @@
               {
                 "path": "adapters/host-node/installed-row-upsert-absence.integration.test.mjs",
                 "anchor": "test('same saved mixed UPSERT restores original source requests and canonical claims without authority or send'"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/installed-current-refresh.integration.test.mjs",
+                "anchor": "refresh instead of the latest Catalog"
               }
             ]
           }
@@ -57680,12 +57776,12 @@
             "commandContentBorrower",
             "commandContentBorrower/init:borrow/init:borrow",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow",
+            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#2",
+            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#3",
+            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#4",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#2",
-            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#2",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#3",
-            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#4",
-            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#3",
             "commandContentBorrower/init:borrow/init:borrow/prior/prior",
             "commandContentBorrower/init:release/init:release",
             "commandContentBorrower/observe/observe",

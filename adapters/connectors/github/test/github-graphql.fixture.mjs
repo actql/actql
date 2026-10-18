@@ -1,5 +1,5 @@
 // An independent GitHub GraphQL responder for the provider-neutral HTTPS
-// fixture. It answers only the connector's two fixed documents, from a
+// fixture. It answers the connector's fixed documents from a
 // repository table keyed by global node ID and resolved by name separately,
 // so a test can make a name point at another repository, make a node answer
 // for another repository, remove a repository, or change an ID's spelling.
@@ -14,10 +14,24 @@ const decode = cursor => {
 };
 
 // One GraphQL Issue node from a test Issue.
-export const graphqlIssue = issue => ({number: issue.number,
+const textConnection = (field, all, first = 100, after = null, pageSize = 100) => {
+  const start = after === null ? 0 : decode(after) + 1;
+  const values = all.slice(start, start + Math.min(first, pageSize));
+  const key = field === 'assignees' ? 'login' : 'name';
+  return {totalCount: all.length,
+    pageInfo: {hasNextPage: start + values.length < all.length,
+      endCursor: values.length === 0 ? null : encode(start + values.length - 1)},
+    nodes: values.map(value => ({[key]: value}))};
+};
+
+export const graphqlIssue = (issue, fieldPageSize = 100) => ({number: issue.number,
   id: issue.id ?? `I_${issue.number}`, title: issue.title ?? `Issue ${issue.number}`,
-  state: issue.state ?? 'OPEN', body: issue.body ?? '',
+  state: issue.state ?? 'OPEN', stateReason: issue.stateReason ?? null,
+  body: issue.body ?? '',
   author: issue.author === undefined ? {login: 'octocat'} : issue.author,
+  assignees: textConnection('assignees', issue.assignees ?? [], 100, null, fieldPageSize),
+  labels: textConnection('labels', issue.labels ?? [], 100, null, fieldPageSize),
+  url: issue.url ?? `https://github.com/octo/hello/issues/${issue.number}`,
   comments: {totalCount: issue.comments ?? 0},
   milestone: issue.milestone === undefined ? null : issue.milestone,
   createdAt: issue.createdAt ?? '2026-10-01T00:00:00Z',
@@ -80,6 +94,20 @@ export function graphqlRoute(world) {
         commentEdge: {node: {id: `IC_${databaseId}`, databaseId}},
         subject: {__typename: subject.type, id: variables.subjectId}}}}};
     }
+    const field = query.startsWith('query ActqlIssueAssignees(') ? 'assignees'
+      : query.startsWith('query ActqlIssueLabels(') ? 'labels' : undefined;
+    if (field !== undefined) {
+      if (state.childAnswer !== undefined) return state.childAnswer(field, variables);
+      const repository = state.repositories.get(variables.id);
+      const issue = repository?.issues.find(value => value.number === variables.number);
+      return {body: {data: {node: repository === undefined ? null : {
+        __typename: 'Repository', id: repository.answerId ?? variables.id,
+        databaseId: repository.databaseId, nameWithOwner: repository.nameWithOwner,
+        issue: issue === undefined ? null : {id: issue.id ?? `I_${issue.number}`,
+          number: issue.number, updatedAt: issue.updatedAt ?? '2026-10-02T00:00:00Z',
+          [field]: textConnection(field, issue[field] ?? [], variables.first,
+            variables.after, state.fieldPageSize ?? 100)}}}}};
+    }
     if (!query.startsWith('query ActqlIssues(')) {
       return {body: {errors: [{type: 'UNEXPECTED_DOCUMENT',
         message: 'not one of the connector documents'}]}};
@@ -103,7 +131,7 @@ export function graphqlRoute(world) {
       nameWithOwner: repository.nameWithOwner,
       issues: {pageInfo: {hasNextPage: start + page.length < items.length,
         endCursor: page.length === 0 ? null : encode(last)},
-      nodes: page.map(graphqlIssue)}}}}};
+      nodes: page.map(issue => graphqlIssue(issue, state.fieldPageSize ?? 100))}}}}};
   }};
 }
 

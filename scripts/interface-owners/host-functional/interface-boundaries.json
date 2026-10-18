@@ -10,7 +10,7 @@
     {
       "module": "adapters/host-common/acquisition-outcome.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e601426d57c9c17ec49d3dce2a605a50a8fc21aca628e28d8f0a65fe89f7e624",
+      "sha256": "96c9265d3ea813002f7179b42a4a5fd95c7572203e49299dc1934f49be587179",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -44765,7 +44765,7 @@
     {
       "module": "adapters/host-node/source-profile-json.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "703af7213e43a02ea9d1e52ee9747d980242f11689b163c725ae112811171d49",
+      "sha256": "0804e50aeb152062327965b1702a6c70828bd9066dd2709f40b213ad1f20ffd0",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -44863,6 +44863,11 @@
             "consume"
           ],
           "async": true
+        },
+        {
+          "name": "withOriginalFile/captureClose/captureClose",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "withOriginalFile/descriptors/descriptors",
@@ -44973,12 +44978,16 @@
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
                 "anchor": "const admitted = readConfiguration(moon, configurationWire, readers);"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "const captureClose = () => {"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "if (await original.close() === false) {"
+                "anchor": "if (await applyOriginal(originalClose, original, []) === false) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -45017,6 +45026,10 @@
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
                 "anchor": "await readBoundedConfigurationUtf8(registryPath,"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "// Retain successful observation before any consumer await. Retry may"
               }
             ],
             "failure": [
@@ -45039,12 +45052,16 @@
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
                 "anchor": "const cleanupHandle = Object.freeze({status, retry,"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "if (originalClose === undefined) throw failure;"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "if (await original.close() === false) {"
+                "anchor": "if (await applyOriginal(originalClose, original, []) === false) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -45079,6 +45096,10 @@
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
                 "anchor": "{maxBytes: 65536, openFile: async (...args) => {"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "close. It captures the original close function and receiver before beginning"
               }
             ],
             "extension": [
@@ -45119,6 +45140,18 @@
               {
                 "path": "adapters/host-node/installed-project-configuration.actual.test.mjs",
                 "anchor": "test('actual Common receives one discovered original pair from real bounded file reads'"
+              },
+              {
+                "path": "adapters/host-node/source-profile-close-original.test.mjs",
+                "anchor": "read captures original close before its first awaited read"
+              },
+              {
+                "path": "adapters/host-node/source-profile-close-original.test.mjs",
+                "anchor": "close-only retry retains the same original method and cannot acknowledge its replacement"
+              },
+              {
+                "path": "adapters/host-node/source-profile-close-original.test.mjs",
+                "anchor": "unobserved close getter failure retains the FD without beginning intake and retries observation once"
               }
             ]
           }
@@ -45128,7 +45161,8 @@
             "installedRuntimeBundleCid",
             "installedRuntimeBundleCid/installedRuntimeBundleCid",
             "readConfiguration/readConfiguration",
-            "withOriginalFile"
+            "withOriginalFile",
+            "withOriginalFile/captureClose/captureClose"
           ],
           "exports": [
             "installedRuntimeBundleCid"
@@ -45154,6 +45188,10 @@
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
                 "anchor": "const digest = createHash('sha256');"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "const captureClose = () => {"
               }
             ],
             "ownership": [
@@ -45174,6 +45212,10 @@
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
                 "anchor": "if (flight !== undefined) return flight;"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "// Retain successful observation before any consumer await. Retry may"
               }
             ],
             "failure": [
@@ -45184,6 +45226,10 @@
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
                 "anchor": "throw exported;"
+              },
+              {
+                "path": "adapters/host-node/source-profile-json.mjs",
+                "anchor": "if (originalClose === undefined) throw failure;"
               }
             ],
             "cancellation": [
@@ -45200,6 +45246,10 @@
               {
                 "path": "docs/design/resident-source-acquisition.md",
                 "anchor": "is neither a file-size/work ceiling nor a numerical funding or whole-RSS claim."
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "close. It captures the original close function and receiver before beginning"
               }
             ],
             "extension": [
@@ -45220,6 +45270,18 @@
               {
                 "path": "adapters/host-node/installed-runtime-bundle.test.mjs",
                 "anchor": "actual Source/Effect loaders and publication bind each reread exact digest"
+              },
+              {
+                "path": "adapters/host-node/source-profile-close-original.test.mjs",
+                "anchor": "read captures original close before its first awaited read"
+              },
+              {
+                "path": "adapters/host-node/source-profile-close-original.test.mjs",
+                "anchor": "close-only retry retains the same original method and cannot acknowledge its replacement"
+              },
+              {
+                "path": "adapters/host-node/source-profile-close-original.test.mjs",
+                "anchor": "unobserved close getter failure retains the FD without beginning intake and retries observation once"
               }
             ]
           }
@@ -55712,7 +55774,7 @@
               },
               {
                 "path": "adapters/host-node/source-profile-json.mjs",
-                "anchor": "if (await original.close() === false) {"
+                "anchor": "if (await applyOriginal(originalClose, original, []) === false) {"
               },
               {
                 "path": "docs/design/model-provider-registration.md",

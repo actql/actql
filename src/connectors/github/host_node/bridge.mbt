@@ -1,6 +1,6 @@
 // The GitHub provider's Node bridge. Every entry is pure: it receives what
 // the common exchange observed (status, declared header pairs, body bytes)
-// and returns a JSON text the Site driver reads. No entry performs I/O,
+// and returns bounded decoded DATA or opaque codec state. No entry performs I/O,
 // holds a secret or decides authorization.
 
 ///|
@@ -136,19 +136,7 @@ pub fn github_issue_page_json(
       max_rows,
     }) {
     Ok(page) => {
-      let rows : Array[Json] = page.rows.map(row => {
-        "number": Json::number(row.number.to_double()),
-        "node_id": row.node_id.to_json(),
-        "title": row.title.to_json(),
-        "state": row.state.to_json(),
-        "body": optional_text(row.body),
-        "author": optional_text(row.author),
-        "comments": Json::number(row.comments.to_double()),
-        "milestone": optional_text(row.milestone),
-        "created_at": row.created_at.to_json(),
-        "updated_at": row.updated_at.to_json(),
-        "closed_at": optional_text(row.closed_at),
-      })
+      let rows = page.rows.map(issue_row_json)
       {
         "page": {
           "rows": Json::array(rows),
@@ -407,29 +395,12 @@ pub fn github_issues_page_json(
       expected_database_id.to_int64(),
       expected_name_with_owner,
     ) {
-    Ok(page) => {
-      let rows : Array[Json] = page.rows.map(row => {
-        "number": Json::number(row.number.to_double()),
-        "node_id": row.node_id.to_json(),
-        "title": row.title.to_json(),
-        "state": row.state.to_json(),
-        "body": optional_text(row.body),
-        "author": optional_text(row.author),
-        "comments": Json::number(row.comments.to_double()),
-        "milestone": optional_text(row.milestone),
-        "created_at": row.created_at.to_json(),
-        "updated_at": row.updated_at.to_json(),
-        "closed_at": optional_text(row.closed_at),
-      })
-      {
-        "page": {
-          "rows": Json::array(rows),
-          "hasNextPage": page.has_next_page.to_json(),
-          "endCursor": optional_text(page.end_cursor),
-          "repository": graphql_repository_json(page.repository),
-        },
+    Ok(page) =>
+      if page.pending_fields.is_empty() {
+        { "page": graphql_page_json(page) }
+      } else {
+        { "refused": { "kind": "IncompleteIssueFields" } }
       }
-    }
     Err(issue) => { "refused": graphql_issue_name(issue) }
   }
   json.stringify()
@@ -450,4 +421,37 @@ pub fn github_repository_response_json(body : Bytes, max_bytes : Int) -> String 
     Err(issue) => { "refused": graphql_issue_name(issue) }
   }
   json.stringify()
+}
+
+///|
+// Signed64 values cross the canonical Relation boundary as exact decimal
+// strings under their int64 Contracts, never as binary64 JSON placeholders.
+fn issue_row_json(row : @catalog.IssueRow) -> Json {
+  {
+    "number": row.number.to_string().to_json(),
+    "node_id": row.node_id.to_json(),
+    "title": row.title.to_json(),
+    "state": row.state.to_json(),
+    "state_reason": optional_text(row.state_reason),
+    "body": optional_text(row.body),
+    "author": optional_text(row.author),
+    "assignees": row.assignees.to_json(),
+    "labels": row.labels.to_json(),
+    "url": row.url.to_json(),
+    "comments": row.comments.to_string().to_json(),
+    "milestone": optional_text(row.milestone),
+    "created_at": row.created_at.to_json(),
+    "updated_at": row.updated_at.to_json(),
+    "closed_at": optional_text(row.closed_at),
+  }
+}
+
+///|
+fn graphql_page_json(page : @catalog.GraphqlIssuePage) -> Json {
+  {
+    "rows": page.rows.map(issue_row_json).to_json(),
+    "hasNextPage": page.has_next_page.to_json(),
+    "endCursor": optional_text(page.end_cursor),
+    "repository": graphql_repository_json(page.repository),
+  }
 }
