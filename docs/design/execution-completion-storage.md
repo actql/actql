@@ -243,3 +243,40 @@ the two method closures, read/retirement callback and in-flight promise,
 bounded contract backing/probe, UTF-8 String, key digest context and escaped
 references overlap the installation originals. These are additional Host
 phase costs, not a new reservation, zero-byte record or physical cleanup ACK.
+## Content physical reader backing
+
+The physical Content consumer fills each at-most-64-KiB piece directly from
+the same original FD into one dedicated backing, including repeated short
+reads. It does not acquire another piece while the consumer callback is
+pending or reuse a previously delivered backing. A truncated final prefix is
+a view of that original backing, not a shrink copy; the existing final
+size/hash/version checks still refuse the incomplete object. Empty objects
+retain stat/hash/close without a data allocation. Growth cannot extend the
+original admitted extent. Close failure retains the same FD and close-only
+retry, never a replacement read or permission to retire a live holding.
+
+For one such read, the sum of allocated piece payload extents is at most the
+original stat size, with each extent at most 65536 bytes. This is a byte-layout
+fact, not a whole-phase quote: Buffer/view/control objects, promises, hash
+state, metadata and independent verification reads, and all escaped consumer
+aliases still overlap. Callback return and losing a local reference are not
+physical backing retirement, GC acknowledgement, or capacity credit. The
+original Source/installation supplier must cover these components and retain
+its loan through actual physical and consumer cleanup.
+
+The mandatory object verifier has a distinct, non-escaping read lifetime.
+It reuses one dedicated backing of `min(65536, original_size + 1)` bytes,
+including the original overflow sentinel for an empty object. Each positional
+read is limited to the remaining admitted extent plus that one probe byte.
+The verifier refuses an overflowing read before hashing any bytes from that
+read; unchanged size, FD/path identity, modification time and content hash
+remain required. Short reads reuse the same backing, with only temporary
+subarray views for the synchronous hash update, not another payload copy or
+queued read. Verification still owns its original FD independently of the
+later Content consumer and retries only that FD's close if it fails.
+
+Its fixed backing extent does not price the FileHandle/native read and hash
+state, view/result/control records, or the containing metadata/holding phase.
+The original supplier must cover those simultaneous components before the
+verification I/O; an accepted hash and a zero pending count are not a new
+funding issuer or another Owner's physical cleanup acknowledgement.

@@ -1715,6 +1715,799 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/connectors/kintone/catalog/record_create_requirements.mbt",
+      "sha256": "079899c09f1bd4fcf87b66c9aa9c2ff8c1eb2fba17c0bc5164bc5e70b2f57f71",
+      "exports": [],
+      "operations": [
+        {
+          "name": "record_create_required_fields",
+          "declaration": "record_create_required_fields ( catalog : FormFieldCatalog , max_fields : Int , max_work : Int , ) - > Result [ Array [ String ] , RecordWriteIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing kintone original Form and checked Row Mapping Owners; no permission, physical I/O or funding issuer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "record_create_required_fields"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The kintone CREATE projection uses the same complete original Form to select"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_create_requirements_wbtest.mbt",
+                "anchor": "CREATE required fields use positive original flags"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "Form and exactly the intended field inventory, subject only to explicit"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_create_requirements_wbtest.mbt",
+                "anchor": "CREATE required fields use positive original flags"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "unmapped write cannot replace those originals."
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_create_requirements_wbtest.mbt",
+                "anchor": "CREATE required fields use positive original flags"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "and existing create permission into its Mapping. The kintone wrapper privately"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_create_requirements_wbtest.mbt",
+                "anchor": "CREATE required fields use positive original flags"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "No new bridge, current"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_create_requirements_wbtest.mbt",
+                "anchor": "CREATE required fields use positive original flags"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "Unsupported required carriers and table-row requirements remain unfinished"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_create_requirements_wbtest.mbt",
+                "anchor": "CREATE required fields use positive original flags"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "capability is advertised by this pure Mapping connection. Actual installed"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_create_requirements_wbtest.mbt",
+                "anchor": "CREATE required fields use positive original flags"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The requirement projection's temporary copied-destination map, required-name"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_create_requirements_wbtest.mbt",
+                "anchor": "CREATE required fields use positive original flags"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "a default. Optional omitted fields remain omitted in the original request;"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_create_requirements_wbtest.mbt",
+                "anchor": "CREATE required fields use positive original flags"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "Those finite metadata limits do not"
+              },
+              {
+                "path": "src/connectors/kintone/catalog/record_create_requirements_wbtest.mbt",
+                "anchor": "CREATE required fields use positive original flags"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/host/record_create_mapping.mbt",
+      "sha256": "ae62dd02d0ce5f8e52fdcfd5b3263d150b59fa8e752fe982210a8cbf0a8f9a94",
+      "exports": [],
+      "operations": [
+        {
+          "name": "prepare_record_create_mapping",
+          "declaration": "prepare_record_create_mapping ( original : RecordDeclaration , resource : String , sources : Array [ @ rows . RowMappingSource ] , approval : String , limits : @ rows . RowDeclarationLimits , ) - > Result [ RecordCreateMapping , @ rows . RowMappingIssue ]"
+        },
+        {
+          "name": "record_create_mapping",
+          "declaration": "record_create_mapping ( value : RecordCreateMapping ) - > @ rows . RowMapping"
+        },
+        {
+          "name": "record_create_mapping_is_original",
+          "declaration": "record_create_mapping_is_original ( value : RecordCreateMapping ) - > Bool"
+        },
+        {
+          "name": "record_create_mapping_matches_declaration",
+          "declaration": "record_create_mapping_matches_declaration ( value : RecordCreateMapping , original : RecordDeclaration , ) - > Bool"
+        },
+        {
+          "name": "record_create_mapping_matches_request",
+          "declaration": "record_create_mapping_matches_request ( value : RecordCreateMapping , request : @ catalog . RecordCreateRequest , ) - > Bool"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing kintone original Form, Row Mapping, Effect, Account and Credential Site Owners; intended values and original request correspondence, no new grant or cleanup Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepare_record_create_mapping",
+            "record_create_mapping",
+            "record_create_mapping_is_original",
+            "record_create_mapping_matches_declaration",
+            "record_create_mapping_matches_request"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/kintone/site/kintone-create-execution.mjs",
+      "sha256": "95983f075436f1d79d3d7782342075607024cbd76af0c3e1128de35d42c1b240",
+      "exports": [
+        "prepareMappedKintoneCreate",
+        "sendMappedKintoneCreate"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalMapping",
+          "parameters": [
+            "moon",
+            "mapping",
+            "declaration"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalMapping/originalMapping",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareMappedKintoneCreate",
+          "parameters": [
+            "moon",
+            "mapping",
+            "declaration",
+            "bytes",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareMappedKintoneCreate/prepareMappedKintoneCreate",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendMappedKintoneCreate",
+          "parameters": [
+            "moon",
+            "mapping",
+            "declaration",
+            "request",
+            "options"
+          ],
+          "async": true
+        }
+      ],
+      "imports": [
+        "../../../host-common/runtime-result.mjs",
+        "./kintone-record-write.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing kintone original Form, Row Mapping, Effect, Account and Credential Site Owners; intended values and original request correspondence, no new grant or cleanup Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "originalMapping",
+            "originalMapping/originalMapping",
+            "positive/positive",
+            "prepareMappedKintoneCreate",
+            "prepareMappedKintoneCreate/prepareMappedKintoneCreate",
+            "sendMappedKintoneCreate"
+          ],
+          "exports": [
+            "prepareMappedKintoneCreate",
+            "sendMappedKintoneCreate"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node_rela/client_kintone_create_execution_bridge.mbt",
+      "sha256": "0b7997854f6a588eae13e31e0b0e5eb3b430c3ccadd79ec2dbdada353f4304ba",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_kintone_create_execution_request",
+          "declaration": "client_program_kintone_create_execution_request ( mapping : @ kintone_host . RecordCreateMapping , bytes : Bytes , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , request_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateRequest , @ kintone_host . RecordCreateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_body",
+          "declaration": "client_program_kintone_create_mapping_body ( mapping : @ kintone_host . RecordCreateMapping , ) - > Result [ String , @ kintone_host . RecordCreateExecutionIssue ]"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_matches_declaration",
+          "declaration": "client_program_kintone_create_mapping_matches_declaration ( mapping : @ kintone_host . RecordCreateMapping , original : @ kintone_host . RecordDeclaration , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_matches_request",
+          "declaration": "client_program_kintone_create_mapping_matches_request ( mapping : @ kintone_host . RecordCreateMapping , request : @ kintone_catalog . RecordCreateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_values_json",
+          "declaration": "client_program_kintone_create_values_json ( request : @ kintone_catalog . RecordCreateRequest , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ kintone_catalog . RecordCreateJsonIssue ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_create_mapping",
+          "declaration": "client_program_kintone_prepare_create_mapping ( original : @ kintone_host . RecordDeclaration , resource : String , sources : Array [ @ client_row_source_host . RowMappingSource ] , approval : String , limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ kintone_host . RecordCreateMapping , @ client_row_source_host . RowMappingIssue , ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing kintone original Form, Row Mapping, Effect, Account and Credential Site Owners; intended values and original request correspondence, no new grant or cleanup Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_kintone_create_execution_request",
+            "client_program_kintone_create_mapping_body",
+            "client_program_kintone_create_mapping_matches_declaration",
+            "client_program_kintone_create_mapping_matches_request",
+            "client_program_kintone_create_values_json",
+            "client_program_kintone_prepare_create_mapping"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_kintone_create_execution_bridge.mbt",
+      "sha256": "ab0777832b228edeee6cabc390930c7267cf795e273a9269b8322800c8d8984a",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_kintone_create_execution_request",
+          "declaration": "client_program_kintone_create_execution_request ( mapping : @ kintone_host . RecordCreateMapping , bytes : Bytes , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , request_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordCreateRequest , @ kintone_host . RecordCreateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_body",
+          "declaration": "client_program_kintone_create_mapping_body ( mapping : @ kintone_host . RecordCreateMapping , ) - > Result [ String , @ kintone_host . RecordCreateExecutionIssue ]"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_matches_declaration",
+          "declaration": "client_program_kintone_create_mapping_matches_declaration ( mapping : @ kintone_host . RecordCreateMapping , original : @ kintone_host . RecordDeclaration , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_mapping_matches_request",
+          "declaration": "client_program_kintone_create_mapping_matches_request ( mapping : @ kintone_host . RecordCreateMapping , request : @ kintone_catalog . RecordCreateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_create_values_json",
+          "declaration": "client_program_kintone_create_values_json ( request : @ kintone_catalog . RecordCreateRequest , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ kintone_catalog . RecordCreateJsonIssue ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_create_mapping",
+          "declaration": "client_program_kintone_prepare_create_mapping ( original : @ kintone_host . RecordDeclaration , resource : String , sources : Array [ @ client_row_source_host . RowMappingSource ] , approval : String , limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ kintone_host . RecordCreateMapping , @ client_row_source_host . RowMappingIssue , ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing kintone original Form, Row Mapping, Effect, Account and Credential Site Owners; intended values and original request correspondence, no new grant or cleanup Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_kintone_create_execution_request",
+            "client_program_kintone_create_mapping_body",
+            "client_program_kintone_create_mapping_matches_declaration",
+            "client_program_kintone_create_mapping_matches_request",
+            "client_program_kintone_create_values_json",
+            "client_program_kintone_prepare_create_mapping"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/catalog/record_create_json.mbt",
+      "sha256": "30c6ae580857d4ec7f5073db85af76aed0e415679d60fcfd14712a0a097b8d5b",
+      "exports": [],
+      "operations": [
+        {
+          "name": "create_json_values",
+          "declaration": "create_json_values ( catalog : FormFieldCatalog , cursor : @ decode . Cursor , limits : RecordWriteLimits , ) - > Result [ RecordWriteValues , RecordCreateJsonIssue ]"
+        },
+        {
+          "name": "create_json_write_limits_valid",
+          "declaration": "create_json_write_limits_valid ( limits : RecordWriteLimits ) - > Bool"
+        },
+        {
+          "name": "prepare_record_create_request_json",
+          "declaration": "prepare_record_create_request_json ( catalog : FormFieldCatalog , bytes : Bytes , max_input_bytes : Int , write_limits : RecordWriteLimits , request_limits : RecordMutationLimits , ) - > Result [ RecordCreateRequest , RecordCreateJsonIssue ]"
+        },
+        {
+          "name": "record_create_request_values_json",
+          "declaration": "record_create_request_values_json ( request : RecordCreateRequest , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , RecordCreateJsonIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing kintone original Form, Row Mapping, Effect, Account and Credential Site Owners; intended values and original request correspondence, no new grant or cleanup Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "create_json_values",
+            "create_json_write_limits_valid",
+            "prepare_record_create_request_json",
+            "record_create_request_values_json"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/host/record_create_execution.mbt",
+      "sha256": "958fa1c4142c8ef0b28e91536ac828b71cb4efd8c9b19647b74a13cdf1cbd1ac",
+      "exports": [],
+      "operations": [
+        {
+          "name": "prepare_record_create_execution_request",
+          "declaration": "prepare_record_create_execution_request ( mapping : RecordCreateMapping , bytes : Bytes , max_input_bytes : Int , write_limits : @ catalog . RecordWriteLimits , request_limits : @ catalog . RecordMutationLimits , ) - > Result [ @ catalog . RecordCreateRequest , RecordCreateExecutionIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing kintone original Form, Row Mapping, Effect, Account and Credential Site Owners; intended values and original request correspondence, no new grant or cleanup Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepare_record_create_execution_request"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Mapped CREATE verification:"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
