@@ -132,3 +132,21 @@ test('Slack history accepts an explicit maximum page size without making it a fu
   assert.equal(f.state.requests[1].path,'/api/conversations.history?channel=C1&limit=1000');
   f.row.finish();assert.equal(f.row.captureCount(),1);
 });
+
+
+test('Slack history ordinary bots preserve original no-thread zero and explicit or hinted counts',async t=>{
+  const f=await messageHistoryFixture(t);
+  f.state.pages=[messagePage([
+    {type:'message',subtype:'bot_message',ts:'5.000001',text:'ordinary bot'},
+    {type:'message',subtype:'bot_message',ts:'4.000001',text:'thread hint',reply_users:[]},
+    {type:'message',subtype:'bot_message',ts:'3.000001',text:'positive',reply_count:2},
+    {type:'message',subtype:'bot_message',ts:'2.000001',text:'unknown',reply_count:null},
+    {type:'message',subtype:'future_subtype',ts:'1.000001',text:'unsupported inference'},
+  ],null)];
+  assert.equal((await f.create().read()).rowCount,5);
+  assert.deepEqual(f.state.rows.map(r=>[r.id,r.reply_count]),[
+    ['C1:5.000001','0'],['C1:4.000001',null],['C1:3.000001','2'],
+    ['C1:2.000001',null],['C1:1.000001',null]]);
+  assert.equal(f.state.charges,2);assert.equal(f.state.observationCharges,1);
+  f.row.finish();assert.equal(f.row.captureCount(),5);
+});
