@@ -74,6 +74,25 @@ pub fn begin_native_local_product_configuration(
   crypto : @crypto.Library,
   existing_only? : Bool = false,
 ) -> Result[NativeLocalProductConfigurationSession, NativeLocalAdoptionIssue] {
+  begin_native_local_product_configuration_original(
+    parent_path,
+    directory_name,
+    originals,
+    crypto,
+    existing_only~,
+  )
+}
+
+///|
+fn begin_native_local_product_configuration_original(
+  parent_path : String,
+  directory_name : String,
+  originals : Array[(String, Bytes)],
+  crypto : @crypto.Library,
+  existing_only? : Bool = false,
+  custody? : NativeLocalAdoptionOpenFailure? = None,
+  root_opening? : NativeLocalAdoptionRootOpening = LegacyPrivateRoots,
+) -> Result[NativeLocalProductConfigurationSession, NativeLocalAdoptionIssue] {
   if !local_adoption_name(directory_name) || parent_path.length() > 4096 {
     return Err(InvalidInput)
   }
@@ -83,17 +102,24 @@ pub fn begin_native_local_product_configuration(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let parent = match @filesystem.open_root(parent_path) {
+  let parent = match
+    local_product_open_parent(parent_path, custody, root_opening) {
     Ok(value) => value
-    Err(issue) => return Err(Filesystem(issue))
+    Err(issue) => return Err(issue)
+  }
+  if custody is Some(original) {
+    original.parent = Some(parent)
   }
   let parent_ownership = match parent.bootstrap_parent_ownership() {
     Ok(value) => value
     Err(issue) => return Err(Filesystem(issue))
   }
-  let lock = match parent.acquire_lock("local-adoption.lock") {
+  let lock = match local_adoption_acquire_lock(parent, custody) {
     Ok(value) => value
-    Err(issue) => return Err(Filesystem(issue))
+    Err(issue) => return Err(issue)
+  }
+  if custody is Some(original) {
+    original.lock = Some(lock)
   }
   guard parent.bootstrap_parent_ownership() is Ok(current_parent) &&
     current_parent == parent_ownership else {
@@ -155,9 +181,13 @@ pub fn begin_native_local_product_configuration(
         Ok(value) => value
         Err(issue) => return Err(Filesystem(issue))
       }
-      let root = match parent.open_child(directory_name) {
+      let root = match
+        local_adoption_open_child(parent, directory_name, custody) {
         Ok(value) => value
-        Err(issue) => return Err(Filesystem(issue))
+        Err(issue) => return Err(issue)
+      }
+      if custody is Some(original) {
+        original.root = Some(root)
       }
       guard root.private_ownership() is Ok(current_child) &&
         current_child == ownership &&
@@ -185,9 +215,13 @@ pub fn begin_native_local_product_configuration(
       if original_intent != intent || observed != generation {
         return Err(SourceChanged)
       }
-      let root = match parent.open_child(directory_name) {
+      let root = match
+        local_adoption_open_child(parent, directory_name, custody) {
         Ok(value) => value
-        Err(issue) => return Err(Filesystem(issue))
+        Err(issue) => return Err(issue)
+      }
+      if custody is Some(original) {
+        original.root = Some(root)
       }
       let ownership = match root.private_ownership() {
         Ok(value) => value
@@ -416,12 +450,29 @@ pub fn restore_native_local_product_configuration(
   directory_name : String,
   crypto : @crypto.Library,
 ) -> Result[NativeLocalProductConfigurationSession, NativeLocalAdoptionIssue] {
+  restore_native_local_product_configuration_original(
+    parent_path, directory_name, crypto,
+  )
+}
+
+///|
+fn restore_native_local_product_configuration_original(
+  parent_path : String,
+  directory_name : String,
+  crypto : @crypto.Library,
+  custody? : NativeLocalAdoptionOpenFailure? = None,
+  root_opening? : NativeLocalAdoptionRootOpening = LegacyPrivateRoots,
+) -> Result[NativeLocalProductConfigurationSession, NativeLocalAdoptionIssue] {
   if !local_adoption_name(directory_name) || parent_path.length() > 4096 {
     return Err(InvalidInput)
   }
-  let parent = match @filesystem.open_root(parent_path) {
+  let parent = match
+    local_product_open_parent(parent_path, custody, root_opening) {
     Ok(value) => value
-    Err(issue) => return Err(Filesystem(issue))
+    Err(issue) => return Err(issue)
+  }
+  if custody is Some(original) {
+    original.parent = Some(parent)
   }
   let parent_ownership = match parent.bootstrap_parent_ownership() {
     Ok(value) => value
@@ -483,9 +534,12 @@ pub fn restore_native_local_product_configuration(
   if keys.is_empty() || keys.length() > 9 {
     return Err(CustodyLost)
   }
-  let root = match parent.open_child(directory_name) {
+  let root = match local_adoption_open_child(parent, directory_name, custody) {
     Ok(value) => value
-    Err(issue) => return Err(Filesystem(issue))
+    Err(issue) => return Err(issue)
+  }
+  if custody is Some(original) {
+    original.root = Some(root)
   }
   guard root.private_ownership() is Ok(_) else { return Err(CustodyLost) }
   if !product_original_names(keys.map(name => (name, b"{}"))) {
@@ -507,13 +561,28 @@ pub fn restore_native_local_product_configuration(
     }
     originals.push((name, original))
   }
+  // The scoped observation Roots have no authority to initialize anything.
+  // Retire these actual descriptors before the same locked constructor checks
+  // the original selection again. A failed close keeps the same out-slot.
+  if custody is Some(original) {
+    match root.close() {
+      Err(issue) => return Err(Filesystem(issue))
+      Ok(_) => original.root = None
+    }
+    match parent.close() {
+      Err(issue) => return Err(Filesystem(issue))
+      Ok(_) => original.parent = None
+    }
+  }
   let session = match
-    begin_native_local_product_configuration(
+    begin_native_local_product_configuration_original(
       parent_path,
       directory_name,
       originals,
       crypto,
       existing_only=true,
+      custody~,
+      root_opening~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
