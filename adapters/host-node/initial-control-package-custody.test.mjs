@@ -30,7 +30,7 @@ function fixture(t, host = 'globalThis.actualHostImageValue="original";export fu
     writeFileSync(preload, [before,
       'const {captureInitialControlPackageCustody}=require('+JSON.stringify(custody)+');',
       'const root='+JSON.stringify(root)+', inventory='+JSON.stringify(selected)+';',
-      'globalThis.packageImageCustody=captureInitialControlPackageCustody(inventory,root);',
+      'globalThis.packageImageCustody=captureInitialControlPackageCustody(inventory,root,'+JSON.stringify(entry)+');',
       afterCapture,
       initialize ? 'globalThis.originalHostNamespace=packageImageCustody.initializeHostNamespace();' : '',
     ].join('\n'));
@@ -184,5 +184,30 @@ test('failed namespace initialization keeps the same original cause and never re
       'try{packageImageCustody.initializeHostNamespace();}catch(cause){globalThis.firstInitializationCause=cause;}',
       'try{packageImageCustody.initializeHostNamespace();}catch(cause){globalThis.secondInitializationCause=cause;}',
     ].join('\n'), undefined, false);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('optional SDK custody follows the actual consumer resolution rather than a nested Local copy', t => {
+  const f = fixture(t);
+  const sdk = {'package.json': Buffer.from(JSON.stringify({name: '@actql/provider-ai-sdk', version: '1.0.0', main: './index.cjs'})),
+    'index.cjs': Buffer.from('module.exports={value:"actual-consumer-original"};')};
+  const installed = join(f.directory, 'node_modules/@actql/provider-ai-sdk');
+  const foreign = join(f.root, 'node_modules/@actql/provider-ai-sdk');
+  for (const directory of [installed, foreign]) mkdirSync(directory, {recursive: true});
+  for (const [path, bytes] of Object.entries(sdk)) writeFileSync(join(installed, path), bytes);
+  writeFileSync(join(foreign, 'package.json'), sdk['package.json']);
+  writeFileSync(join(foreign, 'index.cjs'), 'module.exports={value:"unselected-nested-copy"};');
+  const result = f.run([
+    'import assert from "node:assert/strict";',
+    'assert.equal(optionalSdkFromActualConsumer.value,"actual-consumer-original");',
+    'packageImageCustody.assertCurrent();',
+  ].join('\n'), '',
+    'globalThis.optionalSdkFromActualConsumer=require("node:module").createRequire('+JSON.stringify(join(f.directory, 'entry.mjs'))+')'+
+      '("@actql/provider-ai-sdk");',
+    inventory => {
+      inventory.optionalSdk = 0; inventory.optionalSdkCoverage = 'prepared';
+      inventory.packages = [{name: '@actql/provider-ai-sdk', version: '1.0.0',
+        images: Object.entries(sdk).map(([path, bytes]) => fact(path, bytes)), dependencies: []}];
+    });
   assert.equal(result.status, 0, result.stderr);
 });
