@@ -11,11 +11,16 @@ fn create_outcome_preview(
   } else {
     original
   }
-  @publication.author_effect_preview_semantic_wire(
+  let admitted = @publication.author_effect_preview_semantic_wire(
     wire, "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a", 16384,
     2000, 24,
-  ).unwrap().1
+  )
+  match admitted {
+    Ok((_, value)) => value
+    Err(issue) =>
+      abort("Invalid CREATE Preview DATA fixture: " + @debug.to_string(issue))
+  }
 }
 
 ///|
