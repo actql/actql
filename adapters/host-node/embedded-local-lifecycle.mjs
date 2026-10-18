@@ -64,6 +64,16 @@ export function createEmbeddedHostRegistry(sameInstallation) {
     entry.mockPreparation = undefined;
     entry.originalHost = entry.originalInstallation = entry.generation = undefined;
   };
+  function originalSourceRequest(host, installation, generation, request) {
+    const entry = preparationFor(host, installation, generation);
+    if (entry.closing || entry.failure !== undefined ||
+        request === null || typeof request !== 'object') preparationChanged();
+    for (const original of entry.handling.values()) {
+      if (original !== undefined && (original.request === request ||
+          original.aliases.includes(request))) return original.request;
+    }
+    preparationChanged();
+  }
   return Object.freeze({
   // A candidate belongs to this SAME registry, before Project discovery. It
   // has no root lease or physical Host yet and issues no capacity/permission.
@@ -105,21 +115,12 @@ export function createEmbeddedHostRegistry(sameInstallation) {
   // Source operational supplier covers the additional request reference and
   // Map backing before installing its consumer. This is not an issuer, grant,
   // request parser or evidence that the call's physical work has stopped.
-  originalSourceRequest(host, installation, generation, request) {
-    const entry = preparationFor(host, installation, generation);
-    if (entry.closing || entry.failure !== undefined ||
-        request === null || typeof request !== 'object') preparationChanged();
-    for (const original of entry.handling.values()) {
-      if (original !== undefined && (original.request === request ||
-          original.aliases.includes(request))) return original.request;
-    }
-    preparationChanged();
-  },
+  originalSourceRequest,
   assertSourceRequest(host, installation, generation, request) {
-    this.originalSourceRequest(host, installation, generation, request);
+    originalSourceRequest(host, installation, generation, request);
   },
   bindSourceRequest(host, installation, generation, parent, derived) {
-    const originalRequest = this.originalSourceRequest(host, installation, generation, parent);
+    const originalRequest = originalSourceRequest(host, installation, generation, parent);
     if (derived === null || typeof derived !== 'object') preparationChanged();
     const entry = preparationFor(host, installation, generation);
     let selected;

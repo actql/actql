@@ -81,6 +81,9 @@ test('copied, foreign and over-limit aliases cannot manufacture another original
       {code: 'InstalledHostPreparationChanged'});
     assert.throws(() => registry.bindSourceRequest(host, installation, host, {...packet}, {}),
       {code: 'InstalledHostPreparationChanged'});
+    assert.throws(() => ({...registry, originalSourceRequest: () => packet})
+      .bindSourceRequest(host, installation, host, {...packet}, {}),
+    {code: 'InstalledHostPreparationChanged'});
     let accepted = 0;
     for (let index = 0; index < 16; index++) {
       const alias = {};
