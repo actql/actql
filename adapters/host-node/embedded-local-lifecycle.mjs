@@ -61,6 +61,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
       profiles.delete(entry.originalHost);
     }
     entry.preparationRetired = true;
+    entry.mockPreparation = undefined;
     entry.originalHost = entry.originalInstallation = entry.generation = undefined;
   };
   return Object.freeze({
@@ -80,6 +81,20 @@ export function createEmbeddedHostRegistry(sameInstallation) {
   assertPreparation(host, installation, generation) {
     const entry = preparationFor(host, installation, generation);
     if (entry.closing || entry.failure !== undefined) preparationChanged();
+  },
+  // Retain only this original Host's prepared mock view. This existing
+  // registry association is not the Source supplier or a DATA admission.
+  retainMockPreparation(host, installation, generation, view) {
+    const entry = preparationFor(host, installation, generation);
+    if (entry.closing || entry.failure !== undefined || entry.mockPreparation !== undefined ||
+        view === null || typeof view !== 'object') preparationChanged();
+    entry.mockPreparation = view;
+  },
+  mockPreparation(host, installation, generation) {
+    const entry = preparationFor(host, installation, generation);
+    if (entry.closing || entry.failure !== undefined ||
+        entry.mockPreparation === undefined) preparationChanged();
+    return entry.mockPreparation;
   },
   // Identity-only projection from this registry's actual pending calls. The
   // Source operational supplier covers the additional request reference and

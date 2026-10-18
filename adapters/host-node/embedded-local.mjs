@@ -53,6 +53,8 @@ import {beginInitialControlInstallation, assertInitialControlInstallationCurrent
   from './node-initial-control-installation.mjs';
 import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
+import {prepareInstalledProjectMock} from './installed-project-mock.mjs';
+import {prepareSourceManagedInstallation} from './node-source-managed-installation.mjs';
 import {installNodeInferRun} from './installed-infer-run.mjs';
 import {installNodeModelContinuation} from './installed-model-continuation.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
@@ -161,6 +163,16 @@ export function assertSourceManagedHostPreparation(originals, originalOwnedReque
     profiles.assertSourceRequest(originals.host, originals.installation,
       originals.generation, originalOwnedRequest);
   }
+}
+
+// The selected Source Root captures this fixed original projection. A copied
+// packet, equal configuration or public view cannot reconstruct the private
+// registry's same Host/installation/generation association.
+export function readInstalledMockPreparation(originals) {
+  assertSourceManagedHostPreparation(originals);
+  const retained = profiles.mockPreparation(originals.host, originals.installation,
+    originals.generation);
+  return retained.view.originalsForRuntime(retained.runtime);
 }
 
 const bytesCid = bytes => `sha256:${createHash('sha256')
@@ -3454,16 +3466,18 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     generation: host, supplier: connectEmbeddedLocal, moduleLifetime: import.meta});
   profiles.registerPreparation(host, originalInstallation, host);
   let control, controlClose, duty, observedClose, referenceRetirement;
-  let moon, project, projectProfile, adopted = false, referencesRetired = false;
+  let moon, project, projectProfile, mockPreparation, sourceManaged, sourceManagedClose;
+  let adopted = false, referencesRetired = false;
   const record = {};
   function retirePreparationReferences() {
     if (referencesRetired) return;
+    mockPreparation?.retire(moon);
     if (referenceRetirement !== undefined) referenceRetirement();
     else {
       projectProfile?.retire(moon);
       if (project !== undefined) retireInstalledProjectConfiguration(project, moon);
     }
-    projectProfile = project = moon = referenceRetirement = undefined;
+    mockPreparation = projectProfile = project = moon = referenceRetirement = undefined;
     for (const key of Object.keys(record)) record[key] = undefined;
     // This private installation bag holds backreferences, not canonical DATA.
     // Its opaque identity remains the same for the original cleanup pair.
@@ -3473,6 +3487,15 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   }
   const initialControl = Object.freeze({async close() {
     if (observedClose !== undefined) return observedClose;
+    if (sourceManaged !== undefined) {
+      const observation = await Reflect.apply(sourceManagedClose, sourceManaged, []);
+      const pending = observation !== null && typeof observation === 'object'
+        ? Object.getOwnPropertyDescriptor(observation, 'pending') : undefined;
+      if (pending === undefined || !Object.hasOwn(pending, 'value') || pending.value !== false) {
+        throw clientOperationError('InstalledSourcePreparationCleanupPending');
+      }
+      sourceManaged = sourceManagedClose = undefined;
+    }
     retirePreparationReferences();
     const observed = await Reflect.apply(controlClose, control, []);
     if (observed?.pending === false) {
@@ -3599,6 +3622,25 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   projectProfile = selectInstalledProjectProfile(moon, project, requestedProfile, 65536);
   record.projectProfile = projectProfile;
   const selectedProfile = projectProfile.originalsForRuntime(moon);
+  Object.assign(originalInstallation, {project, projectProfile, projectRuntime: moon});
+  if (selectedProfile.selected === 'mock') {
+    // The actual Source admission precedes its connection/catalogue/control
+    // preparation. Initial control cannot fund those allocations or file I/O.
+    // A missing original refuses here, with no legacy snapshot/read fallback.
+    sourceManaged = await prepareSourceManagedInstallation(originals);
+    sourceManagedClose = sourceManaged.close;
+    record.sourceManaged = sourceManaged;
+    const assertMockCurrent = () => {
+      assertInitialControlInstallationCurrent(control, originals);
+      sourceManaged.assertCurrent();
+    };
+    mockPreparation = await prepareInstalledProjectMock(moon, project, projectProfile,
+      {assertCurrent: assertMockCurrent});
+    record.mockPreparation = mockPreparation;
+    profiles.retainMockPreparation(host, originalInstallation, host,
+      Object.freeze({view: mockPreparation, runtime: moon}));
+    assertMockCurrent();
+  }
   if (selectedProfile.selected !== undefined) {
     // The original choice is admitted, but this Host has no installed mock
     // records/answers or another named physical-profile supplier yet. Refuse

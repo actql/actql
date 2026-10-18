@@ -175,7 +175,7 @@ test('failed original initialization retains the open path aliases until its ori
     retirements++;
   }};
   const retireReferences = compileFunction(
-    'let referencesRetired=false,referenceRetirement,projectProfile,project,moon,duty;' +
+    'let referencesRetired=false,referenceRetirement,mockPreparation,projectProfile,project,moon,duty;' +
     source.slice(retire.start, retire.end) + '\nreturn retirePreparationReferences;',
     ['record', 'originalInstallation']) (record, originalInstallation);
   const caughtFailure = compileFunction('return async function(cause){' +
