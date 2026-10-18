@@ -126,6 +126,10 @@ test "mock physical source exact integer spans reach the original typed input wi
         fail("Value " + name + " for " + text)
         abort("failed")
       }
+      Err(MissingField(name)) => {
+        fail("MissingField " + name + " for " + text)
+        abort("failed")
+      }
       Err(_) => {
         fail("other row issue for " + text)
         abort("failed")
