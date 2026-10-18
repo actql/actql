@@ -46,7 +46,7 @@ async function fixture(t, {commentsRead = 'allow'} = {}) {
     siteProfilePath: sitePath, publicationPath: join(root, 'publication.json'),
     connectorId: 'gh-original', accountConfigurationWire: canonicalJson({
       version: 'actql-execution-account-config/0.1', account_id: 'comments-account',
-      entries: [['publication', 'issues', 'allow'], ['comments', 'issue_comments', commentsRead]]
+      entries: [['comments', 'issue_comments', commentsRead], ['publication', 'issues', 'allow']]
         .map(([entry_id, resource, outcome]) => ({entry_id, outcome, exclusions: [],
           principal: {all: true}, connection: {any_of: [connection]},
           resource: {any_of: [resource]}, operation: {any_of: ['read']}}))})}));
