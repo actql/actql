@@ -12,6 +12,14 @@ pub fn client_program_installed_source_read_begin(
 }
 
 ///|
+#export_name("clientProgramInstalledSourceReadCheckCurrent")
+pub fn client_program_installed_source_read_check_current(
+  value : @client_local_host.ClientInstalledSourceRead,
+) -> Result[Unit, @client_local_host.ClientInstalledSourceReadIssue] {
+  @client_local_host.check_installed_source_read_current(value)
+}
+
+///|
 #export_name("clientProgramInstalledSourceReadBindProgram")
 pub fn client_program_installed_source_read_bind_program(
   value : @client_local_host.ClientInstalledSourceRead,
@@ -59,6 +67,44 @@ pub fn client_program_installed_source_read_start_rows(
 ] {
   @client_local_host.start_installed_source_read_rows(
     value, acquisition, nonce, original_stop, transfer_bytes, execution_bytes,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledSourceReadStartProviderRows")
+pub fn client_program_installed_source_read_start_provider_rows(
+  value : @client_local_host.ClientInstalledSourceRead,
+  acquisition : @client_row_source_host.RowAcquisition,
+  capacity : @execution.ExecutionCapacity?,
+  nonce : String,
+  original_stop : (@client_row_source_host.RowAttempt) -> Bool,
+  transfer_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[
+  @client_row_source_host.RowRun,
+  @client_local_host.ClientInstalledSourceReadIssue,
+] {
+  @client_local_host.start_installed_source_read_provider_rows(
+    value, acquisition, capacity, nonce, original_stop, transfer_bytes, execution_bytes,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledSourceReadStartListingRows")
+pub fn client_program_installed_source_read_start_listing_rows(
+  value : @client_local_host.ClientInstalledSourceRead,
+  acquisition : @client_row_source_host.RowAcquisition,
+  capacity : @execution.ExecutionCapacity?,
+  nonce : String,
+  original_stop : (@client_row_source_host.RowAttempt) -> Bool,
+  transfer_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[
+  @client_row_source_host.RowRun,
+  @client_local_host.ClientInstalledSourceReadIssue,
+] {
+  @client_local_host.start_installed_source_read_listing_rows(
+    value, acquisition, capacity, nonce, original_stop, transfer_bytes, execution_bytes,
   )
 }
 

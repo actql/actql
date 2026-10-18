@@ -88,6 +88,14 @@ fn require_installed_source_read_current(
 }
 
 ///|
+/// Currentness before any preparation work, without exposing the child Ledger.
+pub fn check_installed_source_read_current(
+  value : ClientInstalledSourceRead,
+) -> Result[Unit, ClientInstalledSourceReadIssue] {
+  require_installed_source_read_current(value).map(_ => ())
+}
+
+///|
 fn bind_installed_source_read_owner(
   value : ClientInstalledSourceRead,
   owner : ClientLocalSequenceOwner,
@@ -191,6 +199,23 @@ pub fn start_installed_source_read_rows(
   transfer_bytes : Int64,
   execution_bytes : Int64,
 ) -> Result[@row_source_host.RowRun, ClientInstalledSourceReadIssue] {
+  let ledger = match claim_installed_source_read_start(value, acquisition) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  retain_installed_source_read_run(
+    value,
+    @row_source_host.start_accounted_row_acquisition(
+      acquisition, nonce, original_stop, ledger, transfer_bytes, execution_bytes,
+    ),
+  )
+}
+
+///|
+fn claim_installed_source_read_start(
+  value : ClientInstalledSourceRead,
+  acquisition : @row_source_host.RowAcquisition,
+) -> Result[@resources.Ledger, ClientInstalledSourceReadIssue] {
   let ledger = match require_installed_source_read_current(value) {
     Err(issue) => return Err(issue)
     Ok(value) => value
@@ -203,16 +228,67 @@ pub fn start_installed_source_read_rows(
     return Err(AlreadyStarted)
   }
   value.started = true
-  match
-    @row_source_host.start_accounted_row_acquisition(
-      acquisition, nonce, original_stop, ledger, transfer_bytes, execution_bytes,
-    ) {
+  Ok(ledger)
+}
+
+///|
+fn retain_installed_source_read_run(
+  value : ClientInstalledSourceRead,
+  result : Result[@row_source_host.RowRun, @row_source_host.RowHostIssue],
+) -> Result[@row_source_host.RowRun, ClientInstalledSourceReadIssue] {
+  match result {
     Err(issue) => Err(Acquisition(issue))
     Ok(run) => {
       value.run = Some(run)
       Ok(run)
     }
   }
+}
+
+///|
+/// The existing provider capacity semantics, on the same original child only.
+pub fn start_installed_source_read_provider_rows(
+  value : ClientInstalledSourceRead,
+  acquisition : @row_source_host.RowAcquisition,
+  capacity : @execution.ExecutionCapacity?,
+  nonce : String,
+  original_stop : (@row_source_host.RowAttempt) -> Bool,
+  transfer_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[@row_source_host.RowRun, ClientInstalledSourceReadIssue] {
+  let ledger = match claim_installed_source_read_start(value, acquisition) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  retain_installed_source_read_run(
+    value,
+    @row_source_host.start_accounted_provider_row_acquisition(
+      acquisition, capacity, nonce, original_stop, ledger, transfer_bytes, execution_bytes,
+    ),
+  )
+}
+
+///|
+/// Listing reports keep their existing supplementary reservation semantics.
+pub fn start_installed_source_read_listing_rows(
+  value : ClientInstalledSourceRead,
+  acquisition : @row_source_host.RowAcquisition,
+  capacity : @execution.ExecutionCapacity?,
+  nonce : String,
+  original_stop : (@row_source_host.RowAttempt) -> Bool,
+  transfer_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[@row_source_host.RowRun, ClientInstalledSourceReadIssue] {
+  let ledger = match claim_installed_source_read_start(value, acquisition) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  retain_installed_source_read_run(
+    value,
+    @row_source_host.start_accounted_listing_row_acquisition(
+      acquisition, capacity, nonce, original_stop, ledger, transfer_bytes, execution_bytes,
+    ),
+  )
 }
 
 ///|
