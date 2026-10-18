@@ -571,6 +571,8 @@ pub fn client_infer_call_scope_matches(ClientInferCallScope, PreparedClientProgr
 
 pub fn client_infer_call_scope_matches_rows(ClientInferCallScope, @execution_relation.PreparedInferRows, String) -> Bool
 
+pub fn client_infer_call_scope_model_execution(ClientInferCallScope) -> @check_environment.ModelExecutionContract
+
 pub fn client_infer_call_scope_snapshot(ClientInferCallScope) -> Result[String, ClientInferCallScopeIssue]
 
 pub fn client_infer_call_scope_source_observations(ClientInferCallScope) -> Array[@run_publication.ModelSourceObservation]
