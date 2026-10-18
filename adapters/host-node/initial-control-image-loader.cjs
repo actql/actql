@@ -104,10 +104,12 @@ function installInitialControlImageLoader(groups) {
         descriptor(NodeModule, 'register')?.value !== registerFence) fail('InitialControlImageLoaderChanged');
     for (let index = 0; index < loadedModules.length; index++) {
       const held = loadedModules[index], property = descriptor(stockCache, held.filename);
+      const exportsProperty = held.module === undefined ? undefined : descriptor(held.module, 'exports');
       let same = held.module === undefined ? property === undefined :
         property !== undefined && hasOwn(property, 'value') && property.value === held.module &&
         descriptor(held.module, 'filename')?.value === held.filename &&
-        descriptor(held.module, 'exports')?.value === held.exports &&
+        exportsProperty !== undefined && hasOwn(exportsProperty, 'value') &&
+        exportsProperty.value === held.exports &&
         (descriptor(held.module, 'loaded')?.value === true ||
           held.loading && nativeApply(preloading, module, []) === true);
       if (same && held.properties !== undefined) {

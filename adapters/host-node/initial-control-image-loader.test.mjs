@@ -199,6 +199,19 @@ test('equal exported references cannot substitute a foreign cache Module record'
   assert.equal(result.status, 0, result.stderr);
 });
 
+test('an original undefined export cannot be replaced by an unobserved cache getter', t => {
+  const result = eagerCommon(t, [
+    'import assert from "node:assert/strict";',
+    'import {createRequire} from "node:module";',
+    'const require=createRequire(import.meta.url), name=require.resolve("./images/original.cjs");',
+    'let reads=0;',
+    'Object.defineProperty(require.cache[name],"exports",{get(){reads++;return undefined;}});',
+    'assert.throws(()=>originalImageLoader.assertCurrent(),{code:"InitialControlImageLoaderChanged"});',
+    'assert.equal(reads,0);',
+  ].join('\n'), 'module.exports=undefined;');
+  assert.equal(result.status, 0, result.stderr);
+});
+
 test('export descriptor replacement refuses without invoking the replacement getter', t => {
   const result = eagerCommon(t, [
     'import assert from "node:assert/strict";',
