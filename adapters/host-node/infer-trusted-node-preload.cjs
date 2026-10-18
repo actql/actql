@@ -264,6 +264,13 @@ if (selected) {
   Object.defineProperty(promise, Symbol.species, {
     get: species.get, set: undefined, configurable: false,
   });
+  // Consume the actual normal package inventory before optional SDK or Host
+  // namespace compilation. Source-only absence remains absence. This captures
+  // original image bytes and module identity, not the missing operational
+  // intake/runtime envelope, prior-registration proof or business capacity.
+  const initialControlImages = initialControlPackageOriginal === undefined ? undefined :
+    require('./initial-control-package-custody.cjs').captureInitialControlPackageCustody(
+      initialControlPackageOriginal, join(__dirname, '..', '..'));
   let sdkStaticModules;
   // Resolve the OPTIONAL selected package from this actual consumer entry,
   // including normal external installations, never a monorepo source path.
@@ -286,6 +293,7 @@ if (selected) {
         join(dirname(sdkEntry), '_internal', 'openai-chat.mjs')).openAIChatStaticOriginals);
     } catch { unavailable(); }
   }
+  const initialControlHostNamespace = initialControlImages?.initializeHostNamespace();
   // The actual process/module/native responsibility stays with this startup.
   // These originals and the existing Host overlap still need funded coverage.
   // In particular the three added descriptor records/array entries/references
@@ -296,12 +304,14 @@ if (selected) {
   // retain their original responsibility until actual cleanup, not destroy(),
   // rejection, Promise settlement or retirement of this association.
   startup = {process: originalProcess, module, entry: originalProcess.argv[1], originals, publicPreload,
-    promiseSpecies, sdkStaticModules, eagerSdkStartup, invalidated: false};
+    promiseSpecies, sdkStaticModules, eagerSdkStartup, initialControlImages,
+    initialControlHostNamespace, invalidated: false};
 }
 
 function currentStartup() {
   if (startup === undefined) unavailable();
   if (startup.invalidated) changed();
+  startup.initialControlImages?.assertCurrent();
   if (startup.process !== originalProcess || startup.entry !== originalProcess.argv[1] ||
       globalThis.Buffer !== Buffer) {
     startup.invalidated = true;

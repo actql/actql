@@ -1,0 +1,124 @@
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+import {mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {dirname, join} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import test from 'node:test';
+
+const custody = fileURLToPath(new URL('./initial-control-package-custody.cjs', import.meta.url));
+const actual = name => readFileSync(new URL(name, import.meta.url));
+const fact = (path, bytes) => ({path, bytes: bytes.length,
+  sha256: createHash('sha256').update(bytes).digest('hex')});
+function fixture(t, host = 'globalThis.actualHostImageValue="original";export function assertInitialControlHostPreparation(){};') {
+  const directory = mkdtempSync(join(tmpdir(), 'actql-package-image-custody-'));
+  t.after(() => rmSync(directory, {recursive: true}));
+  const root = join(directory, 'local');
+  const sources = {'package.json': Buffer.from(JSON.stringify({name: '@actql/local-node', type: 'module'})),
+    'adapters/host-node/embedded-local.mjs': Buffer.from(host),
+    'spec/local-check-environment.json': Buffer.from('{"original":"asset"}\n')};
+  for (const [path, bytes] of Object.entries(sources)) {
+    mkdirSync(dirname(join(root, path)), {recursive: true}); writeFileSync(join(root, path), bytes);
+  }
+  const inventory = {images: Object.entries(sources).map(([path, bytes]) => fact(path, bytes)),
+    packages: [], dependencies: [], optionalSdk: null, optionalSdkCoverage: 'absent',
+    hostModule: 'adapters/host-node/embedded-local.mjs', hostValidator: 'assertInitialControlHostPreparation'};
+  function run(body, before = '', afterCapture = '', tweak) {
+    const selected = structuredClone(inventory); tweak?.(selected);
+    const preload = join(directory, 'preload.cjs'), entry = join(directory, 'entry.mjs');
+    writeFileSync(preload, [before,
+      'const {captureInitialControlPackageCustody}=require('+JSON.stringify(custody)+');',
+      'const root='+JSON.stringify(root)+', inventory='+JSON.stringify(selected)+';',
+      'globalThis.packageImageCustody=captureInitialControlPackageCustody(inventory,root);',
+      afterCapture,
+      'globalThis.originalHostNamespace=packageImageCustody.initializeHostNamespace();',
+    ].join('\n'));
+    writeFileSync(entry, body);
+    const result = spawnSync(process.execPath, ['--require', preload, entry], {
+      cwd: directory, env: {PATH: process.env.PATH}, encoding: 'utf8', timeout: 30000});
+    assert.equal(result.error, undefined); return result;
+  }
+  return {directory, root, inventory, sources, run};
+}
+
+// Real same-FD reads and Node loader/compilation; the small Host namespace is
+// an explicit fixture, not the complete installed Host, original operational
+// issuer, public consumer, numerical funding or all-history loader proof.
+test('package custody loads the same captured Host Source and immutable asset before entry', t => {
+  const f = fixture(t);
+  const result = f.run([
+    'import assert from "node:assert/strict";',
+    'assert.equal(actualHostImageValue,"original");',
+    'assert.equal(typeof originalHostNamespace.assertInitialControlHostPreparation,"function");',
+    'assert.equal(packageImageCustody.readAsset("spec/local-check-environment.json"),\'{"original":"asset"}\\n\');',
+    'packageImageCustody.assertCurrent();',
+    'assert.equal(packageImageCustody.begin,undefined);',
+  ].join('\n'), '', [
+    'require("node:fs").writeFileSync(require("node:path").join(root,"adapters/host-node/embedded-local.mjs"),',
+    ' "throw new Error(\\"ReplacementMustNotCompile\\")");',
+  ].join('\n'));
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('a mismatched captured package image refuses before Host and entry compilation', t => {
+  const f = fixture(t), result = f.run('throw new Error("EntryMustNotRun");', '', '', inventory => {
+    inventory.images.find(item => item.path.endsWith('embedded-local.mjs')).sha256 = '0'.repeat(64);
+  });
+  assert.notEqual(result.status, 0); assert.match(result.stderr, /InitialControlImageChanged/);
+  assert.doesNotMatch(result.stderr, /EntryMustNotRun/);
+});
+
+test('uncaptured Host dependencies cannot acquire package-image coverage', t => {
+  const f = fixture(t, 'import "./foreign.mjs";export function assertInitialControlHostPreparation(){};');
+  writeFileSync(join(f.root, 'adapters/host-node/foreign.mjs'), 'globalThis.foreignWasCompiled=true;');
+  const result = f.run('throw new Error("EntryMustNotRun");');
+  assert.notEqual(result.status, 0); assert.match(result.stderr, /UncapturedInitialControlImage/);
+  assert.doesNotMatch(result.stderr, /EntryMustNotRun/);
+});
+
+test('application-time package capture refuses before observing a caller inventory', t => {
+  const f = fixture(t), result = f.run([
+    'import assert from "node:assert/strict";',
+    'import{createRequire}from"node:module";',
+    'const{captureInitialControlPackageCustody}=createRequire(import.meta.url)('+JSON.stringify(custody)+');',
+    'let reads=0;const packet=new Proxy({},{getOwnPropertyDescriptor(){reads++;throw new Error("CallerRead");}});',
+    'assert.throws(()=>captureInitialControlPackageCustody(packet,"unused"),{code:"InitialControlPackageCustodyUnavailable"});',
+    'assert.equal(reads,0);',
+  ].join('\n'));
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('the actual selected public preload consumes generated inventory without issuing a Scope', t => {
+  const f = fixture(t), local = join(f.directory, 'node_modules/@actql/local-node');
+  mkdirSync(join(local, 'adapters/host-node'), {recursive: true});
+  const sources = {...f.sources,
+    'package.json': Buffer.from(JSON.stringify({name: '@actql/local-node', type: 'module',
+      exports: {'./selected-infer-startup': './selected-infer-startup.cjs'}})),
+    'selected-infer-startup.cjs': readFileSync(new URL('../../packages/local-node/selected-infer-startup.cjs', import.meta.url))};
+  for (const name of ['infer-trusted-node-preload.cjs', 'initial-control-installation-owner.cjs',
+    'initial-control-package-custody.cjs', 'initial-control-image-source.cjs', 'initial-control-image-loader.cjs']) {
+    sources['adapters/host-node/'+name] = actual(name);
+  }
+  const inventory = {...f.inventory, images: Object.entries(sources).map(([path, bytes]) => fact(path, bytes))};
+  sources['adapters/host-node/initial-control-package-original.cjs'] = Buffer.from(
+    'module.exports=Object.freeze({imageInventory:'+JSON.stringify(inventory)+'});');
+  for (const [path, bytes] of Object.entries(sources)) {
+    mkdirSync(dirname(join(local, path)), {recursive: true}); writeFileSync(join(local, path), bytes);
+  }
+  const entry = join(f.directory, 'selected-entry.mjs');
+  writeFileSync(entry, [
+    'import assert from "node:assert/strict";',
+    'import{createRequire}from"node:module";',
+    'const require=createRequire(import.meta.url);',
+    'assert.equal(actualHostImageValue,"original");',
+    'const root=require('+JSON.stringify(join(local, 'adapters/host-node/infer-trusted-node-preload.cjs'))+');',
+    'let reads=0;const raw=new Proxy({},{ownKeys(){reads++;throw new Error("RawInput");}});',
+    'assert.throws(()=>root.beginInitialControlInstallation({},raw),{code:"NodeInitialControlAdmissionUnavailable"});',
+    'assert.equal(reads,0);',
+  ].join('\n'));
+  const result = spawnSync(process.execPath,
+    ['--no-lazy', '--require', '@actql/local-node/selected-infer-startup', entry], {
+      cwd: f.directory, env: {PATH: process.env.PATH}, encoding: 'utf8', timeout: 30000});
+  assert.equal(result.error, undefined); assert.equal(result.status, 0, result.stderr);
+});
