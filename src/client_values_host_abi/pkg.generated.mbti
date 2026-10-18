@@ -2,6 +2,7 @@
 package "actql/actql/client_values_host_abi"
 
 import {
+  "actql/actql/client_local_preparation",
   "actql/actql/decode_core",
   "actql/actql/host_observation",
   "actql/actql/logical_request_scope",
@@ -308,6 +309,8 @@ pub fn client_values_host_prepare_retained_task_input(@run_publication_host.Clie
 
 pub fn client_values_host_prepare_run_start(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool) -> Result[Int, @run_publication_host.ClientRunStartIssue]
 
+pub fn client_values_host_prepare_source_program(@run_publication_host.ClientSubmittedIntent, @program_check.CheckEnvironment, String) -> Result[@client_local_preparation.LocalSourceComputation, @client_local_preparation.LocalSourceComputationIssue]
+
 pub fn client_values_host_prepare_task_dispatch(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity, Int, Int, String, String, Int, String, String, String, String, String, String, String, String) -> Result[@remote_site_protocol.DispatchRequest, @run_publication_host.ClientTaskDispatchIssue]
 
 pub fn client_values_host_program_preparation_effect(ClientValuesHostProgramPreparation) -> @run_publication_host.PreparedClientEffectComputation?
@@ -461,6 +464,24 @@ pub fn client_values_host_seal_run_evidence_value(String, String, Int, Int, Int)
 pub fn client_values_host_source_evidence_facts(@run_publication_host.PreparedClientProgram, Int, Int) -> Array[String]?
 
 pub fn client_values_host_source_free_request_identity(@run_publication_host.PreparedClientProgram, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
+
+pub fn client_values_host_source_program_declarations(@client_local_preparation.LocalSourceComputation) -> String?
+
+pub fn client_values_host_source_program_document(@client_local_preparation.LocalSourceComputation) -> String
+
+pub fn client_values_host_source_program_effect(@client_local_preparation.LocalSourceComputation) -> @run_publication_host.PreparedClientEffectComputation?
+
+pub fn client_values_host_source_program_input(@client_local_preparation.LocalSourceComputation) -> Array[String]
+
+pub fn client_values_host_source_program_kind(@client_local_preparation.LocalSourceComputation) -> String
+
+pub fn client_values_host_source_program_originals(@client_local_preparation.LocalSourceComputation) -> Array[String]
+
+pub fn client_values_host_source_program_parameters(@client_local_preparation.LocalSourceComputation) -> String?
+
+pub fn client_values_host_source_program_pure(@client_local_preparation.LocalSourceComputation) -> @run_publication_host.PreparedClientProgram?
+
+pub fn client_values_host_source_program_request(@client_local_preparation.LocalSourceComputation, @run_publication_host.ClientSubmittedIntent, @program_check.CheckEnvironment, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
 
 pub fn client_values_host_static_plan_view(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, Int, Int, Int) -> Result[String, @run_publication_host.ClientInteractivePlanIssue]
 

@@ -37,8 +37,13 @@ priv suberror LocalSourceStop {
 }
 
 ///|
-fn[T] source_result(value : Result[T, LocalSourceComputationIssue]) -> T raise LocalSourceStop {
-  match value { Ok(value) => value; Err(issue) => raise LocalSourceStop(issue) }
+fn[T] source_result(
+  value : Result[T, LocalSourceComputationIssue],
+) -> T raise LocalSourceStop {
+  match value {
+    Ok(value) => value
+    Err(issue) => raise LocalSourceStop(issue)
+  }
 }
 
 ///|
@@ -51,125 +56,250 @@ pub fn prepare_local_source_computation(
   publication : String,
 ) -> Result[LocalSourceComputation, LocalSourceComputationIssue] {
   try {
-  let limits = @host.client_standard_program_preparation_limits()
-  let wire = @host.client_submitted_intent_wire(intent)
-  let source = source_result(@source.parse_json_bytes_preserving(
-    @utf8.encode(wire), limits.checking.input.source,
-  ).map_err(_ => Input))
-  let value = @canonical.from_source(
-    source,
-    limits.checking.input.source.max_nodes,
-    limits.checking.input.source.max_depth,
-    limits.checking.input.source.max_input_bytes,
-    data_keys=true,
-  ) catch { _ => return Err(Input) }
-  guard @canonical.object_field(value, "kind") is Some(@canonical.String("aql")) &&
-    @canonical.object_field(value, "input") is Some(input) &&
-    @canonical.object_field(input, "text") is Some(@canonical.String(document)) &&
-    @canonical.object_field(input, "format") is Some(@canonical.String(spelling)) &&
-    @canonical.object_field_count(input) is Some(count) &&
-    count == (if @canonical.object_field(input, "parameterDeclarations") is Some(_) { 3 } else { 2 }) else {
-    return Err(Input)
-  }
-  let selected = match @frontend.select_format(spelling) {
-    Ok(Text) => @frontend.Text
-    Ok(Sql) => @frontend.Sql
-    _ => return Err(Input)
-  }
-  let declarations = match @canonical.object_field(input, "parameterDeclarations") {
-    None => None
-    Some(body) => Some(@canonical.stringify_value(body, 1048576, 65536, 64) catch { _ => return Err(Input) })
-  }
-  let cursor = source_result(@decode.admit(source, limits.checking.input.tree).map_err(_ => Input))
-  let root = source_result(@decode.open_object(cursor).map_err(_ => Input))
-  let parameters = source_result(@decode.required(root, "parameters").map_err(_ => Input))
-  let supplied = if @decode.is_null(parameters) { None } else { Some(parameters) }
-  let parameters_wire = match @canonical.object_field(value, "parameters") {
-    Some(@canonical.Null) => None
-    Some(body) => Some(@canonical.stringify_value(body, 65536, 8192, 64) catch { _ => return Err(Input) })
-    None => return Err(Input)
-  }
-  let context = source_result(@publication.bind_published_query_context(environment, publication, declarations)
-    .map_err(issue => LocalSourceComputationIssue::Publication(issue)))
-  let table_writes = source_result(@publication.published_table_writes(environment, publication).map_err(issue => LocalSourceComputationIssue::Publication(issue)))
-  let update_targets = source_result(@publication.published_update_targets(environment, publication).map_err(issue => LocalSourceComputationIssue::Publication(issue)))
-  let store_targets = source_result(@publication.published_store_targets(environment, publication).map_err(issue => LocalSourceComputationIssue::Publication(issue)))
-  let command_targets = source_result(@publication.published_command_targets(environment, publication).map_err(issue => LocalSourceComputationIssue::Publication(issue)))
-  let lowered = source_result(@frontend.lower(document, selected, Some(context), table_writes~, update_targets~, store_targets~, command_targets~)
-    .map_err(issue => LocalSourceComputationIssue::Frontend(issue)))
-  guard lowered.program is Some(parsed) else { return Err(Input) }
-  for stage in @syntax.stages(parsed) {
-    if !@syntax.effect_names(stage).is_empty() {
-      if @host.client_submitted_intent_requests_read_only(intent) { return Err(ReadOnly) }
-      // These forms still require the original installed target capture port.
-      // Static publication alone cannot supply that physical correspondence.
-      if lowered.command_selection is Some(_) ||
-        lowered.keyed_effect_kind is Some(Upsert | Delete) || lowered.insert_effect {
-        return Err(TargetOriginalsUnavailable)
-      }
-      let prepared = source_result(@host.prepare_parsed_client_effect_computation(
-        parsed, environment, supplied, [],
-        @host.client_standard_effect_computation_limits(),
-        update_targets=lowered.update_targets,
-        store_targets=lowered.store_targets,
-        command_targets=lowered.command_targets,
-      ).map_err(issue => LocalSourceComputationIssue::Effect(issue)))
-      source_result(@frontend.check_array_profile(
-        @checked.effect_program_static_checked_computation(
-          @host.prepared_client_effect_computation_candidate(prepared),
-        ), max_work=1000000, max_slots=100000,
-      ).map_err(issue => LocalSourceComputationIssue::ArrayProfile(issue))) |> ignore
-      return Ok({intent, environment, publication, document: lowered.document, parameters: parameters_wire,
-        source_document: document, source_format: spelling, declarations,
-        preparation: Effect(prepared)})
+    let limits = @host.client_standard_program_preparation_limits()
+    let wire = @host.client_submitted_intent_wire(intent)
+    let source = source_result(
+      @source.parse_json_bytes_preserving(
+        @utf8.encode(wire),
+        limits.checking.input.source,
+      ).map_err(_ => Input),
+    )
+    let value = @canonical.from_source(
+      source,
+      limits.checking.input.source.max_nodes,
+      limits.checking.input.source.max_depth,
+      limits.checking.input.source.max_input_bytes,
+      data_keys=true,
+    ) catch {
+      _ => return Err(Input)
     }
+    guard @canonical.object_field(value, "kind")
+      is Some(@canonical.String("aql")) &&
+      @canonical.object_field(value, "input") is Some(input) &&
+      @canonical.object_field(input, "text")
+      is Some(@canonical.String(document)) &&
+      @canonical.object_field(input, "format")
+      is Some(@canonical.String(spelling)) &&
+      @canonical.object_field_count(input) is Some(count) &&
+      count ==
+      (if @canonical.object_field(input, "parameterDeclarations") is Some(_) {
+        3
+      } else {
+        2
+      }) else {
+      return Err(Input)
+    }
+    let selected = match @frontend.select_format(spelling) {
+      Ok(Text) => @frontend.Text
+      Ok(Sql) => @frontend.Sql
+      _ => return Err(Input)
+    }
+    let declarations = match
+      @canonical.object_field(input, "parameterDeclarations") {
+      None => None
+      Some(body) =>
+        Some(
+          @canonical.stringify_value(body, 1048576, 65536, 64) catch {
+            _ => return Err(Input)
+          },
+        )
+    }
+    let cursor = source_result(
+      @decode.admit(source, limits.checking.input.tree).map_err(_ => Input),
+    )
+    let root = source_result(@decode.open_object(cursor).map_err(_ => Input))
+    let parameters = source_result(
+      @decode.required(root, "parameters").map_err(_ => Input),
+    )
+    let supplied = if @decode.is_null(parameters) {
+      None
+    } else {
+      Some(parameters)
+    }
+    let parameters_wire = match @canonical.object_field(value, "parameters") {
+      Some(@canonical.Null) => None
+      Some(body) =>
+        Some(
+          @canonical.stringify_value(body, 65536, 8192, 64) catch {
+            _ => return Err(Input)
+          },
+        )
+      None => return Err(Input)
+    }
+    let context = source_result(
+      @publication.bind_published_query_context(
+        environment, publication, declarations,
+      ).map_err(issue => LocalSourceComputationIssue::Publication(issue)),
+    )
+    let table_writes = source_result(
+      @publication.published_table_writes(environment, publication).map_err(issue => {
+        LocalSourceComputationIssue::Publication(issue)
+      }),
+    )
+    let update_targets = source_result(
+      @publication.published_update_targets(environment, publication).map_err(issue => {
+        LocalSourceComputationIssue::Publication(issue)
+      }),
+    )
+    let store_targets = source_result(
+      @publication.published_store_targets(environment, publication).map_err(issue => {
+        LocalSourceComputationIssue::Publication(issue)
+      }),
+    )
+    let command_targets = source_result(
+      @publication.published_command_targets(environment, publication).map_err(issue => {
+        LocalSourceComputationIssue::Publication(issue)
+      }),
+    )
+    let lowered = source_result(
+      @frontend.lower(
+        document,
+        selected,
+        Some(context),
+        table_writes~,
+        update_targets~,
+        store_targets~,
+        command_targets~,
+      ).map_err(issue => LocalSourceComputationIssue::Frontend(issue)),
+    )
+    guard lowered.program is Some(parsed) else { return Err(Input) }
+    for stage in @syntax.stages(parsed) {
+      if !@syntax.effect_names(stage).is_empty() {
+        if @host.client_submitted_intent_requests_read_only(intent) {
+          return Err(ReadOnly)
+        }
+        // These forms still require the original installed target capture port.
+        // Static publication alone cannot supply that physical correspondence.
+        if lowered.command_selection is Some(_) ||
+          lowered.keyed_effect_kind is Some(Upsert | Delete) ||
+          lowered.insert_effect {
+          return Err(TargetOriginalsUnavailable)
+        }
+        let prepared = source_result(
+          @host.prepare_parsed_client_effect_computation(
+            parsed,
+            environment,
+            supplied,
+            [],
+            @host.client_standard_effect_computation_limits(),
+            update_targets=lowered.update_targets,
+            store_targets=lowered.store_targets,
+            command_targets=lowered.command_targets,
+          ).map_err(issue => LocalSourceComputationIssue::Effect(issue)),
+        )
+        source_result(
+          @frontend.check_array_profile(
+            @checked.effect_program_static_checked_computation(
+              @host.prepared_client_effect_computation_candidate(prepared),
+            ),
+            max_work=1000000,
+            max_slots=100000,
+          ).map_err(issue => LocalSourceComputationIssue::ArrayProfile(issue)),
+        )
+        |> ignore
+        return Ok({
+          intent,
+          environment,
+          publication,
+          document: lowered.document,
+          parameters: parameters_wire,
+          source_document: document,
+          source_format: spelling,
+          declarations,
+          preparation: Effect(prepared),
+        })
+      }
+    }
+    let prepared = source_result(
+      @host.prepare_parsed_effect_free_client_program(
+        parsed, environment, supplied, limits,
+      ).map_err(issue => LocalSourceComputationIssue::Pure(issue)),
+    )
+    source_result(
+      @frontend.check_array_profile(
+        @strategy.graph_program(@host.prepared_client_graph(prepared)),
+        max_work=1000000,
+        max_slots=100000,
+      ).map_err(issue => LocalSourceComputationIssue::ArrayProfile(issue)),
+    )
+    |> ignore
+    Ok({
+      intent,
+      environment,
+      publication,
+      document: lowered.document,
+      parameters: parameters_wire,
+      source_document: document,
+      source_format: spelling,
+      declarations,
+      preparation: Pure(prepared),
+    })
+  } catch {
+    LocalSourceStop(issue) => Err(issue)
   }
-  let prepared = source_result(@host.prepare_parsed_effect_free_client_program(parsed, environment, supplied, limits).map_err(issue => LocalSourceComputationIssue::Pure(issue)))
-  source_result(@frontend.check_array_profile(@strategy.graph_program(@host.prepared_client_graph(prepared)),
-    max_work=1000000, max_slots=100000,
-  ).map_err(issue => LocalSourceComputationIssue::ArrayProfile(issue))) |> ignore
-  Ok({intent, environment, publication, document: lowered.document, parameters: parameters_wire,
-    source_document: document, source_format: spelling, declarations,
-    preparation: Pure(prepared)})
-  } catch { LocalSourceStop(issue) => Err(issue) }
 }
 
 ///|
-pub fn local_source_computation_preparation(value : LocalSourceComputation) -> LocalSourceComputationPreparation {
+pub fn local_source_computation_preparation(
+  value : LocalSourceComputation,
+) -> LocalSourceComputationPreparation {
   value.preparation
 }
 
 ///|
-pub fn local_source_computation_originals(value : LocalSourceComputation) -> (String, String, String, String) {
-  (@host.client_submitted_intent_wire(value.intent), @host.client_submitted_intent_cid(value.intent),
-    @checked.checking_environment_cid(value.environment), value.publication)
+pub fn local_source_computation_originals(
+  value : LocalSourceComputation,
+) -> (String, String, String, String) {
+  (
+    @host.client_submitted_intent_wire(value.intent),
+    @host.client_submitted_intent_cid(value.intent),
+    @checked.checking_environment_cid(value.environment),
+    value.publication,
+  )
 }
 
 ///|
 /// Existing Run material codecs consume the retained lowerer's Program, not
 /// a replacement for the separately retained original submitted source.
-pub fn local_source_computation_material(value : LocalSourceComputation) -> (String, String?) {
+pub fn local_source_computation_material(
+  value : LocalSourceComputation,
+) -> (String, String?) {
   (value.document, value.parameters)
 }
 
 ///|
-pub fn local_source_computation_source(value : LocalSourceComputation) -> (String, String, String?) {
+pub fn local_source_computation_source(
+  value : LocalSourceComputation,
+) -> (String, String, String?) {
   (value.source_document, value.source_format, value.declarations)
 }
 
 ///|
 /// Reuse only the same admitted intent and nominal checked Environment.
-pub fn local_source_computation_matches(value : LocalSourceComputation,
-  intent : @host.ClientSubmittedIntent, environment : @checked.CheckEnvironment) -> Bool {
-  physical_equal(value.intent, intent) && physical_equal(value.environment, environment)
+pub fn local_source_computation_matches(
+  value : LocalSourceComputation,
+  intent : @host.ClientSubmittedIntent,
+  environment : @checked.CheckEnvironment,
+) -> Bool {
+  physical_equal(value.intent, intent) &&
+  physical_equal(value.environment, environment)
 }
 
 ///|
-pub fn local_source_computation_request(value : LocalSourceComputation,
-  authority_scope_cid : String, request_id : String) -> Result[@host.ClientRequestIdentity, @host.ClientRequestIdentityIssue] {
+pub fn local_source_computation_request(
+  value : LocalSourceComputation,
+  authority_scope_cid : String,
+  request_id : String,
+) -> Result[@host.ClientRequestIdentity, @host.ClientRequestIdentityIssue] {
   let input = @host.client_submitted_intent_cid(value.intent)
   match value.preparation {
-    Pure(prepared) => @host.prepare_client_request_identity(prepared, authority_scope_cid, request_id, input)
-    Effect(prepared) => @host.prepare_client_effect_request_identity(prepared, authority_scope_cid, request_id, input)
+    Pure(prepared) =>
+      @host.prepare_client_request_identity(
+        prepared, authority_scope_cid, request_id, input,
+      )
+    Effect(prepared) =>
+      @host.prepare_client_effect_request_identity(
+        prepared, authority_scope_cid, request_id, input,
+      )
   }
 }
