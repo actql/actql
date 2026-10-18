@@ -9,19 +9,6 @@ priv struct LocalInitialSigningAdoptionOptions {
 }
 
 ///|
-// Diagnostic intake only, matching the existing initial-signing caller bound.
-// It supplies no Root, key eligibility, claim, permission or numerical capacity.
-fn load_initial_signing_cli_crypto(
-  path : String,
-  initialize_signing : Bool,
-) -> Result[@local_crypto.Library, @local_crypto.NativeSignatureIssue] {
-  @local_crypto.load_library(
-    path,
-    diagnostic_ceiling=if initialize_signing { Some(64) } else { None },
-  )
-}
-
-///|
 // Public init requests this branch after admitting the same installed Native
 // image. Ordinary adopt without that request keeps the original reader.
 // Missing old material cannot select generation; no failure falls back to the

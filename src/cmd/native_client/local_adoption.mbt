@@ -258,12 +258,9 @@ fn execute_native_local_adoption(
       .library_paths()
       .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
   }
-  let initialize_signing = operation == "adopt" &&
-    child.flags.get("initialize-signing").unwrap_or(false)
-  let crypto = load_initial_signing_cli_crypto(crypto_path, initialize_signing).unwrap_or_else(() => {
-      stop("NativeLocalSignatureUnavailable")
-    },
-  )
+  let crypto = @local_crypto.load_library(crypto_path).unwrap_or_else(() => {
+    stop("NativeLocalSignatureUnavailable")
+  })
   let sqlite = @local_sqlite.load_library(sqlite_path).unwrap_or_else(() => {
     stop("NativeLocalJournalUnavailable")
   })
@@ -331,7 +328,8 @@ fn execute_native_local_adoption(
   }
   let host = match
     local_open_initial_signing_adoption(session, sqlite, crypto, {
-      initialize_signing,
+      initialize_signing: operation == "adopt" &&
+      child.flags.get("initialize-signing").unwrap_or(false),
       ttl_ms: settings.ttl_ms,
       max_records: settings.record_limit,
       max_snapshot_bytes: settings.snapshot_bytes,
