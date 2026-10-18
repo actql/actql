@@ -6,6 +6,7 @@ import {
   "actql/actql/connectors/bigquery/catalog",
   "actql/actql/physical_resources",
   "actql/actql/query_planning",
+  "moonbitlang/core/debug",
 }
 
 // Values
@@ -30,6 +31,14 @@ pub fn close_result_read(Read) -> Result[Unit, ReadIssue]
 pub fn finish_result_read(Read) -> Result[Unit, ReadIssue]
 
 pub fn interrupt_result_read(Read) -> Unit
+
+pub fn job_original_record(JobRead, JobRecordLimits) -> Result[JobOriginalRecord, JobRecordIssue]
+
+pub fn job_original_record_matches_request(JobRead, JobRequest, JobOriginalRecord) -> Bool
+
+pub fn job_original_record_material(JobOriginalRecord) -> (String, String, String, String, String, String)
+
+pub fn job_original_record_wire(JobOriginalRecord) -> String
 
 pub fn job_read_complete(JobRead) -> Bool
 
@@ -56,6 +65,8 @@ pub fn prepare_job_read(Read, Int64, Int, Int, Int, Int) -> Result[JobRead, JobI
 pub fn prepared_read_acquisition(PreparedRead) -> @client_row_source_host.RowAcquisition
 
 pub fn prepared_read_projection(PreparedRead) -> @catalog.ReadProjection
+
+pub fn read_job_original_record(Bytes, JobRecordLimits) -> Result[JobOriginalRecord, JobRecordIssue]
 
 pub fn read_start_failure_cleanup(ReadStartFailure) -> Read?
 
@@ -95,8 +106,28 @@ pub(all) enum JobIssue {
   Read(ReadIssue)
 }
 
+pub struct JobOriginalRecord {
+  // private fields
+}
+
 pub struct JobRead {
   // private fields
+}
+
+pub(all) enum JobRecordIssue {
+  InvalidLimits
+  Limit
+  InvalidRecord
+  Closed
+  NotOriginalSubmit
+} derive(Eq, @debug.Debug)
+
+pub(all) struct JobRecordLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_job_bytes : Int
+  max_material_bytes : Int
 }
 
 pub struct JobRequest {
