@@ -36,6 +36,51 @@ fn InstalledArenaHost::original_crypto_component(
 }
 
 ///|
+fn register_crypto_component_original(
+  domain : InstalledArenaDomain,
+) -> InstalledArenaCryptoComponent {
+  let record : InstalledArenaCryptoComponent = {
+    domain,
+    component: None,
+    failed: false,
+    scope_open: false,
+    closed: false,
+  }
+  domain.crypto_component = Some(record)
+  record
+}
+
+///|
+// The caller owns its already entered original scope and eventual leave.
+// Publish partial component custody before returning a foreign-call failure.
+fn InstalledArenaHost::load_crypto_component_original(
+  self : InstalledArenaHost,
+  record : InstalledArenaCryptoComponent,
+  path : String,
+  heap_bytes : Int64,
+  diagnostic_ceiling : Int,
+) -> InstalledArenaCryptoIssue? {
+  let mut primary : InstalledArenaCryptoIssue? = None
+  match
+    @signature.load_current_crypto_component(
+      path, heap_bytes, diagnostic_ceiling,
+    ) {
+    Err(issue) => primary = Some(Signature(issue))
+    Ok(@signature.ReadyCryptoComponent(component)) =>
+      record.component = Some(component)
+    Ok(@signature.PendingCryptoComponent(component, issue)) => {
+      record.component = Some(component)
+      primary = Some(Signature(issue))
+    }
+  }
+  match self.require_domain_read_current(record.domain) {
+    Err(issue) => if primary is None { primary = Some(Domain(issue)) }
+    Ok(_) => ()
+  }
+  primary
+}
+
+///|
 /// Trusted installed caller verifies the selected component/cohort first. This
 /// binds its actual first initialization to the already admitted original domain;
 /// declarations, paths and a current context do not issue funding or permission.
@@ -56,35 +101,15 @@ pub fn InstalledArenaHost::prepare_crypto_component(
     domain.live_channel is Some(_) {
     return Err(Domain(@bootstrap.Bootstrap(@bootstrap.AlreadyConsumed)))
   }
-  let record : InstalledArenaCryptoComponent = {
-    domain,
-    component: None,
-    failed: false,
-    scope_open: false,
-    closed: false,
-  }
-  domain.crypto_component = Some(record)
+  let record = register_crypto_component_original(domain)
   let mut primary : InstalledArenaCryptoIssue? = None
   match self.enter_domain_read(domain) {
     Err(issue) => primary = Some(Domain(issue))
     Ok(_) => {
       record.scope_open = true
-      match
-        @signature.load_current_crypto_component(
-          path, heap_bytes, diagnostic_ceiling,
-        ) {
-        Err(issue) => primary = Some(Signature(issue))
-        Ok(@signature.ReadyCryptoComponent(component)) =>
-          record.component = Some(component)
-        Ok(@signature.PendingCryptoComponent(component, issue)) => {
-          record.component = Some(component)
-          primary = Some(Signature(issue))
-        }
-      }
-      match self.require_domain_read_current(domain) {
-        Err(issue) => if primary is None { primary = Some(Domain(issue)) }
-        Ok(_) => ()
-      }
+      primary = self.load_crypto_component_original(
+        record, path, heap_bytes, diagnostic_ceiling,
+      )
       match self.leave_domain_read(domain) {
         Err(issue) => if primary is None { primary = Some(Domain(issue)) }
         Ok(_) => record.scope_open = false

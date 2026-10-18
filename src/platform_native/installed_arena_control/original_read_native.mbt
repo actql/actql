@@ -341,6 +341,11 @@ pub fn InstalledArenaHost::close_domain_original_read(
   if record.closed {
     return Ok(())
   }
+  // Component/Library users belong to this same Read, not a parent-close ACK.
+  // Keep the original claim and frame usable for their explicit cleanup first.
+  if record.domain.crypto_component is Some(component) && !component.closed {
+    return Err(Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)))
+  }
   record.closing = true
   record.ready = false
   // Preparation refused before publishing a live access. This carrier owns

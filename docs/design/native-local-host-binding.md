@@ -1444,3 +1444,20 @@ physical acknowledgements. The parent Read/domain cannot retire while that
 registration remains pending; reverse registration is cleared only after the
 parent's own full retirement acknowledgement. Key bytes, PEM/DER results and
 Writer aliases keep their own original resource and authority obligations.
+
+A later Local Host Read/SQLite pair uses a separate, exact preparation entrance
+for Crypto. The pair's original Read consumer must already own the active
+HostRead phase and its physical original Read context must already be entered
+on the current thread. The entrance checks both original domains and current
+fences without entering a scope, claiming another read or switching contexts.
+The complete consuming Read envelope includes the component heap, metadata,
+diagnostics and all simultaneous aliases; the entrance supplies no profile,
+capacity or authority. The general domain Crypto entrance continues to refuse
+an original Read domain.
+
+Component registration precedes the foreign load, including partial failure.
+A pending component prevents retirement of its parent original Read before its
+frame is stopped, so the original scope remains available for component cleanup.
+Library, component, Read-context, domain, loan and Host acknowledgements remain
+separate. Neither successful preparation nor leaving a serial HostRead phase
+acknowledges component retirement or authorizes a SQLite phase to borrow it.
