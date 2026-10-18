@@ -1406,7 +1406,7 @@ fn main {
     }
   }
   let failed = try {
-    execute_and_write_native_reply(control.matches)
+    control.consume_matches(execute_and_write_native_reply)
     false
   } catch {
     ClientStop(message) => {

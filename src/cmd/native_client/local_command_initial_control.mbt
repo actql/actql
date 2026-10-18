@@ -4,13 +4,14 @@
 priv struct LocalCommandParsedInput {
   arguments : Array[String]
   definition : @argparse.Command
-  matches : @argparse.Matches
+  mut matches : @argparse.Matches?
   classes : LocalCommandArgumentClasses?
 }
 
 ///|
 // The synchronous foreign call observes only liveness, never MoonBit layout.
-// Retain every original control alias through the final physical cleanup call.
+// Retain original argv/Command through the final physical cleanup call.
+// Mutable Matches move into the command call and must retire before that close.
 #borrow(original)
 extern "C" fn command_initial_control_keep_alive(
   original : LocalCommandParsedInput,
@@ -35,7 +36,7 @@ fn parse_native_initial_arguments(
   } else {
     None
   }
-  { arguments, definition, matches, classes, }
+  { arguments, definition, matches: Some(matches), classes, }
 }
 
 ///|
@@ -44,4 +45,20 @@ fn parse_native_initial_command(
 ) -> LocalCommandParsedInput raise {
   // Exactly one native OS-to-managed copy after the raw bounds observation.
   parse_native_initial_arguments(@env.args(), selected)
+}
+
+///|
+// Project/product selection may insert Read-managed values into these maps.
+// Transfer the original Matches into this synchronous command call exactly
+// once, so this initial record cannot keep those later aliases through Read
+// retirement. Returning drops only caller references, never a physical ACK.
+fn LocalCommandParsedInput::consume_matches(
+  self : LocalCommandParsedInput,
+  operation : (@argparse.Matches) -> Unit raise ClientStop,
+) -> Unit raise ClientStop {
+  guard self.matches is Some(matches) else {
+    stop("LocalCommandAlreadyConsumed")
+  }
+  self.matches = None
+  operation(matches)
 }
