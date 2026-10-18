@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
-import {submissionEpoch,originalSubmission} from '../../packages/sdk/submission-fixture.mjs';
+import {submissionEpoch,originalSubmission,readySubmissionAttempt} from '../../packages/sdk/submission-fixture.mjs';
 
 const connection={mode:'local',owner:'local',durability:'durable',consentRefs:[],runners:[]};
 const ref={namespaceId:'original',authorityScopeCid:submissionEpoch.authorityScopeCid,
@@ -38,10 +38,10 @@ test('selected deferred copies retain the same original Source lineage through b
   };
   const handler={authenticate:()=> 'actor',authorizeConnection:()=>true,
     negotiate:()=>{throw Error('No negotiation');},maxRowBytes:65536,bindOwnedRequest};
-  const stopped=new Error('OriginalJournalStop');
+  const stopped=readySubmissionAttempt(packet,{ref,durability:'durable',revision:0});
   const final=createNodeInProcessClientHost({...handler,submitIntent(body){
     assert.strictEqual(originals.get(body),packet);assert.equal(body.input.text,'SELECT 1 AS n');
-    throw stopped;
+    return stopped;
   }});
   const before=deferred(),after=deferred();
   const first=createNodeInProcessClientHost({...handler,
@@ -53,7 +53,7 @@ test('selected deferred copies retain the same original Source lineage through b
   const observed=flight.catch(error=>error);
   await Promise.race([before.promise,observed.then(()=>assert.fail('Missing Source entry'))]);
   packet.input.text='SELECT 99 AS replaced';after.resolve();
-  await observed;
+  assert.strictEqual(await observed,stopped);
   assert.ok(seen.length>=3);assert.equal(seen[0].input.text,'SELECT 1 AS n');
   for(const alias of seen)assert.strictEqual(originals.get(alias),packet);
 });
