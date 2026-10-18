@@ -86,7 +86,6 @@ priv struct LocalCommandPreparationOriginal {
   mut reply_outcome : Result[String, String]?
   mut read_failure : @files.NativeBoundedTextFailure?
   mut phase_open : Bool
-  mut prearguments_open : Bool
   mut standalone_cleanup_open : Bool
   mut primary : LocalCommandPreparationIssue?
   mut closing : Bool
@@ -143,7 +142,6 @@ fn prepare_local_command_preparation_original(
     reply_outcome: None,
     read_failure: None,
     phase_open: false,
-    prearguments_open: false,
     standalone_cleanup_open: false,
     primary: None,
     closing: false,
@@ -178,7 +176,7 @@ fn LocalCommandPreparationOriginal::acquire(
     source != self.profile.source {
     return Err(CommandUnavailable)
   }
-  let result = match self.acquire_prearguments() {
+  let result = match self.acquire_physical_read() {
     Err(issue) => Err(issue)
     Ok(_) => self.acquire_runtime(root, source, platform, manifest_digest)
   }
@@ -189,9 +187,9 @@ fn LocalCommandPreparationOriginal::acquire(
 }
 
 ///|
-// The declared initial control graph is the only work before this original
-// Read. Command construction, OS argument copying and parser outputs come later.
-fn LocalCommandPreparationOriginal::acquire_prearguments(
+// Called only after the bounded original Command parse returns successfully.
+// Help, version and parse failure must never construct this physical original.
+fn LocalCommandPreparationOriginal::acquire_physical_read(
   self : LocalCommandPreparationOriginal,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
   if self.host is Some(_) ||
@@ -324,48 +322,6 @@ fn LocalCommandPreparationOriginal::acquire_prearguments(
 }
 
 ///|
-fn LocalCommandPreparationOriginal::enter_prearguments(
-  self : LocalCommandPreparationOriginal,
-) -> Result[Unit, LocalCommandPreparationIssue] {
-  if self.closing ||
-    self.closed ||
-    self.primary is Some(_) ||
-    self.prearguments_open ||
-    self.pair is Some(_) {
-    return Err(CommandUnavailable)
-  }
-  guard self.host is Some(host) && self.read is Some(read) else {
-    return Err(CommandUnavailable)
-  }
-  match host.enter_domain_original_read(read) {
-    Err(issue) => Err(CommandRead(issue))
-    Ok(_) => {
-      self.prearguments_open = true
-      Ok(())
-    }
-  }
-}
-
-///|
-fn LocalCommandPreparationOriginal::leave_prearguments(
-  self : LocalCommandPreparationOriginal,
-) -> Result[Unit, LocalCommandPreparationIssue] {
-  if !self.prearguments_open {
-    return Ok(())
-  }
-  guard self.host is Some(host) && self.read is Some(read) else {
-    return Err(CommandUnavailable)
-  }
-  match host.leave_domain_original_read(read) {
-    Err(issue) => Err(CommandRead(issue))
-    Ok(_) => {
-      self.prearguments_open = false
-      Ok(())
-    }
-  }
-}
-
-///|
 // The same already acquired Read admits the full original Runtime. Its
 // allocations remain in that same domain when the one consumer pair is bound;
 // no second backing, Host, Read claim, or refill is constructed here.
@@ -379,7 +335,6 @@ fn LocalCommandPreparationOriginal::acquire_runtime(
   if self.closing ||
     self.closed ||
     self.primary is Some(_) ||
-    self.prearguments_open ||
     self.runtime is Some(_) ||
     self.pair is Some(_) ||
     source != self.profile.source {
@@ -638,7 +593,6 @@ fn LocalCommandPreparationOriginal::close_checked(
   }
   self.closing = true
   try {
-    command_preparation_value(self.leave_prearguments())
     command_preparation_value(self.leave())
     if self.standalone_cleanup_open {
       guard self.host is Some(host) && self.read is Some(read) else {

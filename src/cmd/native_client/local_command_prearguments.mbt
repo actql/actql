@@ -32,8 +32,8 @@ extern "C" fn command_preargument_context_ffi(
 ) -> Bool = "actql_native_client_copy_preargument_context"
 
 ///|
-// Only the fixed 40-byte compiled source joins the declared initial control
-// graph. The launcher context and argv are not copied at this boundary.
+// The compiled source and bounded launcher context belong to the explicit
+// initial argument/control inventory. Neither supplies physical authority.
 fn command_preargument_source() -> Result[String, LocalCommandPreparationIssue] {
   let bytes = Bytes::make(40, 0)
   if !command_preargument_source_ffi(bytes, bytes.length()) {
@@ -45,15 +45,7 @@ fn command_preargument_source() -> Result[String, LocalCommandPreparationIssue] 
 }
 
 ///|
-fn LocalCommandPreparationOriginal::preargument_context(
-  self : LocalCommandPreparationOriginal,
-) -> Result[String, LocalCommandPreparationIssue] {
-  if !self.prearguments_open ||
-    self.closing ||
-    self.closed ||
-    self.primary is Some(_) {
-    return Err(CommandUnavailable)
-  }
+fn command_preargument_context() -> Result[String, LocalCommandPreparationIssue] {
   let length = command_preargument_context_size_ffi()
   if length <= 0 || length > 8192 {
     return Err(CommandUnavailable)
@@ -63,6 +55,26 @@ fn LocalCommandPreparationOriginal::preargument_context(
     return Err(CommandUnavailable)
   }
   Ok(@utf8.decode(bytes)) catch {
+    _ => Err(CommandUnavailable)
+  }
+}
+
+///|
+// This entrance performs only the original raw observation. Its caller must
+// account for the pinned parser and all decoded/control aliases separately;
+// input ceilings are not backing or a managed-heap capacity claim.
+fn command_preargument_bound(
+  maximum_arguments : Int,
+  maximum_argument_bytes : Int,
+  maximum_storage_bytes : Int,
+  maximum_context_bytes : Int,
+) -> Result[Bool, LocalCommandPreparationIssue] {
+  match
+    command_preargument_measure_ffi(
+      maximum_arguments, maximum_argument_bytes, maximum_storage_bytes, maximum_context_bytes,
+    ) {
+    0 => Ok(true)
+    5 => Ok(false)
     _ => Err(CommandUnavailable)
   }
 }

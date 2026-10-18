@@ -188,8 +188,8 @@ int32_t actql_native_client_preargument_context_bytes(void) {
 }
 
 // The 40-byte compiler literal is part of the declared initial control graph.
-// Context copying belongs only inside the same original Read after acquisition;
-// neither copied value is installation/current/admission authority.
+// The bounded context copy is also initial control, before physical acquisition.
+// Neither copied value is installation/current/admission authority.
 int32_t actql_native_client_copy_preargument_source(
     moonbit_bytes_t bytes, int32_t length) {
   if (actql_command_input_status != ACTQL_COMMAND_INPUT_OK || length != 40 ||
