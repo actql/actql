@@ -111,3 +111,14 @@ test('Promise or undefined return observations are pending, never a cleanup ackn
   f.state.acknowledged = true;
   assert.equal(f.owner.settle(loan).pending, false);
 });
+
+test('response backing never exposes a sibling through the returned Buffer ArrayBuffer', () => {
+  const f = fixture(), a = {}, b = {};
+  const loanA = f.owner.acquire(f.pool, f.scope, a, 8), loanB = f.owner.acquire(f.pool, f.scope, b, 8);
+  const writerA = f.owner.start(loanA, f.scope, a), writerB = f.owner.start(loanB, f.scope, b);
+  writerA.write(Buffer.from('a')); writerB.write(Buffer.from('b'));
+  const bodyA = writerA.finish(), bodyB = writerB.finish();
+  assert.notEqual(bodyA.buffer, bodyB.buffer);
+  new Uint8Array(bodyA.buffer).fill(120);
+  assert.equal(bodyB.toString(), 'b');
+});
