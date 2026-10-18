@@ -1,19 +1,43 @@
 'use strict';
 
 // Private Client-only delivery, never an application-time admission factory.
-// The actual public wrapper loads this once before its child namespace. A
-// normal facade import neither loads that wrapper nor discovers a later table.
+// The actual public wrapper retains this delivery once. Ordinary Local is
+// selected before acquiring its bootstrap; an unselected import owns no loader.
 const NodeModule = require('node:module');
 const {join} = require('node:path');
 const originalProcess = require('node:process');
 const apply = Reflect.apply, descriptor = Object.getOwnPropertyDescriptor;
+const isProxy = require('node:util').types.isProxy, own = Object.hasOwn;
 const preloading = descriptor(NodeModule.prototype, 'isPreloading')?.get;
 const args = originalProcess.execArgv;
 const offset = args.length === 3 && args[0] === '--no-lazy' ? 1 : 0;
-let selectedInitialControlHostPreparation, ordinaryReceiver, ordinaryConnect;
+let selectedInitialControlHostPreparation, ordinaryReceiver, ordinaryConnect, ordinaryFailure;
 const ordinary = args.length === 0 && originalProcess.env.NODE_OPTIONS === undefined;
 function forwardOrdinary(kind,raw) {
-  if (ordinaryConnect === undefined) return undefined;
+  // Selection is the same fixed own-DATA entrance as the Local prefix. No
+  // packet copy, getters, provider discovery or operational issuance occurs.
+  if (kind === 'connect') {
+    if (raw === null || typeof raw !== 'object' || isProxy(raw)) return undefined;
+    const mode = descriptor(raw,'mode'), endpoint = descriptor(raw,'endpoint');
+    if (mode === undefined || !own(mode,'value') || mode.value !== 'local' ||
+        endpoint !== undefined && own(endpoint,'value') && endpoint.value !== undefined) return undefined;
+  } else if (kind !== 'open') return undefined;
+  if (ordinaryFailure !== undefined) throw ordinaryFailure.cause;
+  if (ordinaryConnect === undefined) {
+    // Resolve only the actual installed Local package after Local selection.
+    let receiver;
+    try { receiver = require('@actql/local-node/_internal/initial-control-public-dispatch'); }
+    catch(cause) {
+      if (cause.code !== 'MODULE_NOT_FOUND') {
+        ordinaryFailure = Object.freeze({cause});
+        throw cause;
+      }
+    }
+    const connect = receiver === undefined ? undefined : descriptor(receiver,'selectedInitialControlHostPreparation');
+    if (connect === undefined || !own(connect,'value') || typeof connect.value !== 'function') return undefined;
+    ordinaryReceiver = receiver;
+    ordinaryConnect = connect.value;
+  }
   return apply(ordinaryConnect,ordinaryReceiver,[kind,raw]);
 }
 if (typeof preloading === 'function' && apply(preloading, module, []) === true &&
@@ -42,18 +66,3 @@ module.exports = {selectedInitialControlHostPreparation:
   ordinary ? forwardOrdinary : selectedInitialControlHostPreparation};
 Object.setPrototypeOf(module.exports, null);
 Object.freeze(module.exports);
-if (selectedInitialControlHostPreparation === undefined && ordinary) {
-  // Resolve only the real installed Local package selected by this public
-  // consumer. The fixed Local prefix owns admission; this is Client delivery.
-  let receiver;
-  try {
-    receiver = require('@actql/local-node/_internal/initial-control-public-dispatch');
-  } catch(cause) {
-    if (cause.code !== 'MODULE_NOT_FOUND') throw cause;
-  }
-  const connect = receiver === undefined ? undefined : descriptor(receiver,'selectedInitialControlHostPreparation');
-  if (connect !== undefined && Object.hasOwn(connect,'value') && typeof connect.value === 'function') {
-    ordinaryReceiver = receiver;
-    ordinaryConnect = connect.value;
-  }
-}
