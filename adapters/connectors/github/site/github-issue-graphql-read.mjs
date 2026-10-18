@@ -144,6 +144,7 @@ export async function readGitHubIssuesByNode({moon, repository,
       owned.maxBytes, owned.maxNodes, owned.maxDepth, owned.perPage,
       owned.maxPages - requests + 1, repository.nodeId, repository.databaseId, repository.nameWithOwner));
     let current;
+    let rowCharge = charge;
     try {
       for (;;) {
         const next = JSON.parse(decoded(moon.githubIssuePageReadNextRequestJson(
@@ -154,14 +155,20 @@ export async function readGitHubIssuesByNode({moon, repository,
         if (chargePage !== undefined && consumeObservation === undefined) {
           stopped('GitHubObservationNotAdmitted');
         }
-        const child = await exchange(next.body);
-        decoded(moon.githubIssuePageReadAccept(original, child.response.body));
+        // The original RowRun allows one unconsumed physical-response ticket.
+        // Consume each prefix as an observation before the next receive, while
+        // the opaque decoder retains its original incomplete row graph. Exactly
+        // the last actual ticket accompanies the completed logical page.
         if (consumeObservation !== undefined) {
-          try { await consumeObservation(child.charge); }
+          try { await consumeObservation(rowCharge); }
           catch (cause) {
             stopped(cause?.code ?? 'GitHubObservationNotAdmitted', {cause});
           }
         }
+        rowCharge = undefined;
+        const child = await exchange(next.body);
+        rowCharge = child.charge;
+        decoded(moon.githubIssuePageReadAccept(original, child.response.body));
       }
       current = JSON.parse(decoded(moon.githubIssuePageReadFinishJson(original)));
     } finally {
@@ -173,7 +180,7 @@ export async function readGitHubIssuesByNode({moon, repository,
       stopped('GitHubReadRowLimit');
     }
     if (consumePage !== undefined) {
-      try { await consumePage(current.rows, page, Object.freeze({charge})); }
+      try { await consumePage(current.rows, page, Object.freeze({charge: rowCharge})); }
       catch (cause) {
         stopped(cause?.code ?? 'GitHubPageNotAdmitted', {cause});
       }

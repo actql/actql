@@ -308,10 +308,10 @@ test('all Issue columns and both child connections complete through separately a
     },
     consumeObservation: original => {
       assert.equal(charged.includes(original), true);
-      assert.notEqual(original, charged[0]); observed.push(original);
+      assert.equal(original, charged[observed.length]); observed.push(original);
     },
     consumePage: (rows, page, {charge}) => {
-      assert.equal(charge, charged[0]); assert.equal(page, 1);
+      assert.equal(charge, charged[2]); assert.equal(page, 1);
       assert.deepEqual(rows[0].assignees, assignees);
       assert.deepEqual(rows[0].labels, labels);
       assert.equal(observed.length, 2); published++;
@@ -480,8 +480,8 @@ test('current authorization after awaited child consumption still fences the nex
   const failure = await stopOf(context.read({
     chargePage: body => { const charge = Object.freeze({body}); originals.push(charge); return charge; },
     consumeObservation: async charge => {
-      assert.equal(charge, originals[1]);
-      await Promise.resolve(); current = false;
+      assert.equal(originals.includes(charge), true);
+      if (charge === originals[1]) { await Promise.resolve(); current = false; }
     },
     consumePage: () => { published++; },
   }));
