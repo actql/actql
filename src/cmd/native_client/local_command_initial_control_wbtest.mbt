@@ -94,16 +94,20 @@ test "Initial command control transfers mutable Matches before caller cleanup" {
   let arguments = ["original executable", "check", "SELECT 1"]
   let control = parse_native_initial_arguments(arguments, false)
   let calls = Ref(0)
+  let transferred = Ref(false)
+  let selected = Ref("")
   control.consume_matches(matches => {
     calls.val += 1
-    assert_true(control.matches is None)
+    transferred.val = control.matches is None
     // The actual selection paths mutate these maps. This counter proves the
     // caller transfer only; these literal values are not a physical Read loan.
     matches.values["state-dir"] = ["/selected/original"]
     matches.values["config-root"] = ["/selected/original/config"]
-    assert_eq(required(matches, "state-dir"), "/selected/original")
+    selected.val = required(matches, "state-dir")
   })
   assert_eq(calls.val, 1)
+  assert_true(transferred.val)
+  assert_eq(selected.val, "/selected/original")
   assert_true(control.matches is None)
   assert_eq(control.arguments, arguments)
   command_initial_control_keep_alive(control)
