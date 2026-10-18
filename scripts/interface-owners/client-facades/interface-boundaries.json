@@ -2719,7 +2719,7 @@
     {
       "module": "packages/node/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7c5c33aee4c17f34fd59eaf811b0e422007236d6aaf95d9166dd82a7a59a11e1",
+      "sha256": "b4167034b24024c8ece30fdfd59c6af8475f5f79b7f603c7f206e4837e7806f9",
       "exports": [
         "ClientError",
         "RequestHeld",
@@ -2756,11 +2756,14 @@
         }
       ],
       "imports": [
+        "./initial-control-public-dispatch.cjs",
         "@actql/sdk",
         "node:path"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [],
+      "unresolvedSyntax": [
+        "runtime-dependent module dependency requires original owner/artifact mapping"
+      ],
       "role": "physical-io",
       "owner": "existing public Client / installed Host port and Result reader boundary",
       "rationale": "Reviewed original facade, codec or explanation; current wire/Host/Core owns admission and meaning. Original typed refusal, pending cleanup, request identity and Unknown do not authorize resending. Type-only export declarations make no new runtime claim.",
@@ -2784,12 +2787,20 @@
               {
                 "path": "packages/node/index.mjs",
                 "anchor": "import {resolve} from 'node:path';"
+              },
+              {
+                "path": "packages/node/index.mjs",
+                "anchor": "// Capture the actual early private consumer once, not a later cache export or"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "packages/node/index.mjs",
                 "anchor": "import {resolve} from 'node:path';"
+              },
+              {
+                "path": "packages/node/index.mjs",
+                "anchor": "initialControlPublicDispatch, ['open', options]);"
               }
             ],
             "identity": [
@@ -2800,6 +2811,10 @@
               {
                 "path": "packages/node/index.mjs",
                 "anchor": "import {resolve} from 'node:path';"
+              },
+              {
+                "path": "packages/node/index.mjs",
+                "anchor": "// Capture the actual early private consumer once, not a later cache export or"
               }
             ],
             "ownership": [
@@ -2810,6 +2825,10 @@
               {
                 "path": "packages/node/index.mjs",
                 "anchor": "import {resolve} from 'node:path';"
+              },
+              {
+                "path": "packages/node/index.mjs",
+                "anchor": "// Capture the actual early private consumer once, not a later cache export or"
               }
             ],
             "synchronization": [
@@ -2820,6 +2839,10 @@
               {
                 "path": "packages/node/index.mjs",
                 "anchor": "import {resolve} from 'node:path';"
+              },
+              {
+                "path": "packages/node/index.mjs",
+                "anchor": "// Capture the actual early private consumer once, not a later cache export or"
               }
             ],
             "failure": [
@@ -2830,6 +2853,10 @@
               {
                 "path": "packages/node/index.mjs",
                 "anchor": "import {resolve} from 'node:path';"
+              },
+              {
+                "path": "packages/node/index.mjs",
+                "anchor": "// Capture the actual early private consumer once, not a later cache export or"
               }
             ],
             "cancellation": [
@@ -2840,6 +2867,10 @@
               {
                 "path": "packages/node/index.mjs",
                 "anchor": "import {resolve} from 'node:path';"
+              },
+              {
+                "path": "scripts/node-initial-control-open-routing.test.mjs",
+                "anchor": "selected refusal precedes Proxy observation and preserves the original pending cleanup"
               }
             ],
             "resources": [
@@ -2850,6 +2881,10 @@
               {
                 "path": "packages/node/index.mjs",
                 "anchor": "import {resolve} from 'node:path';"
+              },
+              {
+                "path": "packages/node/index.mjs",
+                "anchor": "// Capture the actual early private consumer once, not a later cache export or"
               }
             ],
             "extension": [
@@ -2860,12 +2895,24 @@
               {
                 "path": "packages/node/index.mjs",
                 "anchor": "import {resolve} from 'node:path';"
+              },
+              {
+                "path": "packages/node/index.mjs",
+                "anchor": "// Capture the actual early private consumer once, not a later cache export or"
               }
             ],
             "verification": [
               {
                 "path": "scripts/local-node-package-imports.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "scripts/node-initial-control-open-routing.test.mjs",
+                "anchor": "selected public open forwards omitted input synchronously before constructing a default packet"
+              },
+              {
+                "path": "scripts/node-initial-control-open-startup.test.mjs",
+                "anchor": "actual public open retains the selected unavailable original before raw observation"
               }
             ]
           }
