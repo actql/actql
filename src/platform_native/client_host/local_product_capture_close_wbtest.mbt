@@ -65,7 +65,7 @@ test "acquired Product capture retains its exclusive Lock while original child R
   let observer = @filesystem.open_private_root(capture.parent_path).unwrap()
   adoption_open_fail_census_close(session.root, 1)
   assert_true(
-    session.root.check_directory_members(["config.json"])
+    session.root.check_directory_members([])
     is Err(@filesystem.Cleanup(_)),
   )
   assert_true(capture.close() is Err(Filesystem(@filesystem.Cleanup(_))))
