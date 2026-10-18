@@ -86,6 +86,103 @@ const initialControlPackageOriginal = selected && eagerSdkStartup && publicPrelo
   ? require('./initial-control-package-original.cjs').imageInventory : undefined;
 
 let startup;
+// The startup association above is not a complete initial-control envelope.
+// Keep this private Owner unavailable until its actual selected image recipe,
+// original module/library domains and bounded preparation coverage are supplied
+// before entry. Neither caller methods nor the old eight-reference view can
+// install an operational original in this closure.
+const initialControl = createInitialControlInstallationOwner(undefined);
+
+module.exports = {
+  beginInitialControlInstallation(originals) {
+    return initialControl.begin(originals);
+  },
+  assertInitialControlInstallationCurrent(scope, sameOriginals) {
+    return initialControl.assertCurrent(scope, sameOriginals);
+  },
+  readInitialControlInstallationAsset(scope, sameOriginals, path) {
+    return initialControl.readAsset(scope, sameOriginals, path);
+  },
+  associateHost(view, originals) {
+    // Missing early startup is None, not native/module coverage or success.
+    if (startup === undefined) return undefined;
+    currentStartup();
+    if (originals.runtime !== originalProcess || associations.has(view)) changed();
+    if (originalSupplier !== undefined && originalSupplier !== originals.supplier) changed();
+    if (generations.has(originals.generation)) unavailable();
+    originalSupplier ??= originals.supplier;
+    const original = {host: originals.host, generation: originals.generation,
+      supplier: originals.supplier, installation: originals.installation,
+      sdkStaticModules: undefined, retired: false};
+    generations.add(originals.generation);
+    associations.set(view, {host: originals.host, generation: originals.generation,
+      original, root: true, retired: false});
+    return view;
+  },
+  borrowScope(originalView, scopeView, host, generation) {
+    current(originalView, host, generation);
+    if (associations.has(scopeView)) changed();
+    const held = associations.get(originalView);
+    if (held.root !== true) unavailable();
+    associations.set(scopeView, {host, generation, original: held.original, retired: false});
+  },
+  check(view, originals) {
+    current(view, originals.host, originals.generation);
+    if (associations.get(view).original.supplier !== originals.supplier ||
+        originals.runtime !== originalProcess) changed();
+  },
+  bindSdkStaticModules(view, originals, modules) {
+    current(view, originals.host, originals.generation);
+    const held = associations.get(view);
+    if (held.root !== true || startup.sdkStaticModules === undefined) sdkUnavailable();
+    // The trusted installed builder supplies actual namespaces and its SAME
+    // factory. Selected package/lock identities remain that supplier's duty;
+    // module shape or matching hashes alone cannot authenticate a dependency.
+    const retained = sdkOriginals(modules, startup.sdkStaticModules);
+    held.original.sdkStaticModules = retained;
+  },
+  checkSdkStaticModules(view, originals, modules) {
+    checkSdkModules(view, originals, modules);
+  },
+  checkSdkEagerModules(view, originals, modules) {
+    // First validate the SAME bound modules/current Host or borrowed Scope.
+    // No copied flag/hash or later execArgv observation supplies this history.
+    checkSdkModules(view, originals, modules);
+    if (!startup.eagerSdkStartup) {
+      throw Object.assign(new TypeError('InferTrustedSdkEagerUnavailable'),
+        {code: 'InferTrustedSdkEagerUnavailable'});
+    }
+    // This predicate issues no byte grant and says nothing about per-call
+    // closures/frames/feedback/cache, dynamic eval, tiering or hooks. Retiring
+    // a Host association also does not retire the actual ESM/bytecode graph.
+  },
+  retire(view, host, generation) {
+    const held = associations.get(view);
+    if (held === undefined || held.host !== host || held.generation !== generation) unavailable();
+    held.retired = true;
+    associations.delete(view);
+    if (held.root === true) {
+      held.original.retired = true;
+      held.original.host = undefined;
+      held.original.generation = undefined;
+      held.original.supplier = undefined;
+      held.original.installation = undefined;
+      held.original.sdkStaticModules = undefined;
+    }
+    // Only Host borrow retirement; the selected runtime still owns these two
+    // indices' internal backing, including weak membership of escaped retired
+    // generations. startup.sdkStaticModules keeps its separate fixed graph.
+    // Last Host/Run close does not retire either process/module responsibility.
+    // No native/process/physical-stop ACK or numerical baseline is issued.
+  },
+};
+// Node's synchronous ESM consumer can read these published originals while
+// this startup captures its namespace. A null prototype avoids Node installing
+// its circular-require warning prototype on the immutable forwarder table.
+// No marker field or caller-supplied table authenticates an operational Root.
+Object.setPrototypeOf(module.exports, null);
+Object.freeze(module.exports);
+
 if (selected) {
   // Stock subclass initialization must precede the base-method fence. In the
   // selected Node source, net installs Socket.prototype.read by assignment;
@@ -288,100 +385,3 @@ function checkSdkModules(view, originals, modules) {
   if (retained === undefined || retained !== startup.sdkStaticModules) sdkUnavailable();
   sdkOriginals(modules, retained);
 }
-
-// The startup association above is not a complete initial-control envelope.
-// Keep this private Owner unavailable until its actual selected image recipe,
-// original module/library domains and bounded preparation coverage are supplied
-// before entry. Neither caller methods nor the old eight-reference view can
-// install an operational original in this closure.
-const initialControl = createInitialControlInstallationOwner(undefined);
-
-module.exports = {
-  beginInitialControlInstallation(originals) {
-    return initialControl.begin(originals);
-  },
-  assertInitialControlInstallationCurrent(scope, sameOriginals) {
-    return initialControl.assertCurrent(scope, sameOriginals);
-  },
-  readInitialControlInstallationAsset(scope, sameOriginals, path) {
-    return initialControl.readAsset(scope, sameOriginals, path);
-  },
-  associateHost(view, originals) {
-    // Missing early startup is None, not native/module coverage or success.
-    if (startup === undefined) return undefined;
-    currentStartup();
-    if (originals.runtime !== originalProcess || associations.has(view)) changed();
-    if (originalSupplier !== undefined && originalSupplier !== originals.supplier) changed();
-    if (generations.has(originals.generation)) unavailable();
-    originalSupplier ??= originals.supplier;
-    const original = {host: originals.host, generation: originals.generation,
-      supplier: originals.supplier, installation: originals.installation,
-      sdkStaticModules: undefined, retired: false};
-    generations.add(originals.generation);
-    associations.set(view, {host: originals.host, generation: originals.generation,
-      original, root: true, retired: false});
-    return view;
-  },
-  borrowScope(originalView, scopeView, host, generation) {
-    current(originalView, host, generation);
-    if (associations.has(scopeView)) changed();
-    const held = associations.get(originalView);
-    if (held.root !== true) unavailable();
-    associations.set(scopeView, {host, generation, original: held.original, retired: false});
-  },
-  check(view, originals) {
-    current(view, originals.host, originals.generation);
-    if (associations.get(view).original.supplier !== originals.supplier ||
-        originals.runtime !== originalProcess) changed();
-  },
-  bindSdkStaticModules(view, originals, modules) {
-    current(view, originals.host, originals.generation);
-    const held = associations.get(view);
-    if (held.root !== true || startup.sdkStaticModules === undefined) sdkUnavailable();
-    // The trusted installed builder supplies actual namespaces and its SAME
-    // factory. Selected package/lock identities remain that supplier's duty;
-    // module shape or matching hashes alone cannot authenticate a dependency.
-    const retained = sdkOriginals(modules, startup.sdkStaticModules);
-    held.original.sdkStaticModules = retained;
-  },
-  checkSdkStaticModules(view, originals, modules) {
-    checkSdkModules(view, originals, modules);
-  },
-  checkSdkEagerModules(view, originals, modules) {
-    // First validate the SAME bound modules/current Host or borrowed Scope.
-    // No copied flag/hash or later execArgv observation supplies this history.
-    checkSdkModules(view, originals, modules);
-    if (!startup.eagerSdkStartup) {
-      throw Object.assign(new TypeError('InferTrustedSdkEagerUnavailable'),
-        {code: 'InferTrustedSdkEagerUnavailable'});
-    }
-    // This predicate issues no byte grant and says nothing about per-call
-    // closures/frames/feedback/cache, dynamic eval, tiering or hooks. Retiring
-    // a Host association also does not retire the actual ESM/bytecode graph.
-  },
-  retire(view, host, generation) {
-    const held = associations.get(view);
-    if (held === undefined || held.host !== host || held.generation !== generation) unavailable();
-    held.retired = true;
-    associations.delete(view);
-    if (held.root === true) {
-      held.original.retired = true;
-      held.original.host = undefined;
-      held.original.generation = undefined;
-      held.original.supplier = undefined;
-      held.original.installation = undefined;
-      held.original.sdkStaticModules = undefined;
-    }
-    // Only Host borrow retirement; the selected runtime still owns these two
-    // indices' internal backing, including weak membership of escaped retired
-    // generations. startup.sdkStaticModules keeps its separate fixed graph.
-    // Last Host/Run close does not retire either process/module responsibility.
-    // No native/process/physical-stop ACK or numerical baseline is issued.
-  },
-};
-// Node's synchronous ESM consumer can read these published originals while
-// this startup captures its namespace. A null prototype avoids Node installing
-// its circular-require warning prototype on the immutable forwarder table.
-// No marker field or caller-supplied table authenticates an operational Root.
-Object.setPrototypeOf(module.exports, null);
-Object.freeze(module.exports);
