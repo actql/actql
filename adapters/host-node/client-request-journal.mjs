@@ -8,6 +8,7 @@ import {closeSync, constants, existsSync, fstatSync, fsyncSync, lstatSync,
   mkdirSync, openSync, readSync,
   realpathSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
+import {types as utilTypes} from 'node:util';
 import {createSqliteTransaction, throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
 import {inspectSqliteSnapshot, inspectJournalDirectory} from '../host-common/sqlite-format-inspection.mjs';
@@ -35,6 +36,57 @@ const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
 const applyOriginal = Reflect.apply;
+
+function snapshotPrimarySqlLimits(value) {
+  if (value === undefined) return undefined;
+  const names = ['maxCalls', 'maxPreparedStatements', 'maxSqlBytes', 'maxTotalSqlBytes'];
+  if (value === null || typeof value !== 'object' || utilTypes.isProxy(value)) {
+    fail('InvalidClientRequestJournalConfiguration');
+  }
+  const keys = Reflect.ownKeys(value);
+  if (keys.length !== names.length || keys.some(key => !names.includes(key))) {
+    fail('InvalidClientRequestJournalConfiguration');
+  }
+  const limits = {};
+  for (const name of names) {
+    const field = Object.getOwnPropertyDescriptor(value, name);
+    if (!field || !Object.hasOwn(field, 'value') ||
+        !Number.isSafeInteger(field.value) || field.value < 1) {
+      fail('InvalidClientRequestJournalConfiguration');
+    }
+    limits[name] = field.value;
+  }
+  return Object.freeze(limits);
+}
+
+// Bound compilation attempts and account every prepared wrapper as retained
+// until this primary connection's real lifetime ends. Native failure and GC do
+// not refund an attempt. This is not a bound on bind values, result rows, native
+// heap/cache/WAL, or the separate observation connection, and issues no capacity.
+function boundedPrimarySql(connection, limits) {
+  const prepare = connection.prepare, exec = connection.exec;
+  const isTransaction = Object.getOwnPropertyDescriptor(connection, 'isTransaction')?.get;
+  if (typeof prepare !== 'function' || typeof exec !== 'function' ||
+      typeof isTransaction !== 'function') fail('ClientRequestJournalSqlUnavailable');
+  let calls = 0, prepared = 0, bytes = 0;
+  const consume = (sql, isPrepare) => {
+    if (typeof sql !== 'string' || sql.length > limits.maxSqlBytes ||
+        calls >= limits.maxCalls || isPrepare && prepared >= limits.maxPreparedStatements) {
+      fail('ClientRequestJournalSqlUnavailable');
+    }
+    const size = Buffer.byteLength(sql, 'utf8');
+    if (size > limits.maxSqlBytes || size > limits.maxTotalSqlBytes - bytes) {
+      fail('ClientRequestJournalSqlUnavailable');
+    }
+    calls++; bytes += size;
+    if (isPrepare) prepared++;
+  };
+  return Object.freeze({
+    prepare(sql) { consume(sql, true); return applyOriginal(prepare, connection, [sql]); },
+    exec(sql) { consume(sql, false); return applyOriginal(exec, connection, [sql]); },
+    get isTransaction() { return applyOriginal(isTransaction, connection, []); },
+  });
+}
 
 // This is an inspection-work ceiling, not a stored-request limit, format
 // rule, physical capacity supplier or permission. Never materialize a complete
@@ -894,6 +946,7 @@ export function openClientRequestJournal(directory, {
   maxInspectionEntries = 100_000,
   maxInspectionBytes = 64 * 1024 * 1024,
   maxDatabaseBytes,
+  primarySqlLimits,
   maxRunDefinitionWireBytes = 65_536,
   submissionEpochTtlMs = maxEpochTtlMs,
   submissionEpochNow = Date.now,
@@ -912,6 +965,7 @@ export function openClientRequestJournal(directory, {
     fail('InvalidClientRequestJournalConfiguration');
   }
   sourceOperationLimits = snapshotClientSourceOperationLimits(sourceOperationLimits);
+  primarySqlLimits = snapshotPrimarySqlLimits(primarySqlLimits);
   // An optional selected-facility support bound is not a format rule or a
   // capacity issuer. Refuse original DB/WAL extent before its copy/SQLite
   // inspection, not after materializing rows. Unselected callers are unchanged.
@@ -923,7 +977,7 @@ export function openClientRequestJournal(directory, {
   const path = join(root, 'client-requests.sqlite3');
   const existed = existsSync(path);
   if (current !== existed) fail('UnknownClientRequestJournalFormat');
-  const database = new DatabaseSync(path, {
+  const connection = new DatabaseSync(path, {
     // Retain the actual wrapper before native open can acquire a connection
     // and then fail. Cleanup must not depend on an unreachable constructor
     // result or on eventual garbage collection of that native connection.
@@ -931,11 +985,12 @@ export function openClientRequestJournal(directory, {
     readOnly: false,
     enableForeignKeyConstraints: true,
   });
+  let database = connection;
   let originalDatabaseClose, originalDatabaseIsOpen;
   const captureDatabaseCleanup = () => {
-    originalDatabaseClose ??= database.close;
+    originalDatabaseClose ??= connection.close;
     originalDatabaseIsOpen ??= Object.getOwnPropertyDescriptor(
-      database, 'isOpen')?.get;
+      connection, 'isOpen')?.get;
     if (typeof originalDatabaseClose !== 'function' ||
         typeof originalDatabaseIsOpen !== 'function') {
       throw new TypeError('ClientRequestJournalConnectionCleanupUnavailable');
@@ -943,25 +998,26 @@ export function openClientRequestJournal(directory, {
   };
   const initializationCleanup = {close() {
     captureDatabaseCleanup();
-    const opened = applyOriginal(originalDatabaseIsOpen, database, []);
+    const opened = applyOriginal(originalDatabaseIsOpen, connection, []);
     if (typeof opened !== 'boolean') {
       throw new TypeError('ClientRequestJournalConnectionCleanupPending');
     }
-    if (opened && (applyOriginal(originalDatabaseClose, database, []) !== undefined ||
-        applyOriginal(originalDatabaseIsOpen, database, []) !== false)) {
+    if (opened && (applyOriginal(originalDatabaseClose, connection, []) !== undefined ||
+        applyOriginal(originalDatabaseIsOpen, connection, []) !== false)) {
       throw new TypeError('ClientRequestJournalConnectionCleanupPending');
     }
   }};
-  const transaction = createSqliteTransaction(database,
-    'ClientRequestJournal');
+  let transaction;
   let closed = false;
   let databaseClosed = false;
   try {
     captureDatabaseCleanup();
-    const originalOpen = database.open;
+    if (primarySqlLimits !== undefined) database = boundedPrimarySql(connection, primarySqlLimits);
+    transaction = createSqliteTransaction(database, 'ClientRequestJournal');
+    const originalOpen = connection.open;
     if (typeof originalOpen !== 'function' ||
-        applyOriginal(originalOpen, database, []) !== undefined ||
-        applyOriginal(originalDatabaseIsOpen, database, []) !== true) {
+        applyOriginal(originalOpen, connection, []) !== undefined ||
+        applyOriginal(originalDatabaseIsOpen, connection, []) !== true) {
       throw new TypeError('ClientRequestJournalConnectionOpenUnavailable');
     }
     if (maxDatabaseBytes !== undefined) {
