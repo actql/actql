@@ -91,7 +91,7 @@ fn endpoint(
     if @value.admit(@contract.primitive(TimestampType, nullable=false), c, {
         max_nodes: 1,
         max_depth: 0,
-        max_text_bytes: 24,
+        max_text_bytes: 30,
       })
       is Err(_) ||
       text.has_prefix("0000-") {
@@ -224,10 +224,10 @@ pub fn read(
       )
       let es = decoded(@decode.required(object, "end"))
       let end = endpoint(b, es, params)
-      if start is Literal(a) &&
-        end is Literal(z) &&
-        @canonical.compare_utf16(a, z) > 0 {
-        fail(es, ReversedRange)
+      if start is Literal(a) && end is Literal(z) {
+        if validate_range(a, z) is Err(issue) {
+          fail(es, issue)
+        }
       }
       Range(start~, end~)
     }

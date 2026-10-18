@@ -18,7 +18,7 @@ export function ownerObservationFixture() {
   return {ref: observationRef(), consistency: 'non_atomic', ordering: 'owner_local',
     owners: [{owner: 'run', kind: 'observed', ownerRef: {...owner},
       snapshot: {revision: 3, value: {version: 'actql-run-state/0.1', run_id: 'original-run',
-        status: 'running', updated_at: '2026-10-15T00:00:00.000Z', next_action: {kind: 'none'},
+        status: 'running', revision: 3, updated_at: '2026-10-15T00:00:00.000Z', next_action: {kind: 'none'},
         result_available: false, result_availability: {}}},
       history: {kind: 'page', entries: [
         {revision: 2, entryCid: observationCid('2'), state: 'dispatching'},

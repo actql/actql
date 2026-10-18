@@ -58,3 +58,13 @@ test('independent event window vectors separate membership from encoding', () =>
     }
   }
 });
+
+test('negative one nanosecond separates exact clock floor from ordinary date_diff quotient', () => {
+  const vector=corpus.cases.find(c=>c.id==='timestamp_negative_one_nanosecond');
+  const [time,denominator]=decimalRatio(vector.time);
+  assert.equal(time,-1n);
+  assert.equal(denominator,1000000n);
+  assert.equal(time/denominator,0n,'ordinary fixed-unit quotient truncates toward zero');
+  assert.equal(floorDiv(time,denominator),-1n,'event grid uses exact negative floor');
+  assert.ok(time<0n,'the exact instant remains before the epoch');
+});

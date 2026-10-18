@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -8,7 +8,7 @@ import test from 'node:test';
 
 const startup = fileURLToPath(new URL('./infer-trusted-node-preload.cjs', import.meta.url));
 const host = fileURLToPath(new URL('./embedded-local.mjs', import.meta.url));
-function actualNamespace(t, body) {
+function actualNamespace(t, body, duringInitialization = false) {
   const root = mkdtempSync(join(tmpdir(), 'actql-actual-host-namespace-'));
   t.after(() => rmSync(root, {recursive: true}));
   const preload = join(root, 'preload.cjs'), entry = join(root, 'entry.mjs');
@@ -16,7 +16,24 @@ function actualNamespace(t, body) {
   // the actual complete Host namespace, not a synthetic pair of its consumers,
   // while preserving operational absence. Matching runtime prerequisites must
   // be prepared separately; do not replace missing owners with test stubs.
-  writeFileSync(preload, 'require(' + JSON.stringify(startup) + ');\n' +
+  if (duringInitialization) {
+    // The only Source overlay is this independent eager-entry insertion. The
+    // complete actual Host graph and its runtime prerequisites are unchanged.
+    // It tests initialization order, not a selected operational issuer.
+    const source = readFileSync(startup, 'utf8');
+    const marker = '\nif (selected) {';
+    assert.equal(source.split(marker).length, 2);
+    const eager = '\nglobalThis.actualInFlightStartup={record:module,exports:module.exports};\n' +
+      'globalThis.actualInitialHostNamespace=require(' + JSON.stringify(host) + ');\n';
+    writeFileSync(preload, [
+      'const {registerHooks}=require("node:module");',
+      'const source=' + JSON.stringify(source.replace(marker, eager + marker)) + ';',
+      'const selected=' + JSON.stringify(new URL('./infer-trusted-node-preload.cjs', import.meta.url).href) + ';',
+      'registerHooks({load(url,context,next){return url===selected?',
+      ' {format:"commonjs",source,shortCircuit:true}:next(url,context);}});',
+      'require(' + JSON.stringify(startup) + ');',
+    ].join('\n'));
+  } else writeFileSync(preload, 'require(' + JSON.stringify(startup) + ');\n' +
     'globalThis.actualInitialHostNamespace=require(' + JSON.stringify(host) + ');\n');
   writeFileSync(entry, body);
   const result = spawnSync(process.execPath, ['--require', preload, entry], {
@@ -52,4 +69,18 @@ test('the actual Host retains original startup forwarders after a cache export s
     ' {code:"NodeInitialControlAdmissionUnavailable"});',
     'assert.equal(calls,0);',
   ].join('\n'));
+});
+
+test('actual Host namespace initialization can capture forwarders while startup itself is initializing', t => {
+  actualNamespace(t, [
+    'import assert from "node:assert/strict";',
+    'import {createRequire} from "node:module";',
+    'const require=createRequire(import.meta.url);',
+    'assert.equal(require.cache[' + JSON.stringify(startup) + '],actualInFlightStartup.record);',
+    'assert.equal(typeof actualInFlightStartup.exports.beginInitialControlInstallation,"function");',
+    'assert.equal(typeof actualInitialHostNamespace.connectEmbeddedLocal,"function");',
+    'await assert.rejects(actualInitialHostNamespace.connectEmbeddedLocal({}),',
+    ' error=>error.code==="NodeInitialControlAdmissionUnavailable"&&',
+    ' error.stack.includes("initial-control-installation-owner.cjs"));',
+  ].join('\n'), true);
 });

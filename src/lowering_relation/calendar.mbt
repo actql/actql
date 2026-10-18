@@ -21,6 +21,7 @@ pub(all) enum CalendarIssue {
   MissingCalendarParameter(String)
   InvalidCalendarParameter(String)
   CalendarRange(@calendar_options.IssueKind)
+  CalendarTimestampPrecisionUnavailable
 } derive(Eq, Debug)
 
 ///|
@@ -58,6 +59,13 @@ fn calendar_range_bound(
   if @calendar_options.validate_range(start, end) is Err(issue) {
     return Err(CalendarRange(issue))
   }
+  // Logical range admission uses exact original Timestamp values. This
+  // backend's civil-boundary arithmetic remains millisecond-only; refuse the
+  // unsupported precision before any conversion, including empty ranges.
+  guard @value.timestamp_epoch_milliseconds(start) is Some(start_ms) &&
+    @value.timestamp_epoch_milliseconds(end) is Some(end_ms) else {
+    return Err(CalendarTimestampPrecisionUnavailable)
+  }
   if start == end {
     return Ok((0, 2))
   }
@@ -72,9 +80,7 @@ fn calendar_range_bound(
     minimum = Int64::min(minimum, offset)
     maximum = Int64::max(maximum, offset)
   }
-  let width = @value.timestamp_epoch_milliseconds(end).unwrap() -
-    @value.timestamp_epoch_milliseconds(start).unwrap() +
-    (maximum - minimum) * 1000L
+  let width = end_ms - start_ms + (maximum - minimum) * 1000L
   let minimum_span = match @calendar_options.unit(@calendar.options(checked)) {
     Day => 86400000L
     Week => 604800000L

@@ -259,10 +259,13 @@ fn compare(left : Value, right : Value) -> Result[Int, ScalarIssue] {
       }
     (Boolean(a), Boolean(b)) => Ok(if a == b { 0 } else if a { 1 } else { -1 })
     (Text(a), Text(b)) => Ok(@canonical.compare_utf16(a, b))
-    (Captured(@admitted.Date(a)), Captured(@admitted.Date(b)))
-    | (Captured(@admitted.Timestamp(a)), Captured(@admitted.Timestamp(b))) =>
-      // Admitted fixed-width UTC wire values have chronological lexical order.
+    (Captured(@admitted.Date(a)), Captured(@admitted.Date(b))) =>
       Ok(@canonical.compare_utf16(a, b))
+    (Captured(@admitted.Timestamp(a)), Captured(@admitted.Timestamp(b))) =>
+      match @admitted.compare_timestamp_text(a, b) {
+        Some(order) => Ok(order)
+        None => Err(InvalidOperand)
+      }
     (Captured(@admitted.Decimal(a)), Captured(@admitted.Decimal(b))) =>
       Ok(compare_decimal(a, b))
     (Captured(@admitted.Reference(a)), Captured(@admitted.Reference(b))) =>

@@ -386,3 +386,198 @@ test "value admission corpus: text-enum-unicode-astral-byte-bound" {
   let result = @value_admission.admit(c, owned(parsed("\"\u{1f600}\"")), limits())
   assert_eq(outcome(result), "StringConstraint")
 }
+
+///|
+test "value admission corpus: timestamp-precision-legacy-epoch" {
+  let c = contract("{\"type\":\"timestamp\",\"nullable\":false}")
+  let result = @value_admission.admit(c, owned(parsed("\"1970-01-01T00:00:00.000Z\"")), limits())
+  assert_eq(outcome(result), "accepted")
+  let output = @encode.writer(256, 4, 2)
+  @value_admission.emit_checked_wire_value(result.unwrap(), output)
+  let wire = @encode.finish(output)
+  assert_eq(wire, "\"1970-01-01T00:00:00.000Z\"")
+  let canonical = @identity.from_json(@json.parse(wire), 4, 2, 256, data_keys=true)
+  assert_eq(@identity.cid_value(canonical, 256, 4, 2), "sha256:f5a340121e9b8aeb98b099357bf182e888ad06b759a1c9dec682f7b34030b84b")
+}
+
+///|
+test "value admission corpus: timestamp-precision-legacy-ms" {
+  let c = contract("{\"type\":\"timestamp\",\"nullable\":false}")
+  let result = @value_admission.admit(c, owned(parsed("\"2024-01-01T00:00:00.123Z\"")), limits())
+  assert_eq(outcome(result), "accepted")
+  let output = @encode.writer(256, 4, 2)
+  @value_admission.emit_checked_wire_value(result.unwrap(), output)
+  let wire = @encode.finish(output)
+  assert_eq(wire, "\"2024-01-01T00:00:00.123Z\"")
+  let canonical = @identity.from_json(@json.parse(wire), 4, 2, 256, data_keys=true)
+  assert_eq(@identity.cid_value(canonical, 256, 4, 2), "sha256:3ba946969dae64c76771e454be42cd9f928685d402e39b2b79e23a68add887b7")
+  let peer = @value_admission.admit(c, owned(parsed("\"2024-01-01T00:00:00.123000001Z\"")), limits()).unwrap()
+  assert_eq(@value_admission.compare_key_values(result.unwrap(), peer).unwrap(), -1)
+}
+
+///|
+test "value admission corpus: timestamp-precision-micro" {
+  let c = contract("{\"type\":\"timestamp\",\"nullable\":false}")
+  let result = @value_admission.admit(c, owned(parsed("\"2017-11-30T23:52:30.218404Z\"")), limits())
+  assert_eq(outcome(result), "accepted")
+  let output = @encode.writer(256, 4, 2)
+  @value_admission.emit_checked_wire_value(result.unwrap(), output)
+  let wire = @encode.finish(output)
+  assert_eq(wire, "\"2017-11-30T23:52:30.218404Z\"")
+  let canonical = @identity.from_json(@json.parse(wire), 4, 2, 256, data_keys=true)
+  assert_eq(@identity.cid_value(canonical, 256, 4, 2), "sha256:0219d8b02633b67062dc558a2acc7a3a782f49271ffa7759dac3368216da1125")
+  let peer = @value_admission.admit(c, owned(parsed("\"2017-11-30T23:52:30.218405Z\"")), limits()).unwrap()
+  assert_eq(@value_admission.compare_key_values(result.unwrap(), peer).unwrap(), -1)
+}
+
+///|
+test "value admission corpus: timestamp-precision-nano-before-epoch" {
+  let c = contract("{\"type\":\"timestamp\",\"nullable\":false}")
+  let result = @value_admission.admit(c, owned(parsed("\"1969-12-31T23:59:59.999999999Z\"")), limits())
+  assert_eq(outcome(result), "accepted")
+  let output = @encode.writer(256, 4, 2)
+  @value_admission.emit_checked_wire_value(result.unwrap(), output)
+  let wire = @encode.finish(output)
+  assert_eq(wire, "\"1969-12-31T23:59:59.999999999Z\"")
+  let canonical = @identity.from_json(@json.parse(wire), 4, 2, 256, data_keys=true)
+  assert_eq(@identity.cid_value(canonical, 256, 4, 2), "sha256:bc472e81b481b863dfde5f67f3c06faf90a57852e69a3941d0b99676a3d373d0")
+  let peer = @value_admission.admit(c, owned(parsed("\"1970-01-01T00:00:00.000Z\"")), limits()).unwrap()
+  assert_eq(@value_admission.compare_key_values(result.unwrap(), peer).unwrap(), -1)
+}
+
+///|
+test "value admission corpus: timestamp-precision-nano-neighbor" {
+  let c = contract("{\"type\":\"timestamp\",\"nullable\":false}")
+  let result = @value_admission.admit(c, owned(parsed("\"2024-01-01T00:00:00.123000001Z\"")), limits())
+  assert_eq(outcome(result), "accepted")
+  let output = @encode.writer(256, 4, 2)
+  @value_admission.emit_checked_wire_value(result.unwrap(), output)
+  let wire = @encode.finish(output)
+  assert_eq(wire, "\"2024-01-01T00:00:00.123000001Z\"")
+  let canonical = @identity.from_json(@json.parse(wire), 4, 2, 256, data_keys=true)
+  assert_eq(@identity.cid_value(canonical, 256, 4, 2), "sha256:55b664a4552583d566ba503737c4996db920fad049b7a538a03ff5332fdb8fa1")
+  let peer = @value_admission.admit(c, owned(parsed("\"2024-01-01T00:00:00.123Z\"")), limits()).unwrap()
+  assert_eq(@value_admission.compare_key_values(result.unwrap(), peer).unwrap(), 1)
+}
+
+///|
+test "value admission corpus: timestamp-precision-nano-max" {
+  let c = contract("{\"type\":\"timestamp\",\"nullable\":false}")
+  let result = @value_admission.admit(c, owned(parsed("\"9999-12-31T23:59:59.999999999Z\"")), limits())
+  assert_eq(outcome(result), "accepted")
+  let output = @encode.writer(256, 4, 2)
+  @value_admission.emit_checked_wire_value(result.unwrap(), output)
+  let wire = @encode.finish(output)
+  assert_eq(wire, "\"9999-12-31T23:59:59.999999999Z\"")
+  let canonical = @identity.from_json(@json.parse(wire), 4, 2, 256, data_keys=true)
+  assert_eq(@identity.cid_value(canonical, 256, 4, 2), "sha256:3402aed6506926a4a346eb3113821eb5bac960a5348e3631ac6e573bf4a6a148")
+  let peer = @value_admission.admit(c, owned(parsed("\"9999-12-31T23:59:59.999Z\"")), limits()).unwrap()
+  assert_eq(@value_admission.compare_key_values(result.unwrap(), peer).unwrap(), 1)
+}
+
+///|
+test "value admission corpus: timestamp-precision-nano-min-calendar" {
+  let c = contract("{\"type\":\"timestamp\",\"nullable\":false}")
+  let result = @value_admission.admit(c, owned(parsed("\"0000-01-01T00:00:00.000000001Z\"")), limits())
+  assert_eq(outcome(result), "accepted")
+  let output = @encode.writer(256, 4, 2)
+  @value_admission.emit_checked_wire_value(result.unwrap(), output)
+  let wire = @encode.finish(output)
+  assert_eq(wire, "\"0000-01-01T00:00:00.000000001Z\"")
+  let canonical = @identity.from_json(@json.parse(wire), 4, 2, 256, data_keys=true)
+  assert_eq(@identity.cid_value(canonical, 256, 4, 2), "sha256:74830e301a1e4730a066cf18d592d762b42ce07405ead27686d1a9aa3ee2846e")
+  let peer = @value_admission.admit(c, owned(parsed("\"0000-01-01T00:00:00.000Z\"")), limits()).unwrap()
+  assert_eq(@value_admission.compare_key_values(result.unwrap(), peer).unwrap(), 1)
+}
+
+///|
+test "value admission corpus: timestamp-precision-four-digits" {
+  let c = contract("{\"type\":\"timestamp\",\"nullable\":false}")
+  let result = @value_admission.admit(c, owned(parsed("\"2024-01-01T00:00:00.1234Z\"")), limits())
+  assert_eq(outcome(result), "accepted")
+  let output = @encode.writer(256, 4, 2)
+  @value_admission.emit_checked_wire_value(result.unwrap(), output)
+  let wire = @encode.finish(output)
+  assert_eq(wire, "\"2024-01-01T00:00:00.1234Z\"")
+  let canonical = @identity.from_json(@json.parse(wire), 4, 2, 256, data_keys=true)
+  assert_eq(@identity.cid_value(canonical, 256, 4, 2), "sha256:1b9af6f1414e6775b96018c90b138cdc82d4fdbfd0df7417fdb80a283e1541d3")
+  let peer = @value_admission.admit(c, owned(parsed("\"2024-01-01T00:00:00.1234Z\"")), limits()).unwrap()
+  assert_eq(@value_admission.compare_key_values(result.unwrap(), peer).unwrap(), 0)
+}
+
+///|
+test "value admission corpus: timestamp-precision-short-fraction" {
+  let c = contract("{\"type\":\"timestamp\",\"nullable\":false}")
+  let result = @value_admission.admit(c, owned(parsed("\"2024-01-01T00:00:00.12Z\"")), limits())
+  assert_eq(outcome(result), "InvalidTimestamp")
+}
+
+///|
+test "value admission corpus: timestamp-precision-extra-zero" {
+  let c = contract("{\"type\":\"timestamp\",\"nullable\":false}")
+  let result = @value_admission.admit(c, owned(parsed("\"2024-01-01T00:00:00.1230Z\"")), limits())
+  assert_eq(outcome(result), "InvalidTimestamp")
+}
+
+///|
+test "value admission corpus: timestamp-precision-micro-extra-zero" {
+  let c = contract("{\"type\":\"timestamp\",\"nullable\":false}")
+  let result = @value_admission.admit(c, owned(parsed("\"2024-01-01T00:00:00.123400Z\"")), limits())
+  assert_eq(outcome(result), "InvalidTimestamp")
+}
+
+///|
+test "value admission corpus: timestamp-precision-zero-nine" {
+  let c = contract("{\"type\":\"timestamp\",\"nullable\":false}")
+  let result = @value_admission.admit(c, owned(parsed("\"2024-01-01T00:00:00.000000000Z\"")), limits())
+  assert_eq(outcome(result), "InvalidTimestamp")
+}
+
+///|
+test "value admission corpus: timestamp-precision-over-nine" {
+  let c = contract("{\"type\":\"timestamp\",\"nullable\":false}")
+  let result = @value_admission.admit(c, owned(parsed("\"2024-01-01T00:00:00.1234567891Z\"")), limits())
+  assert_eq(outcome(result), "InvalidTimestamp")
+}
+
+///|
+test "value admission corpus: timestamp-precision-offset" {
+  let c = contract("{\"type\":\"timestamp\",\"nullable\":false}")
+  let result = @value_admission.admit(c, owned(parsed("\"2024-01-01T00:00:00.123456+00:00\"")), limits())
+  assert_eq(outcome(result), "InvalidTimestamp")
+}
+
+///|
+test "value admission corpus: timestamp-precision-space" {
+  let c = contract("{\"type\":\"timestamp\",\"nullable\":false}")
+  let result = @value_admission.admit(c, owned(parsed("\"2024-01-01T00:00:00.123456 Z\"")), limits())
+  assert_eq(outcome(result), "InvalidTimestamp")
+}
+
+///|
+test "value admission corpus: timestamp-precision-lower-z" {
+  let c = contract("{\"type\":\"timestamp\",\"nullable\":false}")
+  let result = @value_admission.admit(c, owned(parsed("\"2024-01-01T00:00:00.123456z\"")), limits())
+  assert_eq(outcome(result), "InvalidTimestamp")
+}
+
+///|
+test "value admission corpus: timestamp-precision-invalid-calendar" {
+  let c = contract("{\"type\":\"timestamp\",\"nullable\":false}")
+  let result = @value_admission.admit(c, owned(parsed("\"1900-02-29T00:00:00.123456Z\"")), limits())
+  assert_eq(outcome(result), "InvalidTimestamp")
+}
+
+///|
+test "value admission corpus: timestamp-precision-leap-second" {
+  let c = contract("{\"type\":\"timestamp\",\"nullable\":false}")
+  let result = @value_admission.admit(c, owned(parsed("\"2016-12-31T23:59:60.000000001Z\"")), limits())
+  assert_eq(outcome(result), "InvalidTimestamp")
+}
+
+///|
+test "value admission corpus: timestamp-precision-outside-year" {
+  let c = contract("{\"type\":\"timestamp\",\"nullable\":false}")
+  let result = @value_admission.admit(c, owned(parsed("\"10000-01-01T00:00:00.123456Z\"")), limits())
+  assert_eq(outcome(result), "InvalidTimestamp")
+}

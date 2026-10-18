@@ -9,6 +9,13 @@ import {observationCid as cid, observationRef as ref,
 test('independent fixtures pass the existing closed Owner contracts', () => {
   assert(validWireRunViewShape(view()));assert(validOwnerObservations(owners(),ref(),runObservationLimits));
 });
+test('a retained Owner state without its actual required revision stays invalid', () => {
+  const missing = owners();
+  delete missing.owners[0].snapshot.value.revision;
+  assert.equal(validOwnerObservations(missing, ref(), runObservationLimits), false);
+  assert.throws(() => runObservationModel(view(), missing, ref()),
+    {code: 'ExplorerInvalidRunObservation'});
+});
 test('Run-level state never fills missing Plan bindings, usage or Result availability', () => {
   const wire=view();wire.run_state.status='succeeded';
   const model=runObservationModel(wire,null,ref());

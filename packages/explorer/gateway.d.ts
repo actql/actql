@@ -18,7 +18,7 @@ export type ExplorerGatewayOptions = Readonly<{
 export type ExplorerBootstrap = Readonly<{origin: string; bootstrap: string; expiresAt: number}>;
 export function createExplorerGateway(options: ExplorerGatewayOptions & {origin: string}): Readonly<{
   fetch(request: Request): Response | Promise<Response>;
-  issueBootstrap(): ExplorerBootstrap; invalidateScope(): void; close(): void;
+  issueBootstrap(): ExplorerBootstrap; invalidateScope(): void; close(): Promise<void>;
 }>;
 export function startExplorerGateway(options: ExplorerGatewayOptions & {port?: number}): Promise<Readonly<{
   origin: string; issueBootstrap(): ExplorerBootstrap;
