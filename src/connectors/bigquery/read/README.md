@@ -27,6 +27,8 @@ close the Host's root. The original Host retains retirement responsibility.
 A Job transport projection may bind that same original read once, before its
 first request. It emits a single POST with the caller's original Job ID,
 selected metadata-bound SQL, explicit GoogleSQL mode and maximumBytesBilled.
+The selected Host must record that original ID through its existing journal before
+physical dispatch; constructing this material is not durable Job adoption.
 Only same-Job status GETs and result GETs follow. Request candidates and charged
 responses are nominal and one-shot; a missing response cannot repeat POST or
 mint another Job. Every response consumes the original transfer capacity before
