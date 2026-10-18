@@ -59623,9 +59623,10 @@
     },
     {
       "module": "adapters/host-node/node-source-managed-installation.mjs",
-      "sha256": "db9e1f39a1f167be021b62decb25274c024598d5ed87235b9b89b1ddca74e185",
+      "sha256": "9a52e69708e27980aa43667fd3602fc14f480ba097dac00d3a980683f66d9988",
       "exports": [
         "assertSourceManagedInstallationCurrent",
+        "assertSourceManagedPreparationCurrent",
         "prepareSourceManagedInstallation"
       ],
       "operations": [
@@ -59633,6 +59634,14 @@
           "name": "assertSourceManagedInstallationCurrent",
           "parameters": [
             "view",
+            "sameOriginals"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertSourceManagedPreparationCurrent",
+          "parameters": [
+            "originalInstallation",
             "sameOriginals"
           ],
           "async": false
@@ -59756,6 +59765,8 @@
         }
       ],
       "imports": [
+        "./infer-trusted-node-preload.cjs",
+        "./node-public-initial-control-bootstrap.cjs",
         "node:module",
         "node:util"
       ],
@@ -59769,6 +59780,7 @@
           "operations": [
             "<module>",
             "assertSourceManagedInstallationCurrent",
+            "assertSourceManagedPreparationCurrent",
             "callbacks/callbacks",
             "close",
             "close/flight/flight",
@@ -59789,6 +59801,7 @@
           ],
           "exports": [
             "assertSourceManagedInstallationCurrent",
+            "assertSourceManagedPreparationCurrent",
             "prepareSourceManagedInstallation"
           ],
           "attributes": {
@@ -59808,18 +59821,30 @@
               {
                 "path": "adapters/host-node/node-source-managed-installation.mjs",
                 "anchor": "if (state === undefined || state.closed || state.originals !== originals) unavailable();"
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "export function assertSourceManagedPreparationCurrent(originalInstallation, sameOriginals) {"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/node-source-managed-installation.mjs",
                 "anchor": "// Forward the SAME original close, retaining partial custody on refusal;"
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "// Its constructor keeps partial cleanup if this observation refuses."
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/node-source-managed-installation.mjs",
                 "anchor": "function syncVoid(state, index, args)"
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "const originalOwner = ordinary ? require('./node-public-initial-control-bootstrap.cjs') :"
               }
             ],
             "failure": [
@@ -59850,6 +59875,14 @@
               {
                 "path": "adapters/host-node/node-source-managed-installation.test.mjs",
                 "anchor": "the actual absent Source issuer refuses without observing caller originals"
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.test.mjs",
+                "anchor": "ordinary Source absence cannot borrow the explicit preload receiver or observe caller originals"
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.test.mjs",
+                "anchor": "partial Source metadata current checks the captured nominal original before a view exists"
               }
             ]
           }

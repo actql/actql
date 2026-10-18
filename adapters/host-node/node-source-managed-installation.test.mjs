@@ -35,7 +35,7 @@ async function fixture(t, {ordinaryAbsent = false} = {}) {
   const owner = createRequire(import.meta.url)(join(scratch.path, 'infer-trusted-node-preload.cjs'));
   const originals = Object.freeze({}), installation = Object.freeze({}), receipt = Object.freeze({});
   const s = {current: true, close: {pending: false}, closes: 0, calls: [], returnReceipt: receipt,
-    bindingReturn: undefined};
+    bindingReturn: undefined, intentCid: 'sha256:' + 'a'.repeat(64), afterIntent: undefined};
   Object.assign(owner, {
     prepareSourceManagedInstallation(value) {assert.equal(this, owner);assert.equal(value, originals);return installation;},
     assertSourceManagedInstallationCurrent(value, pair) {assert.equal(this, owner);assert.equal(value, installation);
@@ -50,6 +50,9 @@ async function fixture(t, {ordinaryAbsent = false} = {}) {
       assert.equal(pair, originals);assert.equal(r, receipt);s.calls.push(['finish',terminal]);},
     closeSourceManagedInstallation(value, pair) {assert.equal(this, owner);assert.equal(value, installation);
       assert.equal(pair, originals);s.closes++;return s.close;},
+    sourceIntentCid(value, pair, r, body) {assert.equal(this, owner);assert.equal(value, installation);
+      assert.equal(pair, originals);assert.equal(r, receipt);s.calls.push(['intent', body]);
+      s.afterIntent?.();return s.intentCid;},
   });
   await writeFile(join(scratch.path, 'consumer.mjs'), await readFile(new URL('./node-source-managed-installation.mjs', import.meta.url)));
   const consumer = await import(pathToFileURL(join(scratch.path, 'consumer.mjs')));
@@ -85,6 +88,40 @@ test('partial Source metadata current checks the captured nominal original befor
   f.s.cause = Object.freeze(new Error('OriginalPreparationRetired'));
   assert.throws(() => f.consumer.assertSourceManagedPreparationCurrent(f.installation, f.originals),
     cause => cause === f.s.cause);
+});
+
+test('selected Source intent hash retains its receipt/body and checks original current after the Common callback', async t => {
+  const f = await fixture(t), view = await f.consumer.prepareSourceManagedInstallation(f.originals);
+  const body = Object.freeze({original: 'body'});
+  view.bindSourceSnapshot(f.receipt, body);
+  f.owner.sourceIntentCid = () => {throw new Error('ReplacementMustNotRun');};
+  assert.equal(view.intentCid(f.receipt, body), f.s.intentCid);
+  assert.deepEqual(f.s.calls, [['snapshot', body], ['intent', body]]);
+  assert.throws(() => view.intentCid({...f.receipt}, body));
+  f.s.cause = Object.freeze(new Error('OriginalChangedDuringIntent'));
+  f.s.afterIntent = () => {f.s.current = false;};
+  assert.throws(() => view.intentCid(f.receipt, body), cause => cause === f.s.cause);
+  // The original producer/close remains owned; a callback failure does not
+  // acknowledge a physical child or issue another hashing attempt.
+  view.finishSourceProducer(f.receipt, 'failed');
+  await view.close();
+  assert.equal(f.s.closes, 1);
+});
+
+test('selected Source rejects an unexpected hash protocol without native fallback or a replacement receipt', async t => {
+  const f = await fixture(t), view = await f.consumer.prepareSourceManagedInstallation(f.originals);
+  const pending = Promise.resolve(f.s.intentCid);
+  f.s.intentCid = pending;
+  let originalFailure;
+  assert.throws(() => view.intentCid(f.receipt, Object.freeze({})), cause => {
+    originalFailure = cause;
+    return cause.code === 'SourceManagedSynchronousProtocolChanged' && cause.cause === pending;
+  });
+  assert.throws(() => view.beforeSourceSnapshot('aql', 'unchanged', {}), cause => cause === originalFailure);
+  assert.equal(f.s.calls.length, 1);
+  view.finishSourceProducer(f.receipt, 'failed');
+  await view.close();
+  assert.equal(f.s.closes, 1);
 });
 
 test('four producer calls synchronously forward exact originals to the captured receiver', async t => {
