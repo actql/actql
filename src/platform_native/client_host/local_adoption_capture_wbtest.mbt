@@ -279,7 +279,7 @@ test "adoption capture preserves a real Root close Unknown and never releases it
   // Isolated fixture cleanup only: it cannot turn the sticky Root outcome into
   // capture cleanup success or authorize a replacement open through the holder.
   original.lock.unwrap().close_checked().unwrap()
-  original.parent.unwrap().close().unwrap()
+  assert_true(original.parent is None)
   borrowed.close().unwrap()
   assert_false(capture.descriptor_cleanup_acknowledged())
   adoption_capture_test_unknowns.push(capture)
