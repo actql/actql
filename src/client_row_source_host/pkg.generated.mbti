@@ -123,6 +123,8 @@ pub fn keyed_row_read_facts(RowSourceRead) -> @sourceview_resolution.KeyedSource
 
 pub fn keyed_row_read_usage(RowSourceRead) -> (Int, Int64, Int64)
 
+pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]
+
 pub fn prepare_declared_row_acquisition(RowSourcePreparation, String, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]
 
 pub fn prepare_declared_row_source(@query_planning.QueryRequirement, String, RowDeclaredView) -> Result[RowSourcePreparation, RowSourceIssue]

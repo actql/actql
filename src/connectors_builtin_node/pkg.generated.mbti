@@ -1865,6 +1865,8 @@ pub fn client_program_mock_answer_count(@model_execution.ModelMockAnswers, @chec
 
 pub fn client_program_mock_answer_default(@model_execution.ModelMockAnswers, @check_environment.PublicModelTaskDeclaration) -> Result[@value_admission.CheckedValue?, @model_execution.ModelMockAnswerIssue]
 
+pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]
+
 pub fn client_program_model_async_native_decision_request_plan(@model_execution.ModelRequest, @model_execution.NativeDecisionRequest, @model_execution.AdmittedModelProvider, Int64, Int64, Int64, Int64, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, @check_environment.DecisionProbabilityProfile, (@model_execution.ModelCallEntry) -> @model_execution.ModelPhysicalCall?) -> Result[@model_execution.ModelPhysicalRequestPlan, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_model_async_physical_request_plan(@model_execution.ModelRequest, Int64, Int64, Int64, Int64, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, (@model_execution.ModelCallEntry) -> @model_execution.ModelPhysicalCall?) -> Result[@model_execution.ModelPhysicalRequestPlan, @model_execution.ModelExecutionIssue]

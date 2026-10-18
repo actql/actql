@@ -51,3 +51,46 @@ test('actual Common retains its registration identifier and revision-prefix rule
     }
   }
 });
+
+test('actual Common derives the required UPDATE from the same original Account declaration', () => {
+  const entry = mockChurnRiskCatalogue[0];
+  const declaration = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
+    entry.connectorId, entry.registration, entry.revision,
+    JSON.stringify({views: entry.views}), undefined));
+  const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
+  const mapping = JSON.parse(checked(moon.clientProgramMockChurnRiskUpdateMapping(declaration)));
+  assert.equal(mapping.target_ref, 'connector://salesforce/Account');
+  assert.equal(mapping.connector_manifest_cid, declared.manifest_entry_cid);
+  assert.equal(mapping.primary_identity, 'id');
+  assert.equal(mapping.minimum_approval, 'required');
+  assert.deepEqual(mapping.writable_fields, ['Churn_Risk__c', 'Risk_Reason__c']);
+  assert.deepEqual(mapping.permission_rules, [{effect_kind: 'update', selector_class: 'id',
+    write_fields: ['Churn_Risk__c', 'Risk_Reason__c'], permissions: ['salesforce:record:update']}]);
+  assert.deepEqual(mapping.row_mapping, {
+    Churn_Risk__c: {field: 'Churn_Risk__c', null_behavior: 'reject'},
+    Risk_Reason__c: {field: 'Risk_Reason__c', null_behavior: 'reject'},
+  });
+});
+
+test('actual mock UPDATE refuses another generation or the warehouse original', () => {
+  const [entry, warehouse] = mockChurnRiskCatalogue;
+  for (const selected of [
+    {...entry, registration: 'foreign', revision: 'foreign/0.1'}, warehouse,
+  ]) {
+    const declaration = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
+      selected.connectorId, selected.registration, selected.revision,
+      JSON.stringify({views: selected.views}), undefined));
+    assert.throws(() => checked(moon.clientProgramMockChurnRiskUpdateMapping(declaration)),
+      {code: 'MoonBitHostFailure'});
+  }
+});
+
+test('actual mock UPDATE refuses a different original candidate key', () => {
+  const entry = mockChurnRiskCatalogue[0];
+  const declaration = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
+    entry.connectorId, entry.registration, entry.revision,
+    JSON.stringify({views: [{...entry.views[0],
+      facts_wire: '{"relation_keys":{"candidate_keys":[["name"]]}}'}]}), undefined));
+  assert.throws(() => checked(moon.clientProgramMockChurnRiskUpdateMapping(declaration)),
+    {code: 'MoonBitHostFailure'});
+});

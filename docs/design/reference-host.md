@@ -630,6 +630,18 @@ module objects, schema/facts Strings and aliases remain retained alongside the
 Common parsed declarations, encoding/hash workspace and Host installation;
 module lifetime and bounds do not make that storage free or physically closed.
 
+The existing Row Source owner also derives the mock Account UPDATE Mapping
+from that same original declaration. It checks the selected implementation
+generation, complete fixed field contracts, original View/facts correspondence
+and `id` candidate key before calling its existing RelationUpdate constructor.
+The private Node bridge forwards that original and returns Common's Mapping
+body. It does not relabel a create Mapping or rebuild a CID in JavaScript.
+The original Host still supplies the positive `salesforce.Account` target alias
+and its installation provenance; a readable Source alias cannot supply it.
+`salesforce:record:update` remains an operation requirement, not a current grant,
+and the Mapping requires review. Neither construction nor successful checking
+observes a target version, writes a row or confirms an approval.
+
 ### Purpose-confined initial Local signing issuer
 
 The original explicit Local initialization/adoption may retain an internal
