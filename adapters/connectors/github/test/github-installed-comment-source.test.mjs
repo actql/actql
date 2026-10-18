@@ -132,7 +132,7 @@ test('installed GitHub comments retain their declared contracts through the orig
 test('installed GitHub comments do not inherit the publication Issue read permission', async t => {
   const f = await fixture(t, {commentsRead: 'deny'}), source = await f.load();
   const before = f.api.seen().length, resolutions = f.resolutions();
-  await assert.rejects(f.prepareSource(source, await f.prepare(source)), {code: 'ExecutionAuthorizationDenied'});
+  await assert.rejects(f.prepareSource(source, await f.prepare(source)), {code: 'ACTQL_E_ACCOUNT_DENIED'});
   assert.equal(f.api.seen().length, before);
   assert.equal(f.resolutions(), resolutions);
 });
