@@ -59,6 +59,7 @@ pub(all) enum NativeSignatureIssue {
 type OriginalCryptoComponent
 pub fn OriginalCryptoComponent::close_checked(Self) -> Result[Unit, NativeSignatureIssue]
 pub fn OriginalCryptoComponent::new_library(Self) -> Result[NativeCryptoLibraryAcquisition, NativeSignatureIssue]
+pub fn OriginalCryptoComponent::owns_library(Self, Library) -> Bool
 
 type Sha256Hasher
 pub fn Sha256Hasher::close_checked(Self) -> Result[Unit, NativeSignatureIssue]

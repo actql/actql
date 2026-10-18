@@ -300,6 +300,8 @@ class _OriginalHostResourcesCustody:
         if self._unknown is not None:
             raise self._unknown
         if not self._closed:
+            from ._local_native_read_crypto import _require_read_crypto_retired
+            _require_read_crypto_retired(self._read)
             from ._local_native_adoption import _require_adoption_retired
             _require_adoption_retired(self._read)
             # Foreign-response uncertainty or pending metadata belongs to those

@@ -6,6 +6,7 @@ import {
   "actql/actql/physical_resources",
   "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/host_bootstrap",
+  "actql/actql/platform_native/signature",
   "actql/actql/platform_native/sqlite",
 }
 
@@ -40,6 +41,10 @@ pub fn close_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDoma
 
 pub fn close_installed_arena_original_read_reply(InstalledArenaHost, InstalledArenaOriginalRead) -> InstalledArenaOriginalReadReply
 
+pub fn close_installed_arena_read_crypto_library_reply(InstalledArenaHost, InstalledArenaLocalHostResources, InstalledArenaOriginalRead, InstalledArenaCryptoComponent, @signature.Library) -> InstalledArenaReadCryptoReply
+
+pub fn close_installed_arena_read_crypto_reply(InstalledArenaHost, InstalledArenaLocalHostResources, InstalledArenaOriginalRead, InstalledArenaCryptoComponent) -> InstalledArenaReadCryptoReply
+
 pub fn close_installed_arena_reply(InstalledArenaHost) -> InstalledArenaReply
 
 pub fn close_installed_arena_sqlite_reply(InstalledArenaHost, InstalledArenaSqliteLibrary) -> InstalledArenaSqliteReply
@@ -57,6 +62,8 @@ pub fn current_installed_arena_domain_read_reply(InstalledArenaHost, InstalledAr
 pub fn current_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
 
 pub fn current_installed_arena_original_read_reply(InstalledArenaHost, InstalledArenaOriginalRead) -> InstalledArenaOriginalReadReply
+
+pub fn current_installed_arena_read_crypto_original(InstalledArenaHost, InstalledArenaLocalHostResources, InstalledArenaOriginalRead, InstalledArenaCryptoComponent) -> Bool
 
 pub fn current_installed_arena_reply(InstalledArenaHost) -> InstalledArenaReply
 
@@ -80,6 +87,8 @@ pub fn finish_installed_sqlite_lookup_reply(InstalledArenaHost, InstalledArenaSq
 
 pub fn header_installed_sqlite_lookup_reply(InstalledArenaHost, InstalledArenaSqliteLookup, String, String) -> InstalledArenaSqliteDatabaseReply
 
+pub fn hmac_installed_arena_read_crypto_reply(InstalledArenaHost, InstalledArenaLocalHostResources, InstalledArenaOriginalRead, InstalledArenaCryptoComponent, @signature.Library, Bytes, Bytes) -> InstalledArenaReadCryptoReply
+
 pub fn initialize_installed_sqlite_database_reply(InstalledArenaHost, InstalledArenaSqliteLibrary, String, Int64, UInt64, UInt64) -> InstalledArenaSqliteDatabaseReply
 
 pub fn insert_installed_sqlite_database_reply(InstalledArenaHost, InstalledArenaSqliteDatabase, String, String, Bytes) -> InstalledArenaSqliteDatabaseReply
@@ -98,6 +107,8 @@ pub fn leave_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDoma
 
 pub fn leave_installed_arena_original_read_reply(InstalledArenaHost, InstalledArenaOriginalRead) -> InstalledArenaOriginalReadReply
 
+pub fn load_installed_arena_read_crypto_reply(InstalledArenaHost, InstalledArenaLocalHostResources, InstalledArenaOriginalRead, InstalledArenaCryptoComponent, String, Int64, Int) -> InstalledArenaReadCryptoReply
+
 pub fn observe_installed_sqlite_capacity_reply(InstalledArenaHost, InstalledArenaSqliteDatabase, String) -> InstalledArenaSqliteDatabaseReply
 
 pub fn observe_installed_sqlite_database_reply(InstalledArenaHost, InstalledArenaSqliteDatabase) -> InstalledArenaSqliteDatabaseReply
@@ -107,6 +118,8 @@ pub fn observe_installed_sqlite_database_usage_reply(InstalledArenaHost, Install
 pub fn observe_installed_sqlite_lookup_reply(InstalledArenaHost, InstalledArenaSqliteLookup) -> InstalledArenaSqliteDatabaseReply
 
 pub fn observe_installed_sqlite_transaction_state_reply(InstalledArenaHost, InstalledArenaSqliteDatabase) -> InstalledArenaSqliteDatabaseReply
+
+pub fn open_installed_arena_read_crypto_library_reply(InstalledArenaHost, InstalledArenaLocalHostResources, InstalledArenaOriginalRead, InstalledArenaCryptoComponent) -> InstalledArenaReadCryptoReply
 
 pub fn operate_installed_arena_channel_ledger_reply(InstalledArenaHost, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[InstalledArenaHost, InstalledArenaDomain], @physical_resources.ImportedChildLedger, Int, Int64, Int64) -> InstalledArenaChannelLedgerReply
 
@@ -139,6 +152,8 @@ pub fn prepare_installed_arena_process_child_bytes_reply(InstalledArenaHost, Ins
 pub fn prepare_installed_arena_process_child_reply(InstalledArenaHost, InstalledArenaDomain, InstalledArenaProcess, String, Array[String], Array[(String, String)]) -> InstalledArenaProcessReply
 
 pub fn prepare_installed_arena_process_reply(InstalledArenaHost, InstalledArenaDomain, String, Int, Int64, Int64, Int64) -> InstalledArenaProcessReply
+
+pub fn prepare_installed_arena_read_crypto_reply(InstalledArenaHost, InstalledArenaLocalHostResources, InstalledArenaOriginalRead) -> InstalledArenaReadCryptoReply
 
 pub fn prepare_installed_arena_reply(String, Bytes, Int64, Int64, Int, Int, Int, Int64, Int64, Int64, Int64) -> InstalledArenaReply
 
@@ -176,6 +191,8 @@ pub fn transaction_installed_sqlite_database_reply(InstalledArenaHost, Installed
 
 pub fn transfer_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
 
+pub fn verify_hmac_installed_arena_read_crypto_reply(InstalledArenaHost, InstalledArenaLocalHostResources, InstalledArenaOriginalRead, InstalledArenaCryptoComponent, @signature.Library, Bytes, Bytes, Bytes) -> InstalledArenaReadCryptoReply
+
 // Errors
 
 // Types and methods
@@ -209,6 +226,18 @@ pub fn InstalledArenaChannelLedgerReply::original_channel(Self) -> @host_bootstr
 pub fn InstalledArenaChannelLedgerReply::original_domain(Self) -> InstalledArenaDomain
 pub fn InstalledArenaChannelLedgerReply::original_frame(Self) -> @physical_resources.ImportedChildLedger?
 pub fn InstalledArenaChannelLedgerReply::original_host(Self) -> InstalledArenaHost
+
+pub(all) enum InstalledArenaCryptoAcquisition {
+  ReadyCrypto(InstalledArenaCryptoComponent)
+  PendingCrypto(InstalledArenaCryptoComponent, InstalledArenaCryptoIssue)
+}
+
+type InstalledArenaCryptoComponent
+
+pub(all) enum InstalledArenaCryptoIssue {
+  Domain(@host_bootstrap.NativeBackedExecutionIssue)
+  Signature(@signature.NativeSignatureIssue)
+}
 
 type InstalledArenaDelegation
 
@@ -262,6 +291,7 @@ pub fn InstalledArenaHost::borrow_local_host_read(Self, InstalledArenaLocalHostR
 pub fn InstalledArenaHost::borrow_local_host_sqlite(Self, InstalledArenaLocalHostResources) -> Result[@sqlite.Library, InstalledArenaLocalHostResourcesIssue]
 pub fn[T] InstalledArenaHost::call_sqlite_database(Self, InstalledArenaSqliteDatabase, (@sqlite.Database) -> Result[T, @sqlite.NativeSqliteIssue]) -> InstalledArenaSqliteDatabaseCall[T]
 pub fn[T] InstalledArenaHost::call_sqlite_lookup(Self, InstalledArenaSqliteLookup, (@sqlite.NativeLookupRead) -> Result[T, @sqlite.NativeSqliteIssue]) -> InstalledArenaSqliteDatabaseCall[T]
+pub fn InstalledArenaHost::close_crypto_component(Self, InstalledArenaCryptoComponent) -> Result[Unit, InstalledArenaCryptoIssue]
 pub fn InstalledArenaHost::close_domain_after_owner_ack(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::close_domain_original_read(Self, InstalledArenaOriginalRead) -> Result[Unit, InstalledArenaOriginalReadIssue]
 pub fn InstalledArenaHost::close_domain_read(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
@@ -270,6 +300,7 @@ pub fn InstalledArenaHost::close_prepared_process(Self, InstalledArenaDomain, In
 pub fn InstalledArenaHost::close_sqlite_database(Self, InstalledArenaSqliteDatabase) -> Result[Unit, InstalledArenaSqliteIssue]
 pub fn InstalledArenaHost::close_sqlite_library(Self, InstalledArenaSqliteLibrary) -> Result[Unit, InstalledArenaSqliteIssue]
 pub fn InstalledArenaHost::close_sqlite_lookup(Self, InstalledArenaSqliteLookup) -> Result[Unit, InstalledArenaSqliteIssue]
+pub fn InstalledArenaHost::current_crypto_component(Self, InstalledArenaCryptoComponent) -> Result[@signature.OriginalCryptoComponent, InstalledArenaCryptoIssue]
 pub fn InstalledArenaHost::current_sqlite_library(Self, InstalledArenaSqliteLibrary) -> Result[@sqlite.Library, InstalledArenaSqliteIssue]
 pub fn InstalledArenaHost::delegate(Self, @physical_resources.LedgerLimits) -> Result[InstalledArenaDelegation, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::enter_backing_borrow_scope(Self, InstalledArenaBackingBorrow) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
@@ -292,6 +323,7 @@ pub fn InstalledArenaHost::live_channel_capacities(Self, InstalledArenaDomain, @
 pub fn InstalledArenaHost::live_channel_limits(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain]) -> Result[@physical_resources.LedgerLimits, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::live_channel_state(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain]) -> Result[@physical_resources.BackedExecutionLiveState, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::poll_process_stop(Self, InstalledArenaDomain, InstalledArenaProcess) -> Result[Bool, @host_bootstrap.NativeBackedProcessRegionIssue]
+pub fn InstalledArenaHost::prepare_crypto_component(Self, InstalledArenaDomain, String, Int64, Int) -> Result[InstalledArenaCryptoAcquisition, InstalledArenaCryptoIssue]
 pub fn InstalledArenaHost::prepare_domain(Self, InstalledArenaBackingBorrow, Int, Int64, @physical_resources.LedgerLimits) -> Result[InstalledArenaDomainAcquisition, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::prepare_domain_original_read(Self, InstalledArenaDomain, InstalledArenaOriginalReadBudget) -> Result[InstalledArenaOriginalReadAcquisition, InstalledArenaOriginalReadIssue]
 pub fn InstalledArenaHost::prepare_domain_original_read_consumer(Self, InstalledArenaOriginalRead, Int64, Int64) -> Result[InstalledArenaOriginalReadConsumer, InstalledArenaOriginalReadIssue]
@@ -301,6 +333,8 @@ pub fn InstalledArenaHost::prepare_live_channel(Self, InstalledArenaDomain, Int,
 pub fn InstalledArenaHost::prepare_live_channel_before_spawn(Self, InstalledArenaDomain, Int, Int, Int64) -> Result[@host_bootstrap.NativeBackedLiveChannelAcquisition[Self, InstalledArenaDomain], @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::prepare_live_channel_original_ledger(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain]) -> Result[@physical_resources.ImportedChildLedger, @host_bootstrap.NativeBackedOriginalReadIssue]
 pub fn InstalledArenaHost::prepare_local_host_read_consumer(Self, InstalledArenaLocalHostResources, Int64, Int64) -> Result[InstalledArenaOriginalReadConsumer, InstalledArenaLocalHostResourcesIssue]
+pub fn InstalledArenaHost::prepare_local_host_read_crypto(Self, InstalledArenaLocalHostResources, InstalledArenaOriginalRead, String, Int64, Int) -> Result[InstalledArenaCryptoAcquisition, InstalledArenaLocalHostCryptoIssue]
+pub fn InstalledArenaHost::prepare_local_host_read_crypto_control(Self, InstalledArenaLocalHostResources, InstalledArenaOriginalRead) -> Result[InstalledArenaCryptoComponent, InstalledArenaLocalHostCryptoIssue]
 pub fn InstalledArenaHost::prepare_process(Self, InstalledArenaDomain, String, Int, Int64, Int64, Int64) -> Result[InstalledArenaProcessAcquisition, @host_bootstrap.NativeBackedProcessRegionIssue]
 pub fn InstalledArenaHost::prepare_process_child(Self, InstalledArenaDomain, InstalledArenaProcess, String, Array[String], Array[(String, String)]) -> Result[Unit, @host_bootstrap.NativeBackedProcessRegionIssue]
 pub fn InstalledArenaHost::prepare_sqlite_database(Self, InstalledArenaSqliteLibrary, String, Int64, InstalledArenaSqliteDatabaseOpening) -> Result[InstalledArenaSqliteDatabaseAcquisition, InstalledArenaSqliteIssue]
@@ -345,6 +379,11 @@ pub fn InstalledArenaLiveChannelReply::original_channel(Self) -> @host_bootstrap
 pub fn InstalledArenaLiveChannelReply::original_domain(Self) -> InstalledArenaDomain
 pub fn InstalledArenaLiveChannelReply::original_host(Self) -> InstalledArenaHost
 pub fn InstalledArenaLiveChannelReply::state_tag(Self) -> Int
+
+pub(all) enum InstalledArenaLocalHostCryptoIssue {
+  Resources(InstalledArenaLocalHostResourcesIssue)
+  Crypto(InstalledArenaCryptoIssue)
+}
 
 pub(all) enum InstalledArenaLocalHostPhase {
   HostRead
@@ -438,6 +477,20 @@ pub fn InstalledArenaProcessReply::original_process(Self) -> InstalledArenaProce
 pub fn InstalledArenaProcessReply::stop_observation(Self) -> Int
 pub fn InstalledArenaProcessReply::stop_request_observation(Self) -> Int
 pub fn InstalledArenaProcessReply::transport_observation(Self) -> Int
+
+type InstalledArenaReadCryptoReply
+pub fn InstalledArenaReadCryptoReply::close_confirmed(Self) -> Bool
+pub fn InstalledArenaReadCryptoReply::issue_family(Self) -> Int
+pub fn InstalledArenaReadCryptoReply::issue_origin(Self) -> Int
+pub fn InstalledArenaReadCryptoReply::operation_tag(Self) -> Int
+pub fn InstalledArenaReadCryptoReply::original_component(Self) -> InstalledArenaCryptoComponent?
+pub fn InstalledArenaReadCryptoReply::original_host(Self) -> InstalledArenaHost
+pub fn InstalledArenaReadCryptoReply::original_library(Self) -> @signature.Library?
+pub fn InstalledArenaReadCryptoReply::original_read(Self) -> InstalledArenaOriginalRead
+pub fn InstalledArenaReadCryptoReply::original_resources(Self) -> InstalledArenaLocalHostResources
+pub fn InstalledArenaReadCryptoReply::output_byte(Self, Int) -> Int
+pub fn InstalledArenaReadCryptoReply::output_length(Self) -> Int
+pub fn InstalledArenaReadCryptoReply::verification(Self) -> Int
 
 type InstalledArenaReply
 pub fn InstalledArenaReply::issue_description(Self) -> String
