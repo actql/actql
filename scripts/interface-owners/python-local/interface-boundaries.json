@@ -63622,6 +63622,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_native_adoption_crypto.py",
                 "anchor": "def test_foreign_native_crypto_alias_keeps_unknown_custody("
+              },
+              {
+                "path": "scripts/fixtures/python-original-read-adoption.py",
+                "anchor": "def main() -> None:"
               }
             ]
           }
@@ -64225,6 +64229,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_native_adoption_crypto.py",
                 "anchor": "def test_foreign_native_crypto_alias_keeps_unknown_custody("
+              },
+              {
+                "path": "scripts/fixtures/python-original-read-adoption.py",
+                "anchor": "def main() -> None:"
               }
             ]
           }
