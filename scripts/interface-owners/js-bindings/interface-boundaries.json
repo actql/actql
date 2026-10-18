@@ -90329,7 +90329,7 @@
     {
       "module": "packages/run-host-core/index.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "9d5cf174fac9e3fc8b9fcf56d731cd948d870bb6557897f36c04462aaf2042ac",
+      "sha256": "a048d0fbc283bc3996751401ce0bc4d4e839c5015912a7abd6b9d80baf3fbbec",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
