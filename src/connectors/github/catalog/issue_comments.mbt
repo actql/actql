@@ -226,3 +226,127 @@ pub fn project_issue_comments_response(
   }
   Ok({ subject: expected, rows, has_next_page, end_cursor, })
 }
+
+///|
+pub(all) struct GraphqlIssueCommentSubjectsPage {
+  repository : GraphqlRepository
+  subjects : Array[IssueCommentSubject]
+  has_next_page : Bool
+  end_cursor : String?
+} derive(Eq, Debug)
+
+///|
+/// Enumerate real subjects by the already published repository node. Comments
+/// on native PullRequests are not inferred from Issue numbers or URLs.
+pub fn issue_comment_subjects_request(
+  repository_id : String,
+  native_type : String,
+  first : Int,
+  after : String?,
+) -> Result[String, GraphqlRequestIssue] {
+  if !valid_subject_id(repository_id) {
+    return Err(InvalidNodeId)
+  }
+  if first < 1 || first > 100 {
+    return Err(InvalidPageSize)
+  }
+  if after is Some(cursor) && (cursor.is_empty() || cursor.length() > 1024) {
+    return Err(InvalidCursor)
+  }
+  let connection = match native_type {
+    "Issue" => "issues"
+    "PullRequest" => "pullRequests"
+    _ => return Err(InvalidState)
+  }
+  let query = "query ActqlCommentSubjects($id: ID!, $first: Int!, $after: String) { node(id: $id) { __typename ... on Repository { id databaseId nameWithOwner " +
+    connection +
+    "(first: $first, after: $after) { pageInfo { hasNextPage endCursor } nodes { __typename id number updatedAt } } } } }"
+  Ok(
+    (
+      {
+        "query": query.to_json(),
+        "variables": {
+          "id": repository_id.to_json(),
+          "first": first.to_json(),
+          "after": optional_json(after),
+        },
+      } : Json).stringify(),
+  )
+}
+
+///|
+pub fn project_issue_comment_subjects_response(
+  body : Bytes,
+  limits : PageLimits,
+  expected : GraphqlRepository,
+  native_type : String,
+) -> Result[GraphqlIssueCommentSubjectsPage, GraphqlResponseIssue] {
+  let connection_name = match native_type {
+    "Issue" => "issues"
+    "PullRequest" => "pullRequests"
+    _ => return Err(InvalidResponse)
+  }
+  let data = match admit_body(body, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard @decode.lookup(data, "node") is Some(cursor) &&
+    @decode.open_object(cursor) is Ok(node) else {
+    return Err(RepositoryUnavailable)
+  }
+  let repository = match repository_of(node) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if repository.database_id != expected.database_id {
+    return Err(ForeignRepository)
+  }
+  if repository.node_id != expected.node_id {
+    return Err(IdRepresentationChanged)
+  }
+  if repository.name_with_owner != expected.name_with_owner {
+    return Err(BindingChanged)
+  }
+  guard @decode.lookup(node, connection_name) is Some(connection_cursor) &&
+    @decode.open_object(connection_cursor) is Ok(connection) &&
+    @decode.lookup(connection, "pageInfo") is Some(info_cursor) &&
+    @decode.open_object(info_cursor) is Ok(info) &&
+    @decode.lookup(info, "hasNextPage") is Some(next_cursor) &&
+    @decode.boolean(next_cursor) is Ok(has_next_page) &&
+    @decode.lookup(connection, "nodes") is Some(nodes_cursor) &&
+    @decode.elements(nodes_cursor) is Ok(nodes) else {
+    return Err(InvalidResponse)
+  }
+  let end_cursor = match nullable_text(info, "endCursor") {
+    Ok(None) => None
+    Ok(Some(text)) if !text.is_empty() && text.length() <= 1024 => Some(text)
+    _ => return Err(InvalidResponse)
+  }
+  if has_next_page && end_cursor is None {
+    return Err(MissingCursor)
+  }
+  if nodes.length() > limits.max_rows || nodes.length() > 100 {
+    return Err(BudgetExceeded)
+  }
+  let subjects = []
+  for cursor in nodes {
+    guard @decode.open_object(cursor) is Ok(object) else {
+      return Err(InvalidResponse)
+    }
+    match required_text(object, "__typename") {
+      Ok(kind) if kind == native_type => ()
+      Ok(other) => return Err(WrongType(other))
+      Err(issue) => return Err(Row(issue))
+    }
+    guard required_text(object, "id") is Ok(node_id) &&
+      valid_subject_id(node_id) &&
+      required_integer(object, "number", body, limits.max_bytes) is Ok(number) &&
+      number > 0L &&
+      number <= 2147483647L &&
+      graphql_timestamp(object, "updatedAt", false) is Ok(Some(updated_at)) else {
+      return Err(InvalidResponse)
+    }
+    subjects.push({ node_id, number, native_type, updated_at, repository, })
+  }
+  Ok({ repository, subjects, has_next_page, end_cursor, })
+}
