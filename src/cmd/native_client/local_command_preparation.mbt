@@ -62,7 +62,7 @@ fn[T] command_preparation_value(
 // Host/Journal/Resource Owner. Publish this original before acquiring anything.
 priv struct LocalCommandPreparationOriginal {
   profile : LocalCommandPreparationProfile
-  backing : InitialCryptoBacking
+  mut backing : InitialCryptoBacking?
   mut host : @initial_arena.InstalledArenaHost?
   mut backing_scope : @initial_arena.InstalledArenaBackingBorrow?
   mut backing_entered : Bool
@@ -119,7 +119,7 @@ fn prepare_local_command_preparation_original(
   }
   Ok({
     profile,
-    backing: initial_crypto_backing_open(profile.arena_bytes),
+    backing: None,
     host: None,
     backing_scope: None,
     backing_entered: false,
@@ -200,9 +200,19 @@ fn LocalCommandPreparationOriginal::acquire_prearguments(
     self.primary is Some(_) {
     return Err(CommandUnavailable)
   }
+  // Publish the caller record before the C backing constructor. The same
+  // external receiver is retained before inspecting a partial open result;
+  // failed return cannot become permission for a second backing acquisition.
+  if self.backing is Some(_) {
+    return Err(CommandUnavailable)
+  }
+  self.backing = Some(initial_crypto_backing_open(self.profile.arena_bytes))
+  let backing = self.backing.unwrap()
   try {
-    if !self.backing.current() {
-      return Err(CommandBacking(self.backing.acquisition_issue()))
+    if !backing.current() {
+      let issue = CommandBacking(backing.acquisition_issue())
+      self.retain_primary(issue)
+      return Err(issue)
     }
     let profile = self.profile
     let host = command_preparation_value(
@@ -217,9 +227,7 @@ fn LocalCommandPreparationOriginal::acquire_prearguments(
     )
     self.host = Some(host)
     command_preparation_value(
-      host
-      .acquire_fd(self.backing.descriptor())
-      .map_err(issue => CommandHost(issue)),
+      host.acquire_fd(backing.descriptor()).map_err(issue => CommandHost(issue)),
     )
     let scope = command_preparation_value(
       host.borrow_backing().map_err(issue => CommandHost(issue)),
@@ -235,7 +243,7 @@ fn LocalCommandPreparationOriginal::acquire_prearguments(
       host
       .prepare_domain(
         scope,
-        self.backing.descriptor(),
+        backing.descriptor(),
         profile.read_domain_bytes,
         profile.read_domain_limits,
       )
@@ -256,7 +264,7 @@ fn LocalCommandPreparationOriginal::acquire_prearguments(
       host
       .prepare_domain(
         scope,
-        self.backing.descriptor(),
+        backing.descriptor(),
         profile.sqlite_domain_bytes,
         profile.sqlite_domain_limits,
       )
@@ -821,8 +829,11 @@ fn LocalCommandPreparationOriginal::close_checked(
       )
       self.host = None
     }
-    if !self.backing.close_checked() {
-      return Err(CommandBacking(self.backing.acquisition_issue()))
+    if self.backing is Some(backing) {
+      if !backing.close_checked() {
+        return Err(CommandBacking(backing.acquisition_issue()))
+      }
+      self.backing = None
     }
     self.closed = true
     Ok(())
