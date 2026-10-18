@@ -177,9 +177,9 @@ def main() -> None:
     assert descriptor.closed
     step('original loan domains Host and descriptor retire only after their own ACKs')
     loaded = {}
-    for name in ['_local_native_host_resources', '_local_native_control_custody',
-                 '_local_native_original_read', '_local_native_domain_custody']:
-        module = sys.modules['actql_sdk.' + name]
+    for name, module in list(sys.modules.items()):
+        if name != 'actql_sdk' and not name.startswith('actql_sdk.'):
+            continue
         path = Path(module.__file__)
         loaded[name] = dict(path=str(path), sha256=hashlib.sha256(path.read_bytes()).hexdigest())
     result = dict(source=source, discovered=len(cases), executed=len(cases),
