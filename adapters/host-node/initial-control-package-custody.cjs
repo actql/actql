@@ -45,11 +45,11 @@ function captureInitialControlPackageCustody(inventory, localRoot, consumerEntry
 // Separate ordinary byte/namespace custody, never a late operational issuer.
 // It can only be adopted by the real installed public-prefix instance, whose
 // runtime and finite phase must precede this first path/image acquisition.
-function captureOrdinaryInitialControlPackageCustody(inventory, localRoot, consumerEntry) {
+function captureOrdinaryInitialControlPackageCustody(inventory, localRoot, consumerEntry, publicDeliveryEntry) {
   if (typeof preloading !== 'function' || apply(preloading, module, []) !== false) {
     fail('InitialControlPackageCustodyUnavailable');
   }
-  return capturePackageCustody(inventory, localRoot, consumerEntry, undefined, true);
+  return capturePackageCustody(inventory, localRoot, consumerEntry, publicDeliveryEntry, true);
 }
 
 function capturePackageCustody(inventory, localRoot, consumerEntry, publicPreloadEntry, ordinary) {
@@ -166,7 +166,7 @@ function capturePackageCustody(inventory, localRoot, consumerEntry, publicPreloa
       }
       const entry = realpathSync(publicPreloadEntry);
       nodeRoot = dirname(entry);
-      if (entry !== join(nodeRoot, 'selected-infer-startup.cjs') || nodeRoot === root) {
+      if (entry !== join(nodeRoot, ordinary ? 'initial-control-public-dispatch.cjs' : 'selected-infer-startup.cjs') || nodeRoot === root) {
         fail('InitialControlPackageImageChanged');
       }
       captureGroup(nodeRoot, own(publicNode, 'images'), '@actql/node', own(publicNode, 'version'),

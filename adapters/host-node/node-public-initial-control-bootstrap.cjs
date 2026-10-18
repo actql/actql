@@ -93,12 +93,15 @@ const operational = freeze({
 });
 const owner = createInitialControlInstallationOwner(operational);
 function connectInitialControlHostPreparation(kind,raw) {
-  assertPrefixCurrent();
+  // One fixed own-DATA selector belongs to this prefix's finite scaffolding,
+  // not complete packet admission. It invokes no getter/Proxy trap and keeps
+  // existing unselected routes independent of Local image/preparation failure.
   if (kind === 'connect') {
     if (raw === null || typeof raw !== 'object' || isProxy(raw)) return undefined;
     const mode = descriptor(raw,'mode');
     if (mode === undefined || !own(mode,'value') || mode.value !== 'local') return undefined;
   } else if (kind !== 'open' || raw !== undefined) inputUnavailable();
+  assertPrefixCurrent();
   if (preparation !== undefined || intake !== undefined) inputUnavailable();
   // The actual selected prefix's finite runtime/packet envelope precedes this
   // FIRST enumeration. Reader bounds do not retroactively fund acquisition.
@@ -150,8 +153,14 @@ try {
   // Actual installed consumer resolution must select this physical Local
   // package, not a source tree, copied helper or an equal foreign installation.
   if (dirname(consumerRequire.resolve('@actql/local-node')) !== localRoot) unavailable();
+  let publicDeliveryEntry;
+  if (delivery.filename !== join(localRoot,'initial-control-public-dispatch.cjs')) {
+    const nodeRoot=dirname(consumerRequire.resolve('@actql/node'));
+    if (delivery.filename !== join(nodeRoot,'initial-control-public-dispatch.cjs')) unavailable();
+    publicDeliveryEntry=delivery.filename;
+  }
   const images = require('./initial-control-package-custody.cjs')
-    .captureOrdinaryInitialControlPackageCustody(inventory,localRoot,processOriginal.argv[1]);
+    .captureOrdinaryInitialControlPackageCustody(inventory,localRoot,processOriginal.argv[1],publicDeliveryEntry);
   const namespace = images.initializeHostNamespace();
   const consumer = field(namespace,'connectInitialControlHostPreparation');
   const validator = field(namespace,'assertInitialControlHostPreparation');
