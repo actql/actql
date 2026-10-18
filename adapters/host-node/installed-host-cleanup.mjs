@@ -81,7 +81,16 @@ export async function retainInstalledHostInitializationFailure(cause,
     try {
       await close();
       pending.delete(name);
-    } catch (error) { errors.push(Object.freeze({owner: name, error})); }
+    } catch (error) {
+      // A pending cleanup may be observed/retried for an unbounded duration.
+      // Keep each original phase's first and latest failures, not an ever
+      // growing retry history inside the same retained preparation holding.
+      const record = Object.freeze({owner: name, error});
+      const latest = errors.findLastIndex(item => item.owner === name);
+      const first = errors.findIndex(item => item.owner === name);
+      if (latest === first) errors.push(record);
+      else errors[latest] = record;
+    }
   }
   let flight;
   async function drain() {

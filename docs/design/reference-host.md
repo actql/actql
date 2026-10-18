@@ -165,6 +165,11 @@ Final runtime-reference retirement remains behind that confirmed duty. These
 cleanup consumers cannot issue an initial admission, establish its coverage,
 prove garbage collection or supply business-Run capacity.
 
+Pending initialization retains each original cleanup phase's first and latest
+failure, rather than accumulating an unbounded in-memory retry history. This
+bounded diagnostic projection neither completes that phase nor changes its
+original cause, cleanup receiver or retry authority.
+
 ## Installed Effect cleanup
 
 The installed Effect Site retains target-read authorization, input pins,

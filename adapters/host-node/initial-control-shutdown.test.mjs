@@ -110,3 +110,24 @@ test('existing installed Host shutdown retains and closes the same initial contr
   pending = false; await owner.close(); await owner.close();
   assert.equal(closes, 2); assert.equal(finalized, 1);
 });
+
+test('pending initialization keeps bounded first and latest original phase diagnostics', async () => {
+  let sequence = 0, pending = true;
+  const failures = [];
+  const control = {close() {
+    if (!pending) return {pending: false};
+    const failure = new Error(`OriginalControlClose${++sequence}`);
+    failures.push(failure); throw failure;
+  }};
+  const primary = Object.freeze(new Error('OriginalPreparationFailure'));
+  const failure = await retainInstalledHostInitializationFailure(primary, {initialControl: control});
+  for (let retry = 0; retry < 8; retry++) await failure.cleanupHandle.retry();
+  assert.equal(failure.primaryFailure, primary);
+  assert.equal(failure.cleanupHandle.status().pending, true);
+  assert.deepEqual(failure.cleanupHandle.status().errors.map(item => item.error),
+    [failures[0], failures.at(-1)]);
+  pending = false; await failure.cleanupHandle.retry();
+  assert.equal(failure.cleanupHandle.status().pending, false);
+  assert.deepEqual(failure.cleanupHandle.status().errors.map(item => item.error),
+    [failures[0], failures.at(-1)]);
+});
