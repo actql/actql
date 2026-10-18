@@ -9,12 +9,12 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local'
   durability: 'durable', scopeRef: 'scope-a', capabilities: ['result-jsonl'], submissionEpoch,
   limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
     maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 3, maxBatchRetainedValueBytes: 1024}};
-const unknown = {version: 'actql-run-state/0.1', run_id: 'run-a', status: 'needs_reconciliation',
+const unknown = {version: 'actql-run-state/0.1', run_id: 'run-a', revision: 1, status: 'needs_reconciliation',
   updated_at: '2026-10-06T00:00:00.000Z', next_action: {kind: 'reconcile', effects: ['save', 'notify']},
   result_available: false, result_availability: {answer: {state: 'unavailable',
     observed_at: '2026-10-06T00:00:00.000Z', reason: 'not_published'}},
   control: {revision: 7, cancellation_requested: true, physical_stop: 'unknown'}};
-async function fixture(t) {
+async function fixture(t, state = unknown) {
   const calls = [];
   let cancellation = 'accepted';
   const client = await sdk.connectInProcess({mode: 'local', owner: 'local'}, {
@@ -23,7 +23,7 @@ async function fixture(t) {
       if (operation === 'connect') return profile;
       if (operation === 'submit-intent') throw new Error('private-provider-cause');
       if (operation === 'attach') return {ref: body.ref, durability: 'durable', revision: 1};
-      if (operation === 'status') return unknown;
+      if (operation === 'status') return state;
       if (operation === 'cancel') {
         if (cancellation === 'outcome_unknown') throw new Error('private-cancel-cause');
         return {kind: cancellation === 'accepted' ? 'accepted' : 'already_satisfied',
@@ -118,6 +118,24 @@ test('Effect locale retains separate uncertainty, control revision and physical 
   }}), expected, '[check-mutation:operation-effect-custody]');
   assert.equal(sdk.explainEffectUncertainty({...state}, {locale: 'ja'}), undefined);
   assert.deepEqual(f.calls, before, '[check-mutation:operation-locale-passive]');
+});
+
+test('Run revision remains independent of control revision in an uncertain Effect observation', async t => {
+  const f = await fixture(t), execution = await f.client.attach(ref), state = await execution.status();
+  assert.equal(state.revision, 1);
+  assert.equal(state.control.revision, 7);
+  assert.equal(state.control.physical_stop, 'unknown');
+  assert.equal(sdk.explainEffectUncertainty(state).controlRevision, 7);
+  assert.deepEqual(f.calls, ['connect', 'attach', 'status']);
+});
+
+test('Run revision omission is refused even with an original control revision', async t => {
+  const {revision, ...missing} = unknown;
+  assert.equal(revision, 1);
+  assert.equal(missing.control.revision, 7);
+  const f = await fixture(t, missing), execution = await f.client.attach(ref);
+  await assert.rejects(execution.status(), {code: 'InvalidHostRunState'});
+  assert.deepEqual(f.calls, ['connect', 'attach', 'status']);
 });
 
 test('operation locale identity is separate from check schemas and malformed options fall back', () => {
