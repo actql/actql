@@ -30,7 +30,11 @@ fn adoption_capture_test_retain(
 fn adoption_capture_test_close(
   capture : NativeLocalAdoptionCapture,
 ) -> Unit raise {
-  assert_true(capture.close().issue() is None)
+  let reply = capture.close()
+  assert_true(reply.issue() is None)
+  assert_eq(reply.operation_tag(), 3)
+  assert_eq(reply.issue_family(), 0)
+  assert_true(physical_equal(reply.original_capture(), capture))
   assert_true(capture.descriptor_cleanup_acknowledged())
   adoption_capture_test_pending.val = None
 }

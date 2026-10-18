@@ -12,6 +12,14 @@ pub(all) struct NativeLocalExistingAdoptionInput {
 }
 
 ///|
+/// Physical operation identity, independent of opening/current/cleanup outcome.
+pub(all) enum NativeLocalAdoptionCaptureOperation {
+  OpenCapturedAdoption
+  ObserveCapturedAdoption
+  CloseCapturedAdoption
+} derive(Eq)
+
+///|
 priv enum NativeLocalAdoptionCaptureOpening {
   AdoptionNotAttempted
   AdoptionOpenUnconfirmed
@@ -46,6 +54,7 @@ struct NativeLocalAdoptionCapture {
 
 ///|
 struct NativeLocalAdoptionCaptureReply {
+  operation : NativeLocalAdoptionCaptureOperation
   capture : NativeLocalAdoptionCapture
   issue : NativeLocalAdoptionCaptureIssue?
 }
@@ -105,9 +114,10 @@ pub fn prepare_native_local_existing_adoption_capture_in_current_read_context(
 ///|
 fn NativeLocalAdoptionCapture::reply(
   self : NativeLocalAdoptionCapture,
+  operation : NativeLocalAdoptionCaptureOperation,
   issue : NativeLocalAdoptionCaptureIssue?,
 ) -> NativeLocalAdoptionCaptureReply {
-  { capture: self, issue, }
+  { operation, capture: self, issue, }
 }
 
 ///|
@@ -118,7 +128,7 @@ pub fn NativeLocalAdoptionCapture::open(
   self : NativeLocalAdoptionCapture,
 ) -> NativeLocalAdoptionCaptureReply {
   if self.closing {
-    return self.reply(Some(AdoptionCaptureClosed))
+    return self.reply(OpenCapturedAdoption, Some(AdoptionCaptureClosed))
   }
   if self.opening is AdoptionNotAttempted {
     self.opening = AdoptionOpenUnconfirmed
@@ -144,6 +154,7 @@ pub fn NativeLocalAdoptionCapture::open(
     }
   }
   self.reply(
+    OpenCapturedAdoption,
     match self.opening {
       AdoptionNotAttempted => Some(AdoptionNotOpened)
       AdoptionOpenUnconfirmed => Some(AdoptionOpeningUnconfirmed)
@@ -195,14 +206,16 @@ pub fn NativeLocalAdoptionCapture::check_current(
   self : NativeLocalAdoptionCapture,
 ) -> NativeLocalAdoptionCaptureReply {
   if self.closing {
-    return self.reply(Some(AdoptionCaptureClosed))
+    return self.reply(ObserveCapturedAdoption, Some(AdoptionCaptureClosed))
   }
   if self.journal is Some(journal) {
     return self.reply(
+      ObserveCapturedAdoption,
       journal.check_current().issue().map(issue => AdoptionJournal(issue)),
     )
   }
   self.reply(
+    ObserveCapturedAdoption,
     match self.opening {
       AdoptionNotAttempted => Some(AdoptionNotOpened)
       AdoptionOpenUnconfirmed => Some(AdoptionOpeningUnconfirmed)
@@ -226,27 +239,28 @@ pub fn NativeLocalAdoptionCapture::close(
 ) -> NativeLocalAdoptionCaptureReply {
   self.closing = true
   if self.cleanup_acknowledged {
-    return self.reply(None)
+    return self.reply(CloseCapturedAdoption, None)
   }
   if self.opening is AdoptionOpenUnconfirmed {
-    return self.reply(Some(AdoptionOpeningUnconfirmed))
+    return self.reply(CloseCapturedAdoption, Some(AdoptionOpeningUnconfirmed))
   }
   if self.journal is Some(journal) {
     let reply = journal.close()
     guard journal.descriptor_cleanup_acknowledged() else {
       return self.reply(
+        CloseCapturedAdoption,
         Some(
           AdoptionJournal(reply.issue().unwrap_or(JournalOpeningUnconfirmed)),
         ),
       )
     }
     self.cleanup_acknowledged = true
-    return self.reply(None)
+    return self.reply(CloseCapturedAdoption, None)
   }
   let result = match self.opening {
     AdoptionNotAttempted => Ok(())
     AdoptionOpenUnconfirmed =>
-      return self.reply(Some(AdoptionOpeningUnconfirmed))
+      return self.reply(CloseCapturedAdoption, Some(AdoptionOpeningUnconfirmed))
     AdoptionRefused => self.original.retry_cleanup()
     AdoptionAcquired(session) =>
       if session.close() {
@@ -256,6 +270,7 @@ pub fn NativeLocalAdoptionCapture::close(
       }
   }
   self.reply(
+    CloseCapturedAdoption,
     match result {
       Ok(_) => {
         self.cleanup_acknowledged = true
@@ -314,4 +329,30 @@ pub fn NativeLocalAdoptionCaptureReply::original_capture(
   self : NativeLocalAdoptionCaptureReply,
 ) -> NativeLocalAdoptionCapture {
   self.capture
+}
+
+///|
+pub fn NativeLocalAdoptionCaptureReply::operation_tag(
+  self : NativeLocalAdoptionCaptureReply,
+) -> Int {
+  match self.operation {
+    OpenCapturedAdoption => 1
+    ObserveCapturedAdoption => 2
+    CloseCapturedAdoption => 3
+  }
+}
+
+///|
+pub fn NativeLocalAdoptionCaptureReply::issue_family(
+  self : NativeLocalAdoptionCaptureReply,
+) -> Int {
+  match self.issue {
+    None => 0
+    Some(AdoptionNotOpened) => 1
+    Some(AdoptionOpeningUnconfirmed) => 2
+    Some(AdoptionCaptureClosed) => 3
+    Some(AdoptionOriginal(_)) => 4
+    Some(AdoptionJournalAlreadyCaptured) => 5
+    Some(AdoptionJournal(_)) => 6
+  }
 }
