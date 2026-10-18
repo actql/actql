@@ -208,6 +208,31 @@ class OriginalAdoptionTests(unittest.TestCase):
                 self.assertTrue(raised.exception.unknown); self.assertIsNotNone(a._crypto.value)
                 self.assertFalse(any(x[0] == 'operate' for x in f.adoption_events))
 
+    def test_changed_crypto_session_or_child_alias_is_not_original_correspondence(self):
+        for field in (3, 4, 5):
+            with self.subTest(field=field):
+                f = AdoptionFixture(); a = f.adoption()
+                a.open_journal(ttl_ms=100.0, max_records=8, max_snapshot_bytes=8388608)
+                f.original_override = field
+                with self.assertRaises(_OriginalAdoptionError) as raised: a.current()
+                self.assertTrue(raised.exception.unknown)
+                before = list(f.adoption_events)
+                with self.assertRaises(_OriginalAdoptionError): a.close()
+                self.assertEqual(f.adoption_events, before)
+
+    def test_preallocation_parent_retirement_is_known_before_registration_or_prepare(self):
+        f = AdoptionFixture()
+        from actql_sdk import _local_native_adoption as module
+        make = module.c_void_p
+        def allocate(*args):
+            f.r._closed = True
+            return make(*args)
+        with patch.object(module, 'c_void_p', side_effect=allocate):
+            with self.assertRaises(ValueError): f.adoption()
+        self.assertIsNone(getattr(f.r, '_adoption_original', None))
+        self.assertEqual(f.adoption_events, [])
+        f.r._closed = False; f.p.close()
+
     def test_lost_journal_attach_keeps_child_and_never_reprepares_or_opens(self):
         f = AdoptionFixture(); a = f.adoption(); f.adoption_faults['journal'] = OSError('lost child')
         with self.assertRaises(_OriginalAdoptionError) as raised:

@@ -49,7 +49,8 @@ class _OriginalAdoptionCustody:
     """
     __slots__ = ('_resources', '_functions', '_preparation', '_original', '_reply',
                  '_host', '_pair', '_read', '_crypto', '_session', '_journal',
-                 '_unknown', '_unknown_carrier', '_closed', '_journal_attempted')
+                 '_unknown', '_unknown_carrier', '_closed', '_journal_attempted',
+                 '_observed_originals')
     _resources: _OriginalHostResourcesCustody
     _functions: _OriginalAdoptionFunctions
     _preparation: Callable[[Any], int] | None
@@ -65,6 +66,7 @@ class _OriginalAdoptionCustody:
     _unknown_carrier: _OriginalAdoptionError
     _closed: bool
     _journal_attempted: bool
+    _observed_originals: tuple[int | None, int | None, int | None]
 
     @classmethod
     def _open_original(cls, resources: _OriginalHostResourcesCustody,
@@ -83,6 +85,7 @@ class _OriginalAdoptionCustody:
         original._host, original._pair, original._read = c_void_p(), c_void_p(), c_void_p()
         original._crypto, original._session, original._journal = c_void_p(), c_void_p(), c_void_p()
         original._unknown, original._closed, original._journal_attempted = None, False, False
+        original._observed_originals = None, None, None
         original._unknown_carrier = _OriginalAdoptionError(original, unknown=True)
         out = byref(original._original)
         outputs = tuple(byref(slot) for slot in original._original_slots())
@@ -137,6 +140,13 @@ class _OriginalAdoptionCustody:
         if (self._host.value != p._host.value or self._pair.value != p._original.value
                 or self._read.value != p._read._original.value or self._crypto.value is None):
             raise self._mark_unknown()
+        observed = self._crypto.value, self._session.value, self._journal.value
+        if any(old is not None and old != current
+               for old, current in zip(self._observed_originals, observed)):
+            raise self._mark_unknown()
+        # Correlate immutable aliases only. These addresses grant no use and
+        # remain separate from the owned managed references in the out-slots.
+        self._observed_originals = observed
 
     def _parents_current(self) -> None:
         p = self._resources
