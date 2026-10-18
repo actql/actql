@@ -36286,12 +36286,13 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "661dd52e502c823c9b73d7a4fb9456d9b89c0c6dfa6da0f44c3c60fa5307500b",
+      "sha256": "e75d1c1c87dec77a5060876a22aae4c4211519f67e65f5f14c65cbaa7711fc0f",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "assertInitialControlHostPreparation",
         "connectEmbeddedLocal",
+        "connectInitialControlHostPreparation",
         "openInstalledRemoteHttpHost",
         "publishInstalledEffect",
         "publishInstalledSource",
@@ -36330,17 +36331,18 @@
         {
           "name": "connectEmbeddedLocal",
           "parameters": [
-            "options"
+            "options",
+            "initialEntry"
           ],
           "async": true
         },
         {
-          "name": "connectEmbeddedLocal/connectEmbeddedLocal",
+          "name": "connectEmbeddedLocal/client/client",
           "parameters": [],
           "async": false
         },
         {
-          "name": "connectEmbeddedLocal/connectEmbeddedLocal#2",
+          "name": "connectEmbeddedLocal/connectEmbeddedLocal",
           "parameters": [],
           "async": false
         },
@@ -36369,6 +36371,14 @@
         {
           "name": "connectEmbeddedLocal/retirePreparationReferences",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectInitialControlHostPreparation",
+          "parameters": [
+            "kind",
+            "rawInput"
+          ],
           "async": false
         },
         {
@@ -38697,7 +38707,7 @@
         {
           "operations": [
             "connectEmbeddedLocal",
-            "connectEmbeddedLocal/connectEmbeddedLocal"
+            "connectEmbeddedLocal/client/client"
           ],
           "exports": [
             "connectEmbeddedLocal"
@@ -38914,7 +38924,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "control = await beginInitialControlInstallation(originals, options);"
+                "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               }
             ],
             "failure": [
@@ -42013,7 +42023,7 @@
         {
           "operations": [
             "assertInitialControlHostPreparation",
-            "connectEmbeddedLocal/connectEmbeddedLocal#2",
+            "connectEmbeddedLocal/connectEmbeddedLocal",
             "connectEmbeddedLocal/initialControl/init:close/init:close",
             "connectEmbeddedLocal/preparation/init:retainReferenceRetirement/init:retainReferenceRetirement",
             "connectEmbeddedLocal/releaseUnadopted",
@@ -42037,7 +42047,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "control = await beginInitialControlInstallation(originals, options);"
+                "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -42235,7 +42245,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "control = await beginInitialControlInstallation(originals, options);"
+                "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               }
             ],
             "failure": [
@@ -42270,6 +42280,84 @@
               {
                 "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
                 "anchor": "test('Host passes raw input before awaiting and consumes only the same captured packet afterwards'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "connectInitialControlHostPreparation"
+          ],
+          "exports": [
+            "connectInitialControlHostPreparation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The selected public-entry consumer initially supports omitted `open` input."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function connectInitialControlHostPreparation(kind, rawInput) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const begun = beginInitialControlInstallation(originals, options);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "options = readInitialControlInstallationInput(control, originals);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The returned Client and `info.stateDir` describe that same registry Host and"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "try { record.openStateDirectory = resolve('.actql'); }"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
+                "anchor": "test('open never drops fields from a nonempty supplier packet'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
+                "anchor": "test('failed original initialization retains the open path aliases until its original cleanup confirms'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "envelope; its result or failure stays with the same preparation record through"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "validation remain necessary; unsupported selected inputs are unavailable."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
+                "anchor": "test('omitted open enters the same original begin before path selection and keeps its call-time path'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
+                "anchor": "test('the selected Host consumer forwards only omitted open input without a raw observation'"
               }
             ]
           }
@@ -119017,7 +119105,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "control = await beginInitialControlInstallation(originals, options);"
+                "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               }
             ],
             "failure": [
@@ -119093,7 +119181,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "control = await beginInitialControlInstallation(originals, options);"
+                "anchor": "const begun = beginInitialControlInstallation(originals, options);"
               }
             ],
             "failure": [
