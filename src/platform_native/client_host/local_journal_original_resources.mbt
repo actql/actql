@@ -39,6 +39,7 @@ pub fn prepare_native_local_journal_capture_with_original_resources(
     initial_signing: None,
     read_operation_issue: None,
     opening_database: None,
+    opening_physical_failure: None,
     opening_inspection: None,
     crypto,
     ttl_ms,
@@ -163,8 +164,10 @@ fn NativeLocalJournalCapture::open_original_journal(
       let failure = self.session.retain_journal_open_failure_with_resources(
         retained,
         Some(original),
+        physical_open_failure=self.opening_physical_failure,
       )
       self.opening_database = None
+      self.opening_physical_failure = None
       self.opening_inspection = None
       Err(failure)
     }
@@ -229,19 +232,28 @@ fn NativeLocalJournalCapture::open_original_journal_stages(
   }
   let database = match
     original.stage(@arena.HostSqlite, fn() {
-      match
-        (if self.command_preparation_journal && first {
+      let opening : Result[@sqlite.Database, NativeLocalAdoptionIssue] = if self.command_preparation_journal {
+        let selected = if first {
           library.initialize_owned_journal_database_with_custody(
             self.session.state_path + "/client.sqlite3",
             ownership,
             131072L,
           )
-        } else if self.command_preparation_journal {
+        } else {
           library.open_existing_journal_database_with_custody(
             self.session.state_path + "/client.sqlite3",
             131072L,
           )
-        } else if first {
+        }
+        match selected {
+          Ok(database) => Ok(database)
+          Err(failure) => {
+            self.opening_physical_failure = Some(failure)
+            Err(Physical(failure.issue()))
+          }
+        }
+      } else {
+        (if first {
           library.initialize_owned_database(
             self.session.state_path + "/client.sqlite3",
             ownership,
@@ -252,8 +264,10 @@ fn NativeLocalJournalCapture::open_original_journal_stages(
             self.session.state_path + "/client.sqlite3",
             131072L,
           )
-        }) {
-        Err(issue) => Err(Physical(issue))
+        }).map_err(issue => Physical(issue))
+      }
+      match opening {
+        Err(issue) => Err(issue)
         Ok(database) => {
           self.opening_database = Some(database)
           Ok(database)

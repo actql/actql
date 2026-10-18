@@ -38,6 +38,7 @@ struct NativeLocalJournalCapture {
   )?
   mut read_operation_issue : NativeLocalAdoptionIssue?
   mut opening_database : @sqlite.Database?
+  mut opening_physical_failure : @sqlite.NativeSqliteOpenFailure?
   mut opening_inspection : @journal.CoordinatorInitializationCleanup?
   crypto : @crypto.Library
   ttl_ms : Double
@@ -75,6 +76,7 @@ pub fn prepare_native_local_journal_capture(
     initial_signing: None,
     read_operation_issue: None,
     opening_database: None,
+    opening_physical_failure: None,
     opening_inspection: None,
     crypto,
     ttl_ms,
@@ -126,6 +128,7 @@ pub fn NativeLocalJournalCapture::open(
       // The acquired Host or Session-owned failure now retains the same DB.
       // Clear this temporary alias only after publishing that original state.
       self.opening_database = None
+      self.opening_physical_failure = None
       self.opening_inspection = None
     }
     _ => ()
