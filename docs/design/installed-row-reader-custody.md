@@ -137,6 +137,21 @@ awaited observation is followed by the captured current fence. A copied scope,
 matching CID or callback result cannot create an issuer, new permission or
 current authorization.
 
+When the same Site has already authorized and issued a grant,
+`bindRunAcquisition` retains that exact returned authorization instead of
+signing another grant. Its private issuer membership rejects a wrapper copy,
+re-admitted grant or equal CID, even if all projected scope fields match.
+The original grant, scope, control, Journal and resolver remain unchanged.
+The binding does not replace the Account decision or each operation's claimed
+use, current authority, expiry, revocation and quota checks.
+
+An authorization can enter binding preparation only once. The parent records
+the opening child before a captured current callback can reenter: a concurrent
+close remains pending until that opening attempt has either produced its
+original binding or failed without one. A failed opening does not issue a
+replacement grant or silently retry the authorization. The same existing
+Journal keeps its grant and any physical duties.
+
 The parent Site owns every selected binding before returning a borrow. Its
 close first retires those original bindings, including pending resolver,
 response and socket custody, and only then invokes the captured original
@@ -156,6 +171,13 @@ claim is retried by cleanup. Journal retirement does not reconcile that claim,
 authenticate a saved publication, release another Owner's holding or establish
 GC/physical-byte reclamation. Actual Host/Account admission, funding and durable
 publication remain independent requirements of their existing Owners.
+
+Original issued-authorization membership also retains a private weak-map entry
+and state record for each escaped authorization while bounded acquisition
+custody is selected. The binding ceiling does not bound all grant issuances or
+turn weak membership into free capacity. These records, opening-child entries
+and escaped aliases belong to the original acquisition/issuer inventory; a
+child or Journal ACK is not their heap-reclamation certificate.
 
 ## Installation publication storage association
 
