@@ -398,7 +398,15 @@ pub fn project_slack_message_page(
     let values = []
     for (name, contract) in columns {
       let runtime = match
-        message_runtime_cell(bytes, row, name, channel, ts, limits.max_bytes) {
+        message_runtime_cell(
+          bytes,
+          row,
+          name,
+          channel,
+          ts,
+          limits.max_bytes,
+          limits.max_value_text_bytes,
+        ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
