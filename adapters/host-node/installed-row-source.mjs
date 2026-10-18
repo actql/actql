@@ -188,7 +188,7 @@ export function openRowSourceCredentialCustody({profile, principalId,
   let closing = false;
   let released = false;
   const runBindings = acquisitionLimits === undefined ? undefined : [];
-  let runJournalClose, runJournalFailure;
+  let runJournalClose, runJournalFailure, runJournalCloseObservation;
   if (runBindings !== undefined) {
     // Capture before returning a borrow. A substituted method cannot retire
     // this original Journal, and capture failure remains with this custody.
@@ -254,7 +254,18 @@ export function openRowSourceCredentialCustody({profile, principalId,
       closeRunBindings();
       if (runJournalFailure !== undefined) throw runJournalFailure;
       const acknowledged = Reflect.apply(runJournalClose, journal, []);
-      if (typeof acknowledged !== 'boolean') fail('RowSourceCredentialJournalCleanupUnconfirmed');
+      if (typeof acknowledged !== 'boolean') {
+        runJournalCloseObservation = acknowledged;
+        runJournalFailure = Object.assign(new Error('RowSourceCredentialJournalCleanupUnconfirmed'),
+          {code: 'RowSourceCredentialJournalCleanupUnconfirmed'});
+        const failure = runJournalFailure;
+        try {
+          if (typeof runJournalCloseObservation?.then === 'function') {
+            void Promise.resolve(runJournalCloseObservation).catch(cause => { failure.cause = cause; });
+          }
+        } catch (cause) { failure.cause = cause; }
+        throw failure;
+      }
     }
     released = true;
   }

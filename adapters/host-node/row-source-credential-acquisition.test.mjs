@@ -50,12 +50,14 @@ async function fixture(t, options = {}) {
         finish(...fields) { finishes++; if (options.finishFailure) throw options.finishFailure;
           return original.finish(...fields); },
         close() { closes++; if (failClose) { const failure = failClose; failClose = undefined; throw failure; }
-          return original.close(); },
+          const result = original.close();
+          return options.closeObservation === undefined ? result : options.closeObservation; },
       });
     }, ...options.custody};
   const custody = openRowSourceCredentialCustody(args);
   t.after(async () => {
-    custody.closeOnce();
+    if (options.closeObservation === undefined) custody.closeOnce();
+    else assert.throws(() => custody.closeOnce(), {code: 'RowSourceCredentialJournalCleanupUnconfirmed'});
     if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') console.error(`Original acquisition custody retained: ${root}`);
     else await rm(root, {recursive: true, force: true});
   });
@@ -229,4 +231,23 @@ test('run acquisition custody refuses copied request accessors, null attempt and
     {code: 'InvalidRemoteCredentialCurrentFence'});
   assert.equal(f.counts().accepts, 0); assert.equal(f.counts().claims, 0);
   assert.equal(f.counts().resolutions, 0); assert.equal(f.exchange.seen().length, 0);
+});
+
+
+test('run acquisition custody retains a non-ACK close observation without repeating the original method', async t => {
+  let reject;
+  const observed = new Promise((_, fail) => { reject = fail; });
+  const cause = new Error('OriginalAsynchronousCloseFailure');
+  const f = await fixture(t, {closeObservation: observed});
+  const acquired = f.custody.openRunAcquisition(request(), current());
+  assert.equal(acquired.close(), 'closed');
+  let originalFailure;
+  assert.throws(() => f.custody.closeOnce(), error => {
+    originalFailure = error; return error.code === 'RowSourceCredentialJournalCleanupUnconfirmed';
+  });
+  reject(cause); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(originalFailure.cause, cause);
+  assert.throws(() => f.custody.closeOnce(), error => error === originalFailure);
+  assert.equal(f.custody.cleanupPending(), true); assert.equal(f.counts().closes, 1);
+  assert.equal(f.exchange.seen().length, 0);
 });
