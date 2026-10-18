@@ -1021,6 +1021,20 @@ export function inspectEffectTaskProgress(allowed: AllowedEffectRun,
     taskCleanupComplete: boolean; resultTasks: readonly number[];
     tasks: ReturnType<typeof inspectTaskProgress>['tasks'];
   }>;
+/** Unpublished same-Run observation only. No Effect outcome, whole-Run stop,
+ * approval, publication or release acknowledgement follows from task facts.
+ * The Host supplies the complete original saved claim set, not copied keys. */
+export function projectEffectSiteRun(allowed: AllowedEffectRun,
+  definition: RunDefinition, authority: string, durableWires: readonly string[],
+  observedAt: string, cancellationRequested: boolean,
+  savedClaims: readonly Readonly<{taskKey: string; dispatchCid: string | null;
+    dispatchReserved: boolean; physicalStartClaimed: boolean}>[]): Readonly<
+    Omit<ReturnType<typeof inspectEffectTaskProgress>, 'tasks'> & {
+      stateWire: string; publicationReady: false;
+      execution: 'unobserved' | 'running' | 'settled' | 'failed' | 'cancelled' | 'unknown';
+      tasks: readonly Readonly<ReturnType<typeof inspectTaskProgress>['tasks'][number] & {
+        nextWork: 'none' | 'cleanup' | 'publication' | 'reconcile' | 'cancel' | 'release'}>[];
+    }>;
 /** Prepare a saved task claim; current input/Source custody remains separate. */
 export function prepareEffectTaskPhysicalStart(allowed: AllowedEffectRun,
   definition: RunDefinition, authority: string, durableWires: readonly string[],

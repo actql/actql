@@ -1096,3 +1096,31 @@ This receiver does not mint conditional request identity, durable saved
 evidence, cold-restoration authority, write approval or physical cleanup ACK.
 Those remain separate admissions by the existing request, Preview, Store,
 Credential and Effect owners.
+
+## Pre-Checkpoint Effect Run observation
+
+The existing Common Effect Run owner projects an unpublished candidate from
+its original allowed Run, definition, authority and admitted Coordinator task
+records. The Host supplies the complete saved claim set and checks each task
+and dispatch against that same Run. The projection neither prepares a Pure
+Run nor derives a public Run revision from a Coordinator revision. The existing
+Run observation owner issues the final revision through the same durable row,
+observation key and conditional commit, with current authorization checked
+independently before disclosure. Observation time alone does not advance it.
+
+Computation completion is not Effect completion or publication readiness.
+Task settlement and task cleanup cannot complete whole-Run cancellation:
+producer, retained-input Transfer and Effect stop/custody proofs remain with
+their original owners. Without those proofs the candidate stays nonterminal
+or requires reconciliation. A cancellation request is not a pre-start fence,
+a confirmed Checkpoint or approval. Missing claimed observations are not
+converted into a known execution outcome or permission to resend.
+
+The thin package bridge captures each native Array entry once without using
+caller-owned iteration, validation or copying methods. Original Run handles,
+durable wires, claim snapshots and parallel ABI arrays overlap with the Common
+projection, encoded candidate, task/scopes/work arrays and frozen JavaScript
+result during the read. These representations retain the existing Host
+accounting and lifetime obligations; projection or garbage collection is not
+physical retirement or a resource acknowledgement. The returned task cleanup
+facts are explicitly separate from whole Effect/Run cleanup.

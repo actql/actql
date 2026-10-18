@@ -150,6 +150,10 @@ pub fn client_values_host_effect_task_progress_scopes(@run_publication_host.Clie
 
 pub fn client_values_host_effect_task_progress_task_cleanup_complete(@run_publication_host.ClientRemoteEffectTaskProgress) -> Bool
 
+pub fn client_values_host_effect_task_run_fields(@run_publication_host.ClientRemoteEffectTaskRunProjection) -> Array[String]
+
+pub fn client_values_host_effect_task_run_work(@run_publication_host.ClientRemoteEffectTaskRunProjection) -> Array[String]
+
 pub fn client_values_host_effect_template_wire(@run_publication_host.ClientEffectCompilation) -> String
 
 pub fn client_values_host_environment(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> @program_check.CheckEnvironment?
@@ -313,6 +317,8 @@ pub fn client_values_host_program_preparation_effect_free(ClientValuesHostProgra
 pub fn client_values_host_program_preparation_kind(ClientValuesHostProgramPreparation) -> String
 
 pub fn client_values_host_project_committed_result_read_wire(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[@run_publication.PublicationContract]) -> String?
+
+pub fn client_values_host_project_effect_task_run(@run_publication_host.ClientRemoteEffectTaskProgress, String, Bool, Array[String], Array[String], Array[Bool], Array[Bool]) -> Result[@run_publication_host.ClientRemoteEffectTaskRunProjection, Unit]
 
 pub fn client_values_host_project_publication_snapshot(@run_publication.PublicationContract?, Int, @run_publication.PublicationContract?) -> Result[Array[String], ClientValuesHostPublicationSnapshotIssue]
 
