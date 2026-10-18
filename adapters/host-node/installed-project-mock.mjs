@@ -271,6 +271,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     let environmentWire;
     for (const source of sources) environmentWire = composeInstalledCheckEnvironment(moon,
       baseEnvironmentWire, environmentWire, source.environmentWire);
+    current();
     return Object.freeze({realizationKey: 'installed-multi-acquired', environmentWire,
       sources: Object.freeze(sources),
       connectorBindings: Object.freeze(sources.flatMap(source => source.connectorBindings)),

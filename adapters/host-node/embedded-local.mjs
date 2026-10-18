@@ -54,7 +54,8 @@ import {beginInitialControlInstallation, assertInitialControlInstallationCurrent
   from './node-initial-control-installation.mjs';
 import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
-import {prepareInstalledProjectMock} from './installed-project-mock.mjs';
+import {prepareInstalledProjectMock, installPreparedProjectMockSources}
+  from './installed-project-mock.mjs';
 import {prepareSourceManagedInstallation, assertSourceManagedInstallationCurrent,
   assertSourceManagedPreparationCurrent}
   from './node-source-managed-installation.mjs';
@@ -625,9 +626,21 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
   }
   try {
-    sourceProfile = await loadInstalledSources(selectedSourcePaths,
-      {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
-        resolveSecret: resolveSourceSecret, connectorTable});
+    const installationSourcePreparation = preparation?.sourcePreparation();
+    if (installationSourcePreparation !== undefined) {
+      // Consume the SAME selected physical Source preparation. An explicit
+      // Mock installation must not load configured live Source profiles, and
+      // its actual Account gate still defaults to Missing, never to Allow.
+      sourceProfile = await preparation.installMockSources(moon, baseEnvironmentWire,
+        () => createLocalAuthorizationGate({...authorization, principal: principalId}));
+      if (preparation.sourcePreparation() !== installationSourcePreparation) {
+        throw clientOperationError('InstalledSourcePreparationChanged');
+      }
+    } else {
+      sourceProfile = await loadInstalledSources(selectedSourcePaths,
+        {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
+          resolveSecret: resolveSourceSecret, connectorTable});
+    }
     installedEffect = await loadInstalledEffects(selectedEffectPaths, {root, principalId, moon,
         runtimeUrl, baseEnvironmentWire, resolveSecret: resolveEffectSecret, connectorTable});
     if (installedEffect !== undefined) {
@@ -3654,6 +3667,15 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       // connection. Check the exact wrapper in its private original inventory.
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
       return sourceManaged;
+    },
+    installMockSources(runtime, baseEnvironmentWire, authorizationFor) {
+      if (runtime !== moon || mockPreparation === undefined) {
+        throw clientOperationError('ForeignInstalledMockPreparation');
+      }
+      assertSourceManagedInstallationCurrent(sourceManaged, originals);
+      return installPreparedProjectMockSources({moon, mockPreparation, sourceManaged,
+        baseEnvironmentWire, authorizationFor,
+        readAsset: path => readInitialControlInstallationAsset(control, originals, path)});
     },
     readEnvironmentSource() {
       return readInitialControlInstallationAsset(control, originals,
