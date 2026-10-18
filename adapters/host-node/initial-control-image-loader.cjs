@@ -12,11 +12,15 @@ const nativeApply = Reflect.apply;
 const descriptor = Object.getOwnPropertyDescriptor, hasOwn = Object.hasOwn;
 const ownKeys = Reflect.ownKeys;
 const freeze = Object.freeze, defineProperty = Object.defineProperty;
-const NativeError = Error, NativeMap = Map, parse = JSON.parse;
+const prototype = Object.getPrototypeOf, sameValue = Object.is;
+const objectPrototype = Object.prototype, arrayPrototype = Array.prototype;
+const NativeError = Error, NativeMap = Map, NativeWeakSet = WeakSet, parse = JSON.parse;
+const weakHas = WeakSet.prototype.has, weakAdd = WeakSet.prototype.add;
 const nativeMapGet = Map.prototype.get, nativeMapSet = Map.prototype.set, nativeMapHas = Map.prototype.has;
 const nativeMapEach = Map.prototype.forEach;
 const isArray = Array.isArray, safeInteger = Number.isSafeInteger;
 const nativeStartsWith = String.prototype.startsWith, nativeEndsWith = String.prototype.endsWith;
+const nativeCharCodeAt = String.prototype.charCodeAt, nativeSlice = String.prototype.slice;
 const preloading = descriptor(NodeModule.prototype, 'isPreloading')?.get;
 const registerHooks = NodeModule.registerHooks, register = NodeModule.register;
 const stockLoad = NodeModule._load, stockCache = NodeModule._cache;
@@ -127,6 +131,44 @@ function installInitialControlImageLoader(groups) {
       if (!same) { invalidated = true; fail('InitialControlImageLoaderChanged'); }
     }
   }
+  function sealJsonOriginal(original, exported) {
+    // Only selected JSON compiler metadata, not arbitrary CJS exports, library
+    // caches or application input. Compare the actual parsed tree with the
+    // SAME captured Source before sealing any node. Preserve stock Node's JSON
+    // BOM handling without changing the held Source bytes or their identity.
+    const source = original.source;
+    const expected = parse(nativeApply(nativeCharCodeAt, source, [0]) === 0xfeff
+      ? nativeApply(nativeSlice, source, [1]) : source);
+    const checks = [{actual: exported, expected}], objects = [], seen = new NativeWeakSet();
+    for (let index = 0; index < checks.length; index++) {
+      const pair = checks[index], actual = pair.actual, expected = pair.expected;
+      if (expected === null || typeof expected !== 'object') {
+        if (!sameValue(actual, expected)) fail('InitialControlImageLoaderChanged');
+        continue;
+      }
+      if (actual === null || typeof actual !== 'object' ||
+          isArray(actual) !== isArray(expected) ||
+          prototype(actual) !== (isArray(expected) ? arrayPrototype : objectPrototype) ||
+          nativeApply(weakHas, seen, [actual])) fail('InitialControlImageLoaderChanged');
+      nativeApply(weakAdd, seen, [actual]);
+      const names = ownKeys(actual), expectedNames = ownKeys(expected);
+      if (names.length !== expectedNames.length) fail('InitialControlImageLoaderChanged');
+      for (let item = 0; item < names.length; item++) {
+        const name = names[item], value = descriptor(actual, name);
+        if (name !== expectedNames[item] || value === undefined || !hasOwn(value, 'value')) {
+          fail('InitialControlImageLoaderChanged');
+        }
+        checks[checks.length] = {actual: value.value, expected: descriptor(expected, name).value};
+      }
+      objects[objects.length] = actual;
+    }
+    // Native JSON trees have only these original records/arrays and primitive
+    // leaves. Never freeze Object/Array prototypes, CJS function graphs or a
+    // caller's unrelated objects. The expected parse, pair/keys/descriptor walk,
+    // WeakSet and node array overlap the original Module/tree/Source; none is
+    // free workspace or an operational admission. Escaped nodes keep lifetime.
+    for (let index = 0; index < objects.length; index++) freeze(objects[index]);
+  }
   function captureLoadedModules() {
     // Only the original preload can finish this handoff, immediately after its
     // synchronous original namespace initialization and BEFORE entry. A late
@@ -153,6 +195,10 @@ function installInitialControlImageLoader(groups) {
         invalidated = true; fail('InitialControlImageLoaderChanged');
       }
       const exported = exportsProperty.value;
+      if (original.format === 'json') {
+        try { sealJsonOriginal(original, exported); }
+        catch (cause) { invalidated = true; throw cause; }
+      }
       let properties;
       if (exported !== null && (typeof exported === 'object' || typeof exported === 'function')) {
         const names = ownKeys(exported); properties = [];
