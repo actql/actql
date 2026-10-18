@@ -26,6 +26,7 @@ fn original_read_unacquired_carrier(
     workspace: None,
     claim: None,
     pair: None,
+    consumer: None,
     physical_retired: Ref(false),
     owns_read: false,
     child_started: false,

@@ -201,6 +201,14 @@ pub fn InstalledArenaHost::require_domain_current(
     !self.domains.any(original => physical_equal(original, record)) {
     return Err(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal))
   }
+  if self.local_host_resources is Some(resources) &&
+    resources.closing &&
+    (
+      physical_equal(resources.read.domain, record) ||
+      physical_equal(resources.sqlite.domain, record)
+    ) {
+    return Err(@bootstrap.Bootstrap(@bootstrap.Closing))
+  }
   match self.original_backing() {
     Err(issue) => return Err(@bootstrap.Bootstrap(issue))
     Ok(backing) =>
@@ -282,6 +290,14 @@ pub fn InstalledArenaHost::close_domain_after_owner_ack(
   }
   if record.closed {
     return Ok(())
+  }
+  if self.local_host_resources is Some(resources) &&
+    !resources.closed &&
+    (
+      physical_equal(resources.read.domain, record) ||
+      physical_equal(resources.sqlite.domain, record)
+    ) {
+    return Err(@bootstrap.Bootstrap(@bootstrap.ReadersPending))
   }
   if record.process is Some(process) && !process.closed {
     return Err(@bootstrap.Bootstrap(@bootstrap.ReadersPending))

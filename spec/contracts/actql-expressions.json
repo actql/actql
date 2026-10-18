@@ -23,7 +23,7 @@
     }
   },
   "profile_id": "actql-text-time/0.1",
-  "inherited_text_time_profile_cid": "sha256:ebae25fecbef6a2c79bdaa971f977d4bdcfb4c4c677b25bc9de6ec67354872e9",
+  "inherited_text_time_profile_cid": "sha256:85c2e4115a2d1f4dd09884838a9c15222cfbc659e2074fa2a1990c354c0eb5d7",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
   "grammar_sha256": "3138560ad7c029b23bee2d7446f1ee8155520ead50281aae1493f0219db7bc5c",
   "schemas": {
@@ -6746,6 +6746,22 @@
                   "minLength": 1
                 }
               }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "int64"
+                },
+                "nullable": {
+                  "type": "boolean"
+                }
+              }
             }
           ]
         }
@@ -13170,6 +13186,22 @@
                   "minLength": 1
                 }
               }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "int64"
+                },
+                "nullable": {
+                  "type": "boolean"
+                }
+              }
             }
           ]
         }
@@ -15230,6 +15262,12 @@
                           "max_utf8_bytes": {
                             "type": "integer",
                             "minimum": 0
+                          },
+                          "enum": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
                           }
                         }
                       },
@@ -15372,6 +15410,22 @@
                           "media_type": {
                             "type": "string",
                             "minLength": 1
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "type",
+                          "nullable"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "type": {
+                            "const": "int64"
+                          },
+                          "nullable": {
+                            "type": "boolean"
                           }
                         }
                       }
@@ -16243,6 +16297,12 @@
                           "max_utf8_bytes": {
                             "type": "integer",
                             "minimum": 0
+                          },
+                          "enum": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
                           }
                         }
                       },
@@ -16385,6 +16445,22 @@
                           "media_type": {
                             "type": "string",
                             "minLength": 1
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "type",
+                          "nullable"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "type": {
+                            "const": "int64"
+                          },
+                          "nullable": {
+                            "type": "boolean"
                           }
                         }
                       }
@@ -17318,6 +17394,22 @@
                 "media_type": {
                   "type": "string",
                   "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "int64"
+                },
+                "nullable": {
+                  "type": "boolean"
                 }
               }
             }
@@ -30634,6 +30726,22 @@
                 "media_type": {
                   "type": "string",
                   "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": [
+                "type",
+                "nullable"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "int64"
+                },
+                "nullable": {
+                  "type": "boolean"
                 }
               }
             }

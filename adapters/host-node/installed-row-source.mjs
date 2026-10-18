@@ -9,6 +9,7 @@ import {runtimeField, runtimeIsOk} from '../host-common/compiler-binding.generat
 import {createHash, createPrivateKey, createPublicKey, randomUUID} from
   'node:crypto';
 import {readFile} from 'node:fs/promises';
+import {types as nodeTypes} from 'node:util';
 import {performance} from 'node:perf_hooks';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
@@ -31,6 +32,10 @@ import {signRemoteCredentialGrant} from
   '../site-node/remote-credential-signature.mjs';
 import {callHttpsCredentialResource} from
   '../site-node/https-credential-resource.mjs';
+import {openHttpsCredentialBinding, closeHttpsCredentialBinding} from
+  '../site-node/https-credential-resource.mjs';
+import {readBoundedConfigurationText} from './source-profile-json.mjs';
+import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
@@ -47,8 +52,8 @@ const contractRoot = new URL('../../spec/contracts/', import.meta.url);
 
 const byCid = values => values.map(value => JSON.parse(value))
   .sort((a, b) => {
-    const left = contentCid(a);
-    const right = contentCid(b);
+    const left = valueCid(a);
+    const right = valueCid(b);
     return left < right ? -1 : left > right ? 1 : 0;
   });
 
@@ -60,6 +65,8 @@ const byCid = values => values.map(value => JSON.parse(value))
 // declared Command bodies keep their original Catalog/role correspondence for
 // Common admission; this assembly does not confer permission or issue targets.
 // Without Mappings or Commands the read-only environment remains unchanged.
+// Checked contracts contain exact data text, including enum values and field
+// names. Preserve those originals rather than applying configuration NFC.
 export function rowSourceCheckEnvironment(baseWire, declared, mappings = []) {
   const base = JSON.parse(baseWire);
   const {evidence_bundle_cid: _, ...body} = base;
@@ -87,9 +94,10 @@ export function rowSourceCheckEnvironment(baseWire, declared, mappings = []) {
       connectors: [JSON.parse(declared.manifest_entry)]},
     ...(mappings.length === 0 ? {} : {mapping_contracts: byCid(mappings)}),
     ...(commands.length === 0 ? {} : {command_contracts: byCid(commands)})};
-  const evidenceCid = contentCid(environment);
+  const evidenceCid = valueCid(environment);
   return Object.freeze({
-    wire: canonicalJson({...environment, evidence_bundle_cid: evidenceCid}),
+    wire: canonicalValueJson({...environment, evidence_bundle_cid: evidenceCid},
+      {dataKeys: true}),
     evidenceCid});
 }
 
@@ -150,16 +158,52 @@ export async function installRowSourceAuthorization({accountConfiguration,
 export function openRowSourceCredentialCustody({profile, principalId,
   connectorRegistration, connectorRevision, runtimeBundleCid, commonMoon,
   privateKey, resolveSecret, ca, now, grantLifetimeMs,
-  openCredentialJournal, credentialFacts,
+  openCredentialJournal, credentialFacts, runAcquisitionLimits,
   closedCode = 'RowSourceSiteClosed',
   grantCode = 'InvalidRowSourceGrantRequest'}) {
+  let acquisitionLimits;
+  if (runAcquisitionLimits !== undefined) {
+    if (runAcquisitionLimits === null || typeof runAcquisitionLimits !== 'object' ||
+        nodeTypes.isProxy(runAcquisitionLimits)) fail('InvalidRowSourceCredentialAcquisitionLimits');
+    const descriptors = Object.getOwnPropertyDescriptors(runAcquisitionLimits);
+    if (Reflect.ownKeys(descriptors).length !== 2 ||
+        ['maxBindings', 'maxSecretBytes'].some(name => {
+          const field = descriptors[name];
+          return !field || !Object.hasOwn(field, 'value') ||
+            !Number.isSafeInteger(field.value) || field.value <= 0 || field.value > 2147483647;
+        })) fail('InvalidRowSourceCredentialAcquisitionLimits');
+    if (profile === null || typeof profile !== 'object' || nodeTypes.isProxy(profile) ||
+        !Object.isFrozen(profile) || Object.values(Object.getOwnPropertyDescriptors(profile))
+          .some(field => !Object.hasOwn(field, 'value'))) fail('InvalidRowSourceCredentialAcquisitionProfile');
+    acquisitionLimits = Object.freeze({maxBindings: descriptors.maxBindings.value,
+      maxSecretBytes: descriptors.maxSecretBytes.value});
+  }
   const control = runtimeCore(commonMoon).remoteCredentialControl;
-  const journal = openCredentialJournal(profile.journalRoot, {
-    credentialAuthorities: new Map([[profile.credentialAuthorityId,
-      new Map([[profile.credentialKeyId, createPublicKey(privateKey)]])]]),
-  });
+  const journalRoot = profile.journalRoot;
+  const credentialAuthorities = new Map([[profile.credentialAuthorityId,
+    new Map([[profile.credentialKeyId, createPublicKey(privateKey)]])]]);
+  const [authority, originalKeys] = credentialAuthorities.entries().next().value;
+  const metadataIssuer = Object.freeze({authority, keyId: originalKeys.keys().next().value});
+  const journal = openCredentialJournal(journalRoot, {credentialAuthorities});
   let closing = false;
   let released = false;
+  const runBindings = acquisitionLimits === undefined ? undefined : [];
+  let runJournalClose, runJournalFailure, runJournalCloseObservation;
+  if (runBindings !== undefined) {
+    // Capture before returning a borrow. A substituted method cannot retire
+    // this original Journal, and capture failure remains with this custody.
+    try {
+      if (nodeTypes.isProxy(journal) || !Object.isFrozen(journal) ||
+          ['acceptGrant', 'claim', 'authorize', 'finish', 'checkGrant', 'inspect', 'recover', 'close']
+            .some(name => {
+              const method = Object.getOwnPropertyDescriptor(journal, name);
+              return !method || !Object.hasOwn(method, 'value') || typeof method.value !== 'function';
+            })) fail('InvalidRowSourceCredentialAcquisitionJournal');
+      runJournalClose = Object.getOwnPropertyDescriptor(journal, 'close').value;
+    } catch (cause) { runJournalFailure = cause; }
+  }
+  // The metadata alternative uses this same original issuer/key/Journal.
+  // Legacy Run signing below deliberately retains its existing profile rules.
   const credential = Object.freeze({...credentialFacts,
     control, journal, resolveSecret, ca, now});
   const ensureOpen = () => {
@@ -192,12 +236,136 @@ export function openRowSourceCredentialCustody({profile, principalId,
       keyId: profile.credentialKeyId, privateKey}), control);
     return Object.freeze({grant, scope});
   }
+  function closeRunBindings() {
+    let pending = false;
+    for (const original of runBindings ?? []) {
+      if (!original.closed) {
+        original.closed = closeHttpsCredentialBinding(original.binding) === 'closed';
+      }
+      if (!original.closed) pending = true;
+    }
+    if (pending) fail('RowSourceCredentialAcquisitionCleanupPending');
+  }
   function close() {
     closing = true;
-    journal.close();
+    if (runBindings === undefined) journal.close();
+    else {
+      if (released) return;
+      closeRunBindings();
+      if (runJournalFailure !== undefined) throw runJournalFailure;
+      const acknowledged = Reflect.apply(runJournalClose, journal, []);
+      if (typeof acknowledged !== 'boolean') {
+        runJournalCloseObservation = acknowledged;
+        runJournalFailure = Object.assign(new Error('RowSourceCredentialJournalCleanupUnconfirmed'),
+          {code: 'RowSourceCredentialJournalCleanupUnconfirmed'});
+        const failure = runJournalFailure;
+        try {
+          if (typeof runJournalCloseObservation?.then === 'function') {
+            void Promise.resolve(runJournalCloseObservation).catch(cause => { failure.cause = cause; });
+          }
+        } catch (cause) { failure.cause = cause; }
+        throw failure;
+      }
+    }
     released = true;
   }
-  return Object.freeze({credential, sign, checkGrantRequest, ensureOpen,
+  function openRunAcquisition(request, callbacks) {
+    ensureOpen();
+    if (acquisitionLimits === undefined) fail('RowSourceCredentialAcquisitionUnavailable');
+    if (runJournalFailure !== undefined) throw runJournalFailure;
+    if (runBindings.length >= acquisitionLimits.maxBindings) fail('RowSourceCredentialAcquisitionLimit');
+    if (callbacks === null || typeof callbacks !== 'object' || nodeTypes.isProxy(callbacks)) {
+      fail('InvalidRowSourceCredentialAcquisitionCurrent');
+    }
+    if (request === null || typeof request !== 'object' || nodeTypes.isProxy(request)) {
+      fail('InvalidRowSourceCredentialAcquisitionRequest');
+    }
+    const fields = Object.getOwnPropertyDescriptors(request);
+    const names = ['operation', 'runInvocationCid', 'taskAttempt', 'dispatchRequestCid', 'maxUses'];
+    if (Reflect.ownKeys(fields).some(name => !names.includes(name)) ||
+        names.some(name => name !== 'taskAttempt' && !fields[name]) ||
+        Object.values(fields).some(field => !Object.hasOwn(field, 'value'))) {
+      fail('InvalidRowSourceCredentialAcquisitionRequest');
+    }
+    const originalRequest = Object.freeze(Object.fromEntries(names.map(name =>
+      [name, name === 'taskAttempt' && !Object.hasOwn(fields, name) ? 1 : fields[name].value])));
+    const methods = Object.getOwnPropertyDescriptors(callbacks);
+    if (Reflect.ownKeys(methods).length !== 2 || ['assertCurrent', 'observeCurrent'].some(name =>
+      !methods[name] || !Object.hasOwn(methods[name], 'value') || typeof methods[name].value !== 'function')) {
+      fail('InvalidRowSourceCredentialAcquisitionCurrent');
+    }
+    const originalAssert = methods.assertCurrent.value;
+    const originalObserve = methods.observeCurrent.value;
+    const assertCurrent = () => {
+      ensureOpen();
+      const result = Reflect.apply(originalAssert, undefined, []);
+      if (result !== undefined) {
+        if (typeof result?.then === 'function') void Promise.resolve(result).catch(() => {});
+        fail('InvalidRemoteCredentialCurrentFence');
+      }
+      ensureOpen();
+    };
+    const observeCurrent = async () => {
+      assertCurrent();
+      await Reflect.apply(originalObserve, undefined, []);
+      assertCurrent();
+    };
+    assertCurrent();
+    // Reuse the existing original issuer and seventeen-field preimage. The
+    // binding's stable fields do not replace each operation's nominal use.
+    const authorization = sign(originalRequest);
+    const binding = openHttpsCredentialBinding({scope: authorization.scope,
+      control, journal, resolveSecret, maxSecretBytes: acquisitionLimits.maxSecretBytes,
+      assertCurrent});
+    const original = {binding, closed: false};
+    runBindings.push(original);
+    return Object.freeze({authorization,
+      credential: Object.freeze({...credential, binding, currentBeforeSend: observeCurrent}),
+      close() {
+        if (!original.closed) original.closed = closeHttpsCredentialBinding(binding) === 'closed';
+        return original.closed ? 'closed' : 'pending';
+      }});
+  }
+  function signInstallationMetadata({control: metadataControl, scope,
+    expiresUnixMilliseconds, maxUses}) {
+    ensureOpen();
+    if (metadataControl?.kind !== 'installation-metadata') fail(grantCode);
+    metadataControl.scopeFields(scope);
+    const prepared = metadataControl.prepare({issuerAuthority: metadataIssuer.authority,
+      scope, expiresUnixMilliseconds, maxUses});
+    const grant = journal.acceptGrant(signRemoteCredentialGrant(prepared,
+      metadataControl, {keyId: metadataIssuer.keyId, privateKey}), metadataControl);
+    return Object.freeze({grant, scope});
+  }
+  function installationMetadataJournal() {
+    // New-purpose admission captures the original close/receiver before any
+    // method substitution. A missing/accessor method keeps this same custody
+    // pending; it must not escape before the Site can return its cleanup duty.
+    let originalClose, failure;
+    try {
+      if (nodeTypes.isProxy(journal)) fail('InvalidInstallationMetadataJournal');
+      const descriptor = Object.getOwnPropertyDescriptor(journal, 'close');
+      if (!descriptor || !Object.hasOwn(descriptor, 'value') ||
+          typeof descriptor.value !== 'function') fail('InstallationMetadataJournalCleanupUnavailable');
+      originalClose = descriptor.value;
+      if (!Object.isFrozen(journal) || ['acceptGrant', 'claim', 'authorize',
+        'finish', 'checkGrant', 'inspect', 'recover'].some(name => {
+        const method = Object.getOwnPropertyDescriptor(journal, name);
+        return !method || !Object.hasOwn(method, 'value') || typeof method.value !== 'function';
+      })) fail('InvalidInstallationMetadataJournal');
+    } catch (cause) { failure = cause; }
+    return Object.freeze({journal, failure, close() {
+      closing = true;
+      if (released) return;
+      closeRunBindings();
+      if (originalClose === undefined) throw failure;
+      const acknowledged = Reflect.apply(originalClose, journal, []);
+      if (typeof acknowledged !== 'boolean') fail('InstallationMetadataJournalCleanupUnconfirmed');
+      released = true;
+    }});
+  }
+  return Object.freeze({credential, sign, signInstallationMetadata,
+    installationMetadataJournal, openRunAcquisition, checkGrantRequest, ensureOpen,
     referenceCurrent: () => !closing,
     // The existing generic entry calls its original journal close on every
     // close call. The Salesforce entry already skips an acknowledged close.
@@ -205,6 +373,264 @@ export function openRowSourceCredentialCustody({profile, principalId,
     close,
     closeOnce() { if (!released) close(); },
     cleanupPending: () => closing && !released,
+  });
+}
+
+// An operational alternative of this same installed Credential Site. Common
+// owns Subject/Scope DATA; the original Host, Account, Site and issuer remain
+// necessary at every action. Resource/egress admission is a separate caller
+// duty, never supplied by a bounded key read or a signed metadata grant.
+async function prepareInstallationMetadataSite(options) {
+  const {installationMetadata: input, profile, principalId, authorization,
+    connection, connectorRegistration, connectorRevision, runtimeBundleCid,
+    commonMoon, resolveSecret, ca, now, grantLifetimeMs} = options;
+  const invalid = () => fail('InvalidRowSourceInstallationMetadata');
+  const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
+  const data = (value, keys) => {
+    if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value) ||
+        Object.getPrototypeOf(value) !== Object.prototype) invalid();
+    const descriptors = Object.getOwnPropertyDescriptors(value);
+    const names = Reflect.ownKeys(descriptors);
+    if (names.length !== keys.length || names.some(key => !keys.includes(key))) invalid();
+    return Object.fromEntries(keys.map(key => {
+      const descriptor = descriptors[key];
+      if (!descriptor?.enumerable || !Object.hasOwn(descriptor, 'value')) invalid();
+      return [key, descriptor.value];
+    }));
+  };
+  const original = data(input, ['publicationRequest', 'originals', 'declaration',
+    'declarationSourceCid', 'operations', 'maxOperations', 'maxSecretBytes',
+    'maxIssuerKeyBytes', 'maxCaBytes', 'targetAuthority', 'siteCurrent']);
+  if (original.declaration === null || typeof original.declaration !== 'object' ||
+      !cidPattern.test(original.declarationSourceCid ?? '') ||
+      !positive(original.maxOperations) || !positive(original.maxSecretBytes) ||
+      !positive(original.maxIssuerKeyBytes) || !positive(original.maxCaBytes) ||
+      !Array.isArray(original.operations) || nodeTypes.isProxy(original.operations) ||
+      original.operations.length === 0 || original.operations.length > original.maxOperations ||
+      original.operations.some(operation => !text(operation)) ||
+      typeof authorization?.assertAccountCurrent !== 'function' ||
+      typeof authorization?.assertConfigurationCurrent !== 'function' ||
+      !cidPattern.test(authorization.configurationCid ?? '') ||
+      !text(authorization.accountId) || authorization.principal !== principalId ||
+      !positive(grantLifetimeMs) || !text(connection)) invalid();
+  const operations = new Set(original.operations);
+  if (operations.size !== original.operations.length) invalid();
+  const targetAuthority = data(original.targetAuthority, ['project']);
+  const siteCurrent = data(original.siteCurrent, ['observe', 'assertCurrent']);
+  if ([targetAuthority.project, siteCurrent.observe, siteCurrent.assertCurrent]
+    .some(method => typeof method !== 'function')) invalid();
+  const account = Object.freeze(Object.fromEntries(['accountId', 'configurationCid',
+    'principal', 'contextCid'].map(name => {
+    const descriptor = Object.getOwnPropertyDescriptor(authorization, name);
+    if (!descriptor || !Object.hasOwn(descriptor, 'value')) invalid();
+    return [name, descriptor.value];
+  })));
+  const accountMethods = Object.fromEntries(['authorize', 'assertAccountCurrent',
+    'assertConfigurationCurrent'].map(name => {
+    const descriptor = Object.getOwnPropertyDescriptor(authorization, name);
+    if (!descriptor || !Object.hasOwn(descriptor, 'value') ||
+        typeof descriptor.value !== 'function') invalid();
+    return [name, descriptor.value];
+  }));
+  const callAccount = (name, ...args) => Reflect.apply(accountMethods[name], authorization, args);
+  // Capture the actual entry pair once; accessors cannot substitute another
+  // runtime, provider, resolver or checked profile across an await.
+  const pairNames = ['root', 'principalId', 'moon', 'installation', 'profile',
+    'resolveSecret', 'runtimeBundleCid', 'providerMoon'];
+  if (original.originals === null || typeof original.originals !== 'object' ||
+      nodeTypes.isProxy(original.originals)) invalid();
+  const descriptors = Object.getOwnPropertyDescriptors(original.originals ?? {});
+  const pair = Object.freeze(Object.fromEntries(pairNames.map(name => {
+    const descriptor = descriptors[name];
+    if (descriptor === undefined && name === 'providerMoon') return [name, undefined];
+    if (!descriptor || !Object.hasOwn(descriptor, 'value')) invalid();
+    return [name, descriptor.value];
+  })));
+  if (pair.principalId !== principalId || pair.moon !== commonMoon ||
+      pair.resolveSecret !== resolveSecret || pair.runtimeBundleCid !== runtimeBundleCid ||
+      pair.installation?.registration !== connectorRegistration ||
+      pair.installation?.revision !== connectorRevision) invalid();
+  const host = await import('./installed-source.mjs');
+  host.assertInstalledSourcePublicationRequest(original.publicationRequest, pair);
+  const view = runtimeCore(commonMoon).installationPreparationMetadata();
+  const subject = view.prepareSubject({
+    accountConfigurationCid: account.configurationCid,
+    accountId: account.accountId, connection, connectorRegistration,
+    connectorRevision, declarationSourceCid: original.declarationSourceCid,
+    installationRequestId: host.installedSourcePublicationRequestId(original.publicationRequest),
+    principal: principalId, runtimeBundleCid, siteGeneration: profile.siteGeneration,
+    siteKey: profile.siteKey,
+  });
+  const control = view.forSubject(subject);
+  const subjectCid = view.subjectCid(subject);
+  const profileKeys = ['credentialPrivateKeyPath', 'credentialAuthorityId',
+    'credentialKeyId', 'journalRoot', 'resourceOrigin', 'namespaceId',
+    'environment', 'siteKey', 'siteGeneration'];
+  const selectedProfile = Object.freeze(Object.fromEntries(profileKeys.map(key => {
+    const descriptor = Object.getOwnPropertyDescriptor(profile, key);
+    if (!descriptor || !Object.hasOwn(descriptor, 'value')) invalid();
+    return [key, descriptor.value];
+  })));
+  // The selected PEM authority is immutable in the exposed credential facts.
+  // This purpose does not accept an arbitrary mutable TLS option object.
+  let authority;
+  if (ca !== undefined) {
+    if (!(typeof ca === 'string' || Buffer.isBuffer(ca)) ||
+        ca.length > original.maxCaBytes) invalid();
+    authority = typeof ca === 'string' ? ca : ca.toString('latin1');
+    if (authority.length > original.maxCaBytes || /[^\x00-\x7f]/u.test(authority)) invalid();
+  }
+  const synchronous = result => {
+    if (result !== undefined) {
+      if (typeof result?.then === 'function') void Promise.resolve(result).catch(() => {});
+      fail('InvalidInstallationMetadataCurrentFence');
+    }
+  };
+  let closing = false, closed = false, binding, bindingClosed = false;
+  let journalClosed = false, retired = false, custody, credential, originalFailure;
+  const entries = new Map();
+  const profileCurrent = () => profileKeys.every(key => {
+    const descriptor = Object.getOwnPropertyDescriptor(profile, key);
+    return descriptor !== undefined && Object.hasOwn(descriptor, 'value') &&
+      descriptor.value === selectedProfile[key];
+  });
+  const ensureCurrent = operation => { try {
+    if (closing) fail('RowSourceSiteClosed');
+    if (originalFailure !== undefined) throw originalFailure;
+    host.assertInstalledSourcePublicationRequest(original.publicationRequest, pair);
+    if (!profileCurrent()) {
+      fail('RowSourceInstallationMetadataSiteChanged');
+    }
+    synchronous(Reflect.apply(siteCurrent.assertCurrent, original.siteCurrent, []));
+    if (closing) fail('RowSourceSiteClosed');
+    synchronous(callAccount('assertConfigurationCurrent'));
+    for (const entry of entries.values()) {
+      if ((operation === undefined || entry.facts.operation === operation) && entry.decision !== undefined) {
+        synchronous(callAccount('assertAccountCurrent', entry.decision));
+      }
+    }
+    if (closing) fail('RowSourceSiteClosed');
+    host.assertInstalledSourcePublicationRequest(original.publicationRequest, pair);
+    if (!profileCurrent()) {
+      fail('RowSourceInstallationMetadataSiteChanged');
+    }
+  } catch (cause) { if (!closing) originalFailure ??= cause; throw cause; } };
+  const factsFor = target => {
+    const facts = data(Reflect.apply(targetAuthority.project, original.targetAuthority,
+      [target, original.declaration]), ['resource', 'operation', 'origin', 'method', 'path', 'bodyBytes']);
+    if (!text(facts.resource) || !operations.has(facts.operation) ||
+        facts.origin !== selectedProfile.resourceOrigin || facts.method !== 'GET' ||
+        !text(facts.path) || facts.bodyBytes !== 0) invalid();
+    return Object.freeze(facts);
+  };
+  const current = async operation => {
+    try {
+      if (!operations.has(operation)) fail('RowSourceMetadataOperationNotRegistered');
+      ensureCurrent(operation);
+      await host.observeInstalledSourcePublicationCurrent(original.publicationRequest, pair);
+      ensureCurrent(operation);
+      synchronous(await Reflect.apply(siteCurrent.observe, original.siteCurrent, []));
+      ensureCurrent(operation);
+    } catch (cause) { originalFailure ??= cause; throw cause; }
+  };
+  return Object.freeze({maxIssuerKeyBytes: original.maxIssuerKeyBytes,
+    privateKeyPath: selectedProfile.credentialPrivateKeyPath,
+    assertInitializingCurrent: () => ensureCurrent(),
+    close() {
+      // Before Journal acquisition, the existing initialization Owner may
+      // retain this view behind an original bounded-key FD cleanup duty.
+      if (custody !== undefined) fail('RowSourceMetadataSiteAlreadyAttached');
+      closing = true;
+      if (!retired) {view.retireMetadataView(); retired = true;}
+    },
+    attach(originalCustody) {
+      custody = originalCustody;
+      const retainedJournal = custody.installationMetadataJournal();
+      const site = {
+        connection,
+        current,
+        async issueMetadataGrant({target, metadataOccurrenceId, useId,
+          expiresUnixMilliseconds, maxUses}) {
+          ensureCurrent();
+          if (!text(metadataOccurrenceId) || !text(useId) ||
+              typeof expiresUnixMilliseconds !== 'bigint' ||
+              !Number.isSafeInteger(maxUses) || maxUses <= 0 || maxUses > 10_000) invalid();
+          if (entries.has(metadataOccurrenceId)) fail('RowSourceMetadataOccurrenceAlreadyPrepared');
+          if (entries.size >= original.maxOperations) fail('RowSourceMetadataOperationLimit');
+          const facts = factsFor(target);
+          const scope = view.prepareScope(subject, {metadataOccurrenceId,
+            operation: facts.operation, resourceOrigin: facts.origin,
+            requestMethod: 'GET', requestPath: facts.path,
+            requestBodyCid: 'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'});
+          // Retain the original target and fallible outcome before the first
+          // await. A failed/Unknown occurrence cannot be prepared again here.
+          const entry = {target, facts, scope, decision: undefined, failure: undefined};
+          entries.set(metadataOccurrenceId, entry);
+          try {
+            await current(facts.operation);
+            const decision = await callAccount('authorize', 'acquisition', {
+              connection, resource: facts.resource, operation: 'read'}, {subjectCid});
+            ensureCurrent(facts.operation);
+            if (decision.action !== 'dispatch' ||
+                decision.boundary !== 'acquisition' || decision.subjectCid !== subjectCid ||
+                decision.contextCid !== account.contextCid ||
+                decision.tuple?.principal !== principalId ||
+                decision.tuple?.connection !== connection ||
+                decision.tuple?.resource !== facts.resource || decision.tuple?.operation !== 'read') {
+              fail('RowSourceMetadataGrantNotAuthorized');
+            }
+            // The Account Owner checks this exact scope's nominal dispatch;
+            // an equal/copied decision cannot supply current authority.
+            synchronous(callAccount('assertAccountCurrent', decision));
+            entry.decision = decision;
+            ensureCurrent(facts.operation);
+            const observed = factsFor(target);
+            if (Object.keys(facts).some(key => facts[key] !== observed[key])) {
+              fail('RowSourceMetadataTargetChanged');
+            }
+            const trustedNow = now();
+            if (!Number.isSafeInteger(trustedNow) || trustedNow < 0 ||
+                expiresUnixMilliseconds <= BigInt(trustedNow) ||
+                expiresUnixMilliseconds > BigInt(trustedNow) + BigInt(grantLifetimeMs)) invalid();
+            const signed = custody.signInstallationMetadata({control, scope,
+              expiresUnixMilliseconds, maxUses});
+            entry.signed = signed;
+            ensureCurrent(facts.operation);
+            if (binding === undefined) {
+              binding = openHttpsCredentialBinding({scope, control,
+                journal: custody.credential.journal, resolveSecret,
+                maxSecretBytes: original.maxSecretBytes, assertCurrent: () => ensureCurrent()});
+              credential = Object.freeze({binding, control,
+                journal: custody.credential.journal, resolveSecret, ca: authority, now});
+            }
+            return Object.freeze({...signed, useId});
+          } catch (cause) {
+            entry.failure = cause;
+            originalFailure ??= cause;
+            throw cause;
+          }
+        },
+        credential() {
+          ensureCurrent();
+          if (credential === undefined) fail('RowSourceMetadataGrantUnavailable');
+          return credential;
+        },
+        referenceCurrent: () => !closing && originalFailure === undefined && custody.referenceCurrent(),
+        cleanupPending: () => closing && !closed,
+        close() {
+          closing = true;
+          if (closed) return;
+          if (binding !== undefined && !bindingClosed) {
+            bindingClosed = closeHttpsCredentialBinding(binding) === 'closed';
+            if (!bindingClosed) fail('RowSourceMetadataCleanupPending');
+          }
+          if (!journalClosed) { retainedJournal.close(); journalClosed = true; }
+          if (!retired) { view.retireMetadataView(); retired = true; }
+          closed = true;
+        },
+      };
+      return Object.freeze({site: Object.freeze(site), failure: retainedJournal.failure});
+    },
   });
 }
 
@@ -229,6 +655,7 @@ export async function openRowSourceCredentialSite({profile, principalId,
   authorization, connection, connectorRegistration, connectorRevision,
   runtimeBundleCid, commonMoon, resolveSecret, ca, admitsApprovalTarget,
   admitsEffectTargetRead,
+  installationMetadata,
   responseHeaders = [],
   now = () => Date.now(), grantLifetimeMs = 15 * 60 * 1000,
   openCredentialJournal = openSqliteCredentialJournal}) {
@@ -240,7 +667,7 @@ export async function openRowSourceCredentialSite({profile, principalId,
       !text(profile.environment) || !text(profile.siteKey) ||
       !Number.isSafeInteger(profile.siteGeneration) ||
       typeof resolveSecret !== 'function' ||
-      typeof admitsApprovalTarget !== 'function') {
+      (installationMetadata === undefined && typeof admitsApprovalTarget !== 'function')) {
     fail('InvalidRowSourceCredentialSite');
   }
   if ((admitsEffectTargetRead !== undefined && typeof admitsEffectTargetRead !== 'function') ||
@@ -249,19 +676,35 @@ export async function openRowSourceCredentialSite({profile, principalId,
     fail('InvalidRowSourceCredentialSite');
   }
   const declaredHeaders = new Set(responseHeaders);
+  const metadata = installationMetadata === undefined ? undefined
+    : await prepareInstallationMetadataSite({installationMetadata, profile,
+      principalId, authorization, connection, connectorRegistration,
+      connectorRevision, runtimeBundleCid, commonMoon, resolveSecret, ca,
+      now, grantLifetimeMs});
   let privateKey;
   try {
-    privateKey = createPrivateKey(await readFile(profile.credentialPrivateKeyPath,
-      'utf8'));
+    privateKey = createPrivateKey(metadata === undefined
+      ? await readFile(profile.credentialPrivateKeyPath, 'utf8')
+      : await readBoundedConfigurationText(metadata.privateKeyPath,
+        {maxBytes: metadata.maxIssuerKeyBytes}));
   } catch (error) {
+    if (metadata !== undefined) throw await retainInstalledHostInitializationFailure(
+      error, {sourceProfile: metadata});
     fail('InvalidRowSourceCredentialSite', error);
   }
   if (privateKey.asymmetricKeyType !== 'ed25519') {
     fail('InvalidRowSourceCredentialSite');
   }
+  metadata?.assertInitializingCurrent();
   const custody = openRowSourceCredentialCustody({profile, principalId,
     connectorRegistration, connectorRevision, runtimeBundleCid, commonMoon,
     privateKey, resolveSecret, ca, now, grantLifetimeMs, openCredentialJournal});
+  if (metadata !== undefined) {
+    const attached = metadata.attach(custody);
+    if (attached.failure !== undefined) throw await retainInstalledHostInitializationFailure(
+      attached.failure, {sourceProfile: attached.site});
+    return attached.site;
+  }
   const {credential, ensureOpen, checkGrantRequest, sign} = custody;
   const approvals = new WeakMap();
   const callResource = options => {

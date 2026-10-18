@@ -1,4 +1,4 @@
-import type {Client, Durability} from './index.d.ts';
+import type {CheckpointSummary, Client, Durability, SignedCheckpointAnswer} from './index.d.ts';
 import type {ClientHostOperation, WireClientBodyByOperation} from
   '@actql/client-wire';
 
@@ -36,6 +36,12 @@ export interface InProcessHostPort {
   close?(): Promise<void>;
   /** Synchronously revoke this lease's ingress before reader cleanup. */
   seal?(): void;
+  /** Same original Host's signed answer only. The provider independently
+   * checks original Checkpoint/Run/key/use/current authority before signing;
+   * a supplied summary is DATA, not proof or a generic signing capability.
+   * Uncertain signing keeps its original claim/cleanup responsibility. */
+  answerCheckpoint?(summary: CheckpointSummary, decision: 'approved' | 'rejected',
+    signal?: AbortSignal): Promise<SignedCheckpointAnswer>;
 }
 
 export declare function connectInProcess(options: EmbeddedLocalOptions,

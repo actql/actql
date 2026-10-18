@@ -46,7 +46,7 @@ export function preparePrivatePublicationHolding(store, binding, rawBytes) {
         'model_slot_capture', 'model_invocation_evidence', 'model_call_attempt', 'model_attempt_accounting',
         'model_attempt_outcome', 'model_dispatch_authority', 'model_attachment_admission', 'observation_set',
         'run_invocation', 'source_evidence', 'model_raw_response', 'content_input_artifact',
-        'content_evidence', 'content_generation']
+        'content_evidence', 'content_generation', 'installation_publication']
         .includes(binding.name) ||
       typeof binding.semanticCid !== 'string' ||
       typeof binding.holdingCid !== 'string' ||

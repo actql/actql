@@ -13,11 +13,10 @@
 // declaration), `prepareCaptured(facts)` and `prepareRecovered(facts)` over
 // the Host's Effect Site facts, and `close()`.
 import {createHash} from 'node:crypto';
-import {readFile} from 'node:fs/promises';
 import {isAbsolute, join} from 'node:path';
 import {canonicalJson} from './local-account-config.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
-import {readSourceProfileJson} from './source-profile-json.mjs';
+import {readSourceProfileJson, installedRuntimeBundleCid} from './source-profile-json.mjs';
 import {composeInstalledEffects, installedUpdateTargets, validPluralEffectPaths}
   from './installed-effect-inventory.mjs';
 import {retainInstalledRowEffectAdapter} from './installed-row-effect.mjs';
@@ -108,14 +107,12 @@ function splitUpdateTargetProfile(profile) {
 
 // The Site binds its capability attestation and credential grants to the
 // exact standard runtime this Host executes.
-const runtimeBundleCid = async runtimeUrl => `sha256:${createHash('sha256')
-  .update(await readFile(runtimeUrl)).digest('hex')}`;
 
 async function providerRuntime(entry, runtimeUrl) {
   const bundle = providerBundleUrl(entry);
   return {...(bundle === undefined ? {} : {providerMoon:
     await import(bundle.href)}),
-  runtimeBundleCid: await runtimeBundleCid(runtimeUrl)};
+  runtimeBundleCid: await installedRuntimeBundleCid(runtimeUrl)};
 }
 
 // Only installation references and published, immutable declarations enter

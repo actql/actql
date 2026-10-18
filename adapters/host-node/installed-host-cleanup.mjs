@@ -1,23 +1,65 @@
 // Failed initialization has no returned Host to own its resources. Keep the
 // same retry/status protocol as publication cleanup, without restarting work.
+export function originalInitialControlClose(original) {
+  let close, captured = false;
+  function captureOriginalClose() {
+    if (!captured) {
+      close = original.close;
+      captured = true;
+    }
+  }
+  // Retain a successfully observed callback before any child cleanup await.
+  // Do not invoke it until those original children have completed.
+  try {
+    captureOriginalClose();
+  } catch {
+    // A failed getter has not supplied a callback. Keep the holding in its
+    // cleanup Owner and retry only that still-unobserved getter there.
+  }
+  return async () => {
+    captureOriginalClose();
+    if (typeof close !== 'function') {
+      throw new TypeError('InstalledHostInitialControlCleanupMissing');
+    }
+    const observed = await Reflect.apply(close, original, []);
+    if (observed?.pending !== false) {
+      throw new TypeError('InstalledHostInitialControlCleanupPending');
+    }
+    return observed;
+  };
+}
+
 export async function retainInstalledHostInitializationFailure(cause,
   {journal, store, checkpoints, dispatchOwner, sourceProfile,
-    installedEffect, observation, ownerViews}) {
+    installedEffect, observation, ownerViews, initialControl}) {
+  const closeInitialControl = initialControl === undefined ? undefined :
+    originalInitialControlClose(initialControl);
   // Retain the original receiver and methods before the first cleanup await.
   // A changed error property cannot acknowledge a different physical owner.
-  const originalCleanup = cause?.cleanupHandle;
+  let originalCleanup, originalPending;
+  let cleanupCaptured = false, pendingCaptured = false;
   let originalRetry, originalStatus;
   let retryCaptured = false, statusCaptured = false;
+  function captureOriginalCleanup() {
+    if (!cleanupCaptured) {
+      originalCleanup = cause?.cleanupHandle;
+      cleanupCaptured = true;
+    }
+    if (originalCleanup === undefined && !pendingCaptured) {
+      originalPending = cause?.cleanupPending === true;
+      pendingCaptured = true;
+    }
+  }
   function captureOriginalStatus() {
+    captureOriginalCleanup();
     if (!statusCaptured) {
       originalStatus = originalCleanup?.status;
       statusCaptured = true;
     }
   }
-  const pending = new Set();
-  if (originalCleanup !== undefined || cause?.cleanupPending === true) {
-    pending.add('initialization');
-  }
+  // Establish custody before reading failure getters. A failed observation
+  // cannot discard another already acquired holding during Owner setup.
+  const pending = new Set(['initialization']);
   if (checkpoints !== undefined) pending.add('checkpoint-stop');
   if (dispatchOwner !== undefined) pending.add('dispatch');
   if (sourceProfile !== undefined) pending.add('source-profile');
@@ -27,12 +69,22 @@ export async function retainInstalledHostInitializationFailure(cause,
   if (store !== undefined) pending.add('store');
   if (observation !== undefined) pending.add('observation');
   if (ownerViews !== undefined) pending.add('owner-views');
+  if (initialControl !== undefined) pending.add('initial-control');
   const errors = [];
+  let primaryFailure = cause;
+  try { primaryFailure = cause?.primaryFailure ?? cause; }
+  catch { /* Diagnostic access never replaces the original thrown value. */ }
   const failure = Object.assign(new Error('InstalledHostInitializationFailed',
     {cause}), {code: 'InstalledHostInitializationFailed',
-    primaryFailure: cause?.primaryFailure ?? cause});
-  let originalErrors = cause?.cleanupErrors ?? [];
+    primaryFailure});
+  let originalErrors = [];
   let observationFailure;
+  try {
+    const observedErrors = cause?.cleanupErrors;
+    if (Array.isArray(observedErrors)) originalErrors = observedErrors;
+  } catch (error) {
+    observationFailure = Object.freeze({owner: 'initialization', error});
+  }
   function observeOriginalCleanup() {
     try {
       captureOriginalStatus();
@@ -59,13 +111,24 @@ export async function retainInstalledHostInitializationFailure(cause,
     try {
       await close();
       pending.delete(name);
-    } catch (error) { errors.push(Object.freeze({owner: name, error})); }
+    } catch (error) {
+      // A pending cleanup may be observed/retried for an unbounded duration.
+      // Keep each original phase's first and latest failures, not an ever
+      // growing retry history inside the same retained preparation holding.
+      const record = Object.freeze({owner: name, error});
+      const latest = errors.findLastIndex(item => item.owner === name);
+      const first = errors.findIndex(item => item.owner === name);
+      if (latest === first) errors.push(record);
+      else errors[latest] = record;
+    }
   }
   let flight;
   async function drain() {
     await attempt('initialization', async () => {
       // Property access can itself fail. Keep it inside this original Owner's
       // attempt; only an unobserved method may be captured on a later retry.
+      captureOriginalCleanup();
+      if (originalCleanup === undefined && !originalPending) return;
       if (!retryCaptured) {
         originalRetry = originalCleanup?.retry;
         retryCaptured = true;
@@ -94,6 +157,12 @@ export async function retainInstalledHostInitializationFailure(cause,
           await attempt('store', () => store.close());
           await attempt('observation', () => observation.close());
           await attempt('owner-views', () => ownerViews.close());
+          // The initial control holding can contain every preparation/child
+          // alias. Retain it until all original cleanup owners are confirmed;
+          // a failed independent Store/journal close is not their retirement.
+          if ([...pending].every(name => name === 'initial-control')) {
+            await attempt('initial-control', closeInitialControl);
+          }
         }
       }
     }
@@ -194,13 +263,17 @@ export function retainInstalledHostRuntimeFailure(cause, retire) {
 // are independent. A failed close retains only that owner for the next call;
 // another adapter or the Store must not be skipped or closed twice.
 export function createInstalledHostShutdown({stop, drain, retire, checkpoint,
-  journal, source, effect, store, diagnostic, observation, ownerViews, finalize}) {
+  journal, source, effect, store, diagnostic, observation, ownerViews,
+  initialControl, finalize}) {
+  const closeInitialControl = initialControl === undefined ? undefined :
+    originalInitialControlClose(initialControl);
   const completed = new Set();
   const pending = Object.freeze(['stop', 'drain', 'retire', 'checkpoint',
     'journal', 'source', 'effect', 'store',
     ...(diagnostic === undefined ? [] : ['diagnostic']),
     ...(observation === undefined ? [] : ['observation']),
     ...(ownerViews === undefined ? [] : ['ownerViews']),
+    ...(initialControl === undefined ? [] : ['initialControl']),
     ...(finalize === undefined ? [] : ['finalize'])]);
   let flight;
   let checkpointResult;
@@ -247,6 +320,10 @@ export function createInstalledHostShutdown({stop, drain, retire, checkpoint,
     }
     await attempt('diagnostic', () => diagnostic?.());
     await attempt('observation', () => observation?.());
+    if (initialControl !== undefined) {
+      // Completing a Promise alone cannot acknowledge the original scope.
+      await attempt('initialControl', closeInitialControl);
+    }
     if (finalize !== undefined) {
       try {
         await attempt('finalize', finalize);

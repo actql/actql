@@ -85,8 +85,13 @@ pub fn start_scalar_text(
     Number(v) => v.to_string()
     Text(v) | Date(v) | Timestamp(v) => v
     Decimal(v) => decimal_wire_text(v)
-    Null | Array(_) | Object(_) | JsonData(_) | Vector(_) | Reference(_) =>
-      return None
+    Null
+    | Array(_)
+    | Object(_)
+    | JsonData(_)
+    | Vector(_)
+    | Reference(_)
+    | Signed64(_) => return None
   }
   if text.length() > max_utf8_bytes {
     return None
@@ -235,6 +240,7 @@ pub fn advance_wire_emit(
         Null => @encode.null_value(output)
         Boolean(v) => @encode.bool_value(output, v)
         Number(v) => @encode.number_value(output, v)
+        Signed64(v) => @encode.string_value(output, v.to_string())
         Text(v) | Date(v) | Timestamp(v) =>
           if v.length() <= 64 {
             @encode.string_value(output, v)

@@ -323,6 +323,635 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/connectors/slack/host/installed-slack-source.mjs",
+      "sha256": "4c81d800ef417f73c0eac5f6ad11a44c2ae965069ef5b10d15ea3a165bc02061",
+      "exports": [
+        "INSTALLED_SLACK_SITE_VERSION",
+        "INSTALLED_SLACK_SOURCE_VERSION",
+        "checkInstalledSlackSourceProfile",
+        "installedSlackSourceIdentityParts",
+        "loadInstalledSlackSource"
+      ],
+      "operations": [
+        {
+          "name": "absolute/absolute",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledSlackSourceProfile",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledSlackSourceProfile/checkInstalledSlackSourceProfile",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkSite",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkSite/checkSite",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedSlackSourceIdentityParts",
+          "parameters": [
+            "profile",
+            "providerProfile"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledSlackSource",
+          "parameters": [
+            "profile",
+            "root",
+            "principalId",
+            "moon",
+            "provider",
+            "baseEnvironmentWire",
+            "runtimeBundleCid",
+            "resolveSecret",
+            "readerCapacity"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledSlackSource/admitsApprovalTarget/admitsApprovalTarget",
+          "parameters": [
+            "value",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSlackSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSlackSource/init:readPages/init:readPages",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSlackSource/target/target",
+          "parameters": [
+            "selected",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInputs",
+          "parameters": [
+            "profile"
+          ],
+          "async": true
+        },
+        {
+          "name": "sha/sha",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshot",
+          "parameters": [
+            "value",
+            "required",
+            "optional",
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshot/snapshot",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshot/snapshot#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-row-source.mjs",
+        "../../../host-node/source-profile-json.mjs",
+        "../site/user-list-read.mjs",
+        "./user-source-reader.mjs",
+        "node:crypto",
+        "node:path",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Slack installed Source and physical reader; Common/Account/Credential/RowRun retain original selection, authority, capacity, capture and cleanup",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "absolute/absolute",
+            "checkInstalledSlackSourceProfile",
+            "checkInstalledSlackSourceProfile/checkInstalledSlackSourceProfile",
+            "checkSite",
+            "checkSite/checkSite",
+            "cid/cid",
+            "fail/fail",
+            "installedSlackSourceIdentityParts",
+            "loadInstalledSlackSource",
+            "loadInstalledSlackSource/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledSlackSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledSlackSource/init:readPages/init:readPages",
+            "loadInstalledSlackSource/target/target",
+            "positive/positive",
+            "readInputs",
+            "sha/sha",
+            "snapshot",
+            "snapshot/snapshot",
+            "snapshot/snapshot#2",
+            "text/text"
+          ],
+          "exports": [
+            "INSTALLED_SLACK_SITE_VERSION",
+            "INSTALLED_SLACK_SOURCE_VERSION",
+            "checkInstalledSlackSourceProfile",
+            "installedSlackSourceIdentityParts",
+            "loadInstalledSlackSource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed users Source"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "export async function loadInstalledSlackSource("
+              },
+              {
+                "path": "adapters/connectors/slack/host/user-source-reader.mjs",
+                "anchor": "export function createSlackUserSourceReaderFactory("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "workspaceBytesCid:sha(Buffer.from(installed.workspaceId))"
+              },
+              {
+                "path": "adapters/connectors/slack/host/user-source-reader.mjs",
+                "anchor": "invocationBindingsMatch(authorization.scope,initial.scope)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed users Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/user-source-reader.mjs",
+                "anchor": "const callbacks=methods(options,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/slack/host/user-source-reader.mjs",
+                "anchor": "signal.throwIfAborted();const decision=await invoke('verifyRead');"
+              },
+              {
+                "path": "adapters/connectors/slack/host/user-source-reader.mjs",
+                "anchor": "const result=await readResult;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "fail('SlackReaderCapacityUnavailable')"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-source.test.mjs",
+                "anchor": "test('installed Slack lost original reply"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/slack/host/user-source-reader.mjs",
+                "anchor": "stop.abort(reason);"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-source.test.mjs",
+                "anchor": "test('installed Slack stop during original resolver"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed users Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "BigInt(limits.maxTotalResponseBytes)>"
+              },
+              {
+                "path": "adapters/connectors/slack/host/user-source-reader.mjs",
+                "anchor": "cleanupConfirmed:false"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed users Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "readPages(){fail('InstalledSlackLegacyReaderUnavailable');}"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-source.test.mjs",
+                "anchor": "test('installed Slack actual text Source"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-source.test.mjs",
+                "anchor": "test('ordinary installed Slack entrance"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-source.test.mjs",
+                "anchor": "test('installed Slack adapter snapshots original callbacks"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-source.test.mjs",
+                "anchor": "test('installed Slack original workspace observation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/slack/host/user-source-reader.mjs",
+      "sha256": "c7f630aa0b3c812954c69eef451024d0d9fb2887ef6d76c89353ab6bdbf3b5ea",
+      "exports": [
+        "createSlackUserSourceReaderFactory"
+      ],
+      "operations": [
+        {
+          "name": "createSlackUserSourceReaderFactory",
+          "parameters": [
+            "provider",
+            "site",
+            "capacity",
+            "workspaceId",
+            "limits",
+            "maxSecretBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackUserSourceReaderFactory/factory/init:prepare/init:prepare",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackUserSourceReaderFactory/factory/init:prepare/init:prepare/authorizationFor/authorizationFor",
+          "parameters": [
+            "operation",
+            "index"
+          ],
+          "async": true
+        },
+        {
+          "name": "createSlackUserSourceReaderFactory/factory/init:prepare/init:prepare/closeTransport/closeTransport",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSlackUserSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSlackUserSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createSlackUserSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackUserSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackUserSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#3",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackUserSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackUserSourceReaderFactory/factory/init:prepare/init:prepare/invoke/invoke",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackUserSourceReaderFactory/factory/init:prepare/init:prepare/verify/verify",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "createSlackUserSourceReaderFactory/selectedProvider/selectedProvider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSlackUserSourceReaderFactory/selectedProvider/selectedProvider/selectedProvider",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "data",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "methods",
+          "parameters": [
+            "value",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "../site/user-list-read.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Slack installed Source and physical reader; Common/Account/Credential/RowRun retain original selection, authority, capacity, capture and cleanup",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createSlackUserSourceReaderFactory",
+            "createSlackUserSourceReaderFactory/factory/init:prepare/init:prepare",
+            "createSlackUserSourceReaderFactory/factory/init:prepare/init:prepare/authorizationFor/authorizationFor",
+            "createSlackUserSourceReaderFactory/factory/init:prepare/init:prepare/closeTransport/closeTransport",
+            "createSlackUserSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:observe/init:observe",
+            "createSlackUserSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read",
+            "createSlackUserSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read",
+            "createSlackUserSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
+            "createSlackUserSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#3",
+            "createSlackUserSourceReaderFactory/factory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
+            "createSlackUserSourceReaderFactory/factory/init:prepare/init:prepare/invoke/invoke",
+            "createSlackUserSourceReaderFactory/factory/init:prepare/init:prepare/verify/verify",
+            "createSlackUserSourceReaderFactory/selectedProvider/selectedProvider",
+            "createSlackUserSourceReaderFactory/selectedProvider/selectedProvider/selectedProvider",
+            "data",
+            "fail/fail",
+            "methods",
+            "methods/methods",
+            "positive/positive",
+            "text/text"
+          ],
+          "exports": [
+            "createSlackUserSourceReaderFactory"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed users Source"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "export async function loadInstalledSlackSource("
+              },
+              {
+                "path": "adapters/connectors/slack/host/user-source-reader.mjs",
+                "anchor": "export function createSlackUserSourceReaderFactory("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "workspaceBytesCid:sha(Buffer.from(installed.workspaceId))"
+              },
+              {
+                "path": "adapters/connectors/slack/host/user-source-reader.mjs",
+                "anchor": "invocationBindingsMatch(authorization.scope,initial.scope)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed users Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/user-source-reader.mjs",
+                "anchor": "const callbacks=methods(options,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/slack/host/user-source-reader.mjs",
+                "anchor": "signal.throwIfAborted();const decision=await invoke('verifyRead');"
+              },
+              {
+                "path": "adapters/connectors/slack/host/user-source-reader.mjs",
+                "anchor": "const result=await readResult;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "fail('SlackReaderCapacityUnavailable')"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-source.test.mjs",
+                "anchor": "test('installed Slack lost original reply"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/slack/host/user-source-reader.mjs",
+                "anchor": "stop.abort(reason);"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-source.test.mjs",
+                "anchor": "test('installed Slack stop during original resolver"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed users Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "BigInt(limits.maxTotalResponseBytes)>"
+              },
+              {
+                "path": "adapters/connectors/slack/host/user-source-reader.mjs",
+                "anchor": "cleanupConfirmed:false"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "## Installed users Source"
+              },
+              {
+                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "anchor": "readPages(){fail('InstalledSlackLegacyReaderUnavailable');}"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-source.test.mjs",
+                "anchor": "test('installed Slack actual text Source"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-source.test.mjs",
+                "anchor": "test('ordinary installed Slack entrance"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-source.test.mjs",
+                "anchor": "test('installed Slack adapter snapshots original callbacks"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-source.test.mjs",
+                "anchor": "test('installed Slack original workspace observation"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

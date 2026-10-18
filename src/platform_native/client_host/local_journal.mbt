@@ -149,6 +149,8 @@ fn NativeLocalAdoptionSession::open_journal_selected(
   max_records : Int,
   max_snapshot_bytes : Int64,
   signing : Array[NativeLocalSigningInstallationSelection],
+  initial_signing? : NativeLocalInitialSigningMaterial? = None,
+  initial_policy? : @host.ClientLocalSigningBootstrapPolicy? = None,
 ) -> Result[NativeLocalHostConnection, NativeLocalAdoptionIssue] {
   if !valid_epoch_clock(ttl_ms) ||
     ttl_ms < 1.0 ||
@@ -163,52 +165,18 @@ fn NativeLocalAdoptionSession::open_journal_selected(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let marker = match self.root.inspect_generation("journal-initializing.json") {
-    Ok(value) => value
-    Err(issue) => return Err(Filesystem(issue))
-  }
-  let first = match marker {
-    None if self.existing_only => return Err(CustodyLost)
-    None => {
-      guard self.root.inspect_generation("client.sqlite3") is Ok(Some(file)) &&
-        file.device == ownership.device &&
-        file.inode == ownership.inode &&
-        file.size == 0L else {
-        return Err(CustodyLost)
-      }
+  let first = match self.prepare_journal_marker(ownership, adoption_body) {
+    Err(issue) => return Err(issue)
+    Ok(true) => true
+    Ok(false) =>
       match
-        local_adoption_write(
-          self.root,
-          "journal-initializing.json",
-          adoption_body,
-        ) {
-        Ok(_) => true
-        Err(issue) => return Err(issue)
-      }
-    }
-    Some(_) => {
-      let (body, _) = match
-        local_adoption_read(self.root, "journal-initializing.json", 8192L) {
+        self.inspect_retained_journal(library, max_snapshot_bytes, max_records) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
-      if body != adoption_body {
-        return Err(CustodyLost)
-      }
-      // The original commit may have succeeded. Inspect, never rerun bootstrap.
-      match
-        inspect_native_client_state(
-          library,
-          self.state_path + "/client.sqlite3",
-          131072L,
-          max_snapshot_bytes,
-          max_records,
-        ) {
-        Ok(Retained) => false
-        Ok(PhysicallyAbsent) => return Err(CustodyLost)
-        Err(issue) => return Err(Inspection(issue))
-      }
-    }
+  }
+  if !first && (initial_signing is Some(_) || initial_policy is Some(_)) {
+    return Err(AmbiguousInitialization)
   }
   match self.check_original() {
     Ok(_) => ()
@@ -229,6 +197,7 @@ fn NativeLocalAdoptionSession::open_journal_selected(
   }
   let connected = self.bind_journal(
     database, crypto, ownership, adoption_body, first, ttl_ms, max_records, signing,
+    initial_signing, initial_policy,
   )
   match connected {
     Ok(value) => Ok(value)
@@ -248,39 +217,31 @@ fn NativeLocalAdoptionSession::bind_journal(
   ttl_ms : Double,
   max_records : Int,
   signing : Array[NativeLocalSigningInstallationSelection],
+  initial_signing : NativeLocalInitialSigningMaterial?,
+  initial_policy : @host.ClientLocalSigningBootstrapPolicy?,
 ) -> Result[NativeLocalHostConnection, NativeLocalAdoptionIssue] {
   match self.check_original() {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  if first {
-    match
-      initialize_native_local_client_custody(
-        database,
-        crypto,
-        adoption_body,
-        settings=Some(self.settings),
-      ) {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
-    }
+  let initial = match (initial_signing, initial_policy) {
+    (None, None) => None
+    (Some(material), Some(policy)) if first =>
+      match
+        self.prepare_initial_signing_capture(
+          material, policy, crypto, adoption_body,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(value) => Some(value)
+      }
+    _ => return Err(InvalidInput)
   }
-  match local_adoption_row(database, adoption_body) {
-    Ok(_) => ()
+  let (epoch, journal) = match
+    self.bind_journal_sqlite_originals(
+      database, crypto, adoption_body, first, initial, ttl_ms, max_records,
+    ) {
+    Ok(value) => value
     Err(issue) => return Err(issue)
-  }
-  let epoch = match
-    open_native_client_epoch_authority(database, crypto, ttl_ms) {
-    Ok(value) => value
-    Err(issue) => return Err(Epoch(issue))
-  }
-  let journal = match open_native_client_run_journal(database, max_records) {
-    Ok(value) => value
-    Err(issue) => return Err(Journal(issue))
-  }
-  match journal.submitted_intent_custody() {
-    Ok(_) => ()
-    Err(issue) => return Err(Journal(issue))
   }
   match self.check_original() {
     Ok(_) => ()
@@ -334,37 +295,19 @@ fn local_adoption_row(
 pub fn NativeLocalHostConnection::check_binding(
   self : NativeLocalHostConnection,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  if self.closed {
-    return Err(Closed)
-  }
-  if self.packaged_runtime is Some(binding) &&
-    binding.current.check_current() is Err(_) {
-    return Err(CustodyLost)
-  }
-  if self.database.transaction_fenced() {
-    return Err(Fenced)
-  }
-  match self.session.check_original() {
-    Ok(_) => ()
+  match self.check_binding_read_prefix() {
     Err(issue) => return Err(issue)
-  }
-  // The immediately preceding actual original check is staging's entry fence.
-  // Staging keeps its original terminal check, and every Common/current caller
-  // still invokes this complete binding fence before and after its own work.
-  match self.session.stage_configuration_after_original() {
     Ok(_) => ()
+  }
+  match self.check_binding_sqlite_fence() {
     Err(issue) => return Err(issue)
-  }
-  guard self.session.root.inspect_generation("client.sqlite3") is Ok(Some(file)) &&
-    file.device == self.ownership.device &&
-    file.inode == self.ownership.inode else {
-    return Err(CustodyLost)
-  }
-  match self.session.settings.check_retained(self.database) {
     Ok(_) => ()
-    Err(issue) => return Err(issue)
   }
-  local_adoption_row(self.database, self.adoption_body)
+  match self.check_binding_read_original() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  self.check_binding_sqlite_original()
 }
 
 ///|

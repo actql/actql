@@ -1,5 +1,76 @@
 # Original installed row reader custody
 
+## Original installation preparation read
+
+The existing Source publication Owner can retain an installation's original
+funded read and workspace for a preparation consumer. This captures an already
+issued pair; it does not create the installing Host, fund startup, admit a
+business Run or authorize a metadata request.
+
+- Responsibility: `InstallationPreparationRead` retains the existing Resource
+  consumer and its exact original workspace through preparation.
+- Inputs and outputs: preparation accepts the original read-pair, origin,
+  workspace loan and complete simultaneous retained/execution envelope. It
+  returns a private-constructor capture, not a Ledger or replacement loan.
+- Identity: the initial pair lookup checks the same original claim, origin and
+  loan before the read enters `Preparing`. Equal bytes, CIDs or a second loan on
+  the same Ledger cannot replace those originals.
+- Ownership: the installing Host retains read settlement and physical workspace
+  stop/cleanup. The capture owns its one preparation transition and final
+  borrowed-pair retirement; it does not close either physical responsibility.
+- Synchronization: after each await, the consumer checks its same retained
+  Resource consumer and loan. The old `Reading`/`Written` pair borrow is not
+  reopened. Entry uses the original single-use Resource transition, and repeated
+  entry refuses.
+- Failure: a foreign pair or insufficient envelope refuses before claiming.
+  Failed current checks retain the original capture and cleanup duties; they do
+  not issue a new read, refund capacity or repeat provider I/O.
+- Cancellation: stopping a read or beginning workspace closure revokes current
+  preparation availability. Neither action confirms physical retirement, and a
+  pending stop or cleanup keeps the original references held.
+- Resources: the original envelope covers this capture, tuple and referenced
+  origin/pair/loan/consumer, their overlapping users and construction workspace.
+  Bounds and current predicates do not supply that funding. Retiring borrowed
+  references is not GC reclamation, a byte refund or another duty's ACK.
+- Extension: these private typed entry points add no wire, CID, credential
+  domain, grant, numerical profile or alternate cleanup Owner. Host/Site/Account
+  current authority, I/O admission and complete startup/phase funding remain
+  independent prerequisites. An initial control/preparation-only bootstrap
+  cannot supply metadata HTTP, Source, Model, Result or business-Run capacity
+  through this capture; each consuming domain still needs its actual supplier.
+- Verification: owner tests cover the post-claim phase, single entry, foreign
+  originals, insufficient envelopes and both orders of read/workspace cleanup.
+  Their explicit synthetic envelopes are not an installed physical supplier or
+  a normal Host funding qualification.
+
+## Original public connection declarations
+
+The existing Project configuration Owner admits the closed connectors document
+and keeps each connection's logical name, Connector locator and exact original
+UTF-8 value span. It validates the entire bounded envelope, including unused
+members and duplicate keys; it does not interpret vendor fields or grant a
+credential use. Each selected Connector's own reader admits its complete entry.
+The outer document, connection entry and any declaration inside that entry are
+distinct original byte sequences, not interchangeable source identities.
+
+The Node acquisition stage accepts only the original issued Project and runtime,
+resolves the original locator relative to its captured directory, and retains
+the exact text from the existing bounded strict-UTF8 reader. It captures the
+original Common callbacks before I/O and checks installation currentness after
+the same awaited read and close. A missing or invalid selected document cannot
+become an absent/source-free declaration. Close failure retains the original
+file responsibility; it does not trigger another read. The projected originals
+remain DATA, not publication custody, a Catalog, a read grant or an installation.
+
+The existing installation inventory must cover the Project and view references,
+captured callbacks/current closure, path and raw text, parsed tree and retained
+entry strings, plus simultaneous read/decode workspace. The 65536-byte intake
+ceiling is not a physical reservation or proof of adequate funding. Actual
+publication, durable custody, Connector preparation and Run adoption remain
+separate duties of their existing Owners.
+
+## Accounted row acquisition
+
 The provider-neutral installed row adapter may select a supplemental ordinary
 reader envelope in its existing trusted installation. Its private
 `providerReader` contains the original Common `ExecutionCapacity` declaration
@@ -49,3 +120,150 @@ layout and lifetime are part of the same selected envelope, not free control
 bytes. Only after original Core close and capture cleanup succeed may the
 Host sever its reader/method backreferences. This reference retirement is not
 GC or a physical release acknowledgement of another Owner's resources.
+## Original credential acquisition retirement
+
+The existing Row Credential Site can explicitly select bounded Run-acquisition
+custody. Its trusted installer supplies positive `maxBindings` and
+`maxSecretBytes`, together with the original immutable Site profile, issuer,
+resolver and Journal. Omission refuses the new acquisition entry; it does not
+supply a normal numerical profile or change existing Run callers.
+
+`openRunAcquisition` snapshots the original Run request and synchronous/current
+observation callbacks before invoking them. It uses the same existing signing
+path and seventeen-field grant preimage. The returned authorization and private
+credential envelope retain the same control, Journal and resolver; the physical
+binding keeps original material across separately claimed operations. Every
+awaited observation is followed by the captured current fence. A copied scope,
+matching CID or callback result cannot create an issuer, new permission or
+current authorization.
+
+The parent Site owns every selected binding before returning a borrow. Its
+close first retires those original bindings, including pending resolver,
+response and socket custody, and only then invokes the captured original
+Journal close with its original receiver. An unconfirmed child cannot release
+the parent Journal. Failed Journal close remains pending in that same custody;
+confirmed child and Journal retirement are not repeated. The metadata
+alternative and existing Run callers retain their distinct purposes and
+existing scope rules.
+
+The binding count bounds retained original entries, not only currently open
+sockets. Closing a child does not replenish that declared count or reclaim its
+escaped credential/current/authorization aliases. The original acquisition's
+budget must cover the entries, callbacks, request snapshots, immutable
+credential borrows, grant/use references, material, response/error aliases and
+simultaneous physical workspace through cleanup. No response loss or Unknown
+claim is retried by cleanup. Journal retirement does not reconcile that claim,
+authenticate a saved publication, release another Owner's holding or establish
+GC/physical-byte reclamation. Actual Host/Account admission, funding and durable
+publication remain independent requirements of their existing Owners.
+
+## Installation publication storage association
+
+The existing publication Owner has a separate closed storage-association DATA
+codec for `installation_publication`. It retains the exact selected Local Store
+contract, Store authority, actual private-key generation and
+`publication-private` namespace without borrowing a Model/Run evidence purpose.
+Its outer canonical bytes have a complete-byte CID; the embedded Store contract
+keeps its existing serialization rather than being lexically rewritten.
+
+The installing Host must obtain these facts from the exact admitted Store
+instance while retaining that instance's read, currentness and failed-close
+duties. Preparing or reading this DATA does not perform that operational
+admission. In particular a private path, file mode, supplied key bytes or matching
+CID cannot authenticate an original metadata acquisition.
+
+The complete installation publication still needs its original publication
+request, provider-owned observation/declaration membership, selected generation,
+configuration/Site/Account/runtime correspondence and actual durable holding.
+Cold reconstruction may create new local Catalog originals only after that
+independent custody admission, without provider rediscovery. None of these
+remaining facts is inferred from the storage-association codec or its limits.
+The original Host/Store budgets cover retained source/fields, canonical writer,
+hash frames, read tree and escaped wire aliases simultaneously; a codec ceiling
+does not issue capacity or acknowledge physical retirement.
+
+The private Node consumer captures the same Store's original observation and
+membership methods, the same Common runtime ports, explicit codec bounds and
+the original synchronous Host current fence once. It observes the actual Store
+before Common admission, rechecks the fence after the await, and uses the same
+Store-private handle instead of reconstructing it from the four projected
+Strings. Repeated observation may borrow the same Common DATA value only when
+that original handle and every projected field remain identical.
+
+Only one observation may be pending in this finite view. Failed original FD
+close propagates the Store's same cleanup carrier and blocks replacement reads
+and Store closure; a rejected Promise is not physical retirement. The metadata
+view can forget its own backreferences only after the same Store reports actual
+closure. Escaped Common DATA and String aliases remain the caller's holding
+responsibility, and forgetting the view does not acknowledge their physical
+release or another publication's cleanup.
+
+This consumer remains a physical-to-DATA projection, not the independently
+admitted installation publication or cold Catalog gate. The actual private
+Host/bootstrap still has to supply that exact Store and its installation,
+provider capture, current authority and complete phase resources; a caller-made
+JavaScript object, matching fields or expected CID cannot stand in for them.
+
+## Live Salesforce publication originals
+
+Salesforce publication retains its existing legacy RemoteCredential grant/use
+purpose. It is not converted to an installation-metadata Subject or reissued
+from a matching CID. Explicit original retention connects the actual Describe
+response and confirmed Journal claim to the same live Site declaration. Saved
+text and restored Catalogs cannot enter this live-only receiver.
+
+- Live publication responsibility: the existing Salesforce Site and named
+  Describe adapter project their original observation to the trusted publication
+  finisher. The finisher and Store still own semantic publication admission and
+  independent durable custody; the receiver issues neither.
+- Live publication inputs and outputs: explicit retention keeps the original
+  Site, declaration, typed observation, exact generation text and one actual
+  grant/use/scope/response correspondence per named Describe. The synchronous
+  receiver exposes those same originals and their original canonical declaration
+  text, rather than reconstructing a use or declaration from JSON or a CID.
+- Live publication identity: nominal Site, live declaration and original physical
+  response membership are required. Exact raw response bytes are checked against
+  their retained digest and Describe evidence on entry. After the synchronous
+  finisher and result inspection, the same Credential Owner rechecks each
+  original before its result can return. An observed mutation remains refused
+  after bytes are restored. A throwing finisher keeps its exact primary error;
+  the Credential Owner still observes and retains changed-response membership. Generation serialization and its
+  16,000,000-byte UTF8 text ceiling are unchanged; declaration and Catalog bodies
+  are not renamed or rehashed into another identity domain.
+- Live publication ownership: original Credential control, Journal, claims,
+  response buffers and Site remain with their existing owners. Restored evidence
+  registers no live original. This receiver is not authentication of a saved
+  plaintext file or proof of a cold acquisition, Host request or Store holding.
+- Live publication synchronization: a bounded observation of the original Site
+  profile precedes the synchronous receiver. The original Account decisions,
+  Site-open fence and signal are checked after that await, before receiving and
+  after the synchronous finisher returns.
+  A pending observation cannot admit a second observation or a premature read.
+  An observed profile change or read failure permanently refuses that original.
+- Live publication failure: copied or foreign Sites and declarations, modified
+  generation text, lost/unconfirmed claims and changed raw responses refuse
+  original projection. Receiver exceptions do not reclassify a confirmed Journal
+  outcome. The live path propagates the original physical/Journal error carrier
+  after closing its Catalog builder; it does not replace it with an interruption
+  spelling. Returning a Promise is refused rather than treated as synchronous
+  semantic admission. No automatic Describe retry or provider rediscovery occurs.
+- Live publication cancellation: the same original signal and Site closure stop
+  receiving. Physical response, socket, Journal and bounded-file cleanup retain
+  their own duties and original error carriers. A response-loss claim stays
+  Unknown; a former successful Catalog cannot replace it or authorize a resend.
+- Live publication resources: retained profile text, raw response buffers,
+  base64 evidence, observation text, typed declaration, declaration text and exact
+  generation text can overlap with bounded profile reread/parse/comparison and
+  receiver records. Escaped finisher aliases remain part of the original lifetime.
+  Bounds, weak maps, Site close and Journal ACK do not establish numerical funding
+  or acknowledgement of another owner's physical release.
+- Live publication extension: default publication and recovery callers retain
+  their previous behavior and bytes. Explicit live retention adds no metadata
+  permission, installation issuer, business Run, Store purpose or signing domain.
+  The enclosing Host request and authenticated cold-storage admission stay
+  independent requirements of the existing publication owner.
+- Live publication verification: actual Common, Credential Journal and TLS
+  boundary cases distinguish live originals from copies, cold restoration,
+  current-state changes, response mutation, physical response loss, rejection
+  and synchronous receiver failures. Component correspondence does not imply
+  an installed publication or a funded normal metadata preparation.

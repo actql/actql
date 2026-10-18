@@ -19,6 +19,7 @@ export const graphqlIssue = issue => ({number: issue.number,
   state: issue.state ?? 'OPEN', body: issue.body ?? '',
   author: issue.author === undefined ? {login: 'octocat'} : issue.author,
   comments: {totalCount: issue.comments ?? 0},
+  milestone: issue.milestone === undefined ? null : issue.milestone,
   createdAt: issue.createdAt ?? '2026-10-01T00:00:00Z',
   updatedAt: issue.updatedAt ?? '2026-10-02T00:00:00Z',
   closedAt: issue.closedAt ?? null});

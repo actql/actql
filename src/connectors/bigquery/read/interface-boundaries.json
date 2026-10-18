@@ -1,0 +1,854 @@
+{
+  "qualification": "source-reference coverage; not Source authority, physical execution, funding or installed acceptance",
+  "declarations": [
+    {
+      "module": "src/connectors/bigquery/read/job.mbt",
+      "sha256": "d6bf10aa5b5452d147c698059f6c1f2306bc301f496ceb9cf05502a37cddb029",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]fail_job",
+          "declaration": "[ T ] fail_job ( value : JobRead , issue : JobIssue ) - > Result [ T , JobIssue ]"
+        },
+        {
+          "name": "accept_charged_job_response",
+          "declaration": "accept_charged_job_response ( value : JobRead , response : JobResponse , decoded_body : Bytes , ) - > Result [ Unit , JobIssue ]"
+        },
+        {
+          "name": "accept_job_response",
+          "declaration": "accept_job_response ( value : JobRead , request : JobRequest , status_code : Int , wire_body : Bytes , decoded_body : Bytes , ) - > Result [ Unit , JobIssue ]"
+        },
+        {
+          "name": "attempt_job_request",
+          "declaration": "attempt_job_request ( value : JobRead , request : JobRequest , ) - > Result [ Unit , JobIssue ]"
+        },
+        {
+          "name": "charge_job_response",
+          "declaration": "charge_job_response ( value : JobRead , request : JobRequest , status_code : Int , wire_body : Bytes , ) - > Result [ JobResponse , JobIssue ]"
+        },
+        {
+          "name": "consume_job_response",
+          "declaration": "consume_job_response ( value : JobRead , response : JobResponse , ) - > Result [ Unit , JobIssue ]"
+        },
+        {
+          "name": "job_component",
+          "declaration": "job_component ( text : String , max_bytes : Int ) - > Result [ String , JobIssue ]"
+        },
+        {
+          "name": "job_live",
+          "declaration": "job_live ( value : JobRead ) - > Bool"
+        },
+        {
+          "name": "job_original_request",
+          "declaration": "job_original_request ( value : JobRead , request : JobRequest ) - > Bool"
+        },
+        {
+          "name": "job_read_complete",
+          "declaration": "job_read_complete ( value : JobRead ) - > Bool"
+        },
+        {
+          "name": "job_read_original",
+          "declaration": "job_read_original ( value : JobRead ) - > @ catalog . QueryJob"
+        },
+        {
+          "name": "job_read_remote_done",
+          "declaration": "job_read_remote_done ( value : JobRead ) - > Bool"
+        },
+        {
+          "name": "job_request_body",
+          "declaration": "job_request_body ( request : JobRequest ) - > String ?"
+        },
+        {
+          "name": "job_request_method",
+          "declaration": "job_request_method ( request : JobRequest ) - > String"
+        },
+        {
+          "name": "job_request_path",
+          "declaration": "job_request_path ( request : JobRequest ) - > String"
+        },
+        {
+          "name": "job_request_sequence",
+          "declaration": "job_request_sequence ( request : JobRequest ) - > Int"
+        },
+        {
+          "name": "mark_job_response_unknown",
+          "declaration": "mark_job_response_unknown ( value : JobRead , request : JobRequest , ) - > Result [ Unit , JobIssue ]"
+        },
+        {
+          "name": "next_job_request",
+          "declaration": "next_job_request ( value : JobRead ) - > Result [ JobRequest ? , JobIssue ]"
+        },
+        {
+          "name": "prepare_job_read",
+          "declaration": "prepare_job_read ( read : Read , maximum_bytes_billed : Int64 , max_results : Int , timeout_ms : Int , max_requests : Int , max_request_bytes : Int , ) - > Result [ JobRead , JobIssue ]"
+        },
+        {
+          "name": "reject_job_response",
+          "declaration": "reject_job_response ( value : JobRead , response : JobResponse , ) - > Result [ Unit , JobIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "BigQuery original page adaptation; Common retains acquisition, value Contract, capture and resource cleanup",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]fail_job",
+            "accept_charged_job_response",
+            "accept_job_response",
+            "attempt_job_request",
+            "charge_job_response",
+            "consume_job_response",
+            "job_component",
+            "job_live",
+            "job_original_request",
+            "job_read_complete",
+            "job_read_original",
+            "job_read_remote_done",
+            "job_request_body",
+            "job_request_method",
+            "job_request_path",
+            "job_request_sequence",
+            "mark_job_response_unknown",
+            "next_job_request",
+            "prepare_job_read",
+            "reject_job_response"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/bigquery/read/pkg.generated.mbti",
+      "sha256": "a868d384cc06962ceb8f8fd573cafd608152350cac34111b4a0b2b6216c50371",
+      "exports": [
+        "pub fn accept_charged_job_response(JobRead, JobResponse, Bytes) -> Result[Unit, JobIssue]",
+        "pub fn accept_job_response(JobRead, JobRequest, Int, Bytes, Bytes) -> Result[Unit, JobIssue]",
+        "pub fn accept_query_page(Read, String?, Bytes) -> Result[Int, ReadIssue]",
+        "pub fn attempt_job_request(JobRead, JobRequest) -> Result[Unit, JobIssue]",
+        "pub fn bind_borrowed_read_transport(Read, () -> Bool) -> Result[Unit, ReadIssue]",
+        "pub fn borrow_accounted_read(PreparedRead, @client_row_source_host.RowRun, @catalog.QueryJob, @catalog.QueryLimits, Int) -> Result[Read, ReadIssue]",
+        "pub fn capture_result_read(Read) -> Result[@client_row_source_host.RowSourceCapture, ReadIssue]",
+        "pub fn charge_job_response(JobRead, JobRequest, Int, Bytes) -> Result[JobResponse, JobIssue]",
+        "pub fn close_result_read(Read) -> Result[Unit, ReadIssue]",
+        "pub fn finish_result_read(Read) -> Result[Unit, ReadIssue]",
+        "pub fn interrupt_result_read(Read) -> Unit",
+        "pub fn job_original_record(JobRead, JobRecordLimits) -> Result[JobOriginalRecord, JobRecordIssue]",
+        "pub fn job_original_record_matches_request(JobRead, JobRequest, JobOriginalRecord) -> Bool",
+        "pub fn job_original_record_material(JobOriginalRecord) -> (String, String, String, String, String, String)",
+        "pub fn job_original_record_wire(JobOriginalRecord) -> String",
+        "pub fn job_read_complete(JobRead) -> Bool",
+        "pub fn job_read_original(JobRead) -> @catalog.QueryJob",
+        "pub fn job_read_remote_done(JobRead) -> Bool",
+        "pub fn job_request_body(JobRequest) -> String?",
+        "pub fn job_request_method(JobRequest) -> String",
+        "pub fn job_request_path(JobRequest) -> String",
+        "pub fn job_request_sequence(JobRequest) -> Int",
+        "pub fn mark_job_response_unknown(JobRead, JobRequest) -> Result[Unit, JobIssue]",
+        "pub fn next_job_request(JobRead) -> Result[JobRequest?, JobIssue]",
+        "pub fn prepare_declared_read(@catalog.TableDescription, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @catalog.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[PreparedRead, ReadIssue]",
+        "pub fn prepare_job_read(Read, Int64, Int, Int, Int, Int) -> Result[JobRead, JobIssue]",
+        "pub fn prepared_read_acquisition(PreparedRead) -> @client_row_source_host.RowAcquisition",
+        "pub fn prepared_read_projection(PreparedRead) -> @catalog.ReadProjection",
+        "pub fn read_job_original_record(Bytes, JobRecordLimits) -> Result[JobOriginalRecord, JobRecordIssue]",
+        "pub fn read_start_failure_cleanup(ReadStartFailure) -> Read?",
+        "pub fn read_start_failure_issue(ReadStartFailure) -> ReadIssue",
+        "pub fn reject_job_response(JobRead, JobResponse) -> Result[Unit, JobIssue]",
+        "pub fn result_read_complete(Read) -> Bool",
+        "pub fn result_read_job(Read) -> @catalog.QueryJob?",
+        "pub fn result_read_usage(Read) -> (Int, Int64)",
+        "pub fn retire_borrowed_read(Read) -> Result[Unit, ReadIssue]",
+        "pub fn start_accounted_read(PreparedRead, @catalog.QueryJob, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, @catalog.QueryLimits, Int) -> Result[Read, ReadStartFailure]",
+        "pub struct JobOriginalRecord {",
+        "pub struct JobRead {",
+        "pub struct JobRequest {",
+        "pub struct JobResponse {",
+        "pub struct PreparedRead {",
+        "pub struct Read {",
+        "pub struct ReadStartFailure {"
+      ],
+      "operations": [
+        {
+          "name": "accept_charged_job_response",
+          "declaration": "pub fn accept_charged_job_response(JobRead, JobResponse, Bytes) -> Result[Unit, JobIssue]"
+        },
+        {
+          "name": "accept_job_response",
+          "declaration": "pub fn accept_job_response(JobRead, JobRequest, Int, Bytes, Bytes) -> Result[Unit, JobIssue]"
+        },
+        {
+          "name": "accept_query_page",
+          "declaration": "pub fn accept_query_page(Read, String?, Bytes) -> Result[Int, ReadIssue]"
+        },
+        {
+          "name": "attempt_job_request",
+          "declaration": "pub fn attempt_job_request(JobRead, JobRequest) -> Result[Unit, JobIssue]"
+        },
+        {
+          "name": "bind_borrowed_read_transport",
+          "declaration": "pub fn bind_borrowed_read_transport(Read, () -> Bool) -> Result[Unit, ReadIssue]"
+        },
+        {
+          "name": "borrow_accounted_read",
+          "declaration": "pub fn borrow_accounted_read(PreparedRead, @client_row_source_host.RowRun, @catalog.QueryJob, @catalog.QueryLimits, Int) -> Result[Read, ReadIssue]"
+        },
+        {
+          "name": "capture_result_read",
+          "declaration": "pub fn capture_result_read(Read) -> Result[@client_row_source_host.RowSourceCapture, ReadIssue]"
+        },
+        {
+          "name": "charge_job_response",
+          "declaration": "pub fn charge_job_response(JobRead, JobRequest, Int, Bytes) -> Result[JobResponse, JobIssue]"
+        },
+        {
+          "name": "close_result_read",
+          "declaration": "pub fn close_result_read(Read) -> Result[Unit, ReadIssue]"
+        },
+        {
+          "name": "finish_result_read",
+          "declaration": "pub fn finish_result_read(Read) -> Result[Unit, ReadIssue]"
+        },
+        {
+          "name": "interrupt_result_read",
+          "declaration": "pub fn interrupt_result_read(Read) -> Unit"
+        },
+        {
+          "name": "job_original_record",
+          "declaration": "pub fn job_original_record(JobRead, JobRecordLimits) -> Result[JobOriginalRecord, JobRecordIssue]"
+        },
+        {
+          "name": "job_original_record_matches_request",
+          "declaration": "pub fn job_original_record_matches_request(JobRead, JobRequest, JobOriginalRecord) -> Bool"
+        },
+        {
+          "name": "job_original_record_material",
+          "declaration": "pub fn job_original_record_material(JobOriginalRecord) -> (String, String, String, String, String, String)"
+        },
+        {
+          "name": "job_original_record_wire",
+          "declaration": "pub fn job_original_record_wire(JobOriginalRecord) -> String"
+        },
+        {
+          "name": "job_read_complete",
+          "declaration": "pub fn job_read_complete(JobRead) -> Bool"
+        },
+        {
+          "name": "job_read_original",
+          "declaration": "pub fn job_read_original(JobRead) -> @catalog.QueryJob"
+        },
+        {
+          "name": "job_read_remote_done",
+          "declaration": "pub fn job_read_remote_done(JobRead) -> Bool"
+        },
+        {
+          "name": "job_request_body",
+          "declaration": "pub fn job_request_body(JobRequest) -> String?"
+        },
+        {
+          "name": "job_request_method",
+          "declaration": "pub fn job_request_method(JobRequest) -> String"
+        },
+        {
+          "name": "job_request_path",
+          "declaration": "pub fn job_request_path(JobRequest) -> String"
+        },
+        {
+          "name": "job_request_sequence",
+          "declaration": "pub fn job_request_sequence(JobRequest) -> Int"
+        },
+        {
+          "name": "mark_job_response_unknown",
+          "declaration": "pub fn mark_job_response_unknown(JobRead, JobRequest) -> Result[Unit, JobIssue]"
+        },
+        {
+          "name": "next_job_request",
+          "declaration": "pub fn next_job_request(JobRead) -> Result[JobRequest?, JobIssue]"
+        },
+        {
+          "name": "prepare_declared_read",
+          "declaration": "pub fn prepare_declared_read(@catalog.TableDescription, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @catalog.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[PreparedRead, ReadIssue]"
+        },
+        {
+          "name": "prepare_job_read",
+          "declaration": "pub fn prepare_job_read(Read, Int64, Int, Int, Int, Int) -> Result[JobRead, JobIssue]"
+        },
+        {
+          "name": "prepared_read_acquisition",
+          "declaration": "pub fn prepared_read_acquisition(PreparedRead) -> @client_row_source_host.RowAcquisition"
+        },
+        {
+          "name": "prepared_read_projection",
+          "declaration": "pub fn prepared_read_projection(PreparedRead) -> @catalog.ReadProjection"
+        },
+        {
+          "name": "read_job_original_record",
+          "declaration": "pub fn read_job_original_record(Bytes, JobRecordLimits) -> Result[JobOriginalRecord, JobRecordIssue]"
+        },
+        {
+          "name": "read_start_failure_cleanup",
+          "declaration": "pub fn read_start_failure_cleanup(ReadStartFailure) -> Read?"
+        },
+        {
+          "name": "read_start_failure_issue",
+          "declaration": "pub fn read_start_failure_issue(ReadStartFailure) -> ReadIssue"
+        },
+        {
+          "name": "reject_job_response",
+          "declaration": "pub fn reject_job_response(JobRead, JobResponse) -> Result[Unit, JobIssue]"
+        },
+        {
+          "name": "result_read_complete",
+          "declaration": "pub fn result_read_complete(Read) -> Bool"
+        },
+        {
+          "name": "result_read_job",
+          "declaration": "pub fn result_read_job(Read) -> @catalog.QueryJob?"
+        },
+        {
+          "name": "result_read_usage",
+          "declaration": "pub fn result_read_usage(Read) -> (Int, Int64)"
+        },
+        {
+          "name": "retire_borrowed_read",
+          "declaration": "pub fn retire_borrowed_read(Read) -> Result[Unit, ReadIssue]"
+        },
+        {
+          "name": "start_accounted_read",
+          "declaration": "pub fn start_accounted_read(PreparedRead, @catalog.QueryJob, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, @catalog.QueryLimits, Int) -> Result[Read, ReadStartFailure]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "BigQuery original page adaptation; Common retains acquisition, value Contract, capture and resource cleanup",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "accept_charged_job_response",
+            "accept_job_response",
+            "accept_query_page",
+            "attempt_job_request",
+            "bind_borrowed_read_transport",
+            "borrow_accounted_read",
+            "capture_result_read",
+            "charge_job_response",
+            "close_result_read",
+            "finish_result_read",
+            "interrupt_result_read",
+            "job_original_record",
+            "job_original_record_matches_request",
+            "job_original_record_material",
+            "job_original_record_wire",
+            "job_read_complete",
+            "job_read_original",
+            "job_read_remote_done",
+            "job_request_body",
+            "job_request_method",
+            "job_request_path",
+            "job_request_sequence",
+            "mark_job_response_unknown",
+            "next_job_request",
+            "prepare_declared_read",
+            "prepare_job_read",
+            "prepared_read_acquisition",
+            "prepared_read_projection",
+            "read_job_original_record",
+            "read_start_failure_cleanup",
+            "read_start_failure_issue",
+            "reject_job_response",
+            "result_read_complete",
+            "result_read_job",
+            "result_read_usage",
+            "retire_borrowed_read",
+            "start_accounted_read"
+          ],
+          "exports": [
+            "pub fn accept_charged_job_response(JobRead, JobResponse, Bytes) -> Result[Unit, JobIssue]",
+            "pub fn accept_job_response(JobRead, JobRequest, Int, Bytes, Bytes) -> Result[Unit, JobIssue]",
+            "pub fn accept_query_page(Read, String?, Bytes) -> Result[Int, ReadIssue]",
+            "pub fn attempt_job_request(JobRead, JobRequest) -> Result[Unit, JobIssue]",
+            "pub fn bind_borrowed_read_transport(Read, () -> Bool) -> Result[Unit, ReadIssue]",
+            "pub fn borrow_accounted_read(PreparedRead, @client_row_source_host.RowRun, @catalog.QueryJob, @catalog.QueryLimits, Int) -> Result[Read, ReadIssue]",
+            "pub fn capture_result_read(Read) -> Result[@client_row_source_host.RowSourceCapture, ReadIssue]",
+            "pub fn charge_job_response(JobRead, JobRequest, Int, Bytes) -> Result[JobResponse, JobIssue]",
+            "pub fn close_result_read(Read) -> Result[Unit, ReadIssue]",
+            "pub fn finish_result_read(Read) -> Result[Unit, ReadIssue]",
+            "pub fn interrupt_result_read(Read) -> Unit",
+            "pub fn job_original_record(JobRead, JobRecordLimits) -> Result[JobOriginalRecord, JobRecordIssue]",
+            "pub fn job_original_record_matches_request(JobRead, JobRequest, JobOriginalRecord) -> Bool",
+            "pub fn job_original_record_material(JobOriginalRecord) -> (String, String, String, String, String, String)",
+            "pub fn job_original_record_wire(JobOriginalRecord) -> String",
+            "pub fn job_read_complete(JobRead) -> Bool",
+            "pub fn job_read_original(JobRead) -> @catalog.QueryJob",
+            "pub fn job_read_remote_done(JobRead) -> Bool",
+            "pub fn job_request_body(JobRequest) -> String?",
+            "pub fn job_request_method(JobRequest) -> String",
+            "pub fn job_request_path(JobRequest) -> String",
+            "pub fn job_request_sequence(JobRequest) -> Int",
+            "pub fn mark_job_response_unknown(JobRead, JobRequest) -> Result[Unit, JobIssue]",
+            "pub fn next_job_request(JobRead) -> Result[JobRequest?, JobIssue]",
+            "pub fn prepare_declared_read(@catalog.TableDescription, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @catalog.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[PreparedRead, ReadIssue]",
+            "pub fn prepare_job_read(Read, Int64, Int, Int, Int, Int) -> Result[JobRead, JobIssue]",
+            "pub fn prepared_read_acquisition(PreparedRead) -> @client_row_source_host.RowAcquisition",
+            "pub fn prepared_read_projection(PreparedRead) -> @catalog.ReadProjection",
+            "pub fn read_job_original_record(Bytes, JobRecordLimits) -> Result[JobOriginalRecord, JobRecordIssue]",
+            "pub fn read_start_failure_cleanup(ReadStartFailure) -> Read?",
+            "pub fn read_start_failure_issue(ReadStartFailure) -> ReadIssue",
+            "pub fn reject_job_response(JobRead, JobResponse) -> Result[Unit, JobIssue]",
+            "pub fn result_read_complete(Read) -> Bool",
+            "pub fn result_read_job(Read) -> @catalog.QueryJob?",
+            "pub fn result_read_usage(Read) -> (Int, Int64)",
+            "pub fn retire_borrowed_read(Read) -> Result[Unit, ReadIssue]",
+            "pub fn start_accounted_read(PreparedRead, @catalog.QueryJob, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, @catalog.QueryLimits, Int) -> Result[Read, ReadStartFailure]",
+            "pub struct JobOriginalRecord {",
+            "pub struct JobRead {",
+            "pub struct JobRequest {",
+            "pub struct JobResponse {",
+            "pub struct PreparedRead {",
+            "pub struct Read {",
+            "pub struct ReadStartFailure {"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/bigquery/read/read.mbt",
+      "sha256": "6ebb06d3da37350fa61c5e2b64076d6dc8bf26854bbd51aceee4d026dc857d69",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]fail_read",
+          "declaration": "[ T ] fail_read ( read : Read , issue : ReadIssue ) - > Result [ T , ReadIssue ]"
+        },
+        {
+          "name": "accept_projected_query_page",
+          "declaration": "accept_projected_query_page ( read : Read , charge : @ rows . RowPageCharge , requested_token : String ? , page : @ catalog . QueryPage , ) - > Result [ Int , ReadIssue ]"
+        },
+        {
+          "name": "accept_query_page",
+          "declaration": "accept_query_page ( read : Read , requested_token : String ? , body : Bytes , ) - > Result [ Int , ReadIssue ]"
+        },
+        {
+          "name": "bind_borrowed_read_transport",
+          "declaration": "bind_borrowed_read_transport ( read : Read , observe_stop : ( ) - > Bool , ) - > Result [ Unit , ReadIssue ]"
+        },
+        {
+          "name": "borrow_accounted_read",
+          "declaration": "borrow_accounted_read ( prepared : PreparedRead , run : @ rows . RowRun , job : @ catalog . QueryJob , limits : @ catalog . QueryLimits , max_pages : Int , ) - > Result [ Read , ReadIssue ]"
+        },
+        {
+          "name": "capture_result_read",
+          "declaration": "capture_result_read ( read : Read , ) - > Result [ @ rows . RowSourceCapture , ReadIssue ]"
+        },
+        {
+          "name": "close_result_read",
+          "declaration": "close_result_read ( read : Read ) - > Result [ Unit , ReadIssue ]"
+        },
+        {
+          "name": "finish_result_read",
+          "declaration": "finish_result_read ( read : Read ) - > Result [ Unit , ReadIssue ]"
+        },
+        {
+          "name": "interrupt_result_read",
+          "declaration": "interrupt_result_read ( read : Read ) - > Unit"
+        },
+        {
+          "name": "new_read",
+          "declaration": "new_read ( prepared : PreparedRead , run : @ rows . RowRun , job : @ catalog . QueryJob , limits : @ catalog . QueryLimits , max_pages : Int , custody : ReadCustody , ) - > Read"
+        },
+        {
+          "name": "prepare_declared_read",
+          "declaration": "prepare_declared_read ( description : @ catalog . TableDescription , declaration : @ rows . RowDeclaration , requirement : @ planning . QueryRequirement , query_contract : String , evidence_contract : String , limits : @ catalog . DescriptionLimits , declaration_limits : @ rows . RowDeclarationLimits , ) - > Result [ PreparedRead , ReadIssue ]"
+        },
+        {
+          "name": "prepared_read_acquisition",
+          "declaration": "prepared_read_acquisition ( read : PreparedRead ) - > @ rows . RowAcquisition"
+        },
+        {
+          "name": "prepared_read_projection",
+          "declaration": "prepared_read_projection ( read : PreparedRead ) - > @ catalog . ReadProjection"
+        },
+        {
+          "name": "read_available",
+          "declaration": "read_available ( read : Read ) - > Bool"
+        },
+        {
+          "name": "read_start_failure_cleanup",
+          "declaration": "read_start_failure_cleanup ( value : ReadStartFailure ) - > Read ?"
+        },
+        {
+          "name": "read_start_failure_issue",
+          "declaration": "read_start_failure_issue ( value : ReadStartFailure ) - > ReadIssue"
+        },
+        {
+          "name": "result_read_complete",
+          "declaration": "result_read_complete ( read : Read ) - > Bool"
+        },
+        {
+          "name": "result_read_job",
+          "declaration": "result_read_job ( read : Read ) - > @ catalog . QueryJob ?"
+        },
+        {
+          "name": "result_read_usage",
+          "declaration": "result_read_usage ( read : Read ) - > ( Int , Int64 )"
+        },
+        {
+          "name": "retire_borrowed_read",
+          "declaration": "retire_borrowed_read ( read : Read ) - > Result [ Unit , ReadIssue ]"
+        },
+        {
+          "name": "start_accounted_read",
+          "declaration": "start_accounted_read ( prepared : PreparedRead , job : @ catalog . QueryJob , nonce : String , verify_transport : ( @ rows . RowAttempt ) - > Bool , ledger : @ resources . Ledger , transfer_bytes : Int64 , execution_scratch : Int64 , limits : @ catalog . QueryLimits , max_pages : Int , ) - > Result [ Read , ReadStartFailure ]"
+        },
+        {
+          "name": "valid_limits",
+          "declaration": "valid_limits ( limits : @ catalog . QueryLimits , max_pages : Int ) - > Bool"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "BigQuery original page adaptation; Common retains acquisition, value Contract, capture and resource cleanup",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]fail_read",
+            "accept_projected_query_page",
+            "accept_query_page",
+            "bind_borrowed_read_transport",
+            "borrow_accounted_read",
+            "capture_result_read",
+            "close_result_read",
+            "finish_result_read",
+            "interrupt_result_read",
+            "new_read",
+            "prepare_declared_read",
+            "prepared_read_acquisition",
+            "prepared_read_projection",
+            "read_available",
+            "read_start_failure_cleanup",
+            "read_start_failure_issue",
+            "result_read_complete",
+            "result_read_job",
+            "result_read_usage",
+            "retire_borrowed_read",
+            "start_accounted_read",
+            "valid_limits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/bigquery/read/job_original.mbt",
+      "sha256": "188d524850462e426eddf8a599629b5c7c96a4cbfa457dd5763545c290124661",
+      "exports": [],
+      "operations": [
+        {
+          "name": "build_job_original_record",
+          "declaration": "build_job_original_record ( job : @ catalog . QueryJob , path : String , body : String , limits : JobRecordLimits , ) - > Result [ JobOriginalRecord , JobRecordIssue ]"
+        },
+        {
+          "name": "job_original_record",
+          "declaration": "job_original_record ( value : JobRead , limits : JobRecordLimits , ) - > Result [ JobOriginalRecord , JobRecordIssue ]"
+        },
+        {
+          "name": "job_original_record_matches_request",
+          "declaration": "job_original_record_matches_request ( value : JobRead , request : JobRequest , record : JobOriginalRecord , ) - > Bool"
+        },
+        {
+          "name": "job_original_record_material",
+          "declaration": "job_original_record_material ( value : JobOriginalRecord , ) - > ( String , String , String , String , String , String )"
+        },
+        {
+          "name": "job_original_record_wire",
+          "declaration": "job_original_record_wire ( value : JobOriginalRecord ) - > String"
+        },
+        {
+          "name": "job_record_text",
+          "declaration": "job_record_text ( object : @ decode . ObjectView , key : String ) - > String ?"
+        },
+        {
+          "name": "read_job_original_record",
+          "declaration": "read_job_original_record ( bytes : Bytes , limits : JobRecordLimits , ) - > Result [ JobOriginalRecord , JobRecordIssue ]"
+        },
+        {
+          "name": "valid_job_record_limits",
+          "declaration": "valid_job_record_limits ( limits : JobRecordLimits ) - > Bool"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing BigQuery original read material; Common owns bounded JSON and routing DATA, while the existing Journal/Host retains original Run/task/epoch custody and dispatch decisions",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "build_job_original_record",
+            "job_original_record",
+            "job_original_record_matches_request",
+            "job_original_record_material",
+            "job_original_record_wire",
+            "job_record_text",
+            "read_job_original_record",
+            "valid_job_record_limits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/query_integration/bigquery_job_original_wbtest.mbt",
+                "anchor": "test \"BigQuery original record issuer precedes the same nominal POST without attempting it\""
+              },
+              {
+                "path": "src/query_integration/bigquery_job_original_wbtest.mbt",
+                "anchor": "test \"BigQuery original record closed fields reject unknown revision variants duplicates and omissions\""
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

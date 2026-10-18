@@ -42,6 +42,7 @@ export function identityDefinitions() {
     tagged('decimal', decimal),
     tagged('duration', { type: 'integer', minimum: 1, maximum: 9007199254740991 }),
     tagged('object', escapedPairs),
+    tagged('int64', {type: 'string', pattern: '^(?:0|-?[1-9][0-9]*)(?![\\s\\S])', maxLength: 20}),
   ] } };
 }
 
@@ -60,9 +61,17 @@ export function checkIdentitySchema(registry) {
 const normalize = s => { assert.ok(s.isWellFormed()); return s.normalize('NFC').replace(/\r\n?/g, '\n'); };
 
 // Independent small-fixture projection. This is not a Parameter admission engine.
-// BigInt checks decimal/duration semantics without invoking product code.
+// BigInt checks signed64/decimal/duration semantics without invoking product code.
 export function project(type, value) {
   if (value === null) return null;
+  if (type.type === 'int64') {
+    assert.equal(typeof value, 'string');
+    assert.match(value, /^(?:0|-?[1-9][0-9]*)(?![\s\S])/u);
+    assert.ok(value.length <= 20);
+    const integer = BigInt(value);
+    assert.ok(integer >= -9223372036854775808n && integer <= 9223372036854775807n);
+    return { [marker]: ['int64', value] };
+  }
   if (type.type === 'decimal') {
     assert.equal(typeof value, 'string');
     const p = type.precision, s = type.scale;

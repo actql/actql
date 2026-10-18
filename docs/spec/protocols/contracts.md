@@ -37,6 +37,7 @@ This document owns catalog, sourceview, mapping, command, model-task, check-envi
 - [Ranked candidate acquisition contract](#ranked-search-contract)
 - [SourceView transformation profiles](#sourceview-transformations)
 - [Local signing public-key identity](#local-signing-public-key)
+- [Installation metadata preparation credentials](#installation-metadata-preparation)
 - [Machine contracts](#machine-contracts)
 <!-- page-contents:end -->
 
@@ -952,9 +953,70 @@ delivery,
 preview, or receipts. The non-secret reference itself is bound by the source
 contract so changing the host binding invalidates checked source evidence.
 
+<a id="notion-public-connection"></a>
+
+<!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/schemas/notion_public_connection sha256:27697ec49a183cdc95b361df1f480a39613afed5eed44b2cb5c6f45eb8aede88 -->
+
+#### Original public Notion connection
+
+<!-- requirement-block: notion-public-connection.closed-shape notion-public-connection.credential-reference-choice notion-public-connection.reference-text notion-public-connection.credential-refusal notion-public-connection.no-secret-io notion-public-connection.checked-databases notion-public-connection.exact-source-identities notion-public-connection.no-reencoding notion-public-connection.absence notion-public-connection.structural-bounds notion-public-connection.aggregate-work notion-public-connection.same-source-cursor notion-public-connection.no-partial-exhaustion notion-public-connection.no-authority -->
+A public Notion connection MUST be a closed object containing `connector` equal
+to `notion`, `credentials`, and optionally `databases`. Credentials MUST be the
+closed object `{integration_token: reference}`, where reference is exactly one
+of `{env: String}` and `{path: String}`. The reference MUST be nonempty, contain
+no U+0000 and retain its exact Unicode spelling. Inline secret values, unknown
+credential names, nulls and ambiguous references MUST be rejected. Admission
+MUST NOT look up the environment, resolve a path or read a secret.
+
+When present, `databases` MUST use the same original alias-map and checked
+declaration admission below, including unused entries. The connection, map and
+each declaration MUST retain their respective exact UTF-8 SOURCE identities;
+they MUST NOT be replaced by re-encoded JSON or one another. An absent map and
+an explicit empty map MUST remain distinct. Neither proves workspace coverage.
+
+Whole-connection input byte, node and depth bounds and an explicit credential
+reference-byte bound MUST apply before operational use. One remaining work
+budget MUST charge the full input bytes, one plus reference UTF-16 length,
+the retained map-span bytes and existing aggregate declaration work. The same
+admitted source cursor MUST supply nested declarations; budget exhaustion MUST
+reject the complete connection without a successful prefix. Credential
+references and SOURCE identities MUST NOT establish a secret-material original,
+installation, Account decision, issuer, grant, permission or physical funding.
+
+<a id="notion-read-declarations"></a>
+
+<!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/schemas/notion_database_read_declarations sha256:94611a22395804046e5c094a0118253555ec1c3e3c1a733d254c8c469655cd9b -->
+
+#### Original Notion database alias maps
+
+<!-- requirement-block: notion-read-declarations.closed-map notion-read-declarations.ordered-aliases notion-read-declarations.duplicate-alias-refusal notion-read-declarations.complete-validation notion-read-declarations.exact-value-spans notion-read-declarations.whole-map-bounds notion-read-declarations.aggregate-bounds notion-read-declarations.no-partial-exhaustion notion-read-declarations.no-coverage-authority -->
+The public `databases` value MUST be an object of exact nonempty Unicode aliases
+and the existing Notion database read declarations below. Alias order and
+spelling MUST be retained without normalization; exact duplicate aliases,
+including escape-equivalent spellings, MUST be rejected. Every value, including
+unused declarations, MUST pass the same existing declaration and checked
+ValueContract admission. Each declaration's SOURCE identity MUST retain its
+exact original JSON value span, including internal whitespace and escaped
+lexemes, rather than a re-encoding. The whole map's SOURCE identity includes the
+entire original input. Neither identity is a semantic Contract or issuer proof.
+
+Whole-map byte, node and depth bounds and an explicit maximum database count
+MUST apply. Contract nodes, retained Contract text and declaration work MUST
+share one remaining budget across all members; the existing maximum columns
+remains per declaration. Work charges the full input byte count before copying
+or hashing, each alias occurrence at one plus UTF-16 length, each retained value
+span byte, and the existing declaration Contract work. Exhaustion MUST reject
+the complete map, never publish a successful prefix or reset budgets per alias.
+An empty map is valid configuration DATA, not proof of empty or complete
+workspace membership. A parsed map and original declaration membership
+MUST NOT establish installation custody, current authorization, keys, capacity, a
+Resource/Content reference or a metadata operation grant. Actual installation,
+publication storage and complete page-inventory suppliers remain independently
+required.
+
 <a id="notion-read-contracts"></a>
 
-<!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/schemas/notion_database_read_declaration sha256:39426e9830ffa735632156dcebdfd8d456c164f3087bd7e3697d0f41edc1bc55 -->
+<!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/schemas/notion_database_read_declaration sha256:0d709d113a8dd2d7add4300fa8af2d7e52c3430b7570b1151e07bc8d97cfda9a -->
 
 #### Original Notion property read contracts
 
@@ -1004,6 +1066,62 @@ Unicode comparison and output work/retention MUST remain bounded and charged;
 exhaustion MUST refuse without partial typed rows. The original full response,
 parsed graph, declaration/schema aliases, converted values and output workspace
 remain retained until their actual consuming custody ends.
+
+<a id="notion-read-snapshot"></a>
+
+<!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/schemas/notion_database_read_snapshot sha256:06577e00887cc24dae6de8bc67156e9782b4c4516d01bf50c509060f78948cfc -->
+
+#### Saved original Notion database read material
+
+<!-- requirement-block: notion-read-snapshot.closed-body notion-read-snapshot.exact-originals notion-read-snapshot.system-binding notion-read-snapshot.saved-only-restore notion-read-snapshot.canonical-identity notion-read-snapshot.authenticated-custody notion-read-snapshot.bounded-materials notion-read-snapshot.legacy-compatibility -->
+A saved Notion database read snapshot MUST use the closed
+`actql-notion-database-read-snapshot/0.1` body with exactly
+`database_response`, `declaration_source`, `schema_cid`, `schema_wire`,
+`selected_data_source_response`, `system_columns` and `version`.
+The three original-source fields and checked schema are nonempty JSON text
+Strings, not reparsed objects; `schema_cid` is the exact checked schema identity.
+
+Capture MUST bind the same original database observation, declaration, selected
+data-source occurrence and checked read-contract binding. Exact source UTF-8,
+CRLF, Unicode, key order, escapes, unknown metadata and numeric lexemes remain
+unchanged inside the retained Strings. Equal JSON, ids, schema or response hashes
+do not replace those nominal originals.
+
+`system_columns` MUST be derived from the actual original property-only or
+complete eight-system-column binding. A false snapshot remains property-only;
+a caller flag or structural schema cannot upgrade it to the public Source.
+The saved checked schema contains the complete selected binding, including all
+original nullable, extent, enum, Decimal and temporal constraints.
+
+Restoration MUST re-admit only the saved declaration and metadata, reselect its
+original singleton or explicit occurrence, rebind every checked read contract
+and reproduce the exact saved complete schema and CID. Metadata discovery,
+replacement current configuration and inferred defaults are not restoration.
+Malformed, missing, extra, null or inconsistent fields refuse the snapshot.
+
+The snapshot SOURCE identity MUST hash the exact UTF-8 bytes of the complete
+checked canonical body using the existing initial-0.1 encoding and SHA-256
+rules. Canonical object-key order and escaping are checked after re-admission;
+the embedded original Strings are not normalized or re-encoded as metadata.
+The snapshot SOURCE identity is distinct from the checked schema identity.
+
+A consuming installation or same-Run recovery MUST independently verify its
+original saved custody and actual installation/configuration/Site/Account
+correspondence before adopting this DATA. A decoded body or expected public CID
+cannot authenticate its own provenance, issue a ResourceRef, current authority,
+credential use, acquisition permission, physical cleanup or resource funding.
+
+Snapshot input/output bytes, nodes, depth, every retained source and schema,
+selection/Contract work and simultaneous workspace MUST remain bounded and
+charged by the existing consuming owners. The finite restoration uses the
+existing declaration, metadata, selection, Contract and encoder limits without
+an unbounded discovery loop. Exhaustion returns no partial snapshot or adopted
+originals; structural limits do not themselves reserve capacity or retire raw
+response aliases.
+
+Legacy declaration forms, property-only metadata projection, checked schema
+bytes, query/row admission and existing initial-0.1 identities MUST remain
+unchanged when this separate snapshot representation is not selected.
 
 <a id="mapping-contracts"></a>
 
@@ -1656,8 +1774,8 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:995e25a9bd1dbd1eb86fffe893e13ff40d93a8dfce400dbbf71dd44d9dadc61c -->
-<!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:84f8c82ffb7476f57a3c4e1bef0e0dd8aa891e2ab0f1d79c203e907e91291b9b -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:edee55ae7ec48df63965c6de9356936b45b6d25dc8c5bd2c7738df26075f1427 -->
+<!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:3c07ce1eb5eeba94cb2be58d56f38ee200645a6b5cbcc554230b5811f5a03a9b -->
 
 <a id="parameter-value-projection"></a>
 
@@ -2541,26 +2659,171 @@ and its pinned independent vectors define the byte framing. Existing Local
 grant/use bodies and pins remain unchanged; Native signing and operational
 caller connection are separate.
 
+<a id="installation-metadata-preparation"></a>
+
+## Installation metadata preparation credentials
+
+<!-- requirement-block: installation-metadata-preparation.original-subject -->
+An installation metadata preparation MUST retain the original explicit trusted
+Host publication request, authenticated actor/Account, selected connection,
+Site/runtime/Connector/credential installation and their current generation;
+the closed subject DATA cannot issue or reconstruct that opaque custody.
+
+<!-- requirement-block: installation-metadata-preparation.closed-data -->
+The subject and grant MUST match the closed machine bodies, exact canonical
+UTF-8 bytes and SHA-256 identities, including UTF-16 code-unit, UTF-8 byte,
+value-node, signed-Int32 generation and positive signed-Int64 expiry bounds;
+schema shape or a matching CID alone is not sufficient admission evidence.
+
+<!-- requirement-block: installation-metadata-preparation.original-declaration -->
+The declaration source CID MUST identify the exact retained declaration UTF-8
+bytes without normalization, not a semantic Contract, selected target, issuer
+or substitute for the original declaration and selected occurrence.
+
+<!-- requirement-block: installation-metadata-preparation.per-operation -->
+Each metadata use MUST retain the same original subject and registered
+metadata occurrence, exact operation, origin, GET path and empty request body,
+with independently current Account/issuer/egress/material authorization and a
+separate durable use claim before physical I/O; database and dependent schema
+retrieval are separate grants, not a query-grant retargeting.
+
+<!-- requirement-block: installation-metadata-preparation.no-run-substitution -->
+The preparation alternative MUST NOT populate Run-bound fields with stand-ins,
+authorize later query/property reads or writes, or accept another subject,
+copied operational preparation, changed installation or cross-purpose use.
+
+<!-- requirement-block: installation-metadata-preparation.funded-lifetime -->
+The original acquisition/resource Owners MUST cover actual metadata request,
+response, decode, contract construction, retained observations, callbacks and
+cleanup independently of a future relational Run; missing actual authority,
+original context or funding refuses as Unavailable rather than falling back.
+
+<!-- requirement-block: installation-metadata-preparation.saved-originals -->
+Publication and Run adoption MUST retain the actual observed schema/declaration
+and resulting original Contracts, metadata dependency and generation; recovery
+consumes those saved originals, never rediscovery or configuration replacement.
+
+<!-- requirement-block: installation-metadata-preparation.nonresend -->
+Cold DATA admission MUST NOT claim an ordinal, renew expiry, issue permission,
+clear Unknown or prove a request unsent; partial response and pending cleanup
+remain with their same original Owner, without automatic resend.
+
+The signature uses the existing transport-neutral
+`actql-remote-credential-grant-signature/0.1` envelope and its preimage:
+version, NUL, grant CID, NUL, original grant bytes. The existing
+`actql-remote-credential-use/0.1` record retains its grant CID, use ID and ordinal.
+The distinct closed grant body and typed reader select this alternative;
+existing Run/Local preparation bodies and their readers remain unchanged.
+These records are DATA and do not acknowledge physical completion or cleanup.
+Static parsing and offline EXPLAIN do not perform metadata acquisition.
+<a id="initial-local-signing-issuer"></a>
+
+## Initial Local signing issuer admission
+
+<!-- requirement-block: initial-local-signing-issuer.authenticated-original -->
+The existing trusted Local Host/installation Owner MUST admit private
+LocalSigning issuance responsibility only from authenticated original explicit
+initialization/adoption for the same physical Store and original installed key
+generation, retaining or durably authenticating the actual installation issuer
+identity and explicit original finite expiry/use policy, refusing general Host
+adoption, signer metadata, PEM, public-key CID, path or current file hash as
+substitutes, and leaving missing originals unavailable without cold
+initialization or reconstruction.
+
+<!-- requirement-block: initial-local-signing-issuer.exact-operation -->
+The admission MUST be confined to the same original Client request, Submission,
+Run definition/invocation, attempt/unit, current Checkpoint/kind, purpose,
+selected key configuration/generation, exact preimage and finite use.
+
+<!-- requirement-block: initial-local-signing-issuer.independent-current-authority -->
+Current actor, Account, Reviewer or Host-attestation purpose, Run-read and
+physical key/sign authority MUST remain independent requirements, refusing
+cancellation, denial, retired/replaced originals and wrong-purpose substitution.
+
+<!-- requirement-block: initial-local-signing-issuer.original-default-identity -->
+Default machine-user identity MUST come from the actual trusted
+installation/current actor, without a named selection falling back to the
+default.
+
+<!-- requirement-block: initial-local-signing-issuer.no-authority-expansion -->
+The admission MUST exclude generic issuance, Source/Model/Effect/dispatch
+grants, changes to the explicit Native issuer route and policy inferred from
+Submission expiry.
+
+<!-- requirement-block: initial-local-signing-issuer.original-durable-use -->
+The existing journal/custody MUST persist/adopt the original grant and durably
+claim its original use before physical signing, with current rechecks around
+asynchronous key access and callbacks, retained original duty on commit/signature
+uncertainty without replacement grant, ordinal, attempt, key, signer, re-signing
+or resend, recovery/saved-outcome authentication of the same original
+key/issuer/grant/use/outcome and current return authority without initialization
+or reissuance, and separate ReviewerProof/HostAttestation key/purpose originals.
+
+The [existing Local signing Owner](../../../spec/contracts/local-signing-credential.md)
+defines the unchanged closed grant/use bodies. This private operational
+extension introduces no public signer field, new Owner, Ledger or approval
+mechanism; structural DATA admission is not operational acceptance.
+
+<a id="local-signing-bootstrap-policy"></a>
+
+## Default Local signing bootstrap policy
+
+<!-- machine-import: ../../../spec/contracts/actql-local-signing-bootstrap-policy.schema.json# sha256:85f15f3cfab03c1cc4e2ea64541027cd9cfa3218e1d430041fd8d04d2cd7cc88 -->
+<!-- machine-import: ../../../spec/contracts/local-signing-bootstrap-policy.json# sha256:8fe727ecd855e06e0bcb07262c31f9b4e2f211292c3393b5e3f4b7e5cf1501e1 -->
+
+<!-- requirement-block: local-signing-bootstrap-policy.pinned-initial-original -->
+Explicit first initialization of the default Local signer MUST retain and
+authenticate the selected closed policy original with max_uses 1 and
+max_issue_interval_ms 300000 through the existing packaged bootstrap assets,
+bound to the same original initialization intent, physical Store, original key
+generation and Host adoption, without treating these values as Submission TTL,
+execution funding or generic issue permission.
+
+<!-- requirement-block: local-signing-bootstrap-policy.original-issuer-identity -->
+The existing Common/Host Owner MUST format the issuer identity as exactly
+`local-signing/` followed by the authenticated original initialization intent CID
+including `sha256:`, retaining its nonce/Store/account/configuration binding
+without a new CID domain, later-Host identity, replacement initialization or
+authority from the identifier string alone.
+
+<!-- requirement-block: local-signing-bootstrap-policy.first-durable-issue -->
+The first durable issue MUST persist its actual trusted current sample and
+absolute expiry capped by the earlier of sample plus 300000 milliseconds or an
+applicable earlier original key/authorization bound, checking arithmetic and
+refusing negative/uncertain time, overflow and expired bounds, with the same
+original policy/grant/use/claim retained without renewal or replacement on
+restore, repeated answer, expiry or Unknown.
+
+<!-- requirement-block: local-signing-bootstrap-policy.default-only-and-no-backfill -->
+Only absent configured signers MUST select this default policy, with missing
+legacy originals unavailable, no cold initialization or backfill from a getter,
+and no configured named signer falling back to the default or changing the
+existing explicit generic Native issuer route.
+
 <a id="machine-contracts"></a>
 
 <!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/compiled_plan sha256:25094bdc116c9edae1f9ea4123e182d9d898f718941527fe466f55bd448fe7b8 -->
 
 ## Machine contracts
 
+<!-- machine-import: ../../../spec/contracts/actql-installation-metadata-credential.json# sha256:3f49e81df4b7e7ba1e4e419010a80f858481f3c8b2b0b0e2f942664aa2a82abc -->
+<!-- machine-import: ../../../spec/contracts/actql-installation-metadata-credential.json#/schemas/subject sha256:1a975b03b9bd3390118acc7dfef1a1a560119752a07910419beb79fc05399057 -->
+<!-- machine-import: ../../../spec/contracts/actql-installation-metadata-credential.json#/schemas/grant sha256:b24e7c6cf90147c8f222b829f8267c35dae1d70a09b334dc45a8dd9385471ce4 -->
+
 These exact schema/law references are owned here. Their identities do not include this document or another owner's aggregate contract.
 
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:9153a1e21f75dad07f37734e5424d687c1c441bee4469892ba7349cd389785cb
-../../../spec/contracts/actql-local-relation-snapshot.json# sha256:b227a99ccccb7275b27a7eda9e6bd665378fe51f301d743f2cb96d44749fe351
+../../../spec/contracts/actql-check-environment.json# sha256:341a4525d3d871b79f08e2b4604938bbec84d371016a8ce73d1be15a25abd14f
+../../../spec/contracts/actql-local-relation-snapshot.json# sha256:621725e41f803d118b749abf99a40f4c23e2bd3fb15078912c69ff7f82c6f85a
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
-../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:f0b78bb09840a99b56f6fe910be33b9f51dfcc6349834aa44bcc1b5de1e87a7f
+../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:27cb211cc9578f9b5fac27dc3d75c5236b13eebe501224b14f21eafbccda2d25
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_invocation_evidence_v02 sha256:805e0cb2268f07fe3170ff6910fcb9dcd6144af9f938bbfbac5b9c374bd89507
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_capture_bundle_v02 sha256:081c0eb1ce02e2150ab1464f3f2b1ffe144b298e11b02dea27cad136899d479f
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_invocation_evidence_compatible sha256:395b29533430f97fda7a13019417abb991e7fe1d2b0e92d579a58887f53a6756
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_capture_bundle_compatible sha256:750be57601bea98a9446d2ec3222e6f1cde2e2c40069cbef917fc475a15e9ddb
-../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task_v02 sha256:4d573d3b4ef25cfe72ad6d8c7bd1c9b13296e14801ea829f839f2461137c5734
+../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task_v02 sha256:d85dccc92c1e0f5cf254e011456d26f9964e8f700854498c008717b4c9ee97b2
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/decision_prompt sha256:dda24589bf95171a297fb7da656d4371b92a0db243065e77e4db160d975e4e38
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/decision_answers sha256:9074415d38b503da958213551086f760cac638fecc5b422b6af591bfe3356ac2
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/decision_probability_profile sha256:c1430ae14968435f40f7238506e9b603bf575ec462e5665bf3eac0fbc87523b3
@@ -2569,11 +2832,11 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/contract_ref sha256:a149fa3216f6e15bfaca58a886f7a3e6a269b0109fe7b9ccca1c402c1a103e94
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/contract_envelope sha256:12b59aa2fd993c1d540f8cc80f658760f17ee9f179d8d12cb5f037127b8ae6fe
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/source_view sha256:d6952a589192f22a335237629da2babd794b3b7f9a0c51d674d05146a5ea8d74
-../../../spec/contracts/actql-protocol-schemas.json#/schemas/command_contract sha256:aea4b2e2c370116591ff1d3f2193cf5a246ca289daae4c8b628060bd97ed85d1
-../../../spec/contracts/actql-protocol-schemas.json#/schemas/connector_catalog sha256:c76767b08b674271d50923cd0ab5ffe47c8ae5eec1b6fe55a96faee9af84795b
+../../../spec/contracts/actql-protocol-schemas.json#/schemas/command_contract sha256:ebbbe68a8945e0674624f2214c09a338a6bfd7f4d8dad9d72b44da2ecbdeebd7
+../../../spec/contracts/actql-protocol-schemas.json#/schemas/connector_catalog sha256:ee75f1a758c61e3dc90b082cba81fef3982abf506a260af6a8175340a762b565
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/lock sha256:02e3693c855d6137ac1fee89705a2a11824cf6607ea593b3ee7786263f49bdd4
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/authoring_context sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/parameter_values sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/parameter_values sha256:cf421ba9a3d602be0bf53fc646eb822c0fa96151a2c5cf72a2f271cc7c3a6d77
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/invocation_bindings sha256:6471878465e3cf6c4af4bd7d2c161d578ab861770ec6a893c7e0de116dadbd41
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_effective_inputs sha256:b44b64433d41470d143efa8deac6692201804a5714380694a84d66759819a727
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_input_artifact sha256:86e9e2c7b59634e8235b80a12b241a26f4f32f913dd30064aed36dfaecaf318c
@@ -2593,19 +2856,19 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/caller_input_intent sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/initial_input_artifact_set sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:1233ea18fefe024c7ededda918ace41c0a0ece305a0fae2699b047179c708924
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:b8e6589db46655b4ae93a7cb89c4e7037262da96d534e01fa3956ca314058347
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/result_plan sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_fact_manifest sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:c2ccbe439bebe37794c2771b5435a788d8315d4a1543c52d3cae6856fc315714
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:634a3b0921b17e9e2e72c6b12d9651b4a6e9685d4208a91de1cb98500490be7c
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:692b481d25e23400f0f81e0ddade946aba2dafca4dd2f1fe6c22c7e15e5122c1
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_reason sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:988a8893ede0e64a351f077f28c7b7c82a9b2988467b8eb8a02755ad3530ca7b
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_reason sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:ee1c0c7799d2dd30aa084ec5699078cf14ada0687ac6bb9e48e1f714789a8535
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/explanation sha256:785c6c2f4ae5ab75803f6316fee6eaf00c4010857020960633c7b40b4fb52d8c
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_source sha256:6730fdb00f7b0f21ae796bd55f686fb984cddac5b8da5325cec2114b82a37e1c
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_barrier sha256:587bfea69fbab0d23d200ac65ffc20c373142c4843820d37db6e0c617f10206a
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_evaluation_envelope sha256:b518bf2533adce50cc86448a1cc63246c2cfc01f34fe1da5b8916152a4aa851f
-../../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_evaluation_barrier sha256:1301db3309f03f796b8f34c24c37afb8181a76e2ba5ab098dfd9194a32e4ce7a
+../../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_evaluation_barrier sha256:cab960023ffd6486161c4757a86bde76c93798504d92a47631c73d747f881cdf
 ```
 
 <!-- stage-contract-pins:start -->

@@ -114,6 +114,194 @@ Replacing them with storage-independent transition guarantees requires a
 separately reviewed semantic change and failure/concurrency evidence.
 
 
+## Initial Node control and preparation
+
+The selected Node startup may admit bounded original Project, configuration and
+Task intake and Host preparation records in its explicitly declared initial
+control lifetime. The [execution boundary](../spec/execution.md#initial-node-control-preparation)
+owns this scope. It is not confined to fixed preload wrappers, but it is also
+not a general V8/RSS lease, a Native arena adopted by JS, or a numerical release
+profile. A separate physical lease for each V8 object is not a prerequisite to
+initializing this declared trusted control scope.
+
+The actual private bootstrap issues its installation-only nominal admission
+before the covered work. It retains the selected startup, source, backend,
+recipe and same Host/installation/generation originals. An eight-reference
+runtime view, parsed bounds, matching source digest, caller Boolean or Ledger
+cannot issue that admission. Earlier imports and Project discovery cannot be
+charged retrospectively when a Host is associated later.
+
+The same-phase envelope includes raw read backing and lookahead, concatenation
+and strict decoding, retained text and parser cursors, normalization writers,
+preimages and hash workspace, original configuration/registry/Task/default
+records, indices, arrays, closures and escaped aliases. Selected module images,
+runtime internals and libraries remain explicit implementation domains, not
+zero-cost constants. A bound on input text alone does not cover these overlaps,
+and unselected callbacks or libraries do not inherit coverage.
+
+Preparation material remains with that original lifetime through partial
+construction and uncertain cleanup. The existing Host shutdown retains each
+original child and its cleanup receiver; successful sibling cleanup cannot
+retire another child's duty. An explicit transfer accounts for simultaneous
+source and destination responsibility before cutting source aliases. A local
+view's retirement or Promise completion is not a physical acknowledgement.
+
+Private consumers authenticate an initial-control scope through the same
+preload Owner's nominal current check, not by invoking a method on a supplied
+object. That check binds the original Host, installation, generation, supplier
+and module lifetime, and rechecks closing after the original current callback.
+Copying a scope's methods or constructing another internal state-machine
+instance cannot add membership to the selected preload's instance.
+
+The prepared embedded Host obtains its fixed check-environment source through
+that same nominal scope and five originals. The private startup projects the
+already captured package image; the Host does not reread its pathname or fall
+back to current file contents when that projection is unavailable. The original
+String remains in its selected module/preparation lifetime, including escaped
+aliases; this borrow is neither a new issuer nor a physical release acknowledgement.
+Independent Host entries without this preparation retain their own acquisition
+obligations and do not inherit the embedded startup admission.
+
+An eager original Host namespace may capture the startup's already-published
+immutable CJS forwarders through the same synchronous private receiver. This
+avoids a static CJS/ESM require cycle without deferring authentication to entry
+code or accepting a later cache-export replacement. It neither creates an
+operational original nor covers earlier module loading by itself.
+
+The original Host candidate, empty installation, five-reference snapshot,
+existing registry entry and cleanup scaffolding precede begin under the actual
+bootstrap lifetime. They are not retrospectively charged to the installation
+scope. Project/configuration/Profile/Task body intake and Provider preparation
+remain after begin and the fixed nominal current check.
+
+A preparation record is retained before fallible work. Repeating retention of
+that same record returns its original duty and may attach its original cleanup
+handle once; it cannot replace a pending handle. Managed-reference release is
+only a notice that the caller cut its own aliases. Captured cleanup methods and
+their original receiver remain held until their own status reports
+`pending: false`, independently of retry settlement. The scope closes only
+after every preparation duty and the original operational close acknowledge
+completion. Concurrent closes share one flight, completed siblings are not
+retried, and diagnostics retain the first and latest error records rather than
+an unbounded history. Escaped aliases remain the original envelope's duty.
+
+The original supplier may initialize its selected Host module namespace through
+one asynchronous flight. Begin snapshots all five original references and
+consumes the generation before that initialization; it checks original current
+afterward before returning the nominal scope. The caller awaits begin and uses
+the fixed Owner validator before importing Common or discovering the Project.
+An initialization failure preserves its original cause and cleanup duty; neither
+a provisional scope nor Promise settlement substitutes for that duty's ACK.
+
+The ordinary package builder derives a private image inventory from the exact
+rewritten adapter outputs, runtime images and selected dependency manifests.
+This generated Source is correspondence DATA, not an operational issuer. A
+same-FD image read checks its original extent, identity and complete digest,
+holds its immutable UTF-8 Source and closes that same descriptor before handing
+the Source onward. Close failure retains the original FD and close-only retry;
+it cannot return Source, reopen the image or retire a sibling. The temporary
+byte backing, decoded String, hash and native decoder workspace overlap. Such
+byte custody alone does not establish the complete image loader, installation
+admission, current Host or preparation envelope.
+
+Selected image loading supplies immutable captured Source to the original Node
+compiler rather than delegating the body to a later pathname read. Uncaptured
+dependencies and additional query-identified images require their own selected
+domain; they cannot inherit this control coverage. Registration through the
+published `registerHooks`/`register` fences permanently invalidates this helper,
+even after deregistration. This observation does not cover an original native
+registration function retained before fence installation: it can install a
+short-circuit loader without changing the published property or this helper's
+currentness result. That result therefore is not an all-history certificate.
+Before operational adoption, the actual selected startup must independently
+establish the ownership and non-escape of those original registration functions
+and any earlier registrations. This component does not establish that boundary;
+without it, operational admission remains unavailable.
+
+The admission must also bind the actual post-load CJS cache/exports, original
+stock resolver, fixed asset reads and runtime-file identity to the loaded
+runtime. A Source-delivery marker, a stock-function identity check or a matching
+cache-shaped object alone does not authenticate those originals. These are
+selected implementation obligations, not restrictions on ActQL Programs or
+permission for unrelated Node callbacks, libraries or business work.
+
+After synchronous original namespace initialization, the actual preload captures
+its CJS/JSON Module records and exports descriptors once, before entry runs.
+Currentness checks retain that same record, exports reference and shallow own
+descriptor inventory without invoking exported getters. Changed or replaced
+records remain refused even if restored. An image not initialized at that
+handoff cannot acquire pre-entry provenance by compiling later. Preexisting
+bootstrap bodies, nested export referents, stock resolution and fixed asset
+reads still need their independent selected-domain correspondence; this cache
+handoff alone is neither a complete loader proof nor an operational issuer.
+
+Fixed control assets are projected from that same selected immutable Source
+holding through the private nominal installation port. It checks the original
+scope, five references and currentness before and after the captured supplier
+callback, returning only its original String. It neither rereads a path nor
+parses, reconstructs or authenticates new DATA. An unavailable asset stays
+unavailable; callers cannot substitute a file, receiver, Promise or matching
+digest. Scope retirement does not collect escaped Strings or acknowledge the
+separate module/image holding.
+
+This admission has no conversion to metadata HTTP, Source, Result, business Run,
+Model invocation, Content/driver or external-VM capacity or authority. Their
+existing Resource suppliers and current authorization remain separate. The
+initial trust boundary introduces no Owner, Ledger, queue or scheduler.
+
+The existing installed Host shutdown retains the issuer's original initial
+control receiver as its final control duty. It closes that duty only after
+dispatch, Checkpoint, journal, Source, Effect, Store, observation and retained
+owner-view cleanup have completed. Failed initialization uses the same ordering
+and original retry carrier. A successful sibling close cannot release the
+initial holding while another child remains uncertain.
+
+The Host captures that same receiver's close operation before its first child
+cleanup await, but invokes it only after those children complete. A getter
+failure retains the holding under the same cleanup Owner; only a still-unobserved
+getter may be retried. A successfully observed callback cannot be replaced
+before the first close request or during child cleanup. Only its
+explicit `pending: false` observation completes the control duty; a fulfilled
+Promise, absent/malformed observation or replacement close function does not.
+Final runtime-reference retirement remains behind that confirmed duty. These
+cleanup consumers cannot issue an initial admission, establish its coverage,
+prove garbage collection or supply business-Run capacity.
+
+Pending initialization retains each original cleanup phase's first and latest
+failure, rather than accumulating an unbounded in-memory retry history. This
+bounded diagnostic projection neither completes that phase nor changes its
+original cause, cleanup receiver or retry authority.
+
+The same installed Host registry retains a preparation candidate under its
+actual Host identity before Project discovery. This candidate has no root
+lease. Only the selected startup's original module operation can validate its
+same Host, installation and generation, original `connectEmbeddedLocal`
+function and module lifetime. A namespace, public function, caller callback,
+copied record or equal configuration cannot reconstruct this membership.
+The startup independently supplies the operational admission; registry
+membership is not capacity, authority or coverage of earlier imports.
+
+The Local preparation awaits that admission before snapshotting options,
+importing Common or reading Project originals. Its original scope is checked
+after awaits and between original file acquisitions and Common admission.
+The existing file Owner first closes or retains an acquired FD, so a current
+refusal cannot lose it before cleanup custody. Getter failures on a thrown
+initialization value likewise remain under the retained cleanup phase.
+
+On adoption, the candidate and root lease use the same registry entry and
+actual returned Host. A foreign returned child enters its acquired shutdown
+custody before the pair refusal. Reusing an existing Host first retires only
+the unused preparation, then rechecks that original entry and its nonclosing
+lifetime after the await, before exposing another lease. Pending preparation
+cleanup does not close or replace the existing Host.
+
+Project views share one original retirement record. Existing Host cleanup or
+an unadopted preparation cuts its managed configuration/registry references;
+captured getters and downstream lookups then refuse. This does not rewrite
+escaped canonical DATA or acknowledge its physical storage, GC or capacity.
+Managed preparation aliases are cut before the same control's close, while
+runtime-view retirement remains behind its explicit original completion.
+
 ## Installed Effect cleanup
 
 The installed Effect Site retains target-read authorization, input pins,
@@ -151,3 +339,49 @@ account deny always prevents dispatch. Project configuration never grants
 itself authority, and an invalid configured policy never falls back to these
 defaults. Mock fixture replacement remains explicit and cannot substitute
 fixture credentials or permissions into a real connection.
+
+### Purpose-confined initial Local signing issuer
+
+The original explicit Local initialization/adoption may retain an internal
+issuance responsibility for the same physical Store and installed key
+generation. This is a narrow operational admission inside the existing trusted
+Host/installation and Credential boundary. It is not an authority inferred from
+Host adoption, parsed signer metadata, public-key identity or possession of a
+PEM, and it does not change the explicit Native issuer-file/Account route.
+
+The initialization/adoption originals must authenticate the actual issuer
+identity and an explicit finite signing expiry/use policy. Missing originals
+stay unavailable, including on cold open. Do not derive a policy from the
+Submission epoch, assume a use count or create a synthetic issuer selection.
+Named selection cannot silently become the default. The machine-user identity
+comes from the actual trusted installation/current actor, not a caller label.
+
+The selected new default policy allows one physical use for an exact
+purpose-bound operation and at most 300000 milliseconds from the first durable
+issue's actual trusted sample. The existing packaged default-asset generator
+supplies a distinct closed original, not an execution profile. Retain it at
+explicit first initialization. Common formats the issuer identity as
+`local-signing/` plus that original initialization intent CID, not a later Host
+CID or a new identity domain. These DATA projections cannot authenticate the
+original installation or create an operational issuer.
+
+The first durable issue persists its actual sample and absolute expiry, capped
+by any earlier original key/authorization validity. Checked time arithmetic
+refuses invalid/uncertain/expired observations and overflow. Reopen, history,
+repeated answer and Unknown do not renew that original. A missing legacy policy
+cannot be backfilled by calling the packaged getter. Configured named signers
+do not use this default-only policy.
+
+Confine issuance to the existing original request/Submission/Run/attempt/unit,
+Checkpoint/kind, purpose, key configuration/generation, preimage and finite use.
+Current actor, Reviewer/Host-attestation purpose, Run read, Account and key/sign
+authority remain independent requirements. This connection grants no generic
+credential issue, Source/Model/Effect or dispatch authority. Authenticate and
+persist the original grant and durably claim the original use before signing,
+with current rechecks around callbacks. Uncertain commits/signatures retain the
+same original duty; no replacement key/grant/use, re-signing or resend. Recovery
+and saved-outcome reads cannot initialize missing originals or issue again.
+
+The [Local signing contract](../../spec/contracts/local-signing-credential.md)
+owns this distinction and the unchanged grant/use bytes. A metadata/key
+component test is not evidence of initialized default or installed approval.

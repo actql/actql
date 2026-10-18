@@ -19,6 +19,7 @@ pub enum Value {
   JsonData(Value)
   Vector(FrozenArray[Double])
   Reference(ReferenceValue)
+  Signed64(Int64)
 }
 
 ///|
@@ -268,6 +269,13 @@ pub fn number_value(value : Double) -> Value? {
 }
 
 ///|
+/// Exact signed64 data, not a Number/Decimal conversion or checked authority.
+/// Its original Contract is still required by ordinary bounded rechecking.
+pub fn signed64_value(value : Int64) -> Value {
+  Signed64(value)
+}
+
+///|
 pub fn prepare_vector_value(dimensions : Int) -> VectorBuilder? {
   if dimensions < 1 {
     None
@@ -380,6 +388,7 @@ pub(all) enum IssueKind {
   InvalidReference
   UnauthorizedReference
   BudgetExceeded
+  InvalidSigned64
 } derive(Eq, Debug)
 
 ///|

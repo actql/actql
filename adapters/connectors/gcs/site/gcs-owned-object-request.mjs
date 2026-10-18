@@ -105,6 +105,41 @@ export function prepareOwnedGcsObjectDelete({moon, binding, original, maxProject
   return projectOwnedGcsObjectRequest(moon, binding, handle, maxProjectionBytes);
 }
 
+// The existing capture/Store Owner authenticates this exact retained material
+// before calling. Restore only new local binding membership: no live child,
+// current fence, dispatch claim, fresh marker or replacement GET is issued.
+export function restoreOwnedGcsObjectMutationRequest({moon, binding, name,
+  responseStatus, responseHeaders, responseBytes, responseSha256,
+  changesBytes, body, requestCid, maxProjectionBytes}) {
+  if (typeof moon?.gcsObjectRestoreMutationValue !== 'function') {
+    fail('GcsOriginalMutationRecoveryUnavailable');
+  }
+  if (!integer(maxProjectionBytes) || typeof name !== 'string' ||
+      !Number.isInteger(responseStatus) || responseStatus < 100 || responseStatus > 599 ||
+      typeof responseSha256 !== 'string' || typeof body !== 'string' ||
+      typeof requestCid !== 'string' || !Array.isArray(responseHeaders) ||
+      responseHeaders.length > 3 || responseHeaders.some(pair =>
+        !Array.isArray(pair) || pair.length !== 2 ||
+        typeof pair[0] !== 'string' || typeof pair[1] !== 'string')) {
+    fail('InvalidGcsObjectRecovery');
+  }
+  // These synchronous Core inputs may borrow ordinary byte backing, never a
+  // concurrently mutable shared backing. Core keeps the existing byte/tree/
+  // body limits and checks the separately retained hash before interpretation.
+  try {
+    for (const bytes of [responseBytes, changesBytes]) {
+      if (!(bytes instanceof Uint8Array) || viewLength.call(bytes) > 2147483647) {
+        fail('InvalidGcsObjectRecovery');
+      }
+      bufferLength.call(viewBacking.call(bytes));
+    }
+  } catch { fail('InvalidGcsObjectRecovery'); }
+  const handle = gcsOwnedResult(moon, moon.gcsObjectRestoreMutationValue(binding,
+    name, responseStatus, responseHeaders.map(([key, value]) => runtimePair(key, value)),
+    responseBytes, responseSha256, changesBytes, body, requestCid));
+  return projectOwnedGcsObjectRequest(moon, binding, handle, maxProjectionBytes);
+}
+
 // Retain the same raw response before this DATA interpretation. Port fields
 // are observations, not Account authority or a physical-response cleanup ACK.
 export function admitGcsObjectTargetObservation(moon, binding, name, response) {
@@ -364,6 +399,43 @@ export function borrowOwnedGcsMetadataPatchTarget(request, maxProjectionBytes, b
     },
     // Alias retirement only. It does not close the preparation child, confirm
     // its raw response/FD/credential retirement or return physical capacity.
+    retire() {
+      if (this !== view) fail('ForeignGcsObjectPreview');
+      retainedRequest = retainedBinding = undefined;
+    },
+  });
+  return view;
+}
+
+// DELETE uses the same original child/GET lifetime but never a PATCH value,
+// marker or fabricated after. The Common selection/Run owner still checks
+// the original DELETE Header, Mapping, occurrence and current authority.
+export function borrowOwnedGcsObjectDeleteTarget(request, maxProjectionBytes, binding) {
+  if (!integer(maxProjectionBytes)) fail('InvalidGcsObjectAbiLimits');
+  const original = originalRequest(request, binding);
+  if (typeof original.previewCurrent !== 'function' ||
+      typeof original.moon.gcsObjectDeleteEffectTarget !== 'function') {
+    fail('GcsOriginalMutationPreparationUnavailable');
+  }
+  original.previewCurrent();
+  if (original.moon.gcsObjectMutationKind(original.binding) !== 'delete') fail('GcsInvalidObjectBinding');
+  let retainedRequest = request, retainedBinding = binding;
+  const view = Object.freeze({
+    readFor(candidate) {
+      if (this !== view || retainedRequest === undefined || candidate !== retainedRequest) {
+        fail('ForeignGcsObjectPreview');
+      }
+      let current = originalRequest(retainedRequest, retainedBinding);
+      current.previewCurrent();
+      const row = freeze(JSON.parse(gcsOwnedResult(current.moon,
+        current.moon.gcsObjectDeleteEffectTarget(retainedBinding ?? current.binding,
+          current.handle, maxProjectionBytes))));
+      current = originalRequest(retainedRequest, retainedBinding);
+      current.previewCurrent();
+      return row;
+    },
+    // Drop only these managed aliases. The original child still owns raw
+    // response, physical binding and pending cleanup until its own ACK.
     retire() {
       if (this !== view) fail('ForeignGcsObjectPreview');
       retainedRequest = retainedBinding = undefined;

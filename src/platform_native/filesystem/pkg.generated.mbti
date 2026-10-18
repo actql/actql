@@ -10,6 +10,10 @@ pub fn native_filesystem_read_layout() -> NativeFilesystemReadLayout?
 
 pub fn open_private_root(String, diagnostic_ceiling? : Int?) -> Result[Root, NativeFilesystemIssue]
 
+pub fn open_private_root_in_current_read_context_with_custody(String, Int) -> Result[Root, NativeRootOpenFailure]
+
+pub fn open_private_root_with_custody(String, diagnostic_ceiling? : Int?) -> Result[Root, NativeRootOpenFailure]
+
 pub fn open_root(String, diagnostic_ceiling? : Int?) -> Result[Root, NativeFilesystemIssue]
 
 pub fn open_root_in_current_read_context_with_custody(String, Int) -> Result[Root, NativeRootOpenFailure]
@@ -97,6 +101,10 @@ type NativeRootOpenFailure
 pub fn NativeRootOpenFailure::issue(Self) -> NativeFilesystemIssue
 pub fn NativeRootOpenFailure::retry_cleanup(Self) -> Result[Unit, NativeFilesystemIssue]
 
+type NativeWriterOpenFailure
+pub fn NativeWriterOpenFailure::issue(Self) -> NativeFilesystemIssue
+pub fn NativeWriterOpenFailure::retry_cleanup(Self) -> Result[Unit, NativeFilesystemIssue]
+
 type PrivateFileProjection
 pub fn PrivateFileProjection::export_original(Self) -> Result[Bytes, NativeFilesystemIssue]
 
@@ -114,6 +122,7 @@ pub fn Root::check_directory_members(Self, Array[NativeDirectoryMember]) -> Resu
 pub fn Root::close(Self) -> Result[Unit, NativeFilesystemIssue]
 pub fn Root::create_directory(Self, String) -> Result[NativeFileOwnership, NativeFilesystemIssue]
 pub fn Root::create_writer(Self, String, Int64) -> Result[Writer, NativeFilesystemIssue]
+pub fn Root::create_writer_with_custody(Self, String, Int64) -> Result[Writer, NativeWriterOpenFailure]
 pub fn Root::inspect_directory(Self, String) -> Result[NativeFileOwnership?, NativeFilesystemIssue]
 pub fn Root::inspect_generation(Self, String) -> Result[NativeFileGeneration?, NativeFilesystemIssue]
 pub fn Root::observe_directory(Self) -> Result[NativeDirectoryObservation, NativeFilesystemIssue]
@@ -125,6 +134,7 @@ pub fn Root::open_reader_with_custody(Self, String, NativeFileGeneration) -> Res
 pub fn Root::private_ownership(Self) -> Result[NativeFileOwnership, NativeFilesystemIssue]
 pub fn Root::reclaim_generation(Self, String, NativeFileGeneration) -> Result[Unit, NativeFilesystemIssue]
 pub fn Root::remove_directory(Self, String, NativeFileOwnership) -> Result[Bool, NativeFilesystemIssue]
+pub fn Root::require_current_original_read(Self) -> Result[Unit, NativeFilesystemIssue]
 pub fn Root::restore_private_file_projection(Self, Bytes) -> Result[PrivateFileProjection, NativeFilesystemIssue]
 pub fn Root::sync_directory(Self) -> Result[Unit, NativeFilesystemIssue]
 pub fn Root::verify_generation(Self, String, NativeFileGeneration) -> Bool
@@ -134,6 +144,7 @@ pub fn Writer::adopt_name(Self, Root, String) -> Result[Unit, NativeFilesystemIs
 pub fn Writer::append(Self, Bytes) -> Result[Unit, NativeFilesystemIssue]
 pub fn Writer::cancel(Self) -> Result[Unit, NativeFilesystemIssue]
 pub fn Writer::cleanup_pending(Self) -> Bool
+pub fn Writer::close_retaining_files(Self) -> Result[Unit, NativeFilesystemIssue]
 pub fn Writer::is_sealed(Self) -> Bool
 pub fn Writer::ownership(Self) -> NativeFileOwnership
 pub fn Writer::seal(Self, String) -> Result[NativeFileGeneration, NativeFilesystemIssue]

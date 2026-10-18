@@ -31,6 +31,8 @@ pub fn form_field_paths(FormFieldCatalog) -> Array[Array[String]]
 
 pub fn match_original_record_target_revision(OriginalRecordTarget, OriginalRecordPage, Int) -> Result[Unit, RecordMutationIssue]
 
+pub fn match_record_key_lookup(RecordLookupObservation, RecordLookupObservation) -> Result[Unit, RecordLookupIssue]
+
 pub fn original_record_fields(OriginalRecord) -> Array[OriginalRecordField]
 
 pub fn original_record_table_rows(OriginalRecordField) -> Array[OriginalTableRow]?
@@ -47,7 +49,17 @@ pub fn original_table_fields(OriginalTableRow) -> Array[OriginalRecordField]
 
 pub fn prepare_original_record_target(OriginalRecordPage, Int, Int) -> Result[OriginalRecordTarget, RecordMutationIssue]
 
+pub fn prepare_record_create_request(FormFieldCatalog, Array[RecordWriteValues], RecordMutationLimits) -> Result[RecordCreateRequest, RecordMutationIssue]
+
+pub fn prepare_record_create_request_json(FormFieldCatalog, Bytes, Int, RecordWriteLimits, RecordMutationLimits) -> Result[RecordCreateRequest, RecordCreateJsonIssue]
+
 pub fn prepare_record_delete_request(Array[OriginalRecordTarget], RecordMutationLimits) -> Result[RecordDeleteRequest, RecordMutationIssue]
+
+pub fn prepare_record_text_key_lookup(FormFieldCatalog, String, String, Array[String], RecordLookupLimits) -> Result[RecordLookupRequest, RecordLookupIssue]
+
+pub fn prepare_record_update_request(Array[(OriginalRecordTarget, RecordWriteValues)], RecordMutationLimits) -> Result[RecordUpdateRequest, RecordMutationIssue]
+
+pub fn prepare_record_write_values(FormFieldCatalog, Array[(String, @value_admission.CheckedValue)], RecordWriteLimits) -> Result[RecordWriteValues, RecordWriteIssue]
 
 pub fn project_checked_record_page(OriginalRecordPage, AppNumberSettings?, RecordValueLimits) -> Result[CheckedRecordPage, RecordValueIssue]
 
@@ -55,13 +67,53 @@ pub fn project_form_fields(Bytes, String, FormFieldLimits) -> Result[FormFieldCa
 
 pub fn project_number_settings(Bytes, String, NumberSettingsLimits) -> Result[AppNumberSettings, NumberSettingsIssue]
 
+pub fn project_record_create_acknowledgement(RecordCreateRequest, Int, Bytes, RecordMutationLimits) -> Result[RecordCreateAcknowledgement, RecordMutationIssue]
+
+pub fn project_record_create_effect_outcome(RecordCreateRequest, RecordCreateAcknowledgement, RecordMutationLimits) -> Result[RecordCreateEffectOutcome, RecordMutationIssue]
+
 pub fn project_record_delete_acknowledgement(RecordDeleteRequest, Int, Bytes, Int, Int, Int) -> Result[RecordDeleteAcknowledgement, RecordMutationIssue]
 
+pub fn project_record_key_lookup(RecordLookupRequest, Int, Bytes, RecordPageLimits) -> Result[RecordLookupObservation, RecordLookupIssue]
+
 pub fn project_record_page(Bytes, FormFieldCatalog, Array[String], RecordPageLimits) -> Result[OriginalRecordPage, RecordPageIssue]
+
+pub fn project_record_update_acknowledgement(RecordUpdateRequest, Int, Bytes, RecordMutationLimits) -> Result[RecordUpdateAcknowledgement, RecordMutationIssue]
+
+pub fn recheck_record_create_form(RecordCreateRequest, Bytes, FormFieldLimits) -> Result[Unit, RecordMutationIssue]
 
 pub fn recheck_record_delete_form(RecordDeleteRequest, Bytes, FormFieldLimits) -> Result[Unit, RecordMutationIssue]
 
 pub fn recheck_record_delete_records(RecordDeleteRequest, Bytes, RecordPageLimits, Int, Int) -> Result[Unit, RecordMutationIssue]
+
+pub fn recheck_record_lookup_form(RecordLookupRequest, Bytes, FormFieldLimits) -> Result[Unit, RecordLookupIssue]
+
+pub fn record_create_acknowledgement_is_original(RecordCreateAcknowledgement) -> Bool
+
+pub fn record_create_acknowledgement_records(RecordCreateAcknowledgement) -> Array[(String, String)]
+
+pub fn record_create_acknowledgement_request(RecordCreateAcknowledgement) -> RecordCreateRequest
+
+pub fn record_create_effect_outcome_matches_request(RecordCreateEffectOutcome, RecordCreateRequest) -> Bool
+
+pub fn record_create_effect_outcome_response_sha256(RecordCreateEffectOutcome) -> String
+
+pub fn record_create_effect_outcome_wire(RecordCreateEffectOutcome) -> String
+
+pub fn record_create_request_app_id(RecordCreateRequest) -> String
+
+pub fn record_create_request_body(RecordCreateRequest) -> String
+
+pub fn record_create_request_count(RecordCreateRequest) -> Int
+
+pub fn record_create_request_is_original(RecordCreateRequest) -> Bool
+
+pub fn record_create_request_matches_value_wire(RecordCreateRequest, String, Int, RecordWriteLimits, RecordMutationLimits) -> Result[Bool, RecordCreateJsonIssue]
+
+pub fn record_create_request_values(RecordCreateRequest) -> Array[RecordWriteValues]
+
+pub fn record_create_request_values_json(RecordCreateRequest, Int, Int, Int) -> Result[String, RecordCreateJsonIssue]
+
+pub fn record_create_required_fields(FormFieldCatalog, Int, Int) -> Result[Array[String], RecordWriteIssue]
 
 pub fn record_delete_acknowledgement_request(RecordDeleteAcknowledgement) -> RecordDeleteRequest
 
@@ -75,6 +127,16 @@ pub fn record_delete_request_count(RecordDeleteRequest) -> Int
 
 pub fn record_delete_request_targets(RecordDeleteRequest) -> Array[OriginalRecordTarget]
 
+pub fn record_key_lookup_page(RecordLookupObservation) -> OriginalRecordPage
+
+pub fn record_key_lookup_uses_request(RecordLookupObservation, RecordLookupRequest) -> Bool
+
+pub fn record_lookup_request_app_id(RecordLookupRequest) -> String
+
+pub fn record_lookup_request_body(RecordLookupRequest) -> String
+
+pub fn record_lookup_request_uses_catalog(RecordLookupRequest, FormFieldCatalog) -> Bool
+
 pub fn record_page_columns(OriginalRecordPage) -> Array[String]
 
 pub fn record_page_records(OriginalRecordPage) -> Array[OriginalRecord]
@@ -82,6 +144,28 @@ pub fn record_page_records(OriginalRecordPage) -> Array[OriginalRecord]
 pub fn record_page_uses_catalog(OriginalRecordPage, FormFieldCatalog) -> Bool
 
 pub fn record_schema_wire(FormFieldCatalog, AppNumberSettings?, Array[String], RecordValueLimits, Int) -> Result[String, RecordValueIssue]
+
+pub fn record_update_acknowledgement_records(RecordUpdateAcknowledgement) -> Array[(String, String)]
+
+pub fn record_update_acknowledgement_request(RecordUpdateAcknowledgement) -> RecordUpdateRequest
+
+pub fn record_update_request_app_id(RecordUpdateRequest) -> String
+
+pub fn record_update_request_body(RecordUpdateRequest) -> String
+
+pub fn record_update_request_count(RecordUpdateRequest) -> Int
+
+pub fn record_update_request_observation(RecordUpdateRequest, RecordMutationLimits) -> Result[RecordDeleteRequest, RecordMutationIssue]
+
+pub fn record_update_request_values(RecordUpdateRequest) -> Array[(OriginalRecordTarget, RecordWriteValues)]
+
+pub fn record_write_field_contract(FormFieldCatalog, String) -> @value_contract.Contract?
+
+pub fn record_write_values_body(RecordWriteValues) -> String
+
+pub fn record_write_values_fields(RecordWriteValues) -> Array[String]
+
+pub fn record_write_values_match_catalog(RecordWriteValues, FormFieldCatalog) -> Bool
 
 pub fn require_form_unique_key(FormFieldCatalog, String) -> Result[FormFieldMetadata, FormFieldIssue]
 
@@ -175,12 +259,65 @@ pub struct OriginalTableRow {
   // private fields
 }
 
+pub struct RecordCreateAcknowledgement {
+  response_sha256 : String
+  // private fields
+}
+
+pub struct RecordCreateEffectOutcome {
+  // private fields
+}
+
+pub(all) enum RecordCreateJsonIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidRecords
+  Write(RecordWriteIssue)
+  Request(RecordMutationIssue)
+} derive(Eq, @debug.Debug)
+
+pub struct RecordCreateRequest {
+  // private fields
+}
+
 pub struct RecordDeleteAcknowledgement {
   response_sha256 : String
   // private fields
 }
 
 pub struct RecordDeleteRequest {
+  // private fields
+}
+
+pub(all) enum RecordLookupIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidKey
+  InvalidSelection
+  Form(FormFieldIssue)
+  Page(RecordPageIssue)
+  UnexpectedStatus
+  IncompleteResponse
+  ForeignRecord
+  ForeignCatalog
+  ForeignRequest
+  ChangedObservation
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RecordLookupLimits {
+  max_key_bytes : Int
+  max_columns : Int
+  max_comparison_work : Int
+  max_request_bytes : Int
+  max_request_nodes : Int
+  max_request_depth : Int
+}
+
+pub struct RecordLookupObservation {
+  // private fields
+}
+
+pub struct RecordLookupRequest {
   // private fields
 }
 
@@ -231,6 +368,15 @@ pub(all) struct RecordPageLimits {
   max_table_rows : Int
 }
 
+pub struct RecordUpdateAcknowledgement {
+  response_sha256 : String
+  // private fields
+}
+
+pub struct RecordUpdateRequest {
+  // private fields
+}
+
 pub(all) enum RecordValueIssue {
   InvalidLimits
   BudgetExceeded
@@ -248,6 +394,29 @@ pub(all) struct RecordValueLimits {
   max_nodes : Int
   max_depth : Int
   max_text_bytes : Int
+}
+
+pub(all) enum RecordWriteIssue {
+  InvalidLimits
+  BudgetExceeded
+  EmptyWrite
+  DuplicateField(String)
+  FieldUnavailable(String)
+  InvalidValue(String)
+  UnrepresentableValue(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RecordWriteLimits {
+  max_fields : Int
+  max_name_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_text_bytes : Int
+  max_output_bytes : Int
+}
+
+pub struct RecordWriteValues {
+  // private fields
 }
 
 // Type aliases

@@ -3,7 +3,7 @@
 
 ///|
 fn generated_protocol_schema_nodes() -> Array[ProtocolSchemaRule] {
-  let nodes : Array[ProtocolSchemaRule] = Array(capacity=7280)
+  let nodes : Array[ProtocolSchemaRule] = Array(capacity=7286)
   generated_protocol_schema_nodes_0(nodes)
   generated_protocol_schema_nodes_1(nodes)
   generated_protocol_schema_nodes_2(nodes)
@@ -22080,6 +22080,36 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
+  nodes.push(protocol_string_rule(None, [], 1, 0))
+  nodes.push(protocol_string_rule(Some("publication-private"), [], 0, 0))
+  nodes.push(protocol_string_rule(None, [], 1, 0))
+  nodes.push(protocol_string_rule(None, [], 0, 1))
+  nodes.push(
+    protocol_string_rule(
+      Some("actql-installation-publication-storage-binding/0.1"),
+      [],
+      0,
+      0,
+    ),
+  )
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("key_generation_cid", 7280),
+        ("private_namespace", 7281),
+        ("store_authority_cid", 7282),
+        ("store_contract_wire", 7283),
+        ("version", 7284),
+      ],
+      [
+        "key_generation_cid", "private_namespace", "store_authority_cid", "store_contract_wire",
+        "version",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
 }
 
 ///|
@@ -22229,6 +22259,7 @@ fn generated_protocol_schema_root(name : String, complete : Bool) -> Int? {
     ("run_state", true) => Some(7142)
     ("review_projection", false) => Some(7210)
     ("review_projection", true) => Some(7279)
+    ("installation_publication_storage_binding", true) => Some(7285)
     _ => None
   }
 }

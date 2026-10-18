@@ -1,0 +1,79 @@
+import {checked} from '../../../host-common/runtime-result.mjs';
+import {sendRawKintoneWrite} from './kintone-record-write.mjs';
+
+const fail = code => {throw Object.assign(new Error(code), {code});};
+const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
+const requiredPorts = ['clientProgramKintoneCreateMappingMatchesDeclaration',
+  'clientProgramKintoneCreateMappingMatchesRequest', 'clientProgramKintoneCreateExecutionRequest',
+  'clientProgramKintoneWriteLimits', 'clientProgramKintoneMutationLimits'];
+
+function originalMapping(moon, mapping, declaration) {
+  if (requiredPorts.some(name => typeof moon?.[name] !== 'function')) {
+    fail('KintoneCreateExecutionRuntimeUnavailable');
+  }
+  if (!mapping || !declaration ||
+      !moon.clientProgramKintoneCreateMappingMatchesDeclaration(mapping, declaration)) {
+    fail('ForeignKintoneCreateMapping');
+  }
+}
+
+// Mapped values use the same original Form and Mapping. This prepares DATA,
+// without provider records, defaults, IDs, insertion decisions or permissions.
+export function prepareMappedKintoneCreate({moon, mapping, declaration, bytes, limits}) {
+  originalMapping(moon, mapping, declaration);
+  if (!(bytes instanceof Uint8Array) || !['maxRequestBytes', 'maxNodes', 'maxDepth',
+    'maxFields', 'maxNameUnits', 'maxRows', 'maxIdentityBytes', 'maxComparisonWork']
+    .every(name => positive(limits?.[name])) || bytes.byteLength > limits.maxRequestBytes) {
+    fail('InvalidKintoneCreateValues');
+  }
+  const write = moon.clientProgramKintoneWriteLimits(limits.maxFields, limits.maxNameUnits,
+    limits.maxNodes, limits.maxDepth, limits.maxRequestBytes, limits.maxRequestBytes);
+  const request = moon.clientProgramKintoneMutationLimits(limits.maxRows,
+    limits.maxIdentityBytes, limits.maxComparisonWork, limits.maxRequestBytes,
+    limits.maxNodes, limits.maxDepth);
+  return checked(moon.clientProgramKintoneCreateExecutionRequest(mapping, bytes,
+    limits.maxRequestBytes, write, request));
+}
+
+// This is a thin caller of the existing physical port, after the Effect Owner's
+// original claim. It adds no retries, observations, settlement or cleanup Owner.
+export async function sendMappedKintoneCreate({moon, mapping, declaration, request, ...options}) {
+  originalMapping(moon, mapping, declaration);
+  if (!moon.clientProgramKintoneCreateMappingMatchesRequest(mapping, request)) {
+    fail('ForeignKintoneCreateRequest');
+  }
+  return sendRawKintoneWrite({...options, moon, kind: 'create', request});
+}
+
+
+// One actual typed CREATE acknowledgement, not bytes-as-success. The original
+// Effect Owner still owns saved response/dispatch correlation, current grant,
+// footprint and terminal Ledger admission. No response is retried here.
+export function projectMappedKintoneCreateOutcome({moon, mapping, declaration,
+  request, response, preview, memberIndex, rowIndex, limits}) {
+  originalMapping(moon, mapping, declaration);
+  const names = ['clientProgramKintoneCreatePreviewOutcome',
+    'clientProgramKintoneCreatePreviewOutcomeWire', 'clientProgramKintoneCreatePreviewOutcomeRowCid',
+    'clientProgramKintoneCreatePreviewOutcomeResponseSha256', 'clientProgramKintoneCreatePreviewOutcomeMatches'];
+  if (names.some(name => typeof moon?.[name] !== 'function')) {
+    fail('KintoneCreateOutcomeRuntimeUnavailable');
+  }
+  if (!Number.isSafeInteger(memberIndex) || memberIndex < 0 ||
+      !Number.isSafeInteger(rowIndex) || rowIndex < 0 ||
+      !['maxRequestBytes', 'maxResponseBytes', 'maxNodes', 'maxDepth', 'maxFields',
+        'maxNameUnits', 'maxRows', 'maxIdentityBytes', 'maxComparisonWork']
+        .every(name => positive(limits?.[name]))) fail('InvalidKintoneCreateOutcome');
+  const write = moon.clientProgramKintoneWriteLimits(limits.maxFields, limits.maxNameUnits,
+    limits.maxNodes, limits.maxDepth, limits.maxRequestBytes, limits.maxRequestBytes);
+  const bounds = moon.clientProgramKintoneMutationLimits(limits.maxRows,
+    limits.maxIdentityBytes, limits.maxComparisonWork, limits.maxResponseBytes,
+    limits.maxNodes, limits.maxDepth);
+  const projected = checked(moon.clientProgramKintoneCreatePreviewOutcome(mapping,
+    request, response, preview, memberIndex, rowIndex, limits.maxRequestBytes, write, bounds));
+  if (!moon.clientProgramKintoneCreatePreviewOutcomeMatches(projected,
+    mapping, request, preview, memberIndex, rowIndex)) fail('ForeignKintoneCreateOutcome');
+  return Object.freeze({kind: 'typed-success-response', projected,
+    outcome: JSON.parse(moon.clientProgramKintoneCreatePreviewOutcomeWire(projected)),
+    rowPreviewCid: moon.clientProgramKintoneCreatePreviewOutcomeRowCid(projected),
+    responseSha256: moon.clientProgramKintoneCreatePreviewOutcomeResponseSha256(projected)});
+}

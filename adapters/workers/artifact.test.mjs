@@ -107,6 +107,56 @@ test('task observation review does not admit an unreviewed sibling or dependency
   }
 });
 
+test('original Credential metadata has only the reviewed portable Workers closure', async () => {
+  const signing = 'adapters/host-common/local-signing-metadata.mjs';
+  const preparation = 'adapters/host-common/installation-preparation-metadata.mjs';
+  const fields = 'adapters/host-common/installation-preparation-fields.generated.mjs';
+  const binding = 'adapters/host-common/compiler-binding.generated.mjs';
+  const resultBinding = 'adapters/host-common/runtime-result.mjs';
+  const result = await build({
+    absWorkingDir: fileURLToPath(new URL('../../', import.meta.url)),
+    entryPoints: [signing, preparation], bundle: true, platform: 'browser',
+    format: 'esm', metafile: true, write: false, outdir: 'unused-output',
+  });
+  assert.deepEqual(Object.keys(result.metafile.inputs).sort(),
+    [binding, resultBinding, signing, preparation, fields].sort());
+  assert.deepEqual(result.metafile.inputs[fields].imports, []);
+  assert.deepEqual(result.metafile.inputs[signing].imports.map(value => value.path), [resultBinding]);
+  assert.deepEqual(result.metafile.inputs[preparation].imports.map(value => value.path).sort(),
+    [resultBinding, fields].sort());
+  for (const modules of [hostModules, conformanceModules,
+    finiteRuntimeModules, finiteConformanceModules]) {
+    for (const output of result.outputFiles) {
+      checkWorkersArtifact(result.metafile, output.text, modules);
+    }
+  }
+});
+
+test('original metadata review grants no sibling, Node or dynamic dependency allowance', () => {
+  const signing = 'adapters/host-common/local-signing-metadata.mjs';
+  const preparation = 'adapters/host-common/installation-preparation-metadata.mjs';
+  const fields = 'adapters/host-common/installation-preparation-fields.generated.mjs';
+  const sibling = 'adapters/host-common/installation-preparation-physical.mjs';
+  for (const modules of [hostModules, conformanceModules,
+    finiteRuntimeModules, finiteConformanceModules]) {
+    assert.throws(() => checkWorkersArtifact({inputs: {[sibling]: {imports: []}},
+      outputs: {'bundle.mjs': {imports: []}}}, 'export {};', modules), /WorkersModuleRejected/);
+    for (const metadata of [signing, preparation, fields]) {
+      for (const dependency of [sibling, 'node:fs']) {
+        assert.throws(() => checkWorkersArtifact({
+          inputs: {[metadata]: {imports: [{path: dependency, kind: 'import-statement'}]}},
+          outputs: {'bundle.mjs': {imports: []}},
+        }, 'export {};', modules), /WorkersDependencyRejected/);
+      }
+      assert.throws(() => checkWorkersArtifact({
+        inputs: {[metadata]: {imports: [{path: fields, kind: 'dynamic-import'}]},
+          ...(metadata === fields ? {} : {[fields]: {imports: []}})},
+        outputs: {'bundle.mjs': {imports: []}},
+      }, 'export {};', modules), /WorkersDynamicDependency/);
+    }
+  }
+});
+
 test('generated compiler binding has the exact canonical dependency-free Workers graph', async () => {
   const root = new URL('../../', import.meta.url);
   const binding = 'adapters/host-common/compiler-binding.generated.mjs';

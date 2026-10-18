@@ -1,0 +1,293 @@
+{
+  "qualification": "Independent explicit DATA fixture; no Provider registration, policy authority, Source grant or physical funding",
+  "document": "# model-tasks/churn-risk.v1.yaml\ntask: model-task:churn-risk.v1\nmodel: { provider: openai, name: \"<model id>\" }   # optional\ninput:\n  notes: string\n  active_users: int64\n  trend: string\ninstructions: |\n  From the account notes, the number of active users and the usage trend,\n  rate the churn risk as low, medium or high and explain why in one line.\n  Do not assume facts that are not in the input.\noutput:\n  level: {type: string, enum: [low, medium, high]}\n  reason: string\nlimits:\n  max_items: 5000\n  max_output_tokens: 200",
+  "profile": {
+    "model_defaults": {
+      "default_model": "<model id>",
+      "models": [
+        {
+          "model": "<model id>",
+          "generation_config": {
+            "temperature": 0,
+            "top_p": 1,
+            "max_output_tokens": 100
+          },
+          "data_handling": {
+            "schema": "actql.contract/0.1",
+            "kind": "request_data_handling",
+            "id": "signed64-public-task-fixture-policy",
+            "version": "explicit-fixture-revision",
+            "body": {
+              "accepted_classifications": [
+                "public",
+                "internal"
+              ],
+              "allowed_regions": [
+                "explicit-fixture-region"
+              ],
+              "retention": "none",
+              "training_use": "forbidden"
+            },
+            "cid": "sha256:e04bf6dc7a5a983f7813f491c3c6efa067b25ca21647799c804b456f0e2e461e"
+          }
+        }
+      ]
+    }
+  },
+  "input_schema": {
+    "type": "object",
+    "nullable": false,
+    "additional_properties": false,
+    "fields": {
+      "notes": {
+        "type": "string",
+        "nullable": false
+      },
+      "active_users": {
+        "type": "int64",
+        "nullable": false
+      },
+      "trend": {
+        "type": "string",
+        "nullable": false
+      }
+    }
+  },
+  "input_schema_cid": "sha256:735d8d91c33e902ce54d02b0f48fac4af82c3e3fd7c3fdc076676ce015d1110b",
+  "output_schema": {
+    "type": "object",
+    "nullable": false,
+    "additional_properties": false,
+    "fields": {
+      "level": {
+        "type": "string",
+        "nullable": false,
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "reason": {
+        "type": "string",
+        "nullable": false
+      }
+    }
+  },
+  "output_schema_cid": "sha256:c7e6dd2e3b269a94de71231ced9f3654ae5cc25e71f2f68ef05abae1f7d53005",
+  "prompt": {
+    "version": "actql-model-prompt/0.1",
+    "payload": {
+      "format": "actql.openai_chat_prompt/0.1",
+      "instructions": "From the account notes, the number of active users and the usage trend,\nrate the churn risk as low, medium or high and explain why in one line.\nDo not assume facts that are not in the input.\n"
+    },
+    "self_cid": "sha256:a6b2ea310b573f077d8c34651dbdcac233e71f32d10e1dd76036f98f37dadc4c"
+  },
+  "task": {
+    "schema": "actql.model_task/0.1",
+    "task_id": "model-task:churn-risk.v1",
+    "version": "model-task:churn-risk.v1",
+    "connector_id": "openai",
+    "authored_model_selector": "<model id>",
+    "task_kind": "structured_generate",
+    "input_contract": {
+      "type": "object",
+      "nullable": false,
+      "additional_properties": false,
+      "fields": {
+        "notes": {
+          "type": "string",
+          "nullable": false
+        },
+        "active_users": {
+          "type": "int64",
+          "nullable": false
+        },
+        "trend": {
+          "type": "string",
+          "nullable": false
+        }
+      }
+    },
+    "input_schema_cid": "sha256:735d8d91c33e902ce54d02b0f48fac4af82c3e3fd7c3fdc076676ce015d1110b",
+    "output_contract": {
+      "type": "object",
+      "nullable": false,
+      "additional_properties": false,
+      "fields": {
+        "level": {
+          "type": "string",
+          "nullable": false,
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "nullable": false
+        }
+      }
+    },
+    "output_schema_cid": "sha256:c7e6dd2e3b269a94de71231ced9f3654ae5cc25e71f2f68ef05abae1f7d53005",
+    "prompt_template_cid": "sha256:a6b2ea310b573f077d8c34651dbdcac233e71f32d10e1dd76036f98f37dadc4c",
+    "generation_config": {
+      "temperature": 0,
+      "top_p": 1,
+      "max_output_tokens": 200
+    },
+    "max_items": 5000,
+    "tool_policy": "none",
+    "retrieval_policy": "none",
+    "streaming": false,
+    "data_handling": {
+      "accepted_classifications": [
+        "public",
+        "internal"
+      ],
+      "allowed_regions": [
+        "explicit-fixture-region"
+      ],
+      "retention": "none",
+      "training_use": "forbidden",
+      "contract_cid": "sha256:e04bf6dc7a5a983f7813f491c3c6efa067b25ca21647799c804b456f0e2e461e"
+    },
+    "contract_cid": "sha256:f2eee3c10b5c3cf1e42cc145d6f367cb3c731b9cc5358144fa2be365c082e8ee"
+  },
+  "base_environment": {
+    "command_contracts": [],
+    "connector_capabilities": [],
+    "connector_catalogs": [
+      {
+        "catalog_cid": "sha256:189e570b7553c768f55852ec2f1a36e1386c4c4118ca62efc8578d028e40c648",
+        "commands": [],
+        "connector_id": "salesforce",
+        "connector_version": "fixture",
+        "contracts": [],
+        "schema": "actql.connector_catalog/0.1",
+        "source_views": []
+      },
+      {
+        "catalog_cid": "sha256:a64dba676c044a2a74a4eec6594a8213a8402212df96dd58c31755d0ff82863f",
+        "commands": [],
+        "connector_id": "snowflake",
+        "connector_version": "fixture",
+        "contracts": [],
+        "schema": "actql.connector_catalog/0.1",
+        "source_views": []
+      }
+    ],
+    "connector_manifest": {
+      "connectors": [
+        {
+          "connector": "salesforce",
+          "connector_id": "salesforce",
+          "connector_version": "fixture"
+        },
+        {
+          "connector": "snowflake",
+          "connector_id": "snowflake",
+          "connector_version": "fixture"
+        }
+      ],
+      "version": "actql-connectors/0.1"
+    },
+    "contract_registry": [],
+    "host_policy_profile": {
+      "capacity": {
+        "max_aggregate_array_items": 1000,
+        "max_analytic_frame_memberships": 1000,
+        "max_analytic_input_wire_bytes": 1000,
+        "max_analytic_output_wire_bytes": 1000,
+        "max_analytic_partition_wire_bytes": 1000,
+        "max_artifact_bytes": 1000,
+        "max_artifact_rows": 1000,
+        "max_effect_items": 1000,
+        "max_graph_input_edges": 1000,
+        "max_graph_input_nodes": 1000,
+        "max_graph_output_rows": 1000,
+        "max_graph_paths": 1000,
+        "max_infer_items": 1000,
+        "max_model_input_tokens_per_item": 1000,
+        "max_model_request_bytes_per_item": 1000,
+        "max_model_total_duration_ms": 1000,
+        "max_nested_value_bytes": 1000,
+        "max_nested_value_depth": 1000,
+        "max_relation_output_rows": 1000,
+        "max_temporal_matches_per_key": 1000,
+        "max_temporal_output_rows": 1000,
+        "version": "actql-capacity-host-policy/0.1"
+      }
+    },
+    "mapping_contracts": [
+      {
+        "connector_manifest_cid": "sha256:9a6a8e56c272ccc2e238e67707085a0ba0eedadee6cbe701670c830ab704459a",
+        "conversions": [],
+        "mapping_contract_cid": "sha256:f244d72c15ceb372a039ae524526709902dd9eb64b2ca965f82aade4d82e1a38",
+        "mapping_ref": "mapping:salesforce.churn.v1",
+        "minimum_approval": "required",
+        "permission_rules": [
+          {
+            "effect_kind": "update",
+            "permissions": [
+              "scope:update"
+            ],
+            "selector_class": "id",
+            "write_fields": [
+              "Churn_Risk__c",
+              "Risk_Reason__c"
+            ]
+          }
+        ],
+        "primary_identity": "Id",
+        "required_fields": [],
+        "required_permissions": [],
+        "resource_identity_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "row_mapping": {
+          "Churn_Risk__c": {
+            "field": "Churn_Risk__c",
+            "null_behavior": "reject"
+          },
+          "Risk_Reason__c": {
+            "field": "Risk_Reason__c",
+            "null_behavior": "reject"
+          }
+        },
+        "schema": "actql.mapping_contract/0.1",
+        "target_ref": "connector://salesforce/Account",
+        "target_schema": {
+          "additional_properties": false,
+          "fields": {
+            "Churn_Risk__c": {
+              "nullable": false,
+              "type": "string"
+            },
+            "Id": {
+              "nullable": false,
+              "type": "string"
+            },
+            "Risk_Reason__c": {
+              "nullable": true,
+              "type": "string"
+            }
+          },
+          "nullable": false,
+          "type": "object"
+        },
+        "target_schema_identity": "sha256:62b1bb5af1125a1bd7c8ef823b817937173ea48b09378e78a55d0beb340e7fe8",
+        "version": "fixture",
+        "writable_fields": [
+          "Churn_Risk__c",
+          "Risk_Reason__c"
+        ]
+      }
+    ],
+    "model_task_contracts": [],
+    "schema_snapshots": [],
+    "source_views": [],
+    "version": "actql-check-environment/0.1",
+    "evidence_bundle_cid": "sha256:af39fba1d1e1db2421bd5e3fedd065e0e98455fe865a3f54ef3d252bc175d192"
+  },
+  "base_environment_cid": "sha256:af39fba1d1e1db2421bd5e3fedd065e0e98455fe865a3f54ef3d252bc175d192"
+}

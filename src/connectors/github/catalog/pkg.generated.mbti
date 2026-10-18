@@ -154,6 +154,7 @@ pub(all) struct IssueRow {
   body : String?
   author : String?
   comments : Int64
+  milestone : String?
   created_at : String
   updated_at : String
   closed_at : String?

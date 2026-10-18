@@ -3,6 +3,50 @@
   "document_id": "actql.execution",
   "requirements": [
     {
+      "requirement_id": "actql.execution/initial-node-control.original-before-work",
+      "statement_sha256": "20ae46a767c3bbac8d4658c9b782b5a7f88d7100622a2e05685fbcc7e9fb87ee",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "initial-node-control-preparation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/initial-node-control.complete-selected-envelope",
+      "statement_sha256": "39416e6baaf75cc281c0e83fb3e55673fb379aead65bbec790bad86058a27180",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "initial-node-control-preparation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/initial-node-control.scope-separation",
+      "statement_sha256": "7955b080e1d9b91dafef7c717619027fdbf30d10c47d67dcecd867e345b057ea",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "initial-node-control-preparation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/initial-node-control.retained-custody",
+      "statement_sha256": "52d4ee16e755eb9428cc210df0febb94b22085724ee37fe7b17b07b1a7eca107",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "initial-node-control-preparation",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/managed-retained.selection",
       "statement_sha256": "3164e941352744668782f20fdb978912b7499e9bf5c4057ffe23604187fcd028",
       "status": "pending",

@@ -4883,10 +4883,10 @@
           ]
         }
       ],
-      "sha256": "8e8a7bdb204b832363a1fc6909e03b22f456d6ac139fd8fb719fd6cd0cbed687",
+      "sha256": "b639b81157450fa5f07ef099d2617b0c237aeb45aeba7348b11bd23050e67838",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
-      "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
+      "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup. Effect review integrity uses exact DATA keys and root-self exclusion; Model and legacy byte domains remain distinct. Integrity does not issue signing, resolve, permission or cleanup authority.",
       "contracts": [
         {
           "operations": [
@@ -8434,6 +8434,7 @@
         "ValueContract5",
         "ValueContract6",
         "ValueContract7",
+        "ValueContract8",
         "annotations"
       ],
       "imports": [
@@ -8443,7 +8444,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_types.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "d98ace1e071c7b0f566ee82f6fe600cce32d2ab2bada0a58130d26c43326f1e4",
+      "sha256": "713b579e14cf40c5d0c4644fa674a250dfddf09d6e62c1deac63d9e6428cbc1b",
       "role": "public-wire-codec",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -8910,7 +8911,8 @@
             "ValueContract5",
             "ValueContract6",
             "ValueContract7",
-            "annotations"
+            "annotations",
+            "ValueContract8"
           ],
           "attributes": {
             "responsibility": [
@@ -8951,6 +8953,10 @@
               {
                 "path": "docs/spec/language.md",
                 "anchor": "#### Text enumeration constraints"
+              },
+              {
+                "path": "docs/design/value-contracts.md",
+                "anchor": "## Distinct signed64 contracts"
               }
             ],
             "identity": [
@@ -8973,6 +8979,10 @@
               {
                 "path": "docs/spec/language.md",
                 "anchor": "#### Text enumeration constraints"
+              },
+              {
+                "path": "docs/design/value-contracts.md",
+                "anchor": "## Distinct signed64 contracts"
               }
             ],
             "ownership": [
@@ -9065,6 +9075,10 @@
               {
                 "path": "docs/spec/language.md",
                 "anchor": "#### Text enumeration constraints"
+              },
+              {
+                "path": "docs/design/value-contracts.md",
+                "anchor": "## Distinct signed64 contracts"
               }
             ],
             "verification": [
@@ -9095,6 +9109,10 @@
               {
                 "path": "scripts/protocol-value-contracts.test.mjs",
                 "anchor": "actual generated structural type validator keeps enum shape"
+              },
+              {
+                "path": "scripts/signed64-contract.test.mjs",
+                "anchor": "test('Signed64 check facts extend exactly"
               }
             ]
           }

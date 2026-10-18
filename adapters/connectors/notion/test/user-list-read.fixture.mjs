@@ -71,7 +71,7 @@ async function rowOwner(verifyTransport,format) {
     close:()=>checked(common.clientProgramRowSourceCloseAccounted(run))};
 }
 
-export async function userListFixture(t,{account='allow',format='sql'}={}) {
+export async function userListFixture(t,{account='allow',format='sql',accounted=true}={}) {
   const parent=join(repo,'_build','notion-user-list-fixtures');await mkdir(parent,{recursive:true});
   const root=await mkdtemp(join(parent,'query-'));
   execFileSync('openssl',['req','-x509','-newkey','rsa:2048','-nodes','-keyout','server.key',
@@ -129,7 +129,7 @@ export async function userListFixture(t,{account='allow',format='sql'}={}) {
     {subjectCid:scope.runInvocationCid});if(decision.action!=='dispatch')throw Object.assign(new Error('NotionReadDenied'),{code:'NotionReadDenied'});};
   const credential={control,journal,ca:cert,resolveSecret:async()=>{state.resolutions++;await state.resolved?.();return state.secret;}};
   binding=openHttpsCredentialBinding({...credential,scope,maxSecretBytes:128});
-  row=await rowOwner(()=>closeHttpsCredentialBinding(binding)==='closed',format);
+  row=accounted?await rowOwner(()=>closeHttpsCredentialBinding(binding)==='closed',format):undefined;
   const authorizationFor=({operation,index})=>{assert.equal(operation,NOTION_USER_LIST_OPERATION);
     return{grant,scope,useId:`users-${index}`};};
   const options={moon:provider,names:provider.notionUserListColumnNames(),

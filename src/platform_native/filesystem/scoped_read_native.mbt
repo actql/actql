@@ -26,6 +26,14 @@ extern "C" fn acquire_current_root_ffi(
 ) -> ScopedReadAcquisition = "actql_native_filesystem_acquire_current_root"
 
 ///|
+#borrow(path)
+extern "C" fn acquire_current_private_root_ffi(
+  path : Bytes,
+  length : Int,
+  diagnostic_ceiling : Int,
+) -> ScopedReadAcquisition = "actql_native_filesystem_acquire_current_private_root"
+
+///|
 #borrow(root, name)
 extern "C" fn acquire_scoped_child_root_ffi(
   root : Root,
@@ -77,6 +85,22 @@ fn scoped_read_refusal(
 }
 
 ///|
+/// Check this same acquired Root against the caller's current original Read.
+/// An unselected legacy Root is deliberately not a match, even inside a funded
+/// scope. This observes physical binding only; it issues no capacity, Root,
+/// permission, installation adoption or cleanup acknowledgement.
+pub fn Root::require_current_original_read(
+  self : Root,
+) -> Result[Unit, NativeFilesystemIssue] {
+  if !root_is_scoped_ffi(self) ||
+    !root_ready_ffi(self) ||
+    !root_read_available_ffi(self) {
+    return Err(Read("Root is not bound to the current original read"))
+  }
+  Ok(())
+}
+
+///|
 /// The caller must enter its original Native Domain before this whole managed
 /// call, and revalidate Core/current permission independently. This entrance
 /// never creates a read context or adopts a profile. Stock/missing scope refuses
@@ -85,6 +109,26 @@ pub fn open_root_in_current_read_context_with_custody(
   path : String,
   diagnostic_ceiling : Int,
 ) -> Result[Root, NativeRootOpenFailure] {
+  open_current_root_with_custody(path, diagnostic_ceiling, private_root=false)
+}
+
+///|
+/// Requires the same original current read as the generic Root entrance and
+/// preserves every existing private namespace/owner/mode/ACL check. It issues
+/// no context, capacity, filesystem permission or installation authority.
+pub fn open_private_root_in_current_read_context_with_custody(
+  path : String,
+  diagnostic_ceiling : Int,
+) -> Result[Root, NativeRootOpenFailure] {
+  open_current_root_with_custody(path, diagnostic_ceiling, private_root=true)
+}
+
+///|
+fn open_current_root_with_custody(
+  path : String,
+  diagnostic_ceiling : Int,
+  private_root~ : Bool,
+) -> Result[Root, NativeRootOpenFailure] {
   if diagnostic_ceiling <= 0 {
     return Err({ original_issue: InvalidLimit, root: None, })
   }
@@ -92,11 +136,15 @@ pub fn open_root_in_current_read_context_with_custody(
     return Err({ original_issue: scoped_read_refusal(-1), root: None, })
   }
   let encoded = @utf8.encode(path)
-  let result = acquire_current_root_ffi(
-    encoded,
-    encoded.length(),
-    diagnostic_ceiling,
-  )
+  let result = if private_root {
+    acquire_current_private_root_ffi(
+      encoded,
+      encoded.length(),
+      diagnostic_ceiling,
+    )
+  } else {
+    acquire_current_root_ffi(encoded, encoded.length(), diagnostic_ceiling)
+  }
   let status = acquisition_status_ffi(result)
   guard acquisition_has_original_ffi(result) else {
     return Err({ original_issue: scoped_read_refusal(status), root: None, })

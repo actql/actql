@@ -1,10 +1,13 @@
 // The existing installed Host owns execution and durable data. This registry
 // only leases its in-process connection and retains its physical close retry.
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
-import {createInstalledHostShutdown} from './installed-host-cleanup.mjs';
+import {createInstalledHostShutdown, retainInstalledHostRuntimeFailure,
+  retainInstalledHostInitializationFailure, originalInitialControlClose}
+  from './installed-host-cleanup.mjs';
 
 export function installedHostShutdown(host) {
   const retireRuntime = host.retireModelRuntime;
+  const initialControl = host.initialControl;
   const shutdown = createInstalledHostShutdown({
     stop: () => {
       host.stopModelRuntime?.();
@@ -22,6 +25,7 @@ export function installedHostShutdown(host) {
     ...(host.observation === undefined ? {} :
       {observation: () => host.observation.close()}),
     ...(host.ownerViews === undefined ? {} : {ownerViews: () => host.ownerViews.close()}),
+    ...(initialControl === undefined ? {} : {initialControl}),
     ...(retireRuntime === undefined ? {} : {finalize: async () => {
       await Reflect.apply(retireRuntime, host, []);
       // The same shutdown marks this duty complete only after success.
@@ -37,11 +41,63 @@ const closing = () => Object.assign(new Error('ClientHostClosing'),
 
 export function createEmbeddedHostRegistry(sameInstallation) {
   const profiles = new Map();
+  const preparationChanged = () => {
+    throw Object.assign(new Error('InstalledHostPreparationChanged'),
+      {code: 'InstalledHostPreparationChanged'});
+  };
+  function preparationFor(host, installation, generation) {
+    const entry = profiles.get(host);
+    if (entry === undefined || entry.originalHost !== host ||
+        entry.originalInstallation !== installation ||
+        entry.generation !== generation || entry.finalized ||
+        entry.preparationRetired) preparationChanged();
+    return entry;
+  }
   const forget = (root, entry) => {
     if (profiles.get(root) === entry) profiles.delete(root);
+    if (entry.originalHost !== undefined && profiles.get(entry.originalHost) === entry) {
+      profiles.delete(entry.originalHost);
+    }
+    entry.preparationRetired = true;
+    entry.originalHost = entry.originalInstallation = entry.generation = undefined;
   };
-  return Object.freeze({async connect(root, identity, open, options) {
+  return Object.freeze({
+  // A candidate belongs to this SAME registry, before Project discovery. It
+  // has no root lease or physical Host yet and issues no capacity/permission.
+  // The selected startup must independently admit its prior control envelope.
+  registerPreparation(host, installation, generation) {
+    if (host === null || typeof host !== 'object' || Array.isArray(host) ||
+        installation === null || typeof installation !== 'object' ||
+        Array.isArray(installation) || generation !== host || profiles.has(host)) {
+      preparationChanged();
+    }
+    profiles.set(host, {originalHost: host, originalInstallation: installation,
+      generation, preparing: true, leases: 0, accepting: 0, closing: false,
+      handling: new Set()});
+  },
+  assertPreparation(host, installation, generation) {
+    const entry = preparationFor(host, installation, generation);
+    if (entry.closing || entry.failure !== undefined) preparationChanged();
+  },
+  retirePreparation(host, installation, generation) {
+    const entry = preparationFor(host, installation, generation);
+    // An adopted candidate belongs to its Host's existing shutdown. An
+    // unadopted candidate may cut only its own managed registry references.
+    if (!entry.preparing) preparationChanged();
+    forget(undefined, entry);
+  },
+  async connect(root, identity, open, options, preparedHost, releaseUnadopted,
+    initialControl) {
+    const retainedControl = initialControl === undefined ? undefined :
+      Object.freeze({close: originalInitialControlClose(initialControl)});
+    const prepared = preparedHost === undefined ? undefined : profiles.get(preparedHost);
+    if (preparedHost !== undefined && (typeof root !== 'string' || !root ||
+        prepared === undefined || prepared.originalHost !== preparedHost ||
+        !prepared.preparing || prepared.preparationRetired || prepared.closing)) {
+      preparationChanged();
+    }
     let entry = profiles.get(root);
+    if (entry?.preparing) preparationChanged();
     if (entry?.failure !== undefined) {
       // A failed opening can retain physical cleanup after rejecting. Do not
       // replace its owner until the exact retained handle confirms release.
@@ -52,12 +108,45 @@ export function createEmbeddedHostRegistry(sameInstallation) {
       } else throw entry.failure;
     }
     if (entry === undefined) {
-      entry = {identity, leases: 0, accepting: 0, closing: false, handling: new Set()};
+      entry = prepared ?? {leases: 0, accepting: 0, closing: false, handling: new Set()};
+      entry.identity = identity;
+      entry.preparing = false;
       const opened = entry;
-      entry.host = Promise.resolve().then(open).then(host => {
+      entry.host = Promise.resolve().then(open).then(async host => {
+        // Take the acquired child's existing shutdown custody before refusing
+        // a foreign return. A failed pair check must not lose that child.
         opened.shutdown = installedHostShutdown(host);
+        if (preparedHost !== undefined && host !== preparedHost) {
+          const failure = Object.assign(new Error('InstalledHostPreparationChanged'),
+            {code: 'InstalledHostPreparationChanged'});
+          try { await opened.shutdown.close(); }
+          catch (cause) {
+            failure.cause = cause;
+            failure.cleanupPending = true;
+            failure.cleanupHandle = Object.freeze({
+              status: () => Object.freeze({pending: opened.shutdown.status().pending.length !== 0}),
+              retry: opened.shutdown.close,
+            });
+          }
+          throw failure;
+        }
         return host;
-      }, error => {
+      }).catch(async cause => {
+        // A prepared generation also owns its original registry references.
+        // Keep their retirement behind the SAME initializer's captured child
+        // status/retry, rather than waiting for an unrelated later connect.
+        const owned = retainedControl === undefined ? cause :
+          await retainInstalledHostInitializationFailure(cause, {initialControl: retainedControl});
+        const error = prepared === undefined ? owned :
+          retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));
+        if (retainedControl !== undefined && prepared !== undefined &&
+            error === owned && owned.cleanupHandle.status().pending === false) {
+          // Both original cleanup and registry retirement completed. Preserve
+          // the refusal itself without re-reading an arbitrary thrown value.
+          opened.failure = cause;
+          opened.initializationPending = false;
+          throw cause;
+        }
         opened.failure = error;
         opened.initializationPending = error?.cleanupPending === true;
         const handle = error?.cleanupHandle;
@@ -71,6 +160,20 @@ export function createEmbeddedHostRegistry(sameInstallation) {
       if (entry.closing) throw closing();
       if (!sameInstallation(entry.identity, identity)) {
         throw new TypeError('InstalledHostConfigurationMismatch');
+      }
+      if (prepared !== undefined) {
+        if (typeof releaseUnadopted !== 'function') {
+          throw Object.assign(new Error('InstalledHostPreparationCleanupUnavailable'),
+            {code: 'InstalledHostPreparationCleanupUnavailable'});
+        }
+        // Close the unused preparation before reserving/exposing another
+        // lease. Cleanup success does not prove this original Host stayed
+        // current while the callback awaited its own children.
+        await releaseUnadopted();
+        if (profiles.get(root) !== entry || entry.closing || entry.failure !== undefined) {
+          throw closing();
+        }
+        if (profiles.get(preparedHost) === prepared) preparationChanged();
       }
     }
     entry.leases++;
@@ -128,7 +231,30 @@ export function createEmbeddedHostRegistry(sameInstallation) {
       seal();
       throw error;
     }
+    try {
+    const originalPort = host.port, answer = originalPort.answerCheckpoint;
+    if (answer !== undefined && typeof answer !== 'function') {
+      throw new TypeError('InvalidLocalCheckpointAnswerPort');
+    }
     const port = Object.freeze({
+      ...(answer === undefined ? {} : {
+        answerCheckpoint: (summary, decision, signal) => {
+            if (sealed || opened.closing) return Promise.reject(closing());
+            const pending = Promise.resolve().then(() => {
+              if (sealed || opened.closing) throw closing();
+              return Reflect.apply(answer, originalPort, [summary, decision, signal]);
+            });
+            // The same lease/Host handling sets own signing as well as reads.
+            // Close must not forget a pending original key/use operation.
+            handling.add(pending);
+            opened.handling.add(pending);
+            pending.finally(() => {
+              handling.delete(pending);
+              opened.handling.delete(pending);
+            }).catch(() => {});
+            return pending;
+        },
+      }),
       perform(operation, request, signal) {
         if (sealed || opened.closing) return Promise.reject(closing());
         const pending = Promise.resolve().then(() => host.port.perform(operation, request, signal));
@@ -141,8 +267,8 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         return pending;
       }, close, seal,
     });
-    try { return await connectInProcess(options, port); }
-    catch (cause) {
+    return await connectInProcess(options, port);
+    } catch (cause) {
       try { await close(); }
       catch {
         // No Client was returned to own retry. Expose only this connection's

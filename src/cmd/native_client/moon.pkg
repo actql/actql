@@ -41,9 +41,10 @@ import {
 
 import {
   "actql/actql/publication_payload" @test_payload,
+  "actql/actql/execution_authorization" @authorization,
 } for "wbtest"
 
 options(
-  "native-stub": [ "stdout_stub.c" ],
+  "native-stub": [ "stdout_stub.c", "local_journal_transport_probe.c" ],
   link: { "native": { "cc-flags": "-O0" } },
 )

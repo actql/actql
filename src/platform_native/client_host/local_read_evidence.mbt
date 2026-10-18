@@ -180,6 +180,11 @@ fn NativeLocalHostConnection::validate_read_evidence(
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
+  // Existing saved stdout preimages cannot restore a material receiver or
+  // acquire its workspace merely because its configuration parses.
+  if selection.sink != Stdout {
+    return Err(CustodyLost)
+  }
   let scope = match
     self.authority_scope_cid(selection.principal, selection.connection, crypto) {
     Ok(value) => value

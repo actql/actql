@@ -1,11 +1,11 @@
 {
-  "source": "1807d19552ecb2aa390d4e2472c6d134a13c9179",
+  "source": "cbf2ad749a6c98189553aee85b5614b9aad0c3f0",
   "qualification": "original connector generation and Owner references; normal artifact/target admission is separate",
   "declarations": [
     {
       "module": "adapters/connectors-builtin/installations.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1ad6325a175779cabf89505578cf8cf3ae24914789ccbe41b553bced8781d3d6",
+      "sha256": "bf28eb881da5755df184e2333a84b00c93162198677c23746805b6404c7bbdad",
       "exports": [
         "installedConnectors"
       ],
@@ -45,6 +45,20 @@
         },
         {
           "name": "installedConnectors/installedConnectors/installedConnectors#13",
+          "parameters": [
+            "module"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors/installedConnectors#14",
+          "parameters": [
+            "module"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors/installedConnectors#15",
           "parameters": [
             "module"
           ],
@@ -127,6 +141,16 @@
           "async": false
         },
         {
+          "name": "installedConnectors/installedConnectors#14",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors#15",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installedConnectors/installedConnectors#2",
           "parameters": [],
           "async": false
@@ -173,10 +197,13 @@
         "../connectors/github/host/installed-github-source.mjs",
         "../connectors/gmail/host/installed-gmail-source.mjs",
         "../connectors/hubspot/host/installed-hubspot-source.mjs",
+        "../connectors/kintone/host/installed-kintone-source.mjs",
         "../connectors/local/host/installed-local-table.mjs",
+        "../connectors/notion/host/installed-notion-source.mjs",
         "../connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
         "../connectors/salesforce/host/installed-salesforce-source.mjs",
         "../connectors/sheets/host/installed-sheets.mjs",
+        "../connectors/slack/host/installed-slack-source.mjs",
         "../connectors/snowflake/host/installed-snowflake-source.mjs"
       ],
       "compilerFields": [],
@@ -194,6 +221,8 @@
             "installedConnectors/installedConnectors/installedConnectors#11",
             "installedConnectors/installedConnectors/installedConnectors#12",
             "installedConnectors/installedConnectors/installedConnectors#13",
+            "installedConnectors/installedConnectors/installedConnectors#14",
+            "installedConnectors/installedConnectors/installedConnectors#15",
             "installedConnectors/installedConnectors/installedConnectors#2",
             "installedConnectors/installedConnectors/installedConnectors#3",
             "installedConnectors/installedConnectors/installedConnectors#4",
@@ -206,6 +235,8 @@
             "installedConnectors/installedConnectors#11",
             "installedConnectors/installedConnectors#12",
             "installedConnectors/installedConnectors#13",
+            "installedConnectors/installedConnectors#14",
+            "installedConnectors/installedConnectors#15",
             "installedConnectors/installedConnectors#2",
             "installedConnectors/installedConnectors#3",
             "installedConnectors/installedConnectors#4",
@@ -247,6 +278,10 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "## Installed collection issuer"
+              },
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "## Installed user Source preparation"
               }
             ],
             "inputsOutputs": [
@@ -281,6 +316,18 @@
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
                 "anchor": "issueOriginalCollectionReference(pair, maxWork)"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "export function checkInstalledNotionSourceProfile(profile)"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "export async function loadInstalledNotionSource("
+              },
+              {
+                "path": "src/connectors/notion/catalog/users.mbt",
+                "anchor": "pub fn notion_user_list_facts_wire()"
               }
             ],
             "identity": [
@@ -315,6 +362,22 @@
               {
                 "path": "src/connectors/gcs/original_reference/collection.mbt",
                 "anchor": "actual_catalog != expected_catalog"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "originalStringsCid:sha(JSON.stringify("
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "const admitsApprovalTarget="
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "runtimeBundleCid,...binding,site:siteProfile"
+              },
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "The original Catalog schema and `id` candidate-key declaration enter the same"
               }
             ],
             "ownership": [
@@ -349,6 +412,14 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "referenceCurrent: () => !closing"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "function originalReaderFactory("
+              },
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "The wrapper retains original options, capacity/preparer receiver, child,"
               }
             ],
             "synchronization": [
@@ -383,6 +454,18 @@
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
                 "anchor": "close() { closed = true; adapter.close(); }"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "const original=await options.authorizationFor(0);"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "current:async operation=>"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "lastResult=await child.read();"
               }
             ],
             "failure": [
@@ -417,6 +500,18 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
                 "anchor": "the same credential Site invalidates reference currentness before failed close"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "fail('NotionReaderCapacityUnavailable')"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "originalFailure=cause;throw cause;"
+              },
+              {
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "anchor": "installed Notion lost original reply keeps same recovery journal Unknown and reservation without resend"
               }
             ],
             "cancellation": [
@@ -447,6 +542,14 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "False means closing, not physical cleanup ACK"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "signal.throwIfAborted();"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "stop.abort(reason);child?.requestStop(reason);closeTransport();"
               }
             ],
             "resources": [
@@ -481,6 +584,22 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "Additional declarations/trees/strings"
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "const limitKeys="
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "const pem=await readBoundedConfigurationText"
+              },
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "Neither public configuration numbers nor page/transfer ceilings issue"
+              },
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "Those overlap the complete user reader inventory above and the original RowRun"
               }
             ],
             "extension": [
@@ -515,6 +634,18 @@
               {
                 "path": "adapters/connectors/gcs/README.md",
                 "anchor": "An explicitly supplied legacy"
+              },
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "There is no ordinary `readPages` fallback, second parser,"
+              },
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "This factory does not narrow the full public Notion target to users."
+              },
+              {
+                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "anchor": "cleanupConfirmed:false"
               }
             ],
             "verification": [
@@ -533,6 +664,26 @@
               {
                 "path": "adapters/connectors/gcs/test/gcs-installed-source.test.mjs",
                 "anchor": "LIST_FILES paths=[]"
+              },
+              {
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "anchor": "installed Notion actual SQL and AQL retain original multi-page users and the same pending capture"
+              },
+              {
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "anchor": "ordinary installed Notion entrance selects the real factory and refuses missing normal supply"
+              },
+              {
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "anchor": "installed Notion copied preparation or absent original Ledger cannot dispatch users"
+              },
+              {
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "anchor": "installed Notion actual Account denial refuses preparation before a Credential use or HTTP"
+              },
+              {
+                "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
+                "anchor": "installed Notion optional TLS authority is bounded original PEM before native transport"
               }
             ]
           }

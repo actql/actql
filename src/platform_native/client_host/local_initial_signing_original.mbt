@@ -1,0 +1,493 @@
+///|
+// Private first-initialization input. Its original nominal session/material is
+// retained through the existing initialization transaction and its final fence.
+priv struct NativeLocalInitialSigningCapture {
+  session : NativeLocalAdoptionSession
+  material : NativeLocalInitialSigningMaterial
+  policy : @host.ClientLocalSigningBootstrapPolicy
+  adoption : Bytes
+  payload : Bytes
+}
+
+///|
+/// Authenticated original metadata in this Host's existing installation row.
+/// This is not a grant, default-signer selection, issue sample or signing use.
+struct NativeLocalInitialSigningOriginal {
+  host : NativeLocalHostConnection
+  control_body : Bytes
+  projection : @filesystem.PrivateFileProjection
+  exported : Bytes
+  policy : @host.ClientLocalSigningBootstrapPolicy
+  public_key : @credential.LocalSigningPublicKey
+  public_key_pem : String
+  issuer : String
+}
+
+///|
+priv struct NativeLocalInitialSigningFields {
+  exported : Bytes
+  policy : @host.ClientLocalSigningBootstrapPolicy
+  public_key : @credential.LocalSigningPublicKey
+  public_key_pem : String
+  issuer : String
+}
+
+///|
+fn[T] local_initial_signing_value(
+  value : Result[T, NativeLocalAdoptionIssue],
+) -> T raise LocalInstallationAdoptionStop {
+  match value {
+    Ok(value) => value
+    Err(issue) => raise LocalInstallationAdoptionStop(issue)
+  }
+}
+
+///|
+fn NativeLocalAdoptionSession::prepare_initial_signing_capture(
+  self : NativeLocalAdoptionSession,
+  material : NativeLocalInitialSigningMaterial,
+  policy : @host.ClientLocalSigningBootstrapPolicy,
+  crypto : @crypto.Library,
+  adoption : Bytes,
+) -> Result[NativeLocalInitialSigningCapture, NativeLocalAdoptionIssue] {
+  try {
+    if !physical_equal(crypto, material.library) {
+      return Err(CustodyLost)
+    }
+    let pem = local_initial_signing_value(
+      self.initial_signing_public_key(material),
+    )
+    let raw = local_initial_signing_value(
+      crypto.ed25519_public_key_raw32(pem).map_err(issue => Crypto(issue)),
+    )
+    let public_key = local_initial_signing_value(
+      @credential.prepare_local_signing_public_key(raw).map_err(_ => Encoding),
+    )
+    let exported = local_initial_signing_value(
+      material.projection.export_original().map_err(issue => Filesystem(issue)),
+    )
+    let issuer = local_initial_signing_value(
+      policy.issuer_identity(self.intent_cid).map_err(_ => InvalidInput),
+    )
+    let adoption_cid = local_initial_signing_value(
+      local_adoption_digest(crypto, adoption),
+    )
+    let payload = local_initial_signing_value(
+      @host.client_local_initial_signing_payload_body({
+        adoption_cid,
+        initialization_intent_cid: self.intent_cid,
+        issuer_authority: issuer,
+        key_file: "local-signing-key.pem",
+        key_projection: @base64.encode(exported),
+        policy_cid: policy.cid(),
+        policy_original: policy.original_wire(),
+        public_key_cid: public_key.cid(),
+        public_key_original: public_key.json(),
+        public_key_pem: pem,
+        purpose: "reviewer_proof",
+        root_role: "store",
+        version: "actql-native-local-installation-original/0.1",
+      }).map_err(_ => Encoding),
+    )
+    // Existing installation HMAC payload bound, not another capacity grant.
+    if payload.length() > 2048 {
+      return Err(ConfigurationLimit)
+    }
+    let captured : NativeLocalInitialSigningCapture = {
+      session: self,
+      material,
+      policy,
+      adoption,
+      payload,
+    }
+    local_initial_signing_value(captured.check_current(crypto, adoption))
+    Ok(captured)
+  } catch {
+    LocalInstallationAdoptionStop(issue) => Err(issue)
+  }
+}
+
+///|
+fn NativeLocalInitialSigningCapture::check_current(
+  self : NativeLocalInitialSigningCapture,
+  crypto : @crypto.Library,
+  adoption : Bytes,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  if adoption != self.adoption ||
+    !physical_equal(crypto, self.material.library) ||
+    self.policy.issuer_identity(self.session.intent_cid) is Err(_) {
+    return Err(CustodyLost)
+  }
+  match self.session.initial_signing_public_key(self.material) {
+    Err(issue) => Err(issue)
+    Ok(pem) if pem == self.material.public_key_pem => Ok(())
+    Ok(_) => Err(CustodyLost)
+  }
+}
+
+///|
+fn NativeLocalInitialSigningCapture::control_body(
+  self : NativeLocalInitialSigningCapture,
+  database : @sqlite.Database,
+  crypto : @crypto.Library,
+  adoption : Bytes,
+) -> Result[Bytes, NativeLocalAdoptionIssue] {
+  try {
+    local_initial_signing_value(self.check_current(crypto, adoption))
+    if self.payload.length() > 2048 {
+      return Err(ConfigurationLimit)
+    }
+    let packet = local_initial_signing_value(
+      local_installation_packet_in_transaction(database, crypto, self.payload),
+    )
+    // Closed alternative in the same host control row. The legacy raw adoption
+    // body, issued count, setting reservations and all existing rows are intact.
+    local_adoption_record([
+      ("adoption_body", @base64.encode(adoption)),
+      ("initial_signing_original", @base64.encode(packet)),
+    ])
+  } catch {
+    LocalInstallationAdoptionStop(issue) => Err(issue)
+  }
+}
+
+///|
+fn read_local_initial_signing_control(
+  host : NativeLocalHostConnection,
+  body : Bytes,
+) -> Result[NativeLocalInitialSigningFields?, NativeLocalAdoptionIssue] {
+  if body == host.adoption_body {
+    return Ok(None)
+  }
+  try {
+    let header = local_initial_signing_value(
+      local_adoption_fields(body, ["adoption_body", "initial_signing_original"]),
+    )
+    if header[0] != @base64.encode(host.adoption_body) {
+      return Err(CustodyLost)
+    }
+    let packet = @base64.decode(header[1]) catch {
+      _ => return Err(CustodyLost)
+    }
+    if @base64.encode(packet) != header[1] {
+      return Err(CustodyLost)
+    }
+    let payload = local_initial_signing_value(
+      read_local_installation_authenticated_payload(host, packet),
+    )
+    let fields = local_initial_signing_value(
+      @host.read_client_local_initial_signing_payload(payload).map_err(issue => {
+        match issue {
+          @host.Encoding => Encoding
+          @host.InvalidOriginal | @host.ConfigurationLimit => CustodyLost
+        }
+      }),
+    )
+    let policy = local_initial_signing_value(
+      @host.admit_client_local_signing_bootstrap_policy(
+        fields.policy_original,
+        fields.policy_cid,
+      ).map_err(_ => CustodyLost),
+    )
+    let issuer = local_initial_signing_value(
+      policy.issuer_identity(host.session.intent_cid).map_err(_ => CustodyLost),
+    )
+    if fields.adoption_cid != host.adoption_cid ||
+      fields.initialization_intent_cid != host.session.intent_cid ||
+      fields.issuer_authority != issuer ||
+      fields.key_file != "local-signing-key.pem" ||
+      fields.purpose != "reviewer_proof" ||
+      fields.root_role != "store" ||
+      fields.version != "actql-native-local-installation-original/0.1" {
+      return Err(CustodyLost)
+    }
+    let exported = @base64.decode(fields.key_projection) catch {
+      _ => return Err(CustodyLost)
+    }
+    if exported.length() != 106 + @utf8.encode(fields.key_file).length() ||
+      @base64.encode(exported) != fields.key_projection ||
+      exported[106:].to_owned() != @utf8.encode(fields.key_file) {
+      return Err(CustodyLost)
+    }
+    let public_key = local_initial_signing_value(
+      @credential.admit_local_signing_public_key_json(
+        fields.public_key_original,
+        fields.public_key_cid,
+      ).map_err(_ => CustodyLost),
+    )
+    if !valid_initial_signing_public_pem(fields.public_key_pem) {
+      return Err(CustodyLost)
+    }
+    let raw = local_initial_signing_value(
+      host.epoch.crypto
+      .ed25519_public_key_raw32(fields.public_key_pem)
+      .map_err(issue => Crypto(issue)),
+    )
+    guard public_key.raw32() is Ok(expected_raw) && expected_raw == raw else {
+      return Err(CustodyLost)
+    }
+    Ok(
+      Some({
+        exported,
+        policy,
+        public_key,
+        public_key_pem: fields.public_key_pem,
+        issuer,
+      }),
+    )
+  } catch {
+    LocalInstallationAdoptionStop(issue) => Err(issue)
+  }
+}
+
+///|
+fn valid_local_installation_control(
+  host : NativeLocalHostConnection,
+  body : Bytes,
+) -> Bool {
+  read_local_initial_signing_control(host, body) is Ok(_)
+}
+
+///|
+/// Trusted explicit first installer only. It accepts this session's opaque
+/// material and the pinned Common policy; it does not sample an issue clock or
+/// create a grant. Existing/Unknown journals cannot capture a missing original.
+pub fn NativeLocalAdoptionSession::open_journal_with_initial_signing_material(
+  self : NativeLocalAdoptionSession,
+  material : NativeLocalInitialSigningMaterial,
+  policy : @host.ClientLocalSigningBootstrapPolicy,
+  library : @sqlite.Library,
+  crypto : @crypto.Library,
+  ttl_ms : Double,
+  max_records : Int,
+  max_snapshot_bytes : Int64,
+) -> Result[NativeLocalHostConnection, NativeLocalAdoptionIssue] {
+  // Reject a foreign original before filesystem/schema initialization.
+  match self.initial_signing_public_key(material) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if !physical_equal(crypto, material.library) {
+    return Err(CustodyLost)
+  }
+  self.open_journal_selected(
+    library,
+    crypto,
+    ttl_ms,
+    max_records,
+    max_snapshot_bytes,
+    [],
+    initial_signing=Some(material),
+    initial_policy=Some(policy),
+  )
+}
+
+///|
+/// Restore the authenticated metadata and exact original Store file generation.
+/// A legacy raw host row returns unavailable; this never adopts today's key or
+/// policy to repair it. The existing journal confirms its transaction first.
+pub fn NativeLocalHostConnection::restore_initial_signing_original(
+  self : NativeLocalHostConnection,
+) -> Result[NativeLocalInitialSigningOriginal, NativeLocalAdoptionIssue] {
+  match self.check_binding() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let primary : Ref[NativeLocalAdoptionIssue?] = Ref(None)
+  let original = self.journal.transaction(() => {
+    try {
+      local_initial_signing_value(self.check_binding())
+      local_initial_signing_value(self.installation_custody()) |> ignore
+      let row = local_initial_signing_value(
+        self.database
+        .read("client_local_installation_custody", "host")
+        .map_err(issue => Physical(issue)),
+      )
+      guard local_initial_signing_value(
+          read_local_initial_signing_control(self, row.body),
+        )
+        is Some(fields) else {
+        return Err(CustodyLost)
+      }
+      local_initial_signing_value(
+        self.require_initial_signing_separation(fields),
+      )
+      let projection = local_initial_signing_value(
+        self.session.root
+        .restore_private_file_projection(fields.exported)
+        .map_err(issue => Filesystem(issue)),
+      )
+      local_initial_signing_value(self.check_binding())
+      Ok({
+        host: self,
+        control_body: row.body,
+        projection,
+        exported: fields.exported,
+        policy: fields.policy,
+        public_key: fields.public_key,
+        public_key_pem: fields.public_key_pem,
+        issuer: fields.issuer,
+      })
+    } catch {
+      LocalInstallationAdoptionStop(issue) => {
+        primary.val = Some(issue)
+        Err(CustodyLost)
+      }
+    }
+  })
+  match original {
+    Err(issue) =>
+      match primary.val {
+        None => Err(Journal(issue))
+        Some(original) =>
+          match issue {
+            CustodyLost => Err(original)
+            _ => Err(InstallationReadTransactionFailure(original, issue))
+          }
+      }
+    Ok(value) => value.require_current().map(_ => value)
+  }
+}
+
+///|
+/// Current physical/original custody only. Actor, Reviewer, Run, exact purpose,
+/// preimage and durable operation/use authorization remain independent gates.
+pub fn NativeLocalInitialSigningOriginal::require_current(
+  self : NativeLocalInitialSigningOriginal,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  match self.host.check_binding() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard self.host.database.read("client_local_installation_custody", "host")
+    is Ok(row) &&
+    row.revision == 0L &&
+    row.body == self.control_body else {
+    return Err(CustodyLost)
+  }
+  guard read_local_initial_signing_control(self.host, row.body)
+    is Ok(Some(fields)) else {
+    return Err(CustodyLost)
+  }
+  if fields.public_key_pem != self.public_key_pem {
+    return Err(CustodyLost)
+  }
+  guard self.projection.export_original() is Ok(exported) &&
+    exported == self.exported else {
+    return Err(CustodyLost)
+  }
+  match self.host.require_initial_signing_separation(fields) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match self.host.session.root.restore_private_file_projection(self.exported) {
+    Err(issue) => return Err(Filesystem(issue))
+    Ok(_) => ()
+  }
+  self.host.check_binding()
+}
+
+///|
+/// Metadata identity, not an issuer issue capability or current permission.
+pub fn NativeLocalInitialSigningOriginal::issuer_identity(
+  self : NativeLocalInitialSigningOriginal,
+) -> Result[String, NativeLocalAdoptionIssue] {
+  self.require_current().map(_ => self.issuer)
+}
+
+///|
+pub fn NativeLocalInitialSigningOriginal::policy(
+  self : NativeLocalInitialSigningOriginal,
+) -> Result[@host.ClientLocalSigningBootstrapPolicy, NativeLocalAdoptionIssue] {
+  self.require_current().map(_ => self.policy)
+}
+
+///|
+pub fn NativeLocalInitialSigningOriginal::public_key(
+  self : NativeLocalInitialSigningOriginal,
+) -> Result[@credential.LocalSigningPublicKey, NativeLocalAdoptionIssue] {
+  self.require_current().map(_ => self.public_key)
+}
+
+///|
+// Join the new Store-root ReviewerProof original to the existing separation
+// rule. Original source-root custody remains source-root, never relabelled.
+fn NativeLocalHostConnection::require_initial_signing_separation(
+  self : NativeLocalHostConnection,
+  original : NativeLocalInitialSigningFields,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  let mut cursor = ""
+  for _ in 0..<8 {
+    let row = match
+      self.database.scan_after("client_local_installation_originals", cursor) {
+      Err(@sqlite.NotFound) => return Ok(())
+      Err(issue) => return Err(Physical(issue))
+      Ok(value) => value
+    }
+    cursor = row.key
+    if row.key == local_policy_upgrade_key {
+      continue
+    }
+    guard self.session.settings.files
+      .iter()
+      .find_first(file => file.name == row.key)
+      is Some(file) else {
+      return Err(CustodyLost)
+    }
+    let other = match read_local_installation_projection(self, file, row.body) {
+      Err(issue) => return Err(issue)
+      Ok(value) => value
+    }
+    if self.session.source_root.restore_private_file_projection(other) is Err(_) {
+      return Err(CustodyLost)
+    }
+    // AQLPFP01's file device/inode pair is independent of which original Root
+    // selected it. This is an existing private export, not a native C layout.
+    let same_file = other.length() > 106 &&
+      original.exported.length() > 106 &&
+      other[26:42].to_owned() == original.exported[26:42].to_owned()
+    let wire = @utf8.decode(file.body) catch { _ => return Err(CustodyLost) }
+    match @credential_resource.admit_native_local_signing_key_selection(wire) {
+      Err(_) => if same_file { return Err(CustodyLost) }
+      Ok(selection) => {
+        let (_, purpose, _, _, _, _, _, pem) = @credential_resource.native_local_signing_key_selection_projection(
+          selection,
+        )
+        if purpose == @credential.HostAttestation {
+          let raw = match self.epoch.crypto.ed25519_public_key_raw32(pem) {
+            Err(issue) => return Err(Crypto(issue))
+            Ok(value) => value
+          }
+          guard original.public_key.raw32() is Ok(own_raw) else {
+            return Err(CustodyLost)
+          }
+          if same_file || raw == own_raw {
+            return Err(CustodyLost)
+          }
+        }
+      }
+    }
+  }
+  match
+    self.database.scan_after("client_local_installation_originals", cursor) {
+    Err(@sqlite.NotFound) => Ok(())
+    Err(issue) => Err(Physical(issue))
+    Ok(_) => Err(CustodyLost)
+  }
+}
+
+///|
+// The generated initial SPKI PEM is one fixed representation. The generic
+// Crypto parser deliberately accepts other PEM documents/trailing material;
+// it cannot alone validate this closed original record. Reuse existing base64
+// and Crypto admission, without introducing another public-key identity codec.
+fn valid_initial_signing_public_pem(pem : String) -> Bool {
+  let prefix = "-----BEGIN PUBLIC KEY-----\n"
+  let suffix = "\n-----END PUBLIC KEY-----\n"
+  if pem.length() != 113 || !pem.has_prefix(prefix) || !pem.has_suffix(suffix) {
+    return false
+  }
+  let encoded = pem[prefix.length():pem.length() - suffix.length()].to_owned()
+  let der = @base64.decode(encoded) catch { _ => return false }
+  der.length() == 44 && @base64.encode(der) == encoded
+}

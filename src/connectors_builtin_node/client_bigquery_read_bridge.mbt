@@ -1,0 +1,362 @@
+// Same-runtime BigQuery adaptation through the original Common types.
+// No opaque value is reconstructed from JavaScript layout or wire DATA.
+
+///|
+#export_name("clientProgramBigQueryDescriptionLimits")
+pub fn client_program_bigquery_description_limits(
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_fields : Int,
+  max_name_bytes : Int,
+  max_schema_bytes : Int,
+) -> @bigquery_catalog.DescriptionLimits {
+  {
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_fields,
+    max_name_bytes,
+    max_schema_bytes,
+  }
+}
+
+///|
+#export_name("clientProgramBigQueryQueryLimits")
+pub fn client_program_bigquery_query_limits(
+  description : @bigquery_catalog.DescriptionLimits,
+  max_rows : Int,
+  max_total_rows : Int64,
+  max_value_nodes : Int,
+  max_value_text_bytes : Int,
+  max_job_bytes : Int,
+  max_page_token_bytes : Int,
+) -> @bigquery_catalog.QueryLimits {
+  {
+    description,
+    max_rows,
+    max_total_rows,
+    max_value_nodes,
+    max_value_text_bytes,
+    max_job_bytes,
+    max_page_token_bytes,
+  }
+}
+
+///|
+#export_name("clientProgramBigQueryDeclarationLimits")
+pub fn client_program_bigquery_declaration_limits(
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_views : Int,
+  max_fields : Int,
+) -> @client_row_source_host.RowDeclarationLimits {
+  { max_bytes, max_nodes, max_depth, max_views, max_fields, }
+}
+
+///|
+#export_name("clientProgramBigQueryDescribeTable")
+pub fn client_program_bigquery_describe_table(
+  project : String,
+  dataset : String,
+  table : String,
+  body : Bytes,
+  limits : @bigquery_catalog.DescriptionLimits,
+) -> Result[
+  @bigquery_catalog.TableDescription,
+  @bigquery_catalog.DescriptionIssue,
+] {
+  let target = match
+    @bigquery_catalog.table_target(
+      project,
+      dataset,
+      table,
+      limits.max_name_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  @bigquery_catalog.project_table_description(target, body, limits)
+}
+
+///|
+#export_name("clientProgramBigQueryGenerateReadDeclaration")
+pub fn client_program_bigquery_generate_read_declaration(
+  description : @bigquery_catalog.TableDescription,
+  resource : String,
+  connector : String,
+  revision : String,
+  description_limits : @bigquery_catalog.DescriptionLimits,
+  declaration_limits : @client_row_source_host.RowDeclarationLimits,
+) -> Result[@client_row_source_host.RowDeclaration, @bigquery_read.ReadIssue] {
+  let fields = []
+  for index in 0..<@bigquery_catalog.description_column_count(description) {
+    fields.push(
+      @bigquery_catalog.column_name(
+        @bigquery_catalog.description_column(description, index).unwrap(),
+      ),
+    )
+  }
+  let projection = match
+    @bigquery_catalog.prepare_read_projection(
+      description, fields, description_limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Catalog(issue))
+  }
+  @bigquery_catalog.generate_read_declaration(
+    projection, resource, connector, revision, declaration_limits,
+  ).map_err(issue => @bigquery_read.Host(issue))
+}
+
+///|
+#export_name("clientProgramBigQueryPrepareRead")
+pub fn client_program_bigquery_prepare_read(
+  description : @bigquery_catalog.TableDescription,
+  declaration : @client_row_source_host.RowDeclaration,
+  requirement : @planning.QueryRequirement,
+  query_contract : String,
+  evidence_contract : String,
+  description_limits : @bigquery_catalog.DescriptionLimits,
+  declaration_limits : @client_row_source_host.RowDeclarationLimits,
+) -> Result[@bigquery_read.PreparedRead, @bigquery_read.ReadIssue] {
+  @bigquery_read.prepare_declared_read(
+    description, declaration, requirement, query_contract, evidence_contract, description_limits,
+    declaration_limits,
+  )
+}
+
+///|
+#export_name("clientProgramBigQueryReadAcquisition")
+pub fn client_program_bigquery_read_acquisition(
+  read : @bigquery_read.PreparedRead,
+) -> @client_row_source_host.RowAcquisition {
+  @bigquery_read.prepared_read_acquisition(read)
+}
+
+///|
+#export_name("clientProgramBigQueryOriginalJob")
+pub fn client_program_bigquery_original_job(
+  project : String,
+  job_id : String,
+  location : String,
+  max_bytes : Int,
+) -> Result[@bigquery_catalog.QueryJob, @bigquery_catalog.QueryIssue] {
+  @bigquery_catalog.query_job(project, job_id, location, max_bytes)
+}
+
+///|
+#export_name("clientProgramBigQueryBorrowRead")
+pub fn client_program_bigquery_borrow_read(
+  prepared : @bigquery_read.PreparedRead,
+  run : @client_row_source_host.RowRun,
+  job : @bigquery_catalog.QueryJob,
+  limits : @bigquery_catalog.QueryLimits,
+  max_pages : Int,
+) -> Result[@bigquery_read.Read, @bigquery_read.ReadIssue] {
+  @bigquery_read.borrow_accounted_read(prepared, run, job, limits, max_pages)
+}
+
+///|
+#export_name("clientProgramBigQueryPrepareJob")
+pub fn client_program_bigquery_prepare_job(
+  read : @bigquery_read.Read,
+  maximum_bytes_billed : Int64,
+  max_results : Int,
+  timeout_ms : Int,
+  max_requests : Int,
+  max_request_bytes : Int,
+) -> Result[@bigquery_read.JobRead, @bigquery_read.JobIssue] {
+  @bigquery_read.prepare_job_read(
+    read, maximum_bytes_billed, max_results, timeout_ms, max_requests, max_request_bytes,
+  )
+}
+
+///|
+#export_name("clientProgramBigQueryNextRequest")
+pub fn client_program_bigquery_next_request(
+  value : @bigquery_read.JobRead,
+) -> Result[@bigquery_read.JobRequest?, @bigquery_read.JobIssue] {
+  @bigquery_read.next_job_request(value)
+}
+
+///|
+#export_name("clientProgramBigQueryRequestMaterial")
+pub fn client_program_bigquery_request_material(
+  request : @bigquery_read.JobRequest,
+) -> (String, String, String?, Int) {
+  (
+    @bigquery_read.job_request_method(request),
+    @bigquery_read.job_request_path(request),
+    @bigquery_read.job_request_body(request),
+    @bigquery_read.job_request_sequence(request),
+  )
+}
+
+///|
+#export_name("clientProgramBigQueryAttemptRequest")
+pub fn client_program_bigquery_attempt_request(
+  value : @bigquery_read.JobRead,
+  request : @bigquery_read.JobRequest,
+) -> Result[Unit, @bigquery_read.JobIssue] {
+  @bigquery_read.attempt_job_request(value, request)
+}
+
+///|
+#export_name("clientProgramBigQueryChargeResponse")
+pub fn client_program_bigquery_charge_response(
+  value : @bigquery_read.JobRead,
+  request : @bigquery_read.JobRequest,
+  status : Int,
+  body : Bytes,
+) -> Result[@bigquery_read.JobResponse, @bigquery_read.JobIssue] {
+  @bigquery_read.charge_job_response(value, request, status, body)
+}
+
+///|
+#export_name("clientProgramBigQueryAcceptResponse")
+pub fn client_program_bigquery_accept_response(
+  value : @bigquery_read.JobRead,
+  response : @bigquery_read.JobResponse,
+  body : Bytes,
+) -> Result[Unit, @bigquery_read.JobIssue] {
+  @bigquery_read.accept_charged_job_response(value, response, body)
+}
+
+///|
+#export_name("clientProgramBigQueryRecordDecoderRefusal")
+pub fn client_program_bigquery_record_decoder_refusal(
+  value : @bigquery_read.JobRead,
+  response : @bigquery_read.JobResponse,
+) -> Result[Unit, @bigquery_read.JobIssue] {
+  match @bigquery_read.reject_job_response(value, response) {
+    Err(InvalidResponse) => Ok(())
+    other => other
+  }
+}
+
+///|
+#export_name("clientProgramBigQueryRecordResponseLoss")
+pub fn client_program_bigquery_record_response_loss(
+  value : @bigquery_read.JobRead,
+  request : @bigquery_read.JobRequest,
+) -> Result[Unit, @bigquery_read.JobIssue] {
+  match @bigquery_read.mark_job_response_unknown(value, request) {
+    Err(TransportUnknown) => Ok(())
+    other => other
+  }
+}
+
+///|
+#export_name("clientProgramBigQueryJobComplete")
+pub fn client_program_bigquery_job_complete(
+  value : @bigquery_read.JobRead,
+) -> Bool {
+  @bigquery_read.job_read_complete(value)
+}
+
+///|
+#export_name("clientProgramBigQueryJobRemoteDone")
+pub fn client_program_bigquery_job_remote_done(
+  value : @bigquery_read.JobRead,
+) -> Bool {
+  @bigquery_read.job_read_remote_done(value)
+}
+
+///|
+#export_name("clientProgramBigQueryJobOriginal")
+pub fn client_program_bigquery_job_original(
+  value : @bigquery_read.JobRead,
+) -> (String, String, String) {
+  @bigquery_catalog.query_job_reference(@bigquery_read.job_read_original(value))
+}
+
+///|
+#export_name("clientProgramBigQueryReadUsage")
+pub fn client_program_bigquery_read_usage(
+  value : @bigquery_read.Read,
+) -> (Int, Int64) {
+  @bigquery_read.result_read_usage(value)
+}
+
+///|
+#export_name("clientProgramBigQueryInterruptRead")
+pub fn client_program_bigquery_interrupt_read(
+  value : @bigquery_read.Read,
+) -> Unit {
+  @bigquery_read.interrupt_result_read(value)
+}
+
+///|
+#export_name("clientProgramBigQueryRetireReadBorrow")
+pub fn client_program_bigquery_retire_read_borrow(
+  value : @bigquery_read.Read,
+) -> Result[Unit, @bigquery_read.ReadIssue] {
+  @bigquery_read.retire_borrowed_read(value)
+}
+
+///|
+#export_name("clientProgramBigQueryBindReadTransport")
+pub fn client_program_bigquery_bind_read_transport(
+  value : @bigquery_read.Read,
+  observe_stop : () -> Bool,
+) -> Result[Unit, @bigquery_read.ReadIssue] {
+  @bigquery_read.bind_borrowed_read_transport(value, observe_stop)
+}
+
+///|
+#export_name("clientProgramBigQueryJobRecordLimits")
+pub fn client_program_bigquery_job_record_limits(
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_job_bytes : Int,
+  max_material_bytes : Int,
+) -> @bigquery_read.JobRecordLimits {
+  { max_bytes, max_nodes, max_depth, max_job_bytes, max_material_bytes, }
+}
+
+///|
+#export_name("clientProgramBigQueryJobOriginalRecord")
+pub fn client_program_bigquery_job_original_record(
+  value : @bigquery_read.JobRead,
+  limits : @bigquery_read.JobRecordLimits,
+) -> Result[@bigquery_read.JobOriginalRecord, @bigquery_read.JobRecordIssue] {
+  @bigquery_read.job_original_record(value, limits)
+}
+
+///|
+#export_name("clientProgramBigQueryJobOriginalRecordWire")
+pub fn client_program_bigquery_job_original_record_wire(
+  value : @bigquery_read.JobOriginalRecord,
+) -> String {
+  @bigquery_read.job_original_record_wire(value)
+}
+
+///|
+#export_name("clientProgramBigQueryReadJobOriginalRecord")
+pub fn client_program_bigquery_read_job_original_record(
+  bytes : Bytes,
+  limits : @bigquery_read.JobRecordLimits,
+) -> Result[@bigquery_read.JobOriginalRecord, @bigquery_read.JobRecordIssue] {
+  @bigquery_read.read_job_original_record(bytes, limits)
+}
+
+///|
+#export_name("clientProgramBigQueryJobOriginalRecordMaterial")
+pub fn client_program_bigquery_job_original_record_material(
+  value : @bigquery_read.JobOriginalRecord,
+) -> (String, String, String, String, String, String) {
+  @bigquery_read.job_original_record_material(value)
+}
+
+///|
+#export_name("clientProgramBigQueryJobOriginalRecordMatchesRequest")
+pub fn client_program_bigquery_job_original_record_matches_request(
+  value : @bigquery_read.JobRead,
+  request : @bigquery_read.JobRequest,
+  record : @bigquery_read.JobOriginalRecord,
+) -> Bool {
+  @bigquery_read.job_original_record_matches_request(value, request, record)
+}

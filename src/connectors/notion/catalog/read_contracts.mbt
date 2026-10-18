@@ -45,6 +45,8 @@ pub struct NotionDatabaseReadDeclaration {
   database_id : String
   priv source_id : String?
   priv original : @decode.Cursor
+  priv original_bytes : Bytes
+  priv source_cid : String
   priv columns : Array[DeclaredNotionReadColumn]
   priv property_ids : Array[String]
 }
@@ -65,6 +67,7 @@ pub struct NotionDataSourceReadContracts {
   priv declaration : NotionDatabaseReadDeclaration
   priv source : NotionDataSourceCatalog
   priv columns : Array[NotionPropertyReadColumn]
+  priv system_columns : Array[(String, @contract.Contract)]
   priv schema : @contract.Contract
 }
 
@@ -117,10 +120,37 @@ pub fn read_notion_database_read_declaration(
   if !read_contract_limits_valid(limits) {
     return Err(InvalidLimits)
   }
-  let original = match database_cursor(bytes, limits.metadata) {
+  if bytes.length() > limits.metadata.max_bytes {
+    return Err(Metadata(BudgetExceeded))
+  }
+  // Capture once before decoding/hash. Never retain a mutable caller Buffer
+  // as the declaration's original source or reinterpret its canonical domain.
+  let original_bytes = Bytes::makei(bytes.length(), index => bytes[index])
+  let original = match database_cursor(original_bytes, limits.metadata) {
     Ok(value) => value
     Err(issue) => return Err(Metadata(issue))
   }
+  read_notion_database_read_declaration_cursor(
+    original_bytes,
+    original,
+    limits,
+    {
+      work: limits.max_work,
+      nodes: limits.contracts.max_nodes,
+      text: limits.contracts.max_text_bytes,
+    },
+  )
+}
+
+///|
+// Both public readers share this exact declaration algorithm. The alias-map
+// reader supplies one aggregate Contract/text/work budget across every member.
+fn read_notion_database_read_declaration_cursor(
+  original_bytes : Bytes,
+  original : @decode.Cursor,
+  limits : NotionReadContractLimits,
+  budget : NotionReadContractBudget,
+) -> Result[NotionDatabaseReadDeclaration, NotionReadContractIssue] {
   if @decode.text(original) is Ok(_) {
     let database_id = match
       read_contract_text(original, limits.metadata.max_identity_bytes) {
@@ -131,6 +161,8 @@ pub fn read_notion_database_read_declaration(
       database_id,
       source_id: None,
       original,
+      original_bytes,
+      source_cid: "sha256:" + @sha.hex(original_bytes),
       columns: [],
       property_ids: [],
     })
@@ -171,11 +203,6 @@ pub fn read_notion_database_read_declaration(
   }
   let columns = []
   let property_ids = []
-  let budget = {
-    work: limits.max_work,
-    nodes: limits.contracts.max_nodes,
-    text: limits.contracts.max_text_bytes,
-  }
   match @decode.field(root, "read_contracts") {
     Missing => ()
     Present(contracts) => {
@@ -250,7 +277,15 @@ pub fn read_notion_database_read_declaration(
     }
     _ => return Err(InvalidDeclaration)
   }
-  Ok({ database_id, source_id, original, columns, property_ids, })
+  Ok({
+    database_id,
+    source_id,
+    original,
+    original_bytes,
+    source_cid: "sha256:" + @sha.hex(original_bytes),
+    columns,
+    property_ids,
+  })
 }
 
 ///|
@@ -438,7 +473,7 @@ pub fn bind_notion_data_source_read_contracts(
     Ok(value) => value
     Err(_) => return Err(InvalidColumn("names"))
   }
-  Ok({ declaration, source, columns, schema, })
+  Ok({ declaration, source, columns, system_columns: [], schema, })
 }
 
 ///|

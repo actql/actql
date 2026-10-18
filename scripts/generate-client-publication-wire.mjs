@@ -15,12 +15,14 @@ const allowed = new Set(['$schema', '$id', '$ref', 'title', 'type',
   'const', 'enum', 'pattern', 'minLength', 'maxLength', 'minimum', 'maximum', 'allOf',
   'if', 'then', 'not', 'oneOf', 'minItems', 'maxItems', 'minProperties', 'maxProperties', 'propertyNames']);
 
-export function project(schema) {
+export function project(schema, {extended = false} = {}) {
   if (schema === null || typeof schema !== 'object' || Array.isArray(schema)) {
     throw new Error('InvalidPublicationSchema');
   }
   for (const key of Object.keys(schema)) {
-    if (!allowed.has(key)) throw new Error(`UnsupportedPublicationSchema:${key}`);
+    if (!allowed.has(key) && !(extended && ['anyOf', 'else', 'format'].includes(key))) {
+      throw new Error(`UnsupportedPublicationSchema:${key}`);
+    }
   }
   if (schema.type !== undefined &&
       !['object', 'array', 'string', 'integer', 'number', 'boolean'].includes(schema.type)) {
@@ -30,6 +32,7 @@ export function project(schema) {
     throw new Error('UnsupportedPublicationUniqueItems');
   }
   const result = {};
+  const child = value => project(value, {extended});
   if (schema.$ref !== undefined) {
     if (!['#/$defs/value_contract',
       'actql-protocol-schemas.json#/schemas/canonical_value_contract',
@@ -46,19 +49,27 @@ export function project(schema) {
   }
   if (Object.hasOwn(schema, 'additionalProperties')) {
     result.additionalProperties = typeof schema.additionalProperties ===
-      'object' ? project(schema.additionalProperties) :
+      'object' ? child(schema.additionalProperties) :
       schema.additionalProperties;
   }
   if (schema.properties) result.properties = Object.fromEntries(
     Object.entries(schema.properties).map(([key, value]) =>
-      [key, project(value)]));
-  if (schema.items) result.items = project(schema.items);
-  if (schema.allOf) result.allOf = schema.allOf.map(project);
-  if (schema.oneOf) result.oneOf = schema.oneOf.map(project);
-  if (schema.if) result.if = project(schema.if);
-  if (schema.then) result.then = project(schema.then);
-  if (schema.not) result.not = project(schema.not);
-  if (schema.propertyNames) result.propertyNames = project(schema.propertyNames);
+      [key, child(value)]));
+  if (schema.items) result.items = child(schema.items);
+  if (schema.allOf) result.allOf = schema.allOf.map(child);
+  if (schema.oneOf) result.oneOf = schema.oneOf.map(child);
+  if (schema.if) result.if = child(schema.if);
+  if (schema.then) result.then = child(schema.then);
+  if (schema.not) result.not = child(schema.not);
+  if (schema.propertyNames) result.propertyNames = child(schema.propertyNames);
+  if (extended) {
+    if (schema.anyOf) result.anyOf = schema.anyOf.map(child);
+    if (schema.else) result.else = child(schema.else);
+    if (schema.format !== undefined) {
+      if (schema.format !== 'date-time') throw new Error('UnsupportedPublicationFormat');
+      result.format = schema.format;
+    }
+  }
   return result;
 }
 
@@ -94,8 +105,14 @@ export function typeOf(schema) {
   throw new Error('UnsupportedPublicationType');
 }
 
-export function structuralValidatorSource({extended = false} = {}) {
-  return finiteWireNumberSource('js') + `function valid(value, schema) {\n` +
+export function structuralValidatorSource({extended = false, compositeConstants = false} = {}) {
+  return finiteWireNumberSource('js') + (compositeConstants ?
+`function sameConstant(value, expected) {\n` +
+`  if (value === expected) return true;\n` +
+`  if (Array.isArray(expected)) return Array.isArray(value) && value.length === expected.length && expected.every((item, index) => sameConstant(value[index], item));\n` +
+`  if (expected !== null && typeof expected === 'object') return value !== null && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === Object.keys(expected).length && Object.keys(expected).every(key => Object.hasOwn(value, key) && sameConstant(value[key], expected[key]));\n` +
+`  return false;\n` +
+`}\n\n` : '') + `function valid(value, schema) {\n` +
 `  if (typeof value === 'number' && !finiteWireNumber(value)) return false;\n` +
 `  if (typeof value === 'string' && !value.isWellFormed()) return false;\n` +
     (extended ?
@@ -109,7 +126,7 @@ export function structuralValidatorSource({extended = false} = {}) {
 `  if (schema.not && valid(value, schema.not)) return false;\n` +
 `  if (schema.if && valid(value, schema.if) && !valid(value, schema.then)) return false;\n` +
 `  if (schema.allOf && !schema.allOf.every(rule => valid(value, rule))) return false;\n` +
-`  if (Object.hasOwn(schema, 'const') && value !== schema.const) return false;\n` +
+`  if (Object.hasOwn(schema, 'const') && ${compositeConstants ? '!sameConstant(value, schema.const)' : 'value !== schema.const'}) return false;\n` +
 `  if (schema.enum && !schema.enum.includes(value)) return false;\n` +
 `  if (typeof value === 'number' &&\n` +
 `      (schema.minimum !== undefined && value < schema.minimum ||\n` +

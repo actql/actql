@@ -3,6 +3,7 @@
 // as an opaque read reference, not rebuilt from this operation's CID strings.
 struct NativeLocalReviewerSigningGrantOperation {
   materials : NativeLocalReviewerProofMaterials
+  key : NativeLocalSigningKeyOriginal
   subject : @resident.ResidentOriginalEffectSigningSubjectRead
   issuer_file : NativeLocalSelectedFile
   original : NativeLocalGrantOriginal
@@ -32,7 +33,7 @@ fn NativeLocalReviewerSigningGrantOperation::require_current(
   guard self.original.grant is SigningGrant(grant) else {
     return Err(SigningGrantUnavailable)
   }
-  let host = self.materials.key.account.host
+  let host = self.key.account.host
   match host.selected_configuration(self.issuer_file.name) {
     Ok(body) if body == self.issuer_file.body &&
       self.issuer_file.content_cid == self.original.issuer_selection_cid => ()
@@ -68,11 +69,16 @@ pub fn NativeLocalReviewerProofMaterials::prepare_signing_grant_operation(
   NativeLocalReviewerSigningGrantOperation,
   NativeLocalReviewerSigningGrantIssue,
 ] {
+  // The explicit issuer-file route retains its configured source-root key.
+  // An initialized Store key cannot acquire that authority by relabelling it.
+  guard self.key is ConfiguredReviewerKey(key) else {
+    return Err(SigningGrantUnavailable)
+  }
   let scope = match self.prepare_signing_scope(attempt_id) {
     Ok(value) => value
     Err(issue) => return Err(SigningGrantMaterials(issue))
   }
-  let host = self.key.account.host
+  let host = key.account.host
   guard host.session.settings.files
     .iter()
     .find_first(file => file.name == issuer_file_name)
@@ -105,7 +111,7 @@ pub fn NativeLocalReviewerProofMaterials::prepare_signing_grant_operation(
   }
   let original = match
     local_owned_grant_original(
-      self.key.account.crypto,
+      key.account.crypto,
       operation_id,
       self.reviewer.request,
       issuer_file.content_cid,
@@ -125,6 +131,7 @@ pub fn NativeLocalReviewerProofMaterials::prepare_signing_grant_operation(
   }
   let operation : NativeLocalReviewerSigningGrantOperation = {
     materials: self,
+    key,
     subject,
     issuer_file,
     original,
@@ -140,7 +147,7 @@ fn NativeLocalReviewerSigningGrantOperation::require_current_locked(
   issuer : NativeLocalCredentialIssuerBinding,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   let materials = self.materials
-  let key = materials.key
+  let key = self.key
   let host = key.account.host
   if !physical_equal(issuer.host, host) ||
     issuer.file.name != self.issuer_file.name ||
@@ -223,6 +230,10 @@ fn NativeLocalReviewerSigningGrantOperation::require_current_locked(
 ///|
 // A different operation name must not replace an entered/unknown original for
 // the same original signing subject. Explicit replacement is not a retry path.
+// Two authenticated default originals additionally retain their first operation
+// for that same Submission/Checkpoint/purpose: changing the decision/preimage,
+// attempt or initialization cannot bypass its prior claimed/Unknown duty.
+// Configured issuer-file operations keep their existing exact-key/preimage rule.
 fn NativeLocalHostConnection::same_signing_operation_locked(
   self : NativeLocalHostConnection,
   original : NativeLocalGrantOriginal,
@@ -251,10 +262,15 @@ fn NativeLocalHostConnection::same_signing_operation_locked(
       if saved.submission_scope_cid == scope.submission_scope_cid &&
         saved.checkpoint_cid == scope.checkpoint_cid &&
         saved.purpose == scope.purpose &&
-        saved.preimage == scope.preimage &&
-        saved.key_configuration_cid == scope.key_configuration_cid &&
-        saved.key_generation_cid == scope.key_generation_cid &&
-        prior.operation_id != original.operation_id {
+        prior.operation_id != original.operation_id &&
+        (
+          (original.initial_issue is Some(_) && prior.initial_issue is Some(_)) ||
+          (
+            saved.preimage == scope.preimage &&
+            saved.key_configuration_cid == scope.key_configuration_cid &&
+            saved.key_generation_cid == scope.key_generation_cid
+          )
+        ) {
         return Err(Checkpoint(NeedsOriginalContinuation))
       }
     }
@@ -280,10 +296,10 @@ pub fn NativeLocalReviewerSigningGrantOperation::adopt(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let host = self.materials.key.account.host
+  let host = self.key.account.host
   let issuer = match
     host.acquire_credential_issuer(
-      self.materials.key.account.crypto,
+      self.key.account.crypto,
       self.issuer_file.name,
       issuer_principal,
       issuer_connection,
@@ -320,8 +336,8 @@ pub fn NativeLocalReviewerSigningGrantOperation::adopt(
   }
   // Neither issuer's clock nor the preceding purpose callbacks may leave
   // retired original references successful at the ACK boundary.
-  match self.materials.key.projection.export_original() {
-    Ok(bytes) if bytes == self.materials.key.exported => ()
+  match self.key.projection.export_original() {
+    Ok(bytes) if bytes == self.key.exported => ()
     _ => return Err(SigningGrantUnavailable)
   }
   let scope = match self.original.grant {
@@ -359,7 +375,7 @@ pub fn NativeLocalReviewerSigningGrantOperation::lookup_adoption(
   NativeLocalReviewerSigningGrantAcknowledgement?,
   NativeLocalReviewerSigningGrantIssue,
 ] {
-  let key = self.materials.key
+  let key = self.key
   let host = key.account.host
   let reviewer = self.materials.reviewer
   let authority = match

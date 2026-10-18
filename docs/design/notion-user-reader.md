@@ -135,3 +135,57 @@ reader graph. These counters preserve original raw/journal/key/Unknown state.
 No live Notion workspace or credential is used. Endpoint versioning follows
 Notion's [version policy](https://developers.notion.com/reference/versioning);
 request parameters and capabilities follow the existing list-users reference.
+
+## Installed user Source preparation
+
+The connector-owned Host manifest selects the user Source factory through the
+existing installation table. Its closed initial-0.1 private profile fixes the
+connector identity, Site-profile path, original Account configuration and
+independent reader/declaration/secret ceilings. It does not reinterpret a public
+packet as authority or change Notion's public connection spelling. The Site fixes
+its original HTTPS origin, signing identity, namespace, generation, journal and
+optional TLS authority. The latter is bounded original ASCII PEM text through
+the existing configuration reader, not lossy UTF-8 or an unbounded file read.
+Exact selected profile/Site String bytes and the original TLS authority digest
+remain identity parts outside configuration normalization. A digest is DATA,
+not an issuer, a credential or a currentness certificate.
+
+The original Catalog schema and `id` candidate-key declaration enter the same
+Common relation declaration and checked SQL/AQL Source publication. The reader
+already checks nonempty unique ids within and across all original pages, even
+when projection does not retain `id`. This supplies no KeySet, ResourceRef,
+Command ID proof or mutation authority. Account/current admission and the same
+trusted installation remain separately required at every acquisition.
+
+The trusted installer must supply the same-runtime original provider-reader
+capacity. Neither public configuration numbers nor page/transfer ceilings issue
+that declaration. Missing supply is `NotionReaderCapacityUnavailable`; absent
+physical Credential material is `NotionCredentialMaterialUnavailable`. The
+ordinary factory can be discovered while those independent supplies are absent.
+Private test capacity amounts do not establish normal numerical adequacy.
+
+The factory uses the existing provider-reader path. It installs the original
+response borrow/cleanup observation and reserves on the original Run Ledger
+before the synchronous I/O-free factory. That wrapper obtains the original
+read grant, creates one physical binding and one user-list reader, and forwards
+the same columns, request occurrence, current checks, page charges and RowRun
+admission. Each cursor request receives its own original use id; an earlier
+use cannot be resent. There is no ordinary `readPages` fallback, second parser,
+retry, resolver I/O shortcut or factory-local Ledger.
+
+The wrapper retains original options, capacity/preparer receiver, child,
+credential binding/material aliases, controller/signal, read/stop Promises and
+handlers, original read failure, close failure, last result and callbacks.
+Those overlap the complete user reader inventory above and the original RowRun
+capture. Closing the transport cannot retire any escaped raw/row/error aliases.
+Close failure retains both duties; it does not replace a prior read failure.
+`observe().cleanupConfirmed` stays false and the same capture/recovery retains
+its reservation until a genuine physical transfer/retirement is supplied. A
+fulfilled Promise, Site close, canonical RowRun close or garbage collection is
+not that acknowledgement.
+
+Actual private integration must distinguish metadata loading, SQL/AQL capture,
+Account denial, original journal Unknown/nonresend and preserved cleanup debt.
+Normal original capacity supply, installed/public acceptance, same-Run durable
+recovery and the other Notion Source/write/content profiles remain required.
+This factory does not narrow the full public Notion target to users.

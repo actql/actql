@@ -119,7 +119,7 @@ fn parameter_decode(
         let extras = match kind {
           "number" => ["integer", "minimum", "maximum"]
           "string" => ["format", "enum"]
-          "boolean" | "date" | "timestamp" => []
+          "boolean" | "date" | "timestamp" | "int64" => []
           "decimal" => ["precision", "scale"]
           "array" => ["items", "length", "max_items"]
           "object" => ["fields"]
@@ -170,6 +170,7 @@ fn parameter_decode(
               enumeration: read_text_enumeration(view, budget, depth),
             })
           }
+          "int64" => Signed64
           "boolean" => Boolean
           "date" => Date
           "timestamp" => Timestamp
