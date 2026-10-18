@@ -27267,7 +27267,7 @@
     {
       "module": "adapters/host-node/infer-trusted-node-preload.cjs",
       "responsibilityFacet": "primary",
-      "sha256": "f446e173107efc1d255f0d5e41d0470c6aa4571c0b1021585b53ed0a88b228c9",
+      "sha256": "3f18eedbb8175f56563653f729734fecf81792cf12fe46c0b13ca52d7a4ecf3a",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -27279,6 +27279,7 @@
         "commonjs:check",
         "commonjs:checkSdkEagerModules",
         "commonjs:checkSdkStaticModules",
+        "commonjs:readInitialControlInstallationAsset",
         "commonjs:retire"
       ],
       "operations": [
@@ -27384,6 +27385,15 @@
           "async": false
         },
         {
+          "name": "init:readInitialControlInstallationAsset/init:readInitialControlInstallationAsset",
+          "parameters": [
+            "scope",
+            "sameOriginals",
+            "path"
+          ],
+          "async": false
+        },
+        {
           "name": "init:retire/init:retire",
           "parameters": [
             "view",
@@ -27463,6 +27473,7 @@
             "init:check/init:check",
             "init:checkSdkEagerModules/init:checkSdkEagerModules",
             "init:checkSdkStaticModules/init:checkSdkStaticModules",
+            "init:readInitialControlInstallationAsset/init:readInitialControlInstallationAsset",
             "init:retire/init:retire",
             "moduleNamespace",
             "originals/originals",
@@ -27482,6 +27493,7 @@
             "commonjs:check",
             "commonjs:checkSdkEagerModules",
             "commonjs:checkSdkStaticModules",
+            "commonjs:readInitialControlInstallationAsset",
             "commonjs:retire"
           ],
           "attributes": {
@@ -27531,6 +27543,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
                 "anchor": "function issue(held)"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "function readAsset(scope, originals, path)"
               }
             ],
             "identity": [
@@ -27561,6 +27577,10 @@
               {
                 "path": "adapters/host-node/node-initial-control-installation.mjs",
                 "anchor": "const startup = require('./infer-trusted-node-preload.cjs');"
+              },
+              {
+                "path": "adapters/host-node/initial-control-static-assets.test.mjs",
+                "anchor": "only the same nominal Scope and all five originals may borrow its fixed asset"
               }
             ],
             "ownership": [
@@ -27617,6 +27637,10 @@
               {
                 "path": "adapters/host-node/node-initial-control-installation.mjs",
                 "anchor": "// The actual CJS startup may synchronously capture this ESM namespace before"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Do not let the returned String bypass that current/closing fence."
               }
             ],
             "failure": [
@@ -27643,6 +27667,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "failed asynchronous initialization preserves its exact cause"
+              },
+              {
+                "path": "adapters/host-node/initial-control-static-assets.test.mjs",
+                "anchor": "legacy operational controls without an asset original keep their existing cleanup"
               }
             ],
             "cancellation": [
@@ -27669,6 +27697,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "current refusal after initialization cannot issue or recycle"
+              },
+              {
+                "path": "adapters/host-node/initial-control-static-assets.test.mjs",
+                "anchor": "callback retirement refuses the String handoff while the same preparation stays pending"
               }
             ],
             "resources": [
@@ -27699,6 +27731,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
                 "anchor": "// Snapshot original child references with the captured native Map walk;"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "anchor": "// Escaped original Strings retain their own original envelope/lifetime."
               }
             ],
             "extension": [
@@ -27717,6 +27753,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Fixed control assets are projected from that same selected immutable Source"
               }
             ],
             "verification": [
@@ -27755,6 +27795,14 @@
               {
                 "path": "adapters/host-node/node-initial-control-installation.test.mjs",
                 "anchor": "eager consumer retains captured forwarders rather than a later cache export replacement"
+              },
+              {
+                "path": "adapters/host-node/initial-control-static-assets.test.mjs",
+                "anchor": "real same-FD captured asset stays original after pathname replacement and Scope close"
+              },
+              {
+                "path": "adapters/host-node/initial-control-static-assets.test.mjs",
+                "anchor": "malformed asset descriptors and non-String results cannot synthesize original Source"
               }
             ]
           }
@@ -28747,7 +28795,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-installation-owner.cjs",
-      "sha256": "e368a0602df77dba9634d2e3b94eb511a6a6467721a09593c8633d7baad994f3",
+      "sha256": "a3db969d7c42140be44259ffbba35142cf2ec5a53f7ebfb25d402db36a39d59e",
       "exports": [
         "commonjs:createInitialControlInstallationOwner"
       ],
@@ -28879,6 +28927,15 @@
           "async": false
         },
         {
+          "name": "createInitialControlInstallationOwner/readAsset",
+          "parameters": [
+            "scope",
+            "originals",
+            "path"
+          ],
+          "async": false
+        },
+        {
           "name": "createInitialControlInstallationOwner/remember",
           "parameters": [
             "state",
@@ -28986,6 +29043,7 @@
             "createInitialControlInstallationOwner/observation",
             "createInitialControlInstallationOwner/observation/observation",
             "createInitialControlInstallationOwner/observeChild",
+            "createInitialControlInstallationOwner/readAsset",
             "createInitialControlInstallationOwner/remember",
             "createInitialControlInstallationOwner/retainPreparation",
             "createInitialControlInstallationOwner/retainPreparation/init:releaseReferences/init:releaseReferences",
@@ -29024,6 +29082,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
                 "anchor": "function issue(held)"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "function readAsset(scope, originals, path)"
               }
             ],
             "identity": [
@@ -29038,6 +29100,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "asynchronous begin snapshots five originals before initialization"
+              },
+              {
+                "path": "adapters/host-node/initial-control-static-assets.test.mjs",
+                "anchor": "only the same nominal Scope and all five originals may borrow its fixed asset"
               }
             ],
             "ownership": [
@@ -29066,6 +29132,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "one original namespace flight can serve different generations"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Do not let the returned String bypass that current/closing fence."
               }
             ],
             "failure": [
@@ -29080,6 +29150,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "failed asynchronous initialization preserves its exact cause"
+              },
+              {
+                "path": "adapters/host-node/initial-control-static-assets.test.mjs",
+                "anchor": "legacy operational controls without an asset original keep their existing cleanup"
               }
             ],
             "cancellation": [
@@ -29094,6 +29168,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "current refusal after initialization cannot issue or recycle"
+              },
+              {
+                "path": "adapters/host-node/initial-control-static-assets.test.mjs",
+                "anchor": "callback retirement refuses the String handoff while the same preparation stays pending"
               }
             ],
             "resources": [
@@ -29112,12 +29190,20 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
                 "anchor": "// Snapshot original child references with the captured native Map walk;"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "anchor": "// Escaped original Strings retain their own original envelope/lifetime."
               }
             ],
             "extension": [
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Fixed control assets are projected from that same selected immutable Source"
               }
             ],
             "verification": [
@@ -29140,6 +29226,14 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "asynchronous initialization retains the captured original callback and receiver"
+              },
+              {
+                "path": "adapters/host-node/initial-control-static-assets.test.mjs",
+                "anchor": "real same-FD captured asset stays original after pathname replacement and Scope close"
+              },
+              {
+                "path": "adapters/host-node/initial-control-static-assets.test.mjs",
+                "anchor": "malformed asset descriptors and non-String results cannot synthesize original Source"
               }
             ]
           }
@@ -41217,10 +41311,11 @@
     },
     {
       "module": "adapters/host-node/node-initial-control-installation.mjs",
-      "sha256": "434e63afa7800485c28d31f36c4c9528e258aab9c14c3c028cfac0cf07824048",
+      "sha256": "b27ea71f89d3754c249ccd4825f48a48e88a819407810375affcced32956db6a",
       "exports": [
         "assertInitialControlInstallationCurrent",
-        "beginInitialControlInstallation"
+        "beginInitialControlInstallation",
+        "readInitialControlInstallationAsset"
       ],
       "operations": [
         {
@@ -41235,6 +41330,15 @@
           "name": "beginInitialControlInstallation",
           "parameters": [
             "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInitialControlInstallationAsset",
+          "parameters": [
+            "scope",
+            "sameOriginals",
+            "path"
           ],
           "async": false
         }
@@ -41253,11 +41357,13 @@
           "operations": [
             "<module>",
             "assertInitialControlInstallationCurrent",
-            "beginInitialControlInstallation"
+            "beginInitialControlInstallation",
+            "readInitialControlInstallationAsset"
           ],
           "exports": [
             "assertInitialControlInstallationCurrent",
-            "beginInitialControlInstallation"
+            "beginInitialControlInstallation",
+            "readInitialControlInstallationAsset"
           ],
           "attributes": {
             "responsibility": [
@@ -41290,6 +41396,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
                 "anchor": "function issue(held)"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "function readAsset(scope, originals, path)"
               }
             ],
             "identity": [
@@ -41312,6 +41422,10 @@
               {
                 "path": "adapters/host-node/node-initial-control-installation.mjs",
                 "anchor": "const startup = require('./infer-trusted-node-preload.cjs');"
+              },
+              {
+                "path": "adapters/host-node/initial-control-static-assets.test.mjs",
+                "anchor": "only the same nominal Scope and all five originals may borrow its fixed asset"
               }
             ],
             "ownership": [
@@ -41356,6 +41470,10 @@
               {
                 "path": "adapters/host-node/node-initial-control-installation.mjs",
                 "anchor": "// The actual CJS startup may synchronously capture this ESM namespace before"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Do not let the returned String bypass that current/closing fence."
               }
             ],
             "failure": [
@@ -41378,6 +41496,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "failed asynchronous initialization preserves its exact cause"
+              },
+              {
+                "path": "adapters/host-node/initial-control-static-assets.test.mjs",
+                "anchor": "legacy operational controls without an asset original keep their existing cleanup"
               }
             ],
             "cancellation": [
@@ -41396,6 +41518,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "current refusal after initialization cannot issue or recycle"
+              },
+              {
+                "path": "adapters/host-node/initial-control-static-assets.test.mjs",
+                "anchor": "callback retirement refuses the String handoff while the same preparation stays pending"
               }
             ],
             "resources": [
@@ -41418,6 +41544,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
                 "anchor": "// Snapshot original child references with the captured native Map walk;"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "anchor": "// Escaped original Strings retain their own original envelope/lifetime."
               }
             ],
             "extension": [
@@ -41432,6 +41562,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Fixed control assets are projected from that same selected immutable Source"
               }
             ],
             "verification": [
@@ -41470,6 +41604,14 @@
               {
                 "path": "adapters/host-node/node-initial-control-installation.test.mjs",
                 "anchor": "eager consumer retains captured forwarders rather than a later cache export replacement"
+              },
+              {
+                "path": "adapters/host-node/initial-control-static-assets.test.mjs",
+                "anchor": "real same-FD captured asset stays original after pathname replacement and Scope close"
+              },
+              {
+                "path": "adapters/host-node/initial-control-static-assets.test.mjs",
+                "anchor": "malformed asset descriptors and non-String results cannot synthesize original Source"
               }
             ]
           }

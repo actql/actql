@@ -4,7 +4,8 @@ import {spawnSync} from 'node:child_process';
 import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {beginInitialControlInstallation, assertInitialControlInstallationCurrent}
+import {beginInitialControlInstallation, assertInitialControlInstallationCurrent,
+  readInitialControlInstallationAsset}
   from './node-initial-control-installation.mjs';
 
 // Current selected preload has no complete initial-control operational issuer.
@@ -19,6 +20,7 @@ test('initial control refuses absent operational startup before observing caller
     throw new Error('CallerIsNotAStartupIssuer');
   }});
   assert.throws(() => beginInitialControlInstallation(originals), unavailable);
+  assert.throws(() => readInitialControlInstallationAsset({}, originals, 'spec/control.json'), unavailable);
   assert.equal(observed, 0);
 });
 
@@ -57,7 +59,7 @@ function eagerOriginalNamespace(t, body) {
     readFileSync(new URL('infer-trusted-node-preload.cjs', import.meta.url), 'utf8') +
     '\nglobalThis.originalHostNamespace = require("./host.mjs");\n');
   writeFileSync(join(root, 'host.mjs'),
-    'export {beginInitialControlInstallation, assertInitialControlInstallationCurrent}' +
+    'export {beginInitialControlInstallation, assertInitialControlInstallationCurrent,readInitialControlInstallationAsset}' +
     ' from "./node-initial-control-installation.mjs";\n' +
     'export * from "./infer-trusted-runtime-view.mjs";\n');
   // The intermediary deliberately does not match the selected public recipe.
@@ -83,6 +85,8 @@ test('eager original namespace captures the actual startup forwarders without a 
     'assert.throws(()=>original.beginInitialControlInstallation(packet),',
     '  {code:"NodeInitialControlAdmissionUnavailable"});',
     'assert.throws(()=>original.assertInitialControlInstallationCurrent({}, packet),',
+    '  {code:"NodeInitialControlAdmissionUnavailable"});',
+    'assert.throws(()=>original.readInitialControlInstallationAsset({},packet,"spec/control.json"),',
     '  {code:"NodeInitialControlAdmissionUnavailable"});',
     'assert.equal(reads, 0);',
   ].join('\n'));

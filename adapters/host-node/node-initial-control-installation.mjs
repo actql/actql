@@ -23,6 +23,9 @@ const currentDescriptor = ownDescriptor(startup,
   'assertInitialControlInstallationCurrent');
 const current = currentDescriptor !== undefined && hasOwn(currentDescriptor, 'value') &&
   typeof currentDescriptor.value === 'function' ? currentDescriptor.value : undefined;
+const assetDescriptor = ownDescriptor(startup, 'readInitialControlInstallationAsset');
+const readAsset = assetDescriptor !== undefined && hasOwn(assetDescriptor, 'value') &&
+  typeof assetDescriptor.value === 'function' ? assetDescriptor.value : undefined;
 
 // The actual startup must supply its nominal receiver, retaining the original
 // same Host/installation/generation/source/backend/recipe and complete finite
@@ -60,4 +63,16 @@ export function assertInitialControlInstallationCurrent(scope, sameOriginals) {
     throw error;
   }
   return apply(current, startup, [scope, sameOriginals]);
+}
+
+// The package-relative key selects only a fixed image already held by the
+// actual preload. No caller file/data/receiver is admitted or reread here.
+// Escaped original Strings retain their own original envelope/lifetime.
+export function readInitialControlInstallationAsset(scope, sameOriginals, path) {
+  if (readAsset === undefined) {
+    const error = new NativeError('NodeInitialControlAdmissionUnavailable');
+    error.code = 'NodeInitialControlAdmissionUnavailable';
+    throw error;
+  }
+  return apply(readAsset, startup, [scope, sameOriginals, path]);
 }
