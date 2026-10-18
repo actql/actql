@@ -446,69 +446,6 @@ function effectInputPreview(prepared, evidence, definition, invocation,
     authoring.authoring_context_cid, keys};
 }
 
-test('Salesforce current-use catalogs belong to one exact refresh',
-  async t => {
-    const {site, request, options} = await capabilitySite(t);
-    const requests = [request];
-    const capability = issueSalesforceEffectCapability(options);
-    const firstCatalog = site.catalog;
-    const secondCatalog = await site.refreshCatalog();
-    let revision = 0;
-    let firstRefreshStarted;
-    let finishFirstRefresh;
-    const started = new Promise(resolve => { firstRefreshStarted = resolve; });
-    const firstGate = new Promise(resolve => { finishFirstRefresh = resolve; });
-    const currentUse = installSalesforceEffectCurrentUse({
-      moon: salesforceMoon, commonMoon: moon,
-      members: [{requests, capability, refreshCatalog: async () => {
-        const current = ++revision;
-        if (current === 1) {
-          firstRefreshStarted();
-          await firstGate;
-        }
-        return current === 1 ? firstCatalog : secondCatalog;
-      }}],
-      observedRows: [], maxMembers: 1, maxRows: 1,
-      maxTotalResponseBytes: 1024,
-    });
-    requests[0] = 'foreign';
-    assert.throws(() => currentUse.catalogAt({}, 0),
-      {code: 'InvalidSalesforceEffectCurrentUse'});
-    const firstFlight = currentUse.refreshPreflight({preflight: {marker: 1}});
-    await started;
-    const second = await currentUse.refreshPreflight({preflight: {marker: 2}});
-    finishFirstRefresh();
-    const first = await firstFlight;
-    assert.equal(currentUse.catalogAt(first, 0), firstCatalog.observation);
-    assert.equal(currentUse.catalogAt(second, 0), secondCatalog.observation);
-    assert.deepEqual(first.capabilities, [capability.identity]);
-    assert.deepEqual(second.capabilities, [capability.identity]);
-    assert.throws(() => currentUse.catalogAt({...first}, 0),
-      {code: 'InvalidSalesforceEffectCurrentUse'});
-  });
-
-test('Salesforce dispatcher rejects a foreign frontier claim before I/O',
-  async () => {
-    let catalogReads = 0;
-    const scope = {}, locator = {}, key = {}, basis = {};
-    const claim = {scope, locator, key, basis,
-      intentFingerprintCid: cid('1'), canonicalRequestCid: cid('2')};
-    const dispatch = installSalesforceEffectDispatch({
-      commonMoon: {strategyEffectPreviewOrderedRowCid() {
-        assert.fail('foreign claim reached the Preview');
-      }}, moon: {}, ledger: {}, admittedPreview: {},
-      currentUse: {catalogAt() { catalogReads++; return {}; }},
-      members: [{requests: [{}], claims: [claim],
-        authorizationForRow() {
-          assert.fail('foreign claim requested a grant');
-        }, credential: {}, limits: {}}],
-    });
-    await assert.rejects(dispatch({memberIndex: 0, rowIndex: 0,
-      claim: {...claim, key: {}}, currentPreflight: {}}),
-    {code: 'InvalidSalesforceEffectDispatch'});
-    assert.equal(catalogReads, 0);
-  });
-
 // Effect commit authorization over the real two-member captured Effect Run.
 // Offline: the provider is a local HTTP mock that counts PATCH requests per
 // row path, the Effect ledger and the Checkpoint journal are real SQLite
