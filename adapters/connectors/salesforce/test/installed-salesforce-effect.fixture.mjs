@@ -47,10 +47,10 @@ export const recordEntry = (orgId, operation, outcome = 'allow',
 // installation; a standard Host's installation uses the Host's own.
 export async function installedEffect(t, {writes, writeOperation = 'update',
   entries, siteProfile = {}, org: orgOptions = {},
-  principalId = 'principal-a', accountConfigurationWire} = {}) {
+  principalId = 'principal-a', accountConfigurationWire, connectorId = 'salesforce'} = {}) {
   const org = await openSalesforceEffectSiteFixture(t, {commonMoon: moon,
     salesforceMoon, runInvocationCid: cid('1'), dispatchRequestCid: cid('2'),
-    writeOperation, connectorId: 'salesforce', ...orgOptions});
+    writeOperation, connectorId, ...orgOptions});
   const root = await mkdtemp(join(tmpdir(), 'actql-installed-effect-'));
   const loaded = [];
   // Hosts over this installation end before its directories are removed.
@@ -92,7 +92,7 @@ export async function installedEffect(t, {writes, writeOperation = 'update',
     accountConfigurationWire: accountConfigurationWire ??
       accountConfiguration(entries ?? [recordEntry(org.orgId, 'read'),
         recordEntry(org.orgId, 'effect')]),
-    connectorId: 'salesforce',
+    connectorId,
     publicationPath: join(root, 'effect-publication.json'),
     writes,
   };
