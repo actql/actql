@@ -202,7 +202,10 @@ fn local_public_result(
 // This does not observe Run completion, publication or a delivery receipt.
 fn local_payload_already_streamed(matches : @argparse.Matches) -> Bool {
   match matches.subcommand {
-    Some(("read", _)) | Some(("result", _)) =>
+    Some(("read", _)) | Some(("result", _)) | Some(("sql", _)) =>
+      matches.values.get("mode") == Some(["local"])
+    Some(("aql", child)) =>
+      child.values.contains("query") &&
       matches.values.get("mode") == Some(["local"])
     _ => false
   }

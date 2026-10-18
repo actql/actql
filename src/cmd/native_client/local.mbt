@@ -138,6 +138,7 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
     operation == "read" ||
     operation == "result" ||
     operation == "start" ||
+    operation == "sql" ||
     operation == "aql" {
     return execute_native_local_adoption(matches, operation, child)
   }

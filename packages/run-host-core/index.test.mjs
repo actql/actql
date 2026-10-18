@@ -17,6 +17,7 @@ import {residentSourceEnvironment, sourceProgram, sourceRef, sourceContractCid}
 import {fileURLToPath} from 'node:url';
 import {valuesDependencyOracle} from '../../scripts/client-values-dependency-oracle.mjs';
 import {validRunState} from '../client-wire/index.mjs';
+import {originalRunStateObservations} from './run-state-observation.fixture.mjs';
 import {admitDispatchJson, dispatchCid, createJournal, prepareIntent,
   admissionDurableJson, admitDurableJson, commitIntent, admitResponseJson,
   prepareResponseObservation, responseDurableJson}
@@ -391,7 +392,7 @@ test('checked acquired Program issues and re-admits its task Run', () => {
     }).admission, wire), {code: 'RunHostTaskDefinitionRejected'});
 });
 
-test('resident Source dispatch preserves checked task and logical input identity', async () => {
+test('resident Source dispatch preserves checked task and logical input identity', async t => {
   const fixture = await residentSourceEnvironment(fileURLToPath(new URL('../../', import.meta.url)));
   const environment = admitEnvironment(fixture.wire, fixture.cid, {rela: true});
   const prepared = prepare(sourceProgram, 'json', environment);
@@ -418,14 +419,15 @@ test('resident Source dispatch preserves checked task and logical input identity
   const definition = issueTaskRunDefinition(prepared, compilation, allowed.admission,
     'Source-scope', 'original-Source-run', '2026-10-03T00:00:00.000Z', '2026-10-04T00:00:00.000Z');
   const request = prepareTaskRequest(prepared, compilation, scope, 'Source-request');
+  const observations = await originalRunStateObservations(t, request, definition);
   const unpublished = issueUnpublishedRunStateWire(prepared, compilation, allowed.admission,
     definition, '2026-10-03T00:00:01.000Z', {dispatchReserved: false, preDispatchFailureConfirmed: false});
-  assert(validRunState(JSON.parse(unpublished)));
+  assert(validRunState(observations.publish(unpublished)));
   assert.equal(JSON.parse(unpublished).status, 'preparing');
   const succeeded = issueSucceededRunStateWire(prepared, compilation, allowed.admission,
     definition, '2026-10-03T00:00:02.000Z', [{name: 'answer', state: 'available', reason: 'confirmed_present',
       observedAt: '2026-10-03T00:00:02.000Z'}]);
-  assert(validRunState(JSON.parse(succeeded)));
+  assert(validRunState(observations.publish(succeeded)));
   assert.equal(JSON.parse(succeeded).status, 'succeeded');
   const selected = {taskAttempt: 1, dispatchId: 'Source-dispatch', siteKey: 'Source-site', siteGeneration: 1,
     runtimeBundleCid: cid({bundle: 'Source'}), connectorRegistration: 'local', connectorRevision: 'local/1',
@@ -452,7 +454,7 @@ test('resident Source dispatch preserves checked task and logical input identity
     const projection = projectSiteRun(prepared, compilation, allowed.admission, definition,
       scope, saved, '2026-10-03T00:00:01.000Z');
     assert.equal(projection.nextWork, nextWork);
-    assert(validRunState(JSON.parse(projection.stateWire)));
+    assert(validRunState(observations.publish(projection.stateWire)));
     assert.deepEqual(projectSiteRun(prepared, compilation, allowed.admission, definition,
       scope, saved, '2026-10-03T00:00:01.000Z'), projection);
     assert.throws(() => projectSiteRun(prepared, compilation, allowed.admission, definition,
@@ -1274,7 +1276,7 @@ test('portable Host admits exact policy evidence before Run Definition', () => {
   {name: 'TypeError', message: 'ForeignRunHostHandle'});
 });
 
-test('checked Run issues one source-free Site dispatch identity', () => {
+test('checked Run issues one source-free Site dispatch identity', async t => {
   const environment = admitEnvironment(environmentWire, evidenceCid,
     {rela: true});
   const prepared = prepare(read('values.json'), 'json', environment);
@@ -1341,6 +1343,7 @@ test('checked Run issues one source-free Site dispatch identity', () => {
     assert.deepEqual(JSON.parse(started.stateWire).next_action,
       {kind: 'reconcile_run', reason: 'execution_unknown'});
   }
+  const observations = await originalRunStateObservations(t, request, definition);
   for (const [execution, cleanup, outcome, work] of [
     [4, 2, 'failed', 'none'], [4, 1, 'failed', 'cleanup'],
     [5, 2, 'cancelled', 'none'], [6, 3, 'needs_reconciliation', 'reconcile'],
@@ -1362,7 +1365,7 @@ test('checked Run issues one source-free Site dispatch identity', () => {
     const result = observe(scope);
     assert.equal(result.nextWork, work);
     assert.equal(JSON.parse(result.stateWire).status, outcome);
-    assert(validRunState(JSON.parse(result.stateWire)));
+    assert(validRunState(observations.publish(result.stateWire)));
     if (execution === 6) assert.deepEqual(JSON.parse(result.stateWire).next_action,
       {kind: 'reconcile_run', reason: 'execution_unknown'});
     const cancelled = projectSiteRun(prepared, compilation, admission,
@@ -1412,7 +1415,7 @@ test('checked Run issues one source-free Site dispatch identity', () => {
   {code: 'RunHostDispatchRejected'});
 });
 
-test('accepted unpublished Run state uses the common owner', () => {
+test('accepted unpublished Run state uses the common owner', async t => {
   const environment = admitEnvironment(environmentWire, evidenceCid,
     {rela: true});
   const prepared = prepare(read('values.json'), 'json', environment);
@@ -1467,13 +1470,14 @@ test('accepted unpublished Run state uses the common owner', () => {
     compilation, admission, definition, '2026-09-25T00:00:01.000Z',
     {dispatchReserved: false, preDispatchFailureConfirmed: false,
       cancelledBeforeStart: true})).status, 'cancelled');
+  const observations = await originalRunStateObservations(t, request, definition);
   const at = '2026-09-25T00:00:01.000Z';
   const projection = (reserved, failed) => JSON.parse(
     issueUnpublishedRunStateWire(prepared, compilation, admission,
       definition, at, {dispatchReserved: reserved,
         preDispatchFailureConfirmed: failed}));
   const preparing = projection(false, false);
-  assert(validRunState(preparing));
+  assert(validRunState(observations.publish(JSON.stringify(preparing))));
   assert.equal(preparing.run_id, 'state-run');
   assert.equal(preparing.status, 'preparing');
   assert.equal(preparing.result_availability.answer.reason, 'not_published');
@@ -1492,7 +1496,7 @@ test('accepted unpublished Run state uses the common owner', () => {
   const succeeded = JSON.parse(issueSucceededRunStateWire(prepared,
     compilation, admission, definition, at, [{name: 'answer',
       state: 'unknown', reason: 'verification_pending', observedAt: at}]));
-  assert(validRunState(succeeded));
+  assert(validRunState(observations.publish(JSON.stringify(succeeded))));
   assert.equal(succeeded.status, 'succeeded');
   assert.equal(succeeded.result_availability.answer.state, 'unknown');
   assert.throws(() => issueSucceededRunStateWire(prepared, compilation,

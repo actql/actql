@@ -120,6 +120,7 @@ typedef struct {
   int test_lookup_current_failure, test_lookup_before_begin, test_lookup_poststop;
   int test_lookup_begin_count, test_lookup_stop_count;
   int test_checked_close_count;
+  bool test_name_scan_refusal;
 } actql_native_sqlite_database;
 
 #ifdef ACTQL_SCOPED_READ_ALLOCATOR
@@ -1164,6 +1165,8 @@ static int32_t actql_database_scan_after(
   int64_t caller_body_limit
 ) {
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
+  if (database->test_name_scan_refusal && namespace_length == 23 &&
+      memcmp(namespace_bytes, "client_submission_names", 23) == 0) return -1;
   actql_clear_result(database);
   sqlite3_stmt *statement = NULL;
   int code = database->library->prepare_v2(
@@ -2462,3 +2465,5 @@ int32_t actql_native_sqlite_lookup_stopped_current(
     database->lookup_sequence == generation && database->lookup_generation == 0 &&
     database->library->get_autocommit(database->database);
 }
+
+#include "journal_name_inventory.h"

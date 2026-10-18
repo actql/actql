@@ -65,6 +65,11 @@ fn NativeLocalReadPolicyBinding::read_admission_preimages(
   facts : @result_access.NativeResultReadFacts,
   actual_policy_cid : String,
 ) -> Result[NativeLocalReadAdmissionOriginals, NativeLocalReadBindingIssue] {
+  // The original stdout constructor cannot certify internal material. Its
+  // separate receiver/schema/ordering and physical-loan join is mandatory.
+  if self.selection.sink != Stdout {
+    return Err(MaterialUnavailable)
+  }
   let authorization = match
     local_read_preimage(self.crypto, [
       (
