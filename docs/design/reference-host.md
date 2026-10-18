@@ -114,6 +114,43 @@ Replacing them with storage-independent transition guarantees requires a
 separately reviewed semantic change and failure/concurrency evidence.
 
 
+## Initial Node control and preparation
+
+The selected Node startup may admit bounded original Project, configuration and
+Task intake and Host preparation records in its explicitly declared initial
+control lifetime. The [execution boundary](../spec/execution.md#initial-node-control-preparation)
+owns this scope. It is not confined to fixed preload wrappers, but it is also
+not a general V8/RSS lease, a Native arena adopted by JS, or a numerical release
+profile. A separate physical lease for each V8 object is not a prerequisite to
+initializing this declared trusted control scope.
+
+The actual private bootstrap issues its installation-only nominal admission
+before the covered work. It retains the selected startup, source, backend,
+recipe and same Host/installation/generation originals. An eight-reference
+runtime view, parsed bounds, matching source digest, caller Boolean or Ledger
+cannot issue that admission. Earlier imports and Project discovery cannot be
+charged retrospectively when a Host is associated later.
+
+The same-phase envelope includes raw read backing and lookahead, concatenation
+and strict decoding, retained text and parser cursors, normalization writers,
+preimages and hash workspace, original configuration/registry/Task/default
+records, indices, arrays, closures and escaped aliases. Selected module images,
+runtime internals and libraries remain explicit implementation domains, not
+zero-cost constants. A bound on input text alone does not cover these overlaps,
+and unselected callbacks or libraries do not inherit coverage.
+
+Preparation material remains with that original lifetime through partial
+construction and uncertain cleanup. The existing Host shutdown retains each
+original child and its cleanup receiver; successful sibling cleanup cannot
+retire another child's duty. An explicit transfer accounts for simultaneous
+source and destination responsibility before cutting source aliases. A local
+view's retirement or Promise completion is not a physical acknowledgement.
+
+This admission has no conversion to metadata HTTP, Source, Result, business Run,
+Model invocation, Content/driver or external-VM capacity or authority. Their
+existing Resource suppliers and current authorization remain separate. The
+initial trust boundary introduces no Owner, Ledger, queue or scheduler.
+
 ## Installed Effect cleanup
 
 The installed Effect Site retains target-read authorization, input pins,
