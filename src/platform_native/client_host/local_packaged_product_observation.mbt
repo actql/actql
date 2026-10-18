@@ -53,7 +53,9 @@ fn local_product_check_census(
       },
     })
   }
-  root.check_directory_members(expected, command_preparation~).map_err(issue => Physical(issue))
+  root
+  .check_directory_members(expected, command_preparation~)
+  .map_err(issue => Physical(issue))
 }
 
 ///|
