@@ -26,7 +26,17 @@ fn bigquery_signed64_preparation() -> @bigquery_read.PreparedRead raise {
         Identity(_) => fail("BigQuery Signed64 original identity")
         Declarations(_) => fail("BigQuery Signed64 declaration")
         Registration(_) => fail("BigQuery Signed64 registration")
-        SourceView(_) => fail("BigQuery Signed64 Source view")
+        SourceView(Program(Program(Pipeline(stage, issue)))) =>
+          fail(
+            "BigQuery Signed64 pipeline " +
+            stage.to_string() +
+            ": " +
+            @debug.to_string(issue),
+          )
+        SourceView(Program(_)) => fail("BigQuery Signed64 Source view Program")
+        SourceView(Binding(_)) => fail("BigQuery Signed64 Source view Binding")
+        SourceView(Context(_)) => fail("BigQuery Signed64 Source view Context")
+        SourceView(_) => fail("BigQuery Signed64 Source view limits")
         _ => fail("BigQuery Signed64 source capacity or declaration inventory")
       }
     other => raise other
