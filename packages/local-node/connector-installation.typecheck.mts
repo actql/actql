@@ -312,3 +312,22 @@ const absentUpdate: UpdateObservation = {identity: 'original-key', state: 'absen
 const absentDelete: DeleteObservation = {identity: 'original-key', state: 'absent'};
 void [originalAbsence, originalPresence, explicitPresence, missingPresence, nullBefore,
   placeholderBefore, absentVersion, absentUpdate, absentDelete];
+
+
+// A scoped decoder receives global positions in the original whole Preview;
+// its request arrays remain typed exactly as the original driver requests.
+declare const originalRebuiltRequests: readonly (readonly Request[])[];
+const scopedRecoveryDriver: RowEffectDriver<Request> = {...originalDriver,
+  recoverMemberRequests({memberIndexes, previewWire, body}) {
+    const originalIndex: number | undefined = memberIndexes[0];
+    const originalWire: string = previewWire;
+    const originalBody: ConnectorJsonObject = body;
+    void [originalIndex, originalWire, originalBody];
+    return {requests: originalRebuiltRequests};
+  },
+};
+const invalidScopedRecoveryDriver: RowEffectDriver<Request> = {...originalDriver,
+  // @ts-expect-error Recovery cannot replace original typed requests with strings.
+  recoverMemberRequests: () => ({requests: [['request-cid']]}),
+};
+void [scopedRecoveryDriver, invalidScopedRecoveryDriver];
