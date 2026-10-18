@@ -426,9 +426,9 @@ function claimManagedRun(original,held,derived) {
     throw cause;
   }
 }
-function prepareOriginalManagedRunPorts(original) {
+function prepareOriginalManagedRunPorts(original,prepared) {
   const entry=sourceInstallation,run=entry?.receipt?.managedRun;
-  if (run===undefined || run.original!==original || !run.claimed ||
+  if (run===undefined || run.original!==original || run.derived!==prepared || !run.claimed ||
       run.quotas===undefined || run.portsTaken || run.stopped) return null;
   try {managedRunCurrent(run);} catch(cause) {
     sourceFailure(entry,cause);entry.closing=true;return null;

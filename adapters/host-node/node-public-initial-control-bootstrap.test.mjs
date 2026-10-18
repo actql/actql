@@ -168,7 +168,8 @@ test('ordinary Source managed Run keeps one joint original for both file childre
     'assert.equal(root.prepareOriginalSourceChildPorts(originalRun),null);assert.equal(root.prepareOriginalManagedRunPorts({}),null);'+
     'assert.throws(()=>root.prepareSourceManagedRun(source,client.originals,prepared),{code:"SourceManagedPreparationUnavailable"});'+
     'assert.throws(()=>root.prepareSourceManagedRead(source,client.originals,prepared,client.declarations[0],originalRun),{code:"SourceManagedPreparationUnavailable"});'+
-    'const ports=root.prepareOriginalManagedRunPorts(originalRun);assert.ok(ports);assert.equal(root.prepareOriginalManagedRunPorts(originalRun),null);'+
+    'assert.equal(root.prepareOriginalManagedRunPorts(originalRun,{}),null);'+
+    'const ports=root.prepareOriginalManagedRunPorts(originalRun,prepared);assert.ok(ports);assert.equal(root.prepareOriginalManagedRunPorts(originalRun,prepared),null);'+
     'assert.equal(ports.status(0),0);assert.equal(ports.status(0),-42);assert.equal(ports.limit(5),536870912n);'+
     'const reads=client.declarations.map(decl=>root.prepareSourceManagedRead(source,client.originals,prepared,decl,originalRun));'+
     'for(const read of reads)assert.equal(root.prepareOriginalSourceChildPorts(read.originalSource),null);'+
