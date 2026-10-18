@@ -136,3 +136,28 @@ test('the loader helper issues no operational admission or Host scope', t => {
   ].join('\n'));
   assert.equal(result.status, 0, result.stderr);
 });
+
+test('a caller cache preseed cannot replace a captured CommonJS module original', t => {
+  const f = fixture(t, {'original.cjs': 'module.exports={value:"original-cache"};'});
+  const result = f.run([
+    "import assert from 'node:assert/strict';",
+    "import {createRequire} from 'node:module';",
+    'const require=createRequire(import.meta.url), Module=require("node:module");',
+    'const filename=require.resolve("./images/original.cjs"), fake=new Module(filename);',
+    'fake.filename=filename; fake.loaded=true; fake.exports={value:"caller-copy"};',
+    'Module._cache[filename]=fake;',
+    'await assert.rejects(import("./images/original.cjs"),{code:"InitialControlImageLoaderChanged"});',
+  ].join('\n'));
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('a stock load replacement cannot retain the selected loader currentness', t => {
+  const f = fixture(t), result = f.run([
+    "import assert from 'node:assert/strict';",
+    "import {createRequire} from 'node:module';",
+    'const Module=createRequire(import.meta.url)("node:module");',
+    'Module._load=function(){return {callerReplacement:true};};',
+    'assert.throws(()=>originalImageLoader.assertCurrent(),{code:"InitialControlImageLoaderChanged"});',
+  ].join('\n'));
+  assert.equal(result.status, 0, result.stderr);
+});
