@@ -17,3 +17,20 @@ test "without an original active read scope no Root or failure descriptor is acq
   assert_true(failure.root is None)
   assert_true(failure.issue() is RootOpen(_))
 }
+
+///|
+test "private Root refuses missing original read scope before any descriptor" {
+  assert_false(current_read_available_ffi())
+  let failure = match
+    open_private_root_in_current_read_context_with_custody("/not-acquired", 16) {
+    Err(original) => original
+    Ok(_) => {
+      fail("missing original scope acquired a private Root")
+      return
+    }
+  }
+  assert_true(failure.issue() is RootOpen(_))
+  assert_true(failure.root is None)
+  failure.retry_cleanup().unwrap()
+  failure.retry_cleanup().unwrap()
+}

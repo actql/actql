@@ -53,3 +53,7 @@ import {
 import {
   "actql/actql/check_environment" @environment,
 } for "wbtest"
+
+options(
+  "native-stub": [ "local_journal_shim.c" ],
+)

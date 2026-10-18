@@ -39024,6 +39024,120 @@
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
     },
     {
+      "module": "adapters/host-node/node-initial-control-installation.mjs",
+      "sha256": "bf7f9c804de728bfa32b17c74bc0392c5a6093cf698c6a60c091816be0635bae",
+      "exports": [
+        "beginInitialControlInstallation"
+      ],
+      "operations": [
+        {
+          "name": "beginInitialControlInstallation",
+          "parameters": [
+            "originals"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./infer-trusted-node-preload.cjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Host/Resource startup installation and original preparation custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "beginInitialControlInstallation"
+          ],
+          "exports": [
+            "beginInitialControlInstallation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "<!-- requirement-block: initial-node-control.original-before-work -->"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "anchor": "export function beginInitialControlInstallation(originals)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "anchor": "same Host/installation/generation/source/backend/recipe"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "anchor": "return Reflect.apply(begin, startup, [originals]);"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "anchor": "retainPreparation(originalRecord, originalCleanupHandle?) -> original duty"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "anchor": "NodeInitialControlAdmissionUnavailable"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "anchor": "before observing caller fields"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "<!-- requirement-block: initial-node-control.retained-custody -->"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "<!-- requirement-block: initial-node-control.complete-selected-envelope -->"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "anchor": "No consumer-side fallback is permitted."
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "anchor": "bounds runtime references and matching DATA cannot replace the startup issuer"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "anchor": "late ordinary import has no synthetic or reusable pending admission"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Private original-startup consumer references only; absence/refusal is not operational issuer, physical capacity or normal Host acceptance."
+    },
+    {
       "module": "adapters/host-node/ordinary-source-binding.mjs",
       "responsibilityFacet": "primary",
       "sha256": "f59f35d4a0787e8962de8b4f4531f289182b322a779e2db373f042e69de64f07",

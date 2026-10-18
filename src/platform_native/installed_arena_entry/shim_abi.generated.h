@@ -12,6 +12,7 @@
 #include "sqlite_shim.h"
 #include "sqlite_database_shim.h"
 #include "packaged_product_shim.h"
+#include "local_journal_shim.h"
 #include "local_host_resources_shim.h"
 int actql_backing_borrow_into(actql_control_host * host, actql_backing_reply ** reply_slot);
 int actql_backing_current_into(actql_control_host * host, actql_backing_loan * loan, actql_backing_reply ** reply_slot);
@@ -87,6 +88,17 @@ int actql_live_channel_originals_into(actql_live_channel_reply * reply, actql_co
 int actql_live_channel_prepare_before_spawn_into(actql_control_host * host, actql_domain * domain, int32_t read_fd, int32_t write_fd, int64_t nonce, actql_live_channel_reply ** slot);
 int actql_live_channel_prepare_into(actql_control_host * host, actql_domain * domain, int32_t pid, int32_t read_fd, int32_t write_fd, int64_t nonce, actql_live_channel_reply ** slot);
 int actql_live_channel_report_into(actql_control_host * host, actql_domain * domain, actql_live_channel * channel, int32_t planning, int32_t attempts, int32_t holdings, int64_t transferred, int64_t uncertain, int64_t reserved_transfer, int64_t held, int64_t reserved_retention, int64_t reserved_execution, int64_t peak_retention, actql_live_channel_reply ** slot);
+int actql_local_journal_close_into(actql_local_journal_capture * capture, actql_local_journal_reply ** reply);
+int actql_local_journal_current_into(actql_local_journal_capture * capture, actql_local_journal_reply ** reply);
+int actql_local_journal_drop_originals(actql_local_journal_capture * capture, actql_local_session ** session, actql_local_host ** host, actql_local_journal_failure ** failure);
+int actql_local_journal_drop_reply(actql_local_journal_reply ** reply, actql_local_journal_capture * capture);
+int actql_local_journal_finish_closed_data(actql_local_journal_capture ** capture, actql_local_journal_reply ** reply);
+int32_t actql_local_journal_issue_family(actql_local_journal_reply * reply);
+int actql_local_journal_open_into(actql_local_journal_capture * capture, actql_local_journal_reply ** reply);
+int32_t actql_local_journal_operation(actql_local_journal_reply * reply);
+int32_t actql_local_journal_original_issue_family(actql_local_journal_capture * capture);
+int actql_local_journal_originals_into(actql_local_journal_capture * capture, actql_local_session ** session, actql_local_host ** host, actql_local_journal_failure ** failure);
+int actql_local_journal_prepare_into(actql_local_session * session, actql_local_sqlite_library * library, actql_local_crypto_library * crypto, double ttl_ms, int32_t max_records, int64_t max_snapshot_bytes, actql_local_journal_capture ** capture);
 int actql_packaged_product_drop_reply(actql_packaged_product_reply ** reply, actql_control_host * host, actql_parent_read * read, actql_packaged_runtime * runtime);
 int actql_packaged_product_identity_into(actql_packaged_runtime * runtime, actql_packaged_product_reply ** reply);
 int32_t actql_packaged_product_issue_family(actql_packaged_product_reply * reply);

@@ -28,7 +28,7 @@ class NativeShimBindingTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             for shim in GENERATOR.SHIMS:
-                relative = GENERATOR.ENTRY / (shim + '_shim.c')
+                relative = GENERATOR.source_path(shim)
                 path = root / relative
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_bytes((ROOT / relative).read_bytes())
@@ -79,6 +79,27 @@ class NativeShimBindingTests(unittest.TestCase):
                 raise AssertionError('Unknown operation reached a library')
         with self.assertRaises(KeyError):
             bind(Library(), 'actql_unregistered_operation')
+
+    def test_journal_transport_keeps_original_roles_and_owned_slots(self):
+        from ctypes import c_void_p, c_double, c_int32, c_int64, POINTER, c_int
+        from actql_sdk._local_native_shim_abi import SIGNATURES, PARAMETERS, ORIGINS
+        symbol = 'actql_local_journal_prepare_into'
+        args, result = SIGNATURES[symbol]
+        self.assertEqual(args, [c_void_p, c_void_p, c_void_p, c_double, c_int32,
+                                c_int64, POINTER(c_void_p)])
+        self.assertEqual(result, c_int)
+        self.assertEqual([name for name, _ in PARAMETERS[symbol]], [
+            'session', 'library', 'crypto', 'ttl_ms', 'max_records',
+            'max_snapshot_bytes', 'capture'])
+        self.assertEqual([name for name, _ in PARAMETERS['actql_local_journal_originals_into']],
+                         ['capture', 'session', 'host', 'failure'])
+        self.assertEqual([name for name, _ in PARAMETERS['actql_local_journal_finish_closed_data']],
+                         ['capture', 'reply'])
+        self.assertEqual(ORIGINS[symbol][0],
+                         'src/platform_native/client_host/local_journal_shim_impl.h')
+        self.assertEqual([name for name, _ in PARAMETERS['actql_local_journal_drop_originals']],
+                         ['capture', 'session', 'host', 'failure'])
+        self.assertNotIn('actql_local_journal_force_release', SIGNATURES)
 
 
 if __name__ == '__main__':
