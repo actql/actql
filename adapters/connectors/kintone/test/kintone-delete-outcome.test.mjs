@@ -53,10 +53,23 @@ function fixture() {
     if (changes.mappingRef) member.mapping = changes.mappingRef;
     if (changes.target) member.changes[0].target_row_identity = changes.target;
     if (changes.version) member.changes[0].target_guard.version_cid = changes.version;
+    if (changes.twoRows) {
+      const other = structuredClone(member.changes[0]);
+      other.target_row_identity = '9007199254740992';
+      other.before.value.$id = '9007199254740992';
+      other.before.value.Subject = 'another original';
+      other.target_guard.version_cid = cid(JSON.stringify(['12', '9007199254740992', '19']));
+      other.row_preview_cid = 'sha256:' + '5'.repeat(64);
+      other.row_idempotency_key = 'sha256:' + '6'.repeat(64);
+      // Source order deliberately differs from Common's canonical target order.
+      // The same Common issuer derives the ordered inventory; JS never sorts it.
+      member.changes.push(other); member.count = 2; member.max_items = 2;
+      member.row_order.push(other.row_preview_cid);
+    }
     const scope = control.logicalRequestScope(member.authority_scope_cid, 'delete-outcome-component', 128);
     const authored = checked(moon.clientProgramAuthorEffectPreview(canonicalJson(body, {dataKeys: true}),
       body.run_identity_cid, body.authoring_context.authoring_context_cid,
-      scope, 16384, 2000, 24, 1, 1, 128, 8, 3));
+      scope, 16384, 2000, 24, 1, 2, 128, 8, 3));
     return control.admitPreviewIdentity(runtimeField(authored, 0), body.run_identity_cid,
       body.authoring_context.authoring_context_cid, scope, runtimeField(authored, 1), 16384, 2000, 24);
   };
@@ -133,4 +146,13 @@ test('mapped physical DELETE refuses an equal foreign declaration before provide
   await assert.rejects(sendMappedKintoneDelete({...f.options, mapping: owned, declaration: declared}),
     {code: 'ForeignKintoneDeleteRequest'});
   assert.equal(f.tls.seen().length, 0); assert.equal(f.state.writes, 0); assert.equal(f.state.resolutions, 0);
+});
+
+
+test('DELETE outcome follows Common canonical dispatch order rather than source changes enumeration', () => {
+  const f = fixture(), preview = f.previewOf({twoRows: true});
+  const projected = f.project({preview, rowIndex: 1});
+  assert.equal(projected.rowPreviewCid, moon.strategyEffectPreviewOrderedRowCid(preview, 0, 1));
+  assert.deepEqual(projected.outcome, {result: {}, state: 'applied'});
+  assert.throws(() => f.project({preview, rowIndex: 0}));
 });
