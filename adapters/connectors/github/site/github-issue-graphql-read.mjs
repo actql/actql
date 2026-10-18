@@ -69,17 +69,24 @@ export function readGitHubPullRequestsByNode(options) {
   return readGitHubRowsByNode(options, true);
 }
 
+// Comments traverse the two actual native subject families through the same
+// original Credential/exchange/prefix Owner as the Issue and PullRequest reads.
+export function readGitHubIssueCommentsByNode(options) {
+  return readGitHubRowsByNode(options, false, true);
+}
+
 async function readGitHubRowsByNode({moon, repository,
   filters = {state: 'all', labels: []}, credential, callResource,
-  authorizationFor, limits, chargePage, consumeObservation, consumePage, signal}, pullRequests) {
-  const family = pullRequests ? 'PullRequest' : 'Issue';
+  authorizationFor, limits, chargePage, consumeObservation, consumePage, signal}, pullRequests, comments = false) {
+  const family = comments ? 'IssueComments' : pullRequests ? 'PullRequest' : 'Issue';
   const operations = moon && Object.freeze({
-    request: moon[pullRequests ? 'githubPullRequestsRequestJson' : 'githubIssuesRequestJson'],
-    begin: moon[`github${family}PageReadBegin`],
-    next: moon[`github${family}PageReadNextRequestJson`],
-    accept: moon[`github${family}PageReadAccept`],
-    finish: moon[`github${family}PageReadFinishJson`],
-    close: moon[`github${family}PageReadClose`],
+    request: moon[comments ? 'githubIssueCommentsReadNextRequestJson'
+      : pullRequests ? 'githubPullRequestsRequestJson' : 'githubIssuesRequestJson'],
+    begin: moon[comments ? 'githubIssueCommentsReadBegin' : `github${family}PageReadBegin`],
+    next: moon[comments ? 'githubIssueCommentsReadNextRequestJson' : `github${family}PageReadNextRequestJson`],
+    accept: moon[comments ? 'githubIssueCommentsReadAccept' : `github${family}PageReadAccept`],
+    finish: moon[comments ? 'githubIssueCommentsReadPageJson' : `github${family}PageReadFinishJson`],
+    close: moon[comments ? 'githubIssueCommentsReadClose' : `github${family}PageReadClose`],
   });
   if (!moon || Object.values(operations).some(value => typeof value !== 'function') ||
       typeof moon.githubGraphqlReadIssueJson !== 'function' ||
@@ -115,31 +122,43 @@ async function readGitHubRowsByNode({moon, repository,
     }
   };
   repository = prefix.repository;
-  const inputLabels = filters.labels ?? [];
-  const filterState = filters.state;
-  const filterSince = filters.since;
-  const states = pullRequests ? ['open', 'closed', 'merged', 'all'] : ['open', 'closed', 'all'];
-  if (!states.includes(filterState) ||
-      !nativeArrayIsArray(inputLabels) ||
-      (filterSince !== undefined && (pullRequests || typeof filterSince !== 'string'))) {
-    fail('InvalidGitHubReadFilters');
+  if (comments) {
+    for (const name of ['maxSubjects', 'maxRows', 'maxBytes', 'maxNodes', 'maxDepth']) {
+      if (!count(owned[name]) || owned[name] > 2147483647) fail('InvalidGitHubReadLimits');
+    }
+    if (chargePage !== undefined &&
+        (consumeObservation === undefined || consumePage === undefined)) {
+      fail('GitHubObservationNotAdmitted');
+    }
   }
-  const labelCount = inputLabels.length;
-  if (!Number.isInteger(labelCount) || labelCount < 0 || labelCount > 0xffffffff) {
-    fail('InvalidGitHubReadFilters');
+  let labels;
+  if (!comments) {
+    const inputLabels = filters.labels ?? [];
+    const filterState = filters.state;
+    const filterSince = filters.since;
+    const states = pullRequests ? ['open', 'closed', 'merged', 'all'] : ['open', 'closed', 'all'];
+    if (!states.includes(filterState) ||
+        !nativeArrayIsArray(inputLabels) ||
+        (filterSince !== undefined && (pullRequests || typeof filterSince !== 'string'))) {
+      fail('InvalidGitHubReadFilters');
+    }
+    const labelCount = inputLabels.length;
+    if (!Number.isInteger(labelCount) || labelCount < 0 || labelCount > 0xffffffff) {
+      fail('InvalidGitHubReadFilters');
+    }
+    // Capture each original index once, without caller methods, iterators or
+    // species. Validate the owned snapshot that every request will consume.
+    labels = [];
+    for (let index = 0; index < labelCount; index += 1) {
+      defineOwnData(labels, index, {value: inputLabels[index],
+        writable: true, enumerable: true, configurable: true});
+    }
+    for (let index = 0; index < labelCount; index += 1) {
+      if (typeof labels[index] !== 'string') fail('InvalidGitHubReadFilters');
+    }
+    freeze(labels);
+    filters = Object.freeze({state: filterState, since: filterSince, labels});
   }
-  // Capture each original index once, without caller methods, iterators or
-  // species. Validate the owned snapshot that every request will consume.
-  const labels = [];
-  for (let index = 0; index < labelCount; index += 1) {
-    defineOwnData(labels, index, {value: inputLabels[index],
-      writable: true, enumerable: true, configurable: true});
-  }
-  for (let index = 0; index < labelCount; index += 1) {
-    if (typeof labels[index] !== 'string') fail('InvalidGitHubReadFilters');
-  }
-  freeze(labels);
-  filters = Object.freeze({state: filterState, since: filterSince, labels});
   const headers = JSON.parse(moon.githubRequestHeadersJson());
   const responseHeaders = JSON.parse(moon.githubResponseHeadersJson());
   const accepted = [];
@@ -225,7 +244,42 @@ async function readGitHubRowsByNode({moon, repository,
     return {response, charge};
   };
   try {
-    while (pending) {
+    if (comments) {
+      const original = decoded(Reflect.apply(operations.begin, moon, [repository.nodeId,
+        repository.databaseId, repository.nameWithOwner, owned.maxBytes,
+        owned.maxNodes, owned.maxDepth, owned.maxRows, owned.maxPages, owned.maxSubjects]));
+      prefix.pages.push(original);
+      try {
+        for (;;) {
+          const next = JSON.parse(decoded(Reflect.apply(operations.next, moon, [original, owned.perPage])));
+          if (next.body === null) { pending = false; break; }
+          const {response, charge} = await exchange(next.body);
+          decoded(Reflect.apply(operations.accept, moon, [original, response.body]));
+          checkPrefix();
+          const current = JSON.parse(decoded(Reflect.apply(operations.finish, moon, [original]))).page;
+          if (current === null) {
+            if (consumeObservation !== undefined) {
+              checkPrefix();
+              await consumeObservation(charge);
+              checkPrefix();
+            }
+          } else {
+            if (rows.length + current.rows.length > owned.maxRows) stopped('GitHubReadRowLimit');
+            if (consumePage !== undefined) {
+              checkPrefix();
+              await consumePage(current.rows, page, Object.freeze({charge}));
+              checkPrefix();
+            }
+            rows.push(...current.rows);
+            accepted.push(Object.freeze({page, useCid: response.useCid, rows: current.rows.length}));
+            page += 1;
+          }
+        }
+      } finally {
+        // Retiring decoder aliases does not ACK the original transport/RowRun.
+        Reflect.apply(operations.close, moon, [original]);
+      }
+    } else while (pending) {
       signal?.throwIfAborted();
       const arguments_ = [repository.nodeId, owned.perPage, after !== undefined,
         after ?? '', filters.state, labels];
