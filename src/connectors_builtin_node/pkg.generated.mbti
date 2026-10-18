@@ -1321,7 +1321,7 @@ pub fn client_program_installed_infer_plan_graph(@run_publication_host.PreparedC
 
 pub fn client_program_installed_listing_row_capture_capacity(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?) -> @client_local_host.ClientInstalledCaptureCapacity?
 
-pub fn client_program_installed_managed_run_begin(@physical_resources.NodeManagedRunAdmission, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue]
+pub fn client_program_installed_managed_run_begin(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_run_check(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
@@ -1979,7 +1979,9 @@ pub fn client_program_native_decision_request_matches(@model_execution.NativeDec
 
 pub fn client_program_native_decision_request_wires(@model_execution.NativeDecisionRequest) -> (String, String)?
 
-pub fn client_program_node_managed_run_prepare(@physical_resources.OriginalNodeManagedRunReference) -> Result[@physical_resources.NodeManagedRunAdmission, @physical_resources.ImportedChildLedgerIssue]
+pub fn client_program_node_managed_run_cleanup(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram]) -> Result[Unit, @physical_resources.ImportedChildLedgerIssue]
+
+pub fn client_program_node_managed_run_prepare(@physical_resources.OriginalNodeManagedRunReference, @run_publication_host.PreparedClientProgram) -> Result[@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram], @physical_resources.ImportedChildLedgerIssue]
 
 pub fn client_program_node_original_source_child_prepare(@physical_resources.OriginalNodeSourceReference) -> Result[@physical_resources.ImportedChildLedger, @physical_resources.ImportedChildLedgerIssue]
 
