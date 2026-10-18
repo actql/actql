@@ -212,6 +212,7 @@ def build(source: str, archive: Path, provider_receipt: Path, clang: Path, sdk: 
     run('compile', common + ['-MD', '-MF', str(destination / 'component.d'),
                             '-c', str(stage / 'component.c'), '-o', str(obj)])
     run('link', common + ['-dynamiclib', str(obj), '-L' + str(bundle), '-lactql_native_control',
+                         '-Wl,-headerpad_max_install_names',
                          '-Wl,-install_name,@rpath/' + LIBRARY, '-o', str(library)])
     # The provider's own install identity remains unchanged. Bind this new
     # component directly to its sibling, without adding a runtime search path.
