@@ -1,0 +1,139 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/bigquery/read"
+
+import {
+  "actql/actql/client_row_source_host",
+  "actql/actql/connectors/bigquery/catalog",
+  "actql/actql/physical_resources",
+  "actql/actql/query_planning",
+}
+
+// Values
+pub fn accept_charged_job_response(JobRead, JobResponse, Bytes) -> Result[Unit, JobIssue]
+
+pub fn accept_job_response(JobRead, JobRequest, Int, Bytes, Bytes) -> Result[Unit, JobIssue]
+
+pub fn accept_query_page(Read, String?, Bytes) -> Result[Int, ReadIssue]
+
+pub fn attempt_job_request(JobRead, JobRequest) -> Result[Unit, JobIssue]
+
+pub fn bind_borrowed_read_transport(Read, () -> Bool) -> Result[Unit, ReadIssue]
+
+pub fn borrow_accounted_read(PreparedRead, @client_row_source_host.RowRun, @catalog.QueryJob, @catalog.QueryLimits, Int) -> Result[Read, ReadIssue]
+
+pub fn capture_result_read(Read) -> Result[@client_row_source_host.RowSourceCapture, ReadIssue]
+
+pub fn charge_job_response(JobRead, JobRequest, Int, Bytes) -> Result[JobResponse, JobIssue]
+
+pub fn close_result_read(Read) -> Result[Unit, ReadIssue]
+
+pub fn finish_result_read(Read) -> Result[Unit, ReadIssue]
+
+pub fn interrupt_result_read(Read) -> Unit
+
+pub fn job_read_complete(JobRead) -> Bool
+
+pub fn job_read_original(JobRead) -> @catalog.QueryJob
+
+pub fn job_read_remote_done(JobRead) -> Bool
+
+pub fn job_request_body(JobRequest) -> String?
+
+pub fn job_request_method(JobRequest) -> String
+
+pub fn job_request_path(JobRequest) -> String
+
+pub fn job_request_sequence(JobRequest) -> Int
+
+pub fn mark_job_response_unknown(JobRead, JobRequest) -> Result[Unit, JobIssue]
+
+pub fn next_job_request(JobRead) -> Result[JobRequest?, JobIssue]
+
+pub fn prepare_declared_read(@catalog.TableDescription, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @catalog.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[PreparedRead, ReadIssue]
+
+pub fn prepare_job_read(Read, Int64, Int, Int, Int, Int) -> Result[JobRead, JobIssue]
+
+pub fn prepared_read_acquisition(PreparedRead) -> @client_row_source_host.RowAcquisition
+
+pub fn prepared_read_projection(PreparedRead) -> @catalog.ReadProjection
+
+pub fn read_start_failure_cleanup(ReadStartFailure) -> Read?
+
+pub fn read_start_failure_issue(ReadStartFailure) -> ReadIssue
+
+pub fn reject_job_response(JobRead, JobResponse) -> Result[Unit, JobIssue]
+
+pub fn result_read_complete(Read) -> Bool
+
+pub fn result_read_job(Read) -> @catalog.QueryJob?
+
+pub fn result_read_usage(Read) -> (Int, Int64)
+
+pub fn retire_borrowed_read(Read) -> Result[Unit, ReadIssue]
+
+pub fn start_accounted_read(PreparedRead, @catalog.QueryJob, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, @catalog.QueryLimits, Int) -> Result[Read, ReadStartFailure]
+
+// Errors
+
+// Types and methods
+pub(all) enum JobIssue {
+  InvalidSettings
+  AlreadyBound
+  Closed
+  PendingRequest
+  WrongRequest
+  WrongResponse
+  AlreadyAttempted
+  NotAttempted
+  AlreadyObserved
+  RequestLimit
+  InvalidResponse
+  UnrepresentableJob
+  ProviderFailed
+  HttpRejected(Int)
+  TransportUnknown
+  Read(ReadIssue)
+}
+
+pub struct JobRead {
+  // private fields
+}
+
+pub struct JobRequest {
+  // private fields
+}
+
+pub struct JobResponse {
+  // private fields
+}
+
+pub struct PreparedRead {
+  // private fields
+}
+
+pub struct Read {
+  // private fields
+}
+
+pub(all) enum ReadIssue {
+  InvalidLimits
+  ForeignDeclaration
+  Catalog(@catalog.DescriptionIssue)
+  Host(@client_row_source_host.RowHostIssue)
+  Page(@catalog.QueryIssue)
+  SchemaMismatch(String)
+  WrongPage
+  InconsistentTotal
+  Incomplete
+  Closed
+  TransportUnsettled
+  BorrowedRun
+}
+
+pub struct ReadStartFailure {
+  // private fields
+}
+
+// Type aliases
+
+// Traits

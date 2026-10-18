@@ -76,3 +76,64 @@ pub fn client_program_kintone_create_values_json(
     request, max_bytes, max_nodes, max_depth,
   )
 }
+
+///|
+#export_name("clientProgramKintoneCreatePreviewOutcome")
+pub fn client_program_kintone_create_preview_outcome(
+  mapping : @kintone_host.RecordCreateMapping,
+  request : @kintone_catalog.RecordCreateRequest,
+  response : @kintone_catalog.RecordCreateAcknowledgement,
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  max_value_bytes : Int,
+  write_limits : @kintone_catalog.RecordWriteLimits,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_host.RecordCreatePreviewOutcome,
+  @kintone_host.RecordCreateOutcomeIssue,
+] {
+  @kintone_host.project_record_create_preview_outcome(
+    mapping, request, response, preview, member_index, row_index, max_value_bytes,
+    write_limits, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneCreatePreviewOutcomeWire")
+pub fn client_program_kintone_create_preview_outcome_wire(
+  value : @kintone_host.RecordCreatePreviewOutcome,
+) -> String {
+  @kintone_host.record_create_preview_outcome_wire(value)
+}
+
+///|
+#export_name("clientProgramKintoneCreatePreviewOutcomeRowCid")
+pub fn client_program_kintone_create_preview_outcome_row_cid(
+  value : @kintone_host.RecordCreatePreviewOutcome,
+) -> String {
+  @kintone_host.record_create_preview_outcome_row_cid(value)
+}
+
+///|
+#export_name("clientProgramKintoneCreatePreviewOutcomeResponseSha256")
+pub fn client_program_kintone_create_preview_outcome_response_sha256(
+  value : @kintone_host.RecordCreatePreviewOutcome,
+) -> String {
+  @kintone_host.record_create_preview_outcome_response_sha256(value)
+}
+
+///|
+#export_name("clientProgramKintoneCreatePreviewOutcomeMatches")
+pub fn client_program_kintone_create_preview_outcome_matches(
+  value : @kintone_host.RecordCreatePreviewOutcome,
+  mapping : @kintone_host.RecordCreateMapping,
+  request : @kintone_catalog.RecordCreateRequest,
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+) -> Bool {
+  @kintone_host.record_create_preview_outcome_matches(
+    value, mapping, request, preview, member_index, row_index,
+  )
+}

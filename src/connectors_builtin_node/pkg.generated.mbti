@@ -15,7 +15,6 @@ import {
   "actql/actql/connectors/local/table",
   "actql/actql/connectors/reference_compute",
   "actql/actql/connectors/snowflake/description",
-  "actql/actql/connectors/snowflake/read",
   "actql/actql/connectors_builtin",
   "actql/actql/decode_core",
   "actql/actql/effect_application",
@@ -329,6 +328,54 @@ pub fn client_program_begin_effect_local_command_key_workspace(ClientEffectComma
 pub fn client_program_begin_infer_original_model_invalidation(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin]) -> Result[@physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin], @client_infer_host.Issue]
 
 pub fn client_program_begin_infer_original_read_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelQuantityCapacity?, Int64, Int64, Int, Int, Int) -> Result[@run_publication_host.ClientModelReadScope, @client_infer_host.Issue]
+
+pub fn client_program_bigquery_accept_response(@actql/actql/connectors/bigquery/read.JobRead, @actql/actql/connectors/bigquery/read.JobResponse, Bytes) -> Result[Unit, @actql/actql/connectors/bigquery/read.JobIssue]
+
+pub fn client_program_bigquery_attempt_request(@actql/actql/connectors/bigquery/read.JobRead, @actql/actql/connectors/bigquery/read.JobRequest) -> Result[Unit, @actql/actql/connectors/bigquery/read.JobIssue]
+
+pub fn client_program_bigquery_bind_read_transport(@actql/actql/connectors/bigquery/read.Read, () -> Bool) -> Result[Unit, @actql/actql/connectors/bigquery/read.ReadIssue]
+
+pub fn client_program_bigquery_borrow_read(@actql/actql/connectors/bigquery/read.PreparedRead, @client_row_source_host.RowRun, @actql/actql/connectors/bigquery/catalog.QueryJob, @actql/actql/connectors/bigquery/catalog.QueryLimits, Int) -> Result[@actql/actql/connectors/bigquery/read.Read, @actql/actql/connectors/bigquery/read.ReadIssue]
+
+pub fn client_program_bigquery_charge_response(@actql/actql/connectors/bigquery/read.JobRead, @actql/actql/connectors/bigquery/read.JobRequest, Int, Bytes) -> Result[@actql/actql/connectors/bigquery/read.JobResponse, @actql/actql/connectors/bigquery/read.JobIssue]
+
+pub fn client_program_bigquery_declaration_limits(Int, Int, Int, Int, Int) -> @client_row_source_host.RowDeclarationLimits
+
+pub fn client_program_bigquery_describe_table(String, String, String, Bytes, @actql/actql/connectors/bigquery/catalog.DescriptionLimits) -> Result[@actql/actql/connectors/bigquery/catalog.TableDescription, @actql/actql/connectors/bigquery/catalog.DescriptionIssue]
+
+pub fn client_program_bigquery_description_limits(Int, Int, Int, Int, Int, Int) -> @actql/actql/connectors/bigquery/catalog.DescriptionLimits
+
+pub fn client_program_bigquery_generate_read_declaration(@actql/actql/connectors/bigquery/catalog.TableDescription, String, String, String, @actql/actql/connectors/bigquery/catalog.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[@client_row_source_host.RowDeclaration, @actql/actql/connectors/bigquery/read.ReadIssue]
+
+pub fn client_program_bigquery_interrupt_read(@actql/actql/connectors/bigquery/read.Read) -> Unit
+
+pub fn client_program_bigquery_job_complete(@actql/actql/connectors/bigquery/read.JobRead) -> Bool
+
+pub fn client_program_bigquery_job_original(@actql/actql/connectors/bigquery/read.JobRead) -> (String, String, String)
+
+pub fn client_program_bigquery_job_remote_done(@actql/actql/connectors/bigquery/read.JobRead) -> Bool
+
+pub fn client_program_bigquery_next_request(@actql/actql/connectors/bigquery/read.JobRead) -> Result[@actql/actql/connectors/bigquery/read.JobRequest?, @actql/actql/connectors/bigquery/read.JobIssue]
+
+pub fn client_program_bigquery_original_job(String, String, String, Int) -> Result[@actql/actql/connectors/bigquery/catalog.QueryJob, @actql/actql/connectors/bigquery/catalog.QueryIssue]
+
+pub fn client_program_bigquery_prepare_job(@actql/actql/connectors/bigquery/read.Read, Int64, Int, Int, Int, Int) -> Result[@actql/actql/connectors/bigquery/read.JobRead, @actql/actql/connectors/bigquery/read.JobIssue]
+
+pub fn client_program_bigquery_prepare_read(@actql/actql/connectors/bigquery/catalog.TableDescription, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @actql/actql/connectors/bigquery/catalog.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[@actql/actql/connectors/bigquery/read.PreparedRead, @actql/actql/connectors/bigquery/read.ReadIssue]
+
+pub fn client_program_bigquery_query_limits(@actql/actql/connectors/bigquery/catalog.DescriptionLimits, Int, Int64, Int, Int, Int, Int) -> @actql/actql/connectors/bigquery/catalog.QueryLimits
+
+pub fn client_program_bigquery_read_acquisition(@actql/actql/connectors/bigquery/read.PreparedRead) -> @client_row_source_host.RowAcquisition
+
+pub fn client_program_bigquery_read_usage(@actql/actql/connectors/bigquery/read.Read) -> (Int, Int64)
+
+pub fn client_program_bigquery_record_decoder_refusal(@actql/actql/connectors/bigquery/read.JobRead, @actql/actql/connectors/bigquery/read.JobResponse) -> Result[Unit, @actql/actql/connectors/bigquery/read.JobIssue]
+
+pub fn client_program_bigquery_record_response_loss(@actql/actql/connectors/bigquery/read.JobRead, @actql/actql/connectors/bigquery/read.JobRequest) -> Result[Unit, @actql/actql/connectors/bigquery/read.JobIssue]
+
+pub fn client_program_bigquery_request_material(@actql/actql/connectors/bigquery/read.JobRequest) -> (String, String, String?, Int)
+
+pub fn client_program_bigquery_retire_read_borrow(@actql/actql/connectors/bigquery/read.Read) -> Result[Unit, @actql/actql/connectors/bigquery/read.ReadIssue]
 
 pub fn client_program_bind_compiled_effect_run(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract) -> Result[@run_publication_host.PreparedClientEffectRun, @run_publication_host.ClientEffectCompiledRunIssue]
 
@@ -1574,6 +1621,16 @@ pub fn client_program_kintone_create_mapping_matches_declaration(@actql/actql/co
 
 pub fn client_program_kintone_create_mapping_matches_request(@actql/actql/connectors/kintone/host.RecordCreateMapping, @actql/actql/connectors/kintone/catalog.RecordCreateRequest) -> Bool
 
+pub fn client_program_kintone_create_preview_outcome(@actql/actql/connectors/kintone/host.RecordCreateMapping, @actql/actql/connectors/kintone/catalog.RecordCreateRequest, @actql/actql/connectors/kintone/catalog.RecordCreateAcknowledgement, @run_publication.EffectPreviewIdentity, Int, Int, Int, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordCreatePreviewOutcome, @actql/actql/connectors/kintone/host.RecordCreateOutcomeIssue]
+
+pub fn client_program_kintone_create_preview_outcome_matches(@actql/actql/connectors/kintone/host.RecordCreatePreviewOutcome, @actql/actql/connectors/kintone/host.RecordCreateMapping, @actql/actql/connectors/kintone/catalog.RecordCreateRequest, @run_publication.EffectPreviewIdentity, Int, Int) -> Bool
+
+pub fn client_program_kintone_create_preview_outcome_response_sha256(@actql/actql/connectors/kintone/host.RecordCreatePreviewOutcome) -> String
+
+pub fn client_program_kintone_create_preview_outcome_row_cid(@actql/actql/connectors/kintone/host.RecordCreatePreviewOutcome) -> String
+
+pub fn client_program_kintone_create_preview_outcome_wire(@actql/actql/connectors/kintone/host.RecordCreatePreviewOutcome) -> String
+
 pub fn client_program_kintone_create_recheck_form(@actql/actql/connectors/kintone/catalog.RecordCreateRequest, Bytes, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> Result[Unit, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
 
 pub fn client_program_kintone_create_request(@actql/actql/connectors/kintone/catalog.FormFieldCatalog, Array[@actql/actql/connectors/kintone/catalog.RecordWriteValues], @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordCreateRequest, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
@@ -2440,53 +2497,53 @@ pub fn client_program_settle_infer_node_read_state(@run_publication_host.ClientN
 
 pub fn client_program_settle_infer_original_read_preparation(@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Bool) -> Result[Unit, @run_publication_host.ClientModelReadPreparationIssue]
 
-pub fn client_program_snowflake_accept_response(@read.StatementRead, @read.StatementResponse, Bytes) -> Result[Unit, @read.StatementIssue]
+pub fn client_program_snowflake_accept_response(@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementResponse, Bytes) -> Result[Unit, @actql/actql/connectors/snowflake/read.StatementIssue]
 
-pub fn client_program_snowflake_attempt_request(@read.StatementRead, @read.StatementRequest) -> Result[Unit, @read.StatementIssue]
+pub fn client_program_snowflake_attempt_request(@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementRequest) -> Result[Unit, @actql/actql/connectors/snowflake/read.StatementIssue]
 
-pub fn client_program_snowflake_bind_read_transport(@read.Read, () -> Bool) -> Result[Unit, @read.ReadIssue]
+pub fn client_program_snowflake_bind_read_transport(@actql/actql/connectors/snowflake/read.Read, () -> Bool) -> Result[Unit, @actql/actql/connectors/snowflake/read.ReadIssue]
 
-pub fn client_program_snowflake_borrow_read(@read.PreparedRead, @client_row_source_host.RowRun, @actql/actql/connectors/snowflake/catalog.ResponseLimits, Int) -> Result[@read.Read, @read.ReadIssue]
+pub fn client_program_snowflake_borrow_read(@actql/actql/connectors/snowflake/read.PreparedRead, @client_row_source_host.RowRun, @actql/actql/connectors/snowflake/catalog.ResponseLimits, Int) -> Result[@actql/actql/connectors/snowflake/read.Read, @actql/actql/connectors/snowflake/read.ReadIssue]
 
-pub fn client_program_snowflake_charge_response(@read.StatementRead, @read.StatementRequest, Int, Bytes) -> Result[@read.StatementResponse, @read.StatementIssue]
+pub fn client_program_snowflake_charge_response(@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementRequest, Int, Bytes) -> Result[@actql/actql/connectors/snowflake/read.StatementResponse, @actql/actql/connectors/snowflake/read.StatementIssue]
 
 pub fn client_program_snowflake_declaration_limits(Int, Int, Int, Int, Int) -> @client_row_source_host.RowDeclarationLimits
 
-pub fn client_program_snowflake_describe_table(String, String, String, Array[Bytes], @actql/actql/connectors/snowflake/catalog.ResponseLimits, @description.DescriptionLimits) -> Result[@description.TableDescription, @read.ReadIssue]
+pub fn client_program_snowflake_describe_table(String, String, String, Array[Bytes], @actql/actql/connectors/snowflake/catalog.ResponseLimits, @description.DescriptionLimits) -> Result[@description.TableDescription, @actql/actql/connectors/snowflake/read.ReadIssue]
 
 pub fn client_program_snowflake_description_limits(Int, Int, Int, Int, Int) -> @description.DescriptionLimits
 
-pub fn client_program_snowflake_generate_read_declaration(@description.TableDescription, String, String, String, @description.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[@client_row_source_host.RowDeclaration, @read.ReadIssue]
+pub fn client_program_snowflake_generate_read_declaration(@description.TableDescription, String, String, String, @description.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[@client_row_source_host.RowDeclaration, @actql/actql/connectors/snowflake/read.ReadIssue]
 
-pub fn client_program_snowflake_interrupt_read(@read.Read) -> Unit
+pub fn client_program_snowflake_interrupt_read(@actql/actql/connectors/snowflake/read.Read) -> Unit
 
-pub fn client_program_snowflake_next_request(@read.StatementRead) -> Result[@read.StatementRequest?, @read.StatementIssue]
+pub fn client_program_snowflake_next_request(@actql/actql/connectors/snowflake/read.StatementRead) -> Result[@actql/actql/connectors/snowflake/read.StatementRequest?, @actql/actql/connectors/snowflake/read.StatementIssue]
 
-pub fn client_program_snowflake_prepare_read(@description.TableDescription, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @description.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[@read.PreparedRead, @read.ReadIssue]
+pub fn client_program_snowflake_prepare_read(@description.TableDescription, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @description.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[@actql/actql/connectors/snowflake/read.PreparedRead, @actql/actql/connectors/snowflake/read.ReadIssue]
 
-pub fn client_program_snowflake_prepare_statement(@read.Read, String, String, String, Int, Int, Int) -> Result[@read.StatementRead, @read.StatementIssue]
+pub fn client_program_snowflake_prepare_statement(@actql/actql/connectors/snowflake/read.Read, String, String, String, Int, Int, Int) -> Result[@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementIssue]
 
-pub fn client_program_snowflake_read_acquisition(@read.PreparedRead) -> @client_row_source_host.RowAcquisition
+pub fn client_program_snowflake_read_acquisition(@actql/actql/connectors/snowflake/read.PreparedRead) -> @client_row_source_host.RowAcquisition
 
-pub fn client_program_snowflake_read_usage(@read.Read) -> (Int, Int64)
+pub fn client_program_snowflake_read_usage(@actql/actql/connectors/snowflake/read.Read) -> (Int, Int64)
 
-pub fn client_program_snowflake_record_decoder_refusal(@read.StatementRead, @read.StatementResponse) -> Result[Unit, @read.StatementIssue]
+pub fn client_program_snowflake_record_decoder_refusal(@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementResponse) -> Result[Unit, @actql/actql/connectors/snowflake/read.StatementIssue]
 
-pub fn client_program_snowflake_record_response_loss(@read.StatementRead, @read.StatementRequest) -> Result[Unit, @read.StatementIssue]
+pub fn client_program_snowflake_record_response_loss(@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementRequest) -> Result[Unit, @actql/actql/connectors/snowflake/read.StatementIssue]
 
-pub fn client_program_snowflake_reject_response(@read.StatementRead, @read.StatementResponse) -> Result[Unit, @read.StatementIssue]
+pub fn client_program_snowflake_reject_response(@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementResponse) -> Result[Unit, @actql/actql/connectors/snowflake/read.StatementIssue]
 
-pub fn client_program_snowflake_request_material(@read.StatementRequest) -> (String, String, String?, Int)
+pub fn client_program_snowflake_request_material(@actql/actql/connectors/snowflake/read.StatementRequest) -> (String, String, String?, Int)
 
 pub fn client_program_snowflake_response_limits(Int, Int, Int, Int, Int, Int, Int, Int, Int64) -> @actql/actql/connectors/snowflake/catalog.ResponseLimits
 
-pub fn client_program_snowflake_response_unknown(@read.StatementRead, @read.StatementRequest) -> Result[Unit, @read.StatementIssue]
+pub fn client_program_snowflake_response_unknown(@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementRequest) -> Result[Unit, @actql/actql/connectors/snowflake/read.StatementIssue]
 
-pub fn client_program_snowflake_retire_read_borrow(@read.Read) -> Result[Unit, @read.ReadIssue]
+pub fn client_program_snowflake_retire_read_borrow(@actql/actql/connectors/snowflake/read.Read) -> Result[Unit, @actql/actql/connectors/snowflake/read.ReadIssue]
 
-pub fn client_program_snowflake_statement_complete(@read.StatementRead) -> Bool
+pub fn client_program_snowflake_statement_complete(@actql/actql/connectors/snowflake/read.StatementRead) -> Bool
 
-pub fn client_program_snowflake_statement_original(@read.StatementRead) -> (String, String?)
+pub fn client_program_snowflake_statement_original(@actql/actql/connectors/snowflake/read.StatementRead) -> (String, String?)
 
 pub fn client_program_source_capture_cleanup_pending(@client_local_host.ClientAccountedSourceCapture) -> Bool
 

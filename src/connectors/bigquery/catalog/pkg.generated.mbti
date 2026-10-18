@@ -33,13 +33,25 @@ pub fn description_original(TableDescription) -> (String, String, String)
 
 pub fn generate_read_declaration(ReadProjection, String, String, String, @client_row_source_host.RowDeclarationLimits) -> Result[@client_row_source_host.RowDeclaration, @client_row_source_host.RowHostIssue]
 
+pub fn prepare_query_job_material(ReadProjection, QueryJob, Int64, Int) -> Result[QueryJobMaterial, QueryIssue]
+
 pub fn prepare_read_projection(TableDescription, Array[String], DescriptionLimits) -> Result[ReadProjection, DescriptionIssue]
+
+pub fn project_query_job_observation(QueryJobMaterial, Bytes, QueryLimits) -> Result[QueryJobObservation, QueryIssue]
 
 pub fn project_query_page(ReadProjection, QueryJob, Bytes, QueryLimits) -> Result[QueryPage, QueryIssue]
 
 pub fn project_table_description(TableTarget, Bytes, DescriptionLimits) -> Result[TableDescription, DescriptionIssue]
 
 pub fn query_job(String, String, String, Int) -> Result[QueryJob, QueryIssue]
+
+pub fn query_job_material_body(QueryJobMaterial) -> String
+
+pub fn query_job_observation_sha256(QueryJobObservation) -> String
+
+pub fn query_job_observation_state(QueryJobObservation, QueryJobMaterial) -> (Bool, Bool)?
+
+pub fn query_job_reference(QueryJob) -> (String, String, String)
 
 pub fn query_page_cell(QueryPage, Int, Int) -> @value_admission.CheckedValue?
 
@@ -58,6 +70,8 @@ pub fn read_projection_fields(ReadProjection) -> Array[String]
 pub fn read_projection_matches_description(ReadProjection, TableDescription) -> Bool
 
 pub fn read_projection_schema(ReadProjection) -> (String, String)
+
+pub fn read_projection_statement(ReadProjection) -> String
 
 pub fn table_target(String, String, String, Int) -> Result[TableTarget, DescriptionIssue]
 
@@ -106,6 +120,14 @@ pub(all) enum QueryIssue {
 } derive(Eq, @debug.Debug)
 
 pub struct QueryJob {
+  // private fields
+}
+
+pub struct QueryJobMaterial {
+  // private fields
+}
+
+pub struct QueryJobObservation {
   // private fields
 }
 
