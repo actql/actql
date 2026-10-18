@@ -4,7 +4,7 @@ import test from 'node:test';
 import {admitEnvironment, prepareEffect, compileEffect, prepareEffectRequest,
   issueAllowedEffectRun, issueEffectRunDefinition, inspectEffectTaskProgress,
   projectEffectSiteRun, issueEffectSourceDispatch} from './index.mjs';
-import {createJournal, admitDispatch, prepareIntent, admissionDurableJson} from '@actql/coordinator-core';
+import {createJournal, admitDispatchJson, prepareIntent, admissionDurableJson} from '@actql/coordinator-core';
 
 const read = name => readFileSync(new URL('./fixtures/' + name, import.meta.url), 'utf8').trimEnd();
 const document = read('completion-free-update-source.program.json');
@@ -85,7 +85,7 @@ test('actual original Coordinator intent is bound to its same saved dispatch cla
     runtimeBundleCid: fixed('d'), connectorRegistration: 'local', connectorRevision: 'local/1',
     strategyRevision: 'strategy/1', obligationsCid: fixed('2'), budgetCid: fixed('3'),
     evidenceIssuerCapabilityCid: fixed('4'), grantCid: fixed('5')});
-  const journal = createJournal(authority), request = admitDispatch(issued.wire);
+  const journal = createJournal(authority), request = admitDispatchJson(issued.wire, issued.cid);
   const durable = admissionDurableJson(prepareIntent(journal, request));
   const claims = f.claims.map((row, i) => i ? row : {...row, dispatchCid: issued.cid, dispatchReserved: true});
   const projection = f.project([durable], false, claims);
