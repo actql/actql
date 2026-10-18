@@ -66,8 +66,9 @@ class NativeShimBindingTests(unittest.TestCase):
         self.assertEqual([name for name, _ in PARAMETERS['actql_host_resources_finish_closed_data']],
             ['host', 'sqlite_host', 'read', 'sqlite', 'original', 'reply'])
         arguments, result = SIGNATURES['actql_host_resources_capacity_scalar']
-        self.assertEqual([value.__name__ for value in arguments], ['c_void_p', 'c_int'])
-        self.assertEqual(result.__name__, 'c_long')
+        from ctypes import c_int32, c_int64, c_void_p
+        self.assertEqual(arguments, [c_void_p, c_int32])
+        self.assertIs(result, c_int64)
         self.assertEqual([name for name, _ in PARAMETERS['actql_host_resources_operate_into']],
             ['host', 'original', 'operation', 'reply'])
 
