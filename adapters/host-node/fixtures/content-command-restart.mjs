@@ -14,11 +14,16 @@ import {canonical} from './file-listing-source.fixture.mjs';
 import {contentCommandSource, generatedContentCommandProgram, generatedContentCommandSource,
   generatedContentModelCommandProgram} from './content-command.fixture.mjs';
 import {mediaInstallation, generatedContentModelProviders} from './generated-model-installation.fixture.mjs';
+import {contentCommandStageTrace} from './content-command-stage.fixture.mjs';
 
 const configPath = process.argv[2];
 const phase = process.argv[3];
 assert.ok(['capture', 'approve-model', 'approve', 'read'].includes(phase));
+const stage = contentCommandStageTrace(phase);
+stage('imports-ready');
+stage('configuration-read-begin');
 const config = JSON.parse(await readFile(configPath, 'utf8'));
+stage('configuration-read-done');
 const keys = {privateKey: createPrivateKey(config.privateKey), publicKey: createPublicKey(config.publicKey)};
 const closers = [];
 let host;
@@ -39,6 +44,7 @@ const durableFixture = async (name, value) => {
   try { await directory.sync(); } finally { await directory.close(); }
 };
 try {
+  stage('custody-open-begin');
   let generated;
   if (phase === 'capture') {
     generated = await createGeneratedContentFixture({after: close => closers.push(close)}, {
@@ -52,7 +58,11 @@ try {
       JSON.parse(await readFile(join(config.root, 'content-custody.json'), 'utf8')));
     closers.push(() => generated.store.close());
   }
+  stage('custody-open-done');
+  stage('model-installation-begin');
   const media = config.modelCommand ? await mediaInstallation({requestBytes: 4096}) : undefined;
+  stage('model-installation-done');
+  stage('host-open-begin');
   host = await openContentCommandHost({scratch: {path: config.root}, generated, keys,
     entrance: config.entrance, allowSourceRead: phase === 'capture',
     generatedCommand: config.generatedCommand === true,
@@ -91,6 +101,7 @@ try {
         slot: facts?.slot, complete: facts?.complete});
     },
     fault: phase === 'approve' ? config.fault : undefined});
+  stage('host-open-done');
   const {client} = host;
   let run, state;
   if (phase === 'capture') {
@@ -105,15 +116,21 @@ try {
         preserveOrder: config.preserveOrder === true,
         retainSerializationMetadata: config.retainSerializationMetadata === true,
         exposeAttachmentResult: config.exposeAttachmentResult === true}) : host.fixture.program;
+    stage('check-begin');
     const check = await client.check(program, format === 'program'
       ? {kind: 'program', scope: 'bound_input'}
       : {kind: 'text', format, scope: 'bound_input'});
+    stage('check-done');
     assert.equal(check.report.verdict, 'verified');
     assert.equal(host.reads(), 0);
     assert.equal(host.sends(), 0);
+    stage('start-begin');
     run = await (format === 'program' ? client.start(program)
       : client.startSource(program, {format}));
+    stage('start-done');
+    stage('wait-begin');
     state = await run.wait({signal: AbortSignal.timeout(15000)});
+    stage('wait-done');
     assert.equal(state.status, 'waiting_checkpoint', inspect({state, events: host.events}, {depth: 12}));
     assert.equal(host.reads(), 1);
     assert.equal(host.sends(), 0);
@@ -123,26 +140,37 @@ try {
     await durableFixture('original-run.json', {ref: run.ref, checkpointCid: checkpoints[0].checkpointCid});
     await assert.rejects(readFile(host.targetPath), {code: 'ENOENT'});
   } else {
+    stage('original-read-begin');
     const original = JSON.parse(await readFile(join(config.root, 'original-run.json'), 'utf8'));
+    stage('original-read-done');
+    stage('attach-begin');
     run = await client.attach(original.ref);
+    stage('attach-done');
+    stage('initial-status-begin');
     state = await run.status();
+    stage('initial-status-done');
     if (phase === 'approve' || phase === 'approve-model') {
       assert.equal(state.status, 'waiting_checkpoint', inspect({state, events: host.events}, {depth: 12}));
+      stage('checkpoints-begin');
       const checkpoint = (await client.checkpoints()).items.find(item =>
         item.kind === (phase === 'approve-model' ? 'model_invocation' : 'effect_set'));
+      stage('checkpoints-done');
       assert.ok(checkpoint);
       const approvedCid = phase === 'approve' && config.modelApprovalRequired
         ? JSON.parse(await readFile(join(config.root, 'command-checkpoint.json'), 'utf8')).checkpointCid
         : original.checkpointCid;
       assert.equal(checkpoint.checkpointCid, approvedCid);
+      stage('resolve-begin');
       const answer = await client.resolveCheckpoints([{checkpoint, decision: 'approved'}], {
         signer: {keyId: 'reviewer', reviewerId: 'reviewer', authorityScopeCid: original.ref.authorityScopeCid,
           sign: bytes => sign(null, bytes, keys.privateKey)}});
+      stage('resolve-done');
       assert.equal(answer.results[0].status, 'committed');
       observationProgress.approvalCommittedElapsedMs = Math.round(performance.now() - startedAt);
     }
     const signal = AbortSignal.timeout(15000);
     observationProgress.startedElapsedMs = Math.round(performance.now() - startedAt);
+    stage('observation-begin');
     do {
       state = await run.status({signal});
       observationProgress.polls++;
@@ -161,8 +189,11 @@ try {
       if (!['resuming', 'running', 'waiting_checkpoint'].includes(state.status)) break;
       await delay(20, undefined, {signal});
     } while (true);
+    stage('observation-done');
     if (phase === 'read' && config.fault !== undefined) {
+      stage('reconcile-begin');
       state = await run.reconcile({signal});
+      stage('reconcile-done');
     }
     if (phase === 'approve-model') {
       assert.equal(state.status, 'waiting_checkpoint',
@@ -184,15 +215,20 @@ try {
         Buffer.from(config.generatedCommand ? 'name\n"approved.csv"\n' : 'id\n'));
     }
   }
+  stage('results-begin');
   const rows = state.status === 'succeeded' ? await run.result('r').all() : undefined;
   const attachmentRows = state.status === 'succeeded' && config.exposeAttachmentResult
     ? await run.result('attachment').all() : undefined;
+  stage('results-done');
+  stage('response-write-begin');
   process.stdout.write(JSON.stringify({pid: process.pid, phase, ref: run.ref,
     status: state.status, reads: host.reads(), sends: host.sends(), rows, attachmentRows,
     modelCalls, generations, persistenceTrace, computeTrace: computeTrace(), observationProgress,
     writeGrants: host.writeGrants(), projections: host.projections,
     next_action: state.next_action, result_available: state.result_available}) + '\n');
+  stage('response-write-done');
 } catch (error) {
+  stage('original-failure');
   primaryFailure = error;
   process.stderr.write(inspect({phase, error, events: host?.events, modelCalls, generations,
     lastStatus, lastCheckpointKinds, persistenceTrace, computeTrace: computeTrace(), observationProgress},
@@ -202,10 +238,14 @@ try {
   // Cleanup failure is also evidence, but must not hide the failed boundary
   // that caused it. A pending owner and its on-disk originals remain intact.
   let cleanupFailure;
-  try { await host?.close(); } catch (error) { cleanupFailure = error; }
+  stage('host-close-begin');
+  try { await host?.close(); stage('host-close-done'); }
+  catch (error) { cleanupFailure = error; stage('host-close-failed'); }
+  stage('child-close-begin');
   for (const close of closers.reverse()) {
     try { await close(); } catch (error) { cleanupFailure ??= error; }
   }
+  stage('child-close-done');
   if (cleanupFailure !== undefined) {
     if (primaryFailure === undefined) throw cleanupFailure;
     process.stderr.write(inspect({cleanupFailure}, {depth: 8}) + '\n');
