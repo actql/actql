@@ -225,10 +225,10 @@ export function prepareInstalledModelProviderDefaults(moon, providerId, bindingO
   check();
   const resolveTaskDefaults = modelDefaultsResolver(moon, providerId, originals, check, () => view);
   const state = {moon, providerId, originals, check,
-    adopt(runtime, id, source, current) {
+    adopt(runtime, id, source, current, installationCurrent) {
       check();
       if (runtime !== moon || id !== providerId || source !== originals || spent ||
-          typeof current !== 'function') {
+          typeof current !== 'function' || installationCurrent !== assertCurrent) {
         throw Object.assign(new Error('InstalledModelDefaultsForeignOriginal'),
           {code: 'InstalledModelDefaultsForeignOriginal'});
       }
@@ -371,7 +371,7 @@ export function installModelProviders(moon, register, assertHostRuntime,
             {code: 'InstalledModelDefaultsUnavailable'});
         }
         retained.assertNewTrustedRuntime();
-      });
+      }, assertNewHostRuntime);
     }
     const provider = entryPersistence === 'async'
       ? moon.clientProgramInstallAsyncModelProvider(providerId)

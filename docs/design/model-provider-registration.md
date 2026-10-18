@@ -155,7 +155,9 @@ selection, normalization and Common defaults rather than rereading files or
 reissuing their canonical identities. It projects the ordinary Environment only
 after checking the actual installed Provider map and that original adoption.
 Both the initial configuration-current predicate and the actual registration's
-new-borrow/current predicate remain required. Ordinary legacy registration and
+new-borrow/current predicate remain required. The latter must retain the exact
+initial Host predicate, not another closure with apparently equivalent checks.
+Ordinary legacy registration and
 its single-attempt defaults reader retain their existing behaviour.
 
 These preparation records, WeakMap associations, retained configuration Strings,

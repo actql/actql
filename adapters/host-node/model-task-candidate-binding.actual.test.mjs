@@ -125,7 +125,7 @@ test('one candidate cannot issue a second installed Provider or move to another 
   assert.throws(() => f.register(), {code: 'InstalledModelDefaultsForeignOriginal'});
   assert.equal(installed.originalsForRuntime(moon)[0].provider, first.get(providerId));
   first.set(providerId, {...first.get(providerId)});
-  assert.throws(() => installed.originalsForRuntime(moon), {code: 'InstalledModelDefaultsForeignOriginal'});
+  assert.throws(() => installed.originalsForRuntime(moon), {code: 'InferTrustedRuntimeOriginalChanged'});
   assert.equal(f.counts().invokes, 0);
 });
 

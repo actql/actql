@@ -50682,7 +50682,7 @@
     {
       "module": "adapters/host-node/installed-model.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "77143f62ce52292d3a7b2733f442882bbb1c40dd9bd1caaafe7267b8845fc649",
+      "sha256": "3412344b15458fa7c9212e86038b0dc8ae7221b9abc4904114a26f6cc1008e38",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -50901,7 +50901,8 @@
             "runtime",
             "id",
             "source",
-            "current"
+            "current",
+            "installationCurrent"
           ],
           "async": false
         },
