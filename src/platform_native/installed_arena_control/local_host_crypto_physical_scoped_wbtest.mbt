@@ -105,6 +105,19 @@ fn local_host_crypto_physical_case(retain_closed : Bool) -> Unit raise {
   let consumer = host
     .prepare_domain_original_read_consumer(read, 16L * page, 1024L * page)
     .crypto_pair_value("original operation 16")
+  // A different actual entered context must not become the registration's
+  // allocator merely because the pair's logical phase is still empty.
+  host
+  .enter_domain_read(sqlite_domain)
+  .crypto_pair_value("foreign physical Read entry")
+  assert_true(
+    host.prepare_local_host_read_crypto_control(pair, read)
+    is Err(Crypto(Domain(@bootstrap.Bootstrap(@bootstrap.Physical(-1))))),
+  )
+  assert_true(read_domain.crypto_component is None && pair.active is None)
+  host
+  .leave_domain_read(sqlite_domain)
+  .crypto_pair_value("foreign physical Read leave")
   let foreign = domain_test_host()
   let control = host
     .prepare_local_host_read_crypto_control(pair, read)
