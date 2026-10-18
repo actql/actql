@@ -24,8 +24,8 @@ async function fixture(t, headers = {etag: '"original-account-tag"'}) {
       version: 'actql-execution-account-config/0.1', account_id: 'account-target-test',
       entries: [{entry_id: 'explicit-records', outcome: 'allow', exclusions: [],
         principal: {all: true}, connection: {any_of: ['salesforce:00D000000000001EAA']},
-        resource: {any_of: ['Test_Record__c', 'Account']},
-        operation: {any_of: ['read', 'effect']}}]})});
+        resource: {any_of: ['Account', 'Test_Record__c']},
+        operation: {any_of: ['effect', 'read']}}]})});
   const setup = await openSalesforceEffectSiteFixture(t, {commonMoon,
     salesforceMoon: moon, authorization, writableObjects: ['Account'],
     accountTargetHeaders: headers, runInvocationCid: cid('1'), dispatchRequestCid: cid('2')});
