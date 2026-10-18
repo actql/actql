@@ -95,6 +95,14 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
   let isolated;
   let database;
   let databaseClose;
+  let databaseIsOpen;
+  const captureDatabaseCleanup = () => {
+    databaseClose ??= database.close;
+    databaseIsOpen ??= Object.getOwnPropertyDescriptor(database, 'isOpen')?.get;
+    if (typeof databaseClose !== 'function' || typeof databaseIsOpen !== 'function') {
+      throw new TypeError('SqliteInspectionDatabaseCloseUnavailable');
+    }
+  };
   let result;
   const complete = new Error('SqliteSnapshotInspectionComplete');
   let primaryFailure = complete;
@@ -108,12 +116,14 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
       if (database !== undefined) {
         // Capture once before handing the database to the inspector. Retry
         // only that original close; a later replacement is not an ACK.
-        databaseClose ??= database.close;
-        if (typeof databaseClose !== 'function' ||
-            Reflect.apply(databaseClose, database, []) !== undefined) {
+        captureDatabaseCleanup();
+        const opened = Reflect.apply(databaseIsOpen, database, []);
+        if (typeof opened !== 'boolean' ||
+            opened && (Reflect.apply(databaseClose, database, []) !== undefined ||
+              Reflect.apply(databaseIsOpen, database, []) !== false)) {
           throw new TypeError('SqliteInspectionDatabaseCleanupPending');
         }
-        database = databaseClose = undefined;
+        database = databaseClose = databaseIsOpen = undefined;
       }
       while (sources.length !== 0) {
         closeFile(sources.at(-1));
@@ -183,10 +193,15 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
       }
     }
     database = new DatabaseSync(join(isolated, basename(databasePath)),
-      {open: true, readOnly: true});
-    databaseClose = database.close;
-    if (typeof databaseClose !== 'function') {
-      throw new TypeError('SqliteInspectionDatabaseCloseUnavailable');
+      {open: false, readOnly: true});
+    // The original wrapper and cleanup are retained before native open can
+    // acquire a connection and then fail. GC is not its close acknowledgement.
+    captureDatabaseCleanup();
+    const databaseOpen = database.open;
+    if (typeof databaseOpen !== 'function' ||
+        Reflect.apply(databaseOpen, database, []) !== undefined ||
+        Reflect.apply(databaseIsOpen, database, []) !== true) {
+      throw new TypeError('SqliteInspectionDatabaseOpenUnavailable');
     }
     result = inspect(database);
     if (existsSync(`${databasePath}-journal`) ||
