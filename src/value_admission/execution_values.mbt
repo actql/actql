@@ -134,7 +134,7 @@ pub fn timestamp_instant(text : String) -> TimestampInstant? {
     leap_day -
     719528
   let mut nanoseconds = fraction
-  for _ in length - 21..<9 {
+  for _ in (length - 21)..<9 {
     nanoseconds *= 10
   }
   Some({

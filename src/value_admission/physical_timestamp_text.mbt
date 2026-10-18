@@ -84,9 +84,9 @@ pub fn normalize_timestamp_text(
   if text[10] != 'T' && text[10] != 't' {
     return None
   }
-  guard timestamp_instant(local_spelling) is Some(local) &&
+  guard timestamp_instant(local_spelling) is Some(instant) &&
     physical_timestamp_digits(fraction, 0, 9) is Some(nanoseconds) else {
     return None
   }
-  epoch_parts_timestamp(local.seconds - offset.to_int64() * 60L, nanoseconds)
+  epoch_parts_timestamp(instant.seconds - offset.to_int64() * 60L, nanoseconds)
 }
