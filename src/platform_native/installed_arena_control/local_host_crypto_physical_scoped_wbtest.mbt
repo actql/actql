@@ -182,9 +182,15 @@ test "actual original Host pair binds Crypto and retains separate Library Read a
   assert_true(component.closed && component.component is None)
   host.leave_local_host_phase(pair).crypto_pair_value("original operation 31")
   assert_true(consumer.scope == ConsumerScopeLeft)
-  host
-  .close_local_host_resources(pair)
-  .crypto_pair_value("original operation 32")
+  match host.close_local_host_resources(pair) {
+    Ok(_) => ()
+    Err(Read(Domain(issue))) => fail("Read domain: " + @debug.to_string(issue))
+    Err(Read(Read(issue))) => fail("Read resource: " + @debug.to_string(issue))
+    Err(Domain(issue)) => fail("pair domain: " + @debug.to_string(issue))
+    Err(Sqlite(Domain(issue))) =>
+      fail("SQLite domain: " + @debug.to_string(issue))
+    Err(_) => fail("original operation 32: other original issue")
+  }
   assert_true(pair.closed && read.closed && sqlite.closed)
   host
   .close_domain_after_owner_ack(read_domain)
