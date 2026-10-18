@@ -23,6 +23,7 @@ async function fixture(t, inspect) {
     registry.bindSourceRequest(host, installation, host, parent, derived);
   const interrupted = Object.freeze(new Error('OriginalJournalNotEntered'));
   const journal = {close() {}, checkSubmittedIntent() {}, lookupSubmittedIntent() {},
+    recordSubmittedIntent() {assert.fail('NoLegacyReceipt');},
     verifySubmissionEpoch: () => ({validity: 'admissible'}),
     submissionIdentity: () => ({requestId: 'original-request'}),
     checkSubmissionAttempt: () => ({kind: 'checked'}),
