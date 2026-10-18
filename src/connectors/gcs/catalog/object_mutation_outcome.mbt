@@ -11,11 +11,20 @@ pub(all) enum ObjectMutationOutcome {
 
 ///|
 fn mutation_request_marker(request : ObjectMutationRequest) -> String? {
-  // Reuse the bounded decoder on the original sealed request, not current
-  // configuration or a caller's expected marker. No new record field/issuer.
-  guard metadata_cursor(@utf8.encode(request.body), {
-      ..request.binding.limits.metadata,
-      max_bytes: request.binding.limits.max_body_bytes,
+  mutation_body_marker(request.binding, request.body)
+}
+
+///|
+fn mutation_body_marker(
+  binding : ObjectMutationBinding,
+  body : String,
+) -> String? {
+  // Share the original body's bounded marker interpretation, not current
+  // configuration or a newly issued marker. Recovery separately rechecks
+  // the exact rebuilt body and request identity. No new field/issuer.
+  guard metadata_cursor(@utf8.encode(body), {
+      ..binding.limits.metadata,
+      max_bytes: binding.limits.max_body_bytes,
     })
     is Ok(root) &&
     @decode.open_object(root) is Ok(object) &&

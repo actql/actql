@@ -328,6 +328,34 @@ reusing the GET, a bounded output or dropping a local projection is not free
 workspace, a reservation or a physical cleanup ACK. The generic same-Site
 driver/capture/Run recovery and normal funding remain separate connections.
 
+### Original DELETE target capture
+
+`borrowOwnedGcsObjectDeleteTarget` borrows only the original DELETE request
+retained by its preparation child. Its receiver and request must be the same
+originals; a copy, a PATCH-purpose binding or a request re-admitted from DATA
+without that live child's current callback cannot substitute. The callback is
+checked before and after the portable projection, including reentrant child
+retirement during that projection.
+
+The row contains the exact object-name identity, the original GET response-byte
+CID, and the checked `name`, nullable `content_type` and typed nullable user
+`metadata` before value. Absent metadata remains NULL, a present empty map stays
+an empty Json value, and only the reserved private marker is excluded. There is
+no invented after, authored SET value, marker or successful-delete receipt. The
+physical request remains bodyless and retains both generation preconditions.
+
+The existing selection, capture, Preview and Run owners must still bind this
+row to the original checked DELETE Header/Mapping and independently enforce
+current read/write authority and dispatch custody. Equal selection bytes/CIDs
+do not prove DELETE purpose. This borrowed view alone does not install that
+driver, authenticate saved material, fund a physical loan or complete recovery.
+Retiring the view drops only its request/binding aliases; the original child
+continues to own response, physical binding and pending cleanup duties.
+
+The portable before-map/typed Json value, writer and parsed projection, original
+request/raw response, escaped row and view/current closures overlap the same
+preparation envelope. Their byte limits are not a reservation or an ACK.
+
 ### Retained upload target observations
 
 The upload-target receiver consumes the complete retained before-GET response,
@@ -785,6 +813,59 @@ existing Owner inventory. They are not a new reservation, zero-cost component
 or physical retirement acknowledgement.
 
 ## Verification boundary
+
+### Mutation Mapping declarations
+
+`object_mutation_mapping_json` derives Mapping candidate DATA from the selected
+GCS mutation binding and the complete source declaration. It checks the Catalog
+body hash, detached contracts, connector manifest and original `objects#records`
+member correspondence. Common must independently admit that complete role graph
+and the Mapping; these checks do not authenticate an installed original or issue
+a read/write grant.
+
+Metadata UPDATE requires the original name selector and declares exactly the
+selected `content_type`, `metadata`, or both. DELETE has its own empty-field rule;
+UPDATE support cannot stand in for DELETE. Both retain required approval and
+the original binding's permission requirements. Nullable user properties stay
+nullable: declaring a Mapping does not turn NULL into an empty map. The original
+request's effective before/after, authored intended changes, full-field
+permissions, capture, saved restore and currentness must still be bound through
+the existing Preview owner. Until that connection exists, the full-diff installed
+path remains unavailable before dispatch.
+
+Declaration parsing retains the original binding, input wire, Catalog and
+registry trees while constructing schema/identity values, permission/field
+arrays, canonical output and UTF-8/hash workspace. Explicit byte/node/depth
+bounds limit growth; they are not a physical reservation or funded phase. This
+pure synchronous projection starts no I/O, acquires no Content loan and
+acknowledges no physical cleanup. Installed execution, provider sends, saved
+publication custody and normal funding remain separate obligations.
+
+### Retained mutation request material
+
+`restore_object_mutation_value_wire` re-admits the retained original metadata
+response status, headers and exact bytes, the separately retained response hash,
+canonical Effect Value changes, exact request body and request CID. The request
+CID alone does not include the raw response hash: equal parsed fields and
+generation conditions cannot substitute a differently encoded response. The
+existing target-read Owner rechecks status, identity encoding and available
+generation/metageneration headers; the existing request Owner derives the same
+conditional path and body using the retained marker, never a fresh marker.
+
+This synchronous API returns DATA bound to the supplied local binding. It does
+not authenticate a saved capture, reconstruct an old live pointer, open a Store,
+issue the live child's current closure, claim dispatch or send a request.
+Authenticated capture/Store custody, the actual installation/current authority,
+approved Preview and the existing Unknown/non-resend decision remain mandatory
+in the consuming Host. DELETE keeps empty changes/body and absent after-state;
+the same physical limitations as the original request still apply.
+
+Retained bytes and header/intent/body Strings overlap hash workspace, bounded
+metadata and Value decoder trees, before/after maps, canonical writers,
+reconstructed request preimages and escaped request projections. The original
+physical owner keeps any byte loan, FD, credential or Store duty until its own
+actual retirement. Parsing limits, return from this API, forgotten aliases and
+GC do not return that capacity or supply a normal numerical profile.
 
 ### Original metadata and delete responses
 

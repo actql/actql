@@ -215,3 +215,54 @@ pub fn object_metadata_patch_effect_target_json(
     binding.limits.metadata,
   )
 }
+
+///|
+// The original DELETE has a complete before value but no proposed after or
+// authored SET value. Its physical response-byte guard is not a read grant,
+// permission or proof of absence after dispatch.
+pub fn object_delete_effect_target_json(
+  binding : ObjectMutationBinding,
+  request : ObjectMutationRequest,
+  max_bytes : Int,
+) -> Result[String, ObjectRequestIssue] {
+  if admit_object_mutation_request(binding, request) is Err(issue) {
+    return Err(issue)
+  }
+  if binding.kind != DeleteObject ||
+    request.verb != "DELETE" ||
+    request.logical_after is Some(_) ||
+    request.body != "" ||
+    request.authored_changes != "{}" {
+    return Err(InvalidBinding)
+  }
+  if max_bytes < 1 {
+    return Err(CapacityExceeded)
+  }
+  let fields = object_metadata_fields(request.original)
+  let metadata : Json = match fields.metadata {
+    None => Json::null()
+    Some(entries) => {
+      let values : Map[String, Json] = Map([])
+      for (name, value) in entries {
+        values[name] = value.to_json()
+      }
+      { "$json": Json::object(values) }
+    }
+  }
+  mutation_json(
+    {
+      "identity": fields.name.to_json(),
+      "versionCid": ("sha256:" + request.original.response_sha256).to_json(),
+      "before": {
+        "name": fields.name.to_json(),
+        "content_type": fields.content_type
+        .map(value => value.to_json())
+        .unwrap_or(Json::null()),
+        "metadata": metadata,
+      },
+      "requestCid": request.cid.to_json(),
+    },
+    max_bytes,
+    binding.limits.metadata,
+  )
+}
