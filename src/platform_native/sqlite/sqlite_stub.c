@@ -129,6 +129,10 @@ typedef struct {
   int journal_pin_descriptor;
 } actql_native_sqlite_database;
 
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+static bool actql_component_origin(const void *, void *);
+#endif
+
 static actql_heap_wal_fn actql_original_journal_wal_port(
   actql_native_sqlite_library *, const char *);
 
