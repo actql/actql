@@ -71,6 +71,15 @@ function syncVoid(state, index, args) {
   }
 }
 
+// The selected Root may retain a partial original while its fixed Host
+// metadata operation is still running. Check that SAME nominal original in
+// the captured Owner before/after each metadata await, without constructing a
+// view early, issuing a child or treating a callback/Boolean as admission.
+// Its constructor keeps partial cleanup if this observation refuses.
+export function assertSourceManagedPreparationCurrent(originalInstallation, sameOriginals) {
+  if (invoke(1, [originalInstallation, sameOriginals]) !== undefined) unavailable();
+}
+
 export async function prepareSourceManagedInstallation(originals) {
   // This connect-time initialization may await. None of the four submission
   // operations below may await before the SDK's original snapshot/clone.

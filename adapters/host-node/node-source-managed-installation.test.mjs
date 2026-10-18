@@ -15,6 +15,8 @@ test('the actual absent Source issuer refuses without observing caller originals
     {code: 'SourceManagedPreparationUnavailable'});
   assert.throws(() => actual.assertSourceManagedInstallationCurrent(raw, raw),
     {code: 'SourceManagedPreparationUnavailable'});
+  assert.throws(() => actual.assertSourceManagedPreparationCurrent(raw, raw),
+    {code: 'SourceManagedPreparationUnavailable'});
   assert.equal(reads, 0);
 });
 
@@ -68,6 +70,21 @@ test('ordinary Source absence cannot borrow the explicit preload receiver or obs
   assert.equal(result.error, undefined);
   assert.equal(result.signal, null);
   assert.equal(result.status, 0, result.stderr);
+});
+
+test('partial Source metadata current checks the captured nominal original before a view exists', async t => {
+  const f = await fixture(t);
+  assert.equal(f.consumer.assertSourceManagedPreparationCurrent(f.installation, f.originals), undefined);
+  f.owner.assertSourceManagedInstallationCurrent = () => {throw new Error('ReplacementMustNotRun');};
+  assert.equal(f.consumer.assertSourceManagedPreparationCurrent(f.installation, f.originals), undefined);
+  assert.throws(() => f.consumer.assertSourceManagedPreparationCurrent({...f.installation}, f.originals));
+  assert.throws(() => f.consumer.assertSourceManagedPreparationCurrent(f.installation, {...f.originals}));
+  assert.equal(f.s.closes, 0);
+  assert.equal(f.s.calls.length, 0);
+  f.s.current = false;
+  f.s.cause = Object.freeze(new Error('OriginalPreparationRetired'));
+  assert.throws(() => f.consumer.assertSourceManagedPreparationCurrent(f.installation, f.originals),
+    cause => cause === f.s.cause);
 });
 
 test('four producer calls synchronously forward exact originals to the captured receiver', async t => {
