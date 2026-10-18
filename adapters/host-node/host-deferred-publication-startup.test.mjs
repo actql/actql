@@ -138,3 +138,33 @@ test('Promise settlement and absent pending observation cannot retire failed con
   assert.equal(f.calls.includes('control'),false);
   observation={pending:false};await f.host.prepareShutdown();await client.close();
 });
+
+test('failed activation captures original cleanup before the first shutdown can observe a replacement',async()=>{
+  let ready=false,retries=0,replacements=0;
+  const cleanup={status(){return {pending:!ready};},async retry(){retries++;}};
+  const failure=Object.assign(new Error('OriginalPartialActivation'),{cleanupHandle:cleanup});
+  const f=fixture({initialize(){throw failure;}}),client=await f.connect();
+  await client.attach(ref).catch(()=>{});
+  failure.cleanupHandle={status(){replacements++;return {pending:false};},
+    async retry(){replacements++;}};
+  cleanup.status=()=>{replacements++;return {pending:false};};
+  cleanup.retry=async()=>{replacements++;};
+  await assert.rejects(f.host.prepareShutdown(),error=>error===failure);
+  assert.equal(retries,1);assert.equal(replacements,0);
+  assert.equal(f.calls.includes('control'),false);
+  ready=true;await client.close();assert.equal(replacements,0);
+});
+
+test('an unobserved cleanup getter failure retains its same acquired receiver for later shutdown',async()=>{
+  let reads=0,ready=false,retries=0,replacements=0;
+  const cleanup={get status(){if(++reads===1)throw Error('OriginalStatusGetter');
+    return ()=>({pending:!ready});},async retry(){retries++;}};
+  const failure=Object.assign(new Error('OriginalPartialActivation'),{cleanupHandle:cleanup});
+  const f=fixture({initialize(){throw failure;}}),client=await f.connect();
+  await client.attach(ref).catch(()=>{});
+  failure.cleanupHandle={status(){replacements++;return {pending:false};},
+    async retry(){replacements++;}};
+  await assert.rejects(f.host.prepareShutdown(),error=>error===failure);
+  assert.equal(reads,2);assert.equal(retries,1);assert.equal(replacements,0);
+  ready=true;await client.close();assert.equal(replacements,0);
+});

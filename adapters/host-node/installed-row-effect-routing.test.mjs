@@ -49,7 +49,8 @@ async function fixture(t, variants = [{}, {}]) {
     bindingCid: identity, ledgerRoot: root,
     driver: {kinds: ['create'], prepareRequest: unused('request'),
       requestFacts: unused('facts'), writeOperation: unused('operation'),
-      send: unused('send'), project: unused('project'), footprint: unused('footprint')},
+      send: unused('send'), project: unused('project'), footprint: unused('footprint'),
+      ...variant.driverExtra},
     ...variant};
     effects.push(await createInstalledRowEffect(options));
     descriptors.push(descriptor);
@@ -176,4 +177,26 @@ test('recovery validates each original occurrence and installation before openin
     ...facts.control, effectComputationPreviewWire: () => JSON.stringify(changedTarget)}}),
   {code: 'InstalledEffectProgramMismatch'});
   assert.deepEqual(f.calls, []);
+});
+
+
+test('retained-request composition requires an explicit member-scoped recovery port', async t => {
+  const retained = {recoverRequests() { assert.fail('recovery before admission'); },
+    recoveryEntry() { assert.fail('capture before admission'); },
+    requestCid() { assert.fail('request before admission'); }};
+  const unsupported = await fixture(t, [{driverExtra: retained}, {}]);
+  assert.throws(() => composeInstalledRowEffectOwners(unsupported.effects,
+    unsupported.descriptors, '{}'), {code: 'InstalledEffectSetOwnerMismatch'});
+  assert.deepEqual(unsupported.calls, []);
+  const scoped = await fixture(t, [{driverExtra: {...retained,
+    recoverMemberRequests() { assert.fail('recovery before capture'); }}}, {}]);
+  const stage = composeInstalledRowEffectOwners(scoped.effects, scoped.descriptors, '{}');
+  stage.assertPrepared({moon: scoped.moon, compilation: program});
+  assert.deepEqual(scoped.calls, []);
+});
+
+test('member-scoped recovery cannot be installed without the existing retained recovery protocol', async t => {
+  await assert.rejects(fixture(t, [{driverExtra: {
+    recoverMemberRequests() { assert.fail('uninstalled recovery'); }}}, {}]),
+  {code: 'InvalidInstalledRowEffectDriver'});
 });

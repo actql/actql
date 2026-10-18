@@ -10,7 +10,7 @@ const owner = ordinary ? require('./node-public-initial-control-bootstrap.cjs') 
 const apply = Reflect.apply, descriptor = Object.getOwnPropertyDescriptor;
 const own = Object.hasOwn, freeze = Object.freeze, NativePromise = Promise;
 const names = ['prepareHostJournalInstallation', 'assertHostJournalInstallationCurrent',
-  'closeHostJournalInstallation'];
+  'closeHostJournalInstallation', 'openHostJournalRequestJournal'];
 const callbacks = names.map(name => {
   const property = descriptor(owner, name);
   return property !== undefined && own(property, 'value') &&
@@ -71,5 +71,13 @@ export async function prepareHostJournalInstallation(sameOriginals) {
       retry: () => close(state)});
     throw carrier;
   }
-  return freeze({assertCurrent() { current(state); }, close() { return close(state); }});
+  return freeze({assertCurrent() { current(state); }, close() { return close(state); },
+    openRequestJournal(directory, options) {
+      current(state);
+      // The captured Root constructs and retains its SAME physical Journal
+      // before any post-constructor current check. Only it can select the
+      // native facility/limits or carry a partially opened child on failure.
+      // This adapter neither enumerates caller options nor issues admission.
+      return invoke(3, [state.original, state.originals, directory, options]);
+    }});
 }

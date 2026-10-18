@@ -20355,11 +20355,12 @@
     {
       "module": "adapters/host-node/client-submission.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "47827d28cfadacb6cfc1f846f4621e361254f6693f8684d6f6ce0cd17fce7dc2",
+      "sha256": "f6d5d82d0ea102d89f9c990184bca8d05ec33d5d2453bf0850d132fb1431e0ee",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
-        "installNodeClientSubmission"
+        "installNodeClientSubmission",
+        "issueNodeClientSubmissionEpoch"
       ],
       "operations": [
         {
@@ -20392,7 +20393,8 @@
             "prepareSubmit",
             "submit",
             "lookupRequest",
-            "checkSubmissionInput"
+            "checkSubmissionInput",
+            "bindOwnedRequest"
           ],
           "async": false
         },
@@ -20434,7 +20436,7 @@
           "parameters": [
             "request"
           ],
-          "async": true
+          "async": false
         },
         {
           "name": "installNodeClientSubmission/installNodeClientSubmission",
@@ -20449,6 +20451,36 @@
             "request"
           ],
           "async": true
+        },
+        {
+          "name": "installNodeClientSubmission/own/own",
+          "parameters": [
+            "parent",
+            "derived"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientSubmission/ownedSnapshot/ownedSnapshot",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientSubmission/prepareOwned/prepareOwned",
+          "parameters": [
+            "value",
+            "requestId"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientSubmission/prepareOwned/prepareOwned/prepareOwned",
+          "parameters": [
+            "original"
+          ],
+          "async": false
         },
         {
           "name": "installNodeClientSubmission/refresh/refresh",
@@ -20499,20 +20531,6 @@
         {
           "name": "installNodeClientSubmission/replayReady/replayReady/flight/flight#2",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installNodeClientSubmission/scopeFields/scopeFields",
-          "parameters": [
-            "selected"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeClientSubmission/snapshot/snapshot",
-          "parameters": [
-            "value"
-          ],
           "async": false
         },
         {
@@ -20615,6 +20633,30 @@
             "retained"
           ],
           "async": false
+        },
+        {
+          "name": "issueNodeClientSubmissionEpoch",
+          "parameters": [
+            "journal",
+            "moon",
+            "authorizedScope",
+            "request"
+          ],
+          "async": true
+        },
+        {
+          "name": "scopeFields/scopeFields",
+          "parameters": [
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshot/snapshot",
+          "parameters": [
+            "value"
+          ],
+          "async": false
         }
       ],
       "contracts": [
@@ -20638,8 +20680,8 @@
             "installNodeClientSubmission/replayReady/replayReady/flight/flight/flight",
             "installNodeClientSubmission/replayReady/replayReady/flight/flight/flight#2",
             "installNodeClientSubmission/replayReady/replayReady/flight/flight#2",
-            "installNodeClientSubmission/scopeFields/scopeFields",
-            "installNodeClientSubmission/snapshot/snapshot",
+            "scopeFields/scopeFields",
+            "snapshot/snapshot",
             "installNodeClientSubmission/storedOutcome/storedOutcome",
             "installNodeClientSubmission/submitAttempt/submitAttempt",
             "installNodeClientSubmission/submitAttempt/submitAttempt/outcome/init:check/init:check",
@@ -20652,10 +20694,16 @@
             "installNodeClientSubmission/submitIntent/submitIntent/restartFields/restartFields",
             "installNodeClientSubmission/unresolved/unresolved",
             "installNodeClientSubmission/withRestart/withRestart",
-            "installNodeClientSubmission/assertOriginalPreparation/assertOriginalPreparation"
+            "installNodeClientSubmission/assertOriginalPreparation/assertOriginalPreparation",
+            "installNodeClientSubmission/own/own",
+            "installNodeClientSubmission/ownedSnapshot/ownedSnapshot",
+            "installNodeClientSubmission/prepareOwned/prepareOwned",
+            "installNodeClientSubmission/prepareOwned/prepareOwned/prepareOwned",
+            "issueNodeClientSubmissionEpoch"
           ],
           "exports": [
-            "installNodeClientSubmission"
+            "installNodeClientSubmission",
+            "issueNodeClientSubmissionEpoch"
           ],
           "attributes": {
             "responsibility": [
@@ -20678,6 +20726,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "### Original short-query continuation"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "export async function issueNodeClientSubmissionEpoch({journal, moon, authorizedScope}, request) {"
               }
             ],
             "inputsOutputs": [
@@ -20722,6 +20774,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_cid("
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "return journal.issueSubmissionEpoch(scopeFields(await authorizedScope(snapshot(request))), moon);"
               }
             ],
             "ownership": [
@@ -20880,6 +20936,10 @@
               {
                 "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              },
+              {
+                "path": "adapters/host-node/client-submission-bootstrap-epoch.test.mjs",
+                "anchor": "test('bootstrap epoch uses the original immutable authenticated request and same Journal receiver',async()=>{"
               }
             ]
           }
@@ -20998,7 +21058,13 @@
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "../../packages/client-wire/index.mjs",
+        "../../packages/sdk/host-port.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/client-submit.mjs",
@@ -26374,7 +26440,7 @@
     {
       "module": "adapters/host-node/in-process-client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "69500df2ce61d55bb415e00c0a58f2a50af62f3aa0d475bf28cdffcab8f776bc",
+      "sha256": "44e9476253c5e03c65355a03dc1e03df6aba068697b211ddfcbc7115936a96e2",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -26393,6 +26459,7 @@
             "submitIntent",
             "submitNamedIntent",
             "lookupSubmission",
+            "bindOwnedRequest",
             "attach",
             "lookupRequest",
             "stateService",
@@ -26415,7 +26482,8 @@
             "inspectRun",
             "runPlan",
             "maxRowBytes",
-            "observe"
+            "observe",
+            "performInstalledRequest"
           ],
           "async": false
         },
@@ -26463,9 +26531,24 @@
           "async": false
         },
         {
+          "name": "createNodeInProcessClientHost/init:perform/init:perform/own/own",
+          "parameters": [
+            "parent",
+            "derived"
+          ],
+          "async": false
+        },
+        {
           "name": "fail/fail",
           "parameters": [
             "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "freezeDeferredSnapshot/freezeDeferredSnapshot",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -26518,7 +26601,9 @@
             "publicFailure/publicFailure",
             "publicResultRows",
             "publicResultRows/init:<computed>/init:<computed>",
-            "publicResultRows/init:close/init:close"
+            "publicResultRows/init:close/init:close",
+            "createNodeInProcessClientHost/init:perform/init:perform/own/own",
+            "freezeDeferredSnapshot/freezeDeferredSnapshot"
           ],
           "exports": [
             "createNodeInProcessClientHost"
@@ -26555,7 +26640,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
+                "anchor": "prepareClientHostRequest, snapshotClientRequest, validClientBody, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
               },
               {
                 "path": "docs/spec/protocols/run.md",
@@ -26564,6 +26649,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "return await performInstalledRequest(operation,body,signal);"
               }
             ],
             "ownership": [
@@ -26611,7 +26700,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
+                "anchor": "prepareClientHostRequest, snapshotClientRequest, validClientBody, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -26634,6 +26723,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "// This additional copy/overlap belongs to the selected facility."
               }
             ],
             "extension": [
@@ -26658,12 +26751,33 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mjs",
+                "anchor": "assert.strictEqual(await observed,stopped);"
+              },
+              {
+                "path": "adapters/host-node/source-request-lineage.test.mjs",
+                "anchor": "test('deferred same-Host ingress retains the actual SDK Source receipt through both admitted snapshots', async t => {"
               }
             ]
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "../../packages/client-wire/index.mjs",
+        "../../packages/sdk/index.mjs",
+        "../host-common/run-state-access.mjs",
+        "./client-authentication-observation.mjs",
+        "./client-check.mjs",
+        "./client-http.mjs",
+        "./client-submit.mjs",
+        "./in-process-result.mjs",
+        "./result-access.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/in-process-result.mjs",
@@ -59738,7 +59852,7 @@
     },
     {
       "module": "adapters/host-node/node-source-managed-installation.mjs",
-      "sha256": "e0e3d2a81c95a66372110929dbfd1653bfd25bbbc2c8fb3ad5cc6500bdbf5634",
+      "sha256": "76b461dbe782617739b7272ec18750d09a510cda329e5defa61948912fbc28ed",
       "exports": [
         "assertSourceManagedInstallationCurrent",
         "assertSourceManagedPreparationCurrent",
@@ -59873,6 +59987,22 @@
           "async": false
         },
         {
+          "name": "prepareSourceManagedInstallation/view/init:prepareRead/init:prepareRead",
+          "parameters": [
+            "originalDerivedRequest",
+            "originalDeclaration",
+            "originalRun"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSourceManagedInstallation/view/init:prepareRun/init:prepareRun",
+          "parameters": [
+            "originalCheckedPrepared"
+          ],
+          "async": false
+        },
+        {
           "name": "syncVoid",
           "parameters": [
             "state",
@@ -59921,7 +60051,9 @@
             "prepareSourceManagedInstallation/view/init:finishSourceProducer/init:finishSourceProducer",
             "prepareSourceManagedInstallation/view/init:intentCid/init:intentCid",
             "syncVoid",
-            "unavailable/unavailable"
+            "unavailable/unavailable",
+            "prepareSourceManagedInstallation/view/init:prepareRead/init:prepareRead",
+            "prepareSourceManagedInstallation/view/init:prepareRun/init:prepareRun"
           ],
           "exports": [
             "assertSourceManagedInstallationCurrent",
@@ -59963,6 +60095,10 @@
               {
                 "path": "adapters/host-node/node-source-managed-installation.mjs",
                 "anchor": "// Its constructor keeps partial cleanup if this observation refuses."
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.mjs",
+                "anchor": "// The same Host must retain this child's original close receiver before"
               }
             ],
             "synchronization": [
@@ -59977,6 +60113,10 @@
               {
                 "path": "adapters/host-node/node-source-managed-installation.mjs",
                 "anchor": "const result = invoke(7, [state.installation, state.originals, receipt, originalFrozenBody]);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "sourceManaged.assertCurrent();"
               }
             ],
             "failure": [
@@ -60027,6 +60167,10 @@
               {
                 "path": "adapters/host-node/node-source-managed-installation.test.mjs",
                 "anchor": "selected Source rejects an unexpected hash protocol without native fallback or a replacement receipt"
+              },
+              {
+                "path": "adapters/host-node/node-source-managed-installation.test.mjs",
+                "anchor": "test('acquired Source child reaches its same cleanup consumer before the post-factory current refusal',async t=>{"
               }
             ]
           }
@@ -60408,6 +60552,609 @@
         }
       ],
       "referenceQualification": "Existing original Host/Resource responsibility references; neither syntax coverage nor a helper call supplies operational business capacity or installed acceptance."
+    },
+    {
+      "module": "adapters/host-node/node-host-journal-installation.mjs",
+      "sha256": "1e921412486a386d470f580f949d8ce32ee0b7a0b5ced64e48c29a88a8770e3c",
+      "exports": [
+        "prepareHostJournalInstallation"
+      ],
+      "operations": [
+        {
+          "name": "callbacks/callbacks",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "close",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "close/flight/flight",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "close/settled/settled",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "current",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "invoke",
+          "parameters": [
+            "index",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareHostJournalInstallation",
+          "parameters": [
+            "sameOriginals"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareHostJournalInstallation/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareHostJournalInstallation/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareHostJournalInstallation/init:openRequestJournal/init:openRequestJournal",
+          "parameters": [
+            "directory",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareHostJournalInstallation/prepareHostJournalInstallation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareHostJournalInstallation/prepareHostJournalInstallation#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "unavailable/unavailable",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./infer-trusted-node-preload.cjs",
+        "./node-public-initial-control-bootstrap.cjs",
+        "node:module"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Host/Resource Journal installation and original physical Journal custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "callbacks/callbacks",
+            "close",
+            "close/flight/flight",
+            "close/settled/settled",
+            "current",
+            "invoke",
+            "prepareHostJournalInstallation",
+            "prepareHostJournalInstallation/init:assertCurrent/init:assertCurrent",
+            "prepareHostJournalInstallation/init:close/init:close",
+            "prepareHostJournalInstallation/init:openRequestJournal/init:openRequestJournal",
+            "prepareHostJournalInstallation/prepareHostJournalInstallation",
+            "prepareHostJournalInstallation/prepareHostJournalInstallation#2",
+            "unavailable/unavailable"
+          ],
+          "exports": [
+            "prepareHostJournalInstallation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "anchor": "// separate writable Host/Journal facility. No initial/Source credit is used."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "anchor": "openRequestJournal(directory, options) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "anchor": "if (invoke(1, [state.original, state.originals]) !== undefined) unavailable();"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "anchor": "state.original = undefined;"
+              },
+              {
+                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "anchor": "// Keep that SAME original reachable to the existing Host failure owner."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "anchor": "if (state.flight !== undefined) return state.flight;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "anchor": "{code: 'HostJournalPreparationCleanupPending'});"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "anchor": "if (state.closed || state.closing) unavailable();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "anchor": "// This adapter neither enumerates caller options nor issues admission."
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/node-host-journal-installation.mjs",
+                "anchor": "'closeHostJournalInstallation', 'openHostJournalRequestJournal'];"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/node-host-journal-installation.test.mjs",
+                "anchor": "test('Journal opening uses the captured Root operation and same opaque pair without inspecting options',async()=>{"
+              },
+              {
+                "path": "adapters/host-node/node-host-journal-installation.test.mjs",
+                "anchor": "test('a partial Root constructor failure preserves its exact same-child cleanup carrier',async()=>{"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing private Host/Resource responsibility references only. Syntax coverage and explicit-port tests supply no operational issuer, capacity, permission, physical ACK or installed acceptance."
+    },
+    {
+      "module": "adapters/host-node/installed-project-mock.mjs",
+      "sha256": "845902f2b6d76c605ed9673d48f33b6ea1c9a42522c9d55a8da12af4f02c0679",
+      "exports": [
+        "installPreparedProjectMockSources",
+        "prepareInstalledProjectMock"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources",
+          "parameters": [
+            "moon",
+            "mockPreparation",
+            "sourceManaged",
+            "baseEnvironmentWire",
+            "authorizationFor",
+            "readAsset"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectMockSources/adapter/adapter",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/adapter/adapter#2",
+          "parameters": [
+            "resource",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/adapter/init:prepareSourceRead/init:prepareSourceRead",
+          "parameters": [
+            "checkedOwner",
+            "effectful",
+            "selected",
+            "occurrence"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/adapter/init:readPages/init:readPages",
+          "parameters": [
+            "rowRun",
+            "chargePage",
+            "verifyRead",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectMockSources/close/close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectMockSources/closeSource",
+          "parameters": [
+            "index"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectMockSources/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/init:ledgerCapacity/init:ledgerCapacity",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/init:prepare/init:prepare",
+          "parameters": [
+            "facts"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectMockSources/installPreparedProjectMockSources",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/installPreparedProjectMockSources/installPreparedProjectMockSources",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/installPreparedProjectMockSources#2",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/installPreparedProjectMockSources#3",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/prepareManagedRun",
+          "parameters": [
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/queryAliases/queryAliases",
+          "parameters": [
+            "alias"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/queryAliases/queryAliases/view/view",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/sameRun/sameRun",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledProjectMock",
+          "parameters": [
+            "moon",
+            "project",
+            "profile",
+            "assertCurrent",
+            "openFile"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstalledProjectMock/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledProjectMock/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledProjectMock/init:originalsForRuntime/init:originalsForRuntime",
+          "parameters": [
+            "runtime"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledProjectMock/init:retire/init:retire",
+          "parameters": [
+            "runtime"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledProjectMock/prepareInstalledProjectMock",
+          "parameters": [
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledProjectMock/same",
+          "parameters": [
+            "runtime",
+            "receiver"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledProjectMock/select/select",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/runtime-result.mjs",
+        "./installed-check-environment.mjs",
+        "./installed-host-cleanup.mjs",
+        "./installed-project-configuration.mjs",
+        "./installed-project-connections.mjs",
+        "./installed-row-source.mjs",
+        "./local-account-config.mjs",
+        "./mock-churn-risk-catalogue.mjs",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Project/Profile, Source/RowRun and Host/Resource original preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "prepareInstalledProjectMock",
+            "prepareInstalledProjectMock/call/call",
+            "prepareInstalledProjectMock/current",
+            "prepareInstalledProjectMock/init:originalsForRuntime/init:originalsForRuntime",
+            "prepareInstalledProjectMock/init:retire/init:retire",
+            "prepareInstalledProjectMock/prepareInstalledProjectMock",
+            "prepareInstalledProjectMock/same",
+            "prepareInstalledProjectMock/select/select"
+          ],
+          "exports": [
+            "prepareInstalledProjectMock"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "// phase, before any fixture acquisition. The bundled declarations are not"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "export async function prepareInstalledProjectMock(moon, project, profile,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (installedProjectOriginalsForRuntime(project, moon) !== projectOriginal ||"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "originals = sources = mappingWire = connections = connectionOriginal = undefined;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "let connections = await loadInstalledProjectConnections(moon, project,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "fail('ForeignInstalledMockPreparation');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "// cannot settle its FD, backing bytes, RowRuns or external cleanup ACKs."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (!Number.isSafeInteger(count) || count < 0 || count > 128) {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (call('connector', connectionOriginal.connections, index) !== entry.connectorId) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "test('actual Mock preparation retains original Project/Profile/connections and both explicit Common declarations', async () => {"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installPreparedProjectMockSources",
+            "installPreparedProjectMockSources/adapter/adapter",
+            "installPreparedProjectMockSources/adapter/adapter#2",
+            "installPreparedProjectMockSources/adapter/init:prepareSourceRead/init:prepareSourceRead",
+            "installPreparedProjectMockSources/adapter/init:readPages/init:readPages",
+            "installPreparedProjectMockSources/close/close",
+            "installPreparedProjectMockSources/closeSource",
+            "installPreparedProjectMockSources/current/current",
+            "installPreparedProjectMockSources/init:ledgerCapacity/init:ledgerCapacity",
+            "installPreparedProjectMockSources/init:prepare/init:prepare",
+            "installPreparedProjectMockSources/installPreparedProjectMockSources",
+            "installPreparedProjectMockSources/installPreparedProjectMockSources/installPreparedProjectMockSources",
+            "installPreparedProjectMockSources/installPreparedProjectMockSources#2",
+            "installPreparedProjectMockSources/installPreparedProjectMockSources#3",
+            "installPreparedProjectMockSources/prepareManagedRun",
+            "installPreparedProjectMockSources/queryAliases/queryAliases",
+            "installPreparedProjectMockSources/queryAliases/queryAliases/view/view",
+            "installPreparedProjectMockSources/sameRun/sameRun"
+          ],
+          "exports": [
+            "installPreparedProjectMockSources"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "// Physical installation of the same already retained Mock declarations. The"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "export async function installPreparedProjectMockSources({moon, mockPreparation,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (record?.prepared !== prepared || record.value === undefined)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "run.reads[index] = read;"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "record.original = sourceManaged.prepareRun(prepared);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "sourceManaged.assertCurrent();"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "read.close = Object.getOwnPropertyDescriptor(raw, 'close')?.value;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "} catch (error) { record.failure = error; throw error; }"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "limits: {maxPages: 1, maxPageBytes: 1048576, maxPageRows: 100, maxCaptureRows: 100},"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "pub fn check_installed_managed_run("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "else if (record.admission !== undefined) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/mock-source-factory-custody.test.mjs",
+                "anchor": "test('same Source child and close are held before post-factory current refusal and Core use stays zero',async()=>{"
+              },
+              {
+                "path": "adapters/host-node/mock-source-factory-custody.test.mjs",
+                "anchor": "test('same managed Run original is retained before post-factory current refusal and typed start stays zero',()=>{"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing preparation/capture responsibilities only. References and explicit stopping ports establish no actual resource issuer, physical ACK, Account grant or installed Mock completion."
     }
   ],
   "generated": [],
@@ -60420,10 +61167,10 @@
     "Whole-distribution or installed-cohort completion"
   ],
   "counts": {
-    "modules": 142,
-    "operations": 3418,
-    "exports": 902,
-    "explicitContractGroups": 169
+    "modules": 144,
+    "operations": 3468,
+    "exports": 906,
+    "explicitContractGroups": 172
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }
