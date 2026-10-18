@@ -26,7 +26,8 @@ function installation(t) {
     put(join(destination, 'selected-infer-startup.cjs'),
       readFileSync(join(root, 'packages', name, 'selected-infer-startup.cjs')));
   }
-  for (const name of ['infer-trusted-node-preload.cjs', 'infer-trusted-runtime-view.mjs']) {
+  for (const name of ['infer-trusted-node-preload.cjs', 'initial-control-installation-owner.cjs',
+    'infer-trusted-runtime-view.mjs']) {
     put(join(local, 'adapters/host-node', name), readFileSync(join(root, 'adapters/host-node', name)));
   }
   const entry = join(directory, 'entry.mjs');
@@ -114,6 +115,7 @@ test('public Local selected startup uses its same package without the standard w
   // A direct consumer has the same full source-copied package, not a symlink to
   // another installation. Its entry imports that SAME Local private fixture.
   for (const name of ['selected-infer-startup.cjs', 'adapters/host-node/infer-trusted-node-preload.cjs',
+    'adapters/host-node/initial-control-installation-owner.cjs',
     'adapters/host-node/infer-trusted-runtime-view.mjs']) {
     fixture.put(join(fixture.directory, 'node_modules/@actql/local-node', name),
       readFileSync(join(fixture.local, name)));

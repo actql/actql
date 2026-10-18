@@ -8,6 +8,10 @@ const descriptor = Object.getOwnPropertyDescriptor(startup,
   'beginInitialControlInstallation');
 const begin = descriptor !== undefined && Object.hasOwn(descriptor, 'value') &&
   typeof descriptor.value === 'function' ? descriptor.value : undefined;
+const currentDescriptor = Object.getOwnPropertyDescriptor(startup,
+  'assertInitialControlInstallationCurrent');
+const current = currentDescriptor !== undefined && Object.hasOwn(currentDescriptor, 'value') &&
+  typeof currentDescriptor.value === 'function' ? currentDescriptor.value : undefined;
 
 // The actual startup must supply its nominal receiver, retaining the original
 // same Host/installation/generation/source/backend/recipe and complete finite
@@ -29,4 +33,14 @@ export function beginInitialControlInstallation(originals) {
       {code: 'NodeInitialControlAdmissionUnavailable'});
   }
   return Reflect.apply(begin, startup, [originals]);
+}
+
+// Membership is checked in the SAME private preload instance. In particular,
+// calling a caller-supplied scope.assertCurrent() cannot authenticate a scope.
+export function assertInitialControlInstallationCurrent(scope, sameOriginals) {
+  if (current === undefined) {
+    throw Object.assign(new Error('NodeInitialControlAdmissionUnavailable'),
+      {code: 'NodeInitialControlAdmissionUnavailable'});
+  }
+  return Reflect.apply(current, startup, [scope, sameOriginals]);
 }
