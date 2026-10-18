@@ -150,13 +150,19 @@ for (const route of ['local-node', 'node']) test('the actual selected '+route+' 
     'adapters/host-node/embedded-local.mjs': Buffer.from(
       'import{createRequire}from"node:module";'+
       'const delivery=createRequire(import.meta.url)("../../selected-infer-startup.cjs");'+
+      'const dispatch=createRequire(import.meta.url)("../../initial-control-public-dispatch.cjs");'+
+      'globalThis.originalLocalDispatch=dispatch;'+
+      'globalThis.initialDispatchReads=0;'+
+      'try{dispatch.selectedInitialControlHostPreparation("open",new Proxy({},{get(){initialDispatchReads++;},ownKeys(){initialDispatchReads++;}}));}'+
+      'catch(error){globalThis.initialDispatchCause=error.code;}'+
       'globalThis.originalDelivery=delivery;globalThis.actualHostImageValue="original";'+
       'globalThis.actualConsumerCalls=0;'+
       'export function connectInitialControlHostPreparation(){actualConsumerCalls++;return Promise.resolve({});}'+
       'export function assertInitialControlHostPreparation(){};'),
     'package.json': Buffer.from(JSON.stringify({name: '@actql/local-node', type: 'module',
       exports: {'.': './index.mjs', './selected-infer-startup': './selected-infer-startup.cjs'}})),
-    'selected-infer-startup.cjs': readFileSync(new URL('../../packages/local-node/selected-infer-startup.cjs', import.meta.url))};
+    'selected-infer-startup.cjs': readFileSync(new URL('../../packages/local-node/selected-infer-startup.cjs', import.meta.url)),
+    'initial-control-public-dispatch.cjs': readFileSync(new URL('../../packages/local-node/initial-control-public-dispatch.cjs', import.meta.url))};
   for (const name of ['infer-trusted-node-preload.cjs', 'initial-control-installation-owner.cjs',
     'initial-control-package-custody.cjs', 'initial-control-image-source.cjs', 'initial-control-image-loader.cjs']) {
     sources['adapters/host-node/'+name] = actual(name);
@@ -169,9 +175,11 @@ for (const route of ['local-node', 'node']) test('the actual selected '+route+' 
       version: '1.0.0', type: 'module', exports: {'.': './index.mjs',
         './selected-infer-startup': './selected-infer-startup.cjs'}})),
     'selected-infer-startup.cjs': readFileSync(new URL('../../packages/node/selected-infer-startup.cjs', import.meta.url)),
+    'initial-control-public-dispatch.cjs': readFileSync(new URL('../../packages/node/initial-control-public-dispatch.cjs', import.meta.url)),
     'index.mjs': Buffer.from('import{originalLocal}from"@actql/local-node";'+
       'import{createRequire}from"node:module";'+
       'globalThis.originalNodeDelivery=createRequire(import.meta.url)("./selected-infer-startup.cjs");'+
+      'globalThis.originalNodeDispatch=createRequire(import.meta.url)("./initial-control-public-dispatch.cjs");'+
       'globalThis.actualPublicNodeValue=originalLocal;')};
     for (const [path, bytes] of Object.entries(originals)) writeFileSync(join(node, path), bytes);
     inventory.publicNode = {name: '@actql/node', version: '1.0.0',
@@ -192,15 +200,27 @@ for (const route of ['local-node', 'node']) test('the actual selected '+route+' 
     'assert.equal(actualHostImageValue,"original");',
     'assert.equal(originalDelivery,require("@actql/local-node/selected-infer-startup"));',
     'assert.equal(Object.getPrototypeOf(originalDelivery),null);',
+    'assert.equal(initialDispatchReads,0);assert.equal(initialDispatchCause,"NodeInitialControlAdmissionUnavailable");',
+    'assert.ok(Object.isFrozen(originalLocalDispatch));',
+    'assert.equal(typeof originalLocalDispatch.selectedInitialControlHostPreparation,"function");',
     ...(route === 'node' ? [
       'assert.equal(originalNodeDelivery,require("@actql/node/selected-infer-startup"));',
       'assert.equal(actualPublicNodeValue,"original-local-public");',
+      'assert.equal(typeof originalNodeDispatch.selectedInitialControlHostPreparation,"function");',
     ] : []),
-    'const root=require('+JSON.stringify(join(local, 'adapters/host-node/infer-trusted-node-preload.cjs'))+');',
+    'const rootFile=require.resolve('+JSON.stringify(join(local, 'adapters/host-node/infer-trusted-node-preload.cjs'))+');const root=require(rootFile);',
     'const view={};assert.equal(root.associateHost(view,{runtime:process,host:{},installation:{},generation:{},supplier(){}}),view);',
     'let reads=0;const raw=new Proxy({},{ownKeys(){reads++;throw new Error("RawInput");}});',
     'assert.throws(()=>root.beginInitialControlInstallation({},raw),{code:"NodeInitialControlAdmissionUnavailable"});',
     'assert.throws(()=>root.connectInitialControlHostPreparation("open",raw),{code:"NodeInitialControlAdmissionUnavailable"});',
+    'assert.throws(()=>originalLocalDispatch.selectedInitialControlHostPreparation("open",raw),{code:"NodeInitialControlAdmissionUnavailable"});',
+    ...(route === 'node' ? ['assert.throws(()=>originalNodeDispatch.selectedInitialControlHostPreparation("open",raw),{code:"NodeInitialControlAdmissionUnavailable"});'] : []),
+    'let fakeCalls=0;',
+    'require.cache[require.resolve("@actql/'+route+'/selected-infer-startup")].exports={selectedInitialControlHostPreparation(){fakeCalls++;}};',
+    'require.cache[rootFile].exports={connectInitialControlHostPreparation(){fakeCalls++;}};',
+    'assert.throws(()=>originalLocalDispatch.selectedInitialControlHostPreparation("open",raw),{code:"NodeInitialControlAdmissionUnavailable"});',
+    ...(route === 'node' ? ['assert.throws(()=>originalNodeDispatch.selectedInitialControlHostPreparation("open",raw),{code:"NodeInitialControlAdmissionUnavailable"});'] : []),
+    'assert.equal(fakeCalls,0);',
     'assert.equal(reads,0);',
     'assert.equal(actualConsumerCalls,0);',
   ].join('\n'));
