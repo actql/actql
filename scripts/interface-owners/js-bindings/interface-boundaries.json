@@ -36434,7 +36434,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "0a64ad26172dbd58853edcd657b6f5cd2997bcf60851c24994e9bbc767e23624",
+      "sha256": "98e2fc939404809b9ae27312f11825dceb4bfac126e6b738db905d705dc49e71",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -36442,12 +36442,20 @@
         "assertSourceManagedHostPreparation",
         "connectEmbeddedLocal",
         "connectInitialControlHostPreparation",
+        "observeOriginalHostRequestJournalCustody",
         "openInstalledRemoteHttpHost",
+        "openOriginalHostRequestJournal",
+        "originalSourceManagedHostRequest",
+        "prepareInstalledMockSourcePreparation",
         "publishInstalledEffect",
         "publishInstalledSource",
+        "readHostJournalPreparation",
         "readInitialControlHostInput",
+        "readInstalledMockPreparation",
         "readSourceManagedOriginalInput",
-        "snapshotInitialControlHostInput"
+        "readSourceManagedRunRequirements",
+        "snapshotInitialControlHostInput",
+        "sourceManagedSubmittedIntentCid"
       ],
       "operations": [
         {
@@ -36511,6 +36519,65 @@
           "async": true
         },
         {
+          "name": "connectEmbeddedLocal/preparation/init:bindSourceRequest/init:bindSourceRequest",
+          "parameters": [
+            "parent",
+            "derived"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:installMockModels/init:installMockModels",
+          "parameters": [
+            "runtime"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:installMockModels/init:installMockModels/init:installMockModels",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:installMockModels/init:installMockModels/init:installMockModels/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:installMockSources/init:installMockSources",
+          "parameters": [
+            "runtime",
+            "baseEnvironmentWire",
+            "authorizationFor"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:installMockSources/init:installMockSources/init:installMockSources",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:openRequestJournal/init:openRequestJournal",
+          "parameters": [
+            "directory",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareHostJournal/init:prepareHostJournal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareHostJournal/init:prepareHostJournal/init:prepareHostJournal",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "connectEmbeddedLocal/preparation/init:readAsset/init:readAsset",
           "parameters": [
             "path"
@@ -36523,10 +36590,29 @@
           "async": false
         },
         {
+          "name": "connectEmbeddedLocal/preparation/init:retainHostJournalPreparation/init:retainHostJournalPreparation",
+          "parameters": [
+            "root",
+            "principalId",
+            "journalDirectory"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:retainHostJournalPreparation/init:retainHostJournalPreparation/view/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "connectEmbeddedLocal/preparation/init:retainReferenceRetirement/init:retainReferenceRetirement",
           "parameters": [
             "original"
           ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:sourcePreparation/init:sourcePreparation",
+          "parameters": [],
           "async": false
         },
         {
@@ -36598,50 +36684,14 @@
           "async": true
         },
         {
-          "name": "openInstalledHost/abandonHeld/abandonHeld",
-          "parameters": [
-            "captured"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/acquisitionDescriptor/acquisitionDescriptor",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/admitDefinition/admitDefinition",
-          "parameters": [
-            "submission",
-            "requested",
-            "resultNames",
-            "held"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/admitDefinition/admitDefinition/accepted/accepted",
+          "name": "openInstalledHost/activate/activate",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openInstalledHost/admitDefinition/admitDefinition/accepted/accepted/originalInferRun/originalInferRun",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/admitDefinition/admitDefinition/accepted/accepted#2",
+          "name": "openInstalledHost/activate/activate/activate",
           "parameters": [
             "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/admitEffectDefinition/admitEffectDefinition",
-          "parameters": [
-            "submission"
           ],
           "async": false
         },
@@ -36661,24 +36711,9 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/attach/attach",
-          "parameters": [
-            "ref",
-            "actual"
-          ],
-          "async": false
-        },
-        {
           "name": "openInstalledHost/authorizedScope/authorizedScope",
           "parameters": [
             "actual"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/authorizeObservation/authorizeObservation",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -36690,322 +36725,38 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/cancel/cancel",
-          "parameters": [
-            "ref",
-            "cancelId",
-            "expectedRevision",
-            "attemptRef",
-            "actual",
-            "connection"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/cancelEffectContinuation/cancelEffectContinuation",
-          "parameters": [
-            "ref"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/cancelEffectContinuation/cancelEffectContinuation/cancelEffectContinuation",
+          "name": "openInstalledHost/bootstrapIngress/bootstrapIngress",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openInstalledHost/cancelHeldRun/cancelHeldRun",
-          "parameters": [
-            "captured"
-          ],
-          "async": true
+          "name": "openInstalledHost/bootstrapIngress/bootstrapIngress#2",
+          "parameters": [],
+          "async": false
         },
         {
-          "name": "openInstalledHost/cancelRequest/cancelRequest",
+          "name": "openInstalledHost/bootstrapIngress/bootstrapIngress#3",
           "parameters": [
-            "actual",
-            "connection",
-            "requestId"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/cancelRequestRun/cancelRequestRun",
-          "parameters": [
-            "ref",
-            "actual",
-            "connection"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/capturedUpdateOriginal/capturedUpdateOriginal",
-          "parameters": [
-            "submission"
+            "parent",
+            "derived"
           ],
           "async": false
         },
         {
-          "name": "openInstalledHost/captureSubmission/captureSubmission",
+          "name": "openInstalledHost/bootstrapIngress/init:performInstalledRequest/init:performInstalledRequest",
           "parameters": [
-            "submission",
-            "resultNames",
-            "preparedSource",
-            "preparedSources",
-            "keyedSource"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/captureSubmission/captureSubmission/captureSubmission",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/check/check",
-          "parameters": [
-            "actual",
-            "connection",
-            "request"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/checkpointConnection/checkpointConnection",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/checkpointOperations/checkpointOperations",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/checkpointOperations/checkpointOperations#2",
-          "parameters": [
-            "actual",
-            "checkpointCid",
-            "maxBytes",
+            "operation",
+            "request",
             "signal"
           ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/checkpointOperations/init:resolve/init:resolve",
-          "parameters": [
-            "actual",
-            "items"
-          ],
           "async": true
         },
         {
-          "name": "openInstalledHost/checkSource/checkSource",
+          "name": "openInstalledHost/bootstrapPort/init:perform/init:perform",
           "parameters": [
-            "actual"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/continueAcceptedCancellation/continueAcceptedCancellation",
-          "parameters": [
-            "ref",
-            "accepted"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/definitionOf/definitionOf",
-          "parameters": [
-            "captured"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/effectRun/effectRun",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/effectRun/effectRun#2",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/effectRun/effectRun#3",
-          "parameters": [
-            "actual",
-            "connection"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/effectRun/effectRun#4",
-          "parameters": [
-            "actual",
-            "connection",
-            "ref"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/effectRun/effectRun#5",
-          "parameters": [
-            "prepared",
-            "compilation",
-            "allowed",
-            "definition",
-            "resultPolicyOriginal"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/effectRun/init:validateInstallation/init:validateInstallation",
-          "parameters": [
-            "facts"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/executeEffectComputation/executeEffectComputation",
-          "parameters": [
-            "facts",
-            "sourceResume",
-            "targetResume",
-            "modelResume"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation",
-          "parameters": [
-            "ref"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation",
-          "parameters": [
-            "configurations",
-            "handlePause"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
-          "parameters": [
-            "execution"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/records/records",
-          "parameters": [
-            "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation",
-          "parameters": [
-            "adapter"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
-          "parameters": [
-            "retainComputationOwner"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
-          "parameters": [
-            "recoverySignal"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#4",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#5",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
-          "parameters": [
-            "signal",
-            "retainExecution",
-            "beginPhysicalWork",
-            "observePreEffectFailure"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
-          "parameters": [
-            "terminalOutcome"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/executeEffectComputation/executeEffectComputation/init:assertUpdateSelectionCurrent/init:assertUpdateSelectionCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/executeEffectComputation/executeEffectComputation/nextJournal/nextJournal",
-          "parameters": [
-            "checkpoint"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/executeEffectComputation/executeEffectComputation/nextJournal/nextJournal#2",
-          "parameters": [
-            "checkpoint"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/executeEffectComputation/executeEffectComputation/sourceCheckpoints/sourceCheckpoints",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/heldSubmission/heldSubmission",
-          "parameters": [
-            "captured"
+            "operation",
+            "request",
+            "signal"
           ],
           "async": true
         },
@@ -37019,26 +36770,14 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/hostOperations/hostOperations",
+          "name": "openInstalledHost/init:closePublicationStore/init:closePublicationStore",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openInstalledHost/hostOperations/hostOperations#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/hostOperations/hostOperations#3",
+          "name": "openInstalledHost/init:prepareShutdown/init:prepareShutdown",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "openInstalledHost/ingress/ingress",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "openInstalledHost/init:stopModelRuntime/init:stopModelRuntime",
@@ -37046,7 +36785,460 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/inspectAcquisition/inspectAcquisition",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/abandonHeld/abandonHeld",
+          "parameters": [
+            "captured"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/acquisitionDescriptor/acquisitionDescriptor",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/admitDefinition/admitDefinition",
+          "parameters": [
+            "submission",
+            "requested",
+            "resultNames",
+            "held"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/admitDefinition/admitDefinition/accepted/accepted",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/admitDefinition/admitDefinition/accepted/accepted/originalInferRun/originalInferRun",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/admitDefinition/admitDefinition/accepted/accepted#2",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/admitEffectDefinition/admitEffectDefinition",
+          "parameters": [
+            "submission"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/attach/attach",
+          "parameters": [
+            "ref",
+            "actual"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/authorizeObservation/authorizeObservation",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/cancel/cancel",
+          "parameters": [
+            "ref",
+            "cancelId",
+            "expectedRevision",
+            "attemptRef",
+            "actual",
+            "connection"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/cancelEffectContinuation/cancelEffectContinuation",
+          "parameters": [
+            "ref"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/cancelEffectContinuation/cancelEffectContinuation/cancelEffectContinuation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/cancelHeldRun/cancelHeldRun",
+          "parameters": [
+            "captured"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/cancelRequest/cancelRequest",
+          "parameters": [
+            "actual",
+            "connection",
+            "requestId"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/cancelRequestRun/cancelRequestRun",
+          "parameters": [
+            "ref",
+            "actual",
+            "connection"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/capturedUpdateOriginal/capturedUpdateOriginal",
+          "parameters": [
+            "submission"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/captureSubmission/captureSubmission",
+          "parameters": [
+            "submission",
+            "resultNames",
+            "preparedSource",
+            "preparedSources",
+            "keyedSource"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/captureSubmission/captureSubmission/captureSubmission",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/check/check",
+          "parameters": [
+            "actual",
+            "connection",
+            "request"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointConnection/checkpointConnection",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointOperations/checkpointOperations",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointOperations/checkpointOperations#2",
+          "parameters": [
+            "actual",
+            "checkpointCid",
+            "maxBytes",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointOperations/init:resolve/init:resolve",
+          "parameters": [
+            "actual",
+            "items"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/checkSource/checkSource",
+          "parameters": [
+            "actual"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/continueAcceptedCancellation/continueAcceptedCancellation",
+          "parameters": [
+            "ref",
+            "accepted"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/definitionOf/definitionOf",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#2",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#3",
+          "parameters": [
+            "actual",
+            "connection"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#4",
+          "parameters": [
+            "actual",
+            "connection",
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#5",
+          "parameters": [
+            "prepared",
+            "compilation",
+            "allowed",
+            "definition",
+            "resultPolicyOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/init:validateInstallation/init:validateInstallation",
+          "parameters": [
+            "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation",
+          "parameters": [
+            "facts",
+            "sourceResume",
+            "targetResume",
+            "modelResume"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation",
+          "parameters": [
+            "configurations",
+            "handlePause"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
+          "parameters": [
+            "execution"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/records/records",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation",
+          "parameters": [
+            "adapter"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
+          "parameters": [
+            "retainComputationOwner"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
+          "parameters": [
+            "recoverySignal"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#4",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#5",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
+          "parameters": [
+            "signal",
+            "retainExecution",
+            "beginPhysicalWork",
+            "observePreEffectFailure"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
+          "parameters": [
+            "terminalOutcome"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/init:assertUpdateSelectionCurrent/init:assertUpdateSelectionCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/nextJournal/nextJournal",
+          "parameters": [
+            "checkpoint"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/nextJournal/nextJournal#2",
+          "parameters": [
+            "checkpoint"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/sourceCheckpoints/sourceCheckpoints",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/heldSubmission/heldSubmission",
+          "parameters": [
+            "captured"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/hostOperations/hostOperations",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/hostOperations/hostOperations#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/hostOperations/hostOperations#3",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/ingress/ingress",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/init:stopModelRuntime/init:stopModelRuntime",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices/initializePublicationServices",
+          "parameters": [
+            "access"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#2",
+          "parameters": [
+            "effect"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#3",
+          "parameters": [
+            "effect"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#4",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectAcquisition/inspectAcquisition",
           "parameters": [
             "requestId",
             "actual",
@@ -37055,35 +37247,35 @@
           "async": true
         },
         {
-          "name": "openInstalledHost/inspectAcquisition/inspectAcquisition/inspectAcquisition",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectAcquisition/inspectAcquisition/inspectAcquisition",
           "parameters": [
             "result"
           ],
           "async": false
         },
         {
-          "name": "openInstalledHost/inspectHeld/inspectHeld",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectHeld/inspectHeld",
           "parameters": [
             "captured"
           ],
           "async": true
         },
         {
-          "name": "openInstalledHost/inspectRun/inspectRun",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun",
           "parameters": [
             "ref"
           ],
           "async": false
         },
         {
-          "name": "openInstalledHost/installationBinding/installationBinding",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/installationBinding/installationBinding",
           "parameters": [
             "adapter"
           ],
           "async": false
         },
         {
-          "name": "openInstalledHost/keyedDescriptors/keyedDescriptors",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/keyedDescriptors/keyedDescriptors",
           "parameters": [
             "preparedSource",
             "keyedSource"
@@ -37091,7 +37283,7 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/lookupCancellation/lookupCancellation",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupCancellation/lookupCancellation",
           "parameters": [
             "ref",
             "cancelId",
@@ -37102,40 +37294,33 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/lookupHeld/lookupHeld",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupHeld/lookupHeld",
           "parameters": [
             "value"
           ],
           "async": true
         },
         {
-          "name": "openInstalledHost/negotiate/negotiate",
-          "parameters": [
-            "value"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/observeHeldRun/observeHeldRun",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/observeHeldRun/observeHeldRun",
           "parameters": [
             "captured"
           ],
           "async": true
         },
         {
-          "name": "openInstalledHost/observeOwners/observeOwners",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/observeOwners/observeOwners",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "openInstalledHost/observeOwners/observeOwners/observeOwners",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/observeOwners/observeOwners/observeOwners",
           "parameters": [],
           "async": true
         },
         {
-          "name": "openInstalledHost/observeRun/observeRun",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/observeRun/observeRun",
           "parameters": [
             "ref",
             "actual"
@@ -37143,7 +37328,7 @@
           "async": true
         },
         {
-          "name": "openInstalledHost/openEffectTargetReads/openEffectTargetReads",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/openEffectTargetReads/openEffectTargetReads",
           "parameters": [
             "facts",
             "signal",
@@ -37155,33 +37340,755 @@
           "async": true
         },
         {
-          "name": "openInstalledHost/openEffectTargetReads/openEffectTargetReads/assertCurrent/assertCurrent",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/openEffectTargetReads/openEffectTargetReads/assertCurrent/assertCurrent",
           "parameters": [],
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/planFor/planFor",
+          "parameters": [
+            "preparedProgram",
+            "requestId",
+            "retainedDefinitionWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/port/port",
+          "parameters": [
+            "operation",
+            "request",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/port/port/port",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareAcquisition/prepareAcquisition",
+          "parameters": [
+            "preparedProgram",
+            "sourceAccess",
+            "occurrence"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareAcquisitions/prepareAcquisitions",
+          "parameters": [
+            "preparedProgram"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareCapturedSubmission/prepareCapturedSubmission",
+          "parameters": [
+            "submission",
+            "ref"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection",
+          "parameters": [
+            "preparedProgram",
+            "occurrence",
+            "retain"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/observeAccount/observeAccount",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:assertNewTrustedRuntime/init:assertNewTrustedRuntime",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:assertTrustedRuntimeScope/init:assertTrustedRuntimeScope",
+          "parameters": [
+            "scope",
+            "view",
+            "compiled",
+            "definition",
+            "graph"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:bindTrustedRuntimeScope/init:bindTrustedRuntimeScope",
+          "parameters": [
+            "scope",
+            "compiled",
+            "definition",
+            "graph"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:finishTrustedRuntimeScope/init:finishTrustedRuntimeScope",
+          "parameters": [
+            "scope",
+            "view",
+            "compiled",
+            "definition",
+            "graph"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/selection",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/selection#2",
+          "parameters": [
+            "request",
+            "ioNotification",
+            "rawCaptureBinder"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareKeyedSources/prepareKeyedSources",
+          "parameters": [
+            "preparedProgram",
+            "keyedAcquisition",
+            "requestIdentity"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareSubmit/prepareSubmit",
+          "parameters": [
+            "original",
+            "definition",
+            "request",
+            "evidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/projectRunObservation/projectRunObservation",
+          "parameters": [
+            "ref",
+            "state",
+            "retained"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/reconcile/reconcile",
+          "parameters": [
+            "ref",
+            "actual",
+            "connection",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture",
+          "parameters": [
+            "ref",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture",
+          "parameters": [
+            "saved",
+            "requestIdentity"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#2",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#3",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf",
+          "parameters": [
+            "preparedProgram",
+            "requestId"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/components/components",
+          "parameters": [
+            "occurrence"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/requestOf",
+          "parameters": [
+            "component"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/requestOf#2",
+          "parameters": [
+            "component"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority",
+          "parameters": [
+            "actual"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#2",
+          "parameters": [
+            "attemptId"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#3",
+          "parameters": [
+            "actual"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#4",
+          "parameters": [
+            "actual"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#5",
+          "parameters": [
+            "actual"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#6",
+          "parameters": [
+            "attemptId"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld",
+          "parameters": [
+            "captured",
+            "beforePhysicalStart",
+            "started",
+            "step",
+            "renew",
+            "preparationCancelled"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/flight/init:started/init:started",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/observedStart/observedStart",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#2",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#4",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#6",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/retireIncompleteEffects/retireIncompleteEffects",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/retireTerminalEffects/retireTerminalEffects",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent",
+          "parameters": [
+            "actual"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runIdOf/runIdOf",
+          "parameters": [
+            "accepted"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runInfer/runInfer",
+          "parameters": [
+            "preparedProgram",
+            "plan",
+            "submission"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runInfer/runInfer#2",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runPlan/runPlan",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/settleHeldRun/settleHeldRun",
+          "parameters": [
+            "accepted",
+            "runId"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sourceInventory/sourceInventory",
+          "parameters": [
+            "sources",
+            "preparedSource",
+            "keyedSource"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sourceInventory/sourceInventory/sourceInventory",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sourceInventory/sourceInventory/sourceInventory/bound/bound",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/startRun/startRun",
+          "parameters": [
+            "actual",
+            "connection",
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/stateService/stateService",
+          "parameters": [
+            "actual"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/stateService/stateService#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit",
+          "parameters": [
+            "submission"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/flight/flight",
+          "parameters": [
+            "signal",
+            "retainExecution",
+            "beginPhysicalWork",
+            "acquireSource"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/flight/flight#2",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit#2",
+          "parameters": [
+            "status"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect",
+          "parameters": [
+            "submission",
+            "requested",
+            "resultNames"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/submitEffect",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/submitEffect#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/submitEffect#3",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns",
+          "parameters": [
+            "reconcileRef"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/reads/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#2",
+          "parameters": [
+            "recoverySignal"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#3",
+          "parameters": [
+            "claimed"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#4",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertContinuationCurrent/init:assertContinuationCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/renewal/renewal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#2",
+          "parameters": [
+            "signal",
+            "retainExecution",
+            "beginPhysicalWork"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns#3",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight",
+          "parameters": [
+            "result"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight/flight",
+          "parameters": [
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight#2",
+          "parameters": [
+            "error"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/renewal/renewal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/restorationReclaimed/restorationReclaimed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/retainStoppedModelReconciliation/retainStoppedModelReconciliation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/modelResume/modelResume",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel",
+          "parameters": [
+            "signal",
+            "retainExecution",
+            "beginPhysicalWork"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#2",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/terminal/terminal",
+          "parameters": [
+            "status"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait",
+          "parameters": [
+            "ref",
+            "actual",
+            "until",
+            "since",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/interruption/interruption",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep",
+          "parameters": [
+            "promise"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep/interrupted/interrupted",
+          "parameters": [
+            "_",
+            "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep/interrupted/interrupted/interrupted",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/wait",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/negotiate/negotiate",
+          "parameters": [
+            "value"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/negotiate/negotiate/negotiate",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/openInstalledHost",
-          "parameters": [
-            "facts"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/openInstalledHost/openInstalledHost",
-          "parameters": [
-            "access"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/openInstalledHost#10",
-          "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/openInstalledHost#11",
           "parameters": [],
           "async": false
         },
@@ -37202,208 +38109,34 @@
         {
           "name": "openInstalledHost/openInstalledHost#4",
           "parameters": [
-            "event",
-            "detail"
+            "facts"
           ],
           "async": false
         },
         {
           "name": "openInstalledHost/openInstalledHost#5",
           "parameters": [
-            "key",
-            "bytes",
-            "frame",
-            "signal"
+            "event",
+            "detail"
           ],
           "async": false
         },
         {
           "name": "openInstalledHost/openInstalledHost#6",
           "parameters": [
-            "ref"
+            "key",
+            "bytes",
+            "frame",
+            "signal"
           ],
-          "async": false
+          "async": true
         },
         {
           "name": "openInstalledHost/openInstalledHost#7",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/openInstalledHost#8",
           "parameters": [
-            "effect"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/openInstalledHost#9",
-          "parameters": [
-            "effect"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/planFor/planFor",
-          "parameters": [
-            "preparedProgram",
-            "requestId",
-            "retainedDefinitionWire"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/port/port",
-          "parameters": [
-            "operation",
-            "request",
-            "signal"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/port/port/port",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/prepareAcquisition/prepareAcquisition",
-          "parameters": [
-            "preparedProgram",
-            "sourceAccess",
-            "occurrence"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/prepareAcquisitions/prepareAcquisitions",
-          "parameters": [
-            "preparedProgram"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/prepareCapturedSubmission/prepareCapturedSubmission",
-          "parameters": [
-            "submission",
             "ref"
           ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/prepareInferSelection/prepareInferSelection",
-          "parameters": [
-            "preparedProgram",
-            "occurrence",
-            "retain"
-          ],
           "async": false
-        },
-        {
-          "name": "openInstalledHost/prepareInferSelection/prepareInferSelection/observeAccount/observeAccount",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/prepareInferSelection/prepareInferSelection/prepareInferSelection",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/prepareInferSelection/prepareInferSelection/prepareInferSelection#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/prepareInferSelection/prepareInferSelection/selection/init:assertNewTrustedRuntime/init:assertNewTrustedRuntime",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/prepareInferSelection/prepareInferSelection/selection/init:assertTrustedRuntimeScope/init:assertTrustedRuntimeScope",
-          "parameters": [
-            "scope",
-            "view",
-            "compiled",
-            "definition",
-            "graph"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/prepareInferSelection/prepareInferSelection/selection/init:bindTrustedRuntimeScope/init:bindTrustedRuntimeScope",
-          "parameters": [
-            "scope",
-            "compiled",
-            "definition",
-            "graph"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/prepareInferSelection/prepareInferSelection/selection/init:finishTrustedRuntimeScope/init:finishTrustedRuntimeScope",
-          "parameters": [
-            "scope",
-            "view",
-            "compiled",
-            "definition",
-            "graph"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/prepareInferSelection/prepareInferSelection/selection/selection",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/prepareInferSelection/prepareInferSelection/selection/selection#2",
-          "parameters": [
-            "request",
-            "ioNotification",
-            "rawCaptureBinder"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/prepareKeyedSources/prepareKeyedSources",
-          "parameters": [
-            "preparedProgram",
-            "keyedAcquisition",
-            "requestIdentity"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/prepareSubmit/prepareSubmit",
-          "parameters": [
-            "original",
-            "definition",
-            "request",
-            "evidence"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/projectRunObservation/projectRunObservation",
-          "parameters": [
-            "ref",
-            "state",
-            "retained"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/reconcile/reconcile",
-          "parameters": [
-            "ref",
-            "actual",
-            "connection",
-            "signal"
-          ],
-          "async": true
         },
         {
           "name": "openInstalledHost/recoveredInstalledEffect",
@@ -37434,190 +38167,9 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/recoverEffectCapture/recoverEffectCapture",
-          "parameters": [
-            "ref",
-            "signal"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture",
-          "parameters": [
-            "saved",
-            "requestIdentity"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#2",
-          "parameters": [
-            "binding"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#3",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/requestOf/requestOf",
-          "parameters": [
-            "preparedProgram",
-            "requestId"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/requestOf/requestOf/components/components",
-          "parameters": [
-            "occurrence"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/requestOf/requestOf/requestOf",
-          "parameters": [
-            "component"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/requestOf/requestOf/requestOf#2",
-          "parameters": [
-            "component"
-          ],
-          "async": false
-        },
-        {
           "name": "openInstalledHost/requireModelSdkEagerStartup",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "openInstalledHost/resultAuthority/resultAuthority",
-          "parameters": [
-            "actual"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/resultAuthority/resultAuthority#2",
-          "parameters": [
-            "attemptId"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/resultAuthority/resultAuthority#3",
-          "parameters": [
-            "actual"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/resultAuthority/resultAuthority#4",
-          "parameters": [
-            "actual"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/resultAuthority/resultAuthority#5",
-          "parameters": [
-            "actual"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/resultAuthority/resultAuthority#6",
-          "parameters": [
-            "attemptId"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/resumeHeld/resumeHeld",
-          "parameters": [
-            "captured",
-            "beforePhysicalStart",
-            "started",
-            "step",
-            "renew",
-            "preparationCancelled"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/resumeHeld/resumeHeld/flight/init:started/init:started",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/resumeHeld/resumeHeld/observedStart/observedStart",
-          "parameters": [
-            "resolve"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/resumeHeld/resumeHeld/resumeHeld",
-          "parameters": [
-            "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/resumeHeld/resumeHeld/resumeHeld#2",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/resumeHeld/resumeHeld/resumeHeld#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/resumeHeld/resumeHeld/resumeHeld#4",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/resumeHeld/resumeHeld/resumeHeld#5",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/resumeHeld/resumeHeld/resumeHeld#6",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/retireEffectCapture/retireEffectCapture",
-          "parameters": [
-            "ref"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/retireEffectCapture/retireEffectCapture/flight/flight",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/retireEffectCapture/retireEffectCapture/flight/flight#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/retireIncompleteEffects/retireIncompleteEffects",
-          "parameters": [],
-          "async": true
         },
         {
           "name": "openInstalledHost/retireModelPreparationReferences",
@@ -37627,48 +38179,6 @@
         {
           "name": "openInstalledHost/retireModelRuntime",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/retireTerminalEffects/retireTerminalEffects",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/runContent/runContent",
-          "parameters": [
-            "actual"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/runIdOf/runIdOf",
-          "parameters": [
-            "accepted"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/runInfer/runInfer",
-          "parameters": [
-            "preparedProgram",
-            "plan",
-            "submission"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/runInfer/runInfer#2",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/runPlan/runPlan",
-          "parameters": [
-            "ref"
-          ],
           "async": false
         },
         {
@@ -37687,350 +38197,6 @@
             "prepared",
             "compilation",
             "updateTargetSelections"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/settleHeldRun/settleHeldRun",
-          "parameters": [
-            "accepted",
-            "runId"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/sourceInventory/sourceInventory",
-          "parameters": [
-            "sources",
-            "preparedSource",
-            "keyedSource"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/sourceInventory/sourceInventory/sourceInventory",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/sourceInventory/sourceInventory/sourceInventory/bound/bound",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/startRun/startRun",
-          "parameters": [
-            "actual",
-            "connection",
-            "ref"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/stateService/stateService",
-          "parameters": [
-            "actual"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/stateService/stateService#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/submissionService/submissionService",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/submit/submit",
-          "parameters": [
-            "submission"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/submit/submit/flight/flight",
-          "parameters": [
-            "signal",
-            "retainExecution",
-            "beginPhysicalWork",
-            "acquireSource"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/submit/submit/flight/flight#2",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/submit/submit/submit",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/submit/submit/submit#2",
-          "parameters": [
-            "status"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/submitEffect/submitEffect",
-          "parameters": [
-            "submission",
-            "requested",
-            "resultNames"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/submitEffect/submitEffect/submitEffect",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/submitEffect/submitEffect/submitEffect#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/submitEffect/submitEffect/submitEffect#3",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/sweepEffectRuns/sweepEffectRuns",
-          "parameters": [
-            "reconcileRef"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight/flight",
-          "parameters": [
-            "ref"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/reads/init:assertCurrent/init:assertCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#2",
-          "parameters": [
-            "recoverySignal"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#3",
-          "parameters": [
-            "claimed"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#4",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertContinuationCurrent/init:assertContinuationCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertCurrent/init:assertCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight/renewal/renewal",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight#2",
-          "parameters": [
-            "signal",
-            "retainExecution",
-            "beginPhysicalWork"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns#3",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns#4",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/sweepModelRuns/sweepModelRuns",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/sweepModelRuns/sweepModelRuns/assertCurrent/assertCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/sweepModelRuns/sweepModelRuns/flight/flight",
-          "parameters": [
-            "result"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/sweepModelRuns/sweepModelRuns/flight/flight/flight",
-          "parameters": [
-            "slot"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/sweepModelRuns/sweepModelRuns/flight/flight#2",
-          "parameters": [
-            "error"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/sweepModelRuns/sweepModelRuns/flight/flight#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/sweepModelRuns/sweepModelRuns/renewal/renewal",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/sweepModelRuns/sweepModelRuns/restorationReclaimed/restorationReclaimed",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/sweepModelRuns/sweepModelRuns/retainStoppedModelReconciliation/retainStoppedModelReconciliation",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/modelResume/modelResume",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel",
-          "parameters": [
-            "signal",
-            "retainExecution",
-            "beginPhysicalWork"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#2",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/terminal/terminal",
-          "parameters": [
-            "status"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/wait/wait",
-          "parameters": [
-            "ref",
-            "actual",
-            "until",
-            "since",
-            "signal"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/wait/wait/interruption/interruption",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/wait/wait/observeStep/observeStep",
-          "parameters": [
-            "promise"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/wait/wait/observeStep/observeStep/interrupted/interrupted",
-          "parameters": [
-            "_",
-            "reject"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/wait/wait/observeStep/observeStep/interrupted/interrupted/interrupted",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/wait/wait/wait",
-          "parameters": [
-            "resolve"
           ],
           "async": false
         },
@@ -38101,12 +38267,38 @@
           "async": false
         },
         {
+          "name": "originalSourceManagedHostRequest",
+          "parameters": [
+            "originals",
+            "derivedRequest"
+          ],
+          "async": false
+        },
+        {
           "name": "plus/plus",
           "parameters": [
             "date",
             "milliseconds"
           ],
           "async": false
+        },
+        {
+          "name": "prepareInstalledMockSourcePreparation",
+          "parameters": [
+            "originals",
+            "originalSourceInstallation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledMockSourcePreparation/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledMockSourcePreparation/prepareInstalledMockSourcePreparation",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "publicKeyCid/publicKeyCid",
@@ -38140,6 +38332,56 @@
           "async": true
         },
         {
+          "name": "readHostJournalPreparation",
+          "parameters": [
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInstalledMockPreparation",
+          "parameters": [
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "readSourceManagedRunRequirements",
+          "parameters": [
+            "originals",
+            "checkedPrepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "readSourceManagedRunRequirements/asset/asset",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "readSourceManagedRunRequirements/limits/limits",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "readSourceManagedRunRequirements/readSourceManagedRunRequirements",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readSourceManagedRunRequirements/readSourceManagedRunRequirements#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "sameEmbeddedInstallation",
           "parameters": [
             "left",
@@ -38151,6 +38393,15 @@
           "name": "sameEmbeddedInstallation/sameEmbeddedInstallation",
           "parameters": [
             "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceManagedSubmittedIntentCid",
+          "parameters": [
+            "originals",
+            "originalSourceInstallation",
+            "body"
           ],
           "async": false
         },
@@ -39895,196 +40146,209 @@
         {
           "operations": [
             "openInstalledHost",
-            "openInstalledHost/abandonHeld/abandonHeld",
-            "openInstalledHost/acquisitionDescriptor/acquisitionDescriptor",
-            "openInstalledHost/admitDefinition/admitDefinition",
-            "openInstalledHost/admitDefinition/admitDefinition/accepted/accepted",
-            "openInstalledHost/admitDefinition/admitDefinition/accepted/accepted#2",
-            "openInstalledHost/admitEffectDefinition/admitEffectDefinition",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/abandonHeld/abandonHeld",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/acquisitionDescriptor/acquisitionDescriptor",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/admitDefinition/admitDefinition",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/admitDefinition/admitDefinition/accepted/accepted",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/admitDefinition/admitDefinition/accepted/accepted#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/admitEffectDefinition/admitEffectDefinition",
             "openInstalledHost/assertModelRuntime",
             "openInstalledHost/assertNewModelRuntime",
-            "openInstalledHost/attach/attach",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/attach/attach",
             "openInstalledHost/authorizedScope/authorizedScope",
-            "openInstalledHost/authorizeObservation/authorizeObservation",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/authorizeObservation/authorizeObservation",
             "openInstalledHost/bindModelSdkStaticOriginals",
-            "openInstalledHost/cancel/cancel",
-            "openInstalledHost/cancelEffectContinuation/cancelEffectContinuation",
-            "openInstalledHost/cancelEffectContinuation/cancelEffectContinuation/cancelEffectContinuation",
-            "openInstalledHost/cancelHeldRun/cancelHeldRun",
-            "openInstalledHost/cancelRequest/cancelRequest",
-            "openInstalledHost/cancelRequestRun/cancelRequestRun",
-            "openInstalledHost/captureSubmission/captureSubmission",
-            "openInstalledHost/captureSubmission/captureSubmission/captureSubmission",
-            "openInstalledHost/check/check",
-            "openInstalledHost/checkpointConnection/checkpointConnection",
-            "openInstalledHost/checkpointOperations/checkpointOperations",
-            "openInstalledHost/checkpointOperations/checkpointOperations#2",
-            "openInstalledHost/checkpointOperations/init:resolve/init:resolve",
-            "openInstalledHost/checkSource/checkSource",
-            "openInstalledHost/continueAcceptedCancellation/continueAcceptedCancellation",
-            "openInstalledHost/definitionOf/definitionOf",
-            "openInstalledHost/effectRun/effectRun",
-            "openInstalledHost/effectRun/effectRun#2",
-            "openInstalledHost/effectRun/effectRun#3",
-            "openInstalledHost/effectRun/effectRun#4",
-            "openInstalledHost/effectRun/effectRun#5",
-            "openInstalledHost/effectRun/init:validateInstallation/init:validateInstallation",
-            "openInstalledHost/executeEffectComputation/executeEffectComputation",
-            "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation",
-            "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation",
-            "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation",
-            "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
-            "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/records/records",
-            "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation",
-            "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation#2",
-            "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
-            "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
-            "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#4",
-            "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#5",
-            "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
-            "openInstalledHost/executeEffectComputation/executeEffectComputation/nextJournal/nextJournal",
-            "openInstalledHost/executeEffectComputation/executeEffectComputation/nextJournal/nextJournal#2",
-            "openInstalledHost/executeEffectComputation/executeEffectComputation/sourceCheckpoints/sourceCheckpoints",
-            "openInstalledHost/heldSubmission/heldSubmission",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/cancel/cancel",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/cancelEffectContinuation/cancelEffectContinuation",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/cancelEffectContinuation/cancelEffectContinuation/cancelEffectContinuation",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/cancelHeldRun/cancelHeldRun",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/cancelRequest/cancelRequest",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/cancelRequestRun/cancelRequestRun",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/captureSubmission/captureSubmission",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/captureSubmission/captureSubmission/captureSubmission",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/check/check",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointConnection/checkpointConnection",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointOperations/checkpointOperations",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointOperations/checkpointOperations#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointOperations/init:resolve/init:resolve",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/checkSource/checkSource",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/continueAcceptedCancellation/continueAcceptedCancellation",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/definitionOf/definitionOf",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#5",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/init:validateInstallation/init:validateInstallation",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/records/records",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#5",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/nextJournal/nextJournal",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/nextJournal/nextJournal#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/sourceCheckpoints/sourceCheckpoints",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/heldSubmission/heldSubmission",
             "openInstalledHost/hostConnection/hostConnection",
-            "openInstalledHost/hostOperations/hostOperations",
-            "openInstalledHost/hostOperations/hostOperations#2",
-            "openInstalledHost/hostOperations/hostOperations#3",
-            "openInstalledHost/ingress/ingress",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/hostOperations/hostOperations",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/hostOperations/hostOperations#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/hostOperations/hostOperations#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/ingress/ingress",
             "openInstalledHost/init:stopModelRuntime/init:stopModelRuntime",
-            "openInstalledHost/inspectAcquisition/inspectAcquisition",
-            "openInstalledHost/inspectAcquisition/inspectAcquisition/inspectAcquisition",
-            "openInstalledHost/inspectHeld/inspectHeld",
-            "openInstalledHost/inspectRun/inspectRun",
-            "openInstalledHost/installationBinding/installationBinding",
-            "openInstalledHost/keyedDescriptors/keyedDescriptors",
-            "openInstalledHost/lookupCancellation/lookupCancellation",
-            "openInstalledHost/lookupHeld/lookupHeld",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectAcquisition/inspectAcquisition",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectAcquisition/inspectAcquisition/inspectAcquisition",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectHeld/inspectHeld",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/installationBinding/installationBinding",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/keyedDescriptors/keyedDescriptors",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupCancellation/lookupCancellation",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupHeld/lookupHeld",
             "openInstalledHost/negotiate/negotiate",
-            "openInstalledHost/observeHeldRun/observeHeldRun",
-            "openInstalledHost/observeOwners/observeOwners",
-            "openInstalledHost/observeOwners/observeOwners/observeOwners",
-            "openInstalledHost/observeRun/observeRun",
-            "openInstalledHost/openEffectTargetReads/openEffectTargetReads",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/observeHeldRun/observeHeldRun",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/observeOwners/observeOwners",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/observeOwners/observeOwners/observeOwners",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/observeRun/observeRun",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/openEffectTargetReads/openEffectTargetReads",
             "openInstalledHost/openInstalledHost",
-            "openInstalledHost/openInstalledHost/openInstalledHost",
-            "openInstalledHost/openInstalledHost#10",
-            "openInstalledHost/openInstalledHost#11",
             "openInstalledHost/openInstalledHost#2",
             "openInstalledHost/openInstalledHost#3",
             "openInstalledHost/openInstalledHost#4",
             "openInstalledHost/openInstalledHost#5",
             "openInstalledHost/openInstalledHost#6",
             "openInstalledHost/openInstalledHost#7",
-            "openInstalledHost/openInstalledHost#8",
-            "openInstalledHost/openInstalledHost#9",
-            "openInstalledHost/planFor/planFor",
-            "openInstalledHost/port/port",
-            "openInstalledHost/port/port/port",
-            "openInstalledHost/prepareAcquisition/prepareAcquisition",
-            "openInstalledHost/prepareAcquisitions/prepareAcquisitions",
-            "openInstalledHost/prepareInferSelection/prepareInferSelection",
-            "openInstalledHost/prepareInferSelection/prepareInferSelection/observeAccount/observeAccount",
-            "openInstalledHost/prepareInferSelection/prepareInferSelection/selection/init:assertNewTrustedRuntime/init:assertNewTrustedRuntime",
-            "openInstalledHost/prepareInferSelection/prepareInferSelection/selection/init:assertTrustedRuntimeScope/init:assertTrustedRuntimeScope",
-            "openInstalledHost/prepareInferSelection/prepareInferSelection/selection/init:bindTrustedRuntimeScope/init:bindTrustedRuntimeScope",
-            "openInstalledHost/prepareInferSelection/prepareInferSelection/selection/init:finishTrustedRuntimeScope/init:finishTrustedRuntimeScope",
-            "openInstalledHost/prepareInferSelection/prepareInferSelection/selection/selection",
-            "openInstalledHost/prepareInferSelection/prepareInferSelection/selection/selection#2",
-            "openInstalledHost/prepareKeyedSources/prepareKeyedSources",
-            "openInstalledHost/projectRunObservation/projectRunObservation",
-            "openInstalledHost/reconcile/reconcile",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/planFor/planFor",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/port/port",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/port/port/port",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareAcquisition/prepareAcquisition",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareAcquisitions/prepareAcquisitions",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/observeAccount/observeAccount",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:assertNewTrustedRuntime/init:assertNewTrustedRuntime",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:assertTrustedRuntimeScope/init:assertTrustedRuntimeScope",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:bindTrustedRuntimeScope/init:bindTrustedRuntimeScope",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:finishTrustedRuntimeScope/init:finishTrustedRuntimeScope",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/selection",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/selection#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareKeyedSources/prepareKeyedSources",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/projectRunObservation/projectRunObservation",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/reconcile/reconcile",
             "openInstalledHost/recoveredInstalledEffect",
             "openInstalledHost/recoveredInstalledEffect/descriptors/descriptors",
-            "openInstalledHost/recoverEffectCapture/recoverEffectCapture",
-            "openInstalledHost/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture",
-            "openInstalledHost/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#2",
-            "openInstalledHost/requestOf/requestOf",
-            "openInstalledHost/requestOf/requestOf/components/components",
-            "openInstalledHost/requestOf/requestOf/requestOf",
-            "openInstalledHost/requestOf/requestOf/requestOf#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/components/components",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/requestOf",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/requestOf#2",
             "openInstalledHost/requireModelSdkEagerStartup",
-            "openInstalledHost/resultAuthority/resultAuthority",
-            "openInstalledHost/resultAuthority/resultAuthority#2",
-            "openInstalledHost/resultAuthority/resultAuthority#3",
-            "openInstalledHost/resultAuthority/resultAuthority#4",
-            "openInstalledHost/resultAuthority/resultAuthority#5",
-            "openInstalledHost/resultAuthority/resultAuthority#6",
-            "openInstalledHost/resumeHeld/resumeHeld",
-            "openInstalledHost/resumeHeld/resumeHeld/flight/init:started/init:started",
-            "openInstalledHost/resumeHeld/resumeHeld/observedStart/observedStart",
-            "openInstalledHost/resumeHeld/resumeHeld/resumeHeld",
-            "openInstalledHost/resumeHeld/resumeHeld/resumeHeld#2",
-            "openInstalledHost/resumeHeld/resumeHeld/resumeHeld#3",
-            "openInstalledHost/resumeHeld/resumeHeld/resumeHeld#4",
-            "openInstalledHost/resumeHeld/resumeHeld/resumeHeld#5",
-            "openInstalledHost/resumeHeld/resumeHeld/resumeHeld#6",
-            "openInstalledHost/retireEffectCapture/retireEffectCapture",
-            "openInstalledHost/retireEffectCapture/retireEffectCapture/flight/flight",
-            "openInstalledHost/retireEffectCapture/retireEffectCapture/flight/flight#2",
-            "openInstalledHost/retireIncompleteEffects/retireIncompleteEffects",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#5",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#6",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/flight/init:started/init:started",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/observedStart/observedStart",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#5",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#6",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/retireIncompleteEffects/retireIncompleteEffects",
             "openInstalledHost/retireModelRuntime",
-            "openInstalledHost/retireTerminalEffects/retireTerminalEffects",
-            "openInstalledHost/runContent/runContent",
-            "openInstalledHost/runIdOf/runIdOf",
-            "openInstalledHost/runInfer/runInfer",
-            "openInstalledHost/runInfer/runInfer#2",
-            "openInstalledHost/runPlan/runPlan",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/retireTerminalEffects/retireTerminalEffects",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runIdOf/runIdOf",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runInfer/runInfer",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runInfer/runInfer#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runPlan/runPlan",
             "openInstalledHost/runtimeOriginals/runtimeOriginals",
             "openInstalledHost/runtimeTarget/runtimeTarget",
             "openInstalledHost/selectedInstalledEffect",
-            "openInstalledHost/settleHeldRun/settleHeldRun",
-            "openInstalledHost/sourceInventory/sourceInventory",
-            "openInstalledHost/sourceInventory/sourceInventory/sourceInventory",
-            "openInstalledHost/sourceInventory/sourceInventory/sourceInventory/bound/bound",
-            "openInstalledHost/startRun/startRun",
-            "openInstalledHost/stateService/stateService",
-            "openInstalledHost/stateService/stateService#2",
-            "openInstalledHost/submissionService/submissionService",
-            "openInstalledHost/submit/submit",
-            "openInstalledHost/submit/submit/flight/flight",
-            "openInstalledHost/submit/submit/flight/flight#2",
-            "openInstalledHost/submit/submit/submit",
-            "openInstalledHost/submit/submit/submit#2",
-            "openInstalledHost/submitEffect/submitEffect",
-            "openInstalledHost/submitEffect/submitEffect/submitEffect",
-            "openInstalledHost/submitEffect/submitEffect/submitEffect#2",
-            "openInstalledHost/submitEffect/submitEffect/submitEffect#3",
-            "openInstalledHost/sweepEffectRuns/sweepEffectRuns",
-            "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight",
-            "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight/flight",
-            "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/reads/init:assertCurrent/init:assertCurrent",
-            "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#2",
-            "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#3",
-            "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#4",
-            "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertCurrent/init:assertCurrent",
-            "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight/renewal/renewal",
-            "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight#2",
-            "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight#3",
-            "openInstalledHost/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns",
-            "openInstalledHost/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns#2",
-            "openInstalledHost/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns#3",
-            "openInstalledHost/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns#4",
-            "openInstalledHost/sweepModelRuns/sweepModelRuns",
-            "openInstalledHost/sweepModelRuns/sweepModelRuns/assertCurrent/assertCurrent",
-            "openInstalledHost/sweepModelRuns/sweepModelRuns/flight/flight",
-            "openInstalledHost/sweepModelRuns/sweepModelRuns/flight/flight/flight",
-            "openInstalledHost/sweepModelRuns/sweepModelRuns/flight/flight#2",
-            "openInstalledHost/sweepModelRuns/sweepModelRuns/flight/flight#3",
-            "openInstalledHost/sweepModelRuns/sweepModelRuns/renewal/renewal",
-            "openInstalledHost/sweepModelRuns/sweepModelRuns/restorationReclaimed/restorationReclaimed",
-            "openInstalledHost/sweepModelRuns/sweepModelRuns/retainStoppedModelReconciliation/retainStoppedModelReconciliation",
-            "openInstalledHost/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel",
-            "openInstalledHost/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/modelResume/modelResume",
-            "openInstalledHost/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel",
-            "openInstalledHost/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#2",
-            "openInstalledHost/terminal/terminal",
-            "openInstalledHost/wait/wait",
-            "openInstalledHost/wait/wait/wait",
-            "openInstalledHost/wait/wait/interruption/interruption",
-            "openInstalledHost/wait/wait/observeStep/observeStep",
-            "openInstalledHost/wait/wait/observeStep/observeStep/interrupted/interrupted",
-            "openInstalledHost/wait/wait/observeStep/observeStep/interrupted/interrupted/interrupted"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/settleHeldRun/settleHeldRun",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sourceInventory/sourceInventory",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sourceInventory/sourceInventory/sourceInventory",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sourceInventory/sourceInventory/sourceInventory/bound/bound",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/startRun/startRun",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/stateService/stateService",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/stateService/stateService#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/flight/flight",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/flight/flight#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/submitEffect",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/submitEffect#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/submitEffect#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/reads/init:assertCurrent/init:assertCurrent",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertCurrent/init:assertCurrent",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/renewal/renewal",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/assertCurrent/assertCurrent",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight/flight",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/renewal/renewal",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/restorationReclaimed/restorationReclaimed",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/retainStoppedModelReconciliation/retainStoppedModelReconciliation",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/modelResume/modelResume",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/terminal/terminal",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/wait",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/interruption/interruption",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep/interrupted/interrupted",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep/interrupted/interrupted/interrupted",
+            "openInstalledHost/activate/activate",
+            "openInstalledHost/activate/activate/activate",
+            "openInstalledHost/bootstrapIngress/bootstrapIngress",
+            "openInstalledHost/bootstrapIngress/bootstrapIngress#2",
+            "openInstalledHost/bootstrapIngress/bootstrapIngress#3",
+            "openInstalledHost/bootstrapIngress/init:performInstalledRequest/init:performInstalledRequest",
+            "openInstalledHost/bootstrapPort/init:perform/init:perform",
+            "openInstalledHost/init:closePublicationStore/init:closePublicationStore",
+            "openInstalledHost/init:prepareShutdown/init:prepareShutdown",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/init:stopModelRuntime/init:stopModelRuntime",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices/initializePublicationServices",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#5",
+            "openInstalledHost/negotiate/negotiate/negotiate"
           ],
           "exports": [],
           "attributes": {
@@ -41793,17 +42057,17 @@
         },
         {
           "operations": [
-            "openInstalledHost/capturedUpdateOriginal/capturedUpdateOriginal",
-            "openInstalledHost/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
-            "openInstalledHost/executeEffectComputation/executeEffectComputation/init:assertUpdateSelectionCurrent/init:assertUpdateSelectionCurrent",
-            "openInstalledHost/openEffectTargetReads/openEffectTargetReads/assertCurrent/assertCurrent",
-            "openInstalledHost/prepareCapturedSubmission/prepareCapturedSubmission",
-            "openInstalledHost/prepareInferSelection/prepareInferSelection/prepareInferSelection",
-            "openInstalledHost/prepareInferSelection/prepareInferSelection/prepareInferSelection#2",
-            "openInstalledHost/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/capturedUpdateOriginal/capturedUpdateOriginal",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/init:assertUpdateSelectionCurrent/init:assertUpdateSelectionCurrent",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/openEffectTargetReads/openEffectTargetReads/assertCurrent/assertCurrent",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareCapturedSubmission/prepareCapturedSubmission",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#3",
             "openInstalledHost/recoveredInstalledEffect/recoveredInstalledEffect",
             "openInstalledHost/recoveredInstalledEffect/recoveredInstalledEffect#2",
-            "openInstalledHost/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertContinuationCurrent/init:assertContinuationCurrent"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertContinuationCurrent/init:assertContinuationCurrent"
           ],
           "exports": [],
           "attributes": {
@@ -42083,8 +42347,8 @@
         },
         {
           "operations": [
-            "openInstalledHost/admitDefinition/admitDefinition/accepted/accepted/originalInferRun/originalInferRun",
-            "openInstalledHost/prepareSubmit/prepareSubmit"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/admitDefinition/admitDefinition/accepted/accepted/originalInferRun/originalInferRun",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareSubmit/prepareSubmit"
           ],
           "exports": [],
           "attributes": {
@@ -42195,11 +42459,43 @@
             "connectEmbeddedLocal/releaseUnadopted",
             "connectEmbeddedLocal/retirePreparationReferences",
             "openInstalledHost/retireModelPreparationReferences",
-            "assertSourceManagedHostPreparation"
+            "assertSourceManagedHostPreparation",
+            "connectEmbeddedLocal/preparation/init:bindSourceRequest/init:bindSourceRequest",
+            "connectEmbeddedLocal/preparation/init:installMockModels/init:installMockModels",
+            "connectEmbeddedLocal/preparation/init:installMockModels/init:installMockModels/init:installMockModels",
+            "connectEmbeddedLocal/preparation/init:installMockModels/init:installMockModels/init:installMockModels/assertCurrent/assertCurrent",
+            "connectEmbeddedLocal/preparation/init:installMockSources/init:installMockSources",
+            "connectEmbeddedLocal/preparation/init:installMockSources/init:installMockSources/init:installMockSources",
+            "connectEmbeddedLocal/preparation/init:openRequestJournal/init:openRequestJournal",
+            "connectEmbeddedLocal/preparation/init:prepareHostJournal/init:prepareHostJournal",
+            "connectEmbeddedLocal/preparation/init:prepareHostJournal/init:prepareHostJournal/init:prepareHostJournal",
+            "connectEmbeddedLocal/preparation/init:retainHostJournalPreparation/init:retainHostJournalPreparation",
+            "connectEmbeddedLocal/preparation/init:retainHostJournalPreparation/init:retainHostJournalPreparation/view/init:assertCurrent/init:assertCurrent",
+            "connectEmbeddedLocal/preparation/init:sourcePreparation/init:sourcePreparation",
+            "originalSourceManagedHostRequest",
+            "prepareInstalledMockSourcePreparation",
+            "prepareInstalledMockSourcePreparation/assertCurrent/assertCurrent",
+            "prepareInstalledMockSourcePreparation/prepareInstalledMockSourcePreparation",
+            "readHostJournalPreparation",
+            "readInstalledMockPreparation",
+            "readSourceManagedRunRequirements",
+            "readSourceManagedRunRequirements/asset/asset",
+            "readSourceManagedRunRequirements/limits/limits",
+            "readSourceManagedRunRequirements/readSourceManagedRunRequirements",
+            "readSourceManagedRunRequirements/readSourceManagedRunRequirements#2",
+            "sourceManagedSubmittedIntentCid"
           ],
           "exports": [
             "assertInitialControlHostPreparation",
-            "assertSourceManagedHostPreparation"
+            "assertSourceManagedHostPreparation",
+            "observeOriginalHostRequestJournalCustody",
+            "openOriginalHostRequestJournal",
+            "originalSourceManagedHostRequest",
+            "prepareInstalledMockSourcePreparation",
+            "readHostJournalPreparation",
+            "readInstalledMockPreparation",
+            "readSourceManagedRunRequirements",
+            "sourceManagedSubmittedIntentCid"
           ],
           "attributes": {
             "responsibility": [
@@ -42210,6 +42506,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "export function assertInitialControlHostPreparation(originals) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// The selected startup captures these exact existing Owner operations from"
               }
             ],
             "inputsOutputs": [
@@ -42230,6 +42530,10 @@
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
                 "anchor": "function preparationFor(host, installation, generation) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export {openClientRequestJournal as openOriginalHostRequestJournal,"
               }
             ],
             "ownership": [
@@ -42240,6 +42544,10 @@
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
                 "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "  return profiles.hostJournalPreparation(originals.host, originals.installation,"
               }
             ],
             "synchronization": [
@@ -42280,6 +42588,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "// This private installation bag holds backreferences, not canonical DATA."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// this namespace. An export alone supplies neither admission nor authority."
               }
             ],
             "extension": [
@@ -42300,6 +42612,10 @@
               {
                 "path": "adapters/host-node/installed-project-configuration.test.mjs",
                 "anchor": "test('copied and foreign-runtime retirement cannot retire the original project'"
+              },
+              {
+                "path": "adapters/host-node/host-journal-selected-constructor.test.mjs",
+                "anchor": "test('selected Journal uses the captured original factory and receiver exactly once',async()=>{"
               }
             ]
           }
@@ -42610,8 +42926,10 @@
         }
       ],
       "imports": [
+        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../packages/client-wire/index.mjs",
         "../../packages/sdk/host-port.mjs",
+        "../../packages/sdk/internal/private-source-preparation.mjs",
         "../host-common/authorization-gate.mjs",
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/completed-run-publication.mjs",
@@ -42670,6 +42988,8 @@
         "./installed-model-originals.mjs",
         "./installed-model.mjs",
         "./installed-project-configuration.mjs",
+        "./installed-project-mock-answers.mjs",
+        "./installed-project-mock.mjs",
         "./installed-project-model-tasks.mjs",
         "./installed-project-profile.mjs",
         "./installed-row-effect.mjs",
@@ -42678,7 +42998,9 @@
         "./local-account-config.mjs",
         "./local-continuation-evidence.mjs",
         "./local-values-plan.mjs",
+        "./node-host-journal-installation.mjs",
         "./node-initial-control-installation.mjs",
+        "./node-source-managed-installation.mjs",
         "./ordinary-source-binding.mjs",
         "./result-access.mjs",
         "./source-alias-publication.mjs",
@@ -42691,9 +43013,8 @@
         "node:url"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ]
+      "unresolvedSyntax": [],
+      "referenceQualification": "Existing Host/Source/Resource and compiler-binding responsibilities only. Declaration coverage and explicit-port tests do not issue capacity, authority, cleanup ACK or installed acceptance."
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -120887,5 +121208,11 @@
         }
       ]
     }
-  ]
+  ],
+  "counts": {
+    "modules": 57,
+    "operations": 3437,
+    "exports": 543,
+    "explicitContractGroups": 766
+  }
 }
