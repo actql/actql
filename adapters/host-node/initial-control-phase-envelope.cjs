@@ -5,6 +5,7 @@
 // disposition before image capture. Importing this file supplies no scope.
 const freeze = Object.freeze, descriptor = Object.getOwnPropertyDescriptor;
 const hasOwn = Object.hasOwn, integer = Number.isSafeInteger, array = Array.isArray;
+const ownKeys = Reflect.ownKeys;
 const NativeError = Error;
 const MiB = 1024 * 1024;
 
@@ -57,8 +58,24 @@ function declareInitialControlPhaseEnvelope(heapCeilingBytes) {
     lifetime: 'original-process-and-escaped-module-lifetime'});
 }
 
-function inspectInitialControlPhaseEnvelope(inventory, declaration) {
+function inspectInitialControlPhaseEnvelope(inventory, declaration, runtimeOriginal) {
   if (declaration?.limits !== limits) unavailable();
+  // The generated recipe must describe this actual selected backend, not just
+  // a similarly sized image graph. This comparison is DATA correspondence;
+  // only the real early preload retains the runtime/module original and can
+  // operationally adopt the declaration. It authenticates no caller factory.
+  const engine = own(inventory, 'engine');
+  for (const name of ['node', 'v8', 'openssl', 'platform', 'arch', 'eager']) {
+    if (own(engine, name) !== own(runtimeOriginal, name)) unavailable();
+  }
+  const libraries = own(engine, 'libraries'), originalLibraries = own(runtimeOriginal, 'libraries');
+  const names = ownKeys(originalLibraries), declaredNames = ownKeys(libraries);
+  if (names.length > 64 || declaredNames.length !== names.length) unavailable();
+  for (let index = 0; index < names.length; index++) {
+    const name = names[index];
+    if (typeof name !== 'string' || declaredNames[index] !== name ||
+        own(libraries, name) !== own(originalLibraries, name)) unavailable();
+  }
   const packages = own(inventory, 'packages');
   if (!array(packages) || packages.length > limits.packages) unavailable();
   let files = 0, sourceBytes = 0, edges = 0;
@@ -91,7 +108,7 @@ function inspectInitialControlPhaseEnvelope(inventory, declaration) {
   // The actual facts select only a member of the already declared finite
   // runtime/control recipe. They authenticate no operational admission.
   return freeze({limits, images: files, packages: packages.length, dependencyEdges: edges,
-    sourceBytes, declaration});
+    sourceBytes, declaration, runtimeOriginal});
 }
 
 module.exports = freeze({declareInitialControlPhaseEnvelope, inspectInitialControlPhaseEnvelope});

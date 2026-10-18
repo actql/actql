@@ -92,6 +92,13 @@ const selected = module.isPreloading === true &&
 const initialControlDeclaration = selected && eagerSdkStartup && publicPreload !== undefined
   ? declareInitialControlPhaseEnvelope(applyOriginal(getHeapStatistics, undefined, []).heap_size_limit)
   : undefined;
+// Native runtime/library identities stay with this SAME actual process/module
+// lifetime. Their finite selected disposition is not retired by Host cleanup.
+const initialControlRuntimeOriginal = initialControlDeclaration === undefined ? undefined :
+  Object.freeze({node: originalProcess.versions.node, v8: originalProcess.versions.v8,
+    openssl: originalProcess.versions.openssl, platform: originalProcess.platform,
+    arch: originalProcess.arch, eager: true,
+    libraries: Object.freeze({...originalProcess.versions})});
 const initialControlPackageOriginal = initialControlDeclaration !== undefined
   ? require('./initial-control-package-original.cjs').imageInventory : undefined;
 
@@ -101,7 +108,8 @@ let startup, startupFailure;
 // actual early preload, before image capture/compilation and caller acquisition.
 // Source-only, non-eager and ordinary imports retain operational absence.
 const initialControlEnvelope = initialControlPackageOriginal === undefined ? undefined :
-  inspectInitialControlPhaseEnvelope(initialControlPackageOriginal, initialControlDeclaration);
+  inspectInitialControlPhaseEnvelope(initialControlPackageOriginal, initialControlDeclaration,
+    initialControlRuntimeOriginal);
 let preparationOriginals, preparationInput, preparationClosed = false;
 const samePreparation = held => preparationOriginals !== undefined &&
   held.host === preparationOriginals.host && held.installation === preparationOriginals.installation &&

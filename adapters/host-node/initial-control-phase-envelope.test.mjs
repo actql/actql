@@ -2,10 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import module from './initial-control-phase-envelope.cjs';
 
+const original = Object.freeze({node: process.versions.node, v8: process.versions.v8,
+  openssl: process.versions.openssl, platform: process.platform, arch: process.arch,
+  eager: true, libraries: Object.freeze({...process.versions})});
 const inspect = (inventory, heap) => module.inspectInitialControlPhaseEnvelope(inventory,
-  module.declareInitialControlPhaseEnvelope(heap));
+  module.declareInitialControlPhaseEnvelope(heap), original);
 const file = (path, bytes) => ({path, bytes, sha256: '0'.repeat(64)});
-const inventory = () => ({images: [file('original.cjs', 1024)], dependencies: [],
+const inventory = () => ({engine: original, images: [file('original.cjs', 1024)], dependencies: [],
   packages: [], publicNode: null});
 const unavailable = {code: 'NodeInitialControlEnvelopeUnavailable'};
 
@@ -71,4 +74,22 @@ test('image facts are own DATA; a source-size summary or getter cannot replace t
   assert.throws(() => inspect(value, 1024), unavailable);
   assert.equal(observed, 0);
   assert.throws(() => inspect({sourceBytes: 1}, 1024), unavailable);
+});
+
+test('the selected backend and every actual native library identity must correspond before capture', () => {
+  for (const name of ['node', 'v8', 'openssl', 'platform', 'arch', 'eager']) {
+    const value = inventory();
+    value.engine = {...original, [name]: name === 'eager' ? false : 'foreign'};
+    assert.throws(() => inspect(value, 1024), unavailable);
+  }
+  for (const libraries of [{...original.libraries, sqlite: 'foreign'},
+    {...original.libraries, extra: 'unselected'}, {}]) {
+    const value = inventory(); value.engine = {...original, libraries};
+    assert.throws(() => inspect(value, 1024), unavailable);
+  }
+  let reads = 0;
+  const value = inventory(); value.engine = {...original};
+  Object.defineProperty(value.engine, 'v8', {get() {reads++; return original.v8;}});
+  assert.throws(() => inspect(value, 1024), unavailable);
+  assert.equal(reads, 0);
 });
