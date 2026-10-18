@@ -178,9 +178,44 @@ export class RequestHeld extends ClientError {
 }
 
 export function createSubmissionOperations(selected, confirmed, transport, execution, lifecycle) {
-  const {exchange, responseValue, wasSubmissionDispatched} = transport;
+  const {exchange, responseValue, wasSubmissionDispatched, sourcePreparation} = transport;
   const {isClosed} = lifecycle;
-  const submitIntent = (kind, input, options) => {
+  const withSourceProducer = (kind, originalInput, originalOptions, run) => {
+    if (sourcePreparation === undefined) return run(undefined);
+    let producer;
+    try {
+      // Synchronous admission precedes the first SDK capture, option getter,
+      // serialization, hash or Promise workspace of this submitted original.
+      const receipt = sourcePreparation.beforeSourceSnapshot(kind, originalInput, originalOptions);
+      producer = {receipt, body: undefined};
+    } catch (cause) {return Promise.reject(cause);}
+    const finish = (terminal, primary, originalResult) => {
+      try {sourcePreparation.finishSourceProducer(producer.receipt, terminal);}
+      catch (cause) {
+        // Reuse this connection's existing cleanup owner. A retry cuts only
+        // the same producer aliases, never snapshots, sends or issues again.
+        const retry = () => sourcePreparation.finishSourceProducer(producer.receipt, terminal);
+        lifecycle.readerCleanups.add(retry);
+        if (primary !== undefined) return primary;
+        const error = new ClientError('ClientCleanupPending', {cause, cleanupPending: true});
+        Object.defineProperty(error, 'execution', {value: originalResult});
+        retainQueryResult(originalResult, error);
+        return error;
+      }
+      return primary;
+    };
+    let original;
+    try {original = run(producer);}
+    catch (cause) {return Promise.reject(finish('failed', cause));}
+    const pending = original.then(result => {
+      const failure = finish('returned', undefined, result);
+      if (failure !== undefined) throw failure;
+      return result;
+    }, cause => {throw finish('failed', cause);});
+    retainQueryResult(original, pending);
+    return pending;
+  };
+  const submitIntent = (kind, input, options, sourceProducer) => {
     let body;
     try {
       const stopBefore = options.stopBefore;
@@ -194,6 +229,10 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
         ...(readOnly === undefined ? {} : {readOnly}),
         ...(options.unresolvedHistory === undefined ? {} : {unresolvedHistory: options.unresolvedHistory})}));
     } catch {fail('InvalidClientPayload');}
+    if (sourceProducer !== undefined) {
+      sourcePreparation.bindSourceSnapshot(sourceProducer.receipt, body);
+      sourceProducer.body = body;
+    }
     if (!validSubmissionRef(body.submissionRef) || options.requestId !== undefined &&
         options.requestId !== body.submissionRef.nonce) fail('InvalidSubmissionRef');
     if (!validOperationAttemptRef(body.attemptRef)) fail('InvalidOperationAttemptRef');
@@ -219,7 +258,7 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       let checkObservation;
       try {
         const response = await exchange(body.unresolvedHistory === undefined ? 'submit-intent' : 'restart-intent',
-          {...body, intentCid}, options.signal, context);
+          {...body, intentCid}, options.signal, context, undefined, sourceProducer);
         attempt = detachResponse(captureResponse(await controlValue(response)));
         if (!validSubmissionAttempt(attempt, selected.wire, body.submissionRef, intentCid,
           body.attemptRef, body.unresolvedHistory)) {
@@ -282,7 +321,7 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
     if (!validSubmissionRef(ref)) fail('InvalidSubmissionRef');
     return ref;
   };
-  const submit = (kind, input, options = {}) => {
+  const submit = (kind, input, options = {}, sourceProducer) => {
     try {
       // A bare legacy ID cannot recover its original epoch on reconnect.
       // Never reinterpret it as new work under the latest connection ticket.
@@ -291,10 +330,10 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
         fail('SubmissionReferenceRequired');
       }
       return submitIntent(kind, input, {...options,
-        submissionRef: options.submissionRef ?? newSubmission()});
+        submissionRef: options.submissionRef ?? newSubmission()}, sourceProducer);
     } catch (cause) {return Promise.reject(cause);}
   };
-  const startSource = (text, options = {}) => {
+  const startSource = (text, options = {}) => withSourceProducer('aql', text, options, sourceProducer => {
     if (typeof text !== 'string' || !text ||
         !clientSourceFormats.includes(options.format)) {
       return Promise.reject(new ClientError('InvalidAqlDocument'));
@@ -305,8 +344,8 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
     }
     return submit('aql', {text, format: options.format,
       ...(options.parameterDeclarations === undefined ? {} :
-        {parameterDeclarations: options.parameterDeclarations})}, options);
-  };
+        {parameterDeclarations: options.parameterDeclarations})}, options, sourceProducer);
+  });
   const retainQueryResult = (execution, result) => {
     const input = submissionInputs.get(execution);
     if (input && result !== undefined) submissionInputs.set(result, input);
@@ -349,13 +388,13 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       }
       return retainSubmissionExplanation(freezeInput(answer), answer, context);
     },
-    start: (program, options = {}) => {
+    start: (program, options = {}) => withSourceProducer('program', program, options, sourceProducer => {
       if (program === null || typeof program !== 'object' ||
           Array.isArray(program)) {
         return Promise.reject(new ClientError('InvalidProgramDocument'));
       }
-      return submit('program', program, options);
-    },
+      return submit('program', program, options, sourceProducer);
+    }),
     attach: async (ref, {signal} = {}) => {
       const requested = Object.freeze({...ref});
       if (!validRunRef(requested)) fail('InvalidRunReference');

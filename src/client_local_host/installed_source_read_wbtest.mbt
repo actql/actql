@@ -53,3 +53,32 @@ test "Source read requirement keeps the same checked Program and occurrence" {
     )
   }
 }
+
+///|
+// No imported parent is fabricated here. An original-looking consumer with
+// no child cannot issue capacity; copying a retired consumer cannot revive it.
+test "Source read consumer identity without an original child is unavailable" {
+  let value : ClientInstalledSourceRead = {
+    original: None,
+    child: None,
+    ledger: None,
+    owner: None,
+    declaration: None,
+    requirement: None,
+    acquisition: None,
+    run: None,
+    started: false,
+  }
+  assert_true(
+    check_installed_source_read_current(value) is Err(ForeignOriginal),
+  )
+  value.original = Some(value)
+  assert_true(check_installed_source_read_current(value) is Err(Retired))
+  let copied = { ..value, }
+  assert_true(
+    check_installed_source_read_current(copied) is Err(ForeignOriginal),
+  )
+  assert_true(retire_installed_source_read(copied) is Err(ForeignOriginal))
+  retire_installed_source_read(value).unwrap()
+  assert_true(check_installed_source_read_current(value) is Err(Retired))
+}
