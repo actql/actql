@@ -203,6 +203,22 @@ export const installedConnectors = Object.freeze([
     }),
   }),
   Object.freeze({
+    name: "slack", registration: "slack",
+    revision: "slack/0.1",
+    implementationFiles: Object.freeze([
+      Object.freeze({path: "adapters/connectors/slack/host/installed-slack-source.mjs", href: new URL("../connectors/slack/host/installed-slack-source.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/slack/host/user-source-reader.mjs", href: new URL("../connectors/slack/host/user-source-reader.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/slack/site/user-list-read.mjs", href: new URL("../connectors/slack/site/user-list-read.mjs", import.meta.url).href}),
+    ]),
+    providerBundle: "connectors/slack/host_node",
+    responseHeaders: Object.freeze([]),
+    source: Object.freeze({
+      profileVersion: "actql-installed-slack-source/0.1",
+      load: () => import("../connectors/slack/host/installed-slack-source.mjs")
+        .then(module => Object.freeze({check: module.checkInstalledSlackSourceProfile, identityParts: module.installedSlackSourceIdentityParts, load: module.loadInstalledSlackSource})),
+    }),
+  }),
+  Object.freeze({
     name: "snowflake", registration: "snowflake",
     revision: "snowflake/0.1",
     implementationFiles: Object.freeze([
