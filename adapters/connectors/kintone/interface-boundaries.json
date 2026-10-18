@@ -1,5 +1,5 @@
 {
-  "source": "8bb548ec9df631709eb0d0b17241830966836292",
+  "source": "a42317764b06d3bc0aba0a78946d39d4a863f0d3",
   "qualification": "Existing kintone original Catalog, Row Source, Account and Credential Site physical boundary references; not another Owner, permission, artifact or numerical admission",
   "declarations": [
     {
@@ -830,7 +830,7 @@
     },
     {
       "module": "src/connectors/kintone/host/record_delete_mapping.mbt",
-      "sha256": "68f6f5c8e8a80a618202fa9827ed51a3f0b5119280289d6e96f863b6d8d09a90",
+      "sha256": "1f53e769f26b666f5256f8ea7f69111ffe5626ae1024689b46f734e489b02a10",
       "exports": [],
       "operations": [
         {
@@ -840,6 +840,10 @@
         {
           "name": "record_delete_mapping",
           "declaration": "record_delete_mapping ( original : RecordDeleteMapping , ) - > @ rows . RowMapping"
+        },
+        {
+          "name": "record_delete_mapping_is_original",
+          "declaration": "record_delete_mapping_is_original ( value : RecordDeleteMapping ) - > Bool"
         },
         {
           "name": "record_delete_mapping_matches_declaration",
@@ -866,7 +870,8 @@
             "record_delete_mapping",
             "record_delete_mapping_matches_declaration",
             "record_delete_mapping_matches_request",
-            "record_delete_mapping_page_matches"
+            "record_delete_mapping_page_matches",
+            "record_delete_mapping_is_original"
           ],
           "exports": [],
           "attributes": {
@@ -3336,6 +3341,668 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- CREATE outcome verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/kintone/site/kintone-delete-execution.mjs",
+      "sha256": "d834014061fb90f2c33492af8c7dfbbd27a1a9f32dc736676bde5a60a7aaf5ed",
+      "exports": [
+        "projectMappedKintoneDeleteOutcome",
+        "sendMappedKintoneDelete"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalMapping",
+          "parameters": [
+            "moon",
+            "mapping",
+            "declaration"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectMappedKintoneDeleteOutcome",
+          "parameters": [
+            "moon",
+            "mapping",
+            "declaration",
+            "request",
+            "response",
+            "preview",
+            "memberIndex",
+            "rowIndex",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectMappedKintoneDeleteOutcome/projectMappedKintoneDeleteOutcome",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectMappedKintoneDeleteOutcome/projectMappedKintoneDeleteOutcome#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "sendMappedKintoneDelete",
+          "parameters": [
+            "moon",
+            "mapping",
+            "declaration",
+            "request",
+            "options"
+          ],
+          "async": true
+        }
+      ],
+      "imports": [
+        "../../../host-common/runtime-result.mjs",
+        "./kintone-record-delete.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing kintone Catalog, Row Mapping, Credential Site and Common Preview/Effect Owners; original DELETE DATA and correspondence, no new grant, retry, cleanup or settlement Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "originalMapping",
+            "positive/positive",
+            "projectMappedKintoneDeleteOutcome",
+            "projectMappedKintoneDeleteOutcome/projectMappedKintoneDeleteOutcome",
+            "projectMappedKintoneDeleteOutcome/projectMappedKintoneDeleteOutcome#2",
+            "sendMappedKintoneDelete"
+          ],
+          "exports": [
+            "projectMappedKintoneDeleteOutcome",
+            "sendMappedKintoneDelete"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node_rela/client_kintone_delete_outcome_bridge.mbt",
+      "sha256": "1812ea5026519d1ff2fc427ad01f500e4786a390b3913f32fbd9a07617eae36c",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_kintone_delete_preview_outcome",
+          "declaration": "client_program_kintone_delete_preview_outcome ( mapping : @ kintone_host . RecordDeleteMapping , request : @ kintone_catalog . RecordDeleteRequest , response : @ kintone_catalog . RecordDeleteAcknowledgement , preview : @ publication . EffectPreviewIdentity , member_index : Int , row_index : Int , values : @ kintone_catalog . RecordValueLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordDeletePreviewOutcome , @ kintone_host . RecordDeleteOutcomeIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_delete_preview_outcome_matches",
+          "declaration": "client_program_kintone_delete_preview_outcome_matches ( value : @ kintone_host . RecordDeletePreviewOutcome , mapping : @ kintone_host . RecordDeleteMapping , request : @ kintone_catalog . RecordDeleteRequest , preview : @ publication . EffectPreviewIdentity , member_index : Int , row_index : Int , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_delete_preview_outcome_response_sha256",
+          "declaration": "client_program_kintone_delete_preview_outcome_response_sha256 ( value : @ kintone_host . RecordDeletePreviewOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_delete_preview_outcome_row_cid",
+          "declaration": "client_program_kintone_delete_preview_outcome_row_cid ( value : @ kintone_host . RecordDeletePreviewOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_delete_preview_outcome_wire",
+          "declaration": "client_program_kintone_delete_preview_outcome_wire ( value : @ kintone_host . RecordDeletePreviewOutcome , ) - > String"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing kintone Catalog, Row Mapping, Credential Site and Common Preview/Effect Owners; original DELETE DATA and correspondence, no new grant, retry, cleanup or settlement Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_kintone_delete_preview_outcome",
+            "client_program_kintone_delete_preview_outcome_matches",
+            "client_program_kintone_delete_preview_outcome_response_sha256",
+            "client_program_kintone_delete_preview_outcome_row_cid",
+            "client_program_kintone_delete_preview_outcome_wire"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_kintone_delete_outcome_bridge.mbt",
+      "sha256": "9d817fdfc4ff2de0c9c60226dea35e56ae84a08dae63999bbca5a7a3859205c8",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_kintone_delete_preview_outcome",
+          "declaration": "client_program_kintone_delete_preview_outcome ( mapping : @ kintone_host . RecordDeleteMapping , request : @ kintone_catalog . RecordDeleteRequest , response : @ kintone_catalog . RecordDeleteAcknowledgement , preview : @ publication . EffectPreviewIdentity , member_index : Int , row_index : Int , values : @ kintone_catalog . RecordValueLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordDeletePreviewOutcome , @ kintone_host . RecordDeleteOutcomeIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_delete_preview_outcome_matches",
+          "declaration": "client_program_kintone_delete_preview_outcome_matches ( value : @ kintone_host . RecordDeletePreviewOutcome , mapping : @ kintone_host . RecordDeleteMapping , request : @ kintone_catalog . RecordDeleteRequest , preview : @ publication . EffectPreviewIdentity , member_index : Int , row_index : Int , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_delete_preview_outcome_response_sha256",
+          "declaration": "client_program_kintone_delete_preview_outcome_response_sha256 ( value : @ kintone_host . RecordDeletePreviewOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_delete_preview_outcome_row_cid",
+          "declaration": "client_program_kintone_delete_preview_outcome_row_cid ( value : @ kintone_host . RecordDeletePreviewOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_delete_preview_outcome_wire",
+          "declaration": "client_program_kintone_delete_preview_outcome_wire ( value : @ kintone_host . RecordDeletePreviewOutcome , ) - > String"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing kintone Catalog, Row Mapping, Credential Site and Common Preview/Effect Owners; original DELETE DATA and correspondence, no new grant, retry, cleanup or settlement Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_kintone_delete_preview_outcome",
+            "client_program_kintone_delete_preview_outcome_matches",
+            "client_program_kintone_delete_preview_outcome_response_sha256",
+            "client_program_kintone_delete_preview_outcome_row_cid",
+            "client_program_kintone_delete_preview_outcome_wire"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/catalog/record_mutation.mbt",
+      "sha256": "bb613769bf909c455dda637a14a7c42d0eb836be5d9d5e71e1d636edb6c31e40",
+      "exports": [],
+      "operations": [
+        {
+          "name": "delete_observation_names",
+          "declaration": "delete_observation_names ( request : RecordDeleteRequest , max_fields : Int , ) - > Result [ Array [ String ] , RecordMutationIssue ]"
+        },
+        {
+          "name": "match_original_record_target_revision",
+          "declaration": "match_original_record_target_revision ( target : OriginalRecordTarget , observed : OriginalRecordPage , max_comparison_work : Int , ) - > Result [ Unit , RecordMutationIssue ]"
+        },
+        {
+          "name": "mutation_limits_valid",
+          "declaration": "mutation_limits_valid ( limits : RecordMutationLimits ) - > Bool"
+        },
+        {
+          "name": "original_record_target_id",
+          "declaration": "original_record_target_id ( target : OriginalRecordTarget ) - > String"
+        },
+        {
+          "name": "original_record_target_page",
+          "declaration": "original_record_target_page ( target : OriginalRecordTarget , ) - > OriginalRecordPage"
+        },
+        {
+          "name": "original_record_target_revision",
+          "declaration": "original_record_target_revision ( target : OriginalRecordTarget ) - > String"
+        },
+        {
+          "name": "prepare_original_record_target",
+          "declaration": "prepare_original_record_target ( page : OriginalRecordPage , index : Int , max_identity_bytes : Int , ) - > Result [ OriginalRecordTarget , RecordMutationIssue ]"
+        },
+        {
+          "name": "prepare_record_delete_request",
+          "declaration": "prepare_record_delete_request ( targets : Array [ OriginalRecordTarget ] , limits : RecordMutationLimits , ) - > Result [ RecordDeleteRequest , RecordMutationIssue ]"
+        },
+        {
+          "name": "project_record_delete_acknowledgement",
+          "declaration": "project_record_delete_acknowledgement ( request : RecordDeleteRequest , status : Int , bytes : Bytes , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ RecordDeleteAcknowledgement , RecordMutationIssue ]"
+        },
+        {
+          "name": "recheck_original_record_form",
+          "declaration": "recheck_original_record_form ( original : FormFieldCatalog , bytes : Bytes , limits : FormFieldLimits , ) - > Result [ Unit , RecordMutationIssue ]"
+        },
+        {
+          "name": "recheck_record_delete_form",
+          "declaration": "recheck_record_delete_form ( request : RecordDeleteRequest , bytes : Bytes , limits : FormFieldLimits , ) - > Result [ Unit , RecordMutationIssue ]"
+        },
+        {
+          "name": "recheck_record_delete_records",
+          "declaration": "recheck_record_delete_records ( request : RecordDeleteRequest , bytes : Bytes , limits : RecordPageLimits , max_fields : Int , max_comparison_work : Int , ) - > Result [ Unit , RecordMutationIssue ]"
+        },
+        {
+          "name": "record_delete_acknowledgement_is_original",
+          "declaration": "record_delete_acknowledgement_is_original ( value : RecordDeleteAcknowledgement , ) - > Bool"
+        },
+        {
+          "name": "record_delete_acknowledgement_request",
+          "declaration": "record_delete_acknowledgement_request ( response : RecordDeleteAcknowledgement , ) - > RecordDeleteRequest"
+        },
+        {
+          "name": "record_delete_observation_body",
+          "declaration": "record_delete_observation_body ( request : RecordDeleteRequest , max_fields : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , RecordMutationIssue ]"
+        },
+        {
+          "name": "record_delete_request_app_id",
+          "declaration": "record_delete_request_app_id ( request : RecordDeleteRequest ) - > String"
+        },
+        {
+          "name": "record_delete_request_body",
+          "declaration": "record_delete_request_body ( request : RecordDeleteRequest ) - > String"
+        },
+        {
+          "name": "record_delete_request_count",
+          "declaration": "record_delete_request_count ( request : RecordDeleteRequest ) - > Int"
+        },
+        {
+          "name": "record_delete_request_is_original",
+          "declaration": "record_delete_request_is_original ( value : RecordDeleteRequest ) - > Bool"
+        },
+        {
+          "name": "record_delete_request_targets",
+          "declaration": "record_delete_request_targets ( request : RecordDeleteRequest , ) - > Array [ OriginalRecordTarget ]"
+        },
+        {
+          "name": "same_numeric_record_id",
+          "declaration": "same_numeric_record_id ( left : String , right : String ) - > Bool"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing kintone Catalog, Row Mapping, Credential Site and Common Preview/Effect Owners; original DELETE DATA and correspondence, no new grant, retry, cleanup or settlement Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "delete_observation_names",
+            "match_original_record_target_revision",
+            "mutation_limits_valid",
+            "original_record_target_id",
+            "original_record_target_page",
+            "original_record_target_revision",
+            "prepare_original_record_target",
+            "prepare_record_delete_request",
+            "project_record_delete_acknowledgement",
+            "recheck_original_record_form",
+            "recheck_record_delete_form",
+            "recheck_record_delete_records",
+            "record_delete_acknowledgement_is_original",
+            "record_delete_acknowledgement_request",
+            "record_delete_observation_body",
+            "record_delete_request_app_id",
+            "record_delete_request_body",
+            "record_delete_request_count",
+            "record_delete_request_is_original",
+            "record_delete_request_targets",
+            "same_numeric_record_id"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/host/record_delete_outcome.mbt",
+      "sha256": "37893edcb52779632093411ded5ec6bd7efb9cc4936d60a87f1f30224b8ac8c6",
+      "exports": [],
+      "operations": [
+        {
+          "name": "project_record_delete_preview_outcome",
+          "declaration": "project_record_delete_preview_outcome ( mapping : RecordDeleteMapping , request : @ catalog . RecordDeleteRequest , response : @ catalog . RecordDeleteAcknowledgement , preview : @ publication . EffectPreviewIdentity , member_index : Int , row_index : Int , values : @ catalog . RecordValueLimits , limits : @ catalog . RecordMutationLimits , ) - > Result [ RecordDeletePreviewOutcome , RecordDeleteOutcomeIssue ]"
+        },
+        {
+          "name": "record_delete_preview_outcome_matches",
+          "declaration": "record_delete_preview_outcome_matches ( value : RecordDeletePreviewOutcome , mapping : RecordDeleteMapping , request : @ catalog . RecordDeleteRequest , preview : @ publication . EffectPreviewIdentity , member_index : Int , row_index : Int , ) - > Bool"
+        },
+        {
+          "name": "record_delete_preview_outcome_response_sha256",
+          "declaration": "record_delete_preview_outcome_response_sha256 ( value : RecordDeletePreviewOutcome , ) - > String"
+        },
+        {
+          "name": "record_delete_preview_outcome_row_cid",
+          "declaration": "record_delete_preview_outcome_row_cid ( value : RecordDeletePreviewOutcome , ) - > String"
+        },
+        {
+          "name": "record_delete_preview_outcome_wire",
+          "declaration": "record_delete_preview_outcome_wire ( value : RecordDeletePreviewOutcome , ) - > String"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing kintone Catalog, Row Mapping, Credential Site and Common Preview/Effect Owners; original DELETE DATA and correspondence, no new grant, retry, cleanup or settlement Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "project_record_delete_preview_outcome",
+            "record_delete_preview_outcome_matches",
+            "record_delete_preview_outcome_response_sha256",
+            "record_delete_preview_outcome_row_cid",
+            "record_delete_preview_outcome_wire"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- DELETE outcome verification:"
               }
             ]
           }
