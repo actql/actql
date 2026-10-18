@@ -216,6 +216,50 @@ test "public guide Signed64 Task and enum retain original full canonical materia
 }
 
 ///|
+fn public_signed64_effect(
+  program : @program.Program,
+  environment : @check.CheckEnvironment,
+) -> @check.EffectProgramStaticCandidate raise {
+  let candidate = match
+    @check.prepare_effect_computation_candidate(
+      program,
+      environment,
+      None,
+      [],
+      check_limits(),
+      1,
+      1000,
+    ) {
+    Ok(value) => value
+    Err(Computation(Source(SourceView(Program(Program(Pipeline(_, issue))))))) =>
+      fail("public Signed64 effect pipeline: " + @debug.to_string(issue.kind))
+    Err(Computation(Environment(_))) =>
+      fail("public Signed64 effect Environment refusal")
+    Err(Computation(Units(_))) => fail("public Signed64 effect unit refusal")
+    Err(Computation(Closure(_))) =>
+      fail("public Signed64 effect closure refusal")
+    Err(Computation(error)) => raise error
+    Err(_) => fail("public Signed64 effect candidate refusal")
+  }
+  let mappings = @environment.check_mapping_contract_shapes(
+    @check.checking_environment_wire(environment),
+    { max_bytes: 100000, max_nodes: 10000, max_depth: 100, max_members: 100, },
+    100000,
+  ).unwrap()
+  match
+    @check.close_effect_computation_static(candidate, mappings, {
+      max_members: 1,
+      max_work: 1000,
+      max_admission_nodes: 100,
+      max_admission_depth: 10,
+      max_admission_text_bytes: 1000,
+    }) {
+    Ok(value) => value
+    Err(_) => fail("public Signed64 static Effect closure refusal")
+  }
+}
+
+///|
 test "README SQL Effects preserves Signed64 and enum through actual public Task normalization" {
   let environment = public_signed64_task_environment()
   let context = public_signed64_hero_context(environment)
@@ -238,8 +282,8 @@ test "README SQL Effects preserves Signed64 and enum through actual public Task 
     update_targets=Some(publication),
   ).unwrap()
   assert_eq(semantic(actual), semantic(expanded))
-  let a = readme_hero_checked_effect(actual, environment)
-  let b = readme_hero_checked_effect(expanded, environment)
+  let a = public_signed64_effect(actual, environment)
+  let b = public_signed64_effect(expanded, environment)
   assert_shorthand_checked_identity(
     @check.effect_program_static_checked_computation(a),
     @check.effect_program_static_checked_computation(b),
@@ -258,11 +302,16 @@ test "SQL and AQL Signed64 public INFER use the same checked computation" {
   let sql = "SELECT a.id AS id, a.description AS notes, u.active_users, u.trend FROM salesforce.accounts AS a JOIN snowflake.usage_30d AS u ON a.id=u.account_id |> INFER `model-task:churn-risk.v1` INPUT (notes, active_users, trend) AS risk |> SELECT id, risk.value.level AS level"
   let aql = "FROM salesforce.accounts AS a |> JOIN snowflake.usage_30d AS u ON a.id=u.account_id |> SELECT a.id AS id, a.description AS notes, u.active_users, u.trend |> INFER `model-task:churn-risk.v1` INPUT (notes, active_users, trend) AS risk |> SELECT id, risk.value.level AS level"
   let prepare = fn(source) {
-    compile(
-      @query.parse_query(source, syntax_limits()).unwrap(),
-      context,
-      construction_limits(),
-    ).unwrap()
+    match
+      compile(
+        @query.parse_query(source, syntax_limits()).unwrap(),
+        context,
+        construction_limits(),
+      ) {
+      Ok(value) => value
+      Err(issue) =>
+        fail("public Signed64 query: " + infer_defaults_issue_tag(issue))
+    }
   }
   let a = prepare(sql)
   let b = prepare(aql)
@@ -278,11 +327,21 @@ test "public Signed64 INFER refuses Number Decimal and Text inputs without promo
   let environment = public_signed64_task_environment()
   let source = "SELECT a.id AS id, a.description AS notes, u.active_users, u.trend FROM salesforce.accounts AS a JOIN snowflake.usage_30d AS u ON a.id=u.account_id |> INFER `model-task:churn-risk.v1` INPUT (notes, active_users, trend) AS risk"
   for kind in ["number", "decimal", "string"] {
-    let program = compile(
-      @query.parse_query(source, syntax_limits()).unwrap(),
-      public_signed64_hero_context(environment, kind~),
-      construction_limits(),
-    ).unwrap()
+    let program = match
+      compile(
+        @query.parse_query(source, syntax_limits()).unwrap(),
+        public_signed64_hero_context(environment, kind~),
+        construction_limits(),
+      ) {
+      Ok(value) => value
+      Err(issue) =>
+        fail(
+          "public Signed64 wrong " +
+          kind +
+          ": " +
+          infer_defaults_issue_tag(issue),
+        )
+    }
     guard @check.check_parsed(program, environment, None, check_limits())
       is Rejected(error) else {
       fail("non-Signed64 public input admitted: " + kind)
