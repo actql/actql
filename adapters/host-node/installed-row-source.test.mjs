@@ -9,7 +9,8 @@ import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../host-common/runtime-result.mjs';
 import {openSqliteCredentialJournal} from '../site-node/sqlite-credential-journal.mjs';
-import {createInstalledRowSource, openRowSourceCredentialSite, installRowSourceAuthorization,
+import {createInstalledRowSource, loadRowSourceCredentialCustody,
+  openRowSourceCredentialSite, installRowSourceAuthorization,
   rowSourceCheckEnvironment} from
   './installed-row-source.mjs';
 import {installedSourceReadAccesses, installedSourceReadBindings} from
@@ -334,7 +335,9 @@ test('the row source Site refuses an undeclared response header before any crede
     // Close the Site before its directory is removed.
     t.after(async () => {
       site.close();
-      await rm(root, {recursive: true, force: true});
+      if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+        console.error(`Row Site custody retained: ${root}`);
+      } else await rm(root, {recursive: true, force: true});
     });
     assert.throws(() => site.callResource({operations: new Map([['op',
       {method: 'GET', path: '/x', responseHeaders: ['link', 'x-secret']}]])}),
@@ -348,7 +351,9 @@ test('the row source Site refuses an undeclared response header before any crede
 test('invalid declared response headers refuse before opening the credential journal',
   async t => {
     const root = await mkdtemp(join(tmpdir(), 'actql-row-site-invalid-'));
-    t.after(() => rm(root, {recursive: true, force: true}));
+    t.after(() => process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1'
+      ? console.error(`Row Site invalid-header custody retained: ${root}`)
+      : rm(root, {recursive: true, force: true}));
     const key = generateKeyPairSync('ed25519');
     await writeFile(join(root, 'credential.key'), key.privateKey.export({
       type: 'pkcs8', format: 'pem'}));
@@ -441,4 +446,43 @@ test('shared generic credential custody preserves its original task and checked 
   // Salesforce's separately tested closeOnce compatibility entry skips it.
   site.close();
   assert.equal(closes, 3);
+});
+
+test('shared issuer loading requires its original synchronous resolver before Journal acquisition', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-row-issuer-loader-'));
+  const key = generateKeyPairSync('ed25519');
+  const path = join(root, 'credential.key');
+  await writeFile(path, key.privateKey.export({type: 'pkcs8', format: 'pem'}));
+  t.after(() => process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1'
+    ? console.error(`Row issuer loader custody retained: ${root}`)
+    : rm(root, {recursive: true, force: true}));
+  let opens = 0;
+  const options = {profile: {credentialPrivateKeyPath: path,
+    credentialAuthorityId: 'authority-a', credentialKeyId: 'key-a',
+    journalRoot: join(root, 'journal'), resourceOrigin: 'https://api.example.test',
+    namespaceId: 'namespace-a', environment: 'test', siteKey: 'site-a', siteGeneration: 1},
+  principalId: 'principal-a', connectorRegistration: 'example',
+  connectorRevision: 'example/0.1', runtimeBundleCid: `sha256:${'a'.repeat(64)}`,
+  commonMoon: moon, now: () => 1_700_000_000_000, grantLifetimeMs: 1000,
+  openCredentialJournal(root, options) {opens++; return openSqliteCredentialJournal(root, options);}};
+  const resolver = async () => 'test-only-secret';
+  for (const prepareResolver of [() => undefined, () => ({}),
+    () => Promise.resolve(resolver),
+    () => Promise.reject(new Error('OriginalAsyncResolverFactoryFailure'))]) {
+    await assert.rejects(loadRowSourceCredentialCustody(options,
+      {prepareResolver}), {code: 'InvalidRowSourceCredentialSite'});
+    assert.equal(opens, 0);
+  }
+  const primary = Object.freeze(new Error('OriginalResolverFactoryFailure'));
+  await assert.rejects(loadRowSourceCredentialCustody(options,
+    {prepareResolver() {throw primary;}}), error => error === primary);
+  assert.equal(opens, 0);
+  let calls = 0;
+  const custody = await loadRowSourceCredentialCustody(options,
+    {prepareResolver(...args) {calls++; assert.deepEqual(args, []); return resolver;}});
+  assert.equal(calls, 1);
+  assert.equal(opens, 1);
+  assert.equal(custody.credential.resolveSecret, resolver);
+  custody.closeOnce();
+  assert.equal(custody.cleanupPending(), false);
 });

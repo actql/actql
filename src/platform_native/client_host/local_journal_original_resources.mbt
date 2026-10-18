@@ -112,7 +112,7 @@ fn NativeLocalJournalCapture::open_original_journal(
         Some(database) => DatabasePending(database, issue)
         None => issue
       }
-      let failure = self.session.retain_journal_open_failure(
+      let failure = self.session.retain_journal_open_failure_with_resources(
         retained,
         Some(original),
       )

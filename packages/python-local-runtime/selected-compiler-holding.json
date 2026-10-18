@@ -1,0 +1,9 @@
+{
+  "scope": "image_compiler_only",
+  "module_sha256": "c9549247fadb0d82d31d033945f5f0c182e686c7a1eb54ac5c8bdda016783e3e",
+  "engine_sha256": "2e5adfdab523a7f4c61c1302505730dca7f15b3d8de1452fbde8bb9d7e83070d",
+  "runtime_library_sha256": "c8876bfdd2860e149a00b3ce724250d8945cc8c3098c32c82761cf6cc9d31acd",
+  "provider_library_sha256": "3097ef362c28025ca73c03a41087c4b8b68cf3dbf3a6ebf322586c54f331d02d",
+  "capacity_bytes": 1073741824,
+  "generation": 1
+}

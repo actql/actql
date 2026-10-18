@@ -31,13 +31,14 @@ export function interfaceGenerationFreshness(root) {
   const generators = ['generate-client-host-wire.mjs', 'generate-client-publication-wire.mjs',
     'generate-interactive-run-control-wire.mjs', 'generate-python-client-wire.mjs',
     'lowering-registry-vectors.mjs', 'native-cli-default-assets.mjs',
-    'catalog-body-dependencies.mjs',
+    'catalog-body-dependencies.mjs', 'check-stage-semantics.mjs',
     'compilation-manifests.mjs', 'query-acquisition-contract.mjs',
     'query-process-evidence.mjs', 'query-two-receipt.mjs',
     'query-resource-scopes.mjs', 'check-query-evidence-fixtures.mjs',
     'fixed-compute-capacity.mjs', 'managed-runtime-vectors.mjs'];
   assert.equal(new Set(generators).size, generators.length, 'Duplicate generation freshness check');
-  for (const name of generators) execFileSync(process.execPath, [join(root, 'scripts', name), '--check'], {
+  for (const name of generators) execFileSync(process.execPath, [join(root, 'scripts', name), '--check',
+    ...(name === 'check-stage-semantics.mjs' ? ['--root', root] : [])], {
     cwd: root, timeout: 15000, maxBuffer: 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
   const localGenerators = ['generate-local-wasm-abi.py', 'generate-local-native-runtime-binding.py',
     'generate-local-native-shim-bindings.py', 'generate-local-native-memory-binding.py',

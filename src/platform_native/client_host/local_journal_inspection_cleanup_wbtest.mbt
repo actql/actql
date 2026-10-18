@@ -1,5 +1,5 @@
 ///|
-test "Journal refusal retains the original inspection DB cleanup before releasing its adoption lock" {
+test "Journal refusal keeps its original inspection DB and lock until cleanup acknowledges" {
   let session = journal_open_original("journal-inspection-cleanup")
   let borrowed = @filesystem.open_private_root(
     @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap(),
@@ -11,8 +11,8 @@ test "Journal refusal retains the original inspection DB cleanup before releasin
     8388608L,
     database => {
       let database = database.unwrap()
-      // First close fails in the original inspector; second close fails in
-      // the Journal's cleanup. Both operate on this exact real copied DB.
+      // Original inspector close, then original Journal cleanup close, fail
+      // on this same real copied database. No source DB is opened for writing.
       local_test_fail_close(database, 2)
       Err(@journal.StateCollision)
     },
@@ -32,23 +32,32 @@ test "Journal refusal retains the original inspection DB cleanup before releasin
   assert_true(inspection.pending())
   let failure = session.retain_journal_open_failure(
     Inspection(Inspection(issue, None)),
-    None,
   )
-  assert_true(
-    failure.inspection_cleanup is Some(original) &&
-    physical_equal(original, inspection),
-  )
-  assert_true(failure.retry_cleanup() is Err(InspectionCleanup(_)))
+  let cleanup = failure.retry_cleanup()
   assert_true(inspection.pending())
-  assert_false(failure.inspection_cleaned)
-  assert_true(failure.acquisition.lock is Some(_))
-  assert_true(failure.acquisition.root is Some(_))
-  adoption_open_require_locked(borrowed)
+  // Observe the actual exclusive lock, not a cached cleanup flag. A failed
+  // contender retains and closes only its own original acquisition carrier.
+  let blocked = match
+    borrowed.acquire_lock_with_custody("local-adoption.lock") {
+    Err(original) => {
+      original.retry_cleanup().unwrap()
+      true
+    }
+    Ok(lock) => {
+      lock.close_checked().unwrap()
+      false
+    }
+  }
+  if !blocked {
+    fail(
+      "Journal released its adoption lock with original inspection cleanup pending",
+    )
+  }
+  assert_true(cleanup is Err(_))
+  session.parent.private_ownership().unwrap() |> ignore
   failure.retry_cleanup().unwrap()
   assert_false(inspection.pending())
-  assert_true(failure.inspection_cleaned)
-  assert_true(failure.acquisition.lock is None)
-  assert_true(failure.acquisition.root is None)
+  assert_true(session.parent.private_ownership() is Err(_))
   assert_true(
     failure.issue()
     is Inspection(
@@ -64,7 +73,7 @@ test "Journal refusal retains the original inspection DB cleanup before releasin
     physical_equal(original, inspection),
   )
   failure.retry_cleanup().unwrap()
-  let lock = borrowed.acquire_lock("local-adoption.lock").unwrap()
-  assert_true(lock.close())
+  let lock = borrowed.acquire_lock_with_custody("local-adoption.lock").unwrap()
+  lock.close_checked().unwrap()
   borrowed.close().unwrap()
 }

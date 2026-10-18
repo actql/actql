@@ -1,5 +1,5 @@
 {
-  "source": "c6284b9264dadfc7bcf296ea13eee2c63c16068d",
+  "source": "49b9badb0f2ecfb5b8aa0623754bd821fb9a6e67",
   "syntaxProjectionSha256": "4a31ecaf4ac9e25c4558a6363ef836ef44d22cbc792e2ae1cd9c05bbdc05c888",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
@@ -29,7 +29,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_memory_abi.py",
-      "sha256": "cf3b792e125cc0e3100ce7ff2c142354809154269ab5e27de268d61aec45802f",
+      "sha256": "74c4114defeed30f5bba3fa7d78e66db8be92eb4c733a36f9acd1ca0b956e7f2",
       "generator": {
         "path": "scripts/generate-local-native-memory-binding.py",
         "anchor": "def outputs("
@@ -53,7 +53,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_shim_abi.py",
-      "sha256": "c70134992b39a1ee546b50ad3bba0a10a37f5c104ee68783b828a9deda7068b4",
+      "sha256": "428eacd915e6e803ae42448a57f33869401caafa25ff9039d5e342a6014b716d",
       "generator": {
         "path": "scripts/generate-local-native-shim-bindings.py",
         "anchor": "def render("
@@ -30182,6 +30182,13 @@
         },
         {
           "async": false,
+          "name": "_OriginalInstalledProcessCustody/request_stop",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "_OriginalInstalledProcessCustody/restrict_transport",
           "parameters": [
             "self"
@@ -30251,7 +30258,7 @@
           ]
         }
       ],
-      "sha256": "e9189f3c3d383d7cc1c8d03402c15af56d1859f4a70cb75e187287669179ee49",
+      "sha256": "39bc731d7697546f3c432c07d51f9aceae12d7931918bf193324153d0b6f18c2",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "existing installed Host/domain and Native process Holder",
@@ -30286,6 +30293,7 @@
             "_OriginalInstalledProcessCustody/current",
             "_OriginalInstalledProcessCustody/poll_stop",
             "_OriginalInstalledProcessCustody/prepare_child",
+            "_OriginalInstalledProcessCustody/request_stop",
             "_OriginalInstalledProcessCustody/restrict_transport",
             "_OriginalInstalledProcessCustody/retire_stopped",
             "_OriginalInstalledProcessCustody/return_transport",
@@ -30310,6 +30318,10 @@
               {
                 "path": "src/platform_native/installed_arena_control/process_native.mbt",
                 "anchor": "struct InstalledArenaProcess {"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Private physical Core preparation"
               }
             ],
             "inputsOutputs": [
@@ -30324,6 +30336,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_process_custody.py",
                 "anchor": "def _slots("
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Private physical Core preparation"
               }
             ],
             "identity": [
@@ -30338,6 +30354,10 @@
               {
                 "path": "src/platform_native/installed_arena_entry/process_shim.c",
                 "anchor": "static int same_process("
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Private physical Core preparation"
               }
             ],
             "ownership": [
@@ -30352,6 +30372,10 @@
               {
                 "path": "src/platform_native/installed_arena_entry/process_shim.c",
                 "anchor": "int actql_process_finish_closed_data("
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Private physical Core preparation"
               }
             ],
             "synchronization": [
@@ -30366,6 +30390,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_process_custody.py",
                 "anchor": "def _enter("
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Private physical Core preparation"
               }
             ],
             "failure": [
@@ -30380,6 +30408,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_process_custody.py",
                 "anchor": "except BaseException as error:"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Private physical Core preparation"
               }
             ],
             "cancellation": [
@@ -30394,6 +30426,18 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_process_custody.py",
                 "anchor": "def retire_stopped("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_process_custody.py",
+                "anchor": "def request_stop("
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/process_child_native.mbt",
+                "anchor": "pub fn InstalledArenaHost::request_process_child_stop("
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Private physical Core preparation"
               }
             ],
             "resources": [
@@ -30408,6 +30452,10 @@
               {
                 "path": "src/platform_native/installed_arena_control/process_child_native.mbt",
                 "anchor": "pub fn InstalledArenaHost::prepare_process_child("
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Private physical Core preparation"
               }
             ],
             "extension": [
@@ -30422,6 +30470,10 @@
               {
                 "path": "scripts/generate-local-native-shim-bindings.py",
                 "anchor": "def render("
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Private physical Core preparation"
               }
             ],
             "verification": [
@@ -30440,6 +30492,30 @@
               {
                 "path": "scripts/fixtures/python-native-installed-process.py",
                 "anchor": "actual Native child FD4/selected environment/pipe roundtrip"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_process_custody.py",
+                "anchor": "def test_lost_stop_request_reply_keeps_original_unknown_without_resending("
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/process_child_transport_wbtest.mbt",
+                "anchor": "test \"installed child stop request retains the original region until separate typed stop and retirement\""
+              },
+              {
+                "path": "scripts/fixtures/python-native-process-stop-request.py",
+                "anchor": "# ACTUAL original child stop request."
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Private physical Core preparation"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_physical_core_preparation.py",
+                "anchor": "def test_lost_process_current_retains_same_inputs_and_original_unknown_without_replay("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_physical_core_preparation.py",
+                "anchor": "def test_duplicate_busy_foreign_and_retired_processes_do_not_rebind("
               }
             ]
           }
@@ -33839,7 +33915,7 @@
           ]
         }
       ],
-      "sha256": "cf3b792e125cc0e3100ce7ff2c142354809154269ab5e27de268d61aec45802f",
+      "sha256": "74c4114defeed30f5bba3fa7d78e66db8be92eb4c733a36f9acd1ca0b956e7f2",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -33891,6 +33967,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Original Rust buffer inspection"
               }
             ],
             "ownership": [
@@ -33953,6 +34033,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "### Rust storage within the original holding"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Original Rust buffer inspection"
               }
             ],
             "extension": [
@@ -33985,6 +34073,14 @@
               {
                 "path": "packages/python-local-runtime/native/pre-root/fixtures/thread.c",
                 "anchor": "static void thread_destructors(void) {"
+              },
+              {
+                "path": "packages/python-local-runtime/native/pre-root/fixtures/rust_heap.c",
+                "anchor": "\"stale token refuses\""
+              },
+              {
+                "path": "packages/python-local-runtime/native/pre-root/fixtures/rust_span.c",
+                "anchor": "\"physical reuse is not original token authority\""
               }
             ]
           }
@@ -34039,6 +34135,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_memory_abi.py",
                 "anchor": "\"\"\"Generated private C/Rust memory declarations; do not edit.\"\"\""
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Original Rust buffer inspection"
               }
             ],
             "ownership": [
@@ -34075,6 +34175,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_memory_abi.py",
                 "anchor": "\"\"\"Generated private C/Rust memory declarations; do not edit.\"\"\""
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "### Rust storage within the original holding"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "#### Original Rust buffer inspection"
               }
             ],
             "extension": [
@@ -34099,6 +34207,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_memory_abi.py",
                 "anchor": "\"\"\"Generated private C/Rust memory declarations; do not edit.\"\"\""
+              },
+              {
+                "path": "packages/python-local-runtime/native/pre-root/fixtures/rust_heap.c",
+                "anchor": "\"stale token refuses\""
+              },
+              {
+                "path": "packages/python-local-runtime/native/pre-root/fixtures/rust_span.c",
+                "anchor": "\"physical reuse is not original token authority\""
               }
             ]
           }
@@ -36528,7 +36644,7 @@
           ]
         }
       ],
-      "sha256": "c70134992b39a1ee546b50ad3bba0a10a37f5c104ee68783b828a9deda7068b4",
+      "sha256": "428eacd915e6e803ae42448a57f33869401caafa25ff9039d5e342a6014b716d",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
