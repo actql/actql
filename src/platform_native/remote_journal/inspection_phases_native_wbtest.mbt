@@ -42,7 +42,7 @@ test "native phased inspection keeps scratch and the same DB after a failed phys
   let before = test_source_bytes(path)
   let captured = prepare_sqlite_source_inspection(path, 1048576L, 1048576L).unwrap()
   let copy = captured.open_database(library).unwrap().unwrap()
-  let copy_path = @utf8.decode(inspection_path(captured.inspection)).unwrap()
+  let copy_path = captured.path.unwrap()
   let copy_before = test_source_bytes(copy_path)
   assert_true(copy_before[0].length() > 0)
   test_fail_inspection_close(copy, 1)
@@ -75,7 +75,7 @@ test "native phased inspection can abandon the captured copy without opening a D
   let original = library.open_database(path, 1048576L).unwrap()
   let before = test_source_bytes(path)
   let captured = prepare_sqlite_source_inspection(path, 1048576L, 1048576L).unwrap()
-  let copy_path = @utf8.decode(inspection_path(captured.inspection)).unwrap()
+  let copy_path = captured.path.unwrap()
   assert_true(test_source_bytes(copy_path)[0].length() > 0)
   captured.close_database().unwrap()
   assert_true(captured.pending())
@@ -98,7 +98,9 @@ test "native phased inspection retains preparation failure without a replacement
   let before = test_source_bytes(path)
   let captured = prepare_sqlite_source_inspection(path, 1048576L, 0L).unwrap()
   assert_true(captured.pending())
-  assert_true(captured.open_database(library) is Err(Physical(@sqlite.CapacityExceeded)))
+  assert_true(
+    captured.open_database(library) is Err(Physical(@sqlite.CapacityExceeded)),
+  )
   assert_true(captured.database is None)
   assert_true(captured.open_database(library) is Err(StateCollision))
   captured.close_database().unwrap()
