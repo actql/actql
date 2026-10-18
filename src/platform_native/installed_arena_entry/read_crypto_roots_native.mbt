@@ -99,6 +99,14 @@ extern "C" fn register_read_crypto_roots(
     ) -> Bool,
   ],
   has_library : FuncRef[(@control.InstalledArenaReadCryptoReply) -> Bool],
+  cleanup_current : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaLocalHostResources,
+      @control.InstalledArenaOriginalRead,
+      @control.InstalledArenaCryptoComponent,
+    ) -> Bool,
+  ],
 ) -> Unit = "actql_native_control_register_read_crypto_roots"
 
 ///|
@@ -155,5 +163,10 @@ fn register_original_read_crypto_roots() -> Unit {
       )
     },
     fn(reply) { reply.original_library() is Some(_) },
+    fn(host, pair, read, component) {
+      @control.cleanup_installed_arena_read_crypto_original(
+        host, pair, read, component,
+      )
+    },
   )
 }

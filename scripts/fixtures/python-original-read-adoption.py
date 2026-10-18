@@ -140,12 +140,17 @@ def main() -> None:
     except ValueError:
         pass
     step('acknowledged repeat cleanup performs no second prepare or open')
-    with pair.scope('read'):
+    try:
+        with pair.scope('read'):
+            raise AssertionError('Stopped original Read became available for normal work')
+    except _OriginalHostResourcesError as error:
+        assert not error.unknown and error.fact is not None and error.fact.issue_family > 0
+    with pair.scope('read', cleanup=True):
         crypto.close()
         assert crypto._closed and all(slot.value is None for slot in crypto._slots())
         component.close()
         assert component._closed and all(slot.value is None for slot in component._slots())
-    step('same original Library then component ACK retire in their original Read without parent stop')
+    step('same original Library then component ACK retire in cleanup-only Read; parent physical ACKs remain separate')
     pair.close()
     assert pair._closed and read._closed and sqlite._closed
     backing.return_after_stop()

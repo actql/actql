@@ -19,7 +19,7 @@ static struct {
     actql_read_crypto_library_fn library;
     actql_read_crypto_tag_fn operation, origin, family, closed, length, verified, has_library;
     actql_read_crypto_byte_fn byte;
-    actql_read_crypto_current_fn current;
+    actql_read_crypto_current_fn current, cleanup_current;
 } callbacks;
 static int registered;
 void actql_native_control_register_read_crypto_roots(
@@ -33,11 +33,11 @@ void actql_native_control_register_read_crypto_roots(
     actql_read_crypto_tag_fn family, actql_read_crypto_tag_fn closed,
     actql_read_crypto_tag_fn length, actql_read_crypto_tag_fn verified,
     actql_read_crypto_byte_fn byte, actql_read_crypto_current_fn current,
-    actql_read_crypto_tag_fn has_library) {
+    actql_read_crypto_tag_fn has_library, actql_read_crypto_current_fn cleanup_current) {
     if (registered) return;
     if (!prepare || !load || !open_library || !close_library || !close_component ||
         !hmac || !verify || !host || !pair || !read || !component || !library ||
-        !operation || !origin || !family || !closed || !length || !verified || !byte || !current || !has_library) {
+        !operation || !origin || !family || !closed || !length || !verified || !byte || !current || !has_library || !cleanup_current) {
         registered = -1; return;
     }
     callbacks.prepare = prepare; callbacks.load = load; callbacks.open_library = open_library;
@@ -47,7 +47,7 @@ void actql_native_control_register_read_crypto_roots(
     callbacks.library = library; callbacks.operation = operation; callbacks.origin = origin;
     callbacks.family = family; callbacks.closed = closed; callbacks.length = length;
     callbacks.verified = verified; callbacks.byte = byte; callbacks.current = current;
-    callbacks.has_library = has_library;
+    callbacks.has_library = has_library; callbacks.cleanup_current = cleanup_current;
     registered = 1;
 }
 static int same_current(actql_control_host *host, actql_local_host_resources *pair,
@@ -57,6 +57,19 @@ static int same_current(actql_control_host *host, actql_local_host_resources *pa
         actql_bootstrap_current_read_context() != NULL && callbacks.current(host, pair, read, component) == 1;
 #else
     (void)host; (void)pair; (void)read; (void)component; return 0;
+#endif
+}
+/* Cleanup current is distinct from usable current. Only close operations and
+ * their exact retained replies may consume it, never acquisition or hashing. */
+static int same_close_current(actql_control_host *host, actql_local_host_resources *pair,
+    actql_parent_read *read, actql_read_crypto_component *component) {
+    if (same_current(host, pair, read, component)) return 1;
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+    return registered == 1 && host && pair && read && component &&
+        actql_bootstrap_current_read_context() != NULL &&
+        callbacks.cleanup_current(host, pair, read, component) == 1;
+#else
+    return 0;
 #endif
 }
 int actql_read_crypto_prepare_into(actql_control_host *host, actql_local_host_resources *pair,
@@ -87,7 +100,8 @@ int actql_read_crypto_operate_into(actql_control_host *host, actql_local_host_re
     int32_t operation, actql_read_crypto_reply **reply) {
     if (!reply || *reply || operation < 3 || operation > 5 || (operation == 4) != (library != NULL))
         return ACTQL_CONTROL_INVALID_SLOT;
-    if (!same_current(host, pair, read, component)) return ACTQL_CONTROL_UNAVAILABLE;
+    if (!(operation == 3 ? same_current(host, pair, read, component) :
+          same_close_current(host, pair, read, component))) return ACTQL_CONTROL_UNAVAILABLE;
     *reply = operation == 3 ? callbacks.open_library(host, pair, read, component) :
         operation == 4 ? callbacks.close_library(host, pair, read, component, library) :
         callbacks.close_component(host, pair, read, component);
@@ -194,7 +208,10 @@ int actql_read_crypto_drop_reply(actql_read_crypto_reply **reply, actql_control_
     if (registered != 1 || !same_reply(*reply, host, pair, read, component, library)) return ACTQL_CONTROL_INVALID_SLOT;
     /* Read-created replies are released in their same physical frame. The
      * initial registration reply was allocated in outer control instead. */
-    if (callbacks.operation(*reply) != 1 && !same_current(host, pair, read, component)) return ACTQL_CONTROL_UNAVAILABLE;
+    int32_t operation = callbacks.operation(*reply);
+    if (operation != 1 && !((operation == 4 || operation == 5) ?
+        same_close_current(host, pair, read, component) : same_current(host, pair, read, component)))
+        return ACTQL_CONTROL_UNAVAILABLE;
     actql_read_crypto_reply *owned = *reply; *reply = NULL; moonbit_decref(owned);
     return ACTQL_CONTROL_OK;
 }
@@ -205,7 +222,7 @@ int actql_read_crypto_finish_closed_data(actql_control_host **host, actql_local_
     if (!distinct_slots(slots, 6)) return ACTQL_CONTROL_INVALID_SLOT;
     if (!*host && !*pair && !*read && !*component && !*library && !*reply) return ACTQL_CONTROL_OK;
     if (registered != 1 || !*host || !*pair || !*read || !*component || !*reply ||
-        !same_current(*host, *pair, *read, *component) || !same_reply(*reply, *host, *pair, *read, *component, *library))
+        !same_close_current(*host, *pair, *read, *component) || !same_reply(*reply, *host, *pair, *read, *component, *library))
         return ACTQL_CONTROL_INVALID_SLOT;
     int32_t operation = callbacks.operation(*reply);
     if (callbacks.origin(*reply) != 0 || callbacks.closed(*reply) != 1 ||
