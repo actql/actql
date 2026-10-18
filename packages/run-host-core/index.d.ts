@@ -94,6 +94,27 @@ export function prepareProgram(document: string, format: 'json' | 'yaml',
   environment: CheckEnvironment, parametersWire?: string):
   Readonly<{kind: 'effect_free'; prepared: PreparedProgram}> |
   Readonly<{kind: 'effect'; prepared: PreparedEffectProgram}>;
+/** Same original submitted SQL/AQL and trusted installation publication.
+ * Static preparation is not Source access, current authorization or capacity. */
+export type PreparedSourceProgram =
+  Readonly<{kind: 'effect_free'; prepared: PreparedProgram; originalIntent: SubmittedIntent}> |
+  Readonly<{kind: 'effect'; prepared: PreparedEffectProgram; originalIntent: SubmittedIntent}>;
+export interface SourceProgramOriginals {
+  readonly intentWire: string;
+  readonly intentCid: string;
+  readonly environmentCid: string;
+  readonly publicationWire: string;
+}
+export function prepareSourceProgram(intent: SubmittedIntent,
+  environment: CheckEnvironment, publicationWire: string): PreparedSourceProgram;
+export function sourceProgramOriginals(prepared: PreparedProgram | PreparedEffectProgram): SourceProgramOriginals;
+export function sourceProgramMaterialInput(prepared: PreparedProgram | PreparedEffectProgram,
+  environmentWire: string): SourceFreeRunMaterialsInput;
+/** Host-authenticated saved originals; never rediscover publication on restore. */
+export function restoreSourceProgram(originals: SourceProgramOriginals,
+  environment: CheckEnvironment): PreparedSourceProgram;
+export function prepareSourceRequest(prepared: PreparedProgram | PreparedEffectProgram,
+  intent: SubmittedIntent, authorityScopeCid: string, requestId: string): RequestIdentity;
 export function prepareEffect(document: string, format: 'json' | 'yaml',
   environment: CheckEnvironment, parametersWire?: string): PreparedEffectProgram;
 /** Explicit finite normalization selected by the original checked create/update kind.
