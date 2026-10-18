@@ -24,7 +24,7 @@ pub struct IssueCommentsRead {
 }
 
 ///|
-priv enum IssueCommentsReadRequest {
+pub enum IssueCommentsReadRequest {
   Subjects(Int)
   Comments(Int)
 }
