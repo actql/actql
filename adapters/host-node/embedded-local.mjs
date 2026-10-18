@@ -572,12 +572,16 @@ async function openInstalledHost(originalInstallation, preparation) {
   let sourcePublication;
   try {
     evidenceCid = JSON.parse(environmentWire).evidence_bundle_cid;
-    const numericProfile = JSON.parse(await readFile(join(packageRoot,
-      'spec/contracts/actql-numeric-reduction.json'), 'utf8'));
+    const numericProfile = JSON.parse(preparation === undefined
+      ? await readFile(join(packageRoot,
+        'spec/contracts/actql-numeric-reduction.json'), 'utf8')
+      : preparation.readAsset('spec/contracts/actql-numeric-reduction.json'));
     const numericProfileCid = `sha256:${createHash('sha256')
       .update(canonicalJson(numericProfile)).digest('hex')}`;
-    const graphLaw = JSON.parse(await readFile(join(packageRoot,
-      'spec/dependencies/actql-graph-laws.json'), 'utf8'));
+    const graphLaw = JSON.parse(preparation === undefined
+      ? await readFile(join(packageRoot,
+        'spec/dependencies/actql-graph-laws.json'), 'utf8')
+      : preparation.readAsset('spec/dependencies/actql-graph-laws.json'));
     // These declarations admit checking for the installed family providers.
     // The exact task offer and execution obligations still select capability.
     environment = moon.clientProgramCheckEnvironmentWithGraphProfile(
@@ -635,10 +639,14 @@ async function openInstalledHost(originalInstallation, preparation) {
       observation?.diagnostic(event, detail);
       delivery(event, detail);
     }, {close: delivery.close, status: delivery.status});
-    registry = await readFile(join(packageRoot,
-      'spec/dependencies/aoa-pipeline-registry.json'), 'utf8');
-    const aoa = JSON.parse(await readFile(join(packageRoot,
-      'spec/contracts/actql-aoa.json'), 'utf8'));
+    registry = preparation === undefined
+      ? await readFile(join(packageRoot,
+        'spec/dependencies/aoa-pipeline-registry.json'), 'utf8')
+      : preparation.readAsset('spec/dependencies/aoa-pipeline-registry.json');
+    const aoa = JSON.parse(preparation === undefined
+      ? await readFile(join(packageRoot,
+        'spec/contracts/actql-aoa.json'), 'utf8')
+      : preparation.readAsset('spec/contracts/actql-aoa.json'));
     values = JSON.stringify(aoa.execution_contracts['REL.values']);
     fragment = JSON.stringify(
       aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
@@ -3466,6 +3474,12 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     readEnvironmentSource() {
       return readInitialControlInstallationAsset(control, originals,
         'spec/local-check-environment.json');
+    },
+    // Fixed checking artifacts borrow their original captured image through
+    // this SAME preparation. Missing/current-refused images never fall back
+    // to a pathname or acquire another installation's source bytes.
+    readAsset(path) {
+      return readInitialControlInstallationAsset(control, originals, path);
     },
     retainReferenceRetirement(original) {
       if (referenceRetirement !== undefined || typeof original !== 'function') {
