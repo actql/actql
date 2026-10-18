@@ -183,6 +183,19 @@ byte backing, decoded String, hash and native decoder workspace overlap. Such
 byte custody alone does not establish the complete image loader, installation
 admission, current Host or preparation envelope.
 
+Selected image loading supplies immutable captured Source to the original Node
+compiler rather than delegating the body to a later pathname read. Uncaptured
+dependencies and additional query-identified images require their own selected
+domain; they cannot inherit this control coverage. A later loader registration
+invalidates the original history even if subsequently deregistered.
+
+The admission must also bind the actual post-load CJS cache/exports, original
+stock resolver, fixed asset reads and runtime-file identity to the loaded
+runtime. A Source-delivery marker, a stock-function identity check or a matching
+cache-shaped object alone does not authenticate those originals. These are
+selected implementation obligations, not restrictions on ActQL Programs or
+permission for unrelated Node callbacks, libraries or business work.
+
 This admission has no conversion to metadata HTTP, Source, Result, business Run,
 Model invocation, Content/driver or external-VM capacity or authority. Their
 existing Resource suppliers and current authorization remain separate. The
