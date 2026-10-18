@@ -1479,3 +1479,27 @@ keeps the spent registration until its final acknowledgement, preventing another
 load. A closed physical component carrier or other managed value allocated inside
 Read still keeps that actual context busy while any external alias survives;
 releasing it only permits another same-original cleanup attempt, never new work.
+
+The private Python Read/Crypto transport keeps the existing Host resource pair,
+original Read and component in persistent typed out-slots. Component registration
+uses the outer control lifetime before the first Read entry. Loading consumes that
+same registration once inside its actual entered Read. A Library is admitted only
+through that original component; a matching pointer-shaped value or copied
+carrier cannot substitute for the original registration and current checks.
+
+Each Library and partially initialized Library retains its own close duty. A
+refused Library acquisition with no Library carrier releases only that reply's
+managed references. It cannot close the component. Component retirement waits for
+all Library acknowledgments, and transport reference release is separate from
+Read leave, context, domain, parent loan, descriptor and Host retirement. Unknown
+retains the same slots and prevents resending the foreign operation. Python entry
+refusals occur before registration or a foreign call and do not manufacture a
+foreign-operation Unknown.
+
+When the original Read is already entered by the caller, the component-only
+close path preserves that exact frame and its parent read use. It performs the
+original component close and retains partial cleanup, but does not invoke the
+legacy domain-owning cleanup's stop/enter/leave sequence. Consequently the
+same-frame DATA retirement can check the original current Read after the child
+ACK without reviving a stopped use or interpreting it as a parent ACK. Older
+domain-owning callers retain their separate cleanup sequence.

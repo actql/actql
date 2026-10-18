@@ -16,6 +16,7 @@
 #include "local_journal_shim.h"
 #include "local_host_resources_shim.h"
 #include "local_adoption_shim.h"
+#include "read_crypto_shim.h"
 int actql_backing_borrow_into(actql_control_host * host, actql_backing_reply ** reply_slot);
 int actql_backing_current_into(actql_control_host * host, actql_backing_loan * loan, actql_backing_reply ** reply_slot);
 int actql_backing_drop_reply(actql_backing_reply ** reply_slot, actql_control_host * retained_host, actql_backing_loan * retained_loan);
@@ -146,6 +147,22 @@ int actql_process_operate_into(actql_control_host * host, actql_domain * domain,
 int32_t actql_process_operation(actql_process_reply * reply);
 int actql_process_originals_into(actql_process_reply * reply, actql_control_host ** host, actql_domain ** domain, actql_process ** process, actql_live_channel ** channel, actql_original_child_frame ** frame);
 int actql_process_prepare_utf16_into(actql_control_host * host, actql_domain * domain, const uint16_t * path, int32_t units, int32_t descriptor, int64_t nonce, int64_t retained, int64_t execution, actql_process_reply ** slot);
+int32_t actql_read_crypto_close_confirmed(actql_read_crypto_reply * reply);
+int actql_read_crypto_copy_output(actql_read_crypto_reply * reply, actql_control_host * host, actql_local_host_resources * pair, actql_parent_read * read, actql_read_crypto_component * component, actql_local_crypto_library * library, unsigned char * output, int64_t capacity, int64_t * length);
+int actql_read_crypto_drop_reply(actql_read_crypto_reply ** reply, actql_control_host * host, actql_local_host_resources * pair, actql_parent_read * read, actql_read_crypto_component * component, actql_local_crypto_library * library);
+int actql_read_crypto_finish_closed_data(actql_control_host ** host, actql_local_host_resources ** pair, actql_parent_read ** read, actql_read_crypto_component ** component, actql_local_crypto_library ** library, actql_read_crypto_reply ** reply);
+int actql_read_crypto_finish_refused_library(actql_control_host ** host, actql_local_host_resources ** pair, actql_parent_read ** read, actql_read_crypto_component ** component, actql_local_crypto_library ** library, actql_read_crypto_reply ** reply);
+int actql_read_crypto_finish_refused_prepare(actql_control_host ** host, actql_local_host_resources ** pair, actql_parent_read ** read, actql_read_crypto_reply ** reply);
+int actql_read_crypto_hmac_into(actql_control_host * host, actql_local_host_resources * pair, actql_parent_read * read, actql_read_crypto_component * component, actql_local_crypto_library * library, const unsigned char * key, int64_t key_length, const unsigned char * data, int64_t data_length, actql_read_crypto_reply ** reply);
+int32_t actql_read_crypto_issue_family(actql_read_crypto_reply * reply);
+int32_t actql_read_crypto_issue_origin(actql_read_crypto_reply * reply);
+int actql_read_crypto_load_utf16_into(actql_control_host * host, actql_local_host_resources * pair, actql_parent_read * read, actql_read_crypto_component * component, const uint16_t * path, int32_t units, int64_t heap, int32_t diagnostic, actql_read_crypto_reply ** reply);
+int actql_read_crypto_operate_into(actql_control_host * host, actql_local_host_resources * pair, actql_parent_read * read, actql_read_crypto_component * component, actql_local_crypto_library * library, int32_t operation, actql_read_crypto_reply ** reply);
+int32_t actql_read_crypto_operation(actql_read_crypto_reply * reply);
+int actql_read_crypto_originals_into(actql_read_crypto_reply * reply, actql_control_host ** host, actql_local_host_resources ** pair, actql_parent_read ** read, actql_read_crypto_component ** component, actql_local_crypto_library ** library);
+int actql_read_crypto_prepare_into(actql_control_host * host, actql_local_host_resources * pair, actql_parent_read * read, actql_read_crypto_reply ** reply);
+int32_t actql_read_crypto_verification(actql_read_crypto_reply * reply);
+int actql_read_crypto_verify_into(actql_control_host * host, actql_local_host_resources * pair, actql_parent_read * read, actql_read_crypto_component * component, actql_local_crypto_library * library, const unsigned char * key, int64_t key_length, const unsigned char * data, int64_t data_length, const unsigned char * signature, int64_t signature_length, actql_read_crypto_reply ** reply);
 int actql_sqlite_close_into(actql_control_host * host, actql_sqlite_original * original, actql_sqlite_reply ** reply);
 int actql_sqlite_current_into(actql_control_host * host, actql_sqlite_original * original, actql_sqlite_reply ** reply);
 int32_t actql_sqlite_database_after_issue_family(actql_sqlite_database_reply * reply);
