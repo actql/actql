@@ -22,7 +22,7 @@ const cid = digit => `sha256:${digit.repeat(64)}`;
 import {decimal38, readLimits, pending, resultBody, metadataBody} from './snowflake-response.fixture.mjs';
 export {decimal38, readLimits, pending, resultBody, metadataBody};
 
-async function originalRowOwner() {
+async function originalRowOwner(descriptionBody) {
   const responseLimits = moon.clientProgramSnowflakeResponseLimits(4096, 1000,
     16, 16, 256, 128, 4, 3, 3n);
   const descriptionLimits = moon.clientProgramSnowflakeDescriptionLimits(16,
@@ -30,7 +30,7 @@ async function originalRowOwner() {
   const declarationLimits = moon.clientProgramSnowflakeDeclarationLimits(200000,
     20000, 32, 1, 3);
   const description = checked(moon.clientProgramSnowflakeDescribeTable('PRODUCT',
-    'USAGE', 'USAGE_30D', [metadataBody()], responseLimits, descriptionLimits));
+    'USAGE', 'USAGE_30D', [descriptionBody], responseLimits, descriptionLimits));
   const declaration = checked(moon.clientProgramSnowflakeGenerateReadDeclaration(
     description, 'usage_30d', 'snowflake', 'snowflake/0.1', descriptionLimits, declarationLimits));
   const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
@@ -88,7 +88,9 @@ async function originalRowOwner() {
     close: () => checked(moon.clientProgramRowSourceCloseAccounted(run))};
 }
 
-export async function snowflakeFixture(t, {accountOutcome = 'allow'} = {}) {
+export async function snowflakeFixture(t, {accountOutcome = 'allow',
+  descriptionBody = metadataBody()} = {}) {
+  const originalDescription = Buffer.from(descriptionBody);
   const parent = join(repo, '_build/snowflake-read-fixtures');
   await mkdir(parent, {recursive: true});
   const root = await mkdtemp(join(parent, 'original-'));
@@ -139,7 +141,7 @@ export async function snowflakeFixture(t, {accountOutcome = 'allow'} = {}) {
   await new Promise((resolve, reject) => {
     server.once('error', reject); server.listen(0, '127.0.0.1', resolve);
   });
-  row = await originalRowOwner();
+  row = await originalRowOwner(originalDescription);
   const control = runtimeCore(moon).remoteCredentialControl;
   const authority = generateKeyPairSync('ed25519');
   journal = openSqliteCredentialJournal(join(root, 'credential-journal'), {

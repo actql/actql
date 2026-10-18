@@ -96,3 +96,38 @@ test "Snowflake unselected temporal representation is charged but cannot capture
   stopped.val = true
   snowflake_assert_retired(read, ledger)
 }
+
+///|
+test "Snowflake temporal output parameters follow only the original selected column Contracts" {
+  for
+    (column, date_output, utc_output) in [
+      ("ACCOUNT_ID", false, false),
+      ("ACTIVE_USERS", true, false),
+      ("TREND", false, true),
+    ] {
+    let prepared = snowflake_read_preparation(
+      query_text="SELECT " + column + " FROM snowflake.usage_30d",
+      temporal=true,
+    ).unwrap()
+    let ledger = snowflake_read_ledger(prepared, 8192L)
+    let read = @snowflake_read.start_accounted_read(
+      prepared,
+      "selected-temporal-column",
+      _ => true,
+      ledger,
+      8192L,
+      4096L,
+      snowflake_read_limits(),
+      10,
+    ).unwrap()
+    let statement = snowflake_statement(read)
+    let request = snowflake_next(statement)
+    let body = @snowflake_read.statement_request_body(request).unwrap()
+    assert_eq(body.contains("\"date_output_format\""), date_output)
+    assert_eq(body.contains("\"timestamp_ltz_output_format\""), utc_output)
+    assert_eq(body.contains("\"timezone\""), utc_output)
+    assert_true(body.contains("\"multi_statement_count\":\"1\""))
+    assert_eq(@resources.ledger_usage(ledger).transferred_bytes, 0L)
+    snowflake_assert_retired(read, ledger)
+  }
+}
