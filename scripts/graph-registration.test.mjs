@@ -106,11 +106,17 @@ test('SourceView Graph fixture owns independent schema and the complete CID chai
 
 test('constructor pins a distinct complete execution contract and exact shared dependencies', () => {
   checkRegistration(aoa, law, protocol, registry);
-  const prior = JSON.parse(gunzipSync(readFileSync('scripts/fixtures/pre-signed64-type-closure.json.gz'))).records;
+  const historical = JSON.parse(gunzipSync(readFileSync('scripts/fixtures/pre-signed64-type-closure.json.gz')));
+  const prior = historical.records;
   assert.equal(cid(prior['spec/contracts/actql-aoa.json'].execution_contracts[operation]),
     'sha256:d567ede4e421b6aaa6df39bf9fe03dfaaff129fb85ab9489faa6ffb61a8fa282');
   assert.equal(cid(prior['spec/dependencies/aoa-pipeline-registry.json']),
+    'sha256:e22e68346562f75943e37453469d40c378bfe6994b124977f73addc1c23e76b6');
+  assert.equal(historical.constructor_registry.source_revision,
+    'f9720668eaec295295935f1c3cdd075df7e58434');
+  assert.equal(cid(historical.constructor_registry.body),
     'sha256:a39ed49bed5ddd2dd6442a1dd92493a89fd47d563d36d255023e80ac10270041');
+  assert.equal(historical.constructor_registry.cid, cid(historical.constructor_registry.body));
   const current = read('portability/corpus/signed64-identities.json');
   assert.deepEqual(body, current.graphExecution.body);
   assert.equal(canonical(body), current.graphExecution.canonicalPreimage);

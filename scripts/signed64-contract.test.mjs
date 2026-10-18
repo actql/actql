@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {isDeepStrictEqual} from 'node:util';
 import {readFileSync} from 'node:fs';
 import {gunzipSync} from 'node:zlib';
 import test from 'node:test';
@@ -23,13 +24,17 @@ test('signed64 preserves legacy alternatives and refreshes the five original con
       const after = current.$defs.value_contract.oneOf;
       const original = structuredClone(before);
       const text = original.find(value => value.properties.type.const === 'string');
-      if (text && text.properties.enum === undefined) {
+      if (isDeepStrictEqual(after, [...before, leaf])) {
+        // Inherited grammars retain their own original constraints.
+        assert.deepEqual(after, [...before, leaf], path);
+      } else {
+        assert(text && text.properties.enum === undefined, path);
         const complete = prior['spec/contracts/actql-protocol-schemas.json'].schemas.canonical_value_contract.$defs.value_contract.oneOf;
         text.properties.enum = complete.find(value => value.properties.type.const === 'string').properties.enum;
         assert.deepEqual(original, complete, 'only the already-owned Text enum copy was stale: '+path);
         assert.deepEqual(after, [...complete, leaf]);
         refreshed++;
-      } else assert.deepEqual(after, [...before, leaf], path);
+      }
       copies++;
     }
     for (const [key, value] of Object.entries(previous)) inspect(current[key], value, path+'/'+key);
