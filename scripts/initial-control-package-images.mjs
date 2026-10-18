@@ -1,0 +1,167 @@
+import {createHash} from 'node:crypto';
+import {existsSync, lstatSync, readFileSync, readdirSync, realpathSync} from 'node:fs';
+import {dirname, isAbsolute, join} from 'node:path';
+import {createRequire} from 'node:module';
+
+export const initialControlPackageOriginal = 'adapters/host-node/initial-control-package-original.cjs';
+const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+const concrete = path => typeof path === 'string' && !isAbsolute(path) &&
+  !path.split('/').some(part => part === '..' || part === '.' || part === '') && !path.includes('\\');
+const fail = name => { throw new Error(name); };
+const fact = (path, bytes) => ({path, bytes: bytes.length, sha256: digest(bytes)});
+
+function publicCodeFiles(root, manifest) {
+  const files = new Map();
+  function walk(path) {
+    if (!concrete(path)) fail('InvalidInitialControlPackagePath');
+    const info = lstatSync(join(root, path));
+    if (info.isSymbolicLink()) fail('AliasedInitialControlPackageImage');
+    if (info.isDirectory()) {
+      for (const name of readdirSync(join(root, path)).sort()) {
+        if (name !== 'node_modules') walk(path + '/' + name);
+      }
+    } else if (!info.isFile()) fail('NonregularInitialControlPackageImage');
+    else if (/\.(?:[cm]?js|json|wasm)$/u.test(path)) files.set(path, readFileSync(join(root, path)));
+  }
+  if (!Array.isArray(manifest.files) && manifest.name.startsWith('@actql/')) fail('MissingInitialControlPackageFiles');
+  if (!manifest.name.startsWith('@actql/')) {
+    // These are already installed third-party package contents. Include all
+    // executable/JSON/wasm files, not an incomplete interpretation of npm globs.
+    for (const name of readdirSync(root).sort()) if (name !== 'node_modules') walk(name);
+  } else for (const selected of manifest.files) {
+    const path = selected.endsWith('/') ? selected.slice(0, -1) : selected;
+    // Type declarations, readmes and licenses are not executable image inputs.
+    if (/\.(?:d\.[cm]?ts|md)$/u.test(path) || !existsSync(join(root, path))) continue;
+    walk(path);
+  }
+  files.set('package.json', readFileSync(join(root, 'package.json')));
+  return [...files].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
+    .map(([path, bytes]) => fact(path, bytes));
+}
+
+function packageRoot(name, from) {
+  const require = createRequire(join(from, 'package.json'));
+  let file;
+  try { file = require.resolve(name); }
+  catch (error) {
+    if (error.code !== 'MODULE_NOT_FOUND' && error.code !== 'ERR_PACKAGE_PATH_NOT_EXPORTED') throw error;
+    // A declared type-only package can have no runtime export. Its actual
+    // nearest package manifest still belongs to this dependency selection.
+    for (const directory of require.resolve.paths(name) ?? []) {
+      const candidate = join(directory, name, 'package.json');
+      if (existsSync(candidate) && JSON.parse(readFileSync(candidate, 'utf8')).name === name) {
+        return realpathSync(dirname(candidate));
+      }
+    }
+    return undefined;
+  }
+  let at = dirname(realpathSync(file));
+  for (;;) {
+    const path = join(at, 'package.json');
+    if (existsSync(path) && JSON.parse(readFileSync(path, 'utf8')).name === name) return at;
+    const parent = dirname(at);
+    if (parent === at) fail('MissingInitialControlDependencyPackage');
+    at = parent;
+  }
+}
+
+// Use the installed package's declared dependency graph, not a parallel list of
+// Connector modules. Paths in the recipe are package-relative; build locations
+// and operational receipts never enter the published image inventory.
+function dependencyImages(root, destination, localManifest) {
+  const packages = [], roots = new Map();
+  function collect(name, directory, expectedVersion) {
+    directory = realpathSync(directory);
+    const manifest = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'));
+    if (manifest.name !== name || typeof manifest.version !== 'string') fail('WrongInitialControlDependency');
+    if (expectedVersion !== undefined && /^[0-9]+\.[0-9]+\.[0-9]+(?:[-+].*)?$/u.test(expectedVersion) &&
+        manifest.version !== expectedVersion) fail('WrongInitialControlDependencyVersion:' + name);
+    if (roots.has(directory)) return roots.get(directory);
+    const index = packages.length;
+    roots.set(directory, index);
+    const item = {name, version: manifest.version, images: publicCodeFiles(directory, manifest), dependencies: []};
+    packages.push(item);
+    const dependencies = {...manifest.dependencies, ...manifest.peerDependencies};
+    for (const dependency of Object.keys(dependencies).sort()) {
+      if (manifest.peerDependenciesMeta?.[dependency]?.optional === true) continue;
+      const resolved = packageRoot(dependency, directory);
+      if (resolved === undefined) fail('UnpreparedInitialControlDependency:' + dependency);
+      item.dependencies.push({name: dependency, package: collect(dependency, resolved, dependencies[dependency])});
+    }
+    return index;
+  }
+  const bindings = [];
+  for (const name of Object.keys(localManifest.dependencies ?? {}).sort()) {
+    // Public ActQL dependencies are Source-owned packages in the same normal
+    // build. Their actual installed correspondence is checked again in preload.
+    const own = name.startsWith('@actql/') ? join(root, 'packages', name.slice('@actql/'.length)) : undefined;
+    const directory = own !== undefined && existsSync(join(own, 'package.json')) ? own : packageRoot(name, destination);
+    if (directory === undefined) fail('UnpreparedInitialControlDependency:' + name);
+    bindings.push({name, package: collect(name, directory, localManifest.dependencies[name])});
+  }
+  // This is the existing startup's optional SDK resolution, not a new public
+  // dependency or a Provider invocation. Missing coverage refuses its adoption.
+  const sdk = join(root, 'packages/provider-ai-sdk');
+  let optionalSdk;
+  if (existsSync(join(sdk, 'package.json'))) {
+    try { optionalSdk = collect('@actql/provider-ai-sdk', sdk); }
+    catch (error) {
+      if (!error.message.startsWith('UnpreparedInitialControlDependency:')) throw error;
+      return {packages: [], bindings: [], optionalSdk: undefined, complete: false};
+    }
+  }
+  return {packages, bindings, optionalSdk, complete: true};
+}
+
+// The caller supplies exactly the bytes it will publish after its ordinary
+// import rewrite. Normal runtime assets are read from that same destination.
+// This returns only generated Source; it cannot issue or price a scope.
+export function renderInitialControlPackageOriginal({root, destination, inputs, outputs}) {
+  if (!(outputs instanceof Map) || !outputs.has(initialControlPackageOriginal)) {
+    fail('MissingInitialControlPackageTemplate');
+  }
+  const absent = outputs.get(initialControlPackageOriginal);
+  if (inputs.buildInputs !== undefined) return absent;
+  const images = new Map(outputs);
+  images.delete(initialControlPackageOriginal);
+  for (const file of inputs.runtimeFiles) {
+    if (!concrete(file)) fail('InvalidInitialControlRuntimePath');
+    const path = '_build/js/release/build/' + file, source = join(destination, path);
+    if (!existsSync(source)) return absent;
+    if (!lstatSync(source).isFile()) fail('AliasedInitialControlRuntime');
+    images.set(path, readFileSync(source));
+  }
+  const manifestPath = join(destination, 'package.json');
+  if (!existsSync(manifestPath)) return absent;
+  const manifestBytes = readFileSync(manifestPath), manifest = JSON.parse(manifestBytes);
+  images.set('package.json', manifestBytes);
+  function exported(value) {
+    if (typeof value === 'string') {
+      if (!value.startsWith('./') || !/\.[cm]?js$/u.test(value)) return;
+      const path = value.slice(2);
+      if (!concrete(path)) fail('InvalidInitialControlPublicImage');
+      if (images.has(path)) return;
+      const source = join(destination, path);
+      if (!lstatSync(source).isFile()) fail('AliasedInitialControlPublicImage');
+      images.set(path, readFileSync(source));
+    } else if (value !== null && typeof value === 'object') {
+      for (const child of Object.values(value)) exported(child);
+    }
+  }
+  exported(manifest.exports);
+  const dependencies = dependencyImages(root, destination, manifest);
+  const facts = [...images].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
+    .map(([path, bytes]) => {
+      if (!concrete(path)) fail('InvalidInitialControlImage');
+      return fact(path, bytes);
+    });
+  const recipe = {engine: {node: process.versions.node, v8: process.versions.v8,
+    openssl: process.versions.openssl, platform: process.platform, arch: process.arch, eager: true},
+  images: facts, packages: dependencies.packages, dependencies: dependencies.bindings,
+  optionalSdk: dependencies.optionalSdk ?? null, dependencyCoverage: dependencies.complete,
+  sourceBytes: facts.reduce((sum, value) => sum + value.bytes, 0),
+  hostModule: 'adapters/host-node/embedded-local.mjs',
+  hostValidator: 'assertInitialControlHostPreparation'};
+  return Buffer.from("'use strict';\n\n// Generated by the normal Local package builder from its exact selected images.\n// Source inventory only; the actual selected preload remains the operational issuer.\nmodule.exports = " +
+    JSON.stringify(recipe) + ';\n');
+}

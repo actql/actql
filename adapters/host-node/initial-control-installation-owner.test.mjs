@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {closeSync, fstatSync, mkdtempSync, openSync, rmSync} from 'node:fs';
+import {closeSync, fstatSync, mkdtempSync, openSync, readFileSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {createContext, runInContext} from 'node:vm';
 import ownerModule from './initial-control-installation-owner.cjs';
 
 const {createInitialControlInstallationOwner: createOwner} = ownerModule;
@@ -276,4 +277,56 @@ test('a generation cannot be reissued by reentry from its original current callb
   assert.equal(nested, 1);
   assert.equal((await scope.close()).pending, false);
   assert.throws(() => owner.begin(original), changed);
+});
+
+test('later Reflect Object and collection replacements cannot authenticate or discharge a scope', async () => {
+  // Mutate a fresh test-only realm, never the test runner's native intrinsics.
+  // This is an internal-state counter, not an actual preload envelope issuer.
+  const context = createContext({module: {exports: {}}, firstPending: true, secondPending: true});
+  runInContext(readFileSync(new URL('./initial-control-installation-owner.cjs', import.meta.url), 'utf8'), context);
+  runInContext(`
+    const owner = module.exports.createInitialControlInstallationOwner({
+      assertCurrent() {}, close() { return {pending: false}; }
+    });
+    const originals = {host: {}, installation: {}, generation: {}, supplier() {}, moduleLifetime: {}};
+    const scope = owner.begin(originals);
+    const firstRecord = {}, secondRecord = {};
+    scope.retainPreparation(firstRecord, {status() { return {pending: firstPending}; }, retry() { firstPending = false; }})
+      .releaseReferences(firstRecord);
+    scope.retainPreparation(secondRecord, {status() { return {pending: secondPending}; }, retry() {}})
+      .releaseReferences(secondRecord);
+    let replacementCalls = 0;
+    const replacement = () => { replacementCalls++; throw new Error('ReplacementMustNotRun'); };
+    Reflect.apply = replacement;
+    Reflect.ownKeys = replacement;
+    Object.getOwnPropertyDescriptor = replacement;
+    Object.hasOwn = replacement;
+    Object.freeze = replacement;
+    Object.create = replacement;
+    Object.assign = replacement;
+    Array.prototype[Symbol.iterator] = replacement;
+    WeakMap.prototype.get = replacement;
+    WeakMap.prototype.set = replacement;
+    WeakSet.prototype.has = replacement;
+    WeakSet.prototype.add = replacement;
+    Map.prototype.get = replacement;
+    Map.prototype.set = replacement;
+    Map.prototype.values = replacement;
+    Map.prototype.forEach = replacement;
+    Map.prototype.clear = replacement;
+    let rejected = false;
+    try { owner.assertCurrent({...scope}, originals); }
+    catch (error) { rejected = error.code === 'NodeInitialControlOriginalChanged'; }
+    if (!rejected) throw new Error('ForeignScopeAccepted');
+    owner.assertCurrent(scope, originals);
+    globalThis.firstClose = scope.close();
+    globalThis.finish = async () => {
+      const first = await firstClose;
+      if (!first.pending || first.pendingPreparations !== 1) throw new Error('SiblingWasRetired');
+      secondPending = false;
+      const last = await scope.close();
+      if (last.pending || replacementCalls !== 0) throw new Error('NativeOriginalWasNotRetained');
+    };
+  `, context);
+  await context.finish();
 });

@@ -3,30 +3,44 @@
 // Internal state machine, not an operational issuer. Only the actual preload's
 // private instance may accept its scopes. Importing this helper and constructing
 // another instance cannot add a member to that instance or supply its envelope.
-const names = Object.freeze(['host', 'installation', 'generation', 'supplier', 'moduleLifetime']);
+const freeze = Object.freeze, descriptor = Object.getOwnPropertyDescriptor, create = Object.create;
+const hasOwn = Object.hasOwn, keys = Reflect.ownKeys, apply = Reflect.apply;
+const NativeError = Error, NativeWeakMap = WeakMap, NativeWeakSet = WeakSet, NativeMap = Map;
+const weakGet = WeakMap.prototype.get, weakSet = WeakMap.prototype.set;
+const generationHas = WeakSet.prototype.has, generationAdd = WeakSet.prototype.add;
+const mapGet = Map.prototype.get, mapSet = Map.prototype.set;
+const mapEach = Map.prototype.forEach, mapClear = Map.prototype.clear;
+const names = freeze(['host', 'installation', 'generation', 'supplier', 'moduleLifetime']);
 const reference = value => value !== null &&
   (typeof value === 'object' || typeof value === 'function');
-const fail = code => { throw Object.assign(new Error(code), {code}); };
+const fail = code => { const error = new NativeError(code); error.code = code; throw error; };
 const unavailable = () => fail('NodeInitialControlAdmissionUnavailable');
 const foreign = () => fail('NodeInitialControlOriginalChanged');
 const own = (value, name) => {
-  const descriptor = Object.getOwnPropertyDescriptor(value, name);
-  if (descriptor === undefined || !Object.hasOwn(descriptor, 'value')) foreign();
-  return descriptor.value;
+  const property = descriptor(value, name);
+  if (property === undefined || !hasOwn(property, 'value')) foreign();
+  return property.value;
 };
 const snapshot = value => {
-  if (!reference(value) || Reflect.ownKeys(value).length !== names.length) foreign();
-  const result = {};
-  for (const name of names) {
+  if (!reference(value) || keys(value).length !== names.length) foreign();
+  const result = create(null);
+  for (let index = 0; index < names.length; index++) {
+    const name = names[index];
     const item = own(value, name);
     if (!reference(item)) foreign();
     result[name] = item;
   }
-  return Object.freeze(result);
+  return freeze(result);
 };
-const matches = (left, right) => names.every(name => left[name] === right[name]);
+const matches = (left, right) => {
+  for (let index = 0; index < names.length; index++) {
+    const name = names[index];
+    if (left[name] !== right[name]) return false;
+  }
+  return true;
+};
 const completed = value => reference(value) &&
-  Object.getOwnPropertyDescriptor(value, 'pending')?.value === false;
+  descriptor(value, 'pending')?.value === false;
 
 // operational is held only by the selected preload, never obtained from a
 // caller packet. Its two captured functions retain the selected source,
@@ -38,18 +52,18 @@ function createInitialControlInstallationOwner(operational) {
   const closeOperational = operational === undefined ? undefined : own(operational, 'close');
   if (operational !== undefined &&
       (typeof assertOperational !== 'function' || typeof closeOperational !== 'function')) unavailable();
-  const scopes = new WeakMap();
-  const generations = new WeakSet();
+  const scopes = new NativeWeakMap();
+  const generations = new NativeWeakSet();
 
   function remember(state, cause) {
-    const record = Object.freeze({cause});
+    const record = freeze({cause});
     state.firstError ??= record;
     state.lastError = record;
   }
   function observeChild(state, child) {
     if (child.cleanup === undefined || child.acknowledged) return;
     try {
-      if (completed(Reflect.apply(child.cleanup.status, child.cleanup.receiver, []))) {
+      if (completed(apply(child.cleanup.status, child.cleanup.receiver, []))) {
         child.acknowledged = true;
         child.cleanup = undefined;
       }
@@ -57,16 +71,16 @@ function createInitialControlInstallationOwner(operational) {
   }
   function observation(state) {
     let pendingPreparations = 0;
-    for (const child of state.children.values()) {
+    apply(mapEach, state.children, [child => {
       observeChild(state, child);
       if (!child.released || !child.acknowledged) pendingPreparations++;
-    }
-    return Object.freeze({pending: !state.closed, closing: state.closing,
-      pendingPreparations, errors: Object.freeze(state.firstError === undefined ? [] :
+    }]);
+    return freeze({pending: !state.closed, closing: state.closing,
+      pendingPreparations, errors: freeze(state.firstError === undefined ? [] :
         state.firstError === state.lastError ? [state.firstError] : [state.firstError, state.lastError])});
   }
   function stateFor(scope) {
-    const state = scopes.get(scope);
+    const state = apply(weakGet, scopes, [scope]);
     if (state === undefined) foreign();
     return state;
   }
@@ -74,7 +88,7 @@ function createInitialControlInstallationOwner(operational) {
     if (assertOperational === undefined) unavailable();
     const state = stateFor(scope);
     if (state.closing || state.closed || !matches(state.originals, snapshot(originals))) foreign();
-    Reflect.apply(assertOperational, operational, [state.originals]);
+    apply(assertOperational, operational, [state.originals]);
     // The original supplier callback may reentrantly close this same scope.
     if (state.closing || state.closed) foreign();
   }
@@ -88,7 +102,7 @@ function createInitialControlInstallationOwner(operational) {
     const state = stateFor(scope);
     assertCurrent(scope, state.originals);
     if (!reference(record)) foreign();
-    let child = state.children.get(record);
+    let child = apply(mapGet, state.children, [record]);
     if (child !== undefined) {
       if (child.released) foreign();
       if (handle !== undefined) {
@@ -106,14 +120,14 @@ function createInitialControlInstallationOwner(operational) {
     }
     child = {record, handle, cleanup: undefined, acknowledged: handle === undefined,
       released: false, duty: undefined};
-    child.duty = Object.freeze({releaseReferences(originalRecord) {
+    child.duty = freeze({releaseReferences(originalRecord) {
       if (child.record !== originalRecord || state.closed) foreign();
       child.released = true;
       // This is only the caller's managed alias-cut notice. It does not
       // acknowledge FD/body/native cleanup, escaped aliases, GC or capacity.
     }});
     // Retain the record before any fallible cleanup descriptor observation.
-    state.children.set(record, child);
+    apply(mapSet, state.children, [record, child]);
     if (handle !== undefined) {
       try { child.cleanup = cleanupOriginal(handle); }
       catch (cause) { remember(state, cause); throw cause; }
@@ -128,10 +142,15 @@ function createInitialControlInstallationOwner(operational) {
     // Install one flight before invoking any original callback. A reentrant or
     // concurrent close observes that SAME Promise and cannot double-retry.
     const flight = Promise.resolve().then(async () => {
-      for (const child of state.children.values()) {
+      // Snapshot original child references with the captured native Map walk;
+      // a later application replacement cannot skip another child's duty.
+      const children = [];
+      apply(mapEach, state.children, [child => { children[children.length] = child; }]);
+      for (let index = 0; index < children.length; index++) {
+        const child = children[index];
         observeChild(state, child);
         if (child.cleanup !== undefined && !child.acknowledged) {
-          try { await Reflect.apply(child.cleanup.retry, child.cleanup.receiver, []); }
+          try { await apply(child.cleanup.retry, child.cleanup.receiver, []); }
           catch (cause) { remember(state, cause); }
           // Retry's return value or settlement is not an ACK. Only the original
           // captured status observation may acknowledge this physical duty.
@@ -141,19 +160,19 @@ function createInitialControlInstallationOwner(operational) {
       const before = observation(state);
       if (before.pendingPreparations !== 0) return before;
       try {
-        const value = await Reflect.apply(closeOperational, operational, [state.originals]);
+        const value = await apply(closeOperational, operational, [state.originals]);
         if (!completed(value)) return observation(state);
       } catch (cause) {
         remember(state, cause);
         return observation(state);
       }
       state.closed = true;
-      for (const child of state.children.values()) {
+      apply(mapEach, state.children, [child => {
         child.record = undefined;
         child.handle = undefined;
         child.cleanup = undefined;
-      }
-      state.children.clear();
+      }]);
+      apply(mapClear, state.children, []);
       state.originals = undefined;
       return observation(state);
     }).finally(() => { if (state.flight === flight) state.flight = undefined; });
@@ -163,20 +182,20 @@ function createInitialControlInstallationOwner(operational) {
   function begin(originals) {
     if (assertOperational === undefined) unavailable();
     const held = snapshot(originals);
-    if (generations.has(held.generation)) foreign();
+    if (apply(generationHas, generations, [held.generation])) foreign();
     // Consume before the original current callback: it may reenter this Owner.
     // A refused attempt cannot recycle this generation into a second issue.
-    generations.add(held.generation);
-    Reflect.apply(assertOperational, operational, [held]);
-    const state = {originals: held, children: new Map(), closing: false, closed: false,
+    apply(generationAdd, generations, [held.generation]);
+    apply(assertOperational, operational, [held]);
+    const state = {originals: held, children: new NativeMap(), closing: false, closed: false,
       flight: undefined, firstError: undefined, lastError: undefined};
-    const scope = Object.freeze({assertCurrent(sameOriginals) { assertCurrent(scope, sameOriginals); },
+    const scope = freeze({assertCurrent(sameOriginals) { assertCurrent(scope, sameOriginals); },
       retainPreparation(record, cleanupHandle) { return retainPreparation(scope, record, cleanupHandle); },
       status() { return observation(state); }, close() { return close(scope); }});
-    scopes.set(scope, state);
+    apply(weakSet, scopes, [scope, state]);
     return scope;
   }
-  return Object.freeze({begin, assertCurrent});
+  return freeze({begin, assertCurrent});
 }
 
-module.exports = Object.freeze({createInitialControlInstallationOwner});
+module.exports = freeze({createInitialControlInstallationOwner});

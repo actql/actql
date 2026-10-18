@@ -79,6 +79,12 @@ const selected = module.isPreloading === true &&
   originalProcess.platform === 'darwin' && originalProcess.arch === 'arm64' &&
   originalProcess.versions.openssl === '3.5.4';
 
+// Source-only and incomplete distributions have no prepared image original.
+// Requiring the actual generated Source here precedes entry imports; loading a
+// similarly shaped caller object later cannot replace this module original.
+const initialControlPackageOriginal = selected && eagerSdkStartup && publicPreload !== undefined
+  ? require('./initial-control-package-original.cjs') : undefined;
+
 let startup;
 if (selected) {
   // Stock subclass initialization must precede the base-method fence. In the
