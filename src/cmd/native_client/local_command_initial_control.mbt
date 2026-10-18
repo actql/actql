@@ -9,6 +9,12 @@ priv struct LocalCommandParsedInput {
 }
 
 ///|
+// Only immutable application text crosses this boundary after a successful
+// Read leave. Actual partial-acquisition receivers stay with their own Owner.
+#borrow(original)
+extern "C" fn command_control_copy_text(original : String) -> String = "actql_native_client_copy_command_control_text"
+
+///|
 // The synchronous foreign call observes only liveness, never MoonBit layout.
 // Retain original argv/Command through the final physical cleanup call.
 // Mutable Matches move into the command call and must retire before that close.

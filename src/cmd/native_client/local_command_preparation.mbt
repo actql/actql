@@ -830,8 +830,12 @@ fn LocalCommandPreparationOriginal::read_command(
       match self.reply_outcome {
         Some(Ok(body)) => Ok(body)
         Some(Err(message)) => {
-          self.retain_primary(CommandApplication(message))
-          Err(CommandApplication(message))
+          // A retained application message must not keep this Read alive
+          // after its reply alias retires. The original/copy overlap belongs
+          // to the declared caller-control inventory, not Host.control_bytes.
+          let primary_message = command_control_copy_text(message)
+          self.retain_primary(CommandApplication(primary_message))
+          Err(CommandApplication(primary_message))
         }
         None => Err(CommandUnavailable)
       }
