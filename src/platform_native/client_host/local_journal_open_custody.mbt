@@ -11,6 +11,7 @@ struct NativeLocalJournalOpenFailure {
   retained_read : NativeLocalAdoptionIssue?
   mut retained_read_cleaned : Bool
   acquisition : NativeLocalAdoptionOpenFailure
+  original_resources : NativeLocalJournalOriginalResources?
 }
 
 ///|
@@ -28,34 +29,20 @@ pub fn NativeLocalJournalOpenFailure::issue(
 pub fn NativeLocalJournalOpenFailure::retry_cleanup(
   self : NativeLocalJournalOpenFailure,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  if !self.initial_signing_cleaned {
-    if self.initial_signing_failure is Some(original) {
-      match original.retry_cleanup() {
-        Err(issue) => return Err(Filesystem(issue))
+  match self.original_resources {
+    Some(original) => original.cleanup_journal_failure(self)
+    None => {
+      match self.cleanup_read_prefix() {
+        Err(issue) => return Err(issue)
         Ok(_) => ()
       }
-    }
-    self.initial_signing_cleaned = true
-  }
-  if !self.retained_read_cleaned {
-    let cleaned = match self.retained_read {
-      Some(ReadAcquisitionFailure(original)) => original.retry_cleanup()
-      Some(ReadPending(reader, _)) => reader.close()
-      None => Ok(())
-      Some(issue) => return Err(issue)
-    }
-    match cleaned {
-      Err(issue) => return Err(Filesystem(issue))
-      Ok(_) => self.retained_read_cleaned = true
+      match self.cleanup_database() {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      self.acquisition.retry_cleanup()
     }
   }
-  if self.database is Some(database) {
-    match database.close_checked() {
-      Err(issue) => return Err(Physical(issue))
-      Ok(_) => self.database = None
-    }
-  }
-  self.acquisition.retry_cleanup()
 }
 
 ///|
@@ -81,34 +68,85 @@ pub fn NativeLocalAdoptionSession::open_existing_journal_with_custody(
   }
   match opened {
     Ok(host) => Ok(host)
-    Err(issue) => {
-      let (database, inner) = match issue {
-        DatabasePending(database, original) => (Some(database), original)
-        original => (None, original)
+    Err(issue) => Err(self.retain_journal_open_failure(issue, None))
+  }
+}
+
+///|
+// One original failure carrier is shared by legacy and original-pair callers.
+// Retain the actual DB and acquisition before publishing the refusal.
+fn NativeLocalAdoptionSession::retain_journal_open_failure(
+  self : NativeLocalAdoptionSession,
+  issue : NativeLocalAdoptionIssue,
+  original_resources : NativeLocalJournalOriginalResources?,
+) -> NativeLocalJournalOpenFailure {
+  let (database, inner) = match issue {
+    DatabasePending(database, original) => (Some(database), original)
+    original => (None, original)
+  }
+  let acquisition : NativeLocalAdoptionOpenFailure = {
+    original_issue: inner,
+    source_root: Some(self.source_root),
+    parent: Some(self.parent),
+    root: Some(self.root),
+    managed: self.settings.managed.map(original => original.root),
+    lock: Some(self.lock),
+    root_acquisition: None,
+    lock_acquisition: None,
+    original_read_cleaned: false,
+  }
+  let original : NativeLocalJournalOpenFailure = {
+    original_issue: issue,
+    database,
+    initial_signing_failure: self.initial_signing_failure.val,
+    initial_signing_cleaned: false,
+    retained_read: self.read_cleanup,
+    retained_read_cleaned: false,
+    acquisition,
+    original_resources,
+  }
+  self.closed = true
+  self.journal_open_failure = Some(original)
+  original
+}
+
+///|
+fn NativeLocalJournalOpenFailure::cleanup_read_prefix(
+  self : NativeLocalJournalOpenFailure,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  if !self.initial_signing_cleaned {
+    if self.initial_signing_failure is Some(original) {
+      match original.retry_cleanup() {
+        Err(issue) => return Err(Filesystem(issue))
+        Ok(_) => ()
       }
-      let acquisition : NativeLocalAdoptionOpenFailure = {
-        original_issue: inner,
-        source_root: Some(self.source_root),
-        parent: Some(self.parent),
-        root: Some(self.root),
-        managed: self.settings.managed.map(original => original.root),
-        lock: Some(self.lock),
-        root_acquisition: None,
-        lock_acquisition: None,
-        original_read_cleaned: false,
-      }
-      let original : NativeLocalJournalOpenFailure = {
-        original_issue: issue,
-        database,
-        initial_signing_failure: self.initial_signing_failure.val,
-        initial_signing_cleaned: false,
-        retained_read: self.read_cleanup,
-        retained_read_cleaned: false,
-        acquisition,
-      }
-      self.closed = true
-      self.journal_open_failure = Some(original)
-      Err(original)
+    }
+    self.initial_signing_cleaned = true
+  }
+  if !self.retained_read_cleaned {
+    let cleaned = match self.retained_read {
+      Some(ReadAcquisitionFailure(original)) => original.retry_cleanup()
+      Some(ReadPending(reader, _)) => reader.close()
+      None => Ok(())
+      Some(issue) => return Err(issue)
+    }
+    match cleaned {
+      Err(issue) => return Err(Filesystem(issue))
+      Ok(_) => self.retained_read_cleaned = true
     }
   }
+  Ok(())
+}
+
+///|
+fn NativeLocalJournalOpenFailure::cleanup_database(
+  self : NativeLocalJournalOpenFailure,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  if self.database is Some(database) {
+    match database.close_checked() {
+      Err(issue) => return Err(Physical(issue))
+      Ok(_) => self.database = None
+    }
+  }
+  Ok(())
 }

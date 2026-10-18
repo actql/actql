@@ -1288,3 +1288,15 @@ domain even when their paths or ownership observations match. The existing
 Adoption Session applies the same physical check to each Root it owns; this
 neither substitutes for its full current/adoption fence nor combines Read and
 SQLite stages into one ambient scope.
+
+The original-pair Journal capture retains its existing-only Adoption Session
+and the same Host/Read/SQLite pair before physical open. It borrows the SQLite
+Library from that pair and brackets each original journal stage with its
+respective physical scope. Runtime current callbacks retain their own Read
+brackets; the Journal does not nest another Read around those callbacks.
+A returned DB is retained before leaving its SQLite stage. On refusal, the same
+partial-acquisition carrier preserves it, the original Roots and exclusive
+lock. A stage failure and a failed leave remain independently represented;
+cleanup may finish that original leave but cannot replay the protected stage.
+Directory/DB close, managed-reference retirement, domain/loan and Host ACKs
+remain distinct obligations of the existing Owners.

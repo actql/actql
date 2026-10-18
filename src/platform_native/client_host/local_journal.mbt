@@ -152,13 +152,7 @@ fn NativeLocalAdoptionSession::open_journal_selected(
   initial_signing? : NativeLocalInitialSigningMaterial? = None,
   initial_policy? : @host.ClientLocalSigningBootstrapPolicy? = None,
 ) -> Result[NativeLocalHostConnection, NativeLocalAdoptionIssue] {
-  if !valid_epoch_clock(ttl_ms) ||
-    ttl_ms < 1.0 ||
-    ttl_ms > 86400000.0 ||
-    max_records < 1 ||
-    max_records > 1024 ||
-    max_snapshot_bytes < 0L ||
-    max_snapshot_bytes > 536870912L {
+  if !valid_local_journal_options(ttl_ms, max_records, max_snapshot_bytes) {
     return Err(InvalidInput)
   }
   let (ownership, adoption_body) = match self.prepare_journal_file(crypto) {
@@ -347,12 +341,30 @@ pub fn NativeLocalHostConnection::close(
   self : NativeLocalHostConnection,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   self.closed = true
+  match self.close_journal_database() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  self.close_journal_session()
+}
+
+///|
+fn NativeLocalHostConnection::close_journal_database(
+  self : NativeLocalHostConnection,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
   if !self.database_closed {
     match self.database.close_checked() {
       Ok(_) => self.database_closed = true
       Err(issue) => return Err(Physical(issue))
     }
   }
+  Ok(())
+}
+
+///|
+fn NativeLocalHostConnection::close_journal_session(
+  self : NativeLocalHostConnection,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
   if !self.session_closed {
     if !self.session.close() {
       return Err(CustodyLost)
@@ -360,4 +372,19 @@ pub fn NativeLocalHostConnection::close(
     self.session_closed = true
   }
   Ok(())
+}
+
+///|
+fn valid_local_journal_options(
+  ttl_ms : Double,
+  max_records : Int,
+  max_snapshot_bytes : Int64,
+) -> Bool {
+  !(!valid_epoch_clock(ttl_ms) ||
+  ttl_ms < 1.0 ||
+  ttl_ms > 86400000.0 ||
+  max_records < 1 ||
+  max_records > 1024 ||
+  max_snapshot_bytes < 0L ||
+  max_snapshot_bytes > 536870912L)
 }
