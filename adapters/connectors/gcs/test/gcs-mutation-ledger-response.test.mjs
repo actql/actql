@@ -1,6 +1,7 @@
 // Actual Common/Effect Ledger and portable GCS owner; physical responses are
 // controlled. No Account approval, installed driver or service is substituted.
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {mkdtemp, mkdir} from 'node:fs/promises';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -12,7 +13,7 @@ import {captureClaimedEffectResponse} from '../../../host-node/effect-physical-d
 import {recoverProjectedEffectResponse} from '../../../host-node/effect-response-recovery.mjs';
 import {prepareGcsObjectBinding, admitGcsObjectMetadata, prepareOwnedGcsEffectMetadataPatch,
   prepareOwnedGcsObjectDelete, projectOwnedGcsObjectResponse, ownedGcsObjectResponseMatches,
-  sendOwnedGcsObjectRequest} from '../site/gcs-owned-object-request.mjs';
+  sendOwnedGcsObjectRequest, restoreOwnedGcsObjectMutationRequest} from '../site/gcs-owned-object-request.mjs';
 
 const token = digit => `sha256:${digit.repeat(64)}`;
 const metadata = {maxBytes: 8192, maxNodes: 1000, maxDepth: 12, maxEntries: 16};
@@ -23,11 +24,15 @@ const answer = changes => Buffer.from(JSON.stringify({bucket: 'bucket', name: 'i
   generation: '9007199254740993', metageneration: '3', size: '7', contentType: 'text/csv',
   metadata: {'e\u0301': '=exact\r\n', 'actql-request': token('d')}, ...changes}));
 
-function requestOf(kind, moon = provider) {
-  const binding = prepareGcsObjectBinding(moon, {kind, bucket: 'bucket', prefix: 'in/',
+function bindingOf(kind, moon) {
+  return prepareGcsObjectBinding(moon, {kind, bucket: 'bucket', prefix: 'in/',
     catalogCid: token('a'), installationCid: token('b'), contractCid: token('c'),
     permissions: [kind === 'patch_metadata' ? 'storage.objects.update' : 'storage.objects.delete'],
     metadata, maxPathBytes: 4096, maxBodyBytes: 8192, maxIdentityBytes: 16384});
+}
+
+function requestOf(kind, moon = provider) {
+  const binding = bindingOf(kind, moon);
   const original = admitGcsObjectMetadata(moon, {bytes: originalBody, bucket: 'bucket',
     prefix: 'in/', name: 'in/e\u0301.csv', limits: metadata});
   const request = kind === 'patch_metadata'
@@ -35,7 +40,15 @@ function requestOf(kind, moon = provider) {
       value: {content_type: 'text/csv', metadata: {$json: {'e\u0301': '=exact\r\n'}}},
       marker: token('d'), maxProjectionBytes: 8192})
     : prepareOwnedGcsObjectDelete({moon, binding, original, maxProjectionBytes: 8192});
-  return {binding, original, request};
+  // Retained target bytes/intent are explicit component evidence. They do not
+  // authenticate cold installation custody or reissue the old child's current.
+  const saved = {name: 'in/e\u0301.csv', responseStatus: 200, responseHeaders: [],
+    responseBytes: originalBody,
+    responseSha256: createHash('sha256').update(originalBody).digest('hex'),
+    changesBytes: Buffer.from(JSON.stringify(request.value)), body: request.body,
+    requestCid: request.request_cid, maxProjectionBytes: 8192};
+  return {binding, original, request, restore: () => restoreOwnedGcsObjectMutationRequest({
+    moon, binding: bindingOf(kind, moon), ...saved})};
 }
 
 test('original PATCH response requires marker version and full logical replacement without another read', () => {
@@ -85,7 +98,7 @@ test('missing mutation response ABI refuses without classifying or replacing the
 });
 
 async function fixture(t, kind) {
-  const {request} = requestOf(kind), control = runtimeCore(common).effectApplicationControl;
+  const {request, restore} = requestOf(kind), control = runtimeCore(common).effectApplicationControl;
   const scope = control.logicalRequestScope(token('a'), `mutation-${kind}`, 64);
   const key = control.dispatchKey(scope, token('b'), '"row-1"', 64, 8, 3);
   const locator = control.logicalItemLocator(scope, 'program', 'stage', 'Mutation', '{"row":"1"}', 64, 128, 8, 3);
@@ -108,7 +121,7 @@ async function fixture(t, kind) {
     authorization: {grant: {}, useId: 'controlled-original-response', scope: {
       resourceOrigin: 'https://storage.googleapis.com', operation: request.operation}},
     credential: {}, callResource, maxRequestBytes: 8192, maxResponseBytes: 8192});
-  return {request, claim, control, open, close, send};
+  return {request, restore, claim, control, open, close, send};
 }
 
 for (const kind of ['patch_metadata', 'delete']) {
@@ -120,15 +133,18 @@ for (const kind of ['patch_metadata', 'delete']) {
       execute: () => f.send(async () => {sends++;return {useCid: token('3'), accepted: true, statusCode, body, headers: []};})});
     assert.equal(projectOwnedGcsObjectResponse(f.request, captured.physical.observation, 1024).outcome.state, 'applied');
     f.close(ledger);const restarted = f.open();let authorized = 0;
+    const restored = f.restore();
+    assert.notEqual(restored, f.request, 'recovery uses new local nominal membership');
+    assert.deepEqual(restored, f.request);
     const recovery = {ledger: restarted, claims: f.claim, commonMoon: common,
-      expectedRequestCid: f.request.request_cid,
+      expectedRequestCid: restored.request_cid,
       authorizeEvidenceRead: async value => {authorized++;assert.equal(value.canonicalRequestCid, f.request.request_cid);return true;},
-      projectStored: stored => projectOwnedGcsObjectResponse(f.request, {statusCode: stored.statusCode, body: stored.responseBytes}, 1024)};
+      projectStored: stored => projectOwnedGcsObjectResponse(restored, {statusCode: stored.statusCode, body: stored.responseBytes}, 1024)};
     const recovered = await recoverProjectedEffectResponse(recovery);
     assert.equal(recovered.recovered.outcome.state, 'applied');assert.equal(authorized, 1);
     await assert.rejects(recoverProjectedEffectResponse({...recovery, authorizeEvidenceRead: async () => false}),
       {code: 'EffectEvidenceAccessDenied'});
-    const repeated = await captureClaimedEffectResponse({ledger: restarted, claim: f.claim, requestCid: f.request.request_cid,
+    const repeated = await captureClaimedEffectResponse({ledger: restarted, claim: f.claim, requestCid: restored.request_cid,
       execute: () => assert.fail('Existing possible-dispatch ownership forbids another send')});
     assert.equal(repeated.claimed, false);assert.equal(sends, 1);
   });
@@ -140,7 +156,9 @@ for (const kind of ['patch_metadata', 'delete']) {
       execute: () => f.send(async () => {sends++;throw primary;})}), error => error === primary);
     assert.equal(ledger.readClaimedResponse(f.claim), undefined);
     f.close(ledger);const restarted = f.open();
-    const repeated = await captureClaimedEffectResponse({ledger: restarted, claim: f.claim, requestCid: f.request.request_cid,
+    const restored = f.restore();
+    assert.equal(restored.request_cid, f.request.request_cid);
+    const repeated = await captureClaimedEffectResponse({ledger: restarted, claim: f.claim, requestCid: restored.request_cid,
       execute: () => assert.fail('Object absence or matching metadata cannot authorize replay')});
     assert.equal(repeated.claimed, false);assert.equal(sends, 1);
     assert.equal(restarted.readClaimedResponse(f.claim), undefined);

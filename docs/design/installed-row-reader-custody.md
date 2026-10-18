@@ -1,5 +1,48 @@
 # Original installed row reader custody
 
+## Original installation preparation read
+
+The existing Source publication Owner can retain an installation's original
+funded read and workspace for a preparation consumer. This captures an already
+issued pair; it does not create the installing Host, fund startup, admit a
+business Run or authorize a metadata request.
+
+- Responsibility: `InstallationPreparationRead` retains the existing Resource
+  consumer and its exact original workspace through preparation.
+- Inputs and outputs: preparation accepts the original read-pair, origin,
+  workspace loan and complete simultaneous retained/execution envelope. It
+  returns a private-constructor capture, not a Ledger or replacement loan.
+- Identity: the initial pair lookup checks the same original claim, origin and
+  loan before the read enters `Preparing`. Equal bytes, CIDs or a second loan on
+  the same Ledger cannot replace those originals.
+- Ownership: the installing Host retains read settlement and physical workspace
+  stop/cleanup. The capture owns its one preparation transition and final
+  borrowed-pair retirement; it does not close either physical responsibility.
+- Synchronization: after each await, the consumer checks its same retained
+  Resource consumer and loan. The old `Reading`/`Written` pair borrow is not
+  reopened. Entry uses the original single-use Resource transition, and repeated
+  entry refuses.
+- Failure: a foreign pair or insufficient envelope refuses before claiming.
+  Failed current checks retain the original capture and cleanup duties; they do
+  not issue a new read, refund capacity or repeat provider I/O.
+- Cancellation: stopping a read or beginning workspace closure revokes current
+  preparation availability. Neither action confirms physical retirement, and a
+  pending stop or cleanup keeps the original references held.
+- Resources: the original envelope covers this capture, tuple and referenced
+  origin/pair/loan/consumer, their overlapping users and construction workspace.
+  Bounds and current predicates do not supply that funding. Retiring borrowed
+  references is not GC reclamation, a byte refund or another duty's ACK.
+- Extension: these private typed entry points add no wire, CID, credential
+  domain, grant, numerical profile or alternate cleanup Owner. Host/Site/Account
+  current authority, I/O admission and complete startup/phase funding remain
+  independent prerequisites. An initial control/preparation-only bootstrap
+  cannot supply metadata HTTP, Source, Model, Result or business-Run capacity
+  through this capture; each consuming domain still needs its actual supplier.
+- Verification: owner tests cover the post-claim phase, single entry, foreign
+  originals, insufficient envelopes and both orders of read/workspace cleanup.
+  Their explicit synthetic envelopes are not an installed physical supplier or
+  a normal Host funding qualification.
+
 ## Original public connection declarations
 
 The existing Project configuration Owner admits the closed connectors document
@@ -77,6 +120,43 @@ layout and lifetime are part of the same selected envelope, not free control
 bytes. Only after original Core close and capture cleanup succeed may the
 Host sever its reader/method backreferences. This reference retirement is not
 GC or a physical release acknowledgement of another Owner's resources.
+## Original credential acquisition retirement
+
+The existing Row Credential Site can explicitly select bounded Run-acquisition
+custody. Its trusted installer supplies positive `maxBindings` and
+`maxSecretBytes`, together with the original immutable Site profile, issuer,
+resolver and Journal. Omission refuses the new acquisition entry; it does not
+supply a normal numerical profile or change existing Run callers.
+
+`openRunAcquisition` snapshots the original Run request and synchronous/current
+observation callbacks before invoking them. It uses the same existing signing
+path and seventeen-field grant preimage. The returned authorization and private
+credential envelope retain the same control, Journal and resolver; the physical
+binding keeps original material across separately claimed operations. Every
+awaited observation is followed by the captured current fence. A copied scope,
+matching CID or callback result cannot create an issuer, new permission or
+current authorization.
+
+The parent Site owns every selected binding before returning a borrow. Its
+close first retires those original bindings, including pending resolver,
+response and socket custody, and only then invokes the captured original
+Journal close with its original receiver. An unconfirmed child cannot release
+the parent Journal. Failed Journal close remains pending in that same custody;
+confirmed child and Journal retirement are not repeated. The metadata
+alternative and existing Run callers retain their distinct purposes and
+existing scope rules.
+
+The binding count bounds retained original entries, not only currently open
+sockets. Closing a child does not replenish that declared count or reclaim its
+escaped credential/current/authorization aliases. The original acquisition's
+budget must cover the entries, callbacks, request snapshots, immutable
+credential borrows, grant/use references, material, response/error aliases and
+simultaneous physical workspace through cleanup. No response loss or Unknown
+claim is retried by cleanup. Journal retirement does not reconcile that claim,
+authenticate a saved publication, release another Owner's holding or establish
+GC/physical-byte reclamation. Actual Host/Account admission, funding and durable
+publication remain independent requirements of their existing Owners.
+
 ## Installation publication storage association
 
 The existing publication Owner has a separate closed storage-association DATA
