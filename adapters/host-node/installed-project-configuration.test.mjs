@@ -29,6 +29,21 @@ function common(selected) {
   return {moon, configuration, registry, calls};
 }
 
+test('a caller scope method cannot admit Project work without the original startup', async () => {
+  let runtimeReads = 0, opens = 0, callerChecks = 0;
+  const moon = new Proxy({}, {get() {runtimeReads++; assert.fail('No Common reads');}});
+  const scope = {assertCurrent() {callerChecks++; return true;}};
+  for (const privateInputs of [
+    {initialControl: scope}, {initialControlOriginals: {}},
+    {initialControl: scope, initialControlOriginals: {}},
+  ]) {
+    await assert.rejects(loadInstalledProjectConfiguration(moon,
+      {directory: '/project', openFile() {opens++;}, ...privateInputs}),
+    {code: 'NodeInitialControlAdmissionUnavailable'});
+  }
+  assert.equal(runtimeReads, 0); assert.equal(opens, 0); assert.equal(callerChecks, 0);
+});
+
 test('project adapter retains the exact original configuration registry and receiver', () => {
   const {moon, configuration, registry, calls} = common('./tasks.json');
   const configWire = ' {"original":"configuration"}\n', registryWire = ' {"original":"registry"} ';
