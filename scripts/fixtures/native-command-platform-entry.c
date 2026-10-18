@@ -17,6 +17,10 @@ static void *foreign_thread(void *raw) {
 
 int main(int argc, char **argv) {
   assert(argc == 2);
+  assert(atomic_load(&actql_command_entry_state) == 1);
+  assert(actql_command_entry.process == getpid());
+  assert(pthread_equal(actql_command_entry.thread, pthread_self()));
+  assert(actql_native_command_platform_current() == NULL);
   assert(actql_native_client_measure_prearguments(256,4096,65536,8192) == 0);
   actql_native_client_capture_command_entry();
   assert(atomic_load(&actql_command_entry_state) == 2);

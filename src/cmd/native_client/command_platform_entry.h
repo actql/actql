@@ -40,16 +40,17 @@ struct actql_native_command_platform_original {
 static _Atomic int actql_command_entry_state;
 static actql_native_command_platform_original actql_command_entry;
 
-/* Allocation-free capture from the actual Native main, after original raw
- * input bounds and before managed Command construction. This neither admits
- * the incomplete envelope nor acquires a Host, Root, Library, Read or key. */
-void actql_native_client_capture_command_entry(void) {
+/* Capture before the generated MoonBit module initializers, not merely before
+ * Command construction in MoonBit main. This uses only the actual entry's
+ * static records and original process/thread facts; it admits no envelope and
+ * acquires no Host, Root, Library, Read, key or loader reference. */
+__attribute__((constructor)) static void actql_command_capture_process_entry(void) {
   int expected = 0;
   if (!atomic_compare_exchange_strong_explicit(&actql_command_entry_state,
-      &expected, 1, memory_order_acq_rel, memory_order_acquire)) return;
+      &expected, -2, memory_order_acq_rel, memory_order_acquire)) return;
 #if defined(__APPLE__)
   const char *source = actql_native_client_selected_source();
-  if (actql_command_input_status != ACTQL_COMMAND_INPUT_OK || !source) {
+  if (!source) {
     atomic_store_explicit(&actql_command_entry_state, -1, memory_order_release);
     return;
   }
@@ -61,10 +62,26 @@ void actql_native_client_capture_command_entry(void) {
   extern const struct mach_header_64 _mh_execute_header;
   actql_command_entry.image = &_mh_execute_header;
   actql_command_entry.source = source;
-  atomic_store_explicit(&actql_command_entry_state, 2, memory_order_release);
+  atomic_store_explicit(&actql_command_entry_state, 1, memory_order_release);
 #else
   atomic_store_explicit(&actql_command_entry_state, -1, memory_order_release);
 #endif
+}
+
+/* Main joins its bounded original raw input to this SAME early entry. Neither
+ * this observation nor a successful input bound can select operational
+ * coverage; only the complete trusted initial envelope can do so. */
+void actql_native_client_capture_command_entry(void) {
+  if (atomic_load_explicit(&actql_command_entry_state, memory_order_acquire) != 1)
+    return;
+  if (actql_command_entry.process != getpid() ||
+      !pthread_equal(actql_command_entry.thread, pthread_self())) return;
+  if (actql_command_input_status != ACTQL_COMMAND_INPUT_OK ||
+      actql_command_entry.source != actql_command_input_source) {
+    atomic_store_explicit(&actql_command_entry_state, -1, memory_order_release);
+    return;
+  }
+  atomic_store_explicit(&actql_command_entry_state, 2, memory_order_release);
 }
 
 static bool actql_command_entry_thread(

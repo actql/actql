@@ -9,8 +9,8 @@ priv struct LocalCommandParsedInput {
 }
 
 ///|
-// Capture actual entry provenance only. The complete selected initial envelope
-// remains a separate requirement; this call issues no operational admission.
+// Bind bounded input to the same entry captured before module initialization.
+// The complete initial envelope remains separate; this issues no admission.
 extern "C" fn command_capture_native_entry() -> Unit = "actql_native_client_capture_command_entry"
 
 ///|
