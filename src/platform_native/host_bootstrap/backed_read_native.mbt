@@ -11,6 +11,14 @@ extern "C" fn read_context_status_ffi(domain : PhysicalExtentDomain) -> Int = "a
 
 ///|
 #borrow(domain)
+extern "C" fn read_context_entered_ffi(domain : PhysicalExtentDomain) -> Int = "actql_bootstrap_read_context_entered"
+
+///|
+#borrow(domain)
+extern "C" fn read_context_unentered_ffi(domain : PhysicalExtentDomain) -> Int = "actql_bootstrap_read_context_unentered"
+
+///|
+#borrow(domain)
 extern "C" fn enter_read_context_ffi(domain : PhysicalExtentDomain) -> Int = "actql_bootstrap_enter_read_context"
 
 ///|
@@ -122,6 +130,86 @@ pub fn[T, C] NativeHostBootstrap::require_backed_read_context_current(
     Err(Bootstrap(Physical(status)))
   } else {
     Ok(())
+  }
+}
+
+///|
+/// Check the already entered original physical scope. This does not enter,
+/// lend or disclose its context, and cannot replace Common use/current checks.
+pub fn[T, C] NativeHostBootstrap::require_backed_read_context_entered(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  match self.require_backed_read_context_current(original, domain, child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let status = read_context_entered_ffi(domain.physical)
+  if status == 0 {
+    Ok(())
+  } else {
+    Err(Bootstrap(Physical(status)))
+  }
+}
+
+///|
+/// Existing cleanup callers only. Revalidate the same retained use and actual
+/// entered physical context after logical stop. This neither revives normal
+/// current nor returns its borrow, descriptor or parent acknowledgement.
+pub fn[T, C] NativeHostBootstrap::require_backed_read_cleanup_entered(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  let read_use = match self.original_read_carrier(original, domain, child) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if !domain.read_attempted || domain.read_retired {
+    return Err(Bootstrap(Unavailable))
+  }
+  let status = read_context_status_ffi(domain.physical)
+  if status != 0 {
+    return Err(Bootstrap(Physical(status)))
+  }
+  let entered = read_context_entered_ffi(domain.physical)
+  if entered != 0 {
+    return Err(Bootstrap(Physical(entered)))
+  }
+  let loan = domain.view.loan
+  // The existing stop is idempotent and validates the original region,
+  // provider, child, ticket and unreturned use even while closing. It issues
+  // no successful cleanup fact and cannot allocate or enter another context.
+  @resources.stop_backed_execution_read_use(
+    loan.region.accounting,
+    self,
+    child,
+    loan.accounting,
+    read_use,
+  ).map_err(issue => Accounting(issue))
+}
+
+///|
+/// Observe the original context before a managed caller enters it. This does
+/// not supply an outer control allocation or switch out of another context.
+pub fn[T, C] NativeHostBootstrap::require_backed_read_context_unentered(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  match self.require_backed_read_context_current(original, domain, child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let status = read_context_unentered_ffi(domain.physical)
+  if status == 0 {
+    Ok(())
+  } else {
+    Err(Bootstrap(Physical(status)))
   }
 }
 

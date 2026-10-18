@@ -15344,7 +15344,7 @@
     },
     {
       "module": "packages/run-host-core/index.mjs",
-      "sha256": "bdc85d295da1ba5b9504c462c3ad2bcf70c371156adfaa28c5133b97a7e4b32c",
+      "sha256": "50d40f7c89f2bccad81193d3314777a11a573a42f24719c35629dfe5e772cb17",
       "role": "physical-io",
       "exports": [
         "admitCapturedResultSnapshot",
@@ -15365,6 +15365,7 @@
         "admitRunEvidenceValue",
         "admitSourceFreeRequestFields",
         "admitSourceFreeRunDefinition",
+        "admitSourceRequestFields",
         "admitTaskRun",
         "admitTaskRunDefinition",
         "beginResultMaterialHolds",
@@ -15444,6 +15445,8 @@
         "prepareRunPreStartFailure",
         "prepareRunStart",
         "prepareSourceFreeRequest",
+        "prepareSourceProgram",
+        "prepareSourceRequest",
         "prepareSubmissionEpoch",
         "prepareSubmittedIntent",
         "prepareTaskPhysicalStart",
@@ -15454,6 +15457,7 @@
         "privateRunDefinition",
         "privateTaskCompilationWires",
         "projectCommittedResultRead",
+        "projectEffectSiteRun",
         "projectPublicationSnapshot",
         "projectSiteRun",
         "projectTaskSiteRun",
@@ -15462,6 +15466,7 @@
         "requestFields",
         "requestRelation",
         "restoreEffectRunNormalization",
+        "restoreSourceProgram",
         "resultDefinitions",
         "resultMaterialHoldsFacts",
         "resultMaterialHoldsWire",
@@ -15481,6 +15486,9 @@
         "runCancellationIntentCid",
         "sealRunEvidenceValue",
         "sourceEvidenceFacts",
+        "sourceProgramMaterialInput",
+        "sourceProgramOriginals",
+        "sourceProgramSourceInput",
         "submissionEpochFacts",
         "submissionEpochValidity",
         "submissionRequestId",
@@ -15544,7 +15552,8 @@
             "definitionCid",
             "profiles",
             "original",
-            "expectedRequest"
+            "expectedRequest",
+            "sourcePrepared"
           ],
           "async": false
         },
@@ -15746,6 +15755,15 @@
             "compilation",
             "admission",
             "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "admitSourceRequestFields",
+          "parameters": [
+            "prepared",
+            "intent",
+            "fields"
           ],
           "async": false
         },
@@ -15975,6 +15993,14 @@
           "async": false
         },
         {
+          "name": "effectProjectionArray",
+          "parameters": [
+            "value",
+            "maximum"
+          ],
+          "async": false
+        },
+        {
           "name": "effectResultDefinitions",
           "parameters": [
             "prepared",
@@ -16139,6 +16165,21 @@
           "async": false
         },
         {
+          "name": "effectTaskProgressSnapshot",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectTaskProgressSnapshot/effectTaskProgressSnapshot",
+          "parameters": [
+            "row",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "evidenceItems",
           "parameters": [
             "values"
@@ -16199,14 +16240,6 @@
             "definition",
             "authority",
             "durableWires"
-          ],
-          "async": false
-        },
-        {
-          "name": "inspectEffectTaskProgress/inspectEffectTaskProgress",
-          "parameters": [
-            "row",
-            "index"
           ],
           "async": false
         },
@@ -17613,6 +17646,25 @@
           "async": false
         },
         {
+          "name": "prepareSourceProgram",
+          "parameters": [
+            "intent",
+            "environment",
+            "publicationWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSourceRequest",
+          "parameters": [
+            "prepared",
+            "intent",
+            "authorityScopeCid",
+            "requestId"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareSubmissionEpoch",
           "parameters": [
             "scope"
@@ -17715,6 +17767,27 @@
           "name": "projectCommittedResultRead/projectCommittedResultRead#2",
           "parameters": [
             "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectEffectSiteRun",
+          "parameters": [
+            "allowed",
+            "definition",
+            "authority",
+            "durableWires",
+            "observedAt",
+            "cancellationRequested",
+            "savedClaims"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectEffectSiteRun/projectEffectSiteRun",
+          "parameters": [
+            "task",
+            "index"
           ],
           "async": false
         },
@@ -17901,6 +17974,28 @@
           "name": "restoreEffectRunNormalization",
           "parameters": [
             "materials"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreSourceProgram",
+          "parameters": [
+            "originals",
+            "environment"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreSourceProgram/restoreSourceProgram",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreSourceProgram/restoreSourceProgram#2",
+          "parameters": [
+            "key"
           ],
           "async": false
         },
@@ -18157,6 +18252,49 @@
           "name": "sourceEvidenceFacts/sourceEvidenceFacts#2",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceProgramMaterialInput",
+          "parameters": [
+            "prepared",
+            "environmentWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceProgramOriginals",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceProgramOriginals/sourceProgramOriginals",
+          "parameters": [
+            "x"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceProgramSourceInput",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceProgramSourceInput/sourceProgramSourceInput",
+          "parameters": [
+            "x"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceProgramSourceInput/sourceProgramSourceInput#2",
+          "parameters": [
+            "x"
           ],
           "async": false
         },
@@ -18433,14 +18571,14 @@
             "beginResultMaterialHolds",
             "captureOriginalRunPlan",
             "captureOriginalRunPlan/captureOriginalRunPlan",
+            "checkRunBinding",
             "checked",
             "checkedProfileSelection",
             "checkedProfileSelection/checkedProfileSelection",
-            "checkRunBinding",
-            "compiledPlanCid",
             "compileEffect",
             "compileTasks",
             "compileValues",
+            "compiledPlanCid",
             "deliveryCall",
             "deliveryContract",
             "deliveryResult",
@@ -18450,6 +18588,7 @@
             "effectCompilationFor",
             "effectExecutionShape",
             "effectExecutionShape/effectExecutionShape",
+            "effectProjectionArray",
             "effectResultDefinitions",
             "effectResultDefinitions/effectResultDefinitions",
             "effectResultDefinitions/effectResultDefinitions#2",
@@ -18471,6 +18610,8 @@
             "effectSourceInputBinding",
             "effectTaskKeys",
             "effectTaskKeys/effectTaskKeys",
+            "effectTaskProgressSnapshot",
+            "effectTaskProgressSnapshot/effectTaskProgressSnapshot",
             "evidenceItems",
             "evidenceItems/evidenceItems",
             "exactRetainedFields/exactRetainedFields",
@@ -18479,7 +18620,6 @@
             "inspectCanonicalResultRows",
             "inspectCanonicalResultRows/inspectCanonicalResultRows",
             "inspectEffectTaskProgress",
-            "inspectEffectTaskProgress/inspectEffectTaskProgress",
             "inspectTaskProgress",
             "issueAllowedEffectRun",
             "issueAllowedEffectRun/issueAllowedEffectRun",
@@ -18490,7 +18630,6 @@
             "issueCheckedValuesResultOccurrenceEvidence",
             "issueCheckedValuesResultOccurrenceEvidence/issueCheckedValuesResultOccurrenceEvidence",
             "issueCompleteResultArtifact",
-            "issuedDelivery",
             "issueDurableResultBinding",
             "issueDurableResultBinding/issueDurableResultBinding",
             "issueDurableResultBinding/issueDurableResultBinding#2",
@@ -18504,13 +18643,13 @@
             "issueEffectRunMaterials",
             "issueEffectSourceDispatch",
             "issuePreparedEffectRunMaterials",
+            "issuePublicIndexEntry",
             "issuePublicationAttempt",
             "issuePublicationAttempt/issuePublicationAttempt",
             "issuePublicationRecord",
             "issuePublicationRecord/issuePublicationRecord",
             "issuePublicationRequest",
             "issuePublicationRequest/issuePublicationRequest",
-            "issuePublicIndexEntry",
             "issueReadOnlyCapturedRun",
             "issueReadOnlyCapturedRun/issueReadOnlyCapturedRun",
             "issueResultManifest",
@@ -18553,6 +18692,7 @@
             "issueTaskRunDefinition/issueTaskRunDefinition",
             "issueTaskRunMaterials",
             "issueUnpublishedRunStateWire",
+            "issuedDelivery",
             "nonnegativeCount",
             "openResultDeliveryControl",
             "openResultDeliveryControl/init:admit/init:admit",
@@ -18650,6 +18790,8 @@
             "projectCommittedResultRead/cid/cid",
             "projectCommittedResultRead/projectCommittedResultRead",
             "projectCommittedResultRead/projectCommittedResultRead#2",
+            "projectEffectSiteRun",
+            "projectEffectSiteRun/projectEffectSiteRun",
             "projectPublicationSnapshot",
             "projectPublicationSnapshot/projectPublicationSnapshot",
             "projectSiteRun",
@@ -18736,7 +18878,19 @@
             "validateRunMaterialsInput/validateRunMaterialsInput",
             "validateTaskPhysicalStartClaim",
             "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim",
-            "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim#2"
+            "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim#2",
+            "admitSourceRequestFields",
+            "prepareSourceProgram",
+            "prepareSourceRequest",
+            "restoreSourceProgram",
+            "restoreSourceProgram/restoreSourceProgram",
+            "restoreSourceProgram/restoreSourceProgram#2",
+            "sourceProgramMaterialInput",
+            "sourceProgramOriginals",
+            "sourceProgramOriginals/sourceProgramOriginals",
+            "sourceProgramSourceInput",
+            "sourceProgramSourceInput/sourceProgramSourceInput",
+            "sourceProgramSourceInput/sourceProgramSourceInput#2"
           ],
           "exports": [
             "admitCapturedResultSnapshot",
@@ -18846,6 +19000,7 @@
             "privateRunDefinition",
             "privateTaskCompilationWires",
             "projectCommittedResultRead",
+            "projectEffectSiteRun",
             "projectPublicationSnapshot",
             "projectSiteRun",
             "projectTaskSiteRun",
@@ -18888,7 +19043,14 @@
             "validatePublicationChain",
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
-            "validateRetainedTaskInput"
+            "validateRetainedTaskInput",
+            "admitSourceRequestFields",
+            "prepareSourceProgram",
+            "prepareSourceRequest",
+            "restoreSourceProgram",
+            "sourceProgramMaterialInput",
+            "sourceProgramOriginals",
+            "sourceProgramSourceInput"
           ],
           "attributes": {
             "responsibility": [
@@ -18903,6 +19065,14 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "### Original source preparation in the portable Run Host"
               }
             ],
             "inputsOutputs": [
@@ -18913,6 +19083,14 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "export function prepareSourceProgram(intent, environment, publicationWire) {"
               }
             ],
             "identity": [
@@ -18923,6 +19101,18 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "src/run_publication_host/client_source_preparation.mbt",
+                "anchor": "physical_equal(value.intent, intent)"
+              },
+              {
+                "path": "src/run_publication_host/client_source_preparation.mbt",
+                "anchor": "physical_equal(value.environment, environment)"
               }
             ],
             "ownership": [
@@ -18933,6 +19123,14 @@
               {
                 "path": "docs/design/portable-execution-boundary.md",
                 "anchor": "# Portable execution boundary"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "src/run_publication_host/client_source_preparation.mbt",
+                "anchor": "pub struct ClientSourcePreparation {"
               }
             ],
             "synchronization": [
@@ -18943,6 +19141,14 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "original.intent !== intent"
               }
             ],
             "failure": [
@@ -18953,6 +19159,14 @@
               {
                 "path": "docs/design/portable-execution-boundary.md",
                 "anchor": "# Portable execution boundary"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_run_materials.mbt",
+                "anchor": "request is None || expected_request is None || request != expected_request"
               }
             ],
             "cancellation": [
@@ -18963,6 +19177,14 @@
               {
                 "path": "docs/design/portable-execution-boundary.md",
                 "anchor": "# Portable execution boundary"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "alone does not supply this original binding, current authority or a cleanup ACK."
               }
             ],
             "resources": [
@@ -18973,6 +19195,14 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "is name-binding metadata, not acquisition, permission or physical capacity."
               }
             ],
             "extension": [
@@ -18983,6 +19213,14 @@
               {
                 "path": "docs/design/portable-execution-boundary.md",
                 "anchor": "# Portable execution boundary"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "structured preparation and material bytes remain unchanged."
               }
             ],
             "verification": [
@@ -18993,11 +19231,26 @@
               {
                 "path": "src/client_values_host_abi/pkg.generated.mbti",
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "packages/run-host-core/source-preparation.test.mjs",
+                "anchor": "test('source Effect materials require the same source preparation and independently retained request'"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./dist/client_values_host_abi.js",
+        "./publication-action.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "packages/run-host-core/observation.mjs",

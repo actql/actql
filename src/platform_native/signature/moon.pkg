@@ -13,6 +13,8 @@ import {
 options(
   "native-stub": [ "signature_stub.c" ],
   targets: {
+    "crypto_component_native.mbt": [ "native" ],
+    "crypto_component_unsupported.mbt": [ "not", "native" ],
     "signature_native.mbt": [ "native" ],
     "key_generation_native.mbt": [ "native" ],
     "key_generation_native_wbtest.mbt": [ "native" ],

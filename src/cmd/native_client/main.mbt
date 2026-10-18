@@ -73,6 +73,9 @@ fn text_file(
   name : String,
   maximum : Int64,
 ) -> String raise ClientStop {
+  if initial_crypto_invocation.val is Some(original) && original.scope_open {
+    return local_initial_crypto_text_file(original, root, name, maximum)
+  }
   match @files.read_bounded_text_file(root, name, maximum) {
     Ok(value) => value
     Err(_) => stop("failed to read bounded file " + name)
@@ -1341,6 +1344,45 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
 }
 
 ///|
+#borrow(bytes)
+extern "C" fn report_failure_ffi(bytes : Bytes, length : Int) -> Unit = "actql_native_client_report_failure"
+
+///|
+extern "C" fn exit_failure_ffi() -> Unit = "actql_native_client_exit_failure"
+
+///|
+// Keep the selected reply and UTF8 alias inside this invocation action. Actual
+// domain retirement after this return still checks all original escaped users.
+fn execute_and_write_native_reply(
+  matches : @argparse.Matches,
+) -> Unit raise ClientStop {
+  let selected = execute_native_project_selection(matches)
+  let value = match selected {
+    Ok(value) => value
+    Err(original) => {
+      ignore(original.issue())
+      if original.retry_cleanup() is Err(_) {
+        stop("ProjectConfigurationReadCleanupPending")
+      } else {
+        stop("ProjectConfigurationReadUnavailable")
+      }
+    }
+  }
+  if local_payload_already_streamed(matches) {
+    return
+  }
+  let reply = if matches.subcommand is Some(("read", _)) {
+    value
+  } else {
+    value + "\n"
+  }
+  let bytes = @utf8.encode(reply)
+  if !write_stdout_ffi(bytes, bytes.length()) {
+    stop("stdout write failed")
+  }
+}
+
+///|
 fn main {
   let matches = command().parse() catch {
     error => {
@@ -1348,37 +1390,22 @@ fn main {
       abort("native Client argument failure")
     }
   }
-  let selected = execute_native_project_selection(matches) catch {
+  let failed = try {
+    execute_and_write_native_reply(matches)
+    false
+  } catch {
     ClientStop(message) => {
-      fail_command(message)
-      abort("native Client operation failure")
+      let bytes = @utf8.encode("actql-native-client: " + message)
+      report_failure_ffi(bytes, bytes.length())
+      true
     }
   }
-  let value = match selected {
-    Ok(value) => value
-    Err(original) => {
-      // Retry retirement on the same Root/Reader only. A cleanup failure is
-      // still a failure; process exit is not a filesystem retirement ACK.
-      if original.retry_cleanup() is Err(_) {
-        fail_command("ProjectConfigurationReadCleanupPending")
-      } else {
-        fail_command("ProjectConfigurationReadUnavailable")
-      }
-      ignore(original.issue())
-      abort("native Client project input failure")
-    }
+  // stdout/flush, Library, component, context/domain/map, Host and FD retirement
+  // are separate facts. An output or process exit never substitutes for ACK.
+  if !local_finish_initial_crypto() {
+    fail_command("InitialCryptoCleanupPending")
   }
-  // Local read/result stream through the durable sink; never append a reply,
-  // newline or a second buffered copy to their payload.
-  if local_payload_already_streamed(matches) {
-    return
-  }
-  if matches.subcommand is Some(("read", _)) {
-    let bytes = @utf8.encode(value)
-    if !write_stdout_ffi(bytes, bytes.length()) {
-      fail_command("stdout write failed")
-    }
-  } else {
-    println(value)
+  if failed {
+    exit_failure_ffi()
   }
 }

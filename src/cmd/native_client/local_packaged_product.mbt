@@ -203,6 +203,18 @@ fn execute_native_local_packaged_operation(
 }
 
 ///|
+// The current opaque package was admitted independently. Equal wire metadata
+// preserves its original path; old or malformed state never selects freshness.
+fn local_product_require_same_runtime_wire(
+  original : String,
+  current : String,
+) -> Unit raise ClientStop {
+  if original != current {
+    stop("HistoricalLocalRuntimeUnavailable")
+  }
+}
+
+///|
 fn execute_native_local_packaged_with_parent(
   matches : @argparse.Matches,
   operation : String,
@@ -221,9 +233,21 @@ fn execute_native_local_packaged_with_parent(
   if !local_product_runtime_current(runtime) {
     stop("PackagedLocalRuntimeChanged")
   }
-  let crypto = @local_crypto.load_library(runtime.crypto).unwrap_or_else(() => {
-    stop("NativeLocalSignatureUnavailable")
-  })
+  let initial_crypto = if operation == "adopt" {
+    Some(local_begin_initial_crypto(runtime))
+  } else {
+    None
+  }
+  let crypto = match initial_crypto {
+    Some(original) =>
+      original
+      .library(false)
+      .unwrap_or_else(() => stop("InitialCryptoOuterLibraryUnavailable"))
+    None =>
+      @local_crypto.load_library(runtime.crypto).unwrap_or_else(() => {
+        stop("NativeLocalSignatureUnavailable")
+      })
+  }
   if !local_product_runtime_current(runtime) {
     stop("PackagedLocalRuntimeChanged")
   }
@@ -279,20 +303,10 @@ fn execute_native_local_packaged_with_parent(
     )
     let unchanged = original_runtime_wire ==
       @run_host.client_native_local_runtime_original(runtime.manifest)
-    if !unchanged {
-      // The original staging session has authenticated these bytes. This only
-      // selects physically identical libraries for opening the original DB;
-      // it cannot authorize a Run or replace adoption/configuration originals.
-      let original = @run_host.admit_client_native_local_runtime(
-        original_runtime_wire, "109564ef9a4f8241096292843b875d4c81fbb6f3", "darwin-arm64",
-        "80731853b15f4d600ef391b3778c734bc40bfb6caed246c0c145916b419e49bd",
-      ).unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
-      @run_host.validate_client_native_local_runtime_library_components(
-        original,
-        runtime.manifest,
-      ).unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
-      |> ignore
-    }
+    local_product_require_same_runtime_wire(
+      original_runtime_wire,
+      @run_host.client_native_local_runtime_original(runtime.manifest),
+    )
     let settings = local_host_settings(
       text_file(configuration_root, "config.json", 65536L),
     )
@@ -333,6 +347,7 @@ fn execute_native_local_packaged_with_parent(
         operation,
         child,
         packaged_runtime=Some(runtime.physical),
+        initial_crypto~,
       )
     }
   }

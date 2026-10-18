@@ -1,5 +1,46 @@
 # GitHub Issue observations
 
+The `pull_requests` relation uses the same repository-bound acquisition and
+nested-field state machine with a distinct opaque native PullRequest page.
+Its original `baseRefName` and `headRefName` are read values, including when
+the corresponding Ref objects were deleted. Native OPEN, CLOSED and MERGED
+remain distinct `open`, `closed` and `merged` Source states. Issue-only
+`state_reason` is SQL NULL on an admitted PullRequest because it is inapplicable;
+this is not a missing-field fallback for an Issue or a write-state mapping.
+MERGEABLE, CONFLICTING and UNKNOWN map respectively to true, false and SQL NULL.
+Missing required fields, other native enum values and foreign native types
+refuse admission. Mergeability and a review decision do not grant merge authority.
+
+Adding the view changes the enclosing Catalog identity. The existing Issue
+carrier body and identity remain unchanged; an old publication is not silently
+upgraded to the new declaration. The additional Source fields do not change
+close-with-reason or other mutation contracts.
+
+The `issue_comments` Source enumerates native Issue and PullRequest subjects
+under the published repository node, then reads each subject's own comments
+connection. Every dependent page checks the same native subject ID, number,
+observed update time and repository correspondence. These checks do not assert
+an atomic provider snapshot. A changed observation refuses completion instead
+of following another subject, repository name or replacement Node ID.
+
+A comment's public `id` is its original `fullDatabaseId` admitted into the
+existing Signed64 carrier. GitHub serializes this BigInt as decimal text; no
+binary64 round-trip, deprecated `databaseId` fallback or opaque Node-ID decoding
+supplies it. Missing, malformed or unrepresentable keys refuse the row. The
+separate opaque comment ID remains acquisition metadata and is not an extra
+public column or automatic mutation key. Explicit null author and empty body
+remain distinct original values.
+
+One opaque decoder sequences subject enumeration, dependent comment pages and
+both native families under shared request, subject and row ceilings. It rejects
+revisited cursors and repeated keys; a refused decoder cannot resume after the
+body is restored. Completed logical pages and enumeration observations consume
+their respective original RowRun charges before another physical response.
+The existing Credential Owner retains and checks the entire response/request/
+use prefix. Projecting a page or retiring decoder aliases neither releases that
+prefix nor acknowledges its transport or resource lifetime. Comment predicates
+remain on the Host unless the existing owner proves an exact pushdown.
+
 The `issues` relation keeps the published repository binding and the provider's
 fifteen Issue columns. Repository node ID, database ID and access name are
 independently checked on every outer and dependent response. Issue `number` is

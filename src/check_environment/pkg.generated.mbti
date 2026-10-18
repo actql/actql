@@ -323,6 +323,8 @@ pub fn inherited_text_time_for_expression(String) -> InheritedTextTimeContract?
 
 pub fn initial_jev_decision_profile() -> DecisionProbabilityProfile
 
+pub fn install_model_mock_profile(ModelTaskLimits) -> Result[ModelMockProfile, ModelTaskIssue]
+
 pub fn lookup_capacity_completeness(LookupCapacity) -> LookupCompleteness
 
 pub fn lookup_capacity_pages_per_request(LookupCapacity) -> Int64
@@ -469,6 +471,14 @@ pub fn model_execution_task(ModelExecutionContract) -> ModelTaskContract
 
 pub fn model_execution_usage(ModelExecutionContract) -> (Int, Int, Int)
 
+pub fn model_mock_execution_matches(ModelMockProfile, NormalizedPublicModelTask, ModelExecutionContract) -> Bool
+
+pub fn model_mock_execution_materials(ModelMockProfile, NormalizedPublicModelTask, ModelTaskLimits) -> Result[(String, String, String, String, String, String), ModelTaskIssue]
+
+pub fn model_mock_profile_current(ModelMockProfile) -> Bool
+
+pub fn model_mock_profile_originals(ModelMockProfile) -> (String, String, String, String, String, String)?
+
 pub fn model_openai_chat_instructions(ModelDependency) -> String?
 
 pub fn model_provider_defaults_usage(ModelProviderDefaults) -> (Int, Int, Int)
@@ -531,7 +541,15 @@ pub fn model_tasks_environment(ModelTasks) -> WireEnvironment
 
 pub fn model_tasks_usage(ModelTasks) -> (Int, Int, Int, Int, Int, Int)
 
+pub fn normalize_public_mock_model_task(PublicModelTaskDeclaration, ModelMockProfile, ModelTaskLimits) -> Result[NormalizedPublicModelTask, ModelTaskIssue]
+
 pub fn normalize_public_model_task(PublicModelTaskDeclaration, ModelProviderDefaults, ResolvedModelProviderDefaults, String, ModelTaskLimits) -> Result[NormalizedPublicModelTask, ModelTaskIssue]
+
+pub fn normalized_public_mock_model_task_matches_prompt(NormalizedPublicModelTask, PublicModelTaskDeclaration, ModelMockProfile, ModelTaskContract, ModelDependency) -> Bool
+
+pub fn normalized_public_mock_model_task_matches_task(NormalizedPublicModelTask, PublicModelTaskDeclaration, ModelMockProfile, ModelTaskContract) -> Bool
+
+pub fn normalized_public_mock_model_task_original_for(NormalizedPublicModelTask, PublicModelTaskDeclaration, ModelMockProfile) -> Bool
 
 pub fn normalized_public_model_task_materials(NormalizedPublicModelTask) -> (String, String, String, String)
 
@@ -684,6 +702,8 @@ pub fn resolved_model_provider_defaults_handling(ResolvedModelProviderDefaults, 
 pub fn resolved_model_provider_defaults_model(ResolvedModelProviderDefaults) -> String
 
 pub fn resolved_model_provider_defaults_work(ResolvedModelProviderDefaults) -> Int
+
+pub fn retire_model_mock_profile(ModelMockProfile) -> Bool
 
 pub fn select_command_target(CatalogContents, String, Int) -> Result[CommandTarget, CommandTargetIssue]
 
@@ -1356,6 +1376,8 @@ pub(all) enum ModelMediaRoleIssue {
   UnsupportedShape
   MediaTypeMismatch
 } derive(Eq, @debug.Debug)
+
+type ModelMockProfile
 
 type ModelProviderDefaults
 

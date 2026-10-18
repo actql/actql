@@ -164,3 +164,11 @@ test "Native runtime constructor acknowledges successful rejected Reader cleanup
   }
   assert_true(original.has_prefix("inspect committed file"))
 }
+
+///|
+test "frozen scalar metadata cannot enable historical operational use in this implementation" {
+  assert_true(
+    require_local_historical_runtime_implementation()
+    is Err(UnsupportedPreparation),
+  )
+}

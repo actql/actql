@@ -94,6 +94,31 @@ export function prepareProgram(document: string, format: 'json' | 'yaml',
   environment: CheckEnvironment, parametersWire?: string):
   Readonly<{kind: 'effect_free'; prepared: PreparedProgram}> |
   Readonly<{kind: 'effect'; prepared: PreparedEffectProgram}>;
+/** Same original submitted SQL/AQL and trusted installation publication.
+ * Static preparation is not Source access, current authorization or capacity. */
+export type PreparedSourceProgram =
+  Readonly<{kind: 'effect_free'; prepared: PreparedProgram; originalIntent: SubmittedIntent}> |
+  Readonly<{kind: 'effect'; prepared: PreparedEffectProgram; originalIntent: SubmittedIntent}>;
+export interface SourceProgramOriginals {
+  readonly intentWire: string;
+  readonly intentCid: string;
+  readonly environmentCid: string;
+  readonly publicationWire: string;
+}
+export function prepareSourceProgram(intent: SubmittedIntent,
+  environment: CheckEnvironment, publicationWire: string): PreparedSourceProgram;
+export function sourceProgramOriginals(prepared: PreparedProgram | PreparedEffectProgram): SourceProgramOriginals;
+export function sourceProgramSourceInput(prepared: PreparedProgram | PreparedEffectProgram): Readonly<{
+  document: string; format: string; parametersWire?: string; parameterDeclarationsWire?: string}>;
+export function sourceProgramMaterialInput(prepared: PreparedProgram | PreparedEffectProgram,
+  environmentWire: string): SourceFreeRunMaterialsInput;
+/** Host-authenticated saved originals; never rediscover publication on restore. */
+export function restoreSourceProgram(originals: SourceProgramOriginals,
+  environment: CheckEnvironment): PreparedSourceProgram;
+export function prepareSourceRequest(prepared: PreparedProgram | PreparedEffectProgram,
+  intent: SubmittedIntent, authorityScopeCid: string, requestId: string): RequestIdentity;
+export function admitSourceRequestFields(prepared: PreparedProgram | PreparedEffectProgram,
+  intent: SubmittedIntent, fields: RequestFields): RequestIdentity;
 export function prepareEffect(document: string, format: 'json' | 'yaml',
   environment: CheckEnvironment, parametersWire?: string): PreparedEffectProgram;
 /** Explicit finite normalization selected by the original checked create/update kind.
@@ -156,7 +181,8 @@ export type RestoredEffectRun = Readonly<{prepared: PreparedEffectProgram;
 export function admitEffectRunMaterials(wire: string, definitionCid: string,
   profiles: Readonly<{textTime?: boolean; veca?: boolean; rela?: boolean;
     sga?: boolean; tea?: boolean; calendar?: boolean; textRank?: boolean}>,
-  original?: IssuedEffectRunMaterials, expectedRequest?: RequestIdentity): RestoredEffectRun;
+  original?: IssuedEffectRunMaterials, expectedRequest?: RequestIdentity,
+  sourcePrepared?: PreparedEffectProgram): RestoredEffectRun;
 /** Requires the exact admitted material object; does not grant approval. */
 export function restoreEffectRunNormalization(materials: RestoredEffectRun): RunEvidence;
 /** Original saved policy lifetime, not current Host authority or approval. */
@@ -1021,6 +1047,20 @@ export function inspectEffectTaskProgress(allowed: AllowedEffectRun,
     taskCleanupComplete: boolean; resultTasks: readonly number[];
     tasks: ReturnType<typeof inspectTaskProgress>['tasks'];
   }>;
+/** Unpublished same-Run observation only. No Effect outcome, whole-Run stop,
+ * approval, publication or release acknowledgement follows from task facts.
+ * The Host supplies the complete original saved claim set, not copied keys. */
+export function projectEffectSiteRun(allowed: AllowedEffectRun,
+  definition: RunDefinition, authority: string, durableWires: readonly string[],
+  observedAt: string, cancellationRequested: boolean,
+  savedClaims: readonly Readonly<{taskKey: string; dispatchCid: string | null;
+    dispatchReserved: boolean; physicalStartClaimed: boolean}>[]): Readonly<
+    Omit<ReturnType<typeof inspectEffectTaskProgress>, 'tasks'> & {
+      stateWire: string; publicationReady: false;
+      execution: 'unobserved' | 'running' | 'settled' | 'failed' | 'cancelled' | 'unknown';
+      tasks: readonly Readonly<ReturnType<typeof inspectTaskProgress>['tasks'][number] & {
+        nextWork: 'none' | 'cleanup' | 'publication' | 'reconcile' | 'cancel' | 'release'}>[];
+    }>;
 /** Prepare a saved task claim; current input/Source custody remains separate. */
 export function prepareEffectTaskPhysicalStart(allowed: AllowedEffectRun,
   definition: RunDefinition, authority: string, durableWires: readonly string[],

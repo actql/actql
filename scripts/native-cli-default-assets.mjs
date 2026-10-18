@@ -1,6 +1,7 @@
 // Source-bound inputs for the existing Native Local runtime recipe. This does
 // not create a Host, grant authority or assemble a consumer configuration.
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -71,6 +72,34 @@ export function localProductDefaultAssets(sourceRoot = root) {
     signing.max_issue_interval_ms + 'L\n}\n' +
     '\n///|\nfn client_local_default_signing_max_uses() -> Int {\n  ' +
     signing.max_uses + '\n}\n';
+}
+
+// Fresh construction binds the current generated originals. It does not
+// certify a historical implementation, installation, permission or funding.
+export function assertNativeLocalDefaultAssetsFresh(sourceRoot = root) {
+  for (const [relative, body] of [
+    ['src/run_publication_host/client_local_product_assets.generated_wbtest.mbt', nativeLocalDefaultFixture(sourceRoot)],
+    ['src/run_publication_host/client_local_product_assets.generated.mbt', localProductDefaultAssets(sourceRoot)],
+  ]) assert.equal(readFileSync(resolve(sourceRoot, relative), 'utf8'), body,
+    'stale source-bound Local asset inputs');
+}
+
+export function assertNativeLocalFreshRuntimeRecipe(recipe, expectedSource, sourceRoot = root) {
+  assert.match(expectedSource, /^[a-f0-9]{40}$/u);
+  assert.equal(recipe.sourceSha, expectedSource, 'Fresh runtime requires the exact producer source');
+  assertNativeLocalDefaultAssetsFresh(sourceRoot);
+  const originals = nativeLocalDefaultAssets(sourceRoot);
+  assert(Array.isArray(recipe.assets) && recipe.assets.length === originals.size,
+    'Fresh runtime requires every current generated asset');
+  const seen = new Set();
+  for (const asset of recipe.assets) {
+    assert(originals.has(asset.role) && !seen.has(asset.role), 'Unknown or duplicate fresh asset role');
+    seen.add(asset.role);
+    const bytes = originals.get(asset.role);
+    assert.equal(asset.original.bytes, bytes.length, 'Fresh asset size differs from its current original');
+    assert.equal(asset.original.sha256, createHash('sha256').update(bytes).digest('hex'),
+      'Fresh asset differs from its current generated original');
+  }
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

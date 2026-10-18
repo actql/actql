@@ -136,3 +136,87 @@ pub fn prepare_client_remote_effect_task_physical_start(
     pre_start_failure_confirmed,
   )
 }
+
+///|
+/// Original saved Host claim facts, not a dispatch or cancellation permit.
+/// Every checked task is supplied once; the existing Coordinator Owner binds
+/// any observed request to its exact original dispatch identity.
+pub(all) struct ClientRemoteEffectTaskRunClaim {
+  task_key : String
+  dispatch_cid : String?
+  dispatch_reserved : Bool
+  physical_start_claimed : Bool
+}
+
+///|
+/// A pre-Checkpoint unpublished candidate for the same original Effect Run.
+/// Whole-Run cleanup and Effect publication are deliberately not observed.
+pub struct ClientRemoteEffectTaskRunProjection {
+  original : ClientRemoteEffectTaskProgress
+  projection : ClientRemoteTaskRunProjection
+}
+
+///|
+pub fn project_client_remote_effect_task_run(
+  value : ClientRemoteEffectTaskProgress,
+  observed_at : String,
+  cancellation_requested : Bool,
+  claims : Array[ClientRemoteEffectTaskRunClaim],
+) -> Result[
+  ClientRemoteEffectTaskRunProjection,
+  ClientRemoteTaskRunProjectionIssue,
+] {
+  let progress = value.progress
+  if claims.length() != progress.keys.length() {
+    return Err(InvalidStartClaims)
+  }
+  let seen = Array::make(progress.keys.length(), false)
+  let claimed_task_keys = []
+  for claim in claims {
+    let mut ordinal = None
+    for task in 0..<progress.keys.length() {
+      if progress.keys[task] == claim.task_key {
+        ordinal = Some(task)
+      }
+    }
+    guard ordinal is Some(task) else { return Err(InvalidStartClaims) }
+    if seen[task] ||
+      (claim.physical_start_claimed && !claim.dispatch_reserved) ||
+      claim.dispatch_reserved != (claim.dispatch_cid is Some(_)) {
+      return Err(InvalidStartClaims)
+    }
+    if claim.dispatch_cid is Some(cid) && !valid_client_request_cid(cid) {
+      return Err(InvalidStartClaims)
+    }
+    seen[task] = true
+    match progress.requests[task] {
+      Some(request) =>
+        if claim.dispatch_cid !=
+          Some(@remote.dispatch_request_identity(request)) {
+          return Err(InvalidStartClaims)
+        }
+      None => ()
+    }
+    if claim.physical_start_claimed ||
+      (claim.dispatch_reserved && progress.requests[task] is None) {
+      claimed_task_keys.push(claim.task_key)
+    }
+  }
+  project_bound_client_remote_task_run(
+    progress, observed_at, cancellation_requested, claimed_task_keys, true,
+  ).map(projection => { original: value, projection, })
+}
+
+///|
+pub fn client_remote_effect_task_run_projection_fields(
+  value : ClientRemoteEffectTaskRunProjection,
+) -> Array[String] {
+  client_remote_task_run_projection_fields(value.projection)
+}
+
+///|
+pub fn client_remote_effect_task_run_projection_work(
+  value : ClientRemoteEffectTaskRunProjection,
+) -> Array[String] {
+  client_remote_task_run_projection_work(value.projection)
+}

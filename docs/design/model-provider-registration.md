@@ -400,6 +400,67 @@ reference retirement are neither zero cost, GC evidence nor physical ACK.
 
 #### Original mock answer materials
 
+The portable Mock implementation is an exclusive invocation kind in the
+existing Model Owner. Its source-pinned fixture configuration, handling
+Envelope and implementation revision supply the explicit generation fields
+required by the existing checked Task representation. They describe local
+typed-answer execution, without network, credentials, training or Provider-side
+retention; `host-local-fixture` identifies that scope, not a remote geography.
+An authored physical model pair is ignored only for this original Mock
+normalization. Existing physical Provider normalization and canonical bytes
+retain their meaning.
+
+That same implementation revision pins its finite execution profile: one
+attempt per slot, at most 1000 total attempts, 64 MiB combined request/response
+wire envelope, 1,000,000 reserved token units, 60,000 ms total duration and zero
+cost units. Empty retry and backoff policies permit no automatic retry. Common
+emits the existing execution contract against the exact normalized Task and
+supplies those original policy bodies with the original prompt. Both Provider
+admission and the original call scope compare this same execution profile;
+another contract cannot borrow the Mock installation's identity. These are
+implementation ceilings rather than supplied credit: smaller original Host
+capacity remains binding, and unsupported size/capacity remains a backend gap.
+
+The Mock admission entrance uses the same Model Owner's closed prompt validator:
+it requires the original installation/profile/normalization, the same execution
+and dependencies, and the checked prompt's kind, canonical identity and payload
+bound to that normalized Task. A Host does not supply a permissive callback or
+impersonate a physical Provider to interpret this fixture. The general physical
+Provider entrance keeps its explicit implementation validator unchanged. This
+validation supplies no Account permission, startup admission or resource credit;
+the short-lived validator capture remains within the original preparation work.
+
+Installation retains the same public Task declaration, normalization and typed
+answer inventory. The first successful original startup binds the checked Task
+from those same prepared rows, and subsequent equal re-parsed Tasks cannot
+replace it. The existing Run's original pre-root startup, call scope, current
+dispatch, complete prepared calls, exact profile/configuration binding and
+durable Entry acknowledgement remain necessary. The installation exposes no
+generic synchronous callback or physical preflight fallback. Saved responses
+and Unknown are processed by the existing execution before fresh invocation;
+current answer files cannot replace saved originals or authorize a resend.
+
+An answer label matches exactly one admitted Text component. Text `"1"`, numeric
+1 and Int64 1 remain distinct; composite keys are never joined, serialized or
+hashed to labels. Unicode and JSON-looking Text are literal. After original
+request/key validation, an explicit default serves any valid unmatched key,
+including non-Text and composite keys. Absence remains a missing-answer refusal.
+The Host clock/current callbacks precede final key/installation checks; no
+callback runs between the final checks and selection. The ordinary response
+checker rechecks the selected output, including enums, against the same Task.
+
+Closing fences new invocations and retains the installation until the original
+Model execution cleanup releases its users. Retirement drops managed provider,
+Task, answer, normalization, profile and clock aliases without settling a
+physical resource or acknowledging original read/Store cleanup. The additional
+profile/self/defaults references, normalization's optional Mock reference,
+installation/provider cycle, callback, checked Task, answer inventory, prepared
+requests and response-recheck workspace overlap with their existing original
+startup holdings; finite metadata is not funding. Native/Python/Node consumers
+use this same Owner rather than implement another answer selector. Operational
+installation, the configured Account and complete physical funding remain
+separate from this portable connection.
+
 The existing Model Owner admits the selected `task`/`answers` document against
 the same original public Task declaration's output Contract. `default` and
 every `by_key` value, including unused entries, are checked under aggregate

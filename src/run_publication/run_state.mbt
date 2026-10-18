@@ -489,6 +489,67 @@ pub fn issue_effect_free_unpublished_run_state_wire(
   observed_terminal_outcome? : RunOutcomeStatus? = None,
   execution_unknown? : Bool = false,
 ) -> Result[String, RunStateIssue] {
+  issue_unpublished_computation_run_state_wire(
+    run_id,
+    updated_at,
+    declared_results,
+    dispatch_reserved,
+    pre_dispatch_failure_confirmed,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    cancelled_before_start~,
+    observed_terminal_outcome~,
+    execution_unknown~,
+  )
+}
+
+///|
+/// The same unpublished Run law before an Effect Checkpoint exists. The
+/// typed Host caller binds the original Effect Run and computation facts;
+/// this writer issues no Effect outcome, approval, publication or cleanup ACK.
+pub fn issue_pre_checkpoint_unpublished_run_state_wire(
+  run_id : String,
+  updated_at : String,
+  declared_results : Array[String],
+  dispatch_reserved : Bool,
+  pre_dispatch_failure_confirmed : Bool,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  cancelled_before_start? : Bool = false,
+  observed_terminal_outcome? : RunOutcomeStatus? = None,
+  execution_unknown? : Bool = false,
+) -> Result[String, RunStateIssue] {
+  issue_unpublished_computation_run_state_wire(
+    run_id,
+    updated_at,
+    declared_results,
+    dispatch_reserved,
+    pre_dispatch_failure_confirmed,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    cancelled_before_start~,
+    observed_terminal_outcome~,
+    execution_unknown~,
+  )
+}
+
+///|
+fn issue_unpublished_computation_run_state_wire(
+  run_id : String,
+  updated_at : String,
+  declared_results : Array[String],
+  dispatch_reserved : Bool,
+  pre_dispatch_failure_confirmed : Bool,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  cancelled_before_start? : Bool = false,
+  observed_terminal_outcome? : RunOutcomeStatus? = None,
+  execution_unknown? : Bool = false,
+) -> Result[String, RunStateIssue] {
   if run_id.is_empty() {
     return Err(InvalidRunId)
   }

@@ -1,6 +1,7 @@
 """Closed CLI composition checks; no compiler, installed supplier or allocation."""
 import importlib.util
 from pathlib import Path
+import re
 import shlex
 import unittest
 
@@ -86,11 +87,49 @@ class LocalScopedComposition(unittest.TestCase):
         for before, after in zip(self.commands[3:], planned[3:]):
             original = [p.replace('$MOON_HOME', str(self.home)) for p in before[1:]]
             selected = after[6:]  # Only the common header/SDK/allocator prefix is inserted.
+            if before == self.commands[-1]:
+                exports = ['-Wl,-exported_symbol,_' + symbol
+                           for symbol in MODULE.LOCAL_COMPONENT_PROVIDER_EXPORTS]
+                self.assertEqual(selected[-len(exports):], exports)
+                selected = selected[:-len(exports)]
             if before[-1].endswith('/bootstrap_stub.c'):
                 selected = selected[:-1]
             elif before[-1].startswith('$MOON_HOME/lib/runtime/'):
                 original[-1] = str(self.allocator / Path(before[-1]).name)
             self.assertEqual(selected, original)
+
+    def test_only_the_original_component_provider_ports_are_exported(self):
+        expected = {
+            '-Wl,-exported_symbol,_actql_native_owned_current',
+            '-Wl,-exported_symbol,_actql_native_owned_allocate',
+            '-Wl,-exported_symbol,_actql_native_owned_retire',
+            '-Wl,-exported_symbol,_actql_read_context_retain',
+            '-Wl,-exported_symbol,_actql_read_context_release_after_owner_ack',
+            '-Wl,-exported_symbol,_actql_bootstrap_current_read_context',
+            '-Wl,-exported_symbol,_actql_native_file_scoped_allocate',
+            '-Wl,-exported_symbol,_actql_native_file_scoped_free',
+        }
+        final = self.plan()[-1]
+        self.assertEqual({p for p in final if p.startswith('-Wl,-export')}, expected)
+        self.assertFalse(any('dynamic_lookup' in p or 'export_dynamic' in p for p in final))
+        for command in self.plan()[:-1]:
+            self.assertFalse(any(p.startswith('-Wl,-export') for p in command))
+
+    def test_local_exports_match_both_actual_components_provider_origin_checks(self):
+        root = Path(__file__).resolve().parents[1]
+        imported = set()
+        for directory, function in (
+                ('crypto-component', 'provider_origin'),
+                ('sqlite-component', 'component_provider_origin')):
+            text = (root / 'packages/python-local-runtime/native' /
+                    directory / 'component.c').read_text()
+            start = text.index('static int ' + function + '(void) {')
+            body = text[start:text.index('\n}', start) + 2]
+            ports = set(re.findall(r'\(void\s*\*\)\s*(actql_[A-Za-z0-9_]+)', body))
+            self.assertEqual(len(ports), 6 if directory == 'crypto-component' else 7)
+            imported.update(ports)
+        self.assertEqual(set(MODULE.LOCAL_COMPONENT_PROVIDER_EXPORTS), imported)
+        self.assertEqual(len(imported), 8)
 
     def test_remote_core_executable_or_missing_local_module_are_foreign(self):
         for index, old, new in (

@@ -8,6 +8,8 @@ import {readSourceProfileJson} from '../../../host-node/source-profile-json.mjs'
 import {retainInstalledCredentialSiteCleanup, releaseInstalledCredentialSite} from
   '../../../host-node/installed-host-cleanup.mjs';
 import {isAbsolute} from 'node:path';
+import {types as nodeTypes} from 'node:util';
+import {invocationBindingsMatch} from '../../../host-common/owned-invocation-context.mjs';
 import {canonicalJson as canonicalValueJson} from '../../../../packages/sdk/host-port.mjs';
 import {contentCid} from
   '../../../host-node/local-account-config.mjs';
@@ -171,7 +173,7 @@ export async function installSalesforceAuthorization({accountConfiguration,
 export async function loadInstalledSalesforceSite(path, {commonMoon,
   salesforceMoon, authorization, runtimeBundleCid, resolveSecret,
   now = () => Date.now(), grantLifetimeMs = 15 * 60 * 1000,
-  openCredentialJournal} = {}) {
+  openCredentialJournal, runAcquisitionLimits} = {}) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
     fail('InvalidInstalledSalesforceSiteProfilePath');
   }
@@ -201,7 +203,8 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     principalId, connectorRegistration: 'salesforce',
     connectorRevision: 'salesforce/0.1', runtimeBundleCid, commonMoon,
     now, grantLifetimeMs,
-    openCredentialJournal, credentialFacts: Object.freeze({orgId: profile.orgId}),
+    openCredentialJournal, runAcquisitionLimits,
+    credentialFacts: Object.freeze({orgId: profile.orgId}),
     closedCode: 'SalesforceSiteClosed',
     grantCode: 'InvalidSalesforceCredentialGrantRequest'}, {
     caPath: profile.caPath, invalidCode: 'InvalidInstalledSalesforceSiteCredential',
@@ -216,6 +219,13 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   const liveDeclarations = new WeakMap();
   const liveDescribes = new WeakMap();
   const profileWire = JSON.stringify(profile);
+  const recordAuthorizations = runAcquisitionLimits === undefined ? undefined : new WeakMap();
+
+  function signRecord(fields, resource, assertDecisionCurrent) {
+    const issued = sign(fields);
+    recordAuthorizations?.set(issued, Object.freeze({resource, assertDecisionCurrent}));
+    return issued;
+  }
 
   // Issue one credential grant for a record operation on `resource`. The
   // decision must be the installed gate's dispatch for the same connection,
@@ -241,8 +251,8 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       }
       approved.assertCurrent?.();
       approved.enter?.();
-      return sign({operation, runInvocationCid, taskAttempt,
-        dispatchRequestCid, maxUses});
+      return signRecord({operation, runInvocationCid, taskAttempt,
+        dispatchRequestCid, maxUses}, resource, approved.assertCurrent);
     }
     // An Effect commit dispatch another gate of the Host (its Checkpoint
     // commit gate) decided counts as this gate's only when that gate decided
@@ -269,8 +279,89 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     // Revisit the exact issuing scope after all earlier awaits. Matching
     // provenance survives closure and cannot by itself authorize a new grant.
     assertAuthorizationAccountCurrent(decision);
-    return sign({operation, runInvocationCid, taskAttempt,
-      dispatchRequestCid, maxUses});
+    return signRecord({operation, runInvocationCid, taskAttempt,
+      dispatchRequestCid, maxUses}, resource,
+    () => assertAuthorizationAccountCurrent(decision));
+  }
+
+  // Retain the original Site-issued read/write authorization, not a grant
+  // reconstructed from a CID. The same binding's material may serve another
+  // separately issued operation only under the same original acquisition.
+  function bindRecordAcquisition(originalAuthorization, originalCurrent) {
+    ensureOpen();
+    if (recordAuthorizations === undefined) fail('SalesforceRecordAcquisitionUnavailable');
+    const first = recordAuthorizations.get(originalAuthorization);
+    if (first === undefined) fail('ForeignSalesforceRecordAcquisitionAuthorization');
+    const state = {retiring: false, failure: undefined};
+    const assertOpen = () => {
+      ensureOpen();
+      if (state.failure !== undefined) throw state.failure;
+      if (state.retiring) fail('SalesforceRecordAcquisitionRetiring');
+    };
+    const captureCurrent = value => {
+      if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value)) {
+        fail('InvalidSalesforceRecordAcquisitionCurrent');
+      }
+      const fields = Object.getOwnPropertyDescriptors(value);
+      if (Reflect.ownKeys(fields).length !== 2 || ['assertCurrent', 'observeCurrent'].some(name =>
+        !fields[name] || !Object.hasOwn(fields[name], 'value') || typeof fields[name].value !== 'function')) {
+        fail('InvalidSalesforceRecordAcquisitionCurrent');
+      }
+      return Object.freeze({assertCurrent: fields.assertCurrent.value,
+        observeCurrent: fields.observeCurrent.value});
+    };
+    const currentFor = (record, methods) => {
+      if (typeof record.assertDecisionCurrent !== 'function') {
+        fail('SalesforceRecordAcquisitionCurrentUnavailable');
+      }
+      const assertOriginal = method => {
+        const result = Reflect.apply(method, undefined, []);
+        if (result !== undefined) {
+          if (typeof result?.then === 'function') void Promise.resolve(result).catch(() => {});
+          fail('InvalidSalesforceRecordAcquisitionCurrent');
+        }
+      };
+      const assertCurrent = () => {
+        try {
+          assertOpen();
+          assertOriginal(record.assertDecisionCurrent);
+          assertOriginal(methods.assertCurrent);
+          assertOriginal(record.assertDecisionCurrent);
+          assertOpen();
+        } catch (cause) { state.failure ??= cause; throw cause; }
+      };
+      const observeCurrent = async () => {
+        try {
+          assertCurrent();
+          await Reflect.apply(methods.observeCurrent, undefined, []);
+          assertCurrent();
+          const current = await readSourceProfileJson(path, {maxBytes: 8 * 1024 * 1024});
+          assertCurrent();
+          if (JSON.stringify(current) !== profileWire) fail('SalesforceRecordAcquisitionProfileChanged');
+        } catch (cause) { state.failure ??= cause; throw cause; }
+      };
+      return Object.freeze({assertCurrent, observeCurrent});
+    };
+    const firstCurrent = currentFor(first, captureCurrent(originalCurrent));
+    const original = custody.bindRunAcquisition(originalAuthorization, firstCurrent);
+    const credentialFor = callbacks => Object.freeze({...original.credential,
+      currentBeforeSend: callbacks.observeCurrent});
+    return Object.freeze({authorization: originalAuthorization,
+      credential: credentialFor(firstCurrent),
+      forAuthorization(authorization, current) {
+        assertOpen();
+        const record = recordAuthorizations.get(authorization);
+        if (record === undefined || record.resource !== first.resource ||
+            !invocationBindingsMatch(authorization.scope, originalAuthorization.scope,
+              credential.control)) fail('ForeignSalesforceRecordAcquisitionAuthorization');
+        const callbacks = currentFor(record, captureCurrent(current));
+        callbacks.assertCurrent();
+        return Object.freeze({authorization, credential: credentialFor(callbacks)});
+      },
+      close() {
+        state.retiring = true;
+        return original.close();
+      }});
   }
 
   // This Site's attestation of its installed runtime and connection for one
@@ -821,7 +912,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     principal: principalId, context,
   });
   const site = Object.freeze({...siteFacts, authorization, credential,
-    issueGrant, attestEffectCapability, refreshCatalog, declareCatalog,
+    issueGrant, bindRecordAcquisition, attestEffectCapability, refreshCatalog, declareCatalog,
     restoreDeclaration, describeForAcquisition, describeEffectCatalog,
     admitCheckpointReadApproval,
     admitCheckpointEffectTargetRead,

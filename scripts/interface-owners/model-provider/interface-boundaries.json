@@ -1,6 +1,6 @@
 {
   "source": "759af47f092ed3706d96d0b91b7684a33b39fa2a",
-  "qualification": "References and syntax coverage only; actual147 tests retain separate Source qualification.",
+  "qualification": "References and syntax coverage only; actual147 tests retain separate Source qualification. Portable Mock references describe original Task/Run/startup/dispatch/answer/cleanup semantics; reference coverage is separate from source-qualified execution, physical installation and funding.",
   "declarations": [
     {
       "module": "packages/provider-ai-sdk/_internal/installed-openai-chat.mjs",
@@ -3451,6 +3451,1786 @@
               {
                 "path": "scripts/model-original-materials.test.mjs",
                 "anchor": "one closed DATA source"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/check_environment/model_mock_execution.mbt",
+      "sha256": "898e021a826726e08f293bb3344b898b87b594b3fb3416230b5e9fdc85c284ed",
+      "exports": [],
+      "operations": [
+        {
+          "name": "emit_mock_execution",
+          "declaration": "emit_mock_execution ( writer : @ encode . Writer , normalized : NormalizedPublicModelTask , bounds : Array [ ( String , Int64 ) ] , self_cid : String ? , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "model_mock_backoff_wire",
+          "declaration": "model_mock_backoff_wire ( ) - > String"
+        },
+        {
+          "name": "model_mock_execution_bounds",
+          "declaration": "model_mock_execution_bounds ( budget : ModelTaskBudget , ) - > Array [ ( String , Int64 ) ] raise ModelTaskStop"
+        },
+        {
+          "name": "model_mock_execution_matches",
+          "declaration": "model_mock_execution_matches ( profile : ModelMockProfile , normalized : NormalizedPublicModelTask , execution : ModelExecutionContract , ) - > Bool"
+        },
+        {
+          "name": "model_mock_execution_materials",
+          "declaration": "model_mock_execution_materials ( profile : ModelMockProfile , normalized : NormalizedPublicModelTask , limits : ModelTaskLimits , ) - > Result [ ( String , String , String , String , String , String ) , ModelTaskIssue ]"
+        },
+        {
+          "name": "model_mock_execution_profile_wire",
+          "declaration": "model_mock_execution_profile_wire ( ) - > String"
+        },
+        {
+          "name": "model_mock_retry_wire",
+          "declaration": "model_mock_retry_wire ( ) - > String"
+        }
+      ],
+      "role": "common-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Common Model execution, Task admission and original Run call-scope Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "emit_mock_execution",
+            "model_mock_backoff_wire",
+            "model_mock_execution_bounds",
+            "model_mock_execution_matches",
+            "model_mock_execution_materials",
+            "model_mock_execution_profile_wire",
+            "model_mock_retry_wire"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "#### Original mock answer materials"
+              },
+              {
+                "path": "src/check_environment/model_mock_execution.mbt",
+                "anchor": "fn model_mock_execution_profile_wire() -> String {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn install_original_model_mock("
+              },
+              {
+                "path": "src/check_environment/model_mock_execution.mbt",
+                "anchor": "pub fn model_mock_execution_materials("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "fn original_mock_request_values_current("
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "fn original_mock_scope_matches("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn retire_original_model_mock("
+              },
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "original.users -= 1"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "if state.durable_calls &&"
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "let observed_at = original.now.unwrap()()"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "None => Err(MissingAnswer)"
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "if !original_mock_provider_matches(original, provider, state.task) ||"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "if @bounded.stop_requested(reader) is Some(reason) {"
+              },
+              {
+                "path": "src/model_execution/entry_send_gate.mbt",
+                "anchor": "fn model_call_start_current("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Closing fences new invocations"
+              },
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "original_startup is None ||"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<!-- requirement-block: mock-answers.original-key mock-answers.exact-text mock-answers.explicit-default mock-answers.missing -->"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_infer_host/mock_original_installation_wbtest.mbt",
+                "anchor": "test \"actual original mock uses same Run entry typed enum output and child-first cleanup\" {"
+              },
+              {
+                "path": "src/model_execution/mock_selection_wbtest.mbt",
+                "anchor": "test \"mock exact single Text overrides never convert numeric or composite keys\" {"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/check_environment/model_mock_profile.mbt",
+      "sha256": "9997b4de40328d00abe36075be8c97323c4ba0a1ffd592f9a16feec60210d98e",
+      "exports": [],
+      "operations": [
+        {
+          "name": "install_model_mock_profile",
+          "declaration": "install_model_mock_profile ( limits : ModelTaskLimits , ) - > Result [ ModelMockProfile , ModelTaskIssue ]"
+        },
+        {
+          "name": "model_mock_configuration_contract_wire",
+          "declaration": "model_mock_configuration_contract_wire ( ) - > String"
+        },
+        {
+          "name": "model_mock_configuration_wire",
+          "declaration": "model_mock_configuration_wire ( ) - > String"
+        },
+        {
+          "name": "model_mock_installation_revision_wire",
+          "declaration": "model_mock_installation_revision_wire ( ) - > String"
+        },
+        {
+          "name": "model_mock_profile_current",
+          "declaration": "model_mock_profile_current ( original : ModelMockProfile ) - > Bool"
+        },
+        {
+          "name": "model_mock_profile_originals",
+          "declaration": "model_mock_profile_originals ( original : ModelMockProfile , ) - > ( String , String , String , String , String , String ) ?"
+        },
+        {
+          "name": "retire_model_mock_profile",
+          "declaration": "retire_model_mock_profile ( original : ModelMockProfile ) - > Bool"
+        }
+      ],
+      "role": "common-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Common Model execution, Task admission and original Run call-scope Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "install_model_mock_profile",
+            "model_mock_configuration_contract_wire",
+            "model_mock_configuration_wire",
+            "model_mock_installation_revision_wire",
+            "model_mock_profile_current",
+            "model_mock_profile_originals",
+            "retire_model_mock_profile"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "#### Original mock answer materials"
+              },
+              {
+                "path": "src/check_environment/model_mock_profile.mbt",
+                "anchor": "fn model_mock_configuration_wire() -> String {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn install_original_model_mock("
+              },
+              {
+                "path": "src/check_environment/model_mock_execution.mbt",
+                "anchor": "pub fn model_mock_execution_materials("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "fn original_mock_request_values_current("
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "fn original_mock_scope_matches("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn retire_original_model_mock("
+              },
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "original.users -= 1"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "if state.durable_calls &&"
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "let observed_at = original.now.unwrap()()"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "None => Err(MissingAnswer)"
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "if !original_mock_provider_matches(original, provider, state.task) ||"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "if @bounded.stop_requested(reader) is Some(reason) {"
+              },
+              {
+                "path": "src/model_execution/entry_send_gate.mbt",
+                "anchor": "fn model_call_start_current("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Closing fences new invocations"
+              },
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "original_startup is None ||"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<!-- requirement-block: mock-answers.original-key mock-answers.exact-text mock-answers.explicit-default mock-answers.missing -->"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_infer_host/mock_original_installation_wbtest.mbt",
+                "anchor": "test \"actual original mock uses same Run entry typed enum output and child-first cleanup\" {"
+              },
+              {
+                "path": "src/model_execution/mock_selection_wbtest.mbt",
+                "anchor": "test \"mock exact single Text overrides never convert numeric or composite keys\" {"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/check_environment/public_model_task_mock.mbt",
+      "sha256": "4164a5781cc78fb6d0956ed6f2aa1f904c2eafbc557c4c2798386f206d307640",
+      "exports": [],
+      "operations": [
+        {
+          "name": "normalize_public_mock_model_task",
+          "declaration": "normalize_public_mock_model_task ( declaration : PublicModelTaskDeclaration , profile : ModelMockProfile , limits : ModelTaskLimits , ) - > Result [ NormalizedPublicModelTask , ModelTaskIssue ]"
+        },
+        {
+          "name": "normalized_public_mock_model_task_matches_prompt",
+          "declaration": "normalized_public_mock_model_task_matches_prompt ( normalized : NormalizedPublicModelTask , declaration : PublicModelTaskDeclaration , profile : ModelMockProfile , task : ModelTaskContract , prompt : ModelDependency , ) - > Bool"
+        },
+        {
+          "name": "normalized_public_mock_model_task_matches_task",
+          "declaration": "normalized_public_mock_model_task_matches_task ( normalized : NormalizedPublicModelTask , declaration : PublicModelTaskDeclaration , profile : ModelMockProfile , task : ModelTaskContract , ) - > Bool"
+        },
+        {
+          "name": "normalized_public_mock_model_task_original_for",
+          "declaration": "normalized_public_mock_model_task_original_for ( normalized : NormalizedPublicModelTask , declaration : PublicModelTaskDeclaration , profile : ModelMockProfile , ) - > Bool"
+        }
+      ],
+      "role": "common-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Common Model execution, Task admission and original Run call-scope Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "normalize_public_mock_model_task",
+            "normalized_public_mock_model_task_matches_prompt",
+            "normalized_public_mock_model_task_matches_task",
+            "normalized_public_mock_model_task_original_for"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "#### Original mock answer materials"
+              },
+              {
+                "path": "src/check_environment/public_model_task_mock.mbt",
+                "anchor": "pub fn normalize_public_mock_model_task("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn install_original_model_mock("
+              },
+              {
+                "path": "src/check_environment/model_mock_execution.mbt",
+                "anchor": "pub fn model_mock_execution_materials("
+              },
+              {
+                "path": "src/model_execution/provider_admission.mbt",
+                "anchor": "pub fn admit_original_model_mock_provider("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "fn original_mock_request_values_current("
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "fn original_mock_scope_matches("
+              },
+              {
+                "path": "src/check_environment/public_model_task_mock.mbt",
+                "anchor": "pub fn normalized_public_mock_model_task_matches_prompt("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn retire_original_model_mock("
+              },
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "original.users -= 1"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "if state.durable_calls &&"
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "let observed_at = original.now.unwrap()()"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "None => Err(MissingAnswer)"
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "if !original_mock_provider_matches(original, provider, state.task) ||"
+              },
+              {
+                "path": "src/model_execution/provider_admission.mbt",
+                "anchor": "Err(_) => return Err(ForeignProvider)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "if @bounded.stop_requested(reader) is Some(reason) {"
+              },
+              {
+                "path": "src/model_execution/entry_send_gate.mbt",
+                "anchor": "fn model_call_start_current("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Closing fences new invocations"
+              },
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "original_startup is None ||"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "the short-lived validator capture remains within the original preparation work."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<!-- requirement-block: mock-answers.original-key mock-answers.exact-text mock-answers.explicit-default mock-answers.missing -->"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_infer_host/mock_original_installation_wbtest.mbt",
+                "anchor": "test \"actual original mock uses same Run entry typed enum output and child-first cleanup\" {"
+              },
+              {
+                "path": "src/model_execution/mock_selection_wbtest.mbt",
+                "anchor": "test \"mock exact single Text overrides never convert numeric or composite keys\" {"
+              },
+              {
+                "path": "src/model_execution/mock_provider_admission_wbtest.mbt",
+                "anchor": "test \"original Mock admits its owned normalized prompt without a Host callback\" {"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/check_environment/public_model_task_normalization.mbt",
+      "sha256": "184bd9f0cb4ad18328cda5d6a3abea7ebd7d59c25aca799a9824cddb4e86b9b4",
+      "exports": [],
+      "operations": [
+        {
+          "name": "emit_normalized_public_task",
+          "declaration": "emit_normalized_public_task ( value : PublicModelTaskDeclaration , provider : String , resolved : ResolvedModelProviderDefaults , handling : ModelProviderHandling , prompt_cid : String , self_cid : String ? , writer : @ encode . Writer , budget : ModelTaskBudget , ) - > Unit raise"
+        },
+        {
+          "name": "emit_public_task_checked_contract",
+          "declaration": "emit_public_task_checked_contract ( contract : PublicModelTaskContract , writer : @ encode . Writer , budget : ModelTaskBudget , root : @ decode . Cursor , ) - > Unit raise"
+        },
+        {
+          "name": "emit_public_task_prompt",
+          "declaration": "emit_public_task_prompt ( value : PublicModelTaskDeclaration , self_cid : String ? , writer : @ encode . Writer , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "normalize_public_model_task",
+          "declaration": "normalize_public_model_task ( declaration : PublicModelTaskDeclaration , defaults : ModelProviderDefaults , resolved : ResolvedModelProviderDefaults , provider : String , limits : ModelTaskLimits , ) - > Result [ NormalizedPublicModelTask , ModelTaskIssue ]"
+        },
+        {
+          "name": "normalize_public_model_task_selected",
+          "declaration": "normalize_public_model_task_selected ( declaration : PublicModelTaskDeclaration , defaults : ModelProviderDefaults , resolved : ResolvedModelProviderDefaults , provider : String , limits : ModelTaskLimits , mock_profile : ModelMockProfile ? , ) - > Result [ NormalizedPublicModelTask , ModelTaskIssue ]"
+        },
+        {
+          "name": "normalized_public_model_task_materials",
+          "declaration": "normalized_public_model_task_materials ( value : NormalizedPublicModelTask , ) - > ( String , String , String , String )"
+        },
+        {
+          "name": "normalized_public_model_task_original_for",
+          "declaration": "normalized_public_model_task_original_for ( value : NormalizedPublicModelTask , declaration : PublicModelTaskDeclaration , defaults : ModelProviderDefaults , resolved : ResolvedModelProviderDefaults , ) - > Bool"
+        },
+        {
+          "name": "normalized_public_model_task_usage",
+          "declaration": "normalized_public_model_task_usage ( value : NormalizedPublicModelTask , ) - > Int"
+        },
+        {
+          "name": "public_task_emission_writer",
+          "declaration": "public_task_emission_writer ( budget : ModelTaskBudget , root : @ decode . Cursor , ) - > @ encode . Writer raise ModelTaskStop"
+        }
+      ],
+      "role": "common-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Common Model execution, Task admission and original Run call-scope Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "emit_normalized_public_task",
+            "emit_public_task_checked_contract",
+            "emit_public_task_prompt",
+            "normalize_public_model_task",
+            "normalize_public_model_task_selected",
+            "normalized_public_model_task_materials",
+            "normalized_public_model_task_original_for",
+            "normalized_public_model_task_usage",
+            "public_task_emission_writer"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "#### Original mock answer materials"
+              },
+              {
+                "path": "src/check_environment/public_model_task_normalization.mbt",
+                "anchor": "fn public_task_emission_writer("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn install_original_model_mock("
+              },
+              {
+                "path": "src/check_environment/model_mock_execution.mbt",
+                "anchor": "pub fn model_mock_execution_materials("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "fn original_mock_request_values_current("
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "fn original_mock_scope_matches("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn retire_original_model_mock("
+              },
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "original.users -= 1"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "if state.durable_calls &&"
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "let observed_at = original.now.unwrap()()"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "None => Err(MissingAnswer)"
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "if !original_mock_provider_matches(original, provider, state.task) ||"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "if @bounded.stop_requested(reader) is Some(reason) {"
+              },
+              {
+                "path": "src/model_execution/entry_send_gate.mbt",
+                "anchor": "fn model_call_start_current("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Closing fences new invocations"
+              },
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "original_startup is None ||"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<!-- requirement-block: mock-answers.original-key mock-answers.exact-text mock-answers.explicit-default mock-answers.missing -->"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_infer_host/mock_original_installation_wbtest.mbt",
+                "anchor": "test \"actual original mock uses same Run entry typed enum output and child-first cleanup\" {"
+              },
+              {
+                "path": "src/model_execution/mock_selection_wbtest.mbt",
+                "anchor": "test \"mock exact single Text overrides never convert numeric or composite keys\" {"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_model_mock_installation_bridge.mbt",
+      "sha256": "a8ae68ca262eef774944cd1e44093cedf0830719844b542b744df7cd41cc92f9",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_admit_original_mock_provider",
+          "declaration": "client_program_admit_original_mock_provider ( original : @ model . ModelMockInstallation , execution : @ check_environment . ModelExecutionContract , dependencies : @ check_environment . SingleAttemptModelDependencies , ) - > Result [ @ model . AdmittedModelProvider , @ model . ModelProviderAdmissionIssue ]"
+        },
+        {
+          "name": "client_program_install_mock_profile",
+          "declaration": "client_program_install_mock_profile ( max_bytes : Int , max_nodes : Int , max_depth : Int , max_members : Int , contract_nodes : Int , contract_depth : Int , contract_text_bytes : Int , max_work : Int , ) - > Result [ @ check_environment . ModelMockProfile , @ check_environment . ModelTaskIssue , ]"
+        },
+        {
+          "name": "client_program_install_original_mock",
+          "declaration": "client_program_install_original_mock ( profile : @ check_environment . ModelMockProfile , task : @ check_environment . PublicModelTaskDeclaration , normalized : @ check_environment . NormalizedPublicModelTask , answers : @ model . ModelMockAnswers , now : ( ) - > String , ) - > Result [ @ model . ModelMockInstallation , @ model . ModelMockInstallationIssue ]"
+        },
+        {
+          "name": "client_program_mock_execution_materials",
+          "declaration": "client_program_mock_execution_materials ( original : @ check_environment . ModelMockProfile , task : @ check_environment . NormalizedPublicModelTask , max_bytes : Int , max_nodes : Int , max_depth : Int , max_members : Int , contract_nodes : Int , contract_depth : Int , contract_text_bytes : Int , max_work : Int , ) - > Result [ ( String , String , String , String , String , String ) , @ check_environment . ModelTaskIssue , ]"
+        },
+        {
+          "name": "client_program_mock_profile_originals",
+          "declaration": "client_program_mock_profile_originals ( original : @ check_environment . ModelMockProfile , ) - > ( String , String , String , String , String , String ) ?"
+        },
+        {
+          "name": "client_program_normalize_mock_task",
+          "declaration": "client_program_normalize_mock_task ( task : @ check_environment . PublicModelTaskDeclaration , profile : @ check_environment . ModelMockProfile , max_bytes : Int , max_nodes : Int , max_depth : Int , max_members : Int , contract_nodes : Int , contract_depth : Int , contract_text_bytes : Int , max_work : Int , ) - > Result [ @ check_environment . NormalizedPublicModelTask , @ check_environment . ModelTaskIssue , ]"
+        },
+        {
+          "name": "client_program_original_mock_provider",
+          "declaration": "client_program_original_mock_provider ( original : @ model . ModelMockInstallation , ) - > Result [ @ model . ModelProvider , @ model . ModelMockInstallationIssue ]"
+        },
+        {
+          "name": "client_program_retire_mock_profile",
+          "declaration": "client_program_retire_mock_profile ( original : @ check_environment . ModelMockProfile , ) - > Bool"
+        },
+        {
+          "name": "client_program_retire_original_mock",
+          "declaration": "client_program_retire_original_mock ( original : @ model . ModelMockInstallation , ) - > Result [ Bool , @ model . ModelMockInstallationIssue ]"
+        }
+      ],
+      "role": "common-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Common Model execution, Task admission and original Run call-scope Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_admit_original_mock_provider",
+            "client_program_install_mock_profile",
+            "client_program_install_original_mock",
+            "client_program_mock_execution_materials",
+            "client_program_mock_profile_originals",
+            "client_program_normalize_mock_task",
+            "client_program_original_mock_provider",
+            "client_program_retire_mock_profile",
+            "client_program_retire_original_mock"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "#### Original mock answer materials"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_model_mock_installation_bridge.mbt",
+                "anchor": "pub fn client_program_install_mock_profile("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn install_original_model_mock("
+              },
+              {
+                "path": "src/check_environment/model_mock_execution.mbt",
+                "anchor": "pub fn model_mock_execution_materials("
+              },
+              {
+                "path": "src/model_execution/provider_admission.mbt",
+                "anchor": "pub fn admit_original_model_mock_provider("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "fn original_mock_request_values_current("
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "fn original_mock_scope_matches("
+              },
+              {
+                "path": "src/check_environment/public_model_task_mock.mbt",
+                "anchor": "pub fn normalized_public_mock_model_task_matches_prompt("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn retire_original_model_mock("
+              },
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "original.users -= 1"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "if state.durable_calls &&"
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "let observed_at = original.now.unwrap()()"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "None => Err(MissingAnswer)"
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "if !original_mock_provider_matches(original, provider, state.task) ||"
+              },
+              {
+                "path": "src/model_execution/provider_admission.mbt",
+                "anchor": "Err(_) => return Err(ForeignProvider)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "if @bounded.stop_requested(reader) is Some(reason) {"
+              },
+              {
+                "path": "src/model_execution/entry_send_gate.mbt",
+                "anchor": "fn model_call_start_current("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Closing fences new invocations"
+              },
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "original_startup is None ||"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "the short-lived validator capture remains within the original preparation work."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<!-- requirement-block: mock-answers.original-key mock-answers.exact-text mock-answers.explicit-default mock-answers.missing -->"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_infer_host/mock_original_installation_wbtest.mbt",
+                "anchor": "test \"actual original mock uses same Run entry typed enum output and child-first cleanup\" {"
+              },
+              {
+                "path": "src/model_execution/mock_selection_wbtest.mbt",
+                "anchor": "test \"mock exact single Text overrides never convert numeric or composite keys\" {"
+              },
+              {
+                "path": "src/model_execution/mock_provider_admission_wbtest.mbt",
+                "anchor": "test \"original Mock admits its owned normalized prompt without a Host callback\" {"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/model_execution/execution.mbt",
+      "sha256": "b49c65fc3ad36d8b292592555e04bfcb4958a1b47ce54a3cb9b9bee1ad2600d6",
+      "exports": [],
+      "operations": [
+        {
+          "name": "advance_model",
+          "declaration": "advance_model ( state : ModelState , quantum : Int , reader : @ bounded . Reader , ) - > @ bounded . KernelStep [ ModelCaptureBundle , ModelExecutionIssue ]"
+        },
+        {
+          "name": "advance_model_execution",
+          "declaration": "advance_model_execution ( execution : ModelExecution , quantum : Int , ) - > Result [ ModelObservation , ModelExecutionIssue ]"
+        },
+        {
+          "name": "advance_model_execution_owned",
+          "declaration": "advance_model_execution_owned ( execution : ModelExecution , quantum : Int , ) - > Result [ ModelObservation , ModelExecutionIssue ]"
+        },
+        {
+          "name": "begin_observed_model_response",
+          "declaration": "begin_observed_model_response ( state : ModelState , prepared : PreparedModelRequest , response : ModelResponse , reservation : @ resources . Reservation , reader : @ bounded . Reader , ) - > @ bounded . KernelStep [ ModelCaptureBundle , ModelExecutionIssue ]"
+        },
+        {
+          "name": "cleanup_model_execution",
+          "declaration": "cleanup_model_execution ( execution : ModelExecution , ) - > Result [ Bool , ModelExecutionIssue ]"
+        },
+        {
+          "name": "cleanup_model_execution_owned",
+          "declaration": "cleanup_model_execution_owned ( execution : ModelExecution , ) - > Result [ Bool , ModelExecutionIssue ]"
+        },
+        {
+          "name": "install_async_model_provider",
+          "declaration": "install_async_model_provider ( provider_id : String , ) - > Result [ ModelProvider , ModelExecutionIssue ]"
+        },
+        {
+          "name": "install_model_provider",
+          "declaration": "install_model_provider ( provider_id : String , invoke : ( ModelRequest ) - > Result [ ModelResponse , ModelProviderFailure ] , ) - > Result [ ModelProvider , ModelExecutionIssue ]"
+        },
+        {
+          "name": "key_cid",
+          "declaration": "key_cid ( key : Array [ @ admitted . CheckedValue ] ) - > String ?"
+        },
+        {
+          "name": "model_capture_bundle_json",
+          "declaration": "model_capture_bundle_json ( bundle : ModelCaptureBundle , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > String ?"
+        },
+        {
+          "name": "model_execution_preflighting",
+          "declaration": "model_execution_preflighting ( execution : ModelExecution ) - > Bool"
+        },
+        {
+          "name": "model_execution_prepared_request_bytes",
+          "declaration": "model_execution_prepared_request_bytes ( execution : ModelExecution , slot : Int , ) - > Int64 ?"
+        },
+        {
+          "name": "model_execution_quantity_usage",
+          "declaration": "model_execution_quantity_usage ( execution : ModelExecution , ) - > @ resources . QuantityUsage"
+        },
+        {
+          "name": "model_execution_resource_usage",
+          "declaration": "model_execution_resource_usage ( execution : ModelExecution , ) - > @ resources . LedgerUsage"
+        },
+        {
+          "name": "model_provider_synchronous_invoke",
+          "declaration": "model_provider_synchronous_invoke ( provider : ModelProvider , ) - > ( ( ModelRequest ) - > Result [ ModelResponse , ModelProviderFailure ] ) ?"
+        },
+        {
+          "name": "replay_model_capture",
+          "declaration": "replay_model_capture ( task : @ environment . ModelTaskContract , fixed_request_cid : String , bundle : ModelCaptureBundle , ) - > Result [ Array [ @ admitted . CheckedValue ] , ModelExecutionIssue ]"
+        },
+        {
+          "name": "replay_model_capture_rows",
+          "declaration": "replay_model_capture_rows ( rows : @ relation . PreparedInferRows , fixed_request_cid : String , bundle : ModelCaptureBundle , ) - > Result [ Array [ @ admitted . CheckedValue ] , ModelExecutionIssue ]"
+        },
+        {
+          "name": "replay_model_capture_rows_owned",
+          "declaration": "replay_model_capture_rows_owned ( rows : @ relation . PreparedInferRows , fixed_request_cid : String , bundle : ModelCaptureBundle , ) - > Result [ Array [ @ admitted . CheckedValue ] , ModelExecutionIssue ]"
+        },
+        {
+          "name": "request_key",
+          "declaration": "request_key ( rows : @ relation . PreparedInferRows , slot : Int , task : @ infer . CheckedInfer , ) - > Array [ @ admitted . CheckedValue ] ?"
+        },
+        {
+          "name": "request_model_cancel",
+          "declaration": "request_model_cancel ( execution : ModelExecution ) - > Bool"
+        },
+        {
+          "name": "slot_cid",
+          "declaration": "slot_cid ( fixed_request_cid : String , index : Int , key : Array [ @ admitted . CheckedValue ] , ) - > String ?"
+        },
+        {
+          "name": "start_model_execution",
+          "declaration": "start_model_execution ( rows : @ relation . PreparedInferRows , provider : ModelProvider , fixed_request_cid : String , limits : ModelExecutionLimits , call_scope ? : @ publication_host . ClientInferCallScope ?"
+        },
+        {
+          "name": "start_model_owned",
+          "declaration": "start_model_owned ( rows : @ relation . PreparedInferRows , source : ModelSource , fixed_request_cid : String , limits : ModelExecutionLimits , call_scope : @ publication_host . ClientInferCallScope ? , dispatch_admission ? : @ publication_host . ClientInferDispatchAdmission ?"
+        },
+        {
+          "name": "valid_cid",
+          "declaration": "valid_cid ( value : String ) - > Bool"
+        }
+      ],
+      "role": "common-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Common Model execution, Task admission and original Run call-scope Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "advance_model",
+            "advance_model_execution",
+            "advance_model_execution_owned",
+            "begin_observed_model_response",
+            "cleanup_model_execution",
+            "cleanup_model_execution_owned",
+            "install_async_model_provider",
+            "install_model_provider",
+            "key_cid",
+            "model_capture_bundle_json",
+            "model_execution_preflighting",
+            "model_execution_prepared_request_bytes",
+            "model_execution_quantity_usage",
+            "model_execution_resource_usage",
+            "model_provider_synchronous_invoke",
+            "replay_model_capture",
+            "replay_model_capture_rows",
+            "replay_model_capture_rows_owned",
+            "request_key",
+            "request_model_cancel",
+            "slot_cid",
+            "start_model_execution",
+            "start_model_owned",
+            "valid_cid"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "#### Original mock answer materials"
+              },
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "pub fn install_model_provider("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn install_original_model_mock("
+              },
+              {
+                "path": "src/check_environment/model_mock_execution.mbt",
+                "anchor": "pub fn model_mock_execution_materials("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "fn original_mock_request_values_current("
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "fn original_mock_scope_matches("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn retire_original_model_mock("
+              },
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "original.users -= 1"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "if state.durable_calls &&"
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "let observed_at = original.now.unwrap()()"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "None => Err(MissingAnswer)"
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "if !original_mock_provider_matches(original, provider, state.task) ||"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "if @bounded.stop_requested(reader) is Some(reason) {"
+              },
+              {
+                "path": "src/model_execution/entry_send_gate.mbt",
+                "anchor": "fn model_call_start_current("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Closing fences new invocations"
+              },
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "original_startup is None ||"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<!-- requirement-block: mock-answers.original-key mock-answers.exact-text mock-answers.explicit-default mock-answers.missing -->"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_infer_host/mock_original_installation_wbtest.mbt",
+                "anchor": "test \"actual original mock uses same Run entry typed enum output and child-first cleanup\" {"
+              },
+              {
+                "path": "src/model_execution/mock_selection_wbtest.mbt",
+                "anchor": "test \"mock exact single Text overrides never convert numeric or composite keys\" {"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/model_execution/mock_installation.mbt",
+      "sha256": "ca621cd4de4d0de0b1d05c22debdde62e42bf378280f68f0b6e2ec93273eb018",
+      "exports": [],
+      "operations": [
+        {
+          "name": "install_original_model_mock",
+          "declaration": "install_original_model_mock ( profile : @ environment . ModelMockProfile , declaration : @ environment . PublicModelTaskDeclaration , normalized : @ environment . NormalizedPublicModelTask , answers : ModelMockAnswers , now : ( ) - > String , ) - > Result [ ModelMockInstallation , ModelMockInstallationIssue ]"
+        },
+        {
+          "name": "invoke_original_mock",
+          "declaration": "invoke_original_mock ( original : ModelMockInstallation , provider : ModelProvider , state : ModelState , prepared : PreparedModelRequest , request : ModelRequest , reader : @ bounded . Reader , ) - > Result [ ModelResponse , ModelProviderFailure ]"
+        },
+        {
+          "name": "ModelMockInstallation::require_original",
+          "declaration": "ModelMockInstallation : : require_original ( self : Self , ) - > Result [ Unit , ModelMockInstallationIssue ]"
+        },
+        {
+          "name": "original_mock_provider_matches",
+          "declaration": "original_mock_provider_matches ( original : ModelMockInstallation , provider : ModelProvider , task : @ environment . ModelTaskContract , ) - > Bool"
+        },
+        {
+          "name": "original_mock_request_values_current",
+          "declaration": "original_mock_request_values_current ( state : ModelState , request : ModelRequest , ) - > Bool"
+        },
+        {
+          "name": "original_mock_scope_matches",
+          "declaration": "original_mock_scope_matches ( original : ModelMockInstallation , scope : @ publication . BoundModelInvocationScope , ) - > Bool"
+        },
+        {
+          "name": "original_model_mock_provider",
+          "declaration": "original_model_mock_provider ( original : ModelMockInstallation , ) - > Result [ ModelProvider , ModelMockInstallationIssue ]"
+        },
+        {
+          "name": "retire_original_model_mock",
+          "declaration": "retire_original_model_mock ( original : ModelMockInstallation , ) - > Result [ Bool , ModelMockInstallationIssue ]"
+        },
+        {
+          "name": "select_mock_answer",
+          "declaration": "select_mock_answer ( answers : ModelMockAnswers , declaration : @ environment . PublicModelTaskDeclaration , key : Array [ @ admitted . CheckedValue ] , ) - > Result [ @ admitted . CheckedValue , ModelMockInstallationIssue ]"
+        }
+      ],
+      "role": "common-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Common Model execution, Task admission and original Run call-scope Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "install_original_model_mock",
+            "invoke_original_mock",
+            "ModelMockInstallation::require_original",
+            "original_mock_provider_matches",
+            "original_mock_request_values_current",
+            "original_mock_scope_matches",
+            "original_model_mock_provider",
+            "retire_original_model_mock",
+            "select_mock_answer"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "#### Original mock answer materials"
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn install_original_model_mock("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn install_original_model_mock("
+              },
+              {
+                "path": "src/check_environment/model_mock_execution.mbt",
+                "anchor": "pub fn model_mock_execution_materials("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "fn original_mock_request_values_current("
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "fn original_mock_scope_matches("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn retire_original_model_mock("
+              },
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "original.users -= 1"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "if state.durable_calls &&"
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "let observed_at = original.now.unwrap()()"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "None => Err(MissingAnswer)"
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "if !original_mock_provider_matches(original, provider, state.task) ||"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "if @bounded.stop_requested(reader) is Some(reason) {"
+              },
+              {
+                "path": "src/model_execution/entry_send_gate.mbt",
+                "anchor": "fn model_call_start_current("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Closing fences new invocations"
+              },
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "original_startup is None ||"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<!-- requirement-block: mock-answers.original-key mock-answers.exact-text mock-answers.explicit-default mock-answers.missing -->"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_infer_host/mock_original_installation_wbtest.mbt",
+                "anchor": "test \"actual original mock uses same Run entry typed enum output and child-first cleanup\" {"
+              },
+              {
+                "path": "src/model_execution/mock_selection_wbtest.mbt",
+                "anchor": "test \"mock exact single Text overrides never convert numeric or composite keys\" {"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/model_execution/prepared_call_set.mbt",
+      "sha256": "f08de8a66a713d37e3e1b5730e13545eace84dfec87c0bdbfdbfdbd1b1adce2c",
+      "exports": [],
+      "operations": [
+        {
+          "name": "acknowledge_model_call_settlement",
+          "declaration": "acknowledge_model_call_settlement ( value : ModelCallSettlement ) - > Bool"
+        },
+        {
+          "name": "bind_prepared_model_dispatch",
+          "declaration": "bind_prepared_model_dispatch ( value : ModelPreparedCallSet , admission : @ publication_host . ClientInferDispatchAdmission , enter : ( ModelCallEntry ) - > Bool , ) - > Result [ Unit , ModelExecutionIssue ]"
+        },
+        {
+          "name": "bind_prepared_model_entry_persistence",
+          "declaration": "bind_prepared_model_entry_persistence ( value : ModelPreparedCallSet , admission : @ publication_host . ClientInferDispatchAdmission , begin : ( ModelCallEntry ) - > ModelCallEntryPersistence ? , ) - > Result [ Unit , ModelExecutionIssue ]"
+        },
+        {
+          "name": "bind_prepared_model_scope",
+          "declaration": "bind_prepared_model_scope ( value : ModelPreparedCallSet , scope : @ publication . BoundModelInvocationScope , ) - > Result [ Unit , ModelExecutionIssue ]"
+        },
+        {
+          "name": "check_prepared_model_dispatch",
+          "declaration": "check_prepared_model_dispatch ( value : ModelPreparedCallSet , admission : @ publication_host . ClientInferDispatchAdmission , ) - > Result [ Unit , ModelExecutionIssue ]"
+        },
+        {
+          "name": "model_call_entry_current",
+          "declaration": "model_call_entry_current ( entry : ModelCallEntry , prepared : ModelPreparedCallSet , ) - > Bool"
+        },
+        {
+          "name": "model_call_entry_originals",
+          "declaration": "model_call_entry_originals ( entry : ModelCallEntry , ) - > ( Int , String , String , String ) ?"
+        },
+        {
+          "name": "model_call_settlement",
+          "declaration": "model_call_settlement ( execution : ModelExecution , ) - > ModelCallSettlement ?"
+        },
+        {
+          "name": "model_call_settlement_slot",
+          "declaration": "model_call_settlement_slot ( value : ModelCallSettlement ) - > Int ?"
+        },
+        {
+          "name": "prepared_model_call_at",
+          "declaration": "prepared_model_call_at ( value : ModelPreparedCallSet , slot : Int , ) - > @ publication . RunEvidenceValue ?"
+        },
+        {
+          "name": "prepared_model_call_count",
+          "declaration": "prepared_model_call_count ( value : ModelPreparedCallSet ) - > Int ?"
+        },
+        {
+          "name": "prepared_model_call_set",
+          "declaration": "prepared_model_call_set ( execution : ModelExecution , ) - > ModelPreparedCallSet ?"
+        },
+        {
+          "name": "prepared_model_current",
+          "declaration": "prepared_model_current ( value : ModelPreparedCallSet ) - > Bool"
+        },
+        {
+          "name": "prepared_model_identities",
+          "declaration": "prepared_model_identities ( value : ModelPreparedCallSet , ) - > ( String , String , String ) ?"
+        },
+        {
+          "name": "prepared_model_input",
+          "declaration": "prepared_model_input ( value : ModelPreparedCallSet , ) - > @ relation . CompletedOutput ?"
+        },
+        {
+          "name": "prepared_model_input_artifact",
+          "declaration": "prepared_model_input_artifact ( value : ModelPreparedCallSet , ) - > @ publication . RunEvidenceValue ?"
+        },
+        {
+          "name": "prepared_model_matches",
+          "declaration": "prepared_model_matches ( value : ModelPreparedCallSet , execution : ModelExecution , ) - > Bool"
+        },
+        {
+          "name": "prepared_model_physical_request",
+          "declaration": "prepared_model_physical_request ( value : ModelPreparedCallSet , slot : Int , ) - > ( ModelRequest , ModelPhysicalRequestEvidence ) ?"
+        },
+        {
+          "name": "prepared_model_request",
+          "declaration": "prepared_model_request ( value : ModelPreparedCallSet , slot : Int , ) - > ModelRequest ?"
+        },
+        {
+          "name": "prepared_model_scope",
+          "declaration": "prepared_model_scope ( value : ModelPreparedCallSet , ) - > @ publication . BoundModelInvocationScope ?"
+        }
+      ],
+      "role": "common-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Common Model execution, Task admission and original Run call-scope Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "acknowledge_model_call_settlement",
+            "bind_prepared_model_dispatch",
+            "bind_prepared_model_entry_persistence",
+            "bind_prepared_model_scope",
+            "check_prepared_model_dispatch",
+            "model_call_entry_current",
+            "model_call_entry_originals",
+            "model_call_settlement",
+            "model_call_settlement_slot",
+            "prepared_model_call_at",
+            "prepared_model_call_count",
+            "prepared_model_call_set",
+            "prepared_model_current",
+            "prepared_model_identities",
+            "prepared_model_input",
+            "prepared_model_input_artifact",
+            "prepared_model_matches",
+            "prepared_model_physical_request",
+            "prepared_model_request",
+            "prepared_model_scope"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "#### Original mock answer materials"
+              },
+              {
+                "path": "src/model_execution/prepared_call_set.mbt",
+                "anchor": "pub fn prepared_model_call_set("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn install_original_model_mock("
+              },
+              {
+                "path": "src/check_environment/model_mock_execution.mbt",
+                "anchor": "pub fn model_mock_execution_materials("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "fn original_mock_request_values_current("
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "fn original_mock_scope_matches("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn retire_original_model_mock("
+              },
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "original.users -= 1"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "if state.durable_calls &&"
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "let observed_at = original.now.unwrap()()"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "None => Err(MissingAnswer)"
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "if !original_mock_provider_matches(original, provider, state.task) ||"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "if @bounded.stop_requested(reader) is Some(reason) {"
+              },
+              {
+                "path": "src/model_execution/entry_send_gate.mbt",
+                "anchor": "fn model_call_start_current("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Closing fences new invocations"
+              },
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "original_startup is None ||"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<!-- requirement-block: mock-answers.original-key mock-answers.exact-text mock-answers.explicit-default mock-answers.missing -->"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_infer_host/mock_original_installation_wbtest.mbt",
+                "anchor": "test \"actual original mock uses same Run entry typed enum output and child-first cleanup\" {"
+              },
+              {
+                "path": "src/model_execution/mock_selection_wbtest.mbt",
+                "anchor": "test \"mock exact single Text overrides never convert numeric or composite keys\" {"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/model_execution/provider_admission.mbt",
+      "sha256": "4da26856d0e0ce59a5ef3e8f87b8ac05b5d63d7b112496f94cb6239b38bbafd0",
+      "exports": [],
+      "operations": [
+        {
+          "name": "admit_model_provider",
+          "declaration": "admit_model_provider ( provider : ModelProvider , execution : @ environment . ModelExecutionContract , dependencies : @ environment . SingleAttemptModelDependencies , validate : ( @ environment . ModelTaskContract , @ environment . ModelDependency ) - > Bool , ) - > Result [ AdmittedModelProvider , ModelProviderAdmissionIssue ]"
+        },
+        {
+          "name": "admit_original_model_mock_provider",
+          "declaration": "admit_original_model_mock_provider ( original : ModelMockInstallation , execution : @ environment . ModelExecutionContract , dependencies : @ environment . SingleAttemptModelDependencies , ) - > Result [ AdmittedModelProvider , ModelProviderAdmissionIssue ]"
+        },
+        {
+          "name": "admitted_model_provider_for",
+          "declaration": "admitted_model_provider_for ( value : AdmittedModelProvider , execution : @ environment . ModelExecutionContract , ) - > ModelProvider ?"
+        }
+      ],
+      "role": "common-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Common Model execution, Task admission and original Run call-scope Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admit_model_provider",
+            "admit_original_model_mock_provider",
+            "admitted_model_provider_for"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "#### Original mock answer materials"
+              },
+              {
+                "path": "src/model_execution/provider_admission.mbt",
+                "anchor": "pub fn admit_model_provider("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn install_original_model_mock("
+              },
+              {
+                "path": "src/check_environment/model_mock_execution.mbt",
+                "anchor": "pub fn model_mock_execution_materials("
+              },
+              {
+                "path": "src/model_execution/provider_admission.mbt",
+                "anchor": "pub fn admit_original_model_mock_provider("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "fn original_mock_request_values_current("
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "fn original_mock_scope_matches("
+              },
+              {
+                "path": "src/check_environment/public_model_task_mock.mbt",
+                "anchor": "pub fn normalized_public_mock_model_task_matches_prompt("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn retire_original_model_mock("
+              },
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "original.users -= 1"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "if state.durable_calls &&"
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "let observed_at = original.now.unwrap()()"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "None => Err(MissingAnswer)"
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "if !original_mock_provider_matches(original, provider, state.task) ||"
+              },
+              {
+                "path": "src/model_execution/provider_admission.mbt",
+                "anchor": "Err(_) => return Err(ForeignProvider)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "if @bounded.stop_requested(reader) is Some(reason) {"
+              },
+              {
+                "path": "src/model_execution/entry_send_gate.mbt",
+                "anchor": "fn model_call_start_current("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Closing fences new invocations"
+              },
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "original_startup is None ||"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "the short-lived validator capture remains within the original preparation work."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<!-- requirement-block: mock-answers.original-key mock-answers.exact-text mock-answers.explicit-default mock-answers.missing -->"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_infer_host/mock_original_installation_wbtest.mbt",
+                "anchor": "test \"actual original mock uses same Run entry typed enum output and child-first cleanup\" {"
+              },
+              {
+                "path": "src/model_execution/mock_selection_wbtest.mbt",
+                "anchor": "test \"mock exact single Text overrides never convert numeric or composite keys\" {"
+              },
+              {
+                "path": "src/model_execution/mock_provider_admission_wbtest.mbt",
+                "anchor": "test \"original Mock admits its owned normalized prompt without a Host callback\" {"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication_host/client_infer_call_scope.mbt",
+      "sha256": "11f4d2c1971fbba7276f4dd1c936f2e07b6a16c8d00697ff2004b47fc98e0d4f",
+      "exports": [],
+      "operations": [
+        {
+          "name": "check_client_infer_saved_observation_scope",
+          "declaration": "check_client_infer_saved_observation_scope ( scope : ClientInferCallScope , admission : @ publication . RunPublicationAdmission , definition : @ publication . PublicationContract , observation : @ publication . RunEvidenceValue , compiled : ClientCompiledRun , ) - > Result [ Unit , @ publication . RunEvidenceValueIssue ]"
+        },
+        {
+          "name": "client_infer_call_scope_artifact",
+          "declaration": "client_infer_call_scope_artifact ( value : ClientInferCallScope , ) - > @ publication . RunEvidenceValue"
+        },
+        {
+          "name": "client_infer_call_scope_generation_available",
+          "declaration": "client_infer_call_scope_generation_available ( value : ClientInferCallScope , ) - > Bool"
+        },
+        {
+          "name": "client_infer_call_scope_input",
+          "declaration": "client_infer_call_scope_input ( value : ClientInferCallScope , ) - > @ execution . CompletedOutput ?"
+        },
+        {
+          "name": "client_infer_call_scope_matches",
+          "declaration": "client_infer_call_scope_matches ( value : ClientInferCallScope , owner : PreparedClientProgram , input : @ execution . CompletedOutput , ) - > Bool"
+        },
+        {
+          "name": "client_infer_call_scope_matches_rows",
+          "declaration": "client_infer_call_scope_matches_rows ( value : ClientInferCallScope , rows : @ execution . PreparedInferRows , fixed_request_cid : String , ) - > Bool"
+        },
+        {
+          "name": "client_infer_call_scope_model_execution",
+          "declaration": "client_infer_call_scope_model_execution ( original : ClientInferCallScope , ) - > @ environment . ModelExecutionContract"
+        },
+        {
+          "name": "client_infer_call_scope_snapshot",
+          "declaration": "client_infer_call_scope_snapshot ( value : ClientInferCallScope , ) - > Result [ String , ClientInferCallScopeIssue ]"
+        },
+        {
+          "name": "client_infer_call_scope_source_observations",
+          "declaration": "client_infer_call_scope_source_observations ( scope : ClientInferCallScope , ) - > Array [ @ publication . ModelSourceObservation ]"
+        },
+        {
+          "name": "client_infer_call_scope_unit_id",
+          "declaration": "client_infer_call_scope_unit_id ( value : ClientInferCallScope ) - > String ?"
+        },
+        {
+          "name": "client_infer_saved_call_scope_matches_occurrence",
+          "declaration": "client_infer_saved_call_scope_matches_occurrence ( value : ClientInferSavedCallScope , occurrence : ClientInferOccurrence , plan : ClientInferPlanGraph , ) - > Bool"
+        },
+        {
+          "name": "client_infer_saved_call_scope_matches_run",
+          "declaration": "client_infer_saved_call_scope_matches_run ( value : ClientInferSavedCallScope , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , ) - > Bool"
+        },
+        {
+          "name": "infer_scope_evidence",
+          "declaration": "infer_scope_evidence ( name : String , wire : String , ) - > Result [ @ publication . RunEvidenceValue , ClientInferCallScopeIssue ]"
+        },
+        {
+          "name": "infer_scope_expected_sources",
+          "declaration": "infer_scope_expected_sources ( occurrence : ClientInferOccurrence , plan ? : ClientInferPlanGraph ?"
+        },
+        {
+          "name": "infer_scope_string",
+          "declaration": "infer_scope_string ( value : @ canonical . CanonicalValue , field : String , ) - > String ?"
+        },
+        {
+          "name": "issue_client_infer_call_slot",
+          "declaration": "issue_client_infer_call_slot ( value : ClientInferCallScope , key : @ publication . RunEvidenceValue , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication . RunEvidenceValue , ClientInferCallScopeIssue ]"
+        },
+        {
+          "name": "issue_client_infer_occurrence_call_scope",
+          "declaration": "issue_client_infer_occurrence_call_scope ( occurrence : ClientInferOccurrence , plan : ClientInferPlanGraph , input : @ execution . CompletedOutput , receipt : @ execution . CompletedRelationExportReceipt , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , captured ? : ClientInferCapturedInput ?"
+        },
+        {
+          "name": "issue_prepared_client_infer_call_scope",
+          "declaration": "issue_prepared_client_infer_call_scope ( owner : PreparedClientProgram , plan : ClientInferPlanGraph , step : Int , input : @ execution . CompletedOutput , receipt : @ execution . CompletedRelationExportReceipt , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , captured ? : ClientInferCapturedInput ?"
+        },
+        {
+          "name": "read_client_infer_saved_call_scope",
+          "declaration": "read_client_infer_saved_call_scope ( compiled : ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : ClientInferOccurrence , plan : ClientInferPlanGraph , snapshot_wire : String , authority_scope_cid : String , custody_available : ( ) - > Bool , ) - > Result [ ClientInferSavedCallScope , ClientInferCallScopeIssue ]"
+        },
+        {
+          "name": "restore_client_infer_call_scope",
+          "declaration": "restore_client_infer_call_scope ( value : ClientInferSavedCallScope , input : @ execution . CompletedOutput , receipt : @ execution . CompletedRelationExportReceipt , ) - > Result [ ClientInferCallScope , ClientInferCallScopeIssue ]"
+        }
+      ],
+      "role": "common-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Common Model execution, Task admission and original Run call-scope Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "check_client_infer_saved_observation_scope",
+            "client_infer_call_scope_artifact",
+            "client_infer_call_scope_generation_available",
+            "client_infer_call_scope_input",
+            "client_infer_call_scope_matches",
+            "client_infer_call_scope_matches_rows",
+            "client_infer_call_scope_model_execution",
+            "client_infer_call_scope_snapshot",
+            "client_infer_call_scope_source_observations",
+            "client_infer_call_scope_unit_id",
+            "client_infer_saved_call_scope_matches_occurrence",
+            "client_infer_saved_call_scope_matches_run",
+            "infer_scope_evidence",
+            "infer_scope_expected_sources",
+            "infer_scope_string",
+            "issue_client_infer_call_slot",
+            "issue_client_infer_occurrence_call_scope",
+            "issue_prepared_client_infer_call_scope",
+            "read_client_infer_saved_call_scope",
+            "restore_client_infer_call_scope"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "#### Original mock answer materials"
+              },
+              {
+                "path": "src/run_publication_host/client_infer_call_scope.mbt",
+                "anchor": "pub fn client_infer_call_scope_model_execution("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn install_original_model_mock("
+              },
+              {
+                "path": "src/check_environment/model_mock_execution.mbt",
+                "anchor": "pub fn model_mock_execution_materials("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "fn original_mock_request_values_current("
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "fn original_mock_scope_matches("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn retire_original_model_mock("
+              },
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "original.users -= 1"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "if state.durable_calls &&"
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "let observed_at = original.now.unwrap()()"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "None => Err(MissingAnswer)"
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "if !original_mock_provider_matches(original, provider, state.task) ||"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "if @bounded.stop_requested(reader) is Some(reason) {"
+              },
+              {
+                "path": "src/model_execution/entry_send_gate.mbt",
+                "anchor": "fn model_call_start_current("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Closing fences new invocations"
+              },
+              {
+                "path": "src/model_execution/execution.mbt",
+                "anchor": "original_startup is None ||"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/spec/protocols/contracts.md",
+                "anchor": "<!-- requirement-block: mock-answers.original-key mock-answers.exact-text mock-answers.explicit-default mock-answers.missing -->"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_infer_host/mock_original_installation_wbtest.mbt",
+                "anchor": "test \"actual original mock uses same Run entry typed enum output and child-first cleanup\" {"
+              },
+              {
+                "path": "src/model_execution/mock_selection_wbtest.mbt",
+                "anchor": "test \"mock exact single Text overrides never convert numeric or composite keys\" {"
               }
             ]
           }

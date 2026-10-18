@@ -15,6 +15,9 @@ import {
   "actql/actql/platform_native/client_host" @local_host,
   "actql/actql/platform_native/credential_resource" @raw_resource,
   "actql/actql/platform_native/signature" @local_crypto,
+  "actql/actql/platform_native/installed_arena_control" @initial_arena,
+  "actql/actql/platform_native/host_bootstrap" @initial_bootstrap,
+  "actql/actql/physical_resources" @initial_resources,
   "actql/actql/platform_native/sqlite" @local_sqlite,
   "actql/actql/platform_native/filesystem" @local_filesystem,
   "actql/actql/platform_native/result_access" @local_result,
@@ -37,6 +40,7 @@ import {
   "moonbitlang/core/string",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",
+  "moonbitlang/core/debug",
 }
 
 import {
@@ -45,6 +49,6 @@ import {
 } for "wbtest"
 
 options(
-  "native-stub": [ "stdout_stub.c", "local_journal_transport_probe.c" ],
+  "native-stub": [ "stdout_stub.c", "local_journal_transport_probe.c", "initial_crypto_backing_stub.c" ],
   link: { "native": { "cc-flags": "-O0" } },
 )

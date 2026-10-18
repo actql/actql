@@ -176,6 +176,7 @@ fn execute_native_local_adoption(
   operation : String,
   child : @argparse.Matches,
   packaged_runtime? : @local_host.NativeLocalPackagedRuntime? = None,
+  initial_crypto? : InitialCryptoOriginal? = None,
 ) -> String raise ClientStop {
   let root = required(matches, "config-root")
   let name = required(matches, "config-file")
@@ -258,9 +259,21 @@ fn execute_native_local_adoption(
       .library_paths()
       .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
   }
-  let crypto = @local_crypto.load_library(crypto_path).unwrap_or_else(() => {
-    stop("NativeLocalSignatureUnavailable")
-  })
+  let crypto = match initial_crypto {
+    Some(original) => {
+      guard packaged_runtime is Some(runtime) &&
+        physical_equal(runtime, original.package_original) else {
+        stop("ForeignInitialCryptoOriginal")
+      }
+      original
+      .library(true)
+      .unwrap_or_else(() => stop("InitialCryptoInnerLibraryUnavailable"))
+    }
+    None =>
+      @local_crypto.load_library(crypto_path).unwrap_or_else(() => {
+        stop("NativeLocalSignatureUnavailable")
+      })
+  }
   let sqlite = @local_sqlite.load_library(sqlite_path).unwrap_or_else(() => {
     stop("NativeLocalJournalUnavailable")
   })

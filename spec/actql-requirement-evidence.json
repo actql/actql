@@ -15337,6 +15337,50 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/mock-answers.original-key",
+      "statement_sha256": "894644e7cc965bfc31cea5f6e8e91500dd87154d728b1f6c4aaf285ec614e9d9",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-task-defaults",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/mock-answers.exact-text",
+      "statement_sha256": "f88e4675dded591ab3b4ebe2ba04d74bade7efe1005701fb497965f0822fdc05",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-task-defaults",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/mock-answers.explicit-default",
+      "statement_sha256": "428bb922d9a0ece8f902093950a350eac8e062ec15f72b237d998f399ccc6777",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-task-defaults",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/mock-answers.missing",
+      "statement_sha256": "ee850c6c3a2d37fae8ec9f0544ba65cdbfd4e9d63488762482b84e250c9a659b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-task-defaults",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/planning-wire.product-a854b55d6c3e",
       "statement_sha256": "a854b55d6c3e96ac913d0bf7253ebb0fa8a90d6da520588757244c4c23491c7a",
       "status": "pending",

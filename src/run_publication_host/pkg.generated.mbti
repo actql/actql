@@ -4,6 +4,7 @@ package "actql/actql/run_publication_host"
 import {
   "actql/actql/check_environment",
   "actql/actql/checkpoint_runtime",
+  "actql/actql/client_source_publication",
   "actql/actql/decode_core",
   "actql/actql/effect_application",
   "actql/actql/effect_program_binding",
@@ -25,6 +26,7 @@ import {
   "actql/actql/remote_site_protocol",
   "actql/actql/remote_transfer",
   "actql/actql/run_publication",
+  "actql/actql/source_frontend",
   "actql/actql/sourceview_resolution",
   "actql/actql/stage_results",
   "actql/actql/stage_syntax",
@@ -49,7 +51,7 @@ pub fn admit_client_effect_prepared_original(String, String, @pipeline_check_con
 
 pub fn admit_client_effect_review_checkpoint_binding(ClientEffectAllowedRun, @run_publication.PublicationContract, String, @checkpoint_runtime.WireLimits) -> Result[@checkpoint_runtime.SealedCheckpoint, ClientEffectCheckpointBindingIssue]
 
-pub fn admit_client_effect_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits, ClientEffectComputationLimits, original_materials? : ClientEffectIssuedNormalizationMaterials?, expected_request? : ClientRequestIdentity?) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue]
+pub fn admit_client_effect_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits, ClientEffectComputationLimits, original_materials? : ClientEffectIssuedNormalizationMaterials?, expected_request? : ClientRequestIdentity?, original_source? : ClientSourcePreparation?) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue]
 
 pub fn admit_client_effect_serialization_captured_input(ClientCompiledRun, PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String) -> Result[ClientSerializationCapturedInput, @run_publication.RunEvidenceValueIssue]
 
@@ -571,6 +573,8 @@ pub fn client_infer_call_scope_matches(ClientInferCallScope, PreparedClientProgr
 
 pub fn client_infer_call_scope_matches_rows(ClientInferCallScope, @execution_relation.PreparedInferRows, String) -> Bool
 
+pub fn client_infer_call_scope_model_execution(ClientInferCallScope) -> @check_environment.ModelExecutionContract
+
 pub fn client_infer_call_scope_snapshot(ClientInferCallScope) -> Result[String, ClientInferCallScopeIssue]
 
 pub fn client_infer_call_scope_source_observations(ClientInferCallScope) -> Array[@run_publication.ModelSourceObservation]
@@ -915,6 +919,10 @@ pub fn client_remote_effect_task_progress_scopes(ClientRemoteEffectTaskProgress)
 
 pub fn client_remote_effect_task_progress_task_cleanup_complete(ClientRemoteEffectTaskProgress) -> Bool
 
+pub fn client_remote_effect_task_run_projection_fields(ClientRemoteEffectTaskRunProjection) -> Array[String]
+
+pub fn client_remote_effect_task_run_projection_work(ClientRemoteEffectTaskRunProjection) -> Array[String]
+
 pub fn client_remote_task_progress_cleanup_complete(ClientRemoteTaskProgress) -> Bool
 
 pub fn client_remote_task_progress_execution_complete(ClientRemoteTaskProgress) -> Bool
@@ -1072,6 +1080,18 @@ pub fn client_serialization_plan_graph_coordinates(ClientSerializationPlanGraph)
 pub fn client_serialization_plan_graph_wire(ClientSerializationPlanGraph) -> String
 
 pub fn client_serialization_recovery_matches_infer(ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientInferOccurrence, @run_publication.BoundContentGeneration) -> Bool
+
+pub fn client_source_computation_matches(ClientSourcePreparation, ClientSubmittedIntent, @program_check.CheckEnvironment) -> Bool
+
+pub fn client_source_computation_material(ClientSourcePreparation) -> (String, String?)
+
+pub fn client_source_computation_originals(ClientSourcePreparation) -> (String, String, String, String)
+
+pub fn client_source_computation_preparation(ClientSourcePreparation) -> ClientSourceProgramPreparation
+
+pub fn client_source_computation_request(ClientSourcePreparation, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
+
+pub fn client_source_computation_source(ClientSourcePreparation) -> (String, String, String?)
 
 pub fn client_standard_effect_computation_limits() -> ClientEffectComputationLimits
 
@@ -1695,6 +1715,8 @@ pub fn prepare_client_run_state_original(@run_publication.PublicationContract, @
 
 pub fn prepare_client_serialization(PreparedClientProgram, Int, Int, max_work~ : Int) -> Result[@lowering_relation.PreparedSerialization, ClientSerializationPreparationIssue]
 
+pub fn prepare_client_source_computation(ClientSubmittedIntent, @program_check.CheckEnvironment, String) -> Result[ClientSourcePreparation, ClientSourcePreparationIssue]
+
 pub fn prepare_client_stored_run_captured_content(ClientCompiledRun, @run_publication.PublicationContract, ClientKeyedAcquisition, String, String, @value_admission.ReferenceLimits) -> Result[ClientCapturedContent, @run_publication.GeneratedContentReferenceIssue]
 
 pub fn prepare_client_submission_reference_record(ClientSubmissionEpochToken, String) -> Result[ClientSubmissionReferenceRecord, ClientSubmissionReferenceRecordIssue]
@@ -1826,6 +1848,8 @@ pub fn prepared_client_uses_graph_carrier(PreparedClientProgram) -> Bool
 pub fn prepared_client_values_max_rows(PreparedClientProgram) -> Int
 
 pub fn prepared_client_values_sequence_limits(PreparedClientProgram) -> @lowering_relation.SequenceLimits
+
+pub fn project_client_remote_effect_task_run(ClientRemoteEffectTaskProgress, String, Bool, Array[ClientRemoteEffectTaskRunClaim]) -> Result[ClientRemoteEffectTaskRunProjection, ClientRemoteTaskRunProjectionIssue]
 
 pub fn project_client_remote_task_run(ClientRemoteTaskProgress, String, Bool, Array[String]) -> Result[ClientRemoteTaskRunProjection, ClientRemoteTaskRunProjectionIssue]
 
@@ -3398,6 +3422,18 @@ pub(all) enum ClientRemoteEffectTaskProgressIssue {
   Observation(ClientRemoteTaskProgressIssue)
 }
 
+pub(all) struct ClientRemoteEffectTaskRunClaim {
+  task_key : String
+  dispatch_cid : String?
+  dispatch_reserved : Bool
+  physical_start_claimed : Bool
+}
+
+pub struct ClientRemoteEffectTaskRunProjection {
+  original : ClientRemoteEffectTaskProgress
+  projection : ClientRemoteTaskRunProjection
+}
+
 pub struct ClientRemoteTaskProgress {
   prepared : PreparedClientProgram
   authority : String
@@ -3876,6 +3912,36 @@ pub(all) enum ClientSerializationPreparationIssue {
 type ClientSourceFreeProjectBindings
 pub fn ClientSourceFreeProjectBindings::has_connectors_file(Self) -> Bool
 pub fn ClientSourceFreeProjectBindings::has_model_tasks_file(Self) -> Bool
+
+pub struct ClientSourcePreparation {
+  intent : ClientSubmittedIntent
+  environment : @program_check.CheckEnvironment
+  publication : String
+  document : String
+  parameters : String?
+  source_document : String
+  source_format : String
+  declarations : String?
+  preparation : ClientSourceProgramPreparation
+}
+
+pub(all) enum ClientSourcePreparationIssue {
+  Input
+  Publication(@client_source_publication.PublicationIssue)
+  Frontend(@source_frontend.Issue)
+  Syntax(@stage_syntax.SyntaxError)
+  Pure(ClientProgramPreparationIssue)
+  Effect(ClientEffectComputationIssue)
+  ArrayProfile(@source_frontend.ArrayProfileIssue)
+  TargetOriginalsUnavailable
+  ReadOnly
+  Materials(ClientEffectRunMaterialsIssue)
+}
+
+pub enum ClientSourceProgramPreparation {
+  Pure(PreparedClientProgram)
+  Effect(PreparedClientEffectComputation)
+}
 
 pub(all) enum ClientStageOwnerIssue {
   MissingCheckedStage(Int)

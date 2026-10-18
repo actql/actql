@@ -175,6 +175,11 @@ pub fn bind_prepared_model_scope(
     prepared_model_input_artifact(value) is Some(input) else {
     return Err(RequestIdentity)
   }
+  if value.owner.state.source is Provider(provider) &&
+    provider.invocation is OriginalMock(original) &&
+    !original_mock_scope_matches(original, scope) {
+    return Err(RequestIdentity)
+  }
   let slots = @publication.model_invocation_scope_slots(scope)
   if @publication.model_invocation_scope_input_cid(scope) !=
     @publication.run_evidence_value_identity(input) ||

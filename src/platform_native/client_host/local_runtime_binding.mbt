@@ -97,6 +97,16 @@ fn local_runtime_binding_current(
 }
 
 ///|
+// The frozen pair is descriptor metadata. This implementation has no admitted
+// historical operational witness; a caller cannot enable it with DATA or a CID.
+fn require_local_historical_runtime_implementation() -> Result[
+  Unit,
+  NativeClientRunJournalIssue,
+] {
+  Err(UnsupportedPreparation)
+}
+
+///|
 /// Original files come only from this authenticated adoption. The predecessor
 /// expectation is the retained installed-109 receipt, not the candidate's SHA.
 /// Binding observes compatibility inputs; only explicit upgrade can append.
@@ -163,6 +173,10 @@ pub fn NativeLocalHostConnection::bind_packaged_runtime(
     }
     None
   } else {
+    match require_local_historical_runtime_implementation() {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
     // Original adoption custody and the fixed receipt are independent inputs.
     let original = match
       @host.admit_client_native_local_runtime(

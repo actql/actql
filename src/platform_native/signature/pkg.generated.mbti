@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub fn load_current_crypto_component(String, Int64, Int) -> Result[NativeCryptoComponentAcquisition, NativeSignatureIssue]
+
 pub fn load_library(String, diagnostic_ceiling? : Int?) -> Result[Library, NativeSignatureIssue]
 
 // Errors
@@ -25,6 +27,16 @@ pub fn Library::sign_ed25519(Self, Bytes, Bytes) -> Result[String, NativeSignatu
 pub fn Library::verify_ed25519(Self, String, Bytes, String) -> Result[Bool, NativeSignatureIssue]
 pub fn Library::verify_hmac_sha256(Self, Bytes, Bytes, Bytes) -> Result[Bool, NativeSignatureIssue]
 
+pub(all) enum NativeCryptoComponentAcquisition {
+  ReadyCryptoComponent(OriginalCryptoComponent)
+  PendingCryptoComponent(OriginalCryptoComponent, NativeSignatureIssue)
+}
+
+pub(all) enum NativeCryptoLibraryAcquisition {
+  ReadyCryptoLibrary(Library)
+  PendingCryptoLibrary(Library, NativeSignatureIssue)
+}
+
 pub(all) enum NativePrivateEvidenceIssue {
   UnsupportedTarget
   InvalidInput
@@ -43,6 +55,11 @@ pub(all) enum NativeSignatureIssue {
   CleanupPending
   CloseUnconfirmed(String)
 } derive(Eq, @debug.Debug)
+
+type OriginalCryptoComponent
+pub fn OriginalCryptoComponent::close_checked(Self) -> Result[Unit, NativeSignatureIssue]
+pub fn OriginalCryptoComponent::new_library(Self) -> Result[NativeCryptoLibraryAcquisition, NativeSignatureIssue]
+pub fn OriginalCryptoComponent::owns_library(Self, Library) -> Bool
 
 type Sha256Hasher
 pub fn Sha256Hasher::close_checked(Self) -> Result[Unit, NativeSignatureIssue]

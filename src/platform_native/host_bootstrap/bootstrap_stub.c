@@ -381,6 +381,45 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_read_context_status(
 #endif
 }
 
+/* Same original physical scope only. A registered user or nominal active-phase
+ * cell is not proof that this thread currently holds this exact context. */
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_read_context_entered(
+    actql_bootstrap_domain *record) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    if (record == NULL) return ACTQL_OWNED_INVALID;
+    /* Reject an unbound thread before reading the original mutable scope.
+     * The same Owner still excludes concurrent final retirement of its record. */
+    actql_owned_capacity *lease = actql_native_owned_current();
+    actql_read_context *context = actql_read_context_current();
+    if (lease == NULL || context == NULL) return ACTQL_OWNED_INVALID;
+    if (lease != record->lease || context != record->read_context ||
+        record->read_prepare_scope || !record->read_user || record->read_active == 0)
+        return ACTQL_OWNED_INVALID;
+    return ACTQL_OWNED_OK;
+#else
+    (void)record;
+    return ACTQL_OWNED_INVALID;
+#endif
+}
+
+/* Registration control is prepared before any Read/owned scope on this
+ * thread. This observes only the same original's unentered state: it does not
+ * enter a context, allocate control or acknowledge any owner retirement. */
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_read_context_unentered(
+    actql_bootstrap_domain *record) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    if (record == NULL || actql_read_context_current() != NULL ||
+        actql_native_owned_current() != NULL) return ACTQL_OWNED_INVALID;
+    if (record->read_context == NULL || !record->read_user ||
+        record->read_prepare_scope || record->read_active != 0)
+        return ACTQL_OWNED_INVALID;
+    return ACTQL_OWNED_OK;
+#else
+    (void)record;
+    return ACTQL_OWNED_INVALID;
+#endif
+}
+
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_prepare_read_context(
     actql_bootstrap_domain *record) {
 #if defined(ACTQL_SCOPED_READ_ALLOCATOR)

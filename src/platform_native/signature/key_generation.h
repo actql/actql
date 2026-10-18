@@ -12,6 +12,7 @@ int32_t actql_native_signature_generate_ed25519(
   moonbit_bytes_t private_der, int32_t private_length,
   moonbit_bytes_t public_der, int32_t public_length
 ) {
+  ACTQL_SIGNATURE_SCOPE(library, 2);
   if (!actql_signature_library_available(library) ||
       library->diagnostic_ceiling <= 0 || private_der == NULL ||
       public_der == NULL || private_der == public_der ||

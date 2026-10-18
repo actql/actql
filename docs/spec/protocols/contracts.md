@@ -1595,6 +1595,15 @@ Saved execution and recovery MUST preserve the original public Task, project sel
 
 Mock normalization MUST use its own original fixture installation/profile and typed answer originals, not a live provider's defaults or a manufactured physical model grant. A public authored physical model does not dispatch a physical provider in mock mode.
 
+<!-- requirement-block: mock-answers.original-key mock-answers.exact-text mock-answers.explicit-default mock-answers.missing -->
+Mock answer selection MUST first retain and verify the original Task, prepared request, typed key proof and same Run/slot correspondence; a default cannot repair missing, copied, foreign, retired or otherwise invalid originals.
+
+An existing `by_key` property name MUST denote exactly one Text key component, compared without tuple joining, JSON parsing, hashing, numeric formatting, trimming or Unicode normalization. A composite key and a numeric or Int64 value are not a single Text key, including when their possible textual spellings resemble a property name.
+
+An explicit typed `default` MUST apply to any otherwise valid original key without an exact Text override, including composite/non-Text keys and default-only fixtures. This form defines no per-key composite/non-Text override grammar and imposes no prohibition on those valid keys.
+
+If neither an exact override nor an explicit default exists, selection MUST refuse as missing rather than choose another entry, invent null, dispatch a real Provider or retry an Unknown call. Answer selection establishes no authorization, currentness, capacity, saved-answer replacement or cleanup acknowledgement.
+
 <a id="planning-wire"></a>
 
 ### Plan Documents and public planning results

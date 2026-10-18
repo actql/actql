@@ -1,0 +1,5 @@
+The private Crypto component links OpenSSL 3.6.2, distributed under the Apache
+License 2.0. The upstream source and license originate from the selected OpenSSL
+release. Component allocator and assembly code are ActQL source. This candidate
+has no adopted numerical profile or installed supplier. It does not configure
+or replace the system or Python OpenSSL instance.

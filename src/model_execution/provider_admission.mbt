@@ -29,6 +29,17 @@ pub fn admit_model_provider(
     return Err(ForeignDependencies)
   }
   let task = @environment.model_execution_task(execution)
+  if provider.invocation is OriginalMock(original) &&
+    (
+      !original_mock_provider_matches(original, provider, task) ||
+      !@environment.model_mock_execution_matches(
+        original.profile.unwrap(),
+        original.normalized.unwrap(),
+        execution,
+      )
+    ) {
+    return Err(ForeignProvider)
+  }
   if provider.provider_id != @environment.model_task_connector(task) {
     return Err(ForeignProvider)
   }
@@ -36,6 +47,33 @@ pub fn admit_model_provider(
     return Err(UnsupportedPrompt)
   }
   Ok({ provider, execution, dependencies, })
+}
+
+///|
+/// The same original Mock installation owns its prompt implementation. This
+/// delegates to the ordinary Task/dependency/execution admission with a closed
+/// validator from that Owner; no Host callback, physical Provider or grant is
+/// synthesized for the local fixture implementation.
+pub fn admit_original_model_mock_provider(
+  original : ModelMockInstallation,
+  execution : @environment.ModelExecutionContract,
+  dependencies : @environment.SingleAttemptModelDependencies,
+) -> Result[AdmittedModelProvider, ModelProviderAdmissionIssue] {
+  let provider = match original_model_mock_provider(original) {
+    Ok(value) => value
+    Err(_) => return Err(ForeignProvider)
+  }
+  admit_model_provider(provider, execution, dependencies, (task, prompt) => {
+    original.require_original() is Ok(_) &&
+    !original.closing &&
+    @environment.normalized_public_mock_model_task_matches_prompt(
+      original.normalized.unwrap(),
+      original.declaration.unwrap(),
+      original.profile.unwrap(),
+      task,
+      prompt,
+    )
+  })
 }
 
 ///|

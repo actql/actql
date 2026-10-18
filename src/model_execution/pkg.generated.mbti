@@ -30,6 +30,8 @@ pub fn acquire_verified_model_capture(ModelExecution) -> VerifiedModelCapture?
 
 pub fn admit_model_provider(ModelProvider, @check_environment.ModelExecutionContract, @check_environment.SingleAttemptModelDependencies, (@check_environment.ModelTaskContract, @check_environment.ModelDependency) -> Bool) -> Result[AdmittedModelProvider, ModelProviderAdmissionIssue]
 
+pub fn admit_original_model_mock_provider(ModelMockInstallation, @check_environment.ModelExecutionContract, @check_environment.SingleAttemptModelDependencies) -> Result[AdmittedModelProvider, ModelProviderAdmissionIssue]
+
 pub fn admitted_model_provider_for(AdmittedModelProvider, @check_environment.ModelExecutionContract) -> ModelProvider?
 
 pub fn adopt_reconciled_model_response(ModelResponseReconciliation, ModelResponse) -> Result[Unit, ModelExecutionIssue]
@@ -89,6 +91,8 @@ pub fn guard_model_request_preflight_current(ModelRequestPreflight, () -> Bool) 
 pub fn install_async_model_provider(String) -> Result[ModelProvider, ModelExecutionIssue]
 
 pub fn install_model_provider(String, (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]) -> Result[ModelProvider, ModelExecutionIssue]
+
+pub fn install_original_model_mock(@check_environment.ModelMockProfile, @check_environment.PublicModelTaskDeclaration, @check_environment.NormalizedPublicModelTask, ModelMockAnswers, () -> String) -> Result[ModelMockInstallation, ModelMockInstallationIssue]
 
 pub fn model_async_native_decision_request_plan(ModelRequest, NativeDecisionRequest, AdmittedModelProvider, Int64, @physical_resources.QuantityAmounts, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, @check_environment.DecisionProbabilityProfile, (ModelCallEntry) -> ModelPhysicalCall?) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
 
@@ -224,6 +228,8 @@ pub fn observe_model_raw_capture(ModelPhysicalCall, @run_publication_host.Client
 
 pub fn openai_chat_projection_work(OpenAIChatProjection) -> Int
 
+pub fn original_model_mock_provider(ModelMockInstallation) -> Result[ModelProvider, ModelMockInstallationIssue]
+
 pub fn original_model_publication_capacity_covers(OriginalModelPublicationCapacity, Int64, Int64) -> Bool
 
 pub fn original_model_publication_capacity_current(OriginalModelPublicationCapacity, ModelExecution, @run_publication_host.ClientInferCallScope) -> Bool
@@ -303,6 +309,8 @@ pub fn retire_native_decision_projection(NativeDecisionProjection) -> Unit
 pub fn retire_native_decision_request(NativeDecisionRequest) -> Unit
 
 pub fn retire_openai_chat_projection(OpenAIChatProjection) -> Unit
+
+pub fn retire_original_model_mock(ModelMockInstallation) -> Result[Bool, ModelMockInstallationIssue]
 
 pub fn start_model_call_settlement_export(ModelCallSettlement, ModelCaptureExportLimits) -> Result[ModelCaptureExport, ModelExecutionIssue]
 
@@ -546,6 +554,16 @@ pub(all) struct ModelMockAnswerLimits {
 
 type ModelMockAnswers
 
+type ModelMockInstallation
+
+pub(all) enum ModelMockInstallationIssue {
+  ForeignOriginal
+  Retired
+  Busy
+  MissingAnswer
+  Answers(ModelMockAnswerIssue)
+} derive(Eq, @debug.Debug)
+
 pub(all) enum ModelObservation {
   Continue(Int64, Int64)
   AwaitIo(Int64, Int64)
@@ -699,6 +717,7 @@ pub(all) enum ModelProviderFailure {
 pub(all) enum ModelProviderInvocation {
   SynchronousFixture((ModelRequest) -> Result[ModelResponse, ModelProviderFailure])
   AsynchronousPhysical
+  OriginalMock(ModelMockInstallation)
 }
 
 pub(all) struct ModelQuantityCapacity {
