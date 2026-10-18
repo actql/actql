@@ -221,7 +221,7 @@ test "NEAREST checker retains column order and nullable KEEP on an empty query" 
 }
 
 ///|
-test "NEAREST composite keys report the missing common Program bridge" {
+test "NEAREST explicit composite query keys retain the original singleton candidate bridge" {
   let base = nearest_context()
   let composite = @wire.admit(
     @source.parse_json(
@@ -242,10 +242,20 @@ test "NEAREST composite keys report the missing common Program bridge" {
     "FROM queries AS q |> NEAREST candidates AS c QUERY KEY (q.tenant, q.request_id) VECTOR q.embedding CANDIDATE KEY (c.item_id) VECTOR c.embedding METRIC dot K 2 KEEP (q.note, c.label) AS neighbor",
     syntax_limits(),
   ).unwrap()
-  assert_true(
-    compile(query, { ..base, inputs, }, construction_limits())
-    is Err(UnsupportedNearest),
-  )
+  let program = compile(query, { ..base, inputs, }, construction_limits()).unwrap()
+  assert_true(semantic(program).contains("\"id\":[\"tenant\",\"request_id\"]"))
+  assert_true(semantic(program).contains("\"id\":\"item_id\""))
+  match
+    @check.check_parsed(
+      program,
+      check_environment(veca=true),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    Rejected(error) => raise @check.diagnostic_cause(error)
+    NeedsInputs(_) => fail("Original closed Values controls")
+  }
 }
 
 ///|

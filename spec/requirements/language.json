@@ -7187,7 +7187,7 @@
     },
     {
       "requirement_id": "actql.language/vector-bridges.explicit-roles",
-      "statement_sha256": "d69216a0bbc62972a651e6ac0803452308109c05d04855ba42b4377c22189933",
+      "statement_sha256": "d19c73e2995f8b4b1e1bad7cb75aa7946201bb97dd0051b3091f3eb89f056de1",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

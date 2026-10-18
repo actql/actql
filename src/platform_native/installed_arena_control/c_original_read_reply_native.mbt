@@ -179,12 +179,15 @@ pub fn InstalledArenaOriginalReadReply::operation_tag(
 pub fn InstalledArenaOriginalReadReply::issue_family(
   self : InstalledArenaOriginalReadReply,
 ) -> Int {
-  match self.issue {
+  original_read_issue_family(self.issue)
+}
+
+///|
+fn original_read_issue_family(issue : InstalledArenaOriginalReadIssue?) -> Int {
+  match issue {
     None => 0
-    Some(Domain(@bootstrap.Bootstrap(issue))) => {
-      let reply = original_unit_reply(Current, self.domain.host, Err(issue))
-      reply.issue_family()
-    }
+    Some(Domain(@bootstrap.Bootstrap(issue))) =>
+      installed_arena_issue_family(Some(issue))
     Some(Domain(@bootstrap.Accounting(_))) => 8
     Some(Child(@resources.Unknown)) => 9
     Some(Child(_)) => 10

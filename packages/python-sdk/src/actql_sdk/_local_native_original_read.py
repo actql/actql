@@ -189,6 +189,8 @@ class _OriginalParentReadCustody:
             raise self._mark_unknown()
         self._closed = True
         self._domain._parent_read_original = _RETIRED_PARENT_READ_DATA
+        from ._local_native_host_resources import _retire_host_resources_registration
+        _retire_host_resources_registration(self._domain._owner)
 
     def _call(self, operation: int) -> _OriginalArenaFact:
         if self._unknown is not None:
@@ -245,11 +247,27 @@ class _OriginalParentReadCustody:
         An unconfirmed response remains sticky Unknown and cannot call again.
         This observes no context/alias retirement or original loan return.
         """
+        from ._local_native_host_resources import _resources_for_domain
+        joined = _resources_for_domain(self._domain)
+        if joined is not None and joined[0]._read is self and joined[0]._phase == 'read':
+            joined[0].leave_scope()
+            return
         self._call(4)
 
     @contextmanager
     def scope(self, *, cleanup: bool = False) -> Iterator[None]:
         """Whole managed input/result/failure lifetime, not read permission."""
+        from ._local_native_host_resources import _resources_for_domain
+        joined = _resources_for_domain(self._domain)
+        if joined is not None:
+            if joined[0]._read is not self:
+                raise ValueError('Foreign original Host read carrier')
+            if not (cleanup and joined[0]._refused_bind_data_retired()):
+                with joined[0].scope('read', cleanup=cleanup):
+                    yield
+                return
+            # Refused bind DATA does not grant a phase. Continue only the
+            # existing original Read cleanup and its own leave ACK below.
         self._call(5 if cleanup else 3)
         try:
             yield

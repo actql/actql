@@ -11,6 +11,8 @@ import {dirname, isAbsolute, join} from 'node:path';
 import {canonicalJson, contentCid} from
   '../../../host-node/local-account-config.mjs';
 import {readBoundedConfigurationText} from '../../../host-node/source-profile-json.mjs';
+import {observeInstalledSalesforcePublicationCurrent,
+  withInstalledSalesforceDeclarationOriginals} from './installed-salesforce-site.mjs';
 
 export const SALESFORCE_PUBLICATION_VERSION =
   'actql-salesforce-publication/0.1';
@@ -22,6 +24,9 @@ const outcomeNames = Object.freeze(new Map([[1, 'described'],
   [5, 'transport_interrupted'], [6, 'invalid_metadata'], [7, 'cancelled'],
   [8, 'not_found']]));
 const maxGenerationBytes = 16_000_000;
+// Only an original live generation gets this correspondence. Reading a saved
+// file and restoring a Catalog never registers or reconstructs it.
+const liveGenerations = new WeakMap();
 
 const fail = (code, cause) => {
   const failure = Object.assign(new Error(code, {cause}), {code});
@@ -99,13 +104,15 @@ export async function readPublicationFile(path) {
 // publishing it. A denied Resource refuses the whole generation before any
 // provider I/O; an interrupted describe yields nothing.
 export async function describeSalesforceGeneration({site, connectorId,
-  resources, signal}) {
-  if (typeof site?.declareCatalog !== 'function') {
+  resources, signal, retainPublicationOriginals = false}) {
+  if (typeof site?.declareCatalog !== 'function' ||
+      typeof retainPublicationOriginals !== 'boolean') {
     fail('InvalidSalesforcePublication');
   }
   const targets = targetSet(connectorId, resources);
   const declared = await site.declareCatalog({connectorId,
-    resources: targets, signal});
+    resources: targets, signal,
+    ...(retainPublicationOriginals ? {retainPublicationOriginals: true} : {})});
   const {evidence} = declared;
   const generation = {
     binding: JSON.parse(evidence.observationJson).binding,
@@ -121,7 +128,40 @@ export async function describeSalesforceGeneration({site, connectorId,
     resources: targets,
     version: SALESFORCE_PUBLICATION_VERSION,
   };
+  if (retainPublicationOriginals) {
+    const body = JSON.stringify(generation);
+    if (Buffer.byteLength(body, 'utf8') > maxGenerationBytes) {
+      fail('SalesforcePublicationTooLarge');
+    }
+    liveGenerations.set(declared, {site, body});
+  }
   return Object.freeze({generation, declared});
+}
+
+function originalGeneration(site, declared, generationText) {
+  const original = liveGenerations.get(declared);
+  if (original === undefined || original.site !== site ||
+      typeof generationText !== 'string' || generationText !== original.body) {
+    fail('SalesforcePublicationOriginalUnavailable');
+  }
+  return original;
+}
+
+// This local bounded current observation is not a metadata retry or a new
+// grant. Its original error/custody is returned to the existing Host caller.
+export async function observeSalesforcePublicationOriginals(site, declared, generationText) {
+  originalGeneration(site, declared, generationText);
+  await observeInstalledSalesforcePublicationCurrent(site, declared);
+}
+
+// The exact retained generation text and live Credential originals reach a
+// synchronous trusted finisher. They are not authenticated cold storage.
+export function withSalesforcePublicationOriginals(site, declared, generationText, consume) {
+  const original = originalGeneration(site, declared, generationText);
+  if (typeof consume !== 'function') fail('InvalidSalesforcePublicationConsumer');
+  return withInstalledSalesforceDeclarationOriginals(site, declared, facts =>
+    consume(Object.freeze({...facts, generationText: original.body,
+      generationCid: bytesCid(original.body)})));
 }
 
 // Describe the target Resources and publish them as the Site's generation

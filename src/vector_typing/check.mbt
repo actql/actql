@@ -140,26 +140,52 @@ pub fn check(
         let vector_source = @checking.decoded(
           @decode.required(object, "vector"),
         )
-        let id = @checking.role_name(id_source)
+        let (id_sources, composite) = match @decode.view(id_source) {
+          ArrayValue(values) => {
+            if values.is_empty() {
+              @checking.fail(id_source, InvalidBody)
+            }
+            // Scan has already charged every occurrence, including duplicates.
+            // Reserve role work before retaining the ordered role array.
+            @checking.spend(b, id_source, values.length())
+            @checking.spend(b, vector_source, 1)
+            (values, true)
+          }
+          _ => {
+            @checking.spend(b, source, 2)
+            ([id_source], false)
+          }
+        }
+        let ids = id_sources.map(@checking.role_name)
         let components = @checking.role_name(vector_source)
         let records = @carrier.relation_rows(input).unwrap()
-        @checking.spend(b, source, 2)
         let output = match
           @carrier.vectors(
             records,
-            ids=[id],
+            ids~,
             components~,
-            max_identity_fields=1,
+            max_identity_fields=ids.length(),
           ) {
           Ok(value) => value
           Err(e) => {
             let at = match e {
-              UnknownRole(name) | InvalidRole(name) | DuplicateRole(name) =>
-                if name == components {
+              UnknownRole(name) | InvalidRole(name) | DuplicateRole(name) => {
+                let mut at = if name == components {
                   vector_source
                 } else {
                   id_source
                 }
+                if composite {
+                  for index in 0..<ids.length() {
+                    @checking.spend(b, id_source, 1)
+                    if ids[index] == name {
+                      // The last duplicate occurrence is the offending one.
+                      at = id_sources[index]
+                    }
+                  }
+                }
+                at
+              }
               _ => source
             }
             @checking.fail(at, InvalidRole(e))

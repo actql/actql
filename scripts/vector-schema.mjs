@@ -54,7 +54,7 @@ export function vectorSchemas() {
       ...Object.fromEntries(['candidate_id','candidate_vector','query_id','query_vector'].map(k => [k,{type:'string',minLength:1}])),
     }},
     to_vectors: {type:'object',additionalProperties:false,required:['id','vector'],properties:{
-      id:{type:'string',minLength:1},vector:{type:'string',minLength:1},
+      id:{oneOf:[field,{type:'array',minItems:1,uniqueItems:true,items:field}]},vector:field,
     }},
     normalize_vectors: {const:true},
     score_vectors: {type:'object',additionalProperties:false,required:['query','metric'],properties:{

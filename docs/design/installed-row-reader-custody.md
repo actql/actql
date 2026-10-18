@@ -203,3 +203,67 @@ admitted installation publication or cold Catalog gate. The actual private
 Host/bootstrap still has to supply that exact Store and its installation,
 provider capture, current authority and complete phase resources; a caller-made
 JavaScript object, matching fields or expected CID cannot stand in for them.
+
+## Live Salesforce publication originals
+
+Salesforce publication retains its existing legacy RemoteCredential grant/use
+purpose. It is not converted to an installation-metadata Subject or reissued
+from a matching CID. Explicit original retention connects the actual Describe
+response and confirmed Journal claim to the same live Site declaration. Saved
+text and restored Catalogs cannot enter this live-only receiver.
+
+- Live publication responsibility: the existing Salesforce Site and named
+  Describe adapter project their original observation to the trusted publication
+  finisher. The finisher and Store still own semantic publication admission and
+  independent durable custody; the receiver issues neither.
+- Live publication inputs and outputs: explicit retention keeps the original
+  Site, declaration, typed observation, exact generation text and one actual
+  grant/use/scope/response correspondence per named Describe. The synchronous
+  receiver exposes those same originals and their original canonical declaration
+  text, rather than reconstructing a use or declaration from JSON or a CID.
+- Live publication identity: nominal Site, live declaration and original physical
+  response membership are required. Exact raw response bytes are checked against
+  their retained digest and Describe evidence on entry. After the synchronous
+  finisher and result inspection, the same Credential Owner rechecks each
+  original before its result can return. An observed mutation remains refused
+  after bytes are restored. A throwing finisher keeps its exact primary error;
+  the Credential Owner still observes and retains changed-response membership. Generation serialization and its
+  16,000,000-byte UTF8 text ceiling are unchanged; declaration and Catalog bodies
+  are not renamed or rehashed into another identity domain.
+- Live publication ownership: original Credential control, Journal, claims,
+  response buffers and Site remain with their existing owners. Restored evidence
+  registers no live original. This receiver is not authentication of a saved
+  plaintext file or proof of a cold acquisition, Host request or Store holding.
+- Live publication synchronization: a bounded observation of the original Site
+  profile precedes the synchronous receiver. The original Account decisions,
+  Site-open fence and signal are checked after that await, before receiving and
+  after the synchronous finisher returns.
+  A pending observation cannot admit a second observation or a premature read.
+  An observed profile change or read failure permanently refuses that original.
+- Live publication failure: copied or foreign Sites and declarations, modified
+  generation text, lost/unconfirmed claims and changed raw responses refuse
+  original projection. Receiver exceptions do not reclassify a confirmed Journal
+  outcome. The live path propagates the original physical/Journal error carrier
+  after closing its Catalog builder; it does not replace it with an interruption
+  spelling. Returning a Promise is refused rather than treated as synchronous
+  semantic admission. No automatic Describe retry or provider rediscovery occurs.
+- Live publication cancellation: the same original signal and Site closure stop
+  receiving. Physical response, socket, Journal and bounded-file cleanup retain
+  their own duties and original error carriers. A response-loss claim stays
+  Unknown; a former successful Catalog cannot replace it or authorize a resend.
+- Live publication resources: retained profile text, raw response buffers,
+  base64 evidence, observation text, typed declaration, declaration text and exact
+  generation text can overlap with bounded profile reread/parse/comparison and
+  receiver records. Escaped finisher aliases remain part of the original lifetime.
+  Bounds, weak maps, Site close and Journal ACK do not establish numerical funding
+  or acknowledgement of another owner's physical release.
+- Live publication extension: default publication and recovery callers retain
+  their previous behavior and bytes. Explicit live retention adds no metadata
+  permission, installation issuer, business Run, Store purpose or signing domain.
+  The enclosing Host request and authenticated cold-storage admission stay
+  independent requirements of the existing publication owner.
+- Live publication verification: actual Common, Credential Journal and TLS
+  boundary cases distinguish live originals from copies, cold restoration,
+  current-state changes, response mutation, physical response loss, rejection
+  and synchronous receiver failures. Component correspondence does not imply
+  an installed publication or a funded normal metadata preparation.

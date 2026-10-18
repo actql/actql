@@ -53,6 +53,8 @@ fn selected_policy_journal_issue(issue : NativeClientRunJournalIssue) -> String 
     Start(_) => "Start"
     Epoch(_) => "Epoch"
     InvalidSubmission => "InvalidSubmission"
+    SubmissionReferenceUsed => "SubmissionReferenceUsed"
+    NamedSubmission(_) => "NamedSubmission"
     SubmissionEpochRejected(_) => "SubmissionEpochRejected"
     UnsupportedPreparation => "UnsupportedPreparation"
     MissingEffectMaterialOriginal => "MissingEffectMaterialOriginal"
