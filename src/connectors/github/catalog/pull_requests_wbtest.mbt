@@ -251,3 +251,103 @@ test "PullRequest page keeps the original repository and pagination refusal boun
     Err(MissingCursor),
   )
 }
+
+///|
+fn pull_request_nested_read(max_pages? : Int = 4) -> PullRequestPageRead {
+  let body = pull_request_outer_fixture(
+    graphql_pull_request_fixture("MERGED", [
+      ("assignees", field_connection("assignees", ["a"], 3, Some("A0"))),
+      ("labels", field_connection("labels", [" é "], 3, Some("L0"))),
+    ]),
+  )
+  begin_pull_request_page_read(
+    @utf8.encode(body),
+    page_limits(),
+    max_pages,
+    "R_A",
+    1296269L,
+    "octo/hello",
+  ).unwrap()
+}
+
+///|
+fn pull_request_field_response(
+  field : String,
+  values : Array[String],
+  total : Int,
+  after : String?,
+) -> String {
+  field_response(field, values, total, after)
+  .replace_all(
+    old="\"issue\":{",
+    new="\"pullRequest\":{\"__typename\":\"PullRequest\",",
+  )
+  .replace_all(old="\"I_7\"", new="\"I_1\"")
+  .replace_all(old="\"number\":7", new="\"number\":1")
+}
+
+///|
+test "PullRequest nested fields share the original bounded continuation machine" {
+  let read = pull_request_nested_read()
+  let request = pull_request_page_read_next_request(read, 100).unwrap().unwrap()
+  assert_true(request.contains("query ActqlPullRequestAssignees("))
+  assert_true(request.contains("pullRequest(number: $number)"))
+  assert_true(!request.contains("mutation"))
+  assert_true(pull_request_page_read_finish(read) is Err(_))
+  pull_request_page_read_accept(
+    read,
+    @utf8.encode(pull_request_field_response("assignees", ["b", "a"], 3, None)),
+  ).unwrap()
+  assert_true(
+    pull_request_page_read_next_request(read, 100)
+    .unwrap()
+    .unwrap()
+    .contains("query ActqlPullRequestLabels("),
+  )
+  pull_request_page_read_accept(
+    read,
+    @utf8.encode(
+      pull_request_field_response("labels", ["é", " é "], 3, None),
+    ),
+  ).unwrap()
+  assert_eq(pull_request_page_read_next_request(read, 100), Ok(None))
+  let page = pull_request_page_read_finish(read).unwrap()
+  assert_eq(page.rows[0].common.assignees, ["a", "b", "a"])
+  assert_eq(page.rows[0].common.labels, [" é ", "é", " é "])
+  assert_eq(page.rows[0].common.state, "merged")
+  assert_eq(page.rows[0].common.state_reason, None)
+  assert_eq(page.rows[0].native.head, "deleted/original")
+  assert_eq(page.pending_fields, [])
+  assert_true(pull_request_page_read_finish(read) is Err(_))
+}
+
+///|
+test "PullRequest nested refusal stays refused after restored response and enforces total page ceiling" {
+  let response = pull_request_field_response("assignees", ["b", "a"], 3, None)
+  for
+    (old, replacement) in [
+      ("\"__typename\":\"PullRequest\"", "\"__typename\":\"Issue\""),
+      ("\"I_1\"", "\"I_other\""),
+      ("2026-10-02T00:00:00Z", "2026-10-03T00:00:00Z"),
+      ("octo/hello", "octo/moved"),
+    ] {
+    let read = pull_request_nested_read()
+    assert_true(
+      pull_request_page_read_accept(
+        read,
+        @utf8.encode(response.replace_all(old~, new=replacement)),
+      )
+      is Err(_),
+    )
+    assert_true(
+      pull_request_page_read_accept(read, @utf8.encode(response)) is Err(_),
+    )
+    assert_true(pull_request_page_read_finish(read) is Err(_))
+  }
+  let bounded = pull_request_nested_read(max_pages=1)
+  assert_eq(
+    pull_request_page_read_accept(bounded, @utf8.encode(response)),
+    Err(BudgetExceeded),
+  )
+  assert_true(pull_request_page_read_finish(bounded) is Err(_))
+}

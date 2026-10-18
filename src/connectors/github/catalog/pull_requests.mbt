@@ -27,6 +27,97 @@ pub(all) struct GraphqlPullRequestPage {
 } derive(Eq, Debug)
 
 ///|
+/// The existing nested-field state machine owns both native row families.
+/// This wrapper keeps the additional fields with the very same outer page.
+pub struct PullRequestPageRead {
+  shared : IssuePageRead
+  native : Array[PullRequestNativeFields]
+}
+
+///|
+pub fn begin_pull_request_page_read(
+  body : Bytes,
+  limits : PageLimits,
+  max_pages : Int,
+  expected_node_id : String,
+  expected_database_id : Int64,
+  expected_name_with_owner : String,
+) -> Result[PullRequestPageRead, GraphqlResponseIssue] {
+  if max_pages < 1 {
+    return Err(InvalidResponse)
+  }
+  let (page, native) = match
+    project_issue_like_response(
+      body, limits, expected_node_id, expected_database_id, expected_name_with_owner,
+      true,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let pending = page.pending_fields.map(field => {
+    row_index: field.row_index,
+    field: field.field,
+    total_count: field.total_count,
+    after: field.after,
+    seen: [field.after],
+  })
+  Ok({
+    shared: {
+      page,
+      pull_request: true,
+      limits,
+      max_pages,
+      pages: 1,
+      pending,
+      index: 0,
+      closed: false,
+    },
+    native,
+  })
+}
+
+///|
+pub fn pull_request_page_read_next_request(
+  read : PullRequestPageRead,
+  first : Int,
+) -> Result[String?, GraphqlResponseIssue] {
+  issue_page_read_next_request(read.shared, first)
+}
+
+///|
+pub fn pull_request_page_read_accept(
+  read : PullRequestPageRead,
+  body : Bytes,
+) -> Result[Unit, GraphqlResponseIssue] {
+  issue_page_read_accept(read.shared, body)
+}
+
+///|
+pub fn pull_request_page_read_finish(
+  read : PullRequestPageRead,
+) -> Result[GraphqlPullRequestPage, GraphqlResponseIssue] {
+  issue_page_read_finish(read.shared).map(page => {
+    let rows = []
+    for index, common in page.rows {
+      rows.push({ common, native: read.native[index], })
+    }
+    {
+      repository: page.repository,
+      rows,
+      pending_fields: [],
+      has_next_page: page.has_next_page,
+      end_cursor: page.end_cursor,
+    }
+  })
+}
+
+///|
+/// Codec alias retirement is not physical Source, transport or RowRun ACK.
+pub fn pull_request_page_read_close(read : PullRequestPageRead) -> Unit {
+  issue_page_read_close(read.shared)
+}
+
+///|
 /// Admit the same original repository and requested native PullRequest shape.
 /// Incomplete assignee/label fields remain pending, never complete row output.
 pub fn project_pull_requests_response(
