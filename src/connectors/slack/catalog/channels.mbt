@@ -66,7 +66,7 @@ fn channel_original_integer(
     span.end_byte <= bytes.length() else {
     return None
   }
-  let raw = @wire_utf8.decode(bytes[span.start_byte:span.end_byte]) catch {
+  let raw = @utf8.decode(bytes[span.start_byte:span.end_byte]) catch {
     _ => return None
   }
   guard @admitted.normalize_decimal_text(raw, 19, 0, max_bytes) is Ok(canonical) else {

@@ -3,7 +3,7 @@ supported_targets = "+js+wasm+native"
 import {
   "actql/actql/source_value" @source,
   "actql/actql/decode_scalar" @scalar,
-  "moonbitlang/core/encoding/utf8" @wire_utf8,
+  "moonbitlang/core/encoding/utf8",
   "actql/actql/decode_core" @decode,
   "actql/actql/encode_core" @encode,
   "actql/actql/value_contract" @contract,
@@ -11,6 +11,3 @@ import {
   "actql/actql/sha256" @sha,
 }
 
-import {
-  "moonbitlang/core/encoding/utf8",
-} for "wbtest"
