@@ -107,6 +107,19 @@ export function salesforceWriteDriver({salesforceMoon, site, mappingOf,
     salesforceMoon.salesforceSingleWriteRequestCid(request,
       site.instanceOrigin, limits.maxIdentityBytes));
 
+  const recoverRequests = ({durable, recorded, previewWire, body, memberIndexes}) => {
+    const rebuilt = recoverCapturedSalesforceSingleRequests({
+      moon: salesforceMoon, recovered: durable, recorded, previewWire,
+      runIdentityCid: body.run_identity_cid,
+      authoringContextCid: body.authoring_context.authoring_context_cid,
+      previewLimits: limits.preview, bodyLimits: limits.body,
+      requestLimits: limits.request, maxMembers: limits.maxMembers,
+      maxRows: limits.maxRows, maxRetainedBytes: limits.maxRetainedBytes,
+      memberIndexes});
+    return {requests: rebuilt.requests,
+      currents: rebuilt.catalogs.map(observation => Object.freeze({observation}))};
+  };
+
   return Object.freeze({
     kinds: Object.freeze(['create', 'update', 'upsert']),
     targetRead: Object.freeze({operation: OBSERVE_OPERATION}),
@@ -239,18 +252,10 @@ export function salesforceWriteDriver({salesforceMoon, site, mappingOf,
         operation: member.kind, externalTargetField: keyOf(member),
         fieldNames: fieldsOf(member), resourceOrigin: site.instanceOrigin})}),
 
-    recoverRequests({durable, recorded, previewWire, body}) {
-      const rebuilt = recoverCapturedSalesforceSingleRequests({
-        moon: salesforceMoon, recovered: durable, recorded, previewWire,
-        runIdentityCid: body.run_identity_cid,
-        authoringContextCid: body.authoring_context.authoring_context_cid,
-        previewLimits: limits.preview, bodyLimits: limits.body,
-        requestLimits: limits.request, maxMembers: limits.maxMembers,
-        maxRows: limits.maxRows, maxRetainedBytes: limits.maxRetainedBytes});
-      return {requests: rebuilt.requests,
-        currents: rebuilt.catalogs.map(observation =>
-          Object.freeze({observation}))};
-    },
+    recoverRequests,
+    // The full original Preview and durable claims are retained; only this
+    // installation's global member positions are decoded by its vendor owner.
+    recoverMemberRequests: recoverRequests,
 
     send: ({request, current, authorization, credential, signal}) =>
       sendRawSalesforceSingleRecord({moon: salesforceMoon, request,

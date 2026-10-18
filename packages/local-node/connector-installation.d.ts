@@ -445,6 +445,13 @@ export interface RowEffectDriver<Request extends object, Current = unknown,
     previewWire: string; body: ConnectorJsonObject}>): Readonly<{
       requests: readonly (readonly Request[])[];
       currents?: readonly (Current | undefined)[]}>;
+  /** Rebuild only these original global members from the unchanged whole Preview.
+   * Result arrays follow memberIndexes order; this does not restore authority. */
+  recoverMemberRequests?(options: Readonly<{durable: unknown; recorded: unknown;
+    previewWire: string; body: ConnectorJsonObject;
+    memberIndexes: readonly number[]}>): Readonly<{
+      requests: readonly (readonly Request[])[];
+      currents?: readonly (Current | undefined)[]}>;
   requestCid?(request: Request): string;
 }
 export interface RowEffectLimits {

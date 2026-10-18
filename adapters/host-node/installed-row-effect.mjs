@@ -71,7 +71,9 @@
 //   recorded, previewWire, body})`, with `requestCid(request)`, a rebuilt
 //   request's identity. The three come together. Retained data is checked,
 //   never authority: every rebuilt request must be exactly the one its claim
-//   and approved Preview row name.
+//   and approved Preview row name. `recoverMemberRequests` explicitly supports
+//   composed recovery: the same full Preview and claims are passed with the
+//   original global `memberIndexes`; result arrays follow that index order.
 // Commands require recheckRequests and all three recovery hooks. Target
 // validation must use current reference authority; a parsed envelope alone
 // is not an authority decision. An asynchronous recheck is awaited before send.
@@ -323,6 +325,7 @@ function checkDriver(driver) {
       typeof driver.footprint !== 'function' ||
       ![driver.describe, driver.recheckRequests, driver.issueCapability,
         driver.observeTargets, driver.recoveryEntry, driver.recoverRequests,
+        driver.recoverMemberRequests,
         driver.requestCid, driver.checkRequest,
         driver.admitTargetReadApproval, driver.prepareRequestChild].every(optionalFunction) ||
       (driver.check !== undefined && (!text(driver.check?.resource) ||
@@ -339,6 +342,8 @@ function checkDriver(driver) {
           typeof driver.requestCid !== 'function')) ||
       ((driver.recoveryEntry === undefined) !==
         (driver.recoverRequests === undefined)) ||
+      (driver.recoverMemberRequests !== undefined &&
+        driver.recoverRequests === undefined) ||
       // Recovery identifies each rebuilt request by `requestCid`.
       (driver.recoverRequests !== undefined &&
         typeof driver.requestCid !== 'function')) {
@@ -467,7 +472,8 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
 
 // Each physical occurrence retains its own admitted installation. Shared Run,
 // Preview, claims and publication remain the existing stage's responsibility.
-// This first profile admits source-free create members with common recovery.
+// This profile admits source-free create members. A retained-request driver
+// must explicitly support recovery of its original members in the whole Set.
 export function composeInstalledRowEffectOwners(effects, descriptors, environmentWire) {
   if (!Array.isArray(effects) || !Array.isArray(descriptors) ||
       effects.length !== descriptors.length || effects.length < 2 ||
@@ -477,8 +483,8 @@ export function composeInstalledRowEffectOwners(effects, descriptors, environmen
   }
   const owners = effects.map(effect => rowInstallations.get(effect));
   if (owners.some(owner => owner === undefined || Array.isArray(owner) ||
-      owner.owned.recoverRequests !== undefined ||
-      owner.owned.recoveryEntry !== undefined)) fail('InstalledEffectSetOwnerMismatch');
+      (owner.owned.recoverRequests !== undefined &&
+        owner.owned.recoverMemberRequests === undefined))) fail('InstalledEffectSetOwnerMismatch');
   const first = owners[0];
   if (descriptors.length > first.limits.maxMembers || owners.some(owner => owner.moon !== first.moon ||
       owner.ledgerRoot !== first.ledgerRoot ||
@@ -1741,6 +1747,33 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     previewWire}) => {
     const rebuilt = singular?.owned.recoverRequests === undefined ? undefined :
       singular.owned.recoverRequests({durable, recorded, previewWire, body});
+    const requests = members.map((_, index) => rebuilt?.requests?.[index]);
+    const usesRecovery = members.map(() => rebuilt !== undefined);
+    const currents = members.map((_, index) => rebuilt?.currents?.[index]);
+    if (singular === undefined) {
+      for (const owner of owners) {
+        if (owner.owned.recoverMemberRequests === undefined) continue;
+        const memberIndexes = Object.freeze(members.flatMap((member, index) =>
+          ownerOf(member) === owner ? [index] : []));
+        const recovered = owner.owned.recoverMemberRequests({durable, recorded,
+          previewWire, body, memberIndexes});
+        if (!Array.isArray(recovered?.requests) ||
+            recovered.requests.length !== memberIndexes.length ||
+            (recovered.currents !== undefined &&
+              (!Array.isArray(recovered.currents) ||
+                recovered.currents.length !== memberIndexes.length))) {
+          fail('InstalledEffectContinuationMismatch');
+        }
+        memberIndexes.forEach((index, selectedIndex) => {
+          if (!Array.isArray(recovered.requests[selectedIndex])) {
+            fail('InstalledEffectContinuationMismatch');
+          }
+          usesRecovery[index] = true;
+          requests[index] = recovered.requests[selectedIndex];
+          currents[index] = recovered.currents?.[selectedIndex];
+        });
+      }
+    }
     const entries = members.map((member, index) => {
       const {owned} = ownerOf(member);
       const claims = recorded.members[index]?.claims ?? [];
@@ -1752,14 +1785,14 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       if (claims.length !== changes.length) {
         fail('InstalledEffectContinuationMismatch');
       }
-      const rows = rebuilt === undefined
+      const rows = !usesRecovery[index]
         ? changes.map(change => {
           const prepared = owned.prepareRequest({member,
             value: change.after?.value, selector: undefined,
-            current: rebuilt?.currents?.[index]});
+            current: currents[index]});
           return entryOf(member, prepared?.request, prepared?.requestCid);
         })
-        : (rebuilt?.requests?.[index] ?? []).map(request =>
+        : (requests[index] ?? []).map(request =>
           entryOf(member, request, owned.requestCid(request)));
       if (rows.length !== changes.length) {
         fail('InstalledEffectContinuationMismatch');
@@ -1775,7 +1808,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       return Object.freeze(rows);
     });
     return {entries: Object.freeze(entries),
-      currents: members.map((_, index) => rebuilt?.currents?.[index])};
+      currents: Object.freeze(currents)};
   };
 
   // Continue a recovered capture: the exact saved Preview, requests rebuilt
