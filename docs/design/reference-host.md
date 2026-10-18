@@ -153,6 +153,18 @@ and module lifetime, and rechecks closing after the original current callback.
 Copying a scope's methods or constructing another internal state-machine
 instance cannot add membership to the selected preload's instance.
 
+An eager original Host namespace may capture the startup's already-published
+immutable CJS forwarders through the same synchronous private receiver. This
+avoids a static CJS/ESM require cycle without deferring authentication to entry
+code or accepting a later cache-export replacement. It neither creates an
+operational original nor covers earlier module loading by itself.
+
+The original Host candidate, empty installation, five-reference snapshot,
+existing registry entry and cleanup scaffolding precede begin under the actual
+bootstrap lifetime. They are not retrospectively charged to the installation
+scope. Project/configuration/Profile/Task body intake and Provider preparation
+remain after begin and the fixed nominal current check.
+
 A preparation record is retained before fallible work. Repeating retention of
 that same record returns its original duty and may attach its original cleanup
 handle once; it cannot replace a pending handle. Managed-reference release is
@@ -182,6 +194,37 @@ it cannot return Source, reopen the image or retire a sibling. The temporary
 byte backing, decoded String, hash and native decoder workspace overlap. Such
 byte custody alone does not establish the complete image loader, installation
 admission, current Host or preparation envelope.
+
+Selected image loading supplies immutable captured Source to the original Node
+compiler rather than delegating the body to a later pathname read. Uncaptured
+dependencies and additional query-identified images require their own selected
+domain; they cannot inherit this control coverage. Registration through the
+published `registerHooks`/`register` fences permanently invalidates this helper,
+even after deregistration. This observation does not cover an original native
+registration function retained before fence installation: it can install a
+short-circuit loader without changing the published property or this helper's
+currentness result. That result therefore is not an all-history certificate.
+Before operational adoption, the actual selected startup must independently
+establish the ownership and non-escape of those original registration functions
+and any earlier registrations. This component does not establish that boundary;
+without it, operational admission remains unavailable.
+
+The admission must also bind the actual post-load CJS cache/exports, original
+stock resolver, fixed asset reads and runtime-file identity to the loaded
+runtime. A Source-delivery marker, a stock-function identity check or a matching
+cache-shaped object alone does not authenticate those originals. These are
+selected implementation obligations, not restrictions on ActQL Programs or
+permission for unrelated Node callbacks, libraries or business work.
+
+After synchronous original namespace initialization, the actual preload captures
+its CJS/JSON Module records and exports descriptors once, before entry runs.
+Currentness checks retain that same record, exports reference and shallow own
+descriptor inventory without invoking exported getters. Changed or replaced
+records remain refused even if restored. An image not initialized at that
+handoff cannot acquire pre-entry provenance by compiling later. Preexisting
+bootstrap bodies, nested export referents, stock resolution and fixed asset
+reads still need their independent selected-domain correspondence; this cache
+handoff alone is neither a complete loader proof nor an operational issuer.
 
 This admission has no conversion to metadata HTTP, Source, Result, business Run,
 Model invocation, Content/driver or external-VM capacity or authority. Their
