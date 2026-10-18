@@ -947,6 +947,25 @@ An optional database-extent selection is applied and checked separately on each
 connection; one Pager's limit does not constrain another Pager or fund native
 heap, WAL, external writers or retained output.
 
+The same selected Journal can additionally impose a finite writable WAL-frame
+lifetime. This is a support boundary, not physical storage, mapped-memory or
+native-heap backing. The primary and optional observation connection share one
+counter under that Journal; opening the latter does not issue another allowance.
+Before cold native acquisition it retains a conservative frame allowance for
+the bounded original DB/WAL source. The actual native page geometry then selects
+the same bounded page-number set for both connections. Before native SQL work,
+the counter consumes a conservative transaction allowance for dirty pages,
+possible final commit repetition and FULL-sync sector padding. Batch SQL counts
+every semicolon plus its final statement, deliberately overestimating literal,
+comment and trigger-body separators rather than introducing another SQL parser.
+Failed attempts, rollback, checkpoint and one child's close never refill it.
+Refusal leaves the original connection and its independent cleanup reachable.
+This condition depends on the same original cooperative writer exclusion; it
+does not constrain arbitrary external writers. The actual facility must cover
+the full selected frame, index-region, array-growth and failure lifetime before
+work. A frame count, support counter or successful close cannot issue that
+facility or acknowledge process-lived native backing.
+
 Selected cold inspection may additionally bound the SQLite schema table's
 declared row payload and traversal before native SQLite opens the isolated
 copy. The resource reader follows table-btree pages and the same last valid

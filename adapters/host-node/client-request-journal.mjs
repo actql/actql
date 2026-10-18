@@ -128,13 +128,68 @@ function snapshotPrimaryExecutionLimits(value) {
   return Object.freeze(limits);
 }
 
+// One lifetime support counter for this Journal's two original writable
+// connections. A finite value is not physical WAL/mapping backing, an issuer,
+// a lock against another writer, or a new Run/resource Ledger. The selected
+// facility must separately cover this whole bound before its first acquisition.
+function boundedJournalWalFrames(maxFrames, sourceBytes, maxDatabaseBytes) {
+  if (maxFrames === undefined) return undefined;
+  const integer = BigInt, floor = Math.floor, ceil = Math.ceil;
+  const maximum = integer(maxFrames);
+  // The original DB and WAL are jointly bounded before cold native inspection.
+  // Reserve the worst original WAL at SQLite's minimum supported page size;
+  // a fresh file or later checkpoint does not replenish this lifetime amount.
+  let reserved = integer(sourceBytes) / 536n;
+  if (reserved > maximum) fail('ClientRequestJournalWalUnavailable');
+  const character = String.prototype.charCodeAt;
+  let originalPage, transactionFrames;
+  const amount = units => transactionFrames === undefined ? 0n :
+    integer(units) * transactionFrames;
+  const check = units => {
+    const frames = amount(units);
+    if (frames > maximum - reserved) fail('ClientRequestJournalWalUnavailable');
+    return frames;
+  };
+  return Object.freeze({
+    configure(page) {
+      if (originalPage !== undefined && originalPage !== page) {
+        fail('ClientRequestJournalWalUnavailable');
+      }
+      originalPage = page;
+      // Same supported page-number set, possible repeated commit page, and
+      // FULL-sync padding under SQLite's original 65536-byte sector clamp.
+      // Counting two complete page sets is conservative; it does not assert
+      // every dirty-page visit appends another frame or create two capacities.
+      transactionFrames = 2n * integer(floor(maxDatabaseBytes / page)) +
+        integer(ceil(65536 / (page + 24)));
+    },
+    beforePrepare() { check(1); },
+    beforeStatement() {
+      // Only the two fixed extent PRAGMA probes precede configuration. They
+      // inspect page geometry and set the local Pager ceiling, not WAL rows.
+      reserved += check(1);
+    },
+    beforeExec(sql) {
+      if (transactionFrames === undefined) fail('ClientRequestJournalWalUnavailable');
+      // At most one implicit transaction per top-level SQL statement. Count
+      // every semicolon, including those in comments/literals/trigger bodies,
+      // plus the final statement: a byte-level overestimate, not a SQL parser.
+      let statements = 1;
+      for (let index = 0; index < sql.length; index++) {
+        if (applyOriginal(character, sql, [index]) === 59) statements++;
+      }
+      reserved += check(statements);
+    },
+  });
+}
+
 // Bound compilation attempts and account every prepared wrapper as retained
 // until this primary connection's real lifetime ends. Native failure and GC do
 // not refund an attempt. This is not a bound on bind values, result rows, native
 // heap/cache/WAL, or the separate observation connection, and issues no capacity.
 // A selected execution boundary additionally limits scalar bind extent and
 // calls, and replaces metadata All() with a bounded original native cursor.
-function boundedPrimarySql(connection, limits, executionLimits, assertCurrent) {
+function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, walFrames) {
   const prepare = connection.prepare, exec = connection.exec;
   const buffer = Buffer, byteLength = buffer.byteLength;
   const isTransaction = Object.getOwnPropertyDescriptor(connection, 'isTransaction')?.get;
@@ -202,10 +257,17 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent) {
       fail('ClientRequestJournalSqlUnavailable');
     }
     return Object.freeze({
-      get(...values) { operands(values); return applyOriginal(get, statement, values); },
-      run(...values) { operands(values); return applyOriginal(run, statement, values); },
+      get(...values) {
+        operands(values); walFrames?.beforeStatement();
+        return applyOriginal(get, statement, values);
+      },
+      run(...values) {
+        operands(values); walFrames?.beforeStatement();
+        return applyOriginal(run, statement, values);
+      },
       all(...values) {
         operands(values);
+        walFrames?.beforeStatement();
         const iterator = applyOriginal(iterate, statement, values);
         const cursor = {iterator, next: undefined, end: undefined};
         cursors.push(cursor);
@@ -247,8 +309,14 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent) {
     });
   };
   return Object.freeze({database: Object.freeze({
-    prepare(sql) { consume(sql, true); return wrap(applyOriginal(prepare, connection, [sql])); },
-    exec(sql) { consume(sql, false); return applyOriginal(exec, connection, [sql]); },
+    prepare(sql) {
+      consume(sql, true); walFrames?.beforePrepare();
+      return wrap(applyOriginal(prepare, connection, [sql]));
+    },
+    exec(sql) {
+      consume(sql, false); walFrames?.beforeExec(sql);
+      return applyOriginal(exec, connection, [sql]);
+    },
     get isTransaction() { return applyOriginal(isTransaction, connection, []); },
   }), retireClosedNativeAliases() { statements.length = cursors.length = 0; }});
 }
@@ -269,6 +337,7 @@ function boundJournalDatabaseExtent(database, maxDatabaseBytes) {
   // Each actual connection owns a separate Pager limit, including the
   // optional observation connection to the same file. This is not native
   // heap/WAL backing, a bound on another writer, or a physical reservation.
+  return page;
 }
 
 // This is an inspection-work ceiling, not a stored-request limit, format
@@ -1179,6 +1248,7 @@ export function openClientRequestJournal(directory, {
   maxInspectionEntries = 100_000,
   maxInspectionBytes = 64 * 1024 * 1024,
   maxDatabaseBytes,
+  maxWalFrames,
   primarySqlLimits,
   primaryExecutionLimits,
   primarySchemaLimits,
@@ -1195,6 +1265,8 @@ export function openClientRequestJournal(directory, {
       !Number.isSafeInteger(maxInspectionBytes) || maxInspectionBytes < 1 ||
       maxDatabaseBytes !== undefined &&
         (!Number.isSafeInteger(maxDatabaseBytes) || maxDatabaseBytes < 1) ||
+      maxWalFrames !== undefined &&
+        (!Number.isSafeInteger(maxWalFrames) || maxWalFrames < 1) ||
       maxRecords < 1 || !Number.isSafeInteger(maxRunDefinitionWireBytes) ||
       maxRunDefinitionWireBytes < 1024 ||
       !Number.isSafeInteger(submissionEpochTtlMs) || submissionEpochTtlMs < 1 ||
@@ -1216,11 +1288,16 @@ export function openClientRequestJournal(directory, {
   if (primarySchemaLimits !== undefined && maxDatabaseBytes === undefined) {
     fail('InvalidClientRequestJournalConfiguration');
   }
+  if (maxWalFrames !== undefined && (maxDatabaseBytes === undefined ||
+      primarySqlLimits === undefined || primaryExecutionLimits === undefined)) {
+    fail('InvalidClientRequestJournalConfiguration');
+  }
   // An optional selected-facility support bound is not a format rule or a
   // capacity issuer. Refuse original DB/WAL extent before its copy/SQLite
   // inspection, not after materializing rows. Unselected callers are unchanged.
   const inspectionBytes = maxDatabaseBytes === undefined ? maxInspectionBytes :
     Math.min(maxInspectionBytes, maxDatabaseBytes);
+  const walFrames = boundedJournalWalFrames(maxWalFrames, inspectionBytes, maxDatabaseBytes);
   // Only the actual selected Root supplies this captured current fence. It
   // does not issue capacity; execute it before the first original directory,
   // copy or native acquisition, and again at each covered SQL boundary.
@@ -1271,7 +1348,7 @@ export function openClientRequestJournal(directory, {
   try {
     captureDatabaseCleanup();
     if (primarySqlLimits !== undefined) {
-      selectedSql = boundedPrimarySql(connection, primarySqlLimits, primaryExecutionLimits, primaryCurrent);
+      selectedSql = boundedPrimarySql(connection, primarySqlLimits, primaryExecutionLimits, primaryCurrent, walFrames);
       database = selectedSql.database;
     }
     transaction = createSqliteTransaction(database, 'ClientRequestJournal');
@@ -1282,7 +1359,8 @@ export function openClientRequestJournal(directory, {
         applyOriginal(originalDatabaseIsOpen, connection, []) !== true) {
       throw new TypeError('ClientRequestJournalConnectionOpenUnavailable');
     }
-    boundJournalDatabaseExtent(database, maxDatabaseBytes);
+    const page = boundJournalDatabaseExtent(database, maxDatabaseBytes);
+    walFrames?.configure(page);
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
     database.exec(`
@@ -2233,7 +2311,7 @@ export function openClientRequestJournal(directory, {
       captureObservationCleanup();
       if (primarySqlLimits !== undefined) {
         observationSql = boundedPrimarySql(observationDatabase, primarySqlLimits,
-          primaryExecutionLimits, primaryCurrent);
+          primaryExecutionLimits, primaryCurrent, walFrames);
       }
       primaryCurrent?.();
       const originalObservationOpen = observationDatabase.open;
@@ -2246,7 +2324,8 @@ export function openClientRequestJournal(directory, {
       // The primary connection's Pager setting cannot constrain this new
       // original connection. Select the same finite extent before its first
       // schema/control write, retaining its existing separate close duty.
-      boundJournalDatabaseExtent(selectedObservation, maxDatabaseBytes);
+      const page = boundJournalDatabaseExtent(selectedObservation, maxDatabaseBytes);
+      walFrames?.configure(page);
       selectedObservation.exec('PRAGMA busy_timeout = 0');
       const storage = openClientObservationStorage(selectedObservation,
         createSqliteTransaction(selectedObservation, 'ClientObservation'));
