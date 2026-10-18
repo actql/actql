@@ -5116,7 +5116,8 @@ export async function openLocalPublicationStore(
       'model_slot_capture', 'model_invocation_evidence', 'model_call_attempt', 'model_attempt_accounting',
       'model_attempt_outcome', 'model_dispatch_authority', 'model_attachment_admission',
       'observation_set', 'run_invocation', 'source_evidence',
-      'content_input_artifact', 'content_evidence', 'content_generation'].includes(binding.name) ||
+      'content_input_artifact', 'content_evidence', 'content_generation',
+      'installation_publication'].includes(binding.name) ||
         typeof binding.wire !== 'string') {
       fail('InvalidPublicationPrivateEvidence');
     }
@@ -6211,8 +6212,49 @@ export async function openLocalPublicationStore(
     return originalModelStorageBinding.handle;
   };
 
+  // Read-only original Store observation for the separate installation
+  // publication Owner. This is not Model RunEvidence or a semantic issuer.
+  // A caller must fund the read/hash/control overlap and independently admit
+  // its publication, installation and generation before using these DATA.
+  let originalInstallationPublicationStorageBinding;
+  let originalInstallationPublicationStorageBindingReaders = 0;
+  const observeOriginalInstallationPublicationStorageBinding = async () => {
+    active();
+    if (originalInstallationPublicationStorageBindingReaders !== 0) {
+      fail('PublicationStoreCleanupPending');
+    }
+    originalInstallationPublicationStorageBindingReaders++;
+    const bytes = await readBounded(storeContractPath, 256, () => {
+      originalInstallationPublicationStorageBindingReaders--;
+    });
+    active();
+    // Preserve the exact immutable original contract wire, not a parsed and
+    // reserialized replacement. readBounded retains its same FD on failed close.
+    if (!bytes.equals(storeContractBytes)) fail('PublicationStoreAuthorityMismatch');
+    if (originalInstallationPublicationStorageBinding === undefined) {
+      const evidence = Object.freeze({
+        storeContractWire: storeContractBytes.toString('utf8'),
+        storeAuthorityCid: configuration.storeAuthorityCid,
+        keyGenerationCid: `sha256:${createHash('sha256').update(privateEvidenceKey()).digest('hex')}`,
+        privateNamespace: 'publication-private',
+      });
+      originalInstallationPublicationStorageBinding = {evidence,
+        handle: Object.freeze({kind: 'installation-publication-storage-binding'})};
+    }
+    return originalInstallationPublicationStorageBinding.handle;
+  };
+
   return Object.freeze({
     storeAuthorityCid: configuration.storeAuthorityCid,
+    observeOriginalInstallationPublicationStorageBinding,
+    originalInstallationPublicationStorageBindingEvidence(handle) {
+      active();
+      if (originalInstallationPublicationStorageBinding === undefined ||
+          handle !== originalInstallationPublicationStorageBinding.handle) {
+        fail('ForeignOriginalInstallationPublicationStorageBinding');
+      }
+      return originalInstallationPublicationStorageBinding.evidence;
+    },
     observeOriginalModelStorageBinding,
     originalModelStorageBindingEvidence(handle) {
       active();
@@ -6356,7 +6398,8 @@ export async function openLocalPublicationStore(
           pendingPhysicalHoldingDeletions.size !== 0 ||
           activeResultReaders.size !== 0 ||
           activePhysicalHoldingReaders.size !== 0 ||
-          originalModelStorageBindingReaders !== 0) {
+          originalModelStorageBindingReaders !== 0 ||
+          originalInstallationPublicationStorageBindingReaders !== 0) {
         return Promise.reject(new PublicationStoreError(
           'PublicationStoreCleanupPending',
         ));
@@ -6395,6 +6438,7 @@ export async function openLocalPublicationStore(
         if (released !== true) fail('PublicationStoreOwnershipLost');
         closed = true;
         configuration.privateEvidenceKey?.fill(0);
+        originalInstallationPublicationStorageBinding = undefined;
         return true;
       }).finally(() => { closeFlight = undefined; });
       return closeFlight;
