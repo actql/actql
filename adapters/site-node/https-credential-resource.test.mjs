@@ -347,13 +347,24 @@ test('Run response original refuses the actual installation-metadata purpose bef
   const metadataControl = metadata.forSubject(subject);
   const grant = metadataControl.prepare({issuerAuthority: 'credential-authority-a',
     scope: selected, expiresUnixMilliseconds: 2_000_000_000_000n, maxUses: 1});
+  const resolveSecret = async () => 'provider-secret';
+  const binding = openHttpsCredentialBinding({scope: selected,
+    control: metadataControl, journal: setup.journal, resolveSecret,
+    maxSecretBytes: 64, assertCurrent() {}});
   try {
+    // The existing missing-binding refusal still precedes purpose admission.
     await assert.rejects(call(setup, grant, selected, 'wrong-purpose',
       {control: metadataControl, retainRunResponseOriginal: true}),
+    {code: 'InvalidRemoteCredentialBinding'});
+    await assert.rejects(call(setup, grant, selected, 'bound-wrong-purpose',
+      {control: metadataControl, binding, resolveSecret, retainRunResponseOriginal: true}),
     {code: 'InvalidRemoteCredentialRunResponseCapture'});
     assert.equal(setup.journal.recover().length, 0);
     assert.equal(setup.requests(), 0);
-  } finally { metadata.retireMetadataView(); }
+  } finally {
+    assert.equal(closeHttpsCredentialBinding(binding), 'closed');
+    metadata.retireMetadataView();
+  }
 });
 
 test('scoped credential is claimed before an authenticated HTTPS request',
