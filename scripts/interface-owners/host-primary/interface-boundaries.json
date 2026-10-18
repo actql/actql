@@ -8417,6 +8417,82 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The embedded consumer passes its raw options to this synchronous begin and,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.mjs",
+                "anchor": "export function snapshotInitialControlHostInput(input, limits) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.mjs",
+                "anchor": "originals[originals.length] = freeze({path: freeze(path), original: value});"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "options = readInitialControlInstallationInput(control, originals);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "callbacks and non-DATA values retain exact identity for their existing Owners;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "control = await beginInitialControlInstallation(originals, options);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
+                "anchor": "test('current refusal after initialization prevents the original packet from reaching Host copies'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "allowances, not backing-byte amounts or a numerical profile. Explicit traversal"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "selected path, not an invalid general public option. Original Host handles,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/initial-control-host-input.test.mjs",
+                "anchor": "test('exact counted bounds pass and each smaller total refuses without truncation'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
+                "anchor": "test('Host passes raw input before awaiting and consumes only the same captured packet afterwards'"
+              }
+            ]
+          }
         }
       ],
       "sha256": "e713d863b7cd2741a09e3d25de6d460ac7da0cca6e8a010800a5fa42d1c8c8b1",
