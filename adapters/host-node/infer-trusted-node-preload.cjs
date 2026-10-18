@@ -144,6 +144,10 @@ const operational = initialControlEnvelope === undefined ? undefined : Object.fr
     else {
       preparationIntake.consumed = true;
       preparationInput = preparationIntake.snapshot.packet;
+      // The original identity was checked synchronously. Retain the immutable
+      // admitted snapshot, not an unnecessary mutable caller graph through
+      // namespace awaits or cleanup. This alias cut is not a physical ACK.
+      preparationIntake.raw = undefined;
     }
   },
   assertCurrent(held) {
