@@ -154,6 +154,7 @@ export async function openSalesforceEffectSiteFixture(t, {
   port = 0,
   // The validity of newly issued certificates.
   certificateDays = 1,
+  openCredentialJournal,
 }) {
   const writable = ['Test_Record__c', ...extraWritable];
   const root = await mkdtemp(join(tmpdir(), 'actql-effect-site-'));
@@ -191,6 +192,7 @@ export async function openSalesforceEffectSiteFixture(t, {
   const observedNames = new Map();
   let nameUpdateable = true;
   let describeStatus = 200;
+  let loseNextDescribe = false;
   // The stateful org's records by Id.
   const defaultRecords = () => storedOrder.map(index => ({
     Id: `a0000000000000${index}`,
@@ -294,6 +296,11 @@ export async function openSalesforceEffectSiteFixture(t, {
     const described = writable.find(name => request.method === 'GET' &&
       request.url === `${prefix}sobjects/${name}/describe`);
     if (described !== undefined) {
+      if (loseNextDescribe) {
+        loseNextDescribe = false;
+        request.socket.destroy();
+        return;
+      }
       if (describeStatus !== 200) {
         response.writeHead(describeStatus, {'content-type': 'application/json'});
         response.end(JSON.stringify([{errorCode: 'SERVER_UNAVAILABLE'}]));
@@ -562,7 +569,7 @@ export async function openSalesforceEffectSiteFixture(t, {
   const installed = await loadInstalledSalesforceSite(profilePath, {
     commonMoon, salesforceMoon, authorization: hostAuthorization,
     runtimeBundleCid: cid('a'), resolveSecret: async () => 'test-only-secret',
-    now: () => 1_999_999_999_999, grantLifetimeMs: 1});
+    now: () => 1_999_999_999_999, grantLifetimeMs: 1, openCredentialJournal});
   const journal = installed.credential.journal;
   t.after(async () => {
     installed.close();
@@ -630,7 +637,7 @@ export async function openSalesforceEffectSiteFixture(t, {
     observe: recoveryGrant(observe),
     write: recoveryGrant(write),
   });
-  return {seen, journal, orgId, origin, catalog, observe, write, credential,
+  return {seen, journal, orgId, origin, site: installed, profilePath, catalog, observe, write, credential,
     refreshCatalog, recoveryConnection, declared,
     declaration: declared.declaration,
     // The execution Mapping of one write under this Site's declaration.
@@ -646,6 +653,7 @@ export async function openSalesforceEffectSiteFixture(t, {
     },
     setNameUpdateable(value) { nameUpdateable = value; },
     setDescribeStatus(value) { describeStatus = value; },
+    loseNextDescribeReply() { loseNextDescribe = true; },
     setNameCreateable(value) { nameCreateable = value; },
     setOptionalText(value) { optionalText = value; },
     // The stateful org's current records, and a change to one of them made

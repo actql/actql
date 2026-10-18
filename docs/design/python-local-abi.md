@@ -2300,3 +2300,95 @@ Returned metadata does not bypass live-allocation or scope checks. A retained
 original child borrow continues to use the separate stopped-region path; PID
 absence cannot select either path or clear responsibility. Failed view cleanup
 retains the same process record and its completed domain-close phase.
+
+The maintainer compiler's parent preparation explicitly initializes its selected
+Native component before requesting a Host or domain. The component publishes an
+opaque process-lifetime record into the caller's original empty slot before
+calling its own emitted initializer. This one-shot entry admits no replacement
+callback. An occupied slot, another attempt, reentry, a foreign thread or an
+inherited record after fork cannot initialize or adopt that original again.
+Existing or partially registered original control roots also refuse before
+the emitted initializer; an older direct call cannot bypass the one-shot rule.
+Initializer failure and lost response retain the same slot and library; neither
+the Python assembly nor C resets the component and retries its initializer.
+
+This control storage remains in the already declared initial control envelope.
+Its existence or successful initialization issues no Ledger, capacity, arena,
+permission, process-stop fact or numerical profile. The subsequent Native
+bootstrap still creates and reserves the original resources before acquiring
+the actual backing descriptor. Missing initialization ABI refuses; it cannot
+fall back to assuming that an already loaded component was initialized.
+
+Closing the compiler parent retires only its confirmed Host/backing/domain
+responsibility. It keeps the original process record and library alias; there
+is no initialization-record close that could acknowledge process-global Runtime
+storage on Engine deletion or arena retirement. That storage remains the
+existing process/runtime Owner's responsibility through actual process stop.
+
+The private compiler transport projects the same domain's material before
+process preparation. The original Native Owner then binds the live child
+frame, channel and captured backing descriptor; the material alone cannot
+launch it. After spawn and original-current confirmation, a single binding
+byte releases the child to map that descriptor. A short or lost write is not
+resent. The selected executable's byte check is correspondence, not funding
+or code admission; the compiler producer must separately verify its original
+source, configuration, module, toolchain and actual link inputs.
+
+Compiler stdout is bounded control DATA, not a stop acknowledgment or an image
+receipt. EOF is followed by original IPC restriction/return, typed stop and
+physical region/descriptor retirement before parent arena cleanup. The caller's
+backing FD and process-lifetime Runtime remain separately owned. Deadline,
+partial response, failed spawn or uncertain cleanup retains the same parent
+and process carrier; transport never substitutes PID absence, relaunches the
+compiler, closes borrowed pipe FDs directly or manufactures a cleanup result.
+
+The ordinary image producer can prepare that C executable independently of
+executing it. This preparation uses the same exact original module receipt,
+private two-library staging, binding/license/target checks and Engine Owner
+configuration projection. The C API header closure is fixed to the selected
+upstream/default-feature output, including its generated configuration; extra
+headers, precompiled replacements and symlinks refuse. Compilation uses a
+closed tool environment, records actual MD dependencies and original link
+inputs, and checks the complete generated module ABI projection before linking.
+No Config, Engine, native initializer or compiler child runs during this step.
+
+The executable receipt remains correspondence DATA. Its caller must retain the
+original prepared files and recheck the same module, recipe, toolchain, header,
+object, executable and library bytes before execution through the original
+funded parent. This preparation neither admits arbitrary user executables nor
+supplies normal resources or the stronger same-module physical acceptance
+required by the final producer and loader.
+
+### Initial compiler domain in the original backing
+
+Compiler preparation can select one initial execution-only domain from the
+same Native parent. Before that domain's ordinary acquisition, the existing
+Bootstrap Owner checks its original/current identity, the actual provider
+control-byte observation and the matching charged control allocation. Only
+when control is the sole existing allocation does it select capacity minus
+that control as the accounting candidate. Earlier allocations, delegations or
+domain attempts, including retired or partial ones, cannot become another
+initial attempt.
+
+This candidate is neither a physical maximum nor a claim that every byte is
+usable for compiler buffers. The same allocator must acquire the extent;
+fragmentation or other physical occupancy can still refuse it. Domain heap
+metadata and fragmentation remain inside that gross extent. Its original
+execution limit covers that extent, with zero retained bytes; this does not
+fund a separate loader, Python runtime or VM domain. Non-byte limits remain
+explicit source-bound inputs, and normal numerical funding stays unavailable.
+The ordinary domain record is registered before physical acquisition, so a
+partial mapping, loan or allocation remains with that same original pending
+carrier. No failed attempt is retried as a new initial domain, and only the
+existing original stop, borrower and physical cleanup boundaries retire it.
+
+The maintainer compiler's source declaration may explicitly choose the closed
+`initial_execution_domain` child selection with only work, attempts, holdings
+and transfer limits. It contains no child byte estimate, retained reservation
+or inferred execution budget. The assembly forwards that selection to the
+same Native first-domain operation. Before process preparation it obtains a
+fresh current projection from that original domain and forwards its original
+retained/execution limits to the existing process Owner. The projection is
+not cached as authority. Source/recipe disagreement refuses before registering
+a process. The old explicit-size conformance declaration remains distinct and
+unchanged; neither selection substitutes for a normal product supplier.

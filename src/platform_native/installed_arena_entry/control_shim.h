@@ -27,6 +27,9 @@ void actql_native_control_register_original_roots(
     actql_control_original_fn, actql_control_tag_fn,
     actql_control_tag_fn, actql_control_description_fn);
 void actql_native_control_register_fd_root(actql_control_fd_fn);
+/* Initialization observation only: 0 untouched, 1 both original roots ready,
+ * -1 partial/failed registration. No Host, funding or retirement is issued. */
+int actql_control_runtime_roots_state(void);
 
 /* Trusted in-process installed caller only: no wire pointers or authorization.
  * This exact generated callback set borrows managed inputs. Results are

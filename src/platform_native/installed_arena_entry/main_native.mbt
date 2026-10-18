@@ -109,6 +109,23 @@ extern "C" fn register_original_domain_roots(
 ) -> Unit = "actql_native_control_register_domain_roots"
 
 ///|
+/// One first domain from actual charged control; code registration is not a
+/// numerical profile. Match the regular emitted C before defining its shim.
+extern "C" fn register_original_initial_domain_root(
+  prepare : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaBackingBorrow,
+      Int,
+      Int,
+      Int,
+      Int,
+      Int64,
+    ) -> @control.InstalledArenaDomainReply,
+  ],
+) -> Unit = "actql_native_control_register_initial_domain_root"
+
+///|
 /// Data getters only. The matching actual regular C must determine signatures
 /// and managed ownership before linking the transport shim.
 extern "C" fn register_original_domain_material_roots(
@@ -765,6 +782,7 @@ extern "C" fn register_original_process_roots(
 /// original arena acquisition, Root creation, Run admission or VM permission.
 fn main {
   @runtime.register_native_local_journal_capture_roots()
+  register_original_local_host_resources_roots()
   register_original_sqlite_database_roots(
     fn(host, library, path, bound) {
       @control.restore_installed_sqlite_database_reply(
@@ -1138,6 +1156,19 @@ fn main {
     fn(reply) { reply.issue_family() },
     fn(reply) { reply.issue_description() },
   )
+  register_original_initial_domain_root(fn(
+    host,
+    scope,
+    fd,
+    work,
+    attempts,
+    holdings,
+    transfer,
+  ) {
+    @control.prepare_installed_arena_initial_domain_reply(
+      host, scope, fd, work, attempts, holdings, transfer,
+    )
+  })
   register_original_domain_material_roots(
     fn(host, domain) {
       @control.project_installed_arena_domain_reply(host, domain)

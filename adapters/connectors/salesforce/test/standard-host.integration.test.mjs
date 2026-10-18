@@ -1516,7 +1516,8 @@ async function delegatedInstallation(t, options) {
     const original = await writeSyntheticHistoricalHeldSalesforce({directory: join(setup.root, 'state'),
       document: program, requestId, authorization,
       sourceProfile: JSON.parse(await readFile(setup.profilePath, 'utf8')),
-      siteProfile: setup.siteDocument, runtimeRootUrl: new URL('../../../../', import.meta.url)});
+      siteProfile: setup.siteDocument, runtimeRootUrl: new URL('../../../../', import.meta.url),
+      expressionContractUrl: new URL('../../../../spec/contracts/actql-expressions.json', import.meta.url)});
     const waiting = await setup.open({authorization});
     assert.equal(setup.org.seen.length, before, 'Historical setup and admission perform no provider I/O');
     const snapshot = await syntheticHeldSnapshot(join(setup.root, 'state'), original);
@@ -1980,8 +1981,10 @@ test('a capture budget overrun is not a value violation', async t => {
 
 test('a runtime without the value violation entry is refused before provider I/O',
   async t => {
-    const setup = await installation(t);
-    await setup.publish();
+    const published = await installation(t);
+    await published.publish();
+    const setup = {...published,
+      profile: splitSourceAliasProfile(published.profile).providerProfile};
     const before = setup.org.seen.length;
     const {clientProgramSalesforceQueryReadValueViolation: _omitted, ...moon} =
       commonMoon;
