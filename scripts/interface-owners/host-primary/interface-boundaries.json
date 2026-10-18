@@ -3706,14 +3706,22 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "7a62d537847dc53f78783affd66c30e0025a90b5e2deec28d680a80247d859dd",
+      "sha256": "8428e33d819b463bbf785ed4bbd9c2be47c17dff5280f5b117156ac4c30caa93",
       "exports": [
+        "assertInitialControlHostPreparation",
         "connectEmbeddedLocal",
         "openInstalledRemoteHttpHost",
         "publishInstalledEffect",
         "publishInstalledSource"
       ],
       "operations": [
+        {
+          "name": "assertInitialControlHostPreparation",
+          "parameters": [
+            "originals"
+          ],
+          "async": false
+        },
         {
           "name": "bytesCid/bytesCid",
           "parameters": [
@@ -3745,6 +3753,33 @@
         },
         {
           "name": "connectEmbeddedLocal/connectEmbeddedLocal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/connectEmbeddedLocal#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/initialControl/init:close/init:close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:retainReferenceRetirement/init:retainReferenceRetirement",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/releaseUnadopted",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "connectEmbeddedLocal/retirePreparationReferences",
           "parameters": [],
           "async": false
         },
@@ -3793,7 +3828,8 @@
         {
           "name": "openInstalledHost",
           "parameters": [
-            "originalInstallation"
+            "originalInstallation",
+            "preparation"
           ],
           "async": true
         },
@@ -4818,6 +4854,11 @@
           "name": "openInstalledHost/retireIncompleteEffects/retireIncompleteEffects",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "openInstalledHost/retireModelPreparationReferences",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openInstalledHost/retireModelRuntime",
@@ -5903,7 +5944,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "// Host, however, keeps this same view until its existing shutdown finishes."
+                "anchor": "if (adopted) throw cause; // The original opened/failed Host owns cleanup."
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -6436,6 +6477,122 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "assertInitialControlHostPreparation",
+            "connectEmbeddedLocal/connectEmbeddedLocal#2",
+            "connectEmbeddedLocal/initialControl/init:close/init:close",
+            "connectEmbeddedLocal/preparation/init:retainReferenceRetirement/init:retainReferenceRetirement",
+            "connectEmbeddedLocal/releaseUnadopted",
+            "connectEmbeddedLocal/retirePreparationReferences",
+            "openInstalledHost/retireModelPreparationReferences"
+          ],
+          "exports": [
+            "assertInitialControlHostPreparation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Host registry retains a preparation candidate under its"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function assertInitialControlHostPreparation(originals) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "control = await beginInitialControlInstallation(originals);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "originals?.moduleLifetime !== import.meta"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "function preparationFor(host, installation, generation) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Project views share one original retirement record."
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "retainInstalledHostRuntimeFailure(cause, () => forget(root, opened));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "await releaseUnadopted();"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "lifetime after the await, before exposing another lease."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const pending = new Set(['initialization']);"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('throwing initialization cleanup getters retain the already acquired control holding'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('final close waits in-flight ingress and dispatch without cancelling a Run'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "escaped canonical DATA or acknowledge its physical storage, GC or capacity."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// This private installation bag holds backreferences, not canonical DATA."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "membership is not capacity, authority or coverage of earlier imports."
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "// do not acquire an operational admission by omitting these private inputs."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/embedded-host-preparation.test.mjs",
+                "anchor": "test('foreign returned Host stays in acquired shutdown custody on pair refusal'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.test.mjs",
+                "anchor": "test('copied and foreign-runtime retirement cannot retire the original project'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -6506,6 +6663,7 @@
         "./local-account-config.mjs",
         "./local-continuation-evidence.mjs",
         "./local-values-plan.mjs",
+        "./node-initial-control-installation.mjs",
         "./ordinary-source-binding.mjs",
         "./result-access.mjs",
         "./source-alias-publication.mjs",
