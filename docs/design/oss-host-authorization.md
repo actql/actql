@@ -564,6 +564,32 @@ This profile has these limits:
 - One Host process owns a state directory. A second one is refused by the
   Store owner.
 
+### Original source preparation in the portable Run Host
+
+SQL and AQL enter the same Run Host ABI as structured Programs through an
+original submitted intent and the installation's trusted query publication.
+The existing frontend binds that publication to the same checked Environment,
+retains the parsed Program and authored provenance, and selects the existing
+Pure or Effect preparation from the complete checked inventory. A publication
+is name-binding metadata, not acquisition, permission or physical capacity.
+Missing installed target originals remain unavailable.
+
+The preparation retains the original source, format, declarations and values
+separately from the lowerer's ordinary Program projection. Request identity
+uses that original submitted intent, never the source-free sentinel. The
+existing JSON Run material codec consumes only the Owner's retained Program
+projection; it does not replace the original submitted source. Legacy
+structured preparation and material bytes remain unchanged.
+
+A durable Host stores the original source metadata alongside the same Run's
+authenticated material record. Recovery re-admits that saved publication and
+Environment rather than rediscovering current aliases. It must retain the
+same request, checked identity, compiled plan, authorization and Run definition.
+Source Effect material admission additionally requires the typed original
+source preparation and the independently retained expected request, then
+checks the complete canonical material projection. Shape or CID equality
+alone does not supply this original binding, current authority or a cleanup ACK.
+
 ## Delegated-decision adapter
 
 The logical request contains or references the admitted execution account,

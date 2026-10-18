@@ -3,6 +3,7 @@ supported_targets = "js"
 pkgtype(kind: "foreign_library")
 
 import {
+  "actql/actql/client_local_preparation" @local,
   "actql/actql/run_publication_host" @host,
   "actql/actql/checkpoint_runtime" @checkpoint,
   "actql/actql/run_publication" @publication,
