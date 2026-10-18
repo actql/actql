@@ -15,8 +15,8 @@ import test from 'node:test';
 import {inspect} from 'node:util';
 import {withFixtureConnector} from
   '../host-common/connector-manifest.fixture.mjs';
-import {effectHost, moon} from
-  '../connectors/salesforce/test/installed-salesforce-effect.fixture.mjs';
+import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import {effectHost} from './fixtures/installed-row-effect.fixture.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
 import {createLocalAuthorizationGate} from './local-account-config.mjs';
 import {installNodeClientEffectProgramPreparation} from './client-program-preparation.mjs';
