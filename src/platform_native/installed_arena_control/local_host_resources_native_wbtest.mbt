@@ -148,6 +148,14 @@ test "failed SQLite context retirement retains both originals and never closes t
     record.closing && !record.closed && !record.sqlite_context_retired,
   )
   assert_true(sqlite.closed && !read.closed && !read.physical_retired.val)
+  assert_true(
+    host.require_domain_current(read.domain)
+    is Err(@bootstrap.Bootstrap(@bootstrap.Closing)),
+  )
+  assert_true(
+    host.require_domain_current(sqlite.domain)
+    is Err(@bootstrap.Bootstrap(@bootstrap.Closing)),
+  )
   assert_true(host.close_local_host_resources(record) is Err(Domain(_)))
   assert_true(sqlite.closed && !read.closed && !record.sqlite_context_retired)
   assert_true(host.bind_local_host_resources(read, sqlite) is Err(Domain(_)))
