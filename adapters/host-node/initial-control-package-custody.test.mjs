@@ -143,7 +143,7 @@ test('application-time package capture refuses before observing a caller invento
   assert.equal(result.status, 0, result.stderr);
 });
 
-for (const route of ['local-node', 'node']) test('the actual selected '+route+' preload consumes generated inventory without issuing a Scope', t => {
+for (const route of ['local-node', 'node']) test('the actual non-eager '+route+' preload consumes generated inventory without issuing a Scope', t => {
   const f = fixture(t), local = join(f.directory, 'node_modules/@actql/local-node');
   mkdirSync(join(local, 'adapters/host-node'), {recursive: true});
   const sources = {...f.sources,
@@ -226,7 +226,7 @@ for (const route of ['local-node', 'node']) test('the actual selected '+route+' 
     'assert.equal(actualConsumerCalls,0);',
   ].join('\n'));
   const result = spawnSync(process.execPath,
-    ['--no-lazy', '--require', '@actql/'+route+'/selected-infer-startup', entry], {
+    ['--require', '@actql/'+route+'/selected-infer-startup', entry], {
       cwd: f.directory, env: {PATH: process.env.PATH}, encoding: 'utf8', timeout: 30000});
   assert.equal(result.error, undefined); assert.equal(result.status, 0, result.stderr);
 });
