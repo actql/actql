@@ -183,7 +183,7 @@
     },
     {
       "module": "src/connectors/bigquery/read/pkg.generated.mbti",
-      "sha256": "dac982466f4934f4ba72a1823d276d2192b52fbee2489ba21e44240946d219c4",
+      "sha256": "a868d384cc06962ceb8f8fd573cafd608152350cac34111b4a0b2b6216c50371",
       "exports": [
         "pub fn accept_charged_job_response(JobRead, JobResponse, Bytes) -> Result[Unit, JobIssue]",
         "pub fn accept_job_response(JobRead, JobRequest, Int, Bytes, Bytes) -> Result[Unit, JobIssue]",
@@ -196,6 +196,10 @@
         "pub fn close_result_read(Read) -> Result[Unit, ReadIssue]",
         "pub fn finish_result_read(Read) -> Result[Unit, ReadIssue]",
         "pub fn interrupt_result_read(Read) -> Unit",
+        "pub fn job_original_record(JobRead, JobRecordLimits) -> Result[JobOriginalRecord, JobRecordIssue]",
+        "pub fn job_original_record_matches_request(JobRead, JobRequest, JobOriginalRecord) -> Bool",
+        "pub fn job_original_record_material(JobOriginalRecord) -> (String, String, String, String, String, String)",
+        "pub fn job_original_record_wire(JobOriginalRecord) -> String",
         "pub fn job_read_complete(JobRead) -> Bool",
         "pub fn job_read_original(JobRead) -> @catalog.QueryJob",
         "pub fn job_read_remote_done(JobRead) -> Bool",
@@ -209,6 +213,7 @@
         "pub fn prepare_job_read(Read, Int64, Int, Int, Int, Int) -> Result[JobRead, JobIssue]",
         "pub fn prepared_read_acquisition(PreparedRead) -> @client_row_source_host.RowAcquisition",
         "pub fn prepared_read_projection(PreparedRead) -> @catalog.ReadProjection",
+        "pub fn read_job_original_record(Bytes, JobRecordLimits) -> Result[JobOriginalRecord, JobRecordIssue]",
         "pub fn read_start_failure_cleanup(ReadStartFailure) -> Read?",
         "pub fn read_start_failure_issue(ReadStartFailure) -> ReadIssue",
         "pub fn reject_job_response(JobRead, JobResponse) -> Result[Unit, JobIssue]",
@@ -217,6 +222,7 @@
         "pub fn result_read_usage(Read) -> (Int, Int64)",
         "pub fn retire_borrowed_read(Read) -> Result[Unit, ReadIssue]",
         "pub fn start_accounted_read(PreparedRead, @catalog.QueryJob, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, @catalog.QueryLimits, Int) -> Result[Read, ReadStartFailure]",
+        "pub struct JobOriginalRecord {",
         "pub struct JobRead {",
         "pub struct JobRequest {",
         "pub struct JobResponse {",
@@ -268,6 +274,22 @@
         {
           "name": "interrupt_result_read",
           "declaration": "pub fn interrupt_result_read(Read) -> Unit"
+        },
+        {
+          "name": "job_original_record",
+          "declaration": "pub fn job_original_record(JobRead, JobRecordLimits) -> Result[JobOriginalRecord, JobRecordIssue]"
+        },
+        {
+          "name": "job_original_record_matches_request",
+          "declaration": "pub fn job_original_record_matches_request(JobRead, JobRequest, JobOriginalRecord) -> Bool"
+        },
+        {
+          "name": "job_original_record_material",
+          "declaration": "pub fn job_original_record_material(JobOriginalRecord) -> (String, String, String, String, String, String)"
+        },
+        {
+          "name": "job_original_record_wire",
+          "declaration": "pub fn job_original_record_wire(JobOriginalRecord) -> String"
         },
         {
           "name": "job_read_complete",
@@ -322,6 +344,10 @@
           "declaration": "pub fn prepared_read_projection(PreparedRead) -> @catalog.ReadProjection"
         },
         {
+          "name": "read_job_original_record",
+          "declaration": "pub fn read_job_original_record(Bytes, JobRecordLimits) -> Result[JobOriginalRecord, JobRecordIssue]"
+        },
+        {
           "name": "read_start_failure_cleanup",
           "declaration": "pub fn read_start_failure_cleanup(ReadStartFailure) -> Read?"
         },
@@ -372,6 +398,10 @@
             "close_result_read",
             "finish_result_read",
             "interrupt_result_read",
+            "job_original_record",
+            "job_original_record_matches_request",
+            "job_original_record_material",
+            "job_original_record_wire",
             "job_read_complete",
             "job_read_original",
             "job_read_remote_done",
@@ -385,6 +415,7 @@
             "prepare_job_read",
             "prepared_read_acquisition",
             "prepared_read_projection",
+            "read_job_original_record",
             "read_start_failure_cleanup",
             "read_start_failure_issue",
             "reject_job_response",
@@ -406,6 +437,10 @@
             "pub fn close_result_read(Read) -> Result[Unit, ReadIssue]",
             "pub fn finish_result_read(Read) -> Result[Unit, ReadIssue]",
             "pub fn interrupt_result_read(Read) -> Unit",
+            "pub fn job_original_record(JobRead, JobRecordLimits) -> Result[JobOriginalRecord, JobRecordIssue]",
+            "pub fn job_original_record_matches_request(JobRead, JobRequest, JobOriginalRecord) -> Bool",
+            "pub fn job_original_record_material(JobOriginalRecord) -> (String, String, String, String, String, String)",
+            "pub fn job_original_record_wire(JobOriginalRecord) -> String",
             "pub fn job_read_complete(JobRead) -> Bool",
             "pub fn job_read_original(JobRead) -> @catalog.QueryJob",
             "pub fn job_read_remote_done(JobRead) -> Bool",
@@ -419,6 +454,7 @@
             "pub fn prepare_job_read(Read, Int64, Int, Int, Int, Int) -> Result[JobRead, JobIssue]",
             "pub fn prepared_read_acquisition(PreparedRead) -> @client_row_source_host.RowAcquisition",
             "pub fn prepared_read_projection(PreparedRead) -> @catalog.ReadProjection",
+            "pub fn read_job_original_record(Bytes, JobRecordLimits) -> Result[JobOriginalRecord, JobRecordIssue]",
             "pub fn read_start_failure_cleanup(ReadStartFailure) -> Read?",
             "pub fn read_start_failure_issue(ReadStartFailure) -> ReadIssue",
             "pub fn reject_job_response(JobRead, JobResponse) -> Result[Unit, JobIssue]",
@@ -427,6 +463,7 @@
             "pub fn result_read_usage(Read) -> (Int, Int64)",
             "pub fn retire_borrowed_read(Read) -> Result[Unit, ReadIssue]",
             "pub fn start_accounted_read(PreparedRead, @catalog.QueryJob, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, @catalog.QueryLimits, Int) -> Result[Read, ReadStartFailure]",
+            "pub struct JobOriginalRecord {",
             "pub struct JobRead {",
             "pub struct JobRequest {",
             "pub struct JobResponse {",
@@ -683,6 +720,130 @@
               {
                 "path": "src/connectors/bigquery/read/README.md",
                 "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/bigquery/read/job_original.mbt",
+      "sha256": "188d524850462e426eddf8a599629b5c7c96a4cbfa457dd5763545c290124661",
+      "exports": [],
+      "operations": [
+        {
+          "name": "build_job_original_record",
+          "declaration": "build_job_original_record ( job : @ catalog . QueryJob , path : String , body : String , limits : JobRecordLimits , ) - > Result [ JobOriginalRecord , JobRecordIssue ]"
+        },
+        {
+          "name": "job_original_record",
+          "declaration": "job_original_record ( value : JobRead , limits : JobRecordLimits , ) - > Result [ JobOriginalRecord , JobRecordIssue ]"
+        },
+        {
+          "name": "job_original_record_matches_request",
+          "declaration": "job_original_record_matches_request ( value : JobRead , request : JobRequest , record : JobOriginalRecord , ) - > Bool"
+        },
+        {
+          "name": "job_original_record_material",
+          "declaration": "job_original_record_material ( value : JobOriginalRecord , ) - > ( String , String , String , String , String , String )"
+        },
+        {
+          "name": "job_original_record_wire",
+          "declaration": "job_original_record_wire ( value : JobOriginalRecord ) - > String"
+        },
+        {
+          "name": "job_record_text",
+          "declaration": "job_record_text ( object : @ decode . ObjectView , key : String ) - > String ?"
+        },
+        {
+          "name": "read_job_original_record",
+          "declaration": "read_job_original_record ( bytes : Bytes , limits : JobRecordLimits , ) - > Result [ JobOriginalRecord , JobRecordIssue ]"
+        },
+        {
+          "name": "valid_job_record_limits",
+          "declaration": "valid_job_record_limits ( limits : JobRecordLimits ) - > Bool"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing BigQuery original read material; Common owns bounded JSON and routing DATA, while the existing Journal/Host retains original Run/task/epoch custody and dispatch decisions",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "build_job_original_record",
+            "job_original_record",
+            "job_original_record_matches_request",
+            "job_original_record_material",
+            "job_original_record_wire",
+            "job_record_text",
+            "read_job_original_record",
+            "valid_job_record_limits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/bigquery/read/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/query_integration/bigquery_job_original_wbtest.mbt",
+                "anchor": "test \"BigQuery original record issuer precedes the same nominal POST without attempting it\""
+              },
+              {
+                "path": "src/query_integration/bigquery_job_original_wbtest.mbt",
+                "anchor": "test \"BigQuery original record closed fields reject unknown revision variants duplicates and omissions\""
               }
             ]
           }
