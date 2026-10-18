@@ -260,13 +260,12 @@ test('original UPDATE selection custody preserves prior combined identity', () =
   // Signed64 additionally changes the inherited expression dependency. Validate
   // that complete original body before restoring the historical manifest edge.
   const currentManifest = read('spec/manifests/actql-grammar-0.1.json');
-  const originalTypes = JSON.parse(gunzipSync(readFileSync(
-    'scripts/fixtures/pre-signed64-type-closure.json.gz'))).records;
-  const expression = structuredClone(originalTypes['spec/contracts/actql-expressions.json']);
-  expression.inherited_text_time_profile_cid =
-    read('portability/corpus/signed64-identities.json').inheritedBarrier.currentCid;
-  assert.deepEqual(read('spec/contracts/actql-expressions.json'), expression);
-  assert.equal(currentManifest.expression_contract_cid, machineCid(expression));
+  const expression = JSON.parse(gunzipSync(readFileSync(
+    'scripts/fixtures/composite-vector-bridge/signed64-identities.json.gz'))).expressionContract;
+  assert.deepEqual(read('spec/contracts/actql-expressions.json'), expression.body);
+  assert.equal(canonicalText(expression.body), expression.canonicalPreimage);
+  assert.equal(machineCid(expression.body), expression.cid);
+  assert.equal(currentManifest.expression_contract_cid, expression.cid);
   const currentAligned = {...currentManifest};
   for (const key of ['grammar_manifest_cid', 'query_text_grammar_sha256',
     'query_text_rules_sha256', 'source_grammar_cid', 'expression_contract_cid']) currentAligned[key] = integrated.after[key];
