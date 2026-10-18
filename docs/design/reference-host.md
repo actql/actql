@@ -243,6 +243,9 @@ existing Client result may escape, never a Scope, issuer or capacity handle.
 Each public package's private `initial-control-public-dispatch.cjs` is loaded
 by its actual wrapper before child loading. During that native preload only,
 it captures the same wrapper's original Client-only function and receiver.
+The actual fixed preload argv, `internal/preload` ancestor and same consumer's
+selected entry resolution are required together; forged Module/cache parent
+records in an unrelated preload cannot enroll a callback.
 Ordinary imports return an immutable `undefined` selection without loading a
 wrapper or Root. Application-time cache metadata or a caller-supplied table
 cannot enroll a later dispatch. The wrapper retains its child function and
