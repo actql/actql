@@ -93,6 +93,9 @@ let startup;
 // install an operational original in this closure.
 const initialControl = createInitialControlInstallationOwner(undefined);
 
+// Publish the same immutable callback table before synchronous namespace
+// initialization can reenter this Module. Capturing it is not an operational
+// admission; the original unavailable Owner still handles every early call.
 module.exports = {
   beginInitialControlInstallation(originals) {
     return initialControl.begin(originals);
