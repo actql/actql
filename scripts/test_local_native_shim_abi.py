@@ -111,6 +111,51 @@ class NativeShimBindingTests(unittest.TestCase):
                          ['capture', 'session', 'host', 'failure'])
         self.assertNotIn('actql_local_journal_force_release', SIGNATURES)
 
+    def test_original_pair_journal_constructor_has_no_replacement_library_role(self):
+        from ctypes import c_void_p, c_double, c_int32, c_int64, POINTER, c_int
+        from actql_sdk._local_native_shim_abi import SIGNATURES, PARAMETERS, ORIGINS
+        symbol = 'actql_local_journal_prepare_original_into'
+        arguments, result = SIGNATURES[symbol]
+        self.assertEqual(arguments, [c_void_p, c_void_p, c_void_p, c_void_p,
+                                    c_void_p, c_double, c_int32, c_int64,
+                                    POINTER(c_void_p)])
+        self.assertIs(result, c_int)
+        self.assertEqual(PARAMETERS[symbol], (
+            ('session', 'actql_local_session *'),
+            ('host', 'actql_control_host *'),
+            ('resources', 'actql_local_host_resources *'),
+            ('read', 'actql_parent_read *'),
+            ('crypto', 'actql_local_crypto_library *'),
+            ('ttl_ms', 'double'), ('max_records', 'int32_t'),
+            ('max_snapshot_bytes', 'int64_t'),
+            ('capture', 'actql_local_journal_capture **')))
+        self.assertEqual(ORIGINS[symbol][0],
+                         'src/platform_native/client_host/local_journal_shim_impl.h')
+        self.assertNotIn('library', [name for name, _ in PARAMETERS[symbol]])
+
+    def test_same_width_journal_parent_swap_changes_generated_role_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for shim in GENERATOR.SHIMS:
+                relative = GENERATOR.source_path(shim)
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes((ROOT / relative).read_bytes())
+            symbol = 'actql_local_journal_prepare_original_into'
+            before = GENERATOR.declarations(root)[symbol]
+            path = root / GENERATOR.source_path('local_journal')
+            original = path.read_text()
+            declaration = ('actql_local_session *session, actql_control_host *host,\n'
+                           '    actql_local_host_resources *resources, actql_parent_read *read,')
+            self.assertIn(declaration, original)
+            swapped = declaration.replace('actql_local_session *session, actql_control_host *host',
+                                           'actql_control_host *host, actql_local_session *session')
+            path.write_text(original.replace(declaration, swapped, 1))
+            after = GENERATOR.declarations(root)[symbol]
+            self.assertEqual([p[2] for p in before[1]], [p[2] for p in after[1]])
+            self.assertNotEqual(before[1], after[1])
+            self.assertNotEqual(GENERATOR.render(ROOT), GENERATOR.render(root))
+
 
 if __name__ == '__main__':
     unittest.main()
