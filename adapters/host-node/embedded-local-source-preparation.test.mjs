@@ -110,23 +110,26 @@ test('close racing the first producer retirement retains the same retry and neve
 });
 
 test('a sibling last lease cannot release another lease original pending Source producer', async () => {
-  let finishes = 0, allowRetirement = false;
+  let finishes = 0, allowRetirement = false, closing;
   const receipt = {};
   const f = await fixture({beforeSourceSnapshot() {return receipt;},
     bindSourceSnapshot() {}, bindSourceRequest() {}, finishSourceProducer(original) {
       assert.equal(original, receipt); finishes++;
       if (!allowRetirement) throw new Error('OriginalProducerStillRetained');
-    }}, request => readySubmissionAttempt(request, admission));
+    }}, request => {
+      closing = f.client.close(); closing.catch(() => {});
+      return readySubmissionAttempt(request, admission);
+    });
   const sibling = await f.acquire();
   await assert.rejects(f.client.startSource('SELECT 1 AS n', {format: 'sql',
-    submissionRef: originalSubmission('sibling-source-custody')}), {code: 'ClientCleanupPending'});
-  await assert.rejects(f.client.close(), {code: 'ClientCleanupPending'});
+    submissionRef: originalSubmission('sibling-source-custody')}));
+  await assert.rejects(closing, {code: 'ClientCleanupPending'});
   // The first lease still holds its original cleanup even if its retry failed.
   // Releasing a different lease cannot acknowledge those aliases.
   await assert.rejects(sibling.close(), {code: 'ClientCleanupPending'});
-  assert.equal(f.storeCloses, 0); assert.equal(f.sends, 1); assert.equal(finishes, 2);
+  assert.equal(f.storeCloses, 0); assert.equal(f.sends, 1); assert.equal(finishes, 1);
   allowRetirement = true;
   await f.client.close();
   await sibling.close();
-  assert.equal(f.storeCloses, 1); assert.equal(f.sends, 1); assert.equal(finishes, 3);
+  assert.equal(f.storeCloses, 1); assert.equal(f.sends, 1); assert.equal(finishes, 2);
 });
