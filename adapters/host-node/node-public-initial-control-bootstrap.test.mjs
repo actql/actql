@@ -193,6 +193,25 @@ test('ordinary Source changed same FD version refuses without issuing a replacem
   assert.equal(result.status,0,result.stderr);
 });
 
+test('ordinary Source keeps issued children after SDK producer aliases retire without issuing new claims',t=>{
+  const f=fixture(t,{source:true});
+  const result=f.run(
+    'import assert from"node:assert/strict";import{createRequire}from"node:module";import{connect}from"@actql/local-node";'+
+    'const client=await connect({mode:"local",installation:{directory:".actql"},profile:"mock"});'+
+    'const root=createRequire(import.meta.url)('+JSON.stringify(join(f.root,'adapters/host-node/node-public-initial-control-bootstrap.cjs'))+');'+
+    'const source=await root.prepareSourceManagedInstallation(client.originals),receipt=root.beforeSourceSnapshot(source,client.originals,"aql","SELECT original",{}),body=Object.freeze({kind:"aql",input:"SELECT original",parameters:null});'+
+    'root.bindSourceSnapshot(source,client.originals,receipt,body);const request=Object.freeze({body}),derived=Object.freeze({});client.bindFixtureRequest(request,derived);root.bindSourceRequest(source,client.originals,receipt,body,request);'+
+    'const reads=client.declarations.map(decl=>root.prepareSourceManagedRead(source,client.originals,derived,decl));'+
+    'root.finishSourceProducer(source,client.originals,receipt,"returned");client.bindFixtureRequest(undefined,undefined);'+
+    'assert.throws(()=>root.prepareSourceManagedRead(source,client.originals,derived,client.declarations[0]),{code:"SourceManagedPreparationUnavailable"});'+
+    'const ports=reads.map(read=>root.prepareOriginalSourceChildPorts(read.originalSource));for(const port of ports){assert.equal(port.status(0),0);assert.equal(port.status(1),0);}'+
+    'const bytes=await Promise.all(reads.map(read=>read.readOriginalBytes()));assert.equal(bytes[0].equals(bytes[1]),true);assert.notEqual(bytes[0].buffer,bytes[1].buffer);'+
+    'for(let index=0;index<2;index++){assert.equal(ports[index].report(0,0,0,0n,0n,0n,0n,0n,0n,0n),0);assert.equal(ports[index].status(2),0);reads[index].close();}'+
+    'const closed=await root.closeSourceManagedInstallation(source,client.originals);assert.equal(closed.pending,false);assert.equal(closed.fdPending,false);assert.equal(closed.physicalBackingReleased,false);'+
+    'assert.equal((await client.scope.close()).pending,false);');
+  assert.equal(result.status,0,result.stderr);
+});
+
 test('ordinary Source refuses a replaced allocator before calling it',t=>{
   const f=fixture(t,{source:true});
   const result=f.run(
