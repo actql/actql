@@ -3,19 +3,16 @@
 // installed once for all its Sites. Programs and callers supply none of them.
 // Credential grants are issued only for a protected decision that installed
 // gate returned as dispatch.
-import {createHash, createPrivateKey} from 'node:crypto';
-import {readFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
 import {readSourceProfileJson} from '../../../host-node/source-profile-json.mjs';
 import {retainInstalledCredentialSiteCleanup, releaseInstalledCredentialSite} from
   '../../../host-node/installed-host-cleanup.mjs';
 import {isAbsolute} from 'node:path';
 import {canonicalJson as canonicalValueJson} from '../../../../packages/sdk/host-port.mjs';
-import {canonicalJson, contentCid} from
+import {contentCid} from
   '../../../host-node/local-account-config.mjs';
-import {installRowSourceAuthorization, openRowSourceCredentialCustody} from
+import {installRowSourceAuthorization, loadRowSourceCredentialCustody} from
   '../../../host-node/installed-row-source.mjs';
-import {openSqliteCredentialJournal} from
-  '../../../site-node/sqlite-credential-journal.mjs';
 import {createSalesforceCliSecretResolver} from
   '../site/salesforce-cli-secret.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
@@ -174,7 +171,7 @@ export async function installSalesforceAuthorization({accountConfiguration,
 export async function loadInstalledSalesforceSite(path, {commonMoon,
   salesforceMoon, authorization, runtimeBundleCid, resolveSecret,
   now = () => Date.now(), grantLifetimeMs = 15 * 60 * 1000,
-  openCredentialJournal = openSqliteCredentialJournal} = {}) {
+  openCredentialJournal} = {}) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
     fail('InvalidInstalledSalesforceSiteProfilePath');
   }
@@ -185,7 +182,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       typeof now !== 'function' || !Number.isSafeInteger(grantLifetimeMs) ||
       grantLifetimeMs < 1 || grantLifetimeMs > 24 * 60 * 60 * 1000 ||
       (resolveSecret !== undefined && typeof resolveSecret !== 'function') ||
-      typeof openCredentialJournal !== 'function') {
+      (openCredentialJournal !== undefined && typeof openCredentialJournal !== 'function')) {
     fail('InvalidInstalledSalesforceSiteOptions');
   }
   const principalId = authorization.context.principal;
@@ -196,36 +193,25 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   try { profile = await readSourceProfileJson(path, {maxBytes: 8 * 1024 * 1024}); }
   catch (error) { fail('InvalidInstalledSalesforceSiteProfile', error); }
   if (!validProfile(profile)) fail('InvalidInstalledSalesforceSiteProfile');
-  let privateKey;
-  let ca;
-  try {
-    privateKey = createPrivateKey(await readFile(
-      profile.credentialPrivateKeyPath, 'utf8'));
-    if (profile.caPath !== undefined) ca = await readFile(profile.caPath);
-  } catch (error) {
-    fail('InvalidInstalledSalesforceSiteCredential', error);
-  }
-  if (privateKey.asymmetricKeyType !== 'ed25519') {
-    fail('InvalidInstalledSalesforceSiteCredential');
-  }
   const connection = `salesforce:${profile.orgId}`;
-  const secret = resolveSecret ?? createSalesforceCliSecretResolver({
-    connection: {alias: profile.cliAlias, orgId: profile.orgId,
-      username: profile.cliUsername, instanceOrigin: profile.instanceOrigin},
-    principal: principalId, namespaceId: profile.namespaceId,
-    environment: profile.environment, siteKey: profile.siteKey,
-    siteGeneration: profile.siteGeneration,
-  });
   // Keep the original Salesforce origin, task attempt and diagnostic names;
   // credential journal/signing/retirement are the shared Row Site's one path.
-  const custody = openRowSourceCredentialCustody({
+  const custody = await loadRowSourceCredentialCustody({
     profile: Object.freeze({...profile, resourceOrigin: profile.instanceOrigin}),
     principalId, connectorRegistration: 'salesforce',
     connectorRevision: 'salesforce/0.1', runtimeBundleCid, commonMoon,
-    privateKey, resolveSecret: secret, ca, now, grantLifetimeMs,
+    now, grantLifetimeMs,
     openCredentialJournal, credentialFacts: Object.freeze({orgId: profile.orgId}),
     closedCode: 'SalesforceSiteClosed',
-    grantCode: 'InvalidSalesforceCredentialGrantRequest'});
+    grantCode: 'InvalidSalesforceCredentialGrantRequest'}, {
+    caPath: profile.caPath, invalidCode: 'InvalidInstalledSalesforceSiteCredential',
+    prepareResolver: () => resolveSecret ?? createSalesforceCliSecretResolver({
+      connection: {alias: profile.cliAlias, orgId: profile.orgId,
+        username: profile.cliUsername, instanceOrigin: profile.instanceOrigin},
+      principal: principalId, namespaceId: profile.namespaceId,
+      environment: profile.environment, siteKey: profile.siteKey,
+      siteGeneration: profile.siteGeneration,
+    })});
   const {credential, ensureOpen, sign} = custody;
   const liveDeclarations = new WeakMap();
   const liveDescribes = new WeakMap();

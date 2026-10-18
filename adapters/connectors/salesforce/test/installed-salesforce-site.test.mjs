@@ -1123,3 +1123,47 @@ test('shared credential custody preserves every original Salesforce scope member
   assert.equal(setup.org.seen.length, requestsBefore,
     'loading/signing adds no I/O to the original fixture preparation');
 });
+
+test('shared Site loading preserves Salesforce key and CA refusal before resolver or journal admission', async t => {
+  const setup = await installed(t);
+  const seen = setup.org.seen.length;
+  const malformed = join(setup.root, 'malformed.key');
+  const foreign = join(setup.root, 'foreign.key');
+  await writeFile(malformed, 'not a private key');
+  await writeFile(foreign, generateKeyPairSync('ec', {namedCurve: 'prime256v1'})
+    .privateKey.export({type: 'pkcs8', format: 'pem'}));
+  let opens = 0, resolutions = 0;
+  const resolveSecret = async () => { resolutions++; return 'test-only-secret'; };
+  const openCredentialJournal = (root, options) => {
+    opens++;
+    assert.equal(root, setup.document.journalRoot);
+    assert.deepEqual([...options.credentialAuthorities.keys()],
+      [setup.document.credentialAuthorityId]);
+    assert.deepEqual([...options.credentialAuthorities.get(
+      setup.document.credentialAuthorityId).keys()], [setup.document.credentialKeyId]);
+    return openSqliteCredentialJournal(root, options);
+  };
+  for (const patch of [
+    {credentialPrivateKeyPath: join(setup.root, 'missing.key')},
+    {credentialPrivateKeyPath: malformed},
+    {credentialPrivateKeyPath: foreign},
+    {caPath: join(setup.root, 'missing-ca.crt')},
+    // Preserve the old error priority: credential admission precedes the
+    // default CLI resolver's validation, without invoking the CLI.
+    {credentialPrivateKeyPath: malformed, cliAlias: '1-invalid-alias'},
+  ]) {
+    await writeFile(setup.path, JSON.stringify({...setup.document, ...patch}));
+    await assert.rejects(setup.load({resolveSecret: undefined,
+      openCredentialJournal}), {code: 'InvalidInstalledSalesforceSiteCredential'});
+    assert.equal(opens, 0);
+    assert.equal(resolutions, 0);
+    assert.equal(setup.org.seen.length, seen);
+  }
+  await writeFile(setup.path, JSON.stringify(setup.document));
+  const site = await setup.load({resolveSecret, openCredentialJournal});
+  assert.equal(opens, 1);
+  assert.equal(site.credential.resolveSecret, resolveSecret);
+  assert.deepEqual(site.credential.ca, setup.org.credential.ca);
+  assert.equal(resolutions, 0);
+  assert.equal(setup.org.seen.length, seen);
+});
