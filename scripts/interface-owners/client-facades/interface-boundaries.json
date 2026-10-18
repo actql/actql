@@ -5,7 +5,7 @@
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "96225b6bd1b7d2b5da29172c5ec4f778fd81b190b9a980a8c4adcc2b5367b315",
+      "sha256": "5b62341a00f6bee5599938b1fc80a9bfd978dd9e36189ada91bcd6a3e1ecc3a2",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",
@@ -410,6 +410,13 @@
           "result": "void"
         },
         {
+          "name": "RowEffectDriver/recoverMemberRequests",
+          "parameters": [
+            "options: Readonly<{durable: unknown; recorded: unknown;\n    previewWire: string; body: ConnectorJsonObject;\n    memberIndexes: readonly number[]}>"
+          ],
+          "result": "Readonly<{\n      requests: readonly (readonly Request[])[];\n      currents?: readonly (Current | undefined)[]}>"
+        },
+        {
           "name": "RowEffectDriver/recoverRequests",
           "parameters": [
             "options: Readonly<{durable: unknown; recorded: unknown;\n    previewWire: string; body: ConnectorJsonObject}>"
@@ -632,7 +639,8 @@
             "RowSourceCredentialSite/close",
             "RowSourceCredentialSite/issueEffectGrant",
             "RowSourceCredentialSite/issueReadGrant",
-            "rowSourceMapping"
+            "rowSourceMapping",
+            "RowEffectDriver/recoverMemberRequests"
           ],
           "exports": [
             "AuthorizationBoundary",
@@ -726,6 +734,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Responsibility: the existing installed Row Effect retains the original"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Responsibility: the existing installed Row Effect routes recovery"
               }
             ],
             "inputsOutputs": [
@@ -748,6 +760,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Inputs and outputs: `observeTargets` retains the original present"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Inputs and outputs: optional `recoverMemberRequests` receives"
               }
             ],
             "identity": [
@@ -778,6 +794,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Identity: original request target and observation identity must match; the"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Identity: each selected position belongs"
               }
             ],
             "ownership": [
@@ -808,6 +828,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Ownership: existing capture/request children retain original reads and their"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Ownership: original installations retain their Sites"
               }
             ],
             "synchronization": [
@@ -838,6 +862,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Synchronization: insert-side UPSERT emits before absent and a not-applicable"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Synchronization: reconstruction is synchronous"
               }
             ],
             "failure": [
@@ -864,6 +892,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Failure: absent observations with before/version fields, unknown presence,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Failure: missing scoped recovery support"
               }
             ],
             "cancellation": [
@@ -894,6 +926,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Cancellation: observation completion is not physical stop or release. Original"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Cancellation: successful reconstruction neither cancels"
               }
             ],
             "resources": [
@@ -924,6 +960,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Resources: bounded observation envelope copies, original before references,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Resources: selection is bounded"
               }
             ],
             "extension": [
@@ -950,6 +990,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Extension: the additive public driver union restricts absence to UPSERT and"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Extension: this composition profile remains"
               }
             ],
             "verification": [
@@ -992,6 +1036,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Verification: `installed-row-upsert-absence.integration.test.mjs` uses actual"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Verification: `installed-composed-recovery.integration.test.mjs` exercises"
               }
             ]
           }

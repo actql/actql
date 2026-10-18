@@ -390,3 +390,42 @@ source qualifications.
   explicitly trusted finite observation driver, not a physical vendor. Public
   type checks independently remove expected-error markers. Original guarded
   UPDATE/DELETE and request-child regression tests remain separate assertions.
+
+## Original member recovery in a composed Set
+
+- Responsibility: the existing installed Row Effect routes recovery to each
+  original installation; the vendor driver decodes its retained request
+  material. This does not introduce another executor or credential issuer.
+- Inputs and outputs: optional `recoverMemberRequests` receives the unchanged
+  whole `previewWire`, durable capture, recorded claims and parsed body, plus
+  increasing global `memberIndexes`. Its request/current arrays follow that
+  selected order. The singular `recoverRequests` protocol is unchanged.
+- Identity: each selected position belongs to the nominal installation retained
+  for that original Effect occurrence. Rebuilt requests still match the original
+  durable request CID, approved value and target. No sliced or reauthored Preview
+  substitutes for the whole Set or changes its CID.
+- Ownership: original installations retain their Sites, Catalogs, callbacks and
+  cleanup duties. The common stage retains the whole Preview, requests, current
+  observations, claims and publication custody; composition owns no replacement
+  installation or independent close operation.
+- Synchronization: reconstruction is synchronous and performs no provider I/O.
+  Whole-Set commit authorization and the original installation's current checks
+  still precede dispatch. Applied claims remain applied across restart.
+- Failure: missing scoped recovery support, foreign installation, duplicate or
+  out-of-range selected positions, and request/claim/Preview disagreement refuse
+  before sending. Unknown outcomes are retained and are never resent as unsent.
+- Cancellation: successful reconstruction neither cancels a Run nor confirms
+  producer stop, physical cleanup, publication or release. Existing cancellation
+  and cleanup owners retain those decisions.
+- Resources: selection is bounded by the original member/row limits; the selected
+  index snapshot, per-owner output arrays and full Preview/Catalog decode overlap
+  remain part of the existing Host phase's retained inventory. Bounds and decoded
+  DATA alone do not establish physical capacity or release backing.
+- Extension: this composition profile remains source-free VALUES with CREATE
+  members, equal admitted runtime/Ledger location/limits, and explicit scoped
+  support when retained-request recovery is required. It does not newly admit
+  guarded, Command, imported-source or Model compositions.
+- Verification: `installed-composed-recovery.integration.test.mjs` exercises two
+  actual installed Sites, a shared admitted account configuration and original
+  Set recovery without resending the applied member. Routing refusals, singular
+  recovery and bounded index capture have separate focused consumers.

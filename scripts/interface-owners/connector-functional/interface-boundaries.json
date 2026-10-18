@@ -3353,7 +3353,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
-      "sha256": "eba9788fef83247d36df54e4c536436bb746535591e67f1da06e592eed580555",
+      "sha256": "eb81ffdafaae658b50714ba81985105d94841ec0ff42e623149fbdfe494c79c1",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Salesforce request/projection/target-read/capability/response and recovery functions under Common installed Effect",
@@ -3548,23 +3548,6 @@
           "async": false
         },
         {
-          "name": "salesforceWriteDriver/init:recoverRequests/init:recoverRequests",
-          "parameters": [
-            "durable",
-            "recorded",
-            "previewWire",
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "salesforceWriteDriver/init:recoverRequests/init:recoverRequests/init:recoverRequests",
-          "parameters": [
-            "observation"
-          ],
-          "async": false
-        },
-        {
           "name": "salesforceWriteDriver/installedOf/installedOf",
           "parameters": [
             "member"
@@ -3582,6 +3565,24 @@
           "name": "salesforceWriteDriver/projectionOf/projectionOf",
           "parameters": [
             "member",
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "salesforceWriteDriver/recoverRequests/recoverRequests",
+          "parameters": [
+            "durable",
+            "recorded",
+            "previewWire",
+            "body",
+            "memberIndexes"
+          ],
+          "async": false
+        },
+        {
+          "name": "salesforceWriteDriver/recoverRequests/recoverRequests/recoverRequests",
+          "parameters": [
             "observation"
           ],
           "async": false
@@ -3674,8 +3675,6 @@
             "salesforceWriteDriver/init:prepareRequest/init:prepareRequest",
             "salesforceWriteDriver/init:project/init:project",
             "salesforceWriteDriver/init:recheckRequests/init:recheckRequests",
-            "salesforceWriteDriver/init:recoverRequests/init:recoverRequests",
-            "salesforceWriteDriver/init:recoverRequests/init:recoverRequests/init:recoverRequests",
             "salesforceWriteDriver/installedOf/installedOf",
             "salesforceWriteDriver/keyOf/keyOf",
             "salesforceWriteDriver/projectionOf/projectionOf",
@@ -3685,7 +3684,9 @@
             "salesforceWriteDriver/salesforceWriteDriver#3",
             "salesforceWriteDriver/salesforceWriteDriver#4",
             "salesforceWriteDriver/salesforceWriteDriver#5",
-            "writeBody"
+            "writeBody",
+            "salesforceWriteDriver/recoverRequests/recoverRequests",
+            "salesforceWriteDriver/recoverRequests/recoverRequests/recoverRequests"
           ],
           "exports": [
             "salesforceRowEffectSite",
@@ -3696,60 +3697,100 @@
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
                 "anchor": "Every"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Responsibility: the existing installed Row Effect routes recovery"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
                 "anchor": "salesforceWriteDriver"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Inputs and outputs: optional `recoverMemberRequests` receives"
               }
             ],
             "identity": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
                 "anchor": "requestCid"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Identity: each selected position belongs"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
                 "anchor": "recoveryEntry"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Ownership: original installations retain their Sites"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
                 "anchor": "recheckRequests"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Synchronization: reconstruction is synchronous"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
                 "anchor": "SalesforceWriteValueRefused"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Failure: missing scoped recovery support"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
                 "anchor": "signal"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Cancellation: successful reconstruction neither cancels"
               }
             ],
             "resources": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
                 "anchor": "limits"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Resources: selection is bounded"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/salesforce-write-capability.md",
                 "anchor": "## Recovery"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Extension: this composition profile remains"
               }
             ],
             "verification": [
               {
                 "path": "adapters/connectors/salesforce/test/update-effect.acceptance.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Verification: `installed-composed-recovery.integration.test.mjs` exercises"
               }
             ]
           }
@@ -4147,7 +4188,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "e607bee52e6925ca3fb40204134f790ed72dbba5d8d714f4ab8d8d1c116d2372",
+      "sha256": "8f38397c0f9b89cf8db2433148f6c44c529da71f21bde6709ad03898864dbd56",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -5383,6 +5424,14 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/recoveredEntries/recoveredEntries/currents/currents",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries",
           "parameters": [
             "member",
@@ -5421,11 +5470,32 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/recoveredEntries/recoveredEntries/memberIndexes/memberIndexes",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/recoveredEntries/recoveredEntries/recoveredEntries",
+          "parameters": [
+            "index",
+            "selectedIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/recoveredEntries/recoveredEntries/requests/requests",
           "parameters": [
             "_",
             "index"
           ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/recoveredEntries/recoveredEntries/usesRecovery/usesRecovery",
+          "parameters": [],
           "async": false
         },
         {
@@ -6008,7 +6078,11 @@
             "retainInstalledRowEffectAdapter",
             "sameValue/sameValue",
             "targeted/targeted",
-            "text/text"
+            "text/text",
+            "createRowEffectStage/recoveredEntries/recoveredEntries/currents/currents",
+            "createRowEffectStage/recoveredEntries/recoveredEntries/memberIndexes/memberIndexes",
+            "createRowEffectStage/recoveredEntries/recoveredEntries/requests/requests",
+            "createRowEffectStage/recoveredEntries/recoveredEntries/usesRecovery/usesRecovery"
           ],
           "exports": [
             "composeInstalledRowEffectOwners",
@@ -6042,6 +6116,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Responsibility: the existing installed Row Effect retains the original"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Responsibility: the existing installed Row Effect routes recovery"
               }
             ],
             "inputsOutputs": [
@@ -6068,6 +6146,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Inputs and outputs: `observeTargets` retains the original present"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Inputs and outputs: optional `recoverMemberRequests` receives"
               }
             ],
             "identity": [
@@ -6098,6 +6180,10 @@
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "currentsByPreflight.get(currentPreflight)"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Identity: each selected position belongs"
               }
             ],
             "ownership": [
@@ -6128,6 +6214,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Ownership: existing capture/request children retain original reads and their"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Ownership: original installations retain their Sites"
               }
             ],
             "synchronization": [
@@ -6158,6 +6248,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Synchronization: insert-side UPSERT emits before absent and a not-applicable"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Synchronization: reconstruction is synchronous"
               }
             ],
             "failure": [
@@ -6188,6 +6282,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Failure: absent observations with before/version fields, unknown presence,"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Failure: missing scoped recovery support"
               }
             ],
             "cancellation": [
@@ -6214,6 +6312,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Cancellation: observation completion is not physical stop or release. Original"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Cancellation: successful reconstruction neither cancels"
               }
             ],
             "resources": [
@@ -6252,6 +6354,10 @@
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
                 "anchor": "currentsByPreflight.set(refreshed, Object.freeze(fresh))"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Resources: selection is bounded"
               }
             ],
             "extension": [
@@ -6278,6 +6384,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Extension: the additive public driver union restricts absence to UPSERT and"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Extension: this composition profile remains"
               }
             ],
             "verification": [
@@ -6356,6 +6466,10 @@
               {
                 "path": "adapters/connectors/salesforce/test/installed-current-refresh.integration.test.mjs",
                 "anchor": "refresh instead of the latest Catalog"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Verification: `installed-composed-recovery.integration.test.mjs` exercises"
               }
             ]
           }
