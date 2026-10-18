@@ -84,8 +84,8 @@ fn decimal_order_text(value : DecimalValue) -> String? {
 ///|
 /// Text whose UTF-16 order equals the canonical typed key order of non-null
 /// KeyComparable values of one comparable domain: numeric order for numbers
-/// and decimals, false before true, and UTF-16 order for text, dates,
-/// timestamps and live reference identities. Specifications that require
+/// and decimals, false before true, exact instant order for timestamps, and
+/// UTF-16 order for text, dates and live reference identities. Specifications that require
 /// canonical typed ID order, such as Graph snapshot identity, sort by it;
 /// the canonical key encoding is a different order.
 pub fn typed_key_order_text(
@@ -95,9 +95,13 @@ pub fn typed_key_order_text(
     (Number(value), @contract.Number) => Ok(binary64_order_text(value))
     (Signed64(value), @contract.Signed64) => Ok(signed64_order_text(value))
     (Boolean(value), @contract.Boolean) => Ok(if value { "1" } else { "0" })
-    (Text(value), @contract.Text(_))
-    | (Date(value), @contract.Date)
-    | (Timestamp(value), @contract.Timestamp) => Ok(value)
+    (Text(value), @contract.Text(_)) | (Date(value), @contract.Date) =>
+      Ok(value)
+    (Timestamp(value), @contract.Timestamp) =>
+      match timestamp_order_text(value) {
+        Some(text) => Ok(text)
+        None => Err(InvalidKey)
+      }
     (Decimal(value), @contract.Decimal(..)) =>
       match decimal_order_text(value) {
         Some(text) => Ok(text)

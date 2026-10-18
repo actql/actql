@@ -163,23 +163,5 @@ fn valid_date(text : String) -> Bool {
 
 ///|
 fn valid_timestamp(text : String) -> Bool {
-  if text.length() != 24 ||
-    !valid_date(text) ||
-    text[10] != 'T' ||
-    text[13] != ':' ||
-    text[16] != ':' ||
-    text[19] != '.' ||
-    text[23] != 'Z' {
-    return false
-  }
-  match
-    (
-      digits(text, 11, 13),
-      digits(text, 14, 16),
-      digits(text, 17, 19),
-      digits(text, 20, 23),
-    ) {
-    (Some(h), Some(m), Some(s), Some(_)) => h < 24 && m < 60 && s < 60
-    _ => false
-  }
+  timestamp_instant(text) is Some(_)
 }

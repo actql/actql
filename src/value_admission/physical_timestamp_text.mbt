@@ -13,8 +13,8 @@ fn physical_timestamp_digits(text : String, start : Int, end : Int) -> Int? {
 ///|
 // Physical RFC3339 text conversion, factored from the existing Calendar
 // boundary. This does not broaden canonical Timestamp admission. The caller
-// retains the original offset spelling separately; never round a nonzero
-// sub-millisecond instant or infer an unknown local timezone.
+// retains the original offset spelling separately; never round an instant or
+// infer an unknown local timezone. Civil or retained-offset types are not UTC.
 pub fn normalize_timestamp_text(
   text : String,
   max_input_units : Int,
@@ -55,7 +55,7 @@ pub fn normalize_timestamp_text(
     (hour * 60 + minute) * (if text[zone_start] == '-' { -1 } else { 1 })
   }
   let fraction = if zone_start == 19 {
-    "000"
+    "000000000"
   } else {
     if text[19] != '.' || zone_start == 20 {
       return None
@@ -63,14 +63,14 @@ pub fn normalize_timestamp_text(
     let mut digits = ""
     for index in 20..<zone_start {
       let unit = text[index]
-      if unit < '0' || unit > '9' || (index >= 23 && unit != '0') {
+      if unit < '0' || unit > '9' || (index >= 29 && unit != '0') {
         return None
       }
-      if index < 23 {
+      if index < 29 {
         digits += text[index:index + 1].to_owned()
       }
     }
-    while digits.length() < 3 {
+    while digits.length() < 9 {
       digits += "0"
     }
     digits
@@ -79,13 +79,14 @@ pub fn normalize_timestamp_text(
     "T" +
     text[11:19].to_owned() +
     "." +
-    fraction +
+    "000" +
     "Z"
   if text[10] != 'T' && text[10] != 't' {
     return None
   }
-  guard timestamp_epoch_milliseconds(local_spelling) is Some(milliseconds) else {
+  guard timestamp_instant(local_spelling) is Some(instant) &&
+    physical_timestamp_digits(fraction, 0, 9) is Some(nanoseconds) else {
     return None
   }
-  epoch_milliseconds_timestamp(milliseconds - offset.to_int64() * 60000L)
+  epoch_parts_timestamp(instant.seconds - offset.to_int64() * 60L, nanoseconds)
 }
