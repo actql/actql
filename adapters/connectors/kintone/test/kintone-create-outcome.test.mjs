@@ -1,6 +1,7 @@
 // Matching ordinary Common component only. Preview/response fixtures are DATA;
 // no captured Run, physical provider write, saved response or approval grant.
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import test from 'node:test';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
@@ -65,6 +66,7 @@ test('matching actual Common CREATE projection retains original wide IDs respons
   assert.deepEqual(value.outcome, {result: {created: true, record_id: '9007199254740993',
     revision: '0009007199254740994'}, state: 'applied'});
   assert.equal(value.rowPreviewCid, moon.strategyEffectPreviewOrderedRowCid(f.preview, 0, 0));
+  assert.equal(value.responseSha256, createHash('sha256').update(responseBytes).digest('hex'));
   assert.equal(moon.clientProgramKintoneCreatePreviewOutcomeMatches(value.projected,
     f.mapping, f.request, f.preview, 0, 0), true);
   assert.equal(moon.clientProgramKintoneCreatePreviewOutcomeMatches(value.projected,
