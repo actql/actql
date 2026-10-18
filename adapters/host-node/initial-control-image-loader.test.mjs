@@ -74,6 +74,56 @@ test('JSON module body is captured rather than reparsed from a replaced physical
   assert.equal(result.status, 0, result.stderr);
 });
 
+test('captured JSON metadata keeps its original nested records and arrays immutable', t => {
+  const f = fixture(t, {'original.json': '{"policy":{"maxRows":1},"fields":[{"name":"original"}]}'});
+  const result = f.run([
+    "import assert from 'node:assert/strict';",
+    'assert.ok(Object.isFrozen(originalJson.policy));',
+    'assert.ok(Object.isFrozen(originalJson.fields));',
+    'assert.ok(Object.isFrozen(originalJson.fields[0]));',
+    'assert.throws(()=>{originalJson.policy.maxRows=100000;},TypeError);',
+    'assert.throws(()=>{originalJson.fields[0].name="replacement";},TypeError);',
+    'assert.equal(originalJson.policy.maxRows,1);',
+    'assert.equal(originalJson.fields[0].name,"original");',
+    'originalImageLoader.assertCurrent();',
+  ].join('\n'), [
+    'globalThis.originalJson=require(require("node:path").join(root,"original.json"));',
+    'originalImageLoader.captureLoadedModules();',
+  ].join('\n'));
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('a nested JSON value changed before capture cannot substitute captured Source metadata', t => {
+  const f = fixture(t, {'original.json': '{"policy":{"maxRows":1}}'});
+  const result = f.run('throw new Error("EntryMustNotRun");', [
+    'const original=require(require("node:path").join(root,"original.json"));',
+    'original.policy.maxRows=100000;',
+    'originalImageLoader.captureLoadedModules();',
+  ].join('\n'));
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /InitialControlImageLoaderChanged/);
+  assert.doesNotMatch(result.stderr, /EntryMustNotRun/);
+});
+
+test('JSON metadata handoff preserves BOM Unicode null and negative zero without freezing prototypes', t => {
+  const f = fixture(t, {'original.json': '\uFEFF{"__proto__":{"value":"原本"},"values":[null,-0,true,"\\ud83d\\udc3e"]}'});
+  const result = f.run([
+    "import assert from 'node:assert/strict';",
+    'assert.equal(Object.getPrototypeOf(originalJson),Object.prototype);',
+    'assert.equal(Object.hasOwn(originalJson,"__proto__"),true);',
+    'assert.equal(originalJson.__proto__.value,"原本");',
+    'assert.ok(Object.isFrozen(originalJson.__proto__));',
+    'assert.deepEqual(originalJson.values,[null,-0,true,"🐾"]);',
+    'assert.equal(Object.isFrozen(Object.prototype),false);',
+    'assert.equal(Object.isFrozen(Array.prototype),false);',
+    'originalImageLoader.assertCurrent();',
+  ].join('\n'), [
+    'globalThis.originalJson=require(require("node:path").join(root,"original.json"));',
+    'originalImageLoader.captureLoadedModules();',
+  ].join('\n'));
+  assert.equal(result.status, 0, result.stderr);
+});
+
 test('covered modules cannot import an uncaptured sibling even when it exists on disk', t => {
   const f = fixture(t, {'original.mjs': 'export {value} from "./foreign.mjs";\n'});
   const result = f.run("await import('./images/original.mjs');",
