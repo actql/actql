@@ -96,17 +96,12 @@ fn update_values(
     }
     // The original metadata Contract is re-admitted by Common, rather than
     // trusting an equal caller schema or copying its CheckedValue wrapper.
-    guard
-      @admitted.recheck_runtime_value_usage(
-        value.value,
-        contract,
-        {
-          max_nodes: budget.nodes,
-          max_depth: budget.depth,
-          max_text_bytes: budget.text,
-        },
-      ) is Some((original, nodes, text))
-    else {
+    guard @admitted.recheck_runtime_value_usage(value.value, contract, {
+        max_nodes: budget.nodes,
+        max_depth: budget.depth,
+        max_text_bytes: budget.text,
+      })
+      is Some((original, nodes, text)) else {
       raise UpdateStop(InvalidValue(name))
     }
     budget.nodes -= nodes
@@ -131,7 +126,10 @@ fn update_sql(budget : UpdateBudget, text : String) -> Unit raise UpdateStop {
 }
 
 ///|
-fn update_identifier(budget : UpdateBudget, name : String) -> Unit raise UpdateStop {
+fn update_identifier(
+  budget : UpdateBudget,
+  name : String,
+) -> Unit raise UpdateStop {
   guard budget.sql_left >= 2 else { raise UpdateStop(Limit) }
   let bytes = match @scalar.admit_utf8_length(name, budget.sql_left - 2) {
     Ok(bytes) => bytes
@@ -182,7 +180,8 @@ fn update_parameter(
     ("FLOAT" | "REAL" | "DOUBLE", @admitted.Number(_)) => ("REAL", "?")
     _ => raise UpdateStop(UnsupportedWriteType(field.name, field.native_type))
   }
-  guard @admitted.canonical_scalar_text(value, budget.body_ceiling) is Some(text) else {
+  guard @admitted.canonical_scalar_text(value, budget.body_ceiling)
+    is Some(text) else {
     raise UpdateStop(Limit)
   }
   budget.bindings.push((kind, text))
@@ -192,22 +191,30 @@ fn update_parameter(
 ///|
 fn update_match(
   budget : UpdateBudget,
-  alias : String,
+  table_alias : String,
   field : DescriptionColumn,
   value : @admitted.CheckedValue,
 ) -> Unit raise UpdateStop {
   let binary_text = ["TEXT", "VARCHAR", "STRING"].contains(field.native_type)
   // Provider column collation must not weaken the exact original text
   // comparison. UTF-8 conversion is explicit, including for SQL NULL.
-  if binary_text { update_sql(budget, "TO_BINARY(") }
-  update_identifier(budget, alias)
+  if binary_text {
+    update_sql(budget, "TO_BINARY(")
+  }
+  update_identifier(budget, table_alias)
   update_sql(budget, ".")
   update_identifier(budget, field.name)
-  if binary_text { update_sql(budget, ", 'UTF-8')") }
+  if binary_text {
+    update_sql(budget, ", 'UTF-8')")
+  }
   update_sql(budget, " IS NOT DISTINCT FROM ")
-  if binary_text { update_sql(budget, "TO_BINARY(") }
+  if binary_text {
+    update_sql(budget, "TO_BINARY(")
+  }
   update_parameter(budget, field, value)
-  if binary_text { update_sql(budget, ", 'UTF-8')") }
+  if binary_text {
+    update_sql(budget, ", 'UTF-8')")
+  }
 }
 
 ///|
@@ -220,18 +227,27 @@ pub fn prepare_update_candidate(
   limits : UpdateCandidateLimits,
 ) -> Result[UpdateCandidate, UpdateCandidateIssue] {
   if [
-      limits.max_fields, limits.max_comparison_work, limits.max_value_nodes,
-      limits.max_value_text_bytes, limits.max_value_depth, limits.max_statement_bytes,
-      limits.max_body_bytes, limits.max_body_nodes,
+      limits.max_fields,
+      limits.max_comparison_work,
+      limits.max_value_nodes,
+      limits.max_value_text_bytes,
+      limits.max_value_depth,
+      limits.max_statement_bytes,
+      limits.max_body_bytes,
+      limits.max_body_nodes,
     ].any(value => value <= 0) {
     return Err(InvalidLimits)
   }
-  if assignments.is_empty() { return Err(EmptyUpdate) }
+  if assignments.is_empty() {
+    return Err(EmptyUpdate)
+  }
   if description.columns.length() > limits.max_fields ||
     before_image.length() != description.columns.length() {
     return Err(IncompleteBeforeImage)
   }
-  if assignments.length() > limits.max_fields { return Err(Limit) }
+  if assignments.length() > limits.max_fields {
+    return Err(Limit)
+  }
   let budget : UpdateBudget = {
     comparison: limits.max_comparison_work,
     nodes: limits.max_value_nodes,
@@ -256,20 +272,23 @@ pub fn prepare_update_candidate(
         break
       }
     }
-    guard prior is Some(prior) else {
-      raise UpdateStop(IncompleteBeforeImage)
-    }
-    let same_key = if key_value.1.value is @admitted.Null && prior.value is @admitted.Null {
+    guard prior is Some(prior) else { raise UpdateStop(IncompleteBeforeImage) }
+    let same_key = if key_value.1.value is @admitted.Null &&
+      prior.value is @admitted.Null {
       true
     } else {
       @admitted.compare_key_values(key_value.1, prior) is Ok(0)
     }
-    if !same_key { raise UpdateStop(DifferentBeforeImageKey) }
+    if !same_key {
+      raise UpdateStop(DifferentBeforeImageKey)
+    }
     update_sql(budget, "UPDATE ")
     update_table(budget, description.target)
     update_sql(budget, " AS \"ACTQL_TARGET\" SET ")
     for index, (field, value) in changes {
-      if index > 0 { update_sql(budget, ", ") }
+      if index > 0 {
+        update_sql(budget, ", ")
+      }
       update_identifier(budget, field.name)
       update_sql(budget, " = ")
       update_parameter(budget, field, value)
@@ -299,7 +318,11 @@ pub fn prepare_update_candidate(
       @encode.end_object(writer)
     }
     @encode.end_object(writer)
-    Ok({ description, statement: budget.sql.to_string(), bindings: @encode.finish(writer), })
+    Ok({
+      description,
+      statement: budget.sql.to_string(),
+      bindings: @encode.finish(writer),
+    })
   } catch {
     UpdateStop(issue) => {
       @encode.cancel_writer(writer)
@@ -313,10 +336,14 @@ pub fn prepare_update_candidate(
 }
 
 ///|
-pub fn update_candidate_statement(value : UpdateCandidate) -> String { value.statement }
+pub fn update_candidate_statement(value : UpdateCandidate) -> String {
+  value.statement
+}
 
 ///|
-pub fn update_candidate_bindings(value : UpdateCandidate) -> String { value.bindings }
+pub fn update_candidate_bindings(value : UpdateCandidate) -> String {
+  value.bindings
+}
 
 ///|
 pub fn update_candidate_matches_description(
