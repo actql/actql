@@ -28,7 +28,8 @@ export const sourceOperationTable = `CREATE TABLE client_source_operation_origin
 // The existing physical-start fence still prevents issuing a fresh live scope
 // for a restored/Unknown Run, whether this optional DATA table exists or not.
 export function inspectClientSourceOperationStorage(database) {
-  const row = database.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'client_source_operation_originals'").get();
+  const row = database.prepare("SELECT substr(sql, 1, ?) AS sql FROM sqlite_master WHERE type = 'table' AND name = 'client_source_operation_originals'")
+    .get(sourceOperationTable.length + 1);
   if (row !== undefined && row.sql !== sourceOperationTable) {
     fail('UnknownClientRequestJournalFormat');
   }
@@ -38,9 +39,11 @@ export function snapshotClientSourceOperationLimits(limits) {
   if (limits === undefined) return undefined;
   if (limits === null || typeof limits !== 'object') fail('InvalidClientSourceOperationLimits');
   const fields = Object.getOwnPropertyDescriptors(limits);
-  if (Reflect.ownKeys(fields).sort().join(',') !== 'maxRecords,maxWireBytes' ||
+  const keys = Reflect.ownKeys(fields);
+  if (keys.length !== 2 || keys.some(key => typeof key !== 'string' || !['maxRecords', 'maxWireBytes'].includes(key)) ||
       ['maxRecords', 'maxWireBytes'].some(key => !Object.hasOwn(fields[key], 'value') ||
-        !Number.isSafeInteger(fields[key].value) || fields[key].value < 1)) {
+        !Number.isSafeInteger(fields[key].value) || fields[key].value < 1) ||
+      fields.maxWireBytes.value > 2_147_483_647) {
     fail('InvalidClientSourceOperationLimits');
   }
   return Object.freeze({maxRecords: fields.maxRecords.value, maxWireBytes: fields.maxWireBytes.value});
@@ -51,7 +54,14 @@ export function clientSourceOperationStorage(database, {ensureOpen, transact,
   limits = snapshotClientSourceOperationLimits(limits);
   if (limits === undefined) return undefined;
   const maximumRecords = limits.maxRecords, maximumWireBytes = limits.maxWireBytes;
-  const lookup = database.prepare(`SELECT * FROM client_source_operation_originals
+  // Bound JS materialization even if a retained record is corrupt. SQLite's
+  // original file/statement work remains its physical owner's responsibility.
+  const lookup = database.prepare(`SELECT
+    substr(source_attempt_id, 1, 257) AS source_attempt_id,
+    substr(run_invocation_cid, 1, 72) AS run_invocation_cid,
+    substr(dispatch_request_cid, 1, 72) AS dispatch_request_cid,
+    CASE WHEN length(CAST(original_wire AS BLOB)) <= ? THEN original_wire ELSE NULL END AS original_wire
+    FROM client_source_operation_originals
     WHERE namespace_id = ? AND authority_scope_cid = ? AND run_definition_cid = ?
       AND stage = ? AND input_index = ? AND task = ?`);
   const count = database.prepare('SELECT COUNT(*) AS n FROM client_source_operation_originals');
@@ -95,13 +105,14 @@ export function clientSourceOperationStorage(database, {ensureOpen, transact,
           error => ['ClientSourceOperationOriginalChanged', 'ClientSourceOperationCapacity',
             'ClientSourceOperationUnresolved'].includes(error?.code), () => {
             currentRun(original);
-            const prior = lookup.get(...key(original.ref, occurrence));
+            const prior = lookup.get(maximumWireBytes, ...key(original.ref, occurrence));
             if (prior !== undefined) {
               fail('ClientSourceOperationUnresolved', undefined, {
                 outcome: 'unknown', originalWire: prior.original_wire,
               });
             }
-            if (Number(count.get().n) >= maximumRecords) fail('ClientSourceOperationCapacity');
+            const records = Number(count.get().n);
+            if (!Number.isSafeInteger(records) || records >= maximumRecords) fail('ClientSourceOperationCapacity');
             insert.run(...key(original.ref, occurrence), frame.requestId,
               frame.runInvocationCid, frame.dispatchRequestCid, wire);
           });
@@ -117,10 +128,14 @@ export function clientSourceOperationStorage(database, {ensureOpen, transact,
       if (!coordinate(occurrence)) fail('InvalidClientSourceOperationOccurrence');
       const retained = readRun(ref);
       if (retained === undefined) return undefined;
-      const row = lookup.get(...key(ref, occurrence));
+      const row = lookup.get(maximumWireBytes, ...key(ref, occurrence));
       if (row === undefined) return undefined;
       if (typeof row.original_wire !== 'string' ||
-          Buffer.byteLength(row.original_wire, 'utf8') > maximumWireBytes) {
+          Buffer.byteLength(row.original_wire, 'utf8') > maximumWireBytes ||
+          typeof row.source_attempt_id !== 'string' || row.source_attempt_id.length === 0 ||
+          Buffer.byteLength(row.source_attempt_id, 'utf8') > 256 ||
+          !/^sha256:[0-9a-f]{64}$/u.test(row.run_invocation_cid) ||
+          !/^sha256:[0-9a-f]{64}$/u.test(row.dispatch_request_cid)) {
         fail('ClientSourceOperationCorrupt');
       }
       return Object.freeze({kind: 'unresolved_original', originalWire: row.original_wire,

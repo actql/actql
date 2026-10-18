@@ -61,6 +61,7 @@ function fixture(t, limits = {maxRecords: 8, maxWireBytes: 4096}, missingJobProj
     source(value = occurrence, selected = prepared) {return bindClientSourceOperation(scope, journal, store, program, selected, value);},
     port(value) {return bindClientSourceOperationRowRun(value, moon, program, prepared, frame);},
     reopen() {journal.close(); journal = openClientRequestJournal(directory, {sourceOperationLimits: limits});},
+    reopenWithoutSourceOperations() {journal.close(); journal = openClientRequestJournal(directory);},
     closeStore() {storeClosed = true;}, registerJob,
     mutate(sql) {const db = new DatabaseSync(join(directory, 'client-requests.sqlite3')); try {db.exec(sql);} finally {db.close();}}};
 }
@@ -174,4 +175,44 @@ test('same-Run sibling original Sources retain separate keys without releasing t
   assert.equal(sent, 2);
   assert.equal(f.journal.lookupOriginalSourceOperation(f.ref, f.occurrence).originalWire, f.original.wire);
   assert.equal(f.journal.lookupOriginalSourceOperation(f.ref, secondAt).originalWire, original.wire);
+});
+
+test('missing original-operation storage bounds refuse before the physical-start CAS', t => {
+  const f = fixture(t); f.reopenWithoutSourceOperations();
+  assert.equal(f.journal.sourceOperationConfigured, false);
+  assert.throws(() => f.start(), {code: 'ClientSourceOperationUnavailable'});
+  assert.equal(f.scope, undefined);
+  assert.equal(f.journal.lookupRunDefinition(f.ref, f.control, f.publication).physicalStartReserved, false);
+});
+
+test('record capacity refusal cannot fall back or rebind another attempt at the same original occurrence', t => {
+  const f = fixture(t, {maxRecords: 1, maxWireBytes: 16}); f.start(); const source = f.source(), port = f.port(source);
+  assert.throws(() => port(f.original, () => assert.fail('No physical send')), {code: 'ClientSourceOperationCapacity'});
+  assert.equal(f.journal.lookupOriginalSourceOperation(f.ref, f.occurrence), undefined);
+  assert.equal(f.source(), source);
+  assert.throws(() => f.port(source)(f.original, () => assert.fail('No retry')), {code: 'ClientSourceOperationAlreadyEntered'});
+  assert.throws(() => f.source({stage: 1, input: 0, task: 1}, {}), {code: 'ClientSourceOperationCapacity'});
+});
+
+test('oversized retained original wire refuses as corruption without issuing another live operation', t => {
+  const f = fixture(t); f.start(); const port = f.port(f.source()); port(f.original, () => {});
+  f.mutate("UPDATE client_source_operation_originals SET original_wire = printf('%.*c', 10000, 'x')");
+  assert.throws(() => f.journal.lookupOriginalSourceOperation(f.ref, f.occurrence), {code: 'ClientSourceOperationCorrupt'});
+  assert.throws(() => port(f.original, () => assert.fail('No resend')), {code: 'ClientSourceOperationAlreadyEntered'});
+  f.reopen(); assert.equal(f.start(), false);
+  assert.throws(() => f.journal.lookupOriginalSourceOperation(f.ref, f.occurrence), {code: 'ClientSourceOperationCorrupt'});
+});
+
+test('private source-operation bounds refuse accessors and unknown fields before opening a database', t => {
+  const parent = fileURLToPath(new URL('../../_build/source-operation-fixtures/', import.meta.url));
+  fs.mkdirSync(parent, {recursive: true}); let reads = 0;
+  const cases = [null, {maxRecords: 1, maxWireBytes: 0}, {maxRecords: 1, maxWireBytes: 2_147_483_648},
+    {maxRecords: 1, maxWireBytes: 1024, extra: 1}, {maxRecords: 1, maxWireBytes: 1024, [Symbol('extra')]: 1},
+    {maxRecords: 1, get maxWireBytes() {reads++; return 1024;}}];
+  for (const sourceOperationLimits of cases) {
+    const directory = fs.mkdtempSync(join(parent, 'invalid-'));
+    assert.throws(() => openClientRequestJournal(directory, {sourceOperationLimits}), {code: 'InvalidClientSourceOperationLimits'});
+    assert.deepEqual(fs.readdirSync(directory), []);
+  }
+  assert.equal(reads, 0);
 });
