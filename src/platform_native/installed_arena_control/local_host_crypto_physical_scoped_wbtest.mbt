@@ -1,4 +1,15 @@
 ///|
+fn[T, E] Result::crypto_pair_value(
+  self : Result[T, E],
+  stage : String,
+) -> T raise {
+  match self {
+    Ok(value) => value
+    Err(_) => fail(stage)
+  }
+}
+
+///|
 // Actual selected provider/components are required. The existing Runtime
 // conformance declarations are unchanged; this is not an installer profile.
 test "actual original Host pair binds Crypto and retains separate Library Read and domain ACKs" {
@@ -22,10 +33,12 @@ test "actual original Host pair binds Crypto and retains separate Library Read a
       execution_bytes: 8192L * page,
     },
     65536L,
-  ).unwrap()
-  host.acquire_fd(descriptor).unwrap()
-  let backing = host.borrow_backing().unwrap()
-  host.enter_backing_borrow_scope(backing).unwrap()
+  ).crypto_pair_value("original operation 1")
+  host.acquire_fd(descriptor).crypto_pair_value("original operation 2")
+  let backing = host.borrow_backing().crypto_pair_value("original operation 3")
+  host
+  .enter_backing_borrow_scope(backing)
+  .crypto_pair_value("original operation 4")
   let read_domain = match
     host
     .prepare_domain(backing, descriptor, 7168L * page, {
@@ -36,11 +49,11 @@ test "actual original Host pair binds Crypto and retains separate Library Read a
       retained_bytes: 32L * page,
       execution_bytes: 6144L * page,
     })
-    .unwrap() {
+    .crypto_pair_value("original operation 5") {
     PreparedDomain(value) => value
     PendingDomain(_, _) => fail("phase=Read domain Pending")
   }
-  host.transfer_domain(read_domain).unwrap()
+  host.transfer_domain(read_domain).crypto_pair_value("original operation 6")
   let sqlite_domain = match
     host
     .prepare_domain(backing, descriptor, 48L * page, {
@@ -51,15 +64,21 @@ test "actual original Host pair binds Crypto and retains separate Library Read a
       retained_bytes: 0L,
       execution_bytes: 48L * page,
     })
-    .unwrap() {
+    .crypto_pair_value("original operation 7") {
     PreparedDomain(value) => value
     PendingDomain(_, _) => fail("phase=SQLite domain Pending")
   }
-  host.transfer_domain(sqlite_domain).unwrap()
-  host.leave_backing_borrow_scope(backing).unwrap()
-  host.return_backing_borrow(backing).unwrap()
-  host.prepare_domain_read(read_domain).unwrap()
-  host.prepare_domain_read(sqlite_domain).unwrap()
+  host.transfer_domain(sqlite_domain).crypto_pair_value("original operation 8")
+  host
+  .leave_backing_borrow_scope(backing)
+  .crypto_pair_value("original operation 9")
+  host.return_backing_borrow(backing).crypto_pair_value("original operation 10")
+  host
+  .prepare_domain_read(read_domain)
+  .crypto_pair_value("original operation 11")
+  host
+  .prepare_domain_read(sqlite_domain)
+  .crypto_pair_value("original operation 12")
   let read = match
     host
     .prepare_domain_original_read(read_domain, {
@@ -69,22 +88,26 @@ test "actual original Host pair binds Crypto and retains separate Library Read a
       read_retained: 16L * page,
       read_execution: 1024L * page,
     })
-    .unwrap() {
+    .crypto_pair_value("original operation 13") {
     ReadyOriginalRead(value) => value
     PendingOriginalRead(_, _) => fail("phase=original Read Pending")
   }
   let sqlite = match
     host
     .prepare_sqlite_library(sqlite_domain, sqlite_path, 32L * page, 128)
-    .unwrap() {
+    .crypto_pair_value("original operation 14") {
     ReadySqlite(value) => value
     PendingSqlite(_, _) => fail("phase=SQLite Library Pending")
   }
-  let pair = host.bind_local_host_resources(read, sqlite).unwrap()
+  let pair = host
+    .bind_local_host_resources(read, sqlite)
+    .crypto_pair_value("original operation 15")
   let consumer = host
     .prepare_domain_original_read_consumer(read, 16L * page, 1024L * page)
-    .unwrap()
-  host.enter_local_host_phase(pair, HostRead).unwrap()
+    .crypto_pair_value("original operation 16")
+  host
+  .enter_local_host_phase(pair, HostRead)
+  .crypto_pair_value("original operation 17")
   assert_true(
     host.prepare_local_host_read_crypto(
       pair,
@@ -101,22 +124,28 @@ test "actual original Host pair binds Crypto and retains separate Library Read a
   let component = match
     host
     .prepare_local_host_read_crypto(pair, read, crypto_path, 32L * page, 128)
-    .unwrap() {
+    .crypto_pair_value("original operation 18") {
     ReadyCrypto(value) => value
     PendingCrypto(_, _) => fail("phase=original Crypto Pending")
   }
-  let original = host.current_crypto_component(component).unwrap()
-  let outer = match original.new_library().unwrap() {
+  let original = host
+    .current_crypto_component(component)
+    .crypto_pair_value("original operation 19")
+  let outer = match
+    original.new_library().crypto_pair_value("original operation 20") {
     @signature.ReadyCryptoLibrary(value) => value
     @signature.PendingCryptoLibrary(_, _) => fail("phase=outer Library Pending")
   }
-  let inner = match original.new_library().unwrap() {
+  let inner = match
+    original.new_library().crypto_pair_value("original operation 21") {
     @signature.ReadyCryptoLibrary(value) => value
     @signature.PendingCryptoLibrary(_, _) => fail("phase=inner Library Pending")
   }
   let key = @utf8.encode("key")
   let data = @utf8.encode("The quick brown fox jumps over the lazy dog")
-  let digest = inner.hmac_sha256(key, data).unwrap()
+  let digest = inner
+    .hmac_sha256(key, data)
+    .crypto_pair_value("original operation 22")
   assert_eq(
     digest,
     Bytes::from_array([
@@ -125,28 +154,44 @@ test "actual original Host pair binds Crypto and retains separate Library Read a
       0x9d, 0xbc, 0x2d, 0x1a, 0x3c, 0xd8,
     ]),
   )
-  assert_true(outer.verify_hmac_sha256(key, data, digest).unwrap())
-  host.leave_local_host_phase(pair).unwrap()
-  host.enter_local_host_phase(pair, HostSqlite).unwrap()
+  assert_true(
+    outer
+    .verify_hmac_sha256(key, data, digest)
+    .crypto_pair_value("original operation 23"),
+  )
+  host.leave_local_host_phase(pair).crypto_pair_value("original operation 24")
+  host
+  .enter_local_host_phase(pair, HostSqlite)
+  .crypto_pair_value("original operation 25")
   assert_true(inner.hmac_sha256(key, data) is Err(_))
-  host.leave_local_host_phase(pair).unwrap()
-  host.enter_local_host_phase(pair, HostRead).unwrap()
+  host.leave_local_host_phase(pair).crypto_pair_value("original operation 26")
+  host
+  .enter_local_host_phase(pair, HostRead)
+  .crypto_pair_value("original operation 27")
   assert_true(host.close_domain_original_read(read) is Err(_))
   assert_true(
     host.close_crypto_component(component)
     is Err(Signature(@signature.CleanupPending)),
   )
   assert_false(component.closed || read.closed || read.closing)
-  inner.close_checked().unwrap()
-  outer.close_checked().unwrap()
-  host.close_crypto_component(component).unwrap()
+  inner.close_checked().crypto_pair_value("original operation 28")
+  outer.close_checked().crypto_pair_value("original operation 29")
+  host
+  .close_crypto_component(component)
+  .crypto_pair_value("original operation 30")
   assert_true(component.closed && component.component is None)
-  host.leave_local_host_phase(pair).unwrap()
+  host.leave_local_host_phase(pair).crypto_pair_value("original operation 31")
   assert_true(consumer.scope == ConsumerScopeLeft)
-  host.close_local_host_resources(pair).unwrap()
+  host
+  .close_local_host_resources(pair)
+  .crypto_pair_value("original operation 32")
   assert_true(pair.closed && read.closed && sqlite.closed)
-  host.close_domain_after_owner_ack(read_domain).unwrap()
-  host.close_domain_after_owner_ack(sqlite_domain).unwrap()
-  host.try_close().unwrap()
+  host
+  .close_domain_after_owner_ack(read_domain)
+  .crypto_pair_value("original operation 33")
+  host
+  .close_domain_after_owner_ack(sqlite_domain)
+  .crypto_pair_value("original operation 34")
+  host.try_close().crypto_pair_value("original operation 35")
   assert_eq(process_test_close(descriptor), 0)
 }
