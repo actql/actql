@@ -925,7 +925,11 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       try { assertCurrent?.(); }
       catch (error) { fail('InstalledRowEffectSelectionChangedAfterClaim', error); }
     };
-    let currents;
+    // Every apply carries its exact returned refresh into dispatch. A later
+    // refresh may finish before this one is sent; equal capability DATA does
+    // not substitute that later Catalog for this original current observation.
+    const currentsByPreflight = new WeakMap();
+    let hasRefreshed = false;
     const current = async ({signal, preflight}) => {
       assertCurrent?.();
       if (preflight === null || typeof preflight !== 'object') {
@@ -986,26 +990,29 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         dispatches[index]));
       signal?.throwIfAborted();
       assertCurrent?.();
-      currents = fresh;
       if (currentVersions.size !== preflight.observedRows.length) fail('ForeignInstalledRowEffectObservation');
-      return Object.freeze({...preflight,
+      const refreshed = Object.freeze({...preflight,
         guardVersions: Object.freeze(preflight.observedRows.map(row => {
           if (!currentVersions.has(row)) fail('ForeignInstalledRowEffectObservation');
           return currentVersions.get(row);
         })),
         capabilities: Object.freeze(capabilities.map(value => value.identity)),
         routes: Object.freeze(capabilities.map(routeOf))});
+      currentsByPreflight.set(refreshed, Object.freeze(fresh));
+      hasRefreshed = true;
+      return refreshed;
     };
     const bindDispatch = ({members: claims, subjectCid: active, signal,
       decisions}) => {
       assertCurrent?.();
-      if (active !== subjectCid || currents === undefined) {
+      if (active !== subjectCid || !hasRefreshed) {
         fail('InvalidInstalledRowEffectRoute');
       }
       const commits = commitDecisions(decisions, subjectCid, members);
-      const now = currents;
-      return async ({memberIndex, rowIndex, claim}) => {
+      return async ({memberIndex, rowIndex, claim, currentPreflight}) => {
         assertCurrent?.();
+        const now = currentsByPreflight.get(currentPreflight);
+        if (now === undefined) fail('InvalidInstalledRowEffectRoute');
         const member = members[memberIndex];
         const sourceIndex = dispatchIndexes[memberIndex]?.[rowIndex];
         const entry = entries[memberIndex]?.[sourceIndex];
