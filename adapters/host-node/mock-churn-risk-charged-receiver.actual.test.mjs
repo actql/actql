@@ -3,6 +3,7 @@ import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 import {pathToFileURL} from 'node:url';
+import {inspect} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
 import {rowSourceCheckEnvironment} from './installed-row-source.mjs';
 import {mockChurnRiskCatalogue} from './mock-churn-risk-catalogue.mjs';
@@ -11,6 +12,8 @@ import {projectTemplateFiles} from '../../packages/native-cli/lib/project-templa
 assert.ok(process.env.ACTQL_TEST_MOCK_CATALOGUE_COMMON_RUNTIME,
   'Select the matching Common runtime containing the charged document receiver');
 const moon = await import(pathToFileURL(process.env.ACTQL_TEST_MOCK_CATALOGUE_COMMON_RUNTIME));
+assert.equal(typeof moon.clientProgramMockChurnRiskAcceptChargedDocument, 'function',
+  'The selected runtime must contain the original charged document receiver');
 const read = name => readFile(new URL(`../../${name}`, import.meta.url), 'utf8');
 const [base, registry, aoa, queryContract, evidenceContract] = await Promise.all([
   read('spec/local-check-environment.json'),
@@ -42,17 +45,23 @@ function fixture() {
     const fields = Object.keys(JSON.parse(entry.views[0].schema_wire));
     const program = {version: 'actql/0.1', id: `mock-charge-${entry.connection}`,
       stages: [{id: 'scan', inputs: {remote: {connector: entry.connectorId,
-        resource: entry.views[0].resource}}, steps: [{select: fields, as: 'rows'}],
+        resource: entry.views[0].resource}},
+      steps: [{filter: 'true', as: 'all_rows'}, {select: fields, as: 'rows'}],
       results: {r: {from: 'rows', fields}}}],
       results: {r: {from: {stage: 'scan', result: 'r'}}}};
     const outcome = moon.clientProgramPrepareEffectFreeWithParameters(
       JSON.stringify(program), 'json', admitted, undefined);
     const prepared = moon.clientProgramPreparationReady(outcome);
     assert.ok(prepared, 'The real Common checker must admit the diagnostic source Program');
-    const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(prepared,
-      0, 0, registry, JSON.stringify(aoa.execution_contracts['REL.values']),
-      JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-      JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+    let requirement;
+    try {
+      requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(prepared,
+        0, 0, registry, JSON.stringify(aoa.execution_contracts['REL.values']),
+        JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+        JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+    } catch (error) {
+      assert.fail(`Original ${entry.connection} requirement: ${inspect(error.cause, {depth: 12})}`);
+    }
     const acquisition = checked(moon.clientProgramRowSourcePrepareAcquisition(
       declaration, requirement, queryContract, evidenceContract, undefined));
     assert.equal(checked(moon.clientProgramRowSourceRequestWire(acquisition)), '{}');
@@ -66,9 +75,18 @@ function fixture() {
     checked(moon.clientProgramRowSourceBegin(run, 65536, 100, 100, undefined));
     return run;
   }
-  function accept(run, charge, acquisition, bytes = body) {
-    return checked(moon.clientProgramMockChurnRiskAcceptChargedDocument(run, charge,
-      acquisition, declarations[0], declarations[1], bytes, 1000000));
+  // begin_row_run uses the existing 400,000-node page ceiling and 20,000,000
+  // admission-work ceiling. The decoder conservatively charges those original
+  // node ceilings for contract comparisons; this explicit diagnostic budget
+  // follows that existing ceiling, not a sampled document size or a grant.
+  function accept(run, charge, acquisition, bytes = body, maxWork = 20000000) {
+    try {
+      return checked(moon.clientProgramMockChurnRiskAcceptChargedDocument(run, charge,
+        acquisition, declarations[0], declarations[1], bytes, maxWork));
+    } catch (error) {
+      error.message += `: ${inspect(error.cause, {depth: 12})}`;
+      throw error;
+    }
   }
   return {declarations, acquisitions, start, accept,
     close() { for (const run of runs) moon.clientProgramRowSourceClose(run); }};
@@ -84,6 +102,11 @@ function cannotCapture(run) {
 test('actual charged receiver captures both original sources with separate one-use tickets', () => {
   const f = fixture();
   try {
+    const insufficient = f.start(0, 'original-source-short-work');
+    const shortCharge = checked(moon.clientProgramRowSourceChargePage(insufficient, body));
+    assert.throws(() => f.accept(insufficient, shortCharge,
+      f.acquisitions[0].acquisition, body, 1000000), {code: 'MoonBitHostFailure'});
+    cannotCapture(insufficient);
     for (const index of [0, 1]) {
       const run = f.start(index, `original-source-${index}`);
       const charge = checked(moon.clientProgramRowSourceChargePage(run, body));
@@ -149,7 +172,7 @@ test('actual charged receiver rejects equal-wire declarations issued as differen
       moon.clientProgramRowSourceDeclarationJson(foreign.declarations[0]));
     assert.throws(() => checked(moon.clientProgramMockChurnRiskAcceptChargedDocument(
       run, charge, f.acquisitions[0].acquisition, foreign.declarations[0],
-      foreign.declarations[1], body, 1000000)), {code: 'MoonBitHostFailure'});
+      foreign.declarations[1], body, 20000000)), {code: 'MoonBitHostFailure'});
     cannotCapture(run);
   } finally { f.close(); foreign.close(); }
 });
