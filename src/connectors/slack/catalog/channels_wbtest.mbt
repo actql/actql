@@ -145,16 +145,17 @@ test "Slack channel whole page refuses malformed unselected fields and duplicate
   }
   for flag in ["is_im", "is_mpim"] {
     for value in ["true", "null", "0", "\"false\""] {
-      assert_true(
+      match
         channel_project(
           "{\"ok\":true,\"channels\":[{\"id\":\"D1\",\"" +
           flag +
           "\":" +
           value +
           "}]}",
-        )
-        is Err(InvalidCell(flag)),
-      )
+        ) {
+        Err(issue) => assert_eq(issue, InvalidCell(flag))
+        Ok(_) => fail("Foreign conversation kind must refuse: " + flag)
+      }
     }
   }
 }

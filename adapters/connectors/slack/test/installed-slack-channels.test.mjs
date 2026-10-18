@@ -19,6 +19,7 @@ test('installed Slack channels original Source captures exact typed rows under i
 });
 
 test('installed Slack channel Account denial retains no token resolution or provider send',async t=>{
-  const f=await installedSlackChannelsFixture(t,{account:'deny'}),source=await f.load(),p=await f.prepare(source);
-  await assert.rejects(source.openCapture(p));assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
+  const f=await installedSlackChannelsFixture(t,{account:'deny'}),source=await f.load();
+  await assert.rejects(f.prepare(source),{code:'ACTQL_E_ACCOUNT_DENIED'});
+  assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
 });
