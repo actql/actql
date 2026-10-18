@@ -261,3 +261,10 @@ int64_t actql_native_client_preargument_class_bytes(int32_t field) {
       field < 0 || field >= 4) return -1;
   return actql_command_argument_classes[field];
 }
+
+// A caller-lifetime barrier only. The opaque managed record is not inspected,
+// stored, released or interpreted as physical custody or an acknowledgement.
+void actql_native_client_keep_initial_command_control(const void *original) {
+  const void *volatile observed = original;
+  (void)observed;
+}
