@@ -127,7 +127,12 @@ test('constructor pins a distinct complete execution contract and exact shared d
   assert.equal(body.dependencies.graph_law.cid,
     'sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34');
   assert.equal(cid(prior['spec/contracts/actql-protocol-schemas.json'].schemas.canonical_value_contract),
+    'sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c');
+  assert.equal(historical.constructor_value_grammar.source_revision,
+    historical.constructor_registry.source_revision);
+  assert.equal(cid(historical.constructor_value_grammar.body),
     'sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947');
+  assert.equal(historical.constructor_value_grammar.cid, cid(historical.constructor_value_grammar.body));
   assert.equal(body.dependencies.canonical_value_contract.cid, current.canonicalGrammar.cid);
   assert.equal(registry[operation].execution_contract.pointer, pointer);
   assert.equal(registry[operation].execution_contract.cid, cid(body));
