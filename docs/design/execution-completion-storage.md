@@ -217,3 +217,29 @@ wire ceilings, successful authentication and reference retirement provide no
 capacity or cleanup credit. Without the actual semantic, storage and lifetime
 suppliers the installed path remains unavailable; this physical port does not
 invent them.
+
+The physical Store provides
+`observeOriginalInstallationPublicationStorageBinding()` and
+`originalInstallationPublicationStorageBindingEvidence(handle)` for this
+connection. The first re-reads the exact bounded original Store contract on
+one FD, then checks Store availability again before issuing its same
+process-local handle. The second checks that handle's identity in this very
+Store and returns immutable DATA: `storeContractWire`, `storeAuthorityCid`,
+`keyGenerationCid`, and `privateNamespace` (`publication-private`). Copying an
+equal handle or using another Store's handle does not restore membership.
+
+These DATA are neither Model RunEvidence nor an installation publication
+issuer. The getter is not a fresh asynchronous currentness observation; the
+Host must retain the actual factory result and use the observation at its
+required current fence. Common owns the separate bounded semantic storage
+binding and its identity. No unrelated evidence kind or key purpose is reused.
+A failed original contract FD close retains the existing read cleanup handle,
+blocks replacement observation and prevents Store retirement until that same
+FD acknowledges close. Successful Store ownership retirement drops only its
+private observation alias; escaped DATA remain their caller's inventory.
+
+One optional observation record, its handle and immutable four-field DATA,
+the two method closures, read/retirement callback and in-flight promise,
+bounded contract backing/probe, UTF-8 String, key digest context and escaped
+references overlap the installation originals. These are additional Host
+phase costs, not a new reservation, zero-byte record or physical cleanup ACK.
