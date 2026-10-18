@@ -6,6 +6,7 @@ import test from 'node:test';
 import {parse} from 'acorn';
 import ownerModule from './initial-control-installation-owner.cjs';
 import {snapshotInitialControlHostInput} from './initial-control-host-input.mjs';
+import {retainInstalledHostRuntimeFailure} from './installed-host-cleanup.mjs';
 
 const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
 const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
@@ -140,6 +141,49 @@ test('the selected Host consumer forwards only omitted open input without a raw 
   assert.equal(observations, 0); assert.equal(connects, 0);
   assert.equal(route('open', undefined, connect, error), originalPromise);
   assert.equal(connects, 1);
+});
+
+test('failed original initialization retains the open path aliases until its original cleanup confirms', async () => {
+  const retire = connect.body.body.find(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'retirePreparationReferences');
+  const caught = connect.body.body.find(node => node.type === 'TryStatement').handler.body;
+  assert.ok(retire); assert.ok(caught);
+  const record = {openStateDirectory: '/original/.actql',
+    openPathFailure: {cause: Object.freeze(new Error('OriginalPathRefused'))}};
+  let closed = false, retries = 0, retirements = 0;
+  const originalInstallation = {}, host = {}, profiles = {retirePreparation(h, i, generation) {
+    assert.equal(h, host); assert.equal(i, originalInstallation); assert.equal(generation, host);
+    retirements++;
+  }};
+  const retireReferences = compileFunction(
+    'let referencesRetired=false,referenceRetirement,projectProfile,project,moon,duty;' +
+    source.slice(retire.start, retire.end) + '\nreturn retirePreparationReferences;',
+    ['record', 'originalInstallation']) (record, originalInstallation);
+  const caughtFailure = compileFunction('return async function(cause){' +
+    'const adopted=false,observedClose=undefined,control=undefined;' +
+    source.slice(caught.start + 1, caught.end - 1) + '\n};',
+    ['retainInstalledHostRuntimeFailure', 'retirePreparationReferences', 'profiles',
+      'host', 'originalInstallation'])
+    (retainInstalledHostRuntimeFailure, retireReferences, profiles, host, originalInstallation);
+  const cleanupHandle = Object.freeze({status() {return {pending: !closed};},
+    retry() {retries++;}});
+  const cause = Object.freeze(Object.assign(new Error('OriginalPrepareUnknown'), {cleanupHandle}));
+  let failure;
+  await assert.rejects(caughtFailure(cause), value => {
+    failure = value; return value.primaryFailure === cause && value.cleanupHandle.status().pending;
+  });
+  assert.equal(record.openStateDirectory, '/original/.actql');
+  assert.equal(record.openPathFailure.cause.message, 'OriginalPathRefused');
+  assert.equal(retries, 0); assert.equal(retirements, 0);
+  assert.equal((await failure.cleanupHandle.retry()).pending, true);
+  assert.equal(retries, 1); assert.equal(retirements, 0);
+  assert.equal(record.openStateDirectory, '/original/.actql');
+  closed = true;
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.equal(retirements, 1); assert.equal(retries, 1);
+  assert.deepEqual(record, {openStateDirectory: undefined, openPathFailure: undefined});
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.equal(retirements, 1);
 });
 
 test('unavailable original refuses the actual Host intake before any raw Proxy observation', async () => {
