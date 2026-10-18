@@ -6611,7 +6611,7 @@
     {
       "module": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f62d6d431eacf067986ff86798ff10a4da89f0e2a8f8247701b8190342164208",
+      "sha256": "3e0be725fcc730f52925d47996086db9c1fa8dbcf498b7f9169e261ea17da640",
       "role": "physical-io",
       "owner": "Stable-node GraphQL Issue pagination; provider MoonBit fixes query, variables, projection and refusal",
       "exports": [
@@ -6728,13 +6728,6 @@
           "async": false
         },
         {
-          "name": "readGitHubIssuesByNode/readGitHubIssuesByNode#2",
-          "parameters": [
-            "label"
-          ],
-          "async": false
-        },
-        {
           "name": "readGitHubIssuesByNode/stopped/stopped",
           "parameters": [
             "code",
@@ -6761,7 +6754,6 @@
             "readGitHubIssuesByNode/exchange/exchange/facts/facts",
             "readGitHubIssuesByNode/exchange/exchange/facts/facts/facts",
             "readGitHubIssuesByNode/readGitHubIssuesByNode",
-            "readGitHubIssuesByNode/readGitHubIssuesByNode#2",
             "readGitHubIssuesByNode/stopped/stopped"
           ],
           "exports": [
@@ -6798,6 +6790,10 @@
               {
                 "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
                 "anchor": "expectedUseId"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "anchor": "defineOwnData(labels, index"
               }
             ],
             "ownership": [
@@ -6860,6 +6856,18 @@
               {
                 "path": "adapters/connectors/github/test/github-issue-graphql-read.test.mjs",
                 "anchor": "original filter capture refuses non-array labels before I/O and keeps the admitted array snapshot"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-issue-graphql-read.test.mjs",
+                "anchor": "native label snapshot ignores an own slice payload supplier"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-issue-graphql-read.test.mjs",
+                "anchor": "native label snapshot cannot hide an invalid member"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-issue-graphql-read.test.mjs",
+                "anchor": "native label snapshot validates the single captured value"
               }
             ]
           }
