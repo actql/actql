@@ -164,7 +164,8 @@ for (const route of ['local-node', 'node']) test('the actual selected '+route+' 
     'selected-infer-startup.cjs': readFileSync(new URL('../../packages/local-node/selected-infer-startup.cjs', import.meta.url)),
     'initial-control-public-dispatch.cjs': readFileSync(new URL('../../packages/local-node/initial-control-public-dispatch.cjs', import.meta.url))};
   for (const name of ['infer-trusted-node-preload.cjs', 'initial-control-installation-owner.cjs',
-    'initial-control-package-custody.cjs', 'initial-control-image-source.cjs', 'initial-control-image-loader.cjs']) {
+    'initial-control-package-custody.cjs', 'initial-control-image-source.cjs', 'initial-control-image-loader.cjs',
+    'initial-control-phase-envelope.cjs']) {
     sources['adapters/host-node/'+name] = actual(name);
   }
   const inventory = {...f.inventory, images: Object.entries(sources).map(([path, bytes]) => fact(path, bytes))};
