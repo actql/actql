@@ -118226,6 +118226,289 @@
         "path": "scripts/check-js-compiler-bindings.mjs",
         "anchor": "'--check'"
       }
+    },
+    {
+      "module": "adapters/connectors/notion/host/database-reader.mjs",
+      "sha256": "b7630c2737ceb0bdcb82ddabf57020bb38010bc9a1b7ecbb23b350c356abee15",
+      "exports": [
+        "createNotionDatabaseReaderFactory"
+      ],
+      "operations": [
+        {
+          "name": "createNotionDatabaseReaderFactory",
+          "parameters": [
+            "moon",
+            "snapshot",
+            "site",
+            "capacity",
+            "resource",
+            "limits",
+            "maxSecretBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/authorizationFor/authorizationFor",
+          "parameters": [
+            "input"
+          ],
+          "async": true
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/closeTransport/closeTransport",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/coordinates/coordinates",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
+          "parameters": [
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#3",
+          "parameters": [
+            "rows",
+            "ticket"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/invoke/invoke",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/selectedProperty/selectedProperty",
+          "parameters": [
+            "selected"
+          ],
+          "async": true
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/verify/verify",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/provider/provider/provider",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "data",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "methods",
+          "parameters": [
+            "value",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "../site/data-source-read.mjs",
+        "../site/property-item-read.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "supplemental",
+      "role": "generated-binding",
+      "owner": "Existing Notion Catalog original schema/pending requests and installed ordinary RowRun/Site Credential caller",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createNotionDatabaseReaderFactory",
+            "createNotionDatabaseReaderFactory/call/call",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/authorizationFor/authorizationFor",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/closeTransport/closeTransport",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/coordinates/coordinates",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:observe/init:observe",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#3",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/invoke/invoke",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/selectedProperty/selectedProperty",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/verify/verify",
+            "createNotionDatabaseReaderFactory/provider/provider",
+            "createNotionDatabaseReaderFactory/provider/provider/provider",
+            "data",
+            "fail/fail",
+            "methods",
+            "methods/methods",
+            "positive/positive",
+            "text/text"
+          ],
+          "exports": [
+            "createNotionDatabaseReaderFactory"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The trusted installed database reader factory adapts"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Its inputs are an authenticated installed snapshot"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Snapshot getters retain the same original read-contract pair"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Each prepared reader retains the original RowRun identifiers"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Every awaited Account/current check is followed"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Missing capacity, foreign snapshots, wrong operations"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Stop aborts that original child"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The original phase inventory includes factory"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Extension uses these existing snapshot"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/notion/test/database-row-reader.test.mjs",
+                "anchor": "ordinary original database RowRun captures exact typed rows"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
