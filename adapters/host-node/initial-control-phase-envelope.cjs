@@ -80,7 +80,8 @@ function declareOrdinaryInitialControlPhaseEnvelope(heapCeilingBytes) {
   const lazyCompilerBytes = limits.sourceBytes * 64;
   const bytes = base.bytes - base.compilerBytes + lazyCompilerBytes;
   if (!integer(bytes)) unavailable();
-  return freeze({...base, compilerBytes:lazyCompilerBytes, bytes,
+  return freeze({...base, compilerBytes:lazyCompilerBytes,
+    nativeBytes:base.nativeBytes-base.compilerBytes+lazyCompilerBytes,bytes,
     recipe:'ordinary-installed-public-prefix',compilation:'ordinary-lazy',eager:false});
 }
 

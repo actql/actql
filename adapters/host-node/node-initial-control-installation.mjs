@@ -5,7 +5,11 @@ import {createRequire} from 'node:module';
 // receiver; a static CJS import instead creates a forbidden require/ESM cycle.
 // This is only the private consumer path, not a late operational issuer.
 const require = createRequire(import.meta.url);
-const startup = require('./infer-trusted-node-preload.cjs');
+// Ordinary public delivery initializes its separate installed-prefix instance
+// before the Host graph. The old preload path keeps its exact original table;
+// this routing does not reinterpret a label or callback as an admission.
+const ordinary = process.execArgv.length === 0 && process.env.NODE_OPTIONS === undefined;
+const startup = require(ordinary ? './node-public-initial-control-bootstrap.cjs' : './infer-trusted-node-preload.cjs');
 
 const ownDescriptor = Object.getOwnPropertyDescriptor;
 const hasOwn = Object.hasOwn, apply = Reflect.apply;
