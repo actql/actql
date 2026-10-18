@@ -158,9 +158,26 @@ export async function installRowSourceAuthorization({accountConfiguration,
 export function openRowSourceCredentialCustody({profile, principalId,
   connectorRegistration, connectorRevision, runtimeBundleCid, commonMoon,
   privateKey, resolveSecret, ca, now, grantLifetimeMs,
-  openCredentialJournal, credentialFacts,
+  openCredentialJournal, credentialFacts, runAcquisitionLimits,
   closedCode = 'RowSourceSiteClosed',
   grantCode = 'InvalidRowSourceGrantRequest'}) {
+  let acquisitionLimits;
+  if (runAcquisitionLimits !== undefined) {
+    if (runAcquisitionLimits === null || typeof runAcquisitionLimits !== 'object' ||
+        nodeTypes.isProxy(runAcquisitionLimits)) fail('InvalidRowSourceCredentialAcquisitionLimits');
+    const descriptors = Object.getOwnPropertyDescriptors(runAcquisitionLimits);
+    if (Reflect.ownKeys(descriptors).length !== 2 ||
+        ['maxBindings', 'maxSecretBytes'].some(name => {
+          const field = descriptors[name];
+          return !field || !Object.hasOwn(field, 'value') ||
+            !Number.isSafeInteger(field.value) || field.value <= 0 || field.value > 2147483647;
+        })) fail('InvalidRowSourceCredentialAcquisitionLimits');
+    if (profile === null || typeof profile !== 'object' || nodeTypes.isProxy(profile) ||
+        !Object.isFrozen(profile) || Object.values(Object.getOwnPropertyDescriptors(profile))
+          .some(field => !Object.hasOwn(field, 'value'))) fail('InvalidRowSourceCredentialAcquisitionProfile');
+    acquisitionLimits = Object.freeze({maxBindings: descriptors.maxBindings.value,
+      maxSecretBytes: descriptors.maxSecretBytes.value});
+  }
   const control = runtimeCore(commonMoon).remoteCredentialControl;
   const journalRoot = profile.journalRoot;
   const credentialAuthorities = new Map([[profile.credentialAuthorityId,
@@ -170,6 +187,21 @@ export function openRowSourceCredentialCustody({profile, principalId,
   const journal = openCredentialJournal(journalRoot, {credentialAuthorities});
   let closing = false;
   let released = false;
+  const runBindings = acquisitionLimits === undefined ? undefined : [];
+  let runJournalClose, runJournalFailure;
+  if (runBindings !== undefined) {
+    // Capture before returning a borrow. A substituted method cannot retire
+    // this original Journal, and capture failure remains with this custody.
+    try {
+      if (nodeTypes.isProxy(journal) || !Object.isFrozen(journal) ||
+          ['acceptGrant', 'claim', 'authorize', 'finish', 'checkGrant', 'inspect', 'recover', 'close']
+            .some(name => {
+              const method = Object.getOwnPropertyDescriptor(journal, name);
+              return !method || !Object.hasOwn(method, 'value') || typeof method.value !== 'function';
+            })) fail('InvalidRowSourceCredentialAcquisitionJournal');
+      runJournalClose = Object.getOwnPropertyDescriptor(journal, 'close').value;
+    } catch (cause) { runJournalFailure = cause; }
+  }
   // The metadata alternative uses this same original issuer/key/Journal.
   // Legacy Run signing below deliberately retains its existing profile rules.
   const credential = Object.freeze({...credentialFacts,
@@ -204,10 +236,84 @@ export function openRowSourceCredentialCustody({profile, principalId,
       keyId: profile.credentialKeyId, privateKey}), control);
     return Object.freeze({grant, scope});
   }
+  function closeRunBindings() {
+    let pending = false;
+    for (const original of runBindings ?? []) {
+      if (!original.closed) {
+        original.closed = closeHttpsCredentialBinding(original.binding) === 'closed';
+      }
+      if (!original.closed) pending = true;
+    }
+    if (pending) fail('RowSourceCredentialAcquisitionCleanupPending');
+  }
   function close() {
     closing = true;
-    journal.close();
+    if (runBindings === undefined) journal.close();
+    else {
+      if (released) return;
+      closeRunBindings();
+      if (runJournalFailure !== undefined) throw runJournalFailure;
+      const acknowledged = Reflect.apply(runJournalClose, journal, []);
+      if (typeof acknowledged !== 'boolean') fail('RowSourceCredentialJournalCleanupUnconfirmed');
+    }
     released = true;
+  }
+  function openRunAcquisition(request, callbacks) {
+    ensureOpen();
+    if (acquisitionLimits === undefined) fail('RowSourceCredentialAcquisitionUnavailable');
+    if (runJournalFailure !== undefined) throw runJournalFailure;
+    if (runBindings.length >= acquisitionLimits.maxBindings) fail('RowSourceCredentialAcquisitionLimit');
+    if (callbacks === null || typeof callbacks !== 'object' || nodeTypes.isProxy(callbacks)) {
+      fail('InvalidRowSourceCredentialAcquisitionCurrent');
+    }
+    if (request === null || typeof request !== 'object' || nodeTypes.isProxy(request)) {
+      fail('InvalidRowSourceCredentialAcquisitionRequest');
+    }
+    const fields = Object.getOwnPropertyDescriptors(request);
+    const names = ['operation', 'runInvocationCid', 'taskAttempt', 'dispatchRequestCid', 'maxUses'];
+    if (Reflect.ownKeys(fields).some(name => !names.includes(name)) ||
+        names.some(name => name !== 'taskAttempt' && !fields[name]) ||
+        Object.values(fields).some(field => !Object.hasOwn(field, 'value'))) {
+      fail('InvalidRowSourceCredentialAcquisitionRequest');
+    }
+    const originalRequest = Object.freeze(Object.fromEntries(names.map(name =>
+      [name, name === 'taskAttempt' && !Object.hasOwn(fields, name) ? 1 : fields[name].value])));
+    const methods = Object.getOwnPropertyDescriptors(callbacks);
+    if (Reflect.ownKeys(methods).length !== 2 || ['assertCurrent', 'observeCurrent'].some(name =>
+      !methods[name] || !Object.hasOwn(methods[name], 'value') || typeof methods[name].value !== 'function')) {
+      fail('InvalidRowSourceCredentialAcquisitionCurrent');
+    }
+    const originalAssert = methods.assertCurrent.value;
+    const originalObserve = methods.observeCurrent.value;
+    const assertCurrent = () => {
+      ensureOpen();
+      const result = Reflect.apply(originalAssert, undefined, []);
+      if (result !== undefined) {
+        if (typeof result?.then === 'function') void Promise.resolve(result).catch(() => {});
+        fail('InvalidRemoteCredentialCurrentFence');
+      }
+      ensureOpen();
+    };
+    const observeCurrent = async () => {
+      assertCurrent();
+      await Reflect.apply(originalObserve, undefined, []);
+      assertCurrent();
+    };
+    assertCurrent();
+    // Reuse the existing original issuer and seventeen-field preimage. The
+    // binding's stable fields do not replace each operation's nominal use.
+    const authorization = sign(originalRequest);
+    const binding = openHttpsCredentialBinding({scope: authorization.scope,
+      control, journal, resolveSecret, maxSecretBytes: acquisitionLimits.maxSecretBytes,
+      assertCurrent});
+    const original = {binding, closed: false};
+    runBindings.push(original);
+    return Object.freeze({authorization,
+      credential: Object.freeze({...credential, binding, currentBeforeSend: observeCurrent}),
+      close() {
+        if (!original.closed) original.closed = closeHttpsCredentialBinding(binding) === 'closed';
+        return original.closed ? 'closed' : 'pending';
+      }});
   }
   function signInstallationMetadata({control: metadataControl, scope,
     expiresUnixMilliseconds, maxUses}) {
@@ -240,6 +346,7 @@ export function openRowSourceCredentialCustody({profile, principalId,
     return Object.freeze({journal, failure, close() {
       closing = true;
       if (released) return;
+      closeRunBindings();
       if (originalClose === undefined) throw failure;
       const acknowledged = Reflect.apply(originalClose, journal, []);
       if (typeof acknowledged !== 'boolean') fail('InstallationMetadataJournalCleanupUnconfirmed');
@@ -247,7 +354,7 @@ export function openRowSourceCredentialCustody({profile, principalId,
     }});
   }
   return Object.freeze({credential, sign, signInstallationMetadata,
-    installationMetadataJournal, checkGrantRequest, ensureOpen,
+    installationMetadataJournal, openRunAcquisition, checkGrantRequest, ensureOpen,
     referenceCurrent: () => !closing,
     // The existing generic entry calls its original journal close on every
     // close call. The Salesforce entry already skips an acknowledged close.
