@@ -226,6 +226,17 @@ bootstrap bodies, nested export referents, stock resolution and fixed asset
 reads still need their independent selected-domain correspondence; this cache
 handoff alone is neither a complete loader proof nor an operational issuer.
 
+For selected JSON compiler metadata, the preload compares the actual Module's
+tree against a separate parse of the same captured Source before sealing its
+own records and arrays. Changed values, accessors or substituted alias graphs
+refuse before any node is sealed. The held Source identity is unchanged, while
+stock JSON BOM handling and primitive values are preserved. This does not
+freeze language prototypes, arbitrary CJS exports or application data, and it
+does not authenticate nested library state or earlier registration history.
+The original Module/tree/Source overlaps the second parse, comparison pairs,
+key/descriptor walk, node array, weak membership and native freeze workspace;
+sealing or later GC is not physical cleanup, a reservation or funding.
+
 The original startup publishes its same immutable forwarder table before
 synchronous Host namespace initialization can reenter that Module. A missing
 captured callback must not be confused with a refusal from the original Owner
