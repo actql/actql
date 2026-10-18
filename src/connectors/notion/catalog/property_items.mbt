@@ -32,11 +32,26 @@ pub(all) enum NotionPropertyItemIssue {
 /// operation/result to this same original and current acquisition.
 pub struct NotionPropertyItemRequest {
   priv original_self : Ref[NotionPropertyItemRequest?]
-  priv row : OriginalNotionQueryRow
-  priv property : OriginalNotionProperty
+  priv origin : NotionPropertyItemOrigin
+  priv page_id : String
+  priv property_id : String
+  priv kind : String
   priv limits : NotionPropertyItemLimits
   priv cursor : String?
   priv previous : NotionPropertyItemPage?
+}
+
+///|
+/// The exact-page title branch never invents a data-source Catalog or query row.
+enum NotionPropertyItemOrigin {
+  QueryProperty(OriginalNotionQueryRow, OriginalNotionProperty)
+  PageTitleProperty(
+    OriginalNotionPage,
+    Int,
+    @decode.Cursor,
+    String,
+    @decode.Cursor
+  )
 }
 
 ///|
@@ -83,14 +98,27 @@ fn property_item_page_is_original(page : NotionPropertyItemPage) -> Bool {
 
 ///|
 fn new_property_item_request(
-  row : OriginalNotionQueryRow,
-  property : OriginalNotionProperty,
+  origin : NotionPropertyItemOrigin,
   limits : NotionPropertyItemLimits,
   cursor : String?,
   previous : NotionPropertyItemPage?,
 ) -> NotionPropertyItemRequest {
   let original_self : Ref[NotionPropertyItemRequest?] = Ref(None)
-  let request = { original_self, row, property, limits, cursor, previous, }
+  let (page_id, property_id, kind) = match origin {
+    QueryProperty(row, property) =>
+      (row.id, property.metadata.id, property.metadata.kind)
+    PageTitleProperty(page, _, _, id, _) => (page.id, id, "title")
+  }
+  let request = {
+    original_self,
+    origin,
+    page_id,
+    property_id,
+    kind,
+    limits,
+    cursor,
+    previous,
+  }
   original_self.val = Some(request)
   request
 }
@@ -124,7 +152,9 @@ pub fn start_notion_property_item_request(
     ) {
     return Err(UnsupportedProperty(property.metadata.kind))
   }
-  Ok(new_property_item_request(row, property, limits, None, None))
+  Ok(
+    new_property_item_request(QueryProperty(row, property), limits, None, None),
+  )
 }
 
 ///|
@@ -133,13 +163,17 @@ pub fn notion_property_item_request_matches(
   row : OriginalNotionQueryRow,
   property_index : Int,
 ) -> Bool {
-  if !property_item_request_is_original(request) ||
-    !physical_equal(request.row, row) {
+  if !property_item_request_is_original(request) {
     return false
   }
-  match notion_query_row_property_at(row, property_index) {
-    Some(property) => physical_equal(request.property, property)
-    None => false
+  match request.origin {
+    QueryProperty(original, property) =>
+      physical_equal(original, row) &&
+      match notion_query_row_property_at(row, property_index) {
+        Some(selected) => physical_equal(property, selected)
+        None => false
+      }
+    _ => false
   }
 }
 
@@ -162,9 +196,9 @@ pub fn notion_property_item_request_wire(
   try {
     @encode.begin_object(writer)
     @encode.key(writer, "pageId")
-    @encode.string_value(writer, request.row.id)
+    @encode.string_value(writer, request.page_id)
     @encode.key(writer, "propertyId")
-    @encode.string_value(writer, request.property.metadata.id)
+    @encode.string_value(writer, request.property_id)
     @encode.key(writer, "cursor")
     match request.cursor {
       None => @encode.null_value(writer)
@@ -287,9 +321,9 @@ pub fn project_notion_property_item_page(
     text_is(root, "type", "property_item") &&
     @decode.lookup(root, "property_item") is Some(metadata) &&
     @decode.open_object(metadata) is Ok(metadata) &&
-    text_is(metadata, "id", request.property.metadata.id) &&
-    text_is(metadata, "type", request.property.metadata.kind) &&
-    @decode.lookup(metadata, request.property.metadata.kind) is Some(definition) &&
+    text_is(metadata, "id", request.property_id) &&
+    text_is(metadata, "type", request.kind) &&
+    @decode.lookup(metadata, request.kind) is Some(definition) &&
     @decode.open_object(definition) is Ok(_) &&
     @decode.object_length(definition) == Some(0) &&
     @decode.lookup(root, "has_more") is Some(more) &&
@@ -357,17 +391,13 @@ pub fn project_notion_property_item_page(
     let item = @decode.element_at(results, index).unwrap()
     guard @decode.open_object(item) is Ok(item) &&
       text_is(item, "object", "property_item") &&
-      text_is(item, "id", request.property.metadata.id) &&
-      text_is(item, "type", request.property.metadata.kind) &&
-      @decode.lookup(item, request.property.metadata.kind) is Some(value) else {
+      text_is(item, "id", request.property_id) &&
+      text_is(item, "type", request.kind) &&
+      @decode.lookup(item, request.kind) is Some(value) else {
       return Err(InvalidItem)
     }
     let projected = match
-      property_item_value(
-        value,
-        request.property.metadata.kind,
-        limits.metadata.max_bytes,
-      ) {
+      property_item_value(value, request.kind, limits.metadata.max_bytes) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
@@ -415,8 +445,7 @@ pub fn next_notion_property_item_request(
     Some(cursor) =>
       Some(
         new_property_item_request(
-          page.request.row,
-          page.request.property,
+          page.request.origin,
           page.request.limits,
           Some(cursor),
           Some(page),
@@ -444,8 +473,11 @@ pub fn admit_notion_completed_property(
     return Err(InvalidSelection)
   }
   let request = terminal.request
-  if !physical_equal(binding.source, request.row.source) ||
-    !physical_equal(column.property, request.property.metadata) ||
+  guard request.origin is QueryProperty(row, property) else {
+    return Err(ForeignOriginal)
+  }
+  if !physical_equal(binding.source, row.source) ||
+    !physical_equal(column.property, property.metadata) ||
     column.projection != Value {
     return Err(ForeignOriginal)
   }
@@ -455,7 +487,30 @@ pub fn admit_notion_completed_property(
   if terminal.value_text_bytes > limits.max_text_bytes {
     return Err(BudgetExceeded)
   }
-  let kind = request.property.metadata.kind
+  admit_property_item_chain(terminal, column.contract, property.value, limits)
+}
+
+///|
+fn admit_property_item_chain(
+  terminal : NotionPropertyItemPage,
+  contract : @contract.Contract,
+  original_value : @decode.Cursor,
+  limits : @admitted.Limits,
+) -> Result[(@admitted.CheckedValue, Int, Int), NotionPropertyItemIssue] {
+  if !property_item_page_is_original(terminal) {
+    return Err(ForeignOriginal)
+  }
+  if terminal.next_cursor is Some(_) {
+    return Err(Incomplete)
+  }
+  if limits.max_nodes <= 0 || limits.max_depth <= 0 || limits.max_text_bytes < 0 {
+    return Err(InvalidLimits)
+  }
+  if terminal.value_text_bytes > limits.max_text_bytes {
+    return Err(BudgetExceeded)
+  }
+  let request = terminal.request
+  let kind = request.kind
   if (kind == "title" || kind == "rich_text") && limits.max_nodes < 1 {
     return Err(BudgetExceeded)
   }
@@ -480,7 +535,7 @@ pub fn admit_notion_completed_property(
     pages.push(page)
     current = page.request.previous
   }
-  let span = @decode.cursor_span(request.property.value)
+  let span = @decode.cursor_span(original_value)
   let value = if kind == "title" || kind == "rich_text" {
     let output = StringBuilder()
     for index = pages.length() - 1; index >= 0; index = index - 1 {
@@ -527,7 +582,7 @@ pub fn admit_notion_completed_property(
     Ok(value) => value
     Err(_) => return Err(BudgetExceeded)
   }
-  match @admitted.admit_usage(column.contract, cursor, limits) {
+  match @admitted.admit_usage(contract, cursor, limits) {
     Ok(value) => Ok(value)
     Err(issue) => Err(Admission(issue))
   }
@@ -637,9 +692,13 @@ pub fn notion_property_item_request_matches_binding(
   guard notion_data_source_read_column_at(binding, column_index) is Some(column) else {
     return false
   }
-  physical_equal(request.row.source, binding.source) &&
-  physical_equal(request.property.metadata, column.property) &&
-  column.projection == Value
+  match request.origin {
+    QueryProperty(row, property) =>
+      physical_equal(row.source, binding.source) &&
+      physical_equal(property.metadata, column.property) &&
+      column.projection == Value
+    _ => false
+  }
 }
 
 ///|
