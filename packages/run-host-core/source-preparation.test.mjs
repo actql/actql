@@ -135,3 +135,15 @@ test('source Effect materials require the same source preparation and independen
     input: {text, format: 'aql-text'}, parameters: null, readOnly: true}), limits);
   assert.throws(() => host.prepareSourceProgram(readOnly, env, published), {code: 'RunHostSourcePreparationRejected'});
 });
+
+test('a separate facade namespace cannot supply its valid source handles to this facade', async () => {
+  const foreign = await import('./index.mjs?foreign-source-namespace');
+  const foreignEnvironment = foreign.admitEnvironment(environmentWire, evidenceCid, {rela: true});
+  const foreignIntent = foreign.prepareSubmittedIntent(JSON.stringify({kind: 'aql',
+    input: {text: 'SELECT 1 AS n', format: 'sql'}, parameters: null}), limits);
+  const foreignPrepared = foreign.prepareSourceProgram(foreignIntent, foreignEnvironment, publication);
+  assert.throws(() => host.prepareSourceProgram(foreignIntent, environment(), publication), /ForeignRunHostHandle/u);
+  assert.throws(() => host.prepareSourceProgram(intent(), foreignEnvironment, publication), /ForeignRunHostHandle/u);
+  assert.throws(() => host.compileTasks(foreignPrepared.prepared), /ForeignRunHostHandle/u);
+  assert.throws(() => host.sourceProgramOriginals(foreignPrepared.prepared), /ForeignRunHostSourcePreparation/u);
+});
