@@ -96,6 +96,25 @@ pub fn check_installed_source_read_current(
 }
 
 ///|
+/// Check the existing Run's original Ledger without projecting or replacing
+/// this Source child's Ledger. Equal limits or a shared installation do not
+/// permit a captured allocation to cross independent Run accounting owners.
+pub fn check_installed_source_read_ledger(
+  value : ClientInstalledSourceRead,
+  expected : @resources.Ledger,
+) -> Result[Unit, ClientInstalledSourceReadIssue] {
+  let original = match require_installed_source_read_current(value) {
+    Err(issue) => return Err(issue)
+    Ok(original) => original
+  }
+  if physical_equal(original, expected) {
+    Ok(())
+  } else {
+    Err(ForeignOriginal)
+  }
+}
+
+///|
 fn bind_installed_source_read_owner(
   value : ClientInstalledSourceRead,
   owner : ClientLocalSequenceOwner,
