@@ -10,6 +10,7 @@ import {before, test} from 'node:test';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const scratch = mkdtempSync(join(realpathSync(tmpdir()), 'actql-command-entry-'));
 const executable = join(scratch, 'entry');
+const unavailable = join(scratch, 'unavailable');
 before(() => {
   assert.equal(process.platform, 'darwin');
   assert.ok(process.env.MOON_HOME, 'use the pinned Native toolchain');
@@ -19,14 +20,25 @@ before(() => {
     '-I'+resolve(process.env.MOON_HOME, 'include'),
     join(root, 'scripts/fixtures/native-command-platform-entry.c'),
     join(root, 'scripts/fixtures/native-command-platform-member.c'),
+    join(root, 'scripts/fixtures/native-command-platform-default.c'),
     resolve(process.env.MOON_HOME, 'lib/runtime/runtime.c'),
     resolve(process.env.MOON_HOME, 'lib/runtime/backtrace.c'),
     resolve(process.env.MOON_HOME, 'lib/libmoonbitrun.o'), '-o', executable],
   {cwd:root, encoding:'utf8', timeout:60_000});
   assert.equal(build.status, 0, `${build.error ?? ''}\n${build.stderr}`);
+  const absent = spawnSync('cc', ['-std=c11', '-O0',
+    join(root, 'scripts/fixtures/native-command-platform-unavailable.c'),
+    join(root, 'scripts/fixtures/native-command-platform-default.c'),
+    '-o', unavailable], {cwd:root, encoding:'utf8', timeout:60_000});
+  assert.equal(absent.status, 0, `${absent.error ?? ''}\n${absent.stderr}`);
   console.log(JSON.stringify({executable,
     sha256:createHash('sha256').update(readFileSync(executable)).digest('hex'),
     qualification:'C/O0 controlled entry-record protocol; fixture member/admission only, no operational original, dlopen or module ACK'}));
+});
+test('unselected bootstrap has no CLI or filesystem dependency', () => {
+  const run = spawnSync(unavailable, [], {cwd:root, encoding:'utf8', timeout:10_000});
+  assert.equal(run.status, 0, `${run.error ?? ''}\n${run.stdout}\n${run.stderr}`);
+  assert.equal(run.stdout.trim(), 'unselected bootstrap entry passed');
 });
 for (const name of ['capture', 'one-shot', 'partial-current', 'thread-fork', 'runtime']) {
   test(`original command entry record ${name}`, () => {
