@@ -61,7 +61,7 @@ async function fixture(t,{substituteTarget=false}={}){
  const mappingWire=mappingOf(bindingWith(cid('declaration preparation only'))),mapping=JSON.parse(mappingWire);
  const binding=bindingWith(mapping.mapping_contract_cid);
  assert.equal(mappingOf(binding),mappingWire,'actual binding and same Mapping must have exact correspondence');
- const environment=rowSourceCheckEnvironment(await readFile(new URL('spec/local-check-environment.json',rootURL),'utf8'),declared,[mapping]);
+ const environment=rowSourceCheckEnvironment(await readFile(new URL('spec/local-check-environment.json',rootURL),'utf8'),declared,[mappingWire]);
  const authorization=await installRowSourceAuthorization({root,principalId:'principal-a',connectorRegistration:'gcs',accountConfiguration:account});
  const keys=generateKeyPairSync('ed25519'),key=join(root,'credential.key');
  await writeFile(key,keys.privateKey.export({format:'pem',type:'pkcs8'}),{mode:0o600});
