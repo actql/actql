@@ -14,9 +14,24 @@ pub fn client_program_node_managed_run_prepare(
 }
 
 ///|
+/// Reach the same original partial carrier even when begin returned no Run.
+/// Only the Resource owner may distinguish unpublished from actual usage;
+/// this bridge supplies no manufactured zero report or replacement claim.
+#export_name("clientProgramNodeManagedRunCleanup")
+pub fn client_program_node_managed_run_cleanup(
+  admission : @resources.NodeManagedRunAdmission[
+    @publication_host.PreparedClientProgram,
+  ],
+) -> Result[Unit, @resources.ImportedChildLedgerIssue] {
+  @resources.cleanup_node_managed_run_admission(admission)
+}
+
+///|
 #export_name("clientProgramInstalledManagedRunBegin")
 pub fn client_program_installed_managed_run_begin(
-  admission : @resources.NodeManagedRunAdmission[@publication_host.PreparedClientProgram],
+  admission : @resources.NodeManagedRunAdmission[
+    @publication_host.PreparedClientProgram,
+  ],
   prepared : @publication_host.PreparedClientProgram,
   request : @publication_host.ClientRequestIdentity,
 ) -> Result[

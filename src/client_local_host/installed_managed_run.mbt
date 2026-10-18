@@ -3,7 +3,9 @@
 /// capacity issuer. Source reads and the managed DAG borrow this one Ledger.
 struct ClientInstalledManagedRun {
   mut original : ClientInstalledManagedRun?
-  admission : @resources.NodeManagedRunAdmission[@publication_host.PreparedClientProgram]
+  admission : @resources.NodeManagedRunAdmission[
+    @publication_host.PreparedClientProgram,
+  ]
   prepared : @publication_host.PreparedClientProgram
   request : @publication_host.ClientRequestIdentity
   mut ledger : @resources.Ledger?
@@ -23,6 +25,20 @@ pub(all) enum ClientInstalledManagedRunIssue {
 }
 
 ///|
+fn installed_managed_run_purpose_supported(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Bool {
+  @strategy.graph_captured_prefix(
+    @publication_host.prepared_client_graph(prepared),
+  ) ==
+  2 &&
+  @publication_host.prepared_client_composed_infer_occurrences(prepared)
+  is Some(infers) &&
+  infers.is_empty() &&
+  @publication_host.prepared_client_serialization_occurrences(prepared).is_empty()
+}
+
+///|
 /// Quote the existing two original acquisitions and managed sequence inventory
 /// before physical reads. These extents cannot issue or replace the actual
 /// Resource admission, and unsupported downstream families stay unavailable.
@@ -38,7 +54,8 @@ pub fn installed_managed_run_requirements(
   fragment_body : String?,
   ordered_body : String?,
 ) -> Result[Array[Int64], ClientInstalledManagedRunIssue] {
-  if declarations.length() != 2 {
+  if declarations.length() != 2 ||
+    !installed_managed_run_purpose_supported(prepared) {
     return Err(Unsupported)
   }
   let capacities = []
@@ -87,7 +104,9 @@ pub fn installed_managed_run_requirements(
 /// Bind the resulting original checked Program/request; start/take the
 /// original imported child once, never once per Source occurrence.
 pub fn begin_installed_managed_run(
-  admission : @resources.NodeManagedRunAdmission[@publication_host.PreparedClientProgram],
+  admission : @resources.NodeManagedRunAdmission[
+    @publication_host.PreparedClientProgram,
+  ],
   prepared : @publication_host.PreparedClientProgram,
   request : @publication_host.ClientRequestIdentity,
 ) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
@@ -102,10 +121,7 @@ pub fn begin_installed_managed_run(
     @publication_host.client_request_parameters_cid(request) {
     return Err(ForeignOriginal)
   }
-  if @strategy.graph_captured_prefix(
-      @publication_host.prepared_client_graph(prepared),
-    ) !=
-    2 {
+  if !installed_managed_run_purpose_supported(prepared) {
     return Err(Unsupported)
   }
   let ledger = match @resources.start_node_managed_run_admission(admission) {
@@ -132,7 +148,11 @@ fn require_installed_managed_run(
     return Err(ForeignOriginal)
   }
   guard value.ledger is Some(ledger) else { return Err(Retired) }
-  match @resources.check_node_managed_run_preparation(value.admission, value.prepared) {
+  match
+    @resources.check_node_managed_run_preparation(
+      value.admission,
+      value.prepared,
+    ) {
     Err(issue) => return Err(Resource(issue))
     Ok(_) => ()
   }

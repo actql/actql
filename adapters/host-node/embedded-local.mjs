@@ -2265,6 +2265,11 @@ async function openInstalledHost(originalInstallation, preparation) {
       return {ref: retainedStart.ref, durability: retainedStart.durability,
         revision: retainedStart.revision};
     }
+    if (acquisitionCount === 2 && typeof sourceProfile?.prepareManagedRun === 'function') {
+      // The actual same Host's early admission is only being claimed here,
+      // not issued after compilation or reconstructed from graph limits.
+      sourceProfile.prepareManagedRun(submission.preparedProgram, requested);
+    }
     const preparedSources = acquisitionCount === 2
       ? await prepareAcquisitions(submission.preparedProgram) : undefined;
     const keyedPrepared = keyedAcquisition === undefined ? undefined :

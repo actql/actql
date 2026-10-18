@@ -589,11 +589,28 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           }
           return source.adapter.ledgerCapacity(source.preparedSource);
         });
-        ledger = moon.clientProgramPrepareMultiCapturedLocalInstalledLedger(preparedProgram,
-          capacities.map(value => value.capacity),
-          capacities.map(value => value.transferBytes),
-          capacities.map(value => value.executionBytes),
-          registry, values, fragment, ordered);
+        const managedRun = capacities[0]?.managedRun;
+        if (capacities.some(value => value.managedRun !== undefined)) {
+          if (managedRun === undefined || capacities.some(value => value.managedRun !== managedRun) ||
+              typeof moon.clientProgramInstalledManagedRunPrepareLedger !== 'function') {
+            throw new Error('InstalledMultiSourceOriginalRunUnavailable');
+          }
+          // The original operational parent was admitted before preparation.
+          // Do not replace it with the legacy scalar accounting constructor,
+          // even when another Source has equal capacities or matching CIDs.
+          ledger = checked(moon.clientProgramInstalledManagedRunPrepareLedger(
+            managedRun, preparedProgram, requested,
+            capacities.map(value => value.capacity),
+            capacities.map(value => value.transferBytes),
+            capacities.map(value => value.executionBytes),
+            registry, values, fragment, ordered));
+        } else {
+          ledger = moon.clientProgramPrepareMultiCapturedLocalInstalledLedger(preparedProgram,
+            capacities.map(value => value.capacity),
+            capacities.map(value => value.transferBytes),
+            capacities.map(value => value.executionBytes),
+            registry, values, fragment, ordered);
+        }
         if (ledger === undefined) throw new Error('InstalledMultiSourceLedgerUnavailable');
         entry.acquisitionLedger = ledger;
       }
