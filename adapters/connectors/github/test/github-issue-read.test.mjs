@@ -34,12 +34,12 @@ const since = '2026-10-01T00:00:00Z';
 const issue = (number, extra = {}) => ({number, node_id: `I_${number}`,
   title: `Issue ${number}`, state: 'open', body: null,
   user: {login: 'octo'}, comments: 0, created_at: '2026-10-02T00:00:00Z',
-  updated_at: '2026-10-03T00:00:00Z', closed_at: null, labels: [], ...extra});
+  updated_at: '2026-10-03T00:00:00Z', closed_at: null, milestone: null, labels: [], ...extra});
 // GitHub's whole-second timestamps, in the ActQL spelling of the same instant.
 const row = number => ({number, node_id: `I_${number}`,
   title: `Issue ${number}`, state: 'open', body: null, author: 'octo',
   comments: 0, created_at: '2026-10-02T00:00:00.000Z',
-  updated_at: '2026-10-03T00:00:00.000Z', closed_at: null});
+  updated_at: '2026-10-03T00:00:00.000Z', closed_at: null, milestone: null});
 const pull = number => issue(number,
   {pull_request: {url: `https://api.example/pulls/${number}`}});
 

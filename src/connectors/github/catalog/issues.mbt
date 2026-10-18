@@ -18,6 +18,7 @@ pub(all) struct IssueRow {
   body : String?
   author : String?
   comments : Int64
+  milestone : String?
   created_at : String
   updated_at : String
   closed_at : String?
@@ -120,6 +121,33 @@ fn author_login(object : @decode.ObjectView) -> Result[String?, IssuePageIssue] 
 }
 
 ///|
+// Shared Issue/PullRequest milestone shape. The title is Source data, not an
+// ID or an API selector: numeric, empty and selector-looking titles stay text.
+// An explicitly absent object is NULL; incomplete requested objects refuse.
+fn milestone_title(
+  object : @decode.ObjectView,
+) -> Result[String?, IssuePageIssue] {
+  match @decode.field(object, "milestone") {
+    Missing => Err(MissingRequiredField("milestone"))
+    ExplicitNull => Ok(None)
+    Present(value) => {
+      guard @decode.open_object(value) is Ok(milestone) else {
+        return Err(InvalidField("milestone"))
+      }
+      match @decode.field(milestone, "title") {
+        Missing => Err(MissingRequiredField("milestone.title"))
+        ExplicitNull => Err(NullRequiredField("milestone.title"))
+        Present(title) =>
+          match @decode.text(title) {
+            Ok(text) => Ok(Some(text))
+            Err(_) => Err(InvalidField("milestone.title"))
+          }
+      }
+    }
+  }
+}
+
+///|
 fn issue_row(object : @decode.ObjectView) -> Result[IssueRow, IssuePageIssue] {
   let state = match required_text(object, "state") {
     Ok(state) => state
@@ -148,6 +176,10 @@ fn issue_row(object : @decode.ObjectView) -> Result[IssueRow, IssuePageIssue] {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let milestone = match milestone_title(object) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let comments = match required_integer(object, "comments") {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -172,6 +204,7 @@ fn issue_row(object : @decode.ObjectView) -> Result[IssueRow, IssuePageIssue] {
     body,
     author,
     comments,
+    milestone,
     created_at,
     updated_at,
     closed_at,

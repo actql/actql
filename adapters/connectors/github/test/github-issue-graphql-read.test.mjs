@@ -33,7 +33,7 @@ const issues = count => Array.from({length: count}, (_, index) =>
 const row = number => ({number, node_id: `I_${number}`,
   // GitHub's GraphQL states no body as "", kept exactly as given.
   title: `Issue ${number}`, state: 'open', body: '', author: 'octocat',
-  comments: 0, created_at: '2026-10-01T00:00:00.000Z',
+  comments: 0, milestone: null, created_at: '2026-10-01T00:00:00.000Z',
   updated_at: '2026-10-02T00:00:00.000Z', closed_at: null});
 
 async function setup(t, state, {faults = []} = {}) {
@@ -193,7 +193,7 @@ test('a missing, repeated or non-advancing cursor stops the read', async t => {
       nodes: [{number: 1, id: 'I_1', title: 'Issue 1', state: 'OPEN',
         body: '', author: {login: 'octocat'}, comments: {totalCount: 0},
         createdAt: '2026-10-01T00:00:00Z', updatedAt: '2026-10-02T00:00:00Z',
-        closedAt: null}]}}}}});
+        closedAt: null, milestone: null}]}}}}});
   const missing = await setup(t, {...world(), answer: page(null)});
   assert.equal((await stopOf(missing.read())).refusal.kind, 'MissingCursor');
   const repeated = await setup(t, {...world(), answer: page('same')});
@@ -246,4 +246,23 @@ test('filters reach the fixed query only as typed variables', async t => {
   assert.ok(!first.query.includes('mutation'));
   await assert.rejects(context.read({filters: {state: 'draft', labels: []}}),
     {code: 'InvalidGitHubReadFilters'});
+});
+
+
+test('milestone titles survive authorized pages without an API selector', async t => {
+  const titles = ['2', '*', 'none', 'null', '', '  release β / 日本語  '];
+  const state = world();
+  state.repositories.get('R_A').issues = [...titles.map((title, index) => ({
+    number: index + 1, milestone: {title, number: 71, databaseId: 805, id: 'M_X'},
+  })), {number: 7, milestone: null}];
+  const context = await setup(t, state);
+  const result = await context.read();
+  assert.deepEqual(result.rows.map(row => row.milestone), [...titles, null]);
+  const reads = issueReads(context.fixture);
+  assert.equal(reads.length, 4);
+  for (const request of reads) {
+    assert.match(request.query, /milestone \{ title \}/u);
+    assert.doesNotMatch(request.query, /\$milestone|milestone\s*:/u);
+    assert.equal(Object.hasOwn(request.variables, 'milestone'), false);
+  }
 });
