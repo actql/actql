@@ -8425,7 +8425,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "511e47c4cce1b286d916ac64a7f385fba2fc94d2e386d685425bbe8f318e211d",
+      "sha256": "315c9b3be6644ca84ca30243132c280de6afc1fca4c1df12e8af4f35fb2f03fb",
       "role": "connector-semantics",
       "owner": "Exact installed Salesforce org/Site binding with existing account gate, credential journal and release custody",
       "exports": [
@@ -8675,7 +8675,7 @@
           "async": false
         },
         {
-          "name": "loadInstalledSalesforceSite/init:withOriginals/init:withOriginals/init:withOriginals",
+          "name": "loadInstalledSalesforceSite/init:withOriginals/init:withOriginals/value/value",
           "parameters": [
             "facts"
           ],
@@ -9125,11 +9125,11 @@
             "loadInstalledSalesforceSite/describeNamed/result/result",
             "loadInstalledSalesforceSite/init:observe/init:observe",
             "loadInstalledSalesforceSite/init:withOriginals/init:withOriginals",
-            "loadInstalledSalesforceSite/init:withOriginals/init:withOriginals/init:withOriginals",
             "loadInstalledSalesforceSite/originalDeclaration/originalDeclaration",
             "loadInstalledSalesforceSite/site/site",
             "observeInstalledSalesforcePublicationCurrent",
-            "withInstalledSalesforceDeclarationOriginals"
+            "withInstalledSalesforceDeclarationOriginals",
+            "loadInstalledSalesforceSite/init:withOriginals/init:withOriginals/value/value"
           ],
           "exports": [
             "observeInstalledSalesforcePublicationCurrent",
