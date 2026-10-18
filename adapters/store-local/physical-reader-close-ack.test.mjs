@@ -12,7 +12,7 @@ import {openLocalPublicationStore} from './publication-store.mjs';
 const cid = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 
 async function fixture(t, {outcomes = ['false', 'false'], primary,
-  rejectRead = primary !== undefined, diagnosticCleanup} = {}) {
+  rejectRead = primary !== undefined, diagnosticCleanup, maxRead = Infinity} = {}) {
   const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
     prefix: 'physical-reader-ack-', label: 'original Content reader close acknowledgement'});
   const directory = join(scratch.path, 'store');
@@ -34,15 +34,15 @@ async function fixture(t, {outcomes = ['false', 'false'], primary,
   const prototype = Object.getPrototypeOf(probe), stat = prototype.stat;
   await probe.close();
   const closeFailure = new Error('original Content FD close rejected');
-  let original, nativeClose, attempts = 0, streams = 0, consumerCalls = 0, caught;
+  let original, nativeClose, attempts = 0, reads = 0, consumerCalls = 0, caught;
   prototype.stat = function(...args) {
     if (original === undefined && new Error().stack.split('\n')[2]?.includes('consumeObject')) {
       original = this;
       nativeClose = this.close;
-      const stream = this.createReadStream;
-      this.createReadStream = function(options) {
-        streams++;
-        return Reflect.apply(stream, this, [options]);
+      const read = this.read;
+      this.read = function(buffer, offset, length, position) {
+        reads++;
+        return Reflect.apply(read, this, [buffer, offset, Math.min(length, maxRead), position]);
       };
       this.close = function(...closeArgs) {
         if (new Error().stack.split('\n')[2]?.includes('node:internal/fs/streams:')) {
@@ -54,8 +54,8 @@ async function fixture(t, {outcomes = ['false', 'false'], primary,
         return Reflect.apply(nativeClose, this, closeArgs);
       };
     }
-    // Fail the same acquired FD before a ReadStream exists. This isolates
-    // diagnostic attachment from Node's independent stream-destroy close.
+    // Fail the same acquired FD before its first read. This isolates the
+    // diagnostic attachment from data delivery.
     if (this === original && rejectRead) return Promise.reject(primary);
     return Reflect.apply(stat, this, args);
   };
@@ -75,7 +75,7 @@ async function fixture(t, {outcomes = ['false', 'false'], primary,
     if (!store.status().closed) await store.close();
   });
   return {scratch, store, bytes, path, holding, closeFailure,
-    fd: () => original?.fd, counts: () => ({attempts, streams, consumerCalls}),
+    fd: () => original?.fd, counts: () => ({attempts, reads, consumerCalls}),
     async read() {
       try {
         return await store.consumePhysicalHolding(holding.holding_cid, 0, chunk => {
@@ -109,7 +109,7 @@ test('false physical close keeps the original Content FD and 31-byte holding pen
   const cleanup = failure.cleanupHandle;
   assert.equal(cleanup.status().pending, true);
   assert(f.fd() >= 0);
-  assert.equal(f.counts().streams, 1);
+  assert.equal(f.counts().reads, 1);
   assert.equal(f.store.status().storedBytes, 31);
   const retirement = await f.store.retirePhysicalHolding(f.holding.holding_cid);
   assert.equal(retirement.deleted, false);
@@ -135,6 +135,23 @@ test('false close-only retry cannot settle an earlier rejected physical close', 
   assert.equal(f.counts().consumerCalls, 1);
   await finish(f, cleanup);
 });
+
+for (const outcome of ['false', 'reject']) {
+  test(`actual short reads retain their original filled bytes and ${outcome}-close duty`, async t => {
+    const f = await fixture(t, {outcomes: [outcome], maxRead: 3});
+    let failure;
+    await assert.rejects(f.read(), error => {
+      failure = error;
+      return outcome === 'false' ? error.code === 'PublicationStoreCleanupPending' : error === f.closeFailure;
+    });
+    assert.equal(f.counts().reads, 11);
+    assert.equal(f.counts().consumerCalls, 1, 'fill the original piece instead of copying short chunks');
+    assert.equal(failure.cleanupHandle.status().pending, true);
+    assert(f.fd() >= 0);
+    assert.equal(f.store.status().storedBytes, 31);
+    await finish(f, failure.cleanupHandle);
+  });
+}
 
 for (const field of ['cleanupPending', 'cleanupHandle', 'cleanupError']) {
   test(`readonly ${field} cannot hide the physical reader's original failure or cleanup`, async t => {
@@ -189,7 +206,7 @@ test('an existing inherited cleanup facet stays on the original failure while th
   class Primary extends Error {}
   Object.defineProperty(Primary.prototype, 'cleanupHandle', {value: prior});
   const primary = new Primary('earlier independent original FD');
-  // The callback fails after the actual Store reader and stream have opened.
+  // The callback fails after the actual Store reader has acquired its bytes.
   let failure;
   await assert.rejects(f.store.consumePhysicalHolding(f.holding.holding_cid, 0,
     () => {throw primary;}), error => {failure = error;return error.cause === primary;});

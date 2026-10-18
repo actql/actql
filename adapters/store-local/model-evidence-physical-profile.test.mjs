@@ -17,7 +17,21 @@ const control = createPublicationContractControlFixture();
 
 async function fixture(t, maxObjectBytes = 128 * 1024) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-c-model-profile-'));
-  t.after(() => rm(directory, {recursive: true, force: true}));
+  const stores = [];
+  let passed = false;
+  // One existing fixture cleanup: close every original Store before removing
+  // its paths. FIFO after-hooks must not erase a live ownership file first.
+  // A rejected/false close or failed assertion retains this fresh evidence.
+  t.after(async () => {
+    let failure;
+    for (const store of stores) {
+      try { assert.equal(await store.close(), true); }
+      catch (error) { failure ??= error; }
+    }
+    if (failure !== undefined) throw failure;
+    if (passed) await rm(directory, {recursive: true});
+    else t.diagnostic(`Preserved Model physical profile failure: ${directory}`);
+  });
   const configuration = {
     directory,
     storeAuthorityCid: digest('C physical profile fixture authority'),
@@ -29,13 +43,16 @@ async function fixture(t, maxObjectBytes = 128 * 1024) {
     maxContractDepth: 64,
   };
   const store = await openLocalPublicationStore(configuration, control);
-  t.after(() => store.close());
-  return {store, configuration};
+  stores.push(store);
+  return {store, configuration,
+    ownStore(value) { stores.push(value);return value; },
+    pass() { passed = true; }};
 }
 
 test('Model physical profile: independent UTF-8 envelope sizes and original '
     + 'wire survive Store restart', async t => {
-  const {store, configuration} = await fixture(t);
+  const f = await fixture(t);
+  const {store, configuration} = f;
   // Fixed arithmetic: AES-GCM ciphertext length B; base64 4*ceil(B/3);
   // the closed envelope is 128 ASCII bytes before ciphertext. Expectations
   // are not calculated by the Store or from its observed envelope.
@@ -72,13 +89,13 @@ test('Model physical profile: independent UTF-8 envelope sizes and original '
   assert.equal(store.status().reservedBytes, 0);
   assert.equal(store.status().reservedObjects, 0);
   await store.close();
-  const reopened = await openLocalPublicationStore(configuration, control);
-  t.after(() => reopened.close());
+  const reopened = f.ownStore(await openLocalPublicationStore(configuration, control));
   for (const {wire, semanticCid, holdingCid} of originals) {
     assert.deepEqual(await reopened.readPrivateEvidence(
       'model_invocation_evidence', semanticCid, holdingCid,
     ), Buffer.from(wire, 'utf8'));
   }
+  f.pass();
 });
 
 test('Model physical profile: exact envelope limit succeeds; one byte short '
@@ -99,6 +116,8 @@ test('Model physical profile: exact envelope limit succeeds; one byte short '
   assert.equal(short.store.status().storedBytes, 0);
   assert.equal(short.store.status().reservedBytes, 0);
   assert.equal(short.store.status().reservedObjects, 0);
+  exact.pass();
+  short.pass();
 });
 
 test('Model physical profile: selected Node FileHandle stream defaults to '
@@ -127,7 +146,8 @@ test('Model physical profile: selected Node FileHandle stream defaults to '
 
 test('Model physical profile: private read does not retain chunk copies '
     + 'plus a second full envelope concatenation', async t => {
-  const {store} = await fixture(t);
+  const f = await fixture(t);
+  const {store} = f;
   const semanticCid = digest('C no duplicate envelope original');
   const holdingCid = digest('C no duplicate envelope holding');
   const prepared = await store.preparePrivateEvidence(
@@ -159,4 +179,5 @@ test('Model physical profile: private read does not retain chunk copies '
     Buffer.concat = originalConcat;
   }
   assert.equal(envelopeConcatenations, 0);
+  f.pass();
 });
