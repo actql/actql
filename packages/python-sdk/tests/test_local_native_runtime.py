@@ -317,8 +317,6 @@ class OriginalRuntimeTests(unittest.TestCase):
         r.close()
 
 
-if __name__ == '__main__':
-    unittest.main()
 
 
 class OriginalHostPairRuntimeTests(unittest.TestCase):
@@ -402,3 +400,7 @@ class OriginalHostPairRuntimeTests(unittest.TestCase):
         with self.assertRaises(_OriginalPackagedRuntimeError): runtime.current()
         self.assertEqual(f.runtime_events, before)
         self.assertFalse(f.resources._closed)
+
+
+if __name__ == '__main__':
+    unittest.main()
