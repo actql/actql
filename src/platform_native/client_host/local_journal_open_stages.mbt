@@ -78,11 +78,15 @@ fn NativeLocalAdoptionSession::bind_journal_sqlite_originals(
   initial : NativeLocalInitialSigningCapture?,
   ttl_ms : Double,
   max_records : Int,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[
   (NativeClientEpochAuthority, NativeClientRunJournal),
   NativeLocalAdoptionIssue,
 ] {
   if first {
+    if reads is Some(_) {
+      return Err(InvalidInput)
+    }
     match
       initialize_native_local_client_custody(
         database,
@@ -95,27 +99,36 @@ fn NativeLocalAdoptionSession::bind_journal_sqlite_originals(
       Err(issue) => return Err(issue)
     }
   }
-  match local_adoption_row(database, adoption_body) {
+  match local_adoption_row(database, adoption_body, reads~) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
   let epoch = match
-    open_native_client_epoch_authority(database, crypto, ttl_ms) {
+    open_native_client_epoch_authority_with_reads(
+      database,
+      crypto,
+      ttl_ms,
+      reads~,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Epoch(issue))
   }
-  let journal = match open_native_client_run_journal(database, max_records) {
+  let journal = match
+    open_native_client_run_journal_with_reads(database, max_records, reads~) {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
   }
-  match journal.submitted_intent_custody() {
+  match journal.submitted_intent_custody(reads~) {
     Ok(_) => ()
     Err(issue) => return Err(Journal(issue))
   }
   // Keep the inherited Run/Policy custody transaction. Only the new name
   // extension's full census/HMAC scan belongs here at startup, not each lookup.
   match
-    journal.transaction(() => journal.inspect_submitted_name_startup(epoch)) {
+    journal.transaction_with_reads(
+      () => journal.inspect_submitted_name_startup(epoch, reads~),
+      reads~,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(Journal(issue))
   }

@@ -11,6 +11,7 @@ struct NativeLocalJournalOpenFailure {
   retained_read : NativeLocalAdoptionIssue?
   mut retained_read_cleaned : Bool
   acquisition : NativeLocalAdoptionOpenFailure
+  original_resources : NativeLocalJournalOriginalResources?
 }
 
 ///|
@@ -28,54 +29,19 @@ pub fn NativeLocalJournalOpenFailure::issue(
 pub fn NativeLocalJournalOpenFailure::retry_cleanup(
   self : NativeLocalJournalOpenFailure,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  if !self.initial_signing_cleaned {
-    if self.initial_signing_failure is Some(original) {
-      match original.retry_cleanup() {
-        Err(issue) => return Err(Filesystem(issue))
+  match self.original_resources {
+    Some(original) => original.cleanup_journal_failure(self)
+    None => {
+      match self.cleanup_read_prefix() {
+        Err(issue) => return Err(issue)
         Ok(_) => ()
       }
+      match self.cleanup_database() {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      self.acquisition.retry_cleanup()
     }
-    self.initial_signing_cleaned = true
-  }
-  if !self.retained_read_cleaned {
-    let cleaned = match self.retained_read {
-      Some(ReadAcquisitionFailure(original)) => original.retry_cleanup()
-      Some(ReadPending(reader, _)) => reader.close()
-      None => Ok(())
-      Some(issue) => return Err(issue)
-    }
-    match cleaned {
-      Err(issue) => return Err(Filesystem(issue))
-      Ok(_) => self.retained_read_cleaned = true
-    }
-  }
-  match retry_local_journal_inspection_cleanup(self.original_issue) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
-  if self.database is Some(database) {
-    match database.close_checked() {
-      Err(issue) => return Err(Physical(issue))
-      Ok(_) => self.database = None
-    }
-  }
-  self.acquisition.retry_cleanup()
-}
-
-///|
-// The immutable original issue already owns this exact copied DB/scratch
-// cleanup. Consume its ACK before releasing any original Root or lock; do not
-// open another inspection or replace the semantic refusal on a cleanup error.
-fn retry_local_journal_inspection_cleanup(
-  issue : NativeLocalAdoptionIssue,
-) -> Result[Unit, NativeLocalAdoptionIssue] {
-  match issue {
-    Inspection(
-      Inspection(@journal.InitializationCleanupPending(_, _, original), _)
-    ) => original.retry().map_err(issue => InspectionCleanup(issue))
-    DatabasePending(_, original) =>
-      retry_local_journal_inspection_cleanup(original)
-    _ => Ok(())
   }
 }
 
@@ -107,10 +73,12 @@ pub fn NativeLocalAdoptionSession::open_existing_journal_with_custody(
 }
 
 ///|
-// The existing opener and its cleanup keep this one original refusal carrier.
-fn NativeLocalAdoptionSession::retain_journal_open_failure(
+// One original failure carrier is shared by legacy and original-pair callers.
+// Retain the actual DB and acquisition before publishing the refusal.
+fn NativeLocalAdoptionSession::retain_journal_open_failure_with_resources(
   self : NativeLocalAdoptionSession,
   issue : NativeLocalAdoptionIssue,
+  original_resources : NativeLocalJournalOriginalResources?,
 ) -> NativeLocalJournalOpenFailure {
   let (database, inner) = match issue {
     DatabasePending(database, original) => (Some(database), original)
@@ -135,8 +103,122 @@ fn NativeLocalAdoptionSession::retain_journal_open_failure(
     retained_read: self.read_cleanup,
     retained_read_cleaned: false,
     acquisition,
+    original_resources,
   }
   self.closed = true
   self.journal_open_failure = Some(original)
   original
+}
+
+///|
+fn NativeLocalJournalOpenFailure::cleanup_read_prefix(
+  self : NativeLocalJournalOpenFailure,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  if !self.initial_signing_cleaned {
+    if self.initial_signing_failure is Some(original) {
+      match original.retry_cleanup() {
+        Err(issue) => return Err(Filesystem(issue))
+        Ok(_) => ()
+      }
+    }
+    self.initial_signing_cleaned = true
+  }
+  if !self.retained_read_cleaned {
+    let cleaned = match self.retained_read {
+      Some(ReadAcquisitionFailure(original)) => original.retry_cleanup()
+      Some(ReadPending(reader, _)) => reader.close()
+      None => Ok(())
+      Some(issue) => return Err(issue)
+    }
+    match cleaned {
+      Err(issue) => return Err(Filesystem(issue))
+      Ok(_) => self.retained_read_cleaned = true
+    }
+  }
+  Ok(())
+}
+
+///|
+fn NativeLocalJournalOpenFailure::cleanup_database(
+  self : NativeLocalJournalOpenFailure,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  match retry_local_journal_inspection_cleanup(self.original_issue) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  self.close_original_database()
+}
+
+///|
+fn NativeLocalJournalOpenFailure::close_original_database(
+  self : NativeLocalJournalOpenFailure,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  if self.database is Some(database) {
+    match database.close_checked() {
+      Err(issue) => return Err(Physical(issue))
+      Ok(_) => self.database = None
+    }
+  }
+  Ok(())
+}
+
+///|
+// The immutable original issue already owns this exact copied DB/scratch
+// cleanup. Consume its ACK before releasing any original Root or lock; do not
+// open another inspection or replace the semantic refusal on a cleanup error.
+fn retry_local_journal_inspection_cleanup(
+  issue : NativeLocalAdoptionIssue,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  match original_local_journal_inspection_cleanup(issue) {
+    Some(original) =>
+      original.retry().map_err(issue => InspectionCleanup(issue))
+    None => Ok(())
+  }
+}
+
+///|
+fn original_local_journal_inspection_cleanup(
+  issue : NativeLocalAdoptionIssue,
+) -> @journal.CoordinatorInitializationCleanup? {
+  match issue {
+    InspectionPending(_, _, original) => Some(original)
+    Inspection(
+      Inspection(@journal.InitializationCleanupPending(_, _, original), _)
+    ) => Some(original)
+    DatabasePending(_, original) =>
+      original_local_journal_inspection_cleanup(original)
+    OriginalResourceLeave(Some(original), _) =>
+      original_local_journal_inspection_cleanup(original)
+    _ => None
+  }
+}
+
+///|
+fn NativeLocalJournalOpenFailure::close_inspection_database(
+  self : NativeLocalJournalOpenFailure,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  match original_local_journal_inspection_cleanup(self.original_issue) {
+    Some(original) =>
+      original.close_database().map_err(issue => InspectionCleanup(issue))
+    None => Ok(())
+  }
+}
+
+///|
+fn NativeLocalJournalOpenFailure::close_inspection_snapshot(
+  self : NativeLocalJournalOpenFailure,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  match original_local_journal_inspection_cleanup(self.original_issue) {
+    Some(original) =>
+      original.close_snapshot().map_err(issue => InspectionCleanup(issue))
+    None => Ok(())
+  }
+}
+
+///|
+fn NativeLocalAdoptionSession::retain_journal_open_failure(
+  self : NativeLocalAdoptionSession,
+  issue : NativeLocalAdoptionIssue,
+) -> NativeLocalJournalOpenFailure {
+  self.retain_journal_open_failure_with_resources(issue, None)
 }

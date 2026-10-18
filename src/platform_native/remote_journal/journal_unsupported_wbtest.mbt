@@ -10,3 +10,11 @@ test "non-native targets reject the native remote journal" {
     fail("non-native target loaded SQLite")
   }
 }
+
+///|
+test "non-native targets refuse phased source inspection without a cleanup carrier" {
+  assert_true(
+    prepare_sqlite_source_inspection("unavailable", 1048576L, 1048576L)
+    is Err(UnsupportedTarget),
+  )
+}

@@ -51,31 +51,10 @@ pub fn inspect_native_client_state(
     max_snapshot_bytes,
     database => {
       guard database is Some(database) else { return Ok(PhysicallyAbsent) }
-      match read_epoch_custody(database) {
-        Ok(_) => ()
+      match inspect_native_client_custody_rows(database, max_records) {
+        Ok(value) => Ok(value)
         Err(issue) => {
-          refusal = Some(Epoch(issue))
-          return Err(@journal.StateCollision)
-        }
-      }
-      match run_journal_custody(database, max_records) {
-        Ok(_) => ()
-        Err(issue) => {
-          refusal = Some(Run(issue))
-          return Err(@journal.StateCollision)
-        }
-      }
-      let journal : NativeClientRunJournal = {
-        database,
-        max_records,
-        fenced: false,
-        publication_read_locked: false,
-        transaction_active: false,
-      }
-      match journal.submitted_intent_custody() {
-        Ok(_) => Ok(Retained)
-        Err(issue) => {
-          refusal = Some(Submission(issue))
+          refusal = Some(issue)
           Err(@journal.StateCollision)
         }
       }
@@ -89,5 +68,34 @@ pub fn inspect_native_client_state(
         None => Err(Inspection(@journal.StateCollision, None))
       }
     Err(issue) => Err(Inspection(issue, refusal))
+  }
+}
+
+///|
+// The same retained-row audit is shared by ordinary and phased inspection.
+// Routing SQL queries does not weaken any original Run, Policy or intent check.
+fn inspect_native_client_custody_rows(
+  database : @sqlite.Database,
+  max_records : Int,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[NativeClientStateInspection, NativeClientCustodyIssue] {
+  match read_epoch_custody(database, reads~) {
+    Ok(_) => ()
+    Err(issue) => return Err(Epoch(issue))
+  }
+  match run_journal_custody(database, max_records, reads~) {
+    Ok(_) => ()
+    Err(issue) => return Err(Run(issue))
+  }
+  let journal : NativeClientRunJournal = {
+    database,
+    max_records,
+    fenced: false,
+    publication_read_locked: false,
+    transaction_active: false,
+  }
+  match journal.submitted_intent_custody(reads~) {
+    Ok(_) => Ok(Retained)
+    Err(issue) => Err(Submission(issue))
   }
 }

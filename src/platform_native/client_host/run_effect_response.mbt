@@ -13,11 +13,16 @@ priv struct NativeClientEffectResponseRecord {
 fn read_client_effect_response_record(
   database : @sqlite.Database,
   dispatch_cid : String,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeClientEffectResponseRecord?, NativeClientRunJournalIssue] {
   match
     (
-      database.read("client_effect_response_meta", dispatch_cid),
-      database.read("client_effect_response_bytes", dispatch_cid),
+      read_client_journal_value(
+        database, "client_effect_response_meta", dispatch_cid, reads,
+      ),
+      read_client_journal_value(
+        database, "client_effect_response_bytes", dispatch_cid, reads,
+      ),
     ) {
     (Err(@sqlite.NotFound), Err(@sqlite.NotFound)) => Ok(None)
     (Ok(meta), Ok(body)) if meta.revision == 0L && body.revision == 0L => {
@@ -51,6 +56,7 @@ fn read_client_effect_response_record(
 fn effect_ledger_custody_with_responses(
   database : @sqlite.Database,
   record : NativeClientRunRecord,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[(Bytes, Int), NativeClientRunJournalIssue] {
   guard effect_ledger_custody_body(record) is Some(base) &&
     record.checkpoint is Some(checkpoint) else {
@@ -61,7 +67,7 @@ fn effect_ledger_custody_with_responses(
   for entry in checkpoint.effect_ledger {
     let state = @effect.effect_ledger_entry_state_code(entry)
     if state >= 2 && state <= 4 {
-      let receipt = match read_client_effect_receipt(database, entry) {
+      let receipt = match read_client_effect_receipt(database, entry, reads~) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -75,7 +81,7 @@ fn effect_ledger_custody_with_responses(
         }) else {
         return Err(CustodyLost)
       }
-      match read_client_effect_response_record(database, dispatch_cid) {
+      match read_client_effect_response_record(database, dispatch_cid, reads~) {
         Ok(Some(_)) => ()
         Err(issue) => return Err(issue)
         _ => return Err(CustodyLost)
@@ -89,7 +95,7 @@ fn effect_ledger_custody_with_responses(
       continue
     }
     let cid = @effect.effect_ledger_entry_cid(entry)
-    match read_client_effect_response_record(database, cid) {
+    match read_client_effect_response_record(database, cid, reads~) {
       Ok(Some(response)) => {
         body += "\nresponse\n" +
           cid +
