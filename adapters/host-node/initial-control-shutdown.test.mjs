@@ -67,6 +67,86 @@ test('original close receiver and callback survive pending retries without repla
   assert.equal(reads, 1); assert.equal(calls, 2);
 });
 
+test('shutdown captures original control close before a preceding child await', async () => {
+  let enter, release, pending = true, originals = 0, replacements = 0;
+  const entered = new Promise(resolve => {enter = resolve;});
+  const child = new Promise(resolve => {release = resolve;});
+  const control = {close() {assert.equal(this, control); originals++; return {pending};}};
+  const f = shutdown(control, {async drain() {enter(); await child;}});
+  const closing = f.owner.close();
+  await entered;
+  assert.equal(originals, 0);
+  control.close = () => {replacements++; return {pending: false};};
+  release();
+  await assert.rejects(closing, {message: 'InstalledHostInitialControlCleanupPending'});
+  assert.equal(originals, 1); assert.equal(replacements, 0);
+  assert.equal(f.calls.includes('finalize'), false);
+  assert.deepEqual(f.owner.status().pending, ['initialControl', 'finalize']);
+  pending = false; await f.owner.close();
+  assert.equal(originals, 2); assert.equal(replacements, 0);
+  assert.equal(f.calls.filter(name => name === 'finalize').length, 1);
+});
+
+test('shutdown captures original control close before its first close request', async () => {
+  let originals = 0, replacements = 0;
+  const control = {close() {assert.equal(this, control); originals++; return {pending: false};}};
+  const f = shutdown(control);
+  control.close = () => {replacements++; return {pending: false};};
+  await f.owner.close();
+  assert.equal(originals, 1); assert.equal(replacements, 0);
+});
+
+test('initialization captures original control close before a preceding child await', async () => {
+  let enter, release, pending = true, originals = 0, replacements = 0;
+  const entered = new Promise(resolve => {enter = resolve;});
+  const child = new Promise(resolve => {release = resolve;});
+  const primary = Object.freeze(new Error('OriginalPreparationFailed'));
+  const control = {close() {assert.equal(this, control); originals++; return {pending};}};
+  const retaining = retainInstalledHostInitializationFailure(primary,
+    {store: {async close() {enter(); await child;}}, initialControl: control});
+  await entered;
+  assert.equal(originals, 0);
+  control.close = () => {replacements++; return {pending: false};};
+  release();
+  const failure = await retaining;
+  assert.equal(failure.primaryFailure, primary);
+  assert.equal(originals, 1); assert.equal(replacements, 0);
+  assert.equal(failure.cleanupHandle.status().pending, true);
+  assert.deepEqual(failure.cleanupHandle.status().owners, ['initial-control']);
+  pending = false; await failure.cleanupHandle.retry();
+  assert.equal(originals, 2); assert.equal(replacements, 0);
+  assert.equal(failure.cleanupHandle.status().pending, false);
+});
+
+for (const initialization of [false, true]) {
+  test(`${initialization ? 'initialization' : 'shutdown'} retains an unobserved throwing control getter for retry`, async () => {
+    let readable = false, reads = 0, closes = 0;
+    const originalError = new Error('OriginalControlGetterPending');
+    const control = {get close() {
+      reads++;
+      if (!readable) throw originalError;
+      return function () {assert.equal(this, control); closes++; return {pending: false};};
+    }};
+    if (initialization) {
+      const primary = Object.freeze(new Error('OriginalPreparationFailed'));
+      const failure = await retainInstalledHostInitializationFailure(primary, {initialControl: control});
+      assert.equal(failure.primaryFailure, primary);
+      assert.equal(failure.cleanupHandle.status().pending, true);
+      assert.equal(failure.cleanupHandle.status().errors.at(-1).error, originalError);
+      readable = true; await failure.cleanupHandle.retry();
+      assert.equal(failure.cleanupHandle.status().pending, false);
+    } else {
+      const f = shutdown(control);
+      await assert.rejects(f.owner.close(), error => error === originalError);
+      assert.deepEqual(f.owner.status().pending, ['initialControl', 'finalize']);
+      assert.equal(f.calls.includes('finalize'), false);
+      readable = true; await f.owner.close();
+      assert.equal(f.calls.filter(name => name === 'finalize').length, 1);
+    }
+    assert.equal(closes, 1); assert.ok(reads >= 2);
+  });
+}
+
 test('initialization preserves child-first control custody through the same retry', async () => {
   let pending = true, childRetries = 0, controlCloses = 0, storeCloses = 0;
   const child = {status: () => ({pending}), retry() {childRetries++;}};
