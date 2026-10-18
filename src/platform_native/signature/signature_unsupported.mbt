@@ -5,6 +5,20 @@ type Library
 type Sha256Hasher
 
 ///|
+pub fn Library::close_checked(
+  _self : Library,
+) -> Result[Unit, NativeSignatureIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Sha256Hasher::close_checked(
+  _self : Sha256Hasher,
+) -> Result[Unit, NativeSignatureIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 /// No installed Native Library fact exists on unsupported targets.
 pub fn Library::diagnostic_ceiling(_self : Library) -> Int? {
   None
