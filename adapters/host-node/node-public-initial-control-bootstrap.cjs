@@ -100,6 +100,8 @@ function connectInitialControlHostPreparation(kind,raw) {
     if (raw === null || typeof raw !== 'object' || isProxy(raw)) return undefined;
     const mode = descriptor(raw,'mode');
     if (mode === undefined || !own(mode,'value') || mode.value !== 'local') return undefined;
+    const endpoint=descriptor(raw,'endpoint');
+    if (endpoint !== undefined && own(endpoint,'value') && endpoint.value !== undefined) return undefined;
   } else if (kind !== 'open' || raw !== undefined) inputUnavailable();
   assertPrefixCurrent();
   if (preparation !== undefined || intake !== undefined) inputUnavailable();

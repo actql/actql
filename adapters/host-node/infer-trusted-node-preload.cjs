@@ -195,6 +195,8 @@ module.exports = {
       if (rawInput === null || typeof rawInput !== 'object' || isProxy(rawInput)) return undefined;
       const mode = Object.getOwnPropertyDescriptor(rawInput,'mode');
       if (mode === undefined || !Object.hasOwn(mode,'value') || mode.value !== 'local') return undefined;
+      const endpoint=Object.getOwnPropertyDescriptor(rawInput,'endpoint');
+      if (endpoint !== undefined && Object.hasOwn(endpoint,'value') && endpoint.value !== undefined) return undefined;
       if (preparationOriginals !== undefined || preparationIntake !== undefined) inputUnavailable();
       const reader = startup.initialControlHostInputReader;
       if (reader === undefined) inputUnavailable();

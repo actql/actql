@@ -74,6 +74,7 @@ test('ordinary import acquires its installed prefix before original bounded inpu
     'assert.equal(client.asset,\'{"original":"ordinary-asset"}\\n\');'+
     'assert.equal((await client.scope.close()).pending,false);'+
     'assert.equal(connect({mode:"remote"}),undefined);'+
+    'assert.equal(connect({mode:"local",owner:"local",endpoint:"https://host.example/"}),undefined);'+
     'assert.throws(()=>connect({mode:"local",installation:{directory:".actql"},profile:"mock"}),{code:"NodeInitialControlInputUnavailable"});');
   assert.equal(result.status,0,result.stderr);
 });
@@ -89,6 +90,17 @@ test('ordinary source-only absence refuses before dependent packet traversal',t=
 test('ordinary public Node delivery binds its own captured facade and the same Local installation',t=>{
   const f=fixture(t,{publicNode:true});const result=f.run(
     'import assert from"node:assert/strict";import{connect}from"@actql/node";'+
+    'const client=await connect({mode:"local",installation:{directory:".actql"},profile:"mock"});'+
+    'assert.equal(client.input.profile,"mock");assert.equal((await client.scope.close()).pending,false);');
+  assert.equal(result.status,0,result.stderr);
+});
+
+test('ordinary connected Local HTTP selection stays unselected without traversing Host fields',t=>{
+  const f=fixture(t,{publicNode:true});const result=f.run(
+    'import assert from"node:assert/strict";import{connect}from"@actql/node";'+
+    'let seen=0;const raw={mode:"local",owner:"local",endpoint:"https://host.example/",'+
+    'get installation(){seen++;throw new Error("NoEmbeddedHost");},get profile(){seen++;throw new Error("NoEmbeddedProfile");}};'+
+    'assert.equal(connect(raw),undefined);assert.equal(seen,0);'+
     'const client=await connect({mode:"local",installation:{directory:".actql"},profile:"mock"});'+
     'assert.equal(client.input.profile,"mock");assert.equal((await client.scope.close()).pending,false);');
   assert.equal(result.status,0,result.stderr);
