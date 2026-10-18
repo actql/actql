@@ -6,20 +6,26 @@ import {connectionFailure} from './connection-options.mjs';
 import {ClientError, fail, ownedClientFailure, readRefusalCodes} from './errors.mjs';
 import {retainCancellationExplanation} from './run-observation.mjs';
 import {submissionNotSent, submissionUnknown} from './submission-observation.mjs';
+import {captureSourcePreparation} from './private-source-preparation.mjs';
 
 // Return the import promise itself so only the existing loopback branch yields.
 export const loadLoopbackTransport = () => import('#loopback-http');
 
 export function createTransport(selected, port, isClosed, directLoopback) {
+  const sourcePreparation = captureSourcePreparation(port);
   const dispatchedCancellations = new WeakSet();
   const dispatchedSubmissions = new WeakSet();
-  const exchange = async (operation, body = {}, signal, submitContext, cancellationContext) => {
+  const exchange = async (operation, body = {}, signal, submitContext, cancellationContext, sourceProducer) => {
     if (isClosed()) fail('ClientClosed');
     if (port !== undefined) {
       let request;
       try { request = structuredClone({connection: selected.wire, ...body}); }
       catch { fail('InvalidClientPayload'); }
       try {
+        if (sourceProducer !== undefined) {
+          sourcePreparation.bindSourceRequest(sourceProducer.receipt,
+            sourceProducer.body, request);
+        }
         if (cancellationContext !== undefined) {
           signal?.throwIfAborted();
           dispatchedCancellations.add(cancellationContext);
@@ -134,7 +140,7 @@ export function createTransport(selected, port, isClosed, directLoopback) {
       throw cause;
     }
   };
-  return {exchange, responseValue, typedRows: port !== undefined,
+  return {exchange, responseValue, sourcePreparation, typedRows: port !== undefined,
     wasSubmissionDispatched: context => dispatchedSubmissions.has(context),
     wasCancellationDispatched: context => dispatchedCancellations.has(context)};
 }
