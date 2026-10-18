@@ -5,7 +5,7 @@
     {
       "module": "adapters/connectors-builtin/installations.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8d67efab68bfb59f2456d4513d5155d9c274724fe3337f07e630d470d4bb10d5",
+      "sha256": "bf28eb881da5755df184e2333a84b00c93162198677c23746805b6404c7bbdad",
       "exports": [
         "installedConnectors"
       ],
@@ -52,6 +52,13 @@
         },
         {
           "name": "installedConnectors/installedConnectors/installedConnectors#14",
+          "parameters": [
+            "module"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedConnectors/installedConnectors/installedConnectors#15",
           "parameters": [
             "module"
           ],
@@ -139,6 +146,11 @@
           "async": false
         },
         {
+          "name": "installedConnectors/installedConnectors#15",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installedConnectors/installedConnectors#2",
           "parameters": [],
           "async": false
@@ -191,6 +203,7 @@
         "../connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
         "../connectors/salesforce/host/installed-salesforce-source.mjs",
         "../connectors/sheets/host/installed-sheets.mjs",
+        "../connectors/slack/host/installed-slack-source.mjs",
         "../connectors/snowflake/host/installed-snowflake-source.mjs"
       ],
       "compilerFields": [],
@@ -208,6 +221,8 @@
             "installedConnectors/installedConnectors/installedConnectors#11",
             "installedConnectors/installedConnectors/installedConnectors#12",
             "installedConnectors/installedConnectors/installedConnectors#13",
+            "installedConnectors/installedConnectors/installedConnectors#14",
+            "installedConnectors/installedConnectors/installedConnectors#15",
             "installedConnectors/installedConnectors/installedConnectors#2",
             "installedConnectors/installedConnectors/installedConnectors#3",
             "installedConnectors/installedConnectors/installedConnectors#4",
@@ -220,6 +235,8 @@
             "installedConnectors/installedConnectors#11",
             "installedConnectors/installedConnectors#12",
             "installedConnectors/installedConnectors#13",
+            "installedConnectors/installedConnectors#14",
+            "installedConnectors/installedConnectors#15",
             "installedConnectors/installedConnectors#2",
             "installedConnectors/installedConnectors#3",
             "installedConnectors/installedConnectors#4",
@@ -227,9 +244,7 @@
             "installedConnectors/installedConnectors#6",
             "installedConnectors/installedConnectors#7",
             "installedConnectors/installedConnectors#8",
-            "installedConnectors/installedConnectors#9",
-            "installedConnectors/installedConnectors/installedConnectors#14",
-            "installedConnectors/installedConnectors#14"
+            "installedConnectors/installedConnectors#9"
           ],
           "exports": [
             "installedConnectors"
