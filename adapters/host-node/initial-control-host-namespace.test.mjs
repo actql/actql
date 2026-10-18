@@ -23,7 +23,8 @@ function actualNamespace(t, body, duringInitialization = false) {
     const source = readFileSync(startup, 'utf8');
     const marker = '\nif (selected) {';
     assert.equal(source.split(marker).length, 2);
-    const eager = '\nglobalThis.actualInitialHostNamespace=require(' + JSON.stringify(host) + ');\n';
+    const eager = '\nglobalThis.actualInFlightStartup={record:module,exports:module.exports};\n' +
+      'globalThis.actualInitialHostNamespace=require(' + JSON.stringify(host) + ');\n';
     writeFileSync(preload, [
       'const {registerHooks}=require("node:module");',
       'const source=' + JSON.stringify(source.replace(marker, eager + marker)) + ';',
@@ -73,8 +74,13 @@ test('the actual Host retains original startup forwarders after a cache export s
 test('actual Host namespace initialization can capture forwarders while startup itself is initializing', t => {
   actualNamespace(t, [
     'import assert from "node:assert/strict";',
+    'import {createRequire} from "node:module";',
+    'const require=createRequire(import.meta.url);',
+    'assert.equal(require.cache[' + JSON.stringify(startup) + '],actualInFlightStartup.record);',
+    'assert.equal(typeof actualInFlightStartup.exports.beginInitialControlInstallation,"function");',
     'assert.equal(typeof actualInitialHostNamespace.connectEmbeddedLocal,"function");',
     'await assert.rejects(actualInitialHostNamespace.connectEmbeddedLocal({}),',
-    ' {code:"NodeInitialControlAdmissionUnavailable"});',
+    ' error=>error.code==="NodeInitialControlAdmissionUnavailable"&&',
+    ' error.stack.includes("initial-control-installation-owner.cjs"));',
   ].join('\n'), true);
 });
