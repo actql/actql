@@ -248,6 +248,12 @@ if (selected) {
     // this is not a no-allocation claim for arbitrary Unicode/builders.
     // Two added pairs/descriptor records and reflection remain managed.
     [globalThis, 'String'], [string, 'fromCodePoint'],
+    // The prepared Host trims its original environment Source before the
+    // existing normalizer runs. Keep that exact native operation; immutable
+    // Source/module identity alone cannot bound a replacement application
+    // callback. The pair, descriptor and returned String overlap remain in
+    // the original control envelope, not a byte grant or an all-String fence.
+    [string.prototype, 'trimEnd'],
     // Preserve the native chain whose concrete Promise/await allocations the
     // selected supplier inventories. Freezing these originals is not a byte
     // grant, a hook/debug bound or an exemption for application callbacks.
