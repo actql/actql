@@ -2,6 +2,24 @@
 // the existing installed Source/Effect, credential and Store own physical work.
 
 ///|
+#export_name("gcsObjectRestoreMutationValue")
+pub fn gcs_object_restore_mutation_value(
+  binding : @catalog.ObjectMutationBinding,
+  name : String,
+  status : Int,
+  headers : Array[(String, String)],
+  response : Bytes,
+  response_sha256 : String,
+  changes : Bytes,
+  body : String,
+  request_cid : String,
+) -> Result[@catalog.ObjectMutationRequest, GcsFailure] {
+  @catalog.restore_object_mutation_value_wire(
+    binding, name, status, headers, response, response_sha256, changes, body, request_cid,
+  ).map_err(issue => Request(issue))
+}
+
+///|
 #export_name("gcsObjectResponseMatches")
 pub fn gcs_object_response_matches(
   binding : @catalog.ObjectMutationBinding,
