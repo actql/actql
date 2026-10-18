@@ -63,8 +63,12 @@ test "checkpoint locator survives reopen and missing legacy index never backfill
     is Ok(Some(_)),
   )
   let row = database.read("client_checkpoint_id_index", key).unwrap()
-  database
-  .remove_exact("client_checkpoint_id_index", key, row.revision, row.body)
+  journal
+  .transaction(() => {
+    database
+    .remove_exact("client_checkpoint_id_index", key, row.revision, row.body)
+    .map_err(issue => Physical(issue))
+  })
   .unwrap()
   assert_true(
     journal.transaction(() => {
