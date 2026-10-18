@@ -245,11 +245,24 @@ class _OriginalParentReadCustody:
         An unconfirmed response remains sticky Unknown and cannot call again.
         This observes no context/alias retirement or original loan return.
         """
+        from ._local_native_host_resources import _resources_for_domain
+        joined = _resources_for_domain(self._domain)
+        if joined is not None and joined[0]._read is self and joined[0]._phase == 'read':
+            joined[0].leave_scope()
+            return
         self._call(4)
 
     @contextmanager
     def scope(self, *, cleanup: bool = False) -> Iterator[None]:
         """Whole managed input/result/failure lifetime, not read permission."""
+        from ._local_native_host_resources import _resources_for_domain
+        joined = _resources_for_domain(self._domain)
+        if joined is not None:
+            if joined[0]._read is not self:
+                raise ValueError('Foreign original Host read carrier')
+            with joined[0].scope('read', cleanup=cleanup):
+                yield
+            return
         self._call(5 if cleanup else 3)
         try:
             yield
