@@ -1009,7 +1009,7 @@ fn LocalCommandPreparationOriginal::open_adopted_journal(
       )
       command_preparation_value(
         adoption
-        .capture_initial_journal_with_original_resources(
+        .capture_initial_command_journal_with_original_resources(
           host,
           pair,
           read,
@@ -1024,7 +1024,7 @@ fn LocalCommandPreparationOriginal::open_adopted_journal(
     } else {
       command_preparation_value(
         adoption
-        .capture_journal_with_original_resources(
+        .capture_command_journal_with_original_resources(
           host,
           pair,
           read,

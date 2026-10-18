@@ -31,6 +31,7 @@ struct NativeLocalJournalCapture {
   session : NativeLocalAdoptionSession
   library : @sqlite.Library?
   original_resources : NativeLocalJournalOriginalResources?
+  command_preparation_journal : Bool
   initial_signing : (
     NativeLocalInitialSigningMaterial,
     @host.ClientLocalSigningBootstrapPolicy,
@@ -70,6 +71,7 @@ pub fn prepare_native_local_journal_capture(
     session,
     library: Some(library),
     original_resources: None,
+    command_preparation_journal: false,
     initial_signing: None,
     read_operation_issue: None,
     opening_database: None,
