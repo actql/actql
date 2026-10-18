@@ -1389,8 +1389,25 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
       let admittedProvider;
       try {
-        admittedProvider = admitInstalledModelProvider(moon, execution, dependencies,
-          modelProviders);
+        if (mockModels === undefined) {
+          admittedProvider = admitInstalledModelProvider(moon, execution, dependencies,
+            modelProviders);
+        } else {
+          const taskCid = occurrence === undefined
+            ? moon.clientProgramInferModelTaskCid(preparedProgram, selectedStep)
+            : moon.clientProgramInferOccurrenceModelTaskCid(occurrence);
+          const original = mockModels.forTaskCid(moon, taskCid);
+          if (original === undefined ||
+              typeof moon.clientProgramAdmitOriginalMockProvider !== 'function') {
+            throw clientOperationError('InstalledMockModelOriginalUnavailable');
+          }
+          // The existing Model owner validates its own original Task, prompt,
+          // execution and dependencies. No JS validator, always-true callback
+          // or configured physical Provider can stand in for that admission.
+          admittedProvider = checked(moon.clientProgramAdmitOriginalMockProvider(
+            original.installation, execution, dependencies));
+          mockModels.originalsForRuntime(moon);
+        }
       } catch (cause) {
         diagnostic('infer_preparation_rejected', {boundary: 'model_provider',
           code: cause.code, cause: cause.cause ?? cause,
@@ -1398,6 +1415,15 @@ async function openInstalledHost(originalInstallation, preparation) {
             moon.clientProgramModelProviderAdmissionIssueKind(cause.cause) :
             undefined});
         throw clientOperationError('ClientProgramUnsupported', cause);
+      }
+      if (mockModels !== undefined) {
+        // Installing typed fixture answers is not a Model Run/IO admission.
+        // Do not fabricate physical preflight, egress, quantity capacity or
+        // another Ledger merely to enter the ordinary physical dispatch path.
+        diagnostic('infer_preparation_rejected', {boundary: 'model_dispatch',
+          code: 'InstalledMockModelOperationalAdmissionUnavailable'});
+        throw clientOperationError('ClientProgramUnsupported',
+          new Error('InstalledMockModelOperationalAdmissionUnavailable'));
       }
       const physical = modelProviders.get(moon.clientProgramInferProviderId(execution));
       // Legacy registrations only validate payloads. They cannot implicitly
