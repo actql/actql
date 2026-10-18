@@ -666,6 +666,20 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
       headers: physicalHeaders,
       signal,
     }, response => {
+      // Node's normalized header object can discard duplicate singleton
+      // headers. Conditional evidence needs the actual received multiplicity,
+      // kept only in the existing private original-response projection.
+      let etagCount = 0;
+      let contentEncodingCount = 0;
+      if (retainRunResponseOriginal) {
+        for (let index = 0; index < response.rawHeaders.length; index += 2) {
+          const name = response.rawHeaders[index].toLowerCase();
+          if (name === 'etag') etagCount++;
+          if (name === 'content-encoding') contentEncodingCount++;
+        }
+      }
+      const responseRepresentation = !retainRunResponseOriginal ? undefined :
+        Object.freeze({etagCount, contentEncodingCount});
       const chunks = [];
       let received = 0;
       response.on('data', chunk => {
@@ -685,6 +699,7 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
         headers: response.headers,
         body: Buffer.concat(chunks, received),
         requestRepresentation,
+        responseRepresentation,
       })));
     });
     if (binding) {
@@ -919,6 +934,7 @@ async function callCredentialResource({
         // a byte count, CID or provider result; binary bodies remain unprojected.
         requestBodyText: typeof operation.body === 'string' ? operation.body : undefined,
         requestRepresentation: response.requestRepresentation,
+        responseRepresentation: response.responseRepresentation,
         responseSha256: createHash('sha256').update(response.body).digest('hex')})};
     runResponseOriginals.set(result, retained);
     finishing = true;
