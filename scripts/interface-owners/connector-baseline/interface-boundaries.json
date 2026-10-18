@@ -8543,7 +8543,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7a4989a7c722cfea673066d3ec1a5aea8cf7ae86cf65445313d2f4898824f4e7",
+      "sha256": "8fc20f1e0bd618002cd97d5a355ab54e15812254957aa801baad715cd10f4916",
       "role": "connector-semantics",
       "owner": "Exact installed Salesforce org/Site binding with existing account gate, credential journal and release custody",
       "exports": [
@@ -8602,7 +8602,8 @@
             "resolveSecret",
             "now",
             "grantLifetimeMs",
-            "openCredentialJournal"
+            "openCredentialJournal",
+            "runAcquisitionLimits"
           ],
           "async": true
         },
@@ -8651,6 +8652,83 @@
             "signal"
           ],
           "async": true
+        },
+        {
+          "name": "loadInstalledSalesforceSite/bindRecordAcquisition",
+          "parameters": [
+            "originalAuthorization",
+            "originalCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/bindRecordAcquisition/assertOpen/assertOpen",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/bindRecordAcquisition/captureCurrent/captureCurrent",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/bindRecordAcquisition/captureCurrent/captureCurrent/captureCurrent",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/bindRecordAcquisition/credentialFor/credentialFor",
+          "parameters": [
+            "callbacks"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/bindRecordAcquisition/currentFor/currentFor",
+          "parameters": [
+            "record",
+            "methods"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/bindRecordAcquisition/currentFor/currentFor/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/bindRecordAcquisition/currentFor/currentFor/assertOriginal/assertOriginal",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/bindRecordAcquisition/currentFor/currentFor/assertOriginal/assertOriginal/assertOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/bindRecordAcquisition/currentFor/currentFor/observeCurrent/observeCurrent",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "loadInstalledSalesforceSite/bindRecordAcquisition/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/bindRecordAcquisition/init:forAuthorization/init:forAuthorization",
+          "parameters": [
+            "authorization",
+            "current"
+          ],
+          "async": false
         },
         {
           "name": "loadInstalledSalesforceSite/catalogSyncRequest",
@@ -8819,6 +8897,11 @@
           "async": false
         },
         {
+          "name": "loadInstalledSalesforceSite/issueGrant/issueGrant",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "loadInstalledSalesforceSite/loadInstalledSalesforceSite",
           "parameters": [],
           "async": false
@@ -8922,6 +9005,15 @@
           "name": "loadInstalledSalesforceSite/restoreDeclaration/mismatch/mismatch",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/signRecord",
+          "parameters": [
+            "fields",
+            "resource",
+            "assertDecisionCurrent"
           ],
           "async": false
         },
@@ -9062,7 +9154,21 @@
             "validProfile/validProfile",
             "validProfile/validProfile#2",
             "validProfile/validProfile#3",
-            "validProfile/validProfile#4"
+            "validProfile/validProfile#4",
+            "loadInstalledSalesforceSite/bindRecordAcquisition",
+            "loadInstalledSalesforceSite/bindRecordAcquisition/assertOpen/assertOpen",
+            "loadInstalledSalesforceSite/bindRecordAcquisition/captureCurrent/captureCurrent",
+            "loadInstalledSalesforceSite/bindRecordAcquisition/captureCurrent/captureCurrent/captureCurrent",
+            "loadInstalledSalesforceSite/bindRecordAcquisition/credentialFor/credentialFor",
+            "loadInstalledSalesforceSite/bindRecordAcquisition/currentFor/currentFor",
+            "loadInstalledSalesforceSite/bindRecordAcquisition/currentFor/currentFor/assertCurrent/assertCurrent",
+            "loadInstalledSalesforceSite/bindRecordAcquisition/currentFor/currentFor/assertOriginal/assertOriginal",
+            "loadInstalledSalesforceSite/bindRecordAcquisition/currentFor/currentFor/assertOriginal/assertOriginal/assertOriginal",
+            "loadInstalledSalesforceSite/bindRecordAcquisition/currentFor/currentFor/observeCurrent/observeCurrent",
+            "loadInstalledSalesforceSite/bindRecordAcquisition/init:close/init:close",
+            "loadInstalledSalesforceSite/bindRecordAcquisition/init:forAuthorization/init:forAuthorization",
+            "loadInstalledSalesforceSite/issueGrant/issueGrant",
+            "loadInstalledSalesforceSite/signRecord"
           ],
           "exports": [
             "DEFAULT_SALESFORCE_CATALOG_LIMITS",
@@ -9086,6 +9192,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "- Live publication responsibility:"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "### Salesforce original record-operation borrows"
               }
             ],
             "inputsOutputs": [
@@ -9100,6 +9210,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "- Live publication inputs and outputs:"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "anchor": "function bindRecordAcquisition(originalAuthorization, originalCurrent)"
               }
             ],
             "identity": [
@@ -9118,6 +9232,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "- Live publication identity:"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "anchor": "recordAuthorizations.get(originalAuthorization)"
               }
             ],
             "ownership": [
@@ -9136,6 +9254,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "- Live publication ownership:"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "anchor": "custody.bindRunAcquisition(originalAuthorization, firstCurrent)"
               }
             ],
             "synchronization": [
@@ -9154,6 +9276,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "- Live publication synchronization:"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "anchor": "const current = await readSourceProfileJson(path, {maxBytes: 8 * 1024 * 1024})"
               }
             ],
             "failure": [
@@ -9172,6 +9298,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "- Live publication failure:"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "anchor": "state.failure ??= cause"
               }
             ],
             "cancellation": [
@@ -9182,6 +9312,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "- Live publication cancellation:"
+              },
+              {
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "anchor": "state.retiring = true"
               }
             ],
             "resources": [
@@ -9196,6 +9330,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "- Live publication resources:"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "The original phase inventory includes Site authorization membership records,"
               }
             ],
             "extension": [
@@ -9214,6 +9352,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "- Live publication extension:"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "conditional target evidence, sealed Preview or authenticated cold recovery."
               }
             ],
             "verification": [
@@ -9240,6 +9382,30 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "- Live publication verification:"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/site-credential-acquisition.test.mjs",
+                "anchor": "Salesforce Site binds original Account read and write grants to the same private material"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/site-credential-acquisition.test.mjs",
+                "anchor": "Salesforce Site rechecks the original Account after an awaited Host current observation"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/site-credential-acquisition.test.mjs",
+                "anchor": "Salesforce Site refuses changed original profile and stays refused after byte restoration"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/site-credential-acquisition.test.mjs",
+                "anchor": "Salesforce Site cannot send replacement material after its original read"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/site-credential-acquisition.test.mjs",
+                "anchor": "Salesforce Site keeps a lost write reply Unknown without a second physical send"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/site-credential-acquisition.test.mjs",
+                "anchor": "Salesforce Site holds the original Journal while a closing borrow is awaiting currentness"
               }
             ]
           }
@@ -9331,6 +9497,7 @@
         "../../../../packages/sdk/host-port.mjs",
         "../../../host-common/authorization-gate.mjs",
         "../../../host-common/checkpoint-approval.mjs",
+        "../../../host-common/owned-invocation-context.mjs",
         "../../../host-common/runtime-result.mjs",
         "../../../host-node/installed-host-cleanup.mjs",
         "../../../host-node/installed-row-source.mjs",
@@ -9342,7 +9509,8 @@
         "../site/salesforce-named-describe.mjs",
         "../site/salesforce-query-read.mjs",
         "node:crypto",
-        "node:path"
+        "node:path",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
