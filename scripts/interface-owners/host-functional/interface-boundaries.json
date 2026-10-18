@@ -27019,11 +27019,13 @@
     {
       "module": "adapters/host-node/infer-trusted-node-preload.cjs",
       "responsibilityFacet": "primary",
-      "sha256": "cc3981e9d039c0d454839cf9fe36902dc1f7529e89ab5bb42d45f7e4cd625e07",
+      "sha256": "a4e3b895e20843c7c8b41abbd38b2a443397cfd069093b6e0cc4a224b70790c3",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
+        "commonjs:assertInitialControlInstallationCurrent",
         "commonjs:associateHost",
+        "commonjs:beginInitialControlInstallation",
         "commonjs:bindSdkStaticModules",
         "commonjs:borrowScope",
         "commonjs:check",
@@ -27066,9 +27068,24 @@
           "async": false
         },
         {
+          "name": "init:assertInitialControlInstallationCurrent/init:assertInitialControlInstallationCurrent",
+          "parameters": [
+            "scope",
+            "sameOriginals"
+          ],
+          "async": false
+        },
+        {
           "name": "init:associateHost/init:associateHost",
           "parameters": [
             "view",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "init:beginInitialControlInstallation/init:beginInitialControlInstallation",
+          "parameters": [
             "originals"
           ],
           "async": false
@@ -27190,7 +27207,9 @@
             "checkSdkModules",
             "current",
             "currentStartup",
+            "init:assertInitialControlInstallationCurrent/init:assertInitialControlInstallationCurrent",
             "init:associateHost/init:associateHost",
+            "init:beginInitialControlInstallation/init:beginInitialControlInstallation",
             "init:bindSdkStaticModules/init:bindSdkStaticModules",
             "init:borrowScope/init:borrowScope",
             "init:check/init:check",
@@ -27207,7 +27226,9 @@
             "unavailable/unavailable"
           ],
           "exports": [
+            "commonjs:assertInitialControlInstallationCurrent",
             "commonjs:associateHost",
+            "commonjs:beginInitialControlInstallation",
             "commonjs:bindSdkStaticModules",
             "commonjs:borrowScope",
             "commonjs:check",
@@ -27228,6 +27249,10 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Internal state machine, not an operational issuer."
               }
             ],
             "inputsOutputs": [
@@ -27242,6 +27267,14 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "## Private Model raw response custody"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "function createInitialControlInstallationOwner(operational)"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "anchor": "export function assertInitialControlInstallationCurrent(scope, sameOriginals)"
               }
             ],
             "identity": [
@@ -27256,6 +27289,14 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "const scopes = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "const names = Object.freeze(['host', 'installation', 'generation', 'supplier', 'moduleLifetime']);"
               }
             ],
             "ownership": [
@@ -27270,6 +27311,14 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "# Private storage of original Model state"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Retain the record before any fallible cleanup descriptor observation."
               }
             ],
             "synchronization": [
@@ -27284,6 +27333,14 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// concurrent close observes that SAME Promise"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Consume before the original current callback: it may reenter this Owner."
               }
             ],
             "failure": [
@@ -27298,6 +27355,14 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "const unavailable = () => fail('NodeInitialControlAdmissionUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "failed late cleanup attachment keeps its original debt"
               }
             ],
             "cancellation": [
@@ -27312,6 +27377,14 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "## Private Model raw response custody"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "state.closing = true;"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "current refusal does not prevent cleanup of original retained duties"
               }
             ],
             "resources": [
@@ -27326,6 +27399,14 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "# Private storage of original Model state"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Escaped aliases remain the original envelope"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// here. An absent complete operational original refuses before caller reads."
               }
             ],
             "extension": [
@@ -27340,6 +27421,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "## Private Model raw response custody"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
               }
             ],
             "verification": [
@@ -27350,12 +27435,39 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "nominal current rejects fake copied and other-instance scopes"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "original real file descriptors remain child-owned across pending and sibling cleanup"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "anchor": "a caller current method cannot authenticate"
               }
             ]
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "./initial-control-installation-owner.cjs",
+        "node:buffer",
+        "node:http",
+        "node:https",
+        "node:module",
+        "node:net",
+        "node:path",
+        "node:process",
+        "node:stream",
+        "node:tls",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/infer-trusted-runtime-view.mjs",
@@ -27805,6 +27917,334 @@
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+    },
+    {
+      "module": "adapters/host-node/initial-control-installation-owner.cjs",
+      "sha256": "489e0164dd2d9aadc6af99cb671a95da23a6cde399278c11bb521e543f53a5a5",
+      "exports": [
+        "commonjs:createInitialControlInstallationOwner"
+      ],
+      "operations": [
+        {
+          "name": "completed/completed",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner",
+          "parameters": [
+            "operational"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/assertCurrent",
+          "parameters": [
+            "scope",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/begin",
+          "parameters": [
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/begin/scope/init:assertCurrent/init:assertCurrent",
+          "parameters": [
+            "sameOriginals"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/begin/scope/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/begin/scope/init:retainPreparation/init:retainPreparation",
+          "parameters": [
+            "record",
+            "cleanupHandle"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/begin/scope/init:status/init:status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/cleanupOriginal",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/close",
+          "parameters": [
+            "scope"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/close/flight/flight",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInitialControlInstallationOwner/close/flight/flight#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/observation",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/observeChild",
+          "parameters": [
+            "state",
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/remember",
+          "parameters": [
+            "state",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/retainPreparation",
+          "parameters": [
+            "scope",
+            "record",
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/retainPreparation/init:releaseReferences/init:releaseReferences",
+          "parameters": [
+            "originalRecord"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/stateFor",
+          "parameters": [
+            "scope"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "foreign/foreign",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "matches/matches",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "matches/matches/matches",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "own/own",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "reference/reference",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshot/snapshot",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "unavailable/unavailable",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing private Host/Resource initial-control preparation custody; internal state only, not an operational issuer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "completed/completed",
+            "createInitialControlInstallationOwner",
+            "createInitialControlInstallationOwner/assertCurrent",
+            "createInitialControlInstallationOwner/begin",
+            "createInitialControlInstallationOwner/begin/scope/init:assertCurrent/init:assertCurrent",
+            "createInitialControlInstallationOwner/begin/scope/init:close/init:close",
+            "createInitialControlInstallationOwner/begin/scope/init:retainPreparation/init:retainPreparation",
+            "createInitialControlInstallationOwner/begin/scope/init:status/init:status",
+            "createInitialControlInstallationOwner/cleanupOriginal",
+            "createInitialControlInstallationOwner/close",
+            "createInitialControlInstallationOwner/close/flight/flight",
+            "createInitialControlInstallationOwner/close/flight/flight#2",
+            "createInitialControlInstallationOwner/observation",
+            "createInitialControlInstallationOwner/observeChild",
+            "createInitialControlInstallationOwner/remember",
+            "createInitialControlInstallationOwner/retainPreparation",
+            "createInitialControlInstallationOwner/retainPreparation/init:releaseReferences/init:releaseReferences",
+            "createInitialControlInstallationOwner/stateFor",
+            "fail/fail",
+            "foreign/foreign",
+            "matches/matches",
+            "matches/matches/matches",
+            "own/own",
+            "reference/reference",
+            "snapshot/snapshot",
+            "unavailable/unavailable"
+          ],
+          "exports": [
+            "commonjs:createInitialControlInstallationOwner"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Internal state machine, not an operational issuer."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "function createInitialControlInstallationOwner(operational)"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "anchor": "export function assertInitialControlInstallationCurrent(scope, sameOriginals)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "const scopes = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "const names = Object.freeze(['host', 'installation', 'generation', 'supplier', 'moduleLifetime']);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Retain the record before any fallible cleanup descriptor observation."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// concurrent close observes that SAME Promise"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Consume before the original current callback: it may reenter this Owner."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "const unavailable = () => fail('NodeInitialControlAdmissionUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "failed late cleanup attachment keeps its original debt"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "state.closing = true;"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "current refusal does not prevent cleanup of original retained duties"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Escaped aliases remain the original envelope"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// here. An absent complete operational original refuses before caller reads."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "nominal current rejects fake copied and other-instance scopes"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "original real file descriptors remain child-owned across pending and sibling cleanup"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "anchor": "a caller current method cannot authenticate"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original-custody state and nominal membership references. Explicit operational controls in tests are not the actual preload envelope supplier or normal Host acceptance."
     },
     {
       "module": "adapters/host-node/installation.mjs",
@@ -39529,11 +39969,20 @@
     },
     {
       "module": "adapters/host-node/node-initial-control-installation.mjs",
-      "sha256": "bf7f9c804de728bfa32b17c74bc0392c5a6093cf698c6a60c091816be0635bae",
+      "sha256": "99a98a89c8db916e0e120044c6dad687507058eb5daa8f78e90cdbc82a884d21",
       "exports": [
+        "assertInitialControlInstallationCurrent",
         "beginInitialControlInstallation"
       ],
       "operations": [
+        {
+          "name": "assertInitialControlInstallationCurrent",
+          "parameters": [
+            "scope",
+            "sameOriginals"
+          ],
+          "async": false
+        },
         {
           "name": "beginInitialControlInstallation",
           "parameters": [
@@ -39554,9 +40003,11 @@
         {
           "operations": [
             "<module>",
+            "assertInitialControlInstallationCurrent",
             "beginInitialControlInstallation"
           ],
           "exports": [
+            "assertInitialControlInstallationCurrent",
             "beginInitialControlInstallation"
           ],
           "attributes": {
@@ -39564,24 +40015,52 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "<!-- requirement-block: initial-node-control.original-before-work -->"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Internal state machine, not an operational issuer."
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/node-initial-control-installation.mjs",
                 "anchor": "export function beginInitialControlInstallation(originals)"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "function createInitialControlInstallationOwner(operational)"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "anchor": "export function assertInitialControlInstallationCurrent(scope, sameOriginals)"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/node-initial-control-installation.mjs",
                 "anchor": "same Host/installation/generation/source/backend/recipe"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "const scopes = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "const names = Object.freeze(['host', 'installation', 'generation', 'supplier', 'moduleLifetime']);"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Retain the record before any fallible cleanup descriptor observation."
               }
             ],
             "synchronization": [
@@ -39592,6 +40071,14 @@
               {
                 "path": "adapters/host-node/node-initial-control-installation.mjs",
                 "anchor": "retainPreparation(originalRecord, originalCleanupHandle?) -> original duty"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// concurrent close observes that SAME Promise"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Consume before the original current callback: it may reenter this Owner."
               }
             ],
             "failure": [
@@ -39602,24 +40089,52 @@
               {
                 "path": "adapters/host-node/node-initial-control-installation.test.mjs",
                 "anchor": "before observing caller fields"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "const unavailable = () => fail('NodeInitialControlAdmissionUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "failed late cleanup attachment keeps its original debt"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "<!-- requirement-block: initial-node-control.retained-custody -->"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "state.closing = true;"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "current refusal does not prevent cleanup of original retained duties"
               }
             ],
             "resources": [
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "<!-- requirement-block: initial-node-control.complete-selected-envelope -->"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Escaped aliases remain the original envelope"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// here. An absent complete operational original refuses before caller reads."
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/node-initial-control-installation.mjs",
                 "anchor": "No consumer-side fallback is permitted."
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -39634,6 +40149,18 @@
               {
                 "path": "adapters/host-node/node-initial-control-installation.test.mjs",
                 "anchor": "late ordinary import has no synthetic or reusable pending admission"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "nominal current rejects fake copied and other-instance scopes"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "original real file descriptors remain child-owned across pending and sibling cleanup"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "anchor": "a caller current method cannot authenticate"
               }
             ]
           }
