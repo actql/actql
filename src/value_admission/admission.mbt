@@ -102,6 +102,14 @@ fn read_scalar(
       Text(text)
     }
     @contract.Number => Number(number(cursor))
+    @contract.Signed64 => {
+      let text = decoded(@decode.text(cursor))
+      ignore(text_size(text, cursor, budget))
+      match signed64(text) {
+        Some(value) => Signed64(value)
+        None => fail(cursor, InvalidSigned64)
+      }
+    }
     @contract.Boolean => Boolean(decoded(@decode.boolean(cursor)))
     @contract.Decimal(precision~, scale~) => {
       let text = decoded(@decode.text(cursor))

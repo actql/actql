@@ -223,6 +223,7 @@ fn event_value_supported(value : @value.CheckedValue) -> Bool {
     | @value.Date(_)
     | @value.Timestamp(_)
     | @value.Decimal(_) => true
+    @value.Signed64(_) => true
     @value.Reference(reference) => @value.reference_available(reference)
     @value.Array(_)
     | @value.Object(_)

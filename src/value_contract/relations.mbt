@@ -77,7 +77,8 @@ fn compatible(a : Contract, b : Contract, relation : Relation) -> Bool {
         Assign => y is None || x == y
         Join => true
       }
-    (Number, Number)
+    (Signed64, Signed64)
+    | (Number, Number)
     | (Boolean, Boolean)
     | (Timestamp, Timestamp)
     | (Date, Date)
@@ -283,6 +284,7 @@ pub fn key_comparable(a : Contract, b : Contract) -> Bool {
   match (a.shape, b.shape) {
     (Text(_), Text(_))
     | (Number, Number)
+    | (Signed64, Signed64)
     | (Boolean, Boolean)
     | (Timestamp, Timestamp)
     | (Date, Date)

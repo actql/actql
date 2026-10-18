@@ -9408,7 +9408,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             },
                             "actual_type": {
@@ -9425,7 +9426,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             }
                           }
@@ -9457,7 +9459,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             },
                             "admission": {
@@ -9472,7 +9475,7 @@ const schemas = {
                               "additionalProperties": false,
                               "properties": {
                                 "contract_schema_cid": {
-                                  "const": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
+                                  "const": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
                                 },
                                 "kind": {
                                   "const": "parameter_declaration"
@@ -11293,7 +11296,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             },
                             "actual_type": {
@@ -11310,7 +11314,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             }
                           }
@@ -11342,7 +11347,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             },
                             "admission": {
@@ -11357,7 +11363,7 @@ const schemas = {
                               "additionalProperties": false,
                               "properties": {
                                 "contract_schema_cid": {
-                                  "const": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
+                                  "const": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
                                 },
                                 "kind": {
                                   "const": "parameter_declaration"
@@ -13165,7 +13171,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e"
+            "const": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -13689,7 +13695,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             },
                             "actual_type": {
@@ -13706,7 +13713,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             }
                           }
@@ -13738,7 +13746,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             },
                             "admission": {
@@ -13753,7 +13762,7 @@ const schemas = {
                               "additionalProperties": false,
                               "properties": {
                                 "contract_schema_cid": {
-                                  "const": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
+                                  "const": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
                                 },
                                 "kind": {
                                   "const": "parameter_declaration"
@@ -15574,7 +15583,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             },
                             "actual_type": {
@@ -15591,7 +15601,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             }
                           }
@@ -15623,7 +15634,8 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "content_ref"
+                                "content_ref",
+                                "int64"
                               ]
                             },
                             "admission": {
@@ -15638,7 +15650,7 @@ const schemas = {
                               "additionalProperties": false,
                               "properties": {
                                 "contract_schema_cid": {
-                                  "const": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
+                                  "const": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
                                 },
                                 "kind": {
                                   "const": "parameter_declaration"
@@ -17464,7 +17476,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e"
+            "const": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -17510,7 +17522,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e"
+            "const": "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -18448,6 +18460,22 @@ const schemas = {
             "minLength": 1
           }
         }
+      },
+      {
+        "type": "object",
+        "required": [
+          "type",
+          "nullable"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "int64"
+          },
+          "nullable": {
+            "type": "boolean"
+          }
+        }
       }
     ]
   },
@@ -19213,8 +19241,8 @@ const optionalRequestFields = {
   }
 };
 
-export const checkReasonSchemaCid = "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e";
-export const checkOutcomeSchemaCid = "sha256:988a8893ede0e64a351f077f28c7b7c82a9b2988467b8eb8a02755ad3530ca7b";
+export const checkReasonSchemaCid = "sha256:54baf7b22da230658af51926f20645fe5983621cafef912947db3a417cb323bf";
+export const checkOutcomeSchemaCid = "sha256:ee1c0c7799d2dd30aa084ec5699078cf14ada0687ac6bb9e48e1f714789a8535";
 export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
 export const runStateProtocol = Object.freeze({version: "actql-run-state/0.1", statuses: Object.freeze(["preparing","running","waiting_checkpoint","resuming","needs_reconciliation","succeeded","failed","cancelled"])});
 function finiteWireNumber(value) {

@@ -90,6 +90,31 @@ export function textEnumerationBody(protocol) {
   };
 }
 
+// A logical signed domain, not a Number constraint or a Decimal alias. This
+// checks type grammar only; schema admission never supplies checked values.
+export function signed64Body(protocol) {
+  const grammar={type:'object',required:['type','nullable'],additionalProperties:false,
+    properties:{type:{const:'int64'},nullable:{type:'boolean'}}};
+  for(const name of ['author_value_contract','canonical_value_contract']){
+    const branches=protocol.schemas[name].$defs.value_contract.oneOf
+      .filter(value=>value.properties?.type?.const==='int64');
+    assert.deepEqual(branches,[grammar],'closed distinct int64 grammar: '+name);
+  }
+  return {
+    grammar,
+    domain:{minimum:'-9223372036854775808',maximum:'9223372036854775807'},
+    wire:'schema_directed_canonical_decimal_String_0_or_optional_minus_nonzero_digit_then_digits_in_full_signed64_range',
+    rejection:'JSON_Number_plus_negative_zero_leading_zero_whitespace_fraction_exponent_or_out_of_range_never_round_or_relabel',
+    identity:'distinct_complete_checked_int64_contract_and_typed_value_not_wire_Text_Number_or_Decimal',
+    assignment:'same_leaf_and_existing_nullability_recursive_structure_no_implicit_numeric_or_Text_coercion',
+    equality_order_keys:'exact_signed_integer_correspondence_retain_original_type_capture_and_existing_null_semantics',
+    operations:'existing_data_and_same_domain_relational_rules_no_implicit_arithmetic_overload',
+    provider:'exact_constraint_support_or_unavailable_no_schema_erasure',
+    authority:'type_or_value_admission_is_not_permission_currentness_funding_or_reference_issuance',
+    compatibility:'legacy_Number_Decimal_Text_bodies_value_bytes_and_numeric_literal_meaning_unchanged',
+  };
+}
+
 export function valueBodyContract(protocol) {
   const kinds=protocol.schemas.contract_envelope.properties.kind.enum;
   assert.deepEqual([...kinds].sort(),[...valueKinds,...otherKinds].sort(),'Every envelope kind needs an explicit body-grammar classification');
@@ -99,7 +124,8 @@ export function valueBodyContract(protocol) {
     ownership:'retain_exact_registry_envelope_and_environment_not_only_bare_body_cid',
     scope:'type_declarations_only_not_value_admission_reference_authority_or_behavioral_contract_validation',
     command_input_presence:commandInputPresenceBody(protocol),
-    text_enumeration:textEnumerationBody(protocol)};
+    text_enumeration:textEnumerationBody(protocol),
+    signed64:signed64Body(protocol)};
 }
 
 export function generateValueKinds(protocol) {

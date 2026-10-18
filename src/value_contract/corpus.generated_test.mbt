@@ -246,3 +246,71 @@ test "value contract corpus: text-enum-array" {
   let checked = @value_contract.read_checked(cursor("{\"items\":{\"enum\":[\"high\"],\"nullable\":true,\"type\":\"string\"},\"nullable\":false,\"type\":\"array\"}"), limits()).unwrap()
   assert_true(@value_contract.type_equal(value, checked, 1000))
 }
+
+///|
+test "value contract corpus: int64-author-nonnull" {
+  let value = @value_contract.read_author(cursor("{\"type\":\"int64\",\"nullable\":false}"), limits()).unwrap()
+  assert_eq(render(value), "{\"nullable\":false,\"type\":\"int64\"}")
+  let checked = @value_contract.read_checked(cursor("{\"nullable\":false,\"type\":\"int64\"}"), limits()).unwrap()
+  assert_true(@value_contract.type_equal(value, checked, 1000))
+}
+
+///|
+test "value contract corpus: int64-author-nullable" {
+  let value = @value_contract.read_author(cursor("{\"type\":\"int64\",\"nullable\":true}"), limits()).unwrap()
+  assert_eq(render(value), "{\"nullable\":true,\"type\":\"int64\"}")
+  let checked = @value_contract.read_checked(cursor("{\"nullable\":true,\"type\":\"int64\"}"), limits()).unwrap()
+  assert_true(@value_contract.type_equal(value, checked, 1000))
+}
+
+///|
+test "value contract corpus: int64-checked-nonnull" {
+  let value = @value_contract.read_checked(cursor("{\"type\":\"int64\",\"nullable\":false}"), limits()).unwrap()
+  assert_eq(render(value), "{\"nullable\":false,\"type\":\"int64\"}")
+  let checked = @value_contract.read_checked(cursor("{\"nullable\":false,\"type\":\"int64\"}"), limits()).unwrap()
+  assert_true(@value_contract.type_equal(value, checked, 1000))
+}
+
+///|
+test "value contract corpus: int64-checked-nullable" {
+  let value = @value_contract.read_checked(cursor("{\"type\":\"int64\",\"nullable\":true}"), limits()).unwrap()
+  assert_eq(render(value), "{\"nullable\":true,\"type\":\"int64\"}")
+  let checked = @value_contract.read_checked(cursor("{\"nullable\":true,\"type\":\"int64\"}"), limits()).unwrap()
+  assert_true(@value_contract.type_equal(value, checked, 1000))
+}
+
+///|
+test "value contract corpus: int64-array" {
+  let value = @value_contract.read_author(cursor("{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"int64\",\"nullable\":true}}"), limits()).unwrap()
+  assert_eq(render(value), "{\"items\":{\"nullable\":true,\"type\":\"int64\"},\"nullable\":false,\"type\":\"array\"}")
+  let checked = @value_contract.read_checked(cursor("{\"items\":{\"nullable\":true,\"type\":\"int64\"},\"nullable\":false,\"type\":\"array\"}"), limits()).unwrap()
+  assert_true(@value_contract.type_equal(value, checked, 1000))
+}
+
+///|
+test "value contract corpus: int64-object" {
+  let value = @value_contract.read_checked(cursor("{\"type\":\"object\",\"nullable\":false,\"additional_properties\":false,\"fields\":{\"n\":{\"type\":\"int64\",\"nullable\":false}}}"), limits()).unwrap()
+  assert_eq(render(value), "{\"additional_properties\":false,\"fields\":{\"n\":{\"nullable\":false,\"type\":\"int64\"}},\"nullable\":false,\"type\":\"object\"}")
+  let checked = @value_contract.read_checked(cursor("{\"additional_properties\":false,\"fields\":{\"n\":{\"nullable\":false,\"type\":\"int64\"}},\"nullable\":false,\"type\":\"object\"}"), limits()).unwrap()
+  assert_true(@value_contract.type_equal(value, checked, 1000))
+}
+
+///|
+test "value contract corpus: int64-missing-nullable" {
+  assert_eq(error_name(@value_contract.read_author(cursor("{\"type\":\"int64\"}"), limits())), "MissingField")
+}
+
+///|
+test "value contract corpus: int64-no-decimal-parameters" {
+  assert_eq(error_name(@value_contract.read_checked(cursor("{\"type\":\"int64\",\"nullable\":false,\"precision\":19,\"scale\":0}"), limits())), "UnknownField")
+}
+
+///|
+test "value contract corpus: int64-no-number-constraints" {
+  assert_eq(error_name(@value_contract.read_author(cursor("{\"type\":\"int64\",\"nullable\":false,\"minimum\":0}"), limits())), "UnknownField")
+}
+
+///|
+test "value contract corpus: int64-no-text-enumeration" {
+  assert_eq(error_name(@value_contract.read_checked(cursor("{\"type\":\"int64\",\"nullable\":false,\"enum\":[\"1\"]}"), limits())), "UnknownField")
+}

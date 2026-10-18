@@ -35,6 +35,16 @@
     {"id":"text-enum-repetitions-and-order","mode":"author","input":{"type":"string","nullable":false,"enum":["high","low","high"]},"expected_json":"{\"enum\":[\"high\",\"low\",\"high\"],\"nullable\":false,\"type\":\"string\"}"},
     {"id":"text-enum-unicode-exact","mode":"author","input":{"type":"string","nullable":false,"enum":["é","é","😀"]},"expected_json":"{\"enum\":[\"é\",\"é\",\"😀\"],\"nullable\":false,\"type\":\"string\"}"},
     {"id":"text-enum-extent-intersection","mode":"checked","input":{"type":"string","nullable":false,"enum":["x","large"],"max_codepoints":1},"expected_json":"{\"enum\":[\"x\",\"large\"],\"max_codepoints\":1,\"nullable\":false,\"type\":\"string\"}"},
-    {"id":"text-enum-array","mode":"author","input":{"type":"array","nullable":false,"items":{"type":"string","nullable":true,"enum":["high"]}},"expected_json":"{\"items\":{\"enum\":[\"high\"],\"nullable\":true,\"type\":\"string\"},\"nullable\":false,\"type\":\"array\"}"}
+    {"id":"text-enum-array","mode":"author","input":{"type":"array","nullable":false,"items":{"type":"string","nullable":true,"enum":["high"]}},"expected_json":"{\"items\":{\"enum\":[\"high\"],\"nullable\":true,\"type\":\"string\"},\"nullable\":false,\"type\":\"array\"}"},
+    {"id":"int64-author-nonnull","mode":"author","input":{"type":"int64","nullable":false},"expected_json":"{\"nullable\":false,\"type\":\"int64\"}"},
+    {"id":"int64-author-nullable","mode":"author","input":{"type":"int64","nullable":true},"expected_json":"{\"nullable\":true,\"type\":\"int64\"}"},
+    {"id":"int64-checked-nonnull","mode":"checked","input":{"type":"int64","nullable":false},"expected_json":"{\"nullable\":false,\"type\":\"int64\"}"},
+    {"id":"int64-checked-nullable","mode":"checked","input":{"type":"int64","nullable":true},"expected_json":"{\"nullable\":true,\"type\":\"int64\"}"},
+    {"id":"int64-array","mode":"author","input":{"type":"array","nullable":false,"items":{"type":"int64","nullable":true}},"expected_json":"{\"items\":{\"nullable\":true,\"type\":\"int64\"},\"nullable\":false,\"type\":\"array\"}"},
+    {"id":"int64-object","mode":"checked","input":{"type":"object","nullable":false,"additional_properties":false,"fields":{"n":{"type":"int64","nullable":false}}},"expected_json":"{\"additional_properties\":false,\"fields\":{\"n\":{\"nullable\":false,\"type\":\"int64\"}},\"nullable\":false,\"type\":\"object\"}"},
+    {"id":"int64-missing-nullable","mode":"author","input":{"type":"int64"},"expected_error":"MissingField"},
+    {"id":"int64-no-decimal-parameters","mode":"checked","input":{"type":"int64","nullable":false,"precision":19,"scale":0},"expected_error":"UnknownField"},
+    {"id":"int64-no-number-constraints","mode":"author","input":{"type":"int64","nullable":false,"minimum":0},"expected_error":"UnknownField"},
+    {"id":"int64-no-text-enumeration","mode":"checked","input":{"type":"int64","nullable":false,"enum":["1"]},"expected_error":"UnknownField"}
   ]
 }

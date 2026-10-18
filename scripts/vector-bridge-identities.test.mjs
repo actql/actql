@@ -6,8 +6,21 @@ import {verifyIdentity} from './check-canonical-json.mjs';
 import {vectorSchemas} from './vector-schema.mjs';
 import {project, structuralValidatorSource} from './generate-client-publication-wire.mjs';
 const read = path => JSON.parse(readFileSync(path,'utf8'));
-const vector = JSON.parse(gunzipSync(readFileSync('scripts/fixtures/composite-vector-bridge/identities.json.gz')));
+const historical = JSON.parse(gunzipSync(readFileSync('scripts/fixtures/composite-vector-bridge/identities.json.gz')));
+const vector = JSON.parse(gunzipSync(readFileSync('scripts/fixtures/composite-vector-bridge/signed64-identities.json.gz')));
 const at = (root,pointer) => pointer.split('/').slice(1).reduce((value,key)=>value[key],root);
+
+test('original composite Bridge preimages remain independently valid before Signed64 composition', () => {
+  assert.deepEqual(vector.grammar, historical.grammar);
+  assert.deepEqual(vector.bridgeNodes, historical.bridgeNodes);
+  for (const item of historical.programs) for (const side of ['before','after']) {
+    verifyIdentity(item[side].body, item[side].cid, item[side].canonicalPreimage);
+  }
+  for (const side of ['before','after']) {
+    const {grammar_manifest_cid, ...body} = historical.manifest[side];
+    verifyIdentity(body, grammar_manifest_cid);
+  }
+});
 
 test('complete composite Bridge Program schemas change only the original id role alternative', () => {
   const registry=read('spec/contracts/actql-protocol-schemas.json');

@@ -729,7 +729,7 @@ every field name and recursive value contract; knowing some names is not complet
 
 ### Closed value contracts
 
-The closed value type names are `string`, `number`, `decimal`, `boolean`, `timestamp`,
+The closed value type names are `string`, `number`, `int64`, `decimal`, `boolean`, `timestamp`,
 `date`, `json`, `object`, `array`, `vector`, `resource_ref`, and `content_ref`.
 The primitive value domains are:
 
@@ -738,6 +738,7 @@ The primitive value domains are:
 | --- | --- |
 | `string` | Well-formed Unicode scalar sequences, preserved without implicit normalization or line-break conversion. |
 | `number` | Finite IEEE-754 binary64; negative zero is invalid in canonical source. |
+| `int64` | Exact signed 64-bit integers ([Exact signed integers](#signed64-values)). |
 | `boolean` | `true` or `false`. |
 | `decimal` | Precision, scale, and exact base-10 coefficient ([Exact decimal values](#decimal-values)). |
 | `timestamp` | Canonical UTC `YYYY-MM-DDTHH:mm:ss.sssZ`; offsets and leap-second spellings are invalid. |
@@ -864,7 +865,7 @@ also has `type` and required `nullable`; `?` marks an optional member.
 | Type | Other author members | Checked expansion or evidence |
 | --- | --- | --- |
 | `string` | `enum?: string[]` | enum vector retained; optional `min_length`, `max_codepoints`, `max_utf8_bytes` from admitted evidence |
-| `number`, `boolean`, `timestamp`, `date`, `json` | none | unchanged |
+| `number`, `int64`, `boolean`, `timestamp`, `date`, `json` | none | unchanged |
 | `decimal` | `precision`, `scale` | unchanged; [Exact decimal values](#decimal-values) ranges |
 | `array` | `items: AuthorValueContract`, `max_items?` | recursive checked `items`; bound unchanged |
 | `object` | `fields: {AuthoredFieldName: AuthorValueContract}` | recursive checked fields; `additional_properties: false` |
@@ -1023,6 +1024,59 @@ default and nullability rules in [Parameters and binding](#parameters).
 Leap seconds and out-of-range dates fail. These value rules apply without the
 optional text-time profile, which only adds transformations over the domain.
 
+<a id="signed64-values"></a>
+
+### Exact signed integers
+
+The closed logical contract is `{type: int64, nullable: boolean}`. It has no
+precision, scale, enum, minimum or maximum declaration fields. It is distinct
+from `number`, `decimal`, and `string`; sharing an internal integer/coefficient
+representation does not make their contracts or values interchangeable.
+
+<!-- requirement-block: signed64-values.full-signed-domain -->
+An `int64` value MUST be an exact integer in the inclusive range
+-9223372036854775808 through 9223372036854775807, including both
+9007199254740992 and 9007199254740993 as distinct values.
+
+<!-- requirement-block: signed64-values.canonical-schema-directed-wire -->
+Schema-directed JSON and JSONL serialization MUST encode a non-null `int64`
+as a canonical decimal String matching `0|-?[1-9][0-9]*` within that signed
+range. CSV uses the same text under its retained schema. A wire String is
+an integer only under the original `int64` contract, not by lexical inference.
+
+<!-- requirement-block: signed64-values.reject-noncanonical-and-overflow -->
+Admission MUST reject JSON Number inputs, negative zero, a leading plus,
+leading zeros, whitespace, fraction/exponent spellings and values outside
+the signed range without rounding, wrapping, saturation or conversion to
+another logical type. Null remains governed separately by `nullable`.
+
+<!-- requirement-block: signed64-values.distinct-typed-identity -->
+Typed value identity MUST retain the distinct `int64` tag and canonical
+integer text rather than the identity of its transport String or a Number
+or Decimal representation. The existing bound-value marker is
+`{"$actql_value":["int64","9007199254740993"]}`; existing business-object
+escaping still distinguishes that object from an integer value.
+
+<!-- requirement-block: signed64-values.exact-comparison-and-retention -->
+Equality, ordering and key correspondence MUST compare exact signed integers
+and preserve the same checked logical type through Parameters, Values,
+RowRun capture, Result serialization and attachment. Existing null behavior,
+complete type identity and original-capture requirements remain applicable.
+
+<!-- requirement-block: signed64-values.no-implicit-domain-coercion -->
+Assignment and common-type joining MUST preserve the `int64` leaf under the
+existing recursive structure, extents and nullability rules without implicit
+coercion to or from Number, Decimal or Text. `int64` is KeyComparable and
+AuthorOrderable only with that same logical domain.
+
+<!-- requirement-block: signed64-values.no-implicit-arithmetic-overload -->
+Adding this value domain MUST NOT widen existing arithmetic signatures,
+integer-literal interpretation or mixed-domain operations implicitly.
+An operation or conversion needs its own admitted exact signature and
+implementation; an unsupported route remains unavailable rather than using
+an approximate or relabeled value. Existing Number and Decimal bytes and
+identities are unchanged.
+
 <a id="decimal-values"></a>
 
 ### Exact decimal values
@@ -1140,11 +1194,11 @@ image/audio-specific carriers do not exist.
 
 ### Lexical and ordering rules
 
-`AuthorOrderable` comprises `string`, `number`, `decimal`, `boolean`,
+`AuthorOrderable` comprises `string`, `number`, `int64`, `decimal`, `boolean`,
 `timestamp`, and `date`. `CanonicalOrderable` comprises those types plus
 `resource_ref` and `content_ref`. These are specification classifications,
 not source syntax. A portable order is the specified total order over non-null
-values of a `CanonicalOrderable` type: numeric order for `number` and `decimal`, `false < true`
+values of a `CanonicalOrderable` type: exact signed order for `int64`, numeric order for `number` and `decimal`, `false < true`
 for `boolean`, chronological order for `timestamp` and `date`, the string order
 below, and reference identity order ([Opaque reference values](#opaque-references)). `object`, `array`, `json`, and
 `vector` have no portable order. Null placement follows the operation's rules;
@@ -1716,7 +1770,7 @@ steps:
 ```
 
 <!-- requirement-block: parameters.decimal-declarations-must-specify-literal-precision-and-scale-under -->
-Scalar parameter types are `string`, `number`, `decimal`, `boolean`,
+Scalar parameter types are `string`, `number`, `int64`, `decimal`, `boolean`,
 `timestamp`, and `date`. Closed typed objects and homogeneous recursive arrays
 are also admitted. Arrays declare one item contract under `items`
 and MAY declare a positive fixed
@@ -11134,22 +11188,22 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:c15067fc3e614e65d3e861fbc15e9c94d33abc370fd20600429e2c3930ef17e4
+../../spec/contracts/actql-aoa.json# sha256:b41122ab0e54f2088d0fd1f98679643c8ceeb479168db6051637d2ca5f941e1f
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
-../../spec/contracts/actql-protocol-schemas.json#/schemas/author_value_contract sha256:ddc5515cc80aacf27e0e80c75667717efa89db934f668fc626cc239b630ee45a
-../../spec/contracts/actql-protocol-schemas.json#/schemas/canonical_value_contract sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c
+../../spec/contracts/actql-protocol-schemas.json#/schemas/author_value_contract sha256:6347c77a776b71f32be8996374db8b093c00de89eba14da8f4dc384a8c9cc7c7
+../../spec/contracts/actql-protocol-schemas.json#/schemas/canonical_value_contract sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:e7645d18471d4436b7542302adce28303a8a634ce29e9f5fd849f5cee8d1159e
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:13d2c700aef09d7fd33d3eba9705f89541432b766b328ad394f9c2acd4686bc2
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:d88c7ba0e4be6e1ea2519468f82303012dcdd8d8daf48af9e9a5889411659cb1
+../../spec/contracts/actql-expressions.json# sha256:ed54dd0a56f4bfc7811a600db137ae5b32b24c2819a81ab69c7c5f06d349da7b
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:5c7ab5c2189768003f4cc1cf5665b3c42ef1bc47497e606a46938fc1dfa40c77
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:c37306c98c772f79f11782503522843430c0867b0bf903248fe9933cb477fb6f
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
 ../../spec/contracts/actql-expressions.json#/laws sha256:bb8faf6038bb2b548b25b994d5baf926d2052a4611d1608191bab2d296251725
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:e07531aa4e844069941baae63c624996db3c0d5ed4a2eddfb26b7030816da542
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:067f0a0017116bd31143765743e5f7251b2550f18cb91b321faae296b240ff01
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:46609f6f81679938a14f2b79e6f750d242b841684f9a00d911568efded652905
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:e3b47a961be9b92970dd52c9415208821fbac6b9d7c3ea28e573e02603194fc9
 ```
 
 <!-- stage-contract-pins:start -->
