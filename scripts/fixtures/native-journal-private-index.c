@@ -54,12 +54,47 @@ int main(int argc, char **argv) {
   assert(fd >= 0 && write(fd, "original", 8) == 8 && close(fd) == 0);
   moonbit_bytes_t path = moonbit_make_bytes_raw((int32_t)strlen(source));
   memcpy(path, source, strlen(source));
+  int output_unknown = strcmp(argv[1], "output-close-unknown") == 0;
+  fail_close = output_unknown;
   actql_journal_inspection *owner = inspection_open_bounded(
     path, (int32_t)strlen(source), 1024);
+  char *index = NULL;
+  if (output_unknown) {
+    assert(!owner->ready && owner->output_descriptor >= 0);
+    int original = observed_descriptor;
+    int held_source = owner->descriptors[0];
+    assert(held_source >= 0 && fcntl(held_source, F_GETFD) >= 0);
+    int reused = open("/dev/null", O_RDONLY);
+    assert(reused == original);
+    int before = close_count;
+    char primary[sizeof(owner->error)];
+    memcpy(primary, owner->error, sizeof(primary));
+    assert(!inspection_close(owner) && !inspection_close(owner));
+    assert(close_count == before && fcntl(reused, F_GETFD) >= 0);
+    assert(fcntl(held_source, F_GETFD) >= 0);
+    assert(memcmp(primary, owner->error, sizeof(primary)) == 0);
+    assert(access(owner->copy, F_OK) == 0);
+    assert(close(reused) == 0);
+    goto done;
+  }
   assert(owner->ready && !owner->absent);
-  char *index = inspection_suffix(owner->copy, "-shm");
+  index = inspection_suffix(owner->copy, "-shm");
   int before = close_count;
-  if (strcmp(argv[1], "generic") == 0) {
+  if (strcmp(argv[1], "source-close-unknown") == 0) {
+    int original = owner->descriptors[0];
+    fail_close = 1;
+    assert(!inspection_close(owner));
+    assert(observed_descriptor == original && close_count == before + 1);
+    int reused = open("/dev/null", O_RDONLY);
+    assert(reused == original);
+    char primary[sizeof(owner->error)];
+    memcpy(primary, owner->error, sizeof(primary));
+    assert(!inspection_close(owner) && !inspection_close(owner));
+    assert(close_count == before + 1 && fcntl(reused, F_GETFD) >= 0);
+    assert(memcmp(primary, owner->error, sizeof(primary)) == 0);
+    assert(access(owner->copy, F_OK) == 0);
+    assert(close(reused) == 0);
+  } else if (strcmp(argv[1], "generic") == 0) {
     assert(access(index, F_OK) == -1 && errno == ENOENT);
     assert(inspection_close(owner));
   } else {
@@ -134,6 +169,7 @@ int main(int argc, char **argv) {
       }
     }
   }
+done:
   assert(access(source, F_OK) == 0);
   printf("{\"case\":\"%s\",\"passed\":true,\"sqliteExecuted\":false,"
          "\"kernelFaultObserved\":false}\n", argv[1]);
