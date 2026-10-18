@@ -95,6 +95,11 @@ def main() -> None:
 
 
     step('one actual Host pair retains its original claimed Read and distinct SQLite domain')
+    helper.actql_fixture_adoption_crypto_sha256.argtypes = [c.c_void_p]
+    helper.actql_fixture_adoption_crypto_sha256.restype = c.c_int
+    with pair.scope('read'):
+        assert helper.actql_fixture_adoption_crypto_sha256(crypto) == 0
+    step('same Library returns the exact SHA-256 vector and closed-hash refusal')
     prepare_call = bind(library, 'actql_local_adoption_prepare_utf16_into')
     texts = [_exact_utf16(str(seeded), 4096),
              _exact_utf16('adoption-capture-journal.host', 4096),
@@ -157,7 +162,7 @@ def main() -> None:
     assert host._closed and backing._closed and descriptor.closed
     assert all(domain._closed for domain in domains)
     step('original domains loan Host backing and descriptor confirm their separate retirement')
-    assert len(cases) == 10
+    assert len(cases) == 11
     loaded = {}
     for name, module in list(sys.modules.items()):
         if name == 'actql_sdk' or name.startswith('actql_sdk.'):
