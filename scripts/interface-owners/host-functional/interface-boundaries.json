@@ -11296,7 +11296,7 @@
     {
       "module": "adapters/host-node/client-check.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0cdbec463bd310082d5f4e9362c082cb2ade2d7b64d36fad8ecea108923bbc11",
+      "sha256": "16eddfdae3b5c90ab23e85cfc49b0e605abd1a9d602822801f2d211970c01784",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -11321,6 +11321,7 @@
             "sourceAccesses",
             "tableWriteAccesses",
             "namespaceAuthorizationFor",
+            "updateTargetDisclosure",
             "contextKey"
           ],
           "async": false
@@ -11376,6 +11377,7 @@
             "parameters",
             "visible",
             "visibleWrites",
+            "visibleUpdates",
             "kind",
             "scope",
             "namespace"
@@ -11407,6 +11409,13 @@
         },
         {
           "name": "installNodeClientCheck/installNodeClientCheck#3",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientCheck/installNodeClientCheck#4",
           "parameters": [],
           "async": false
         },
@@ -11451,6 +11460,28 @@
           "name": "installNodeClientCheck/visibleTableWrites/visibleTableWrites/visibleTableWrites",
           "parameters": [
             "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientCheck/visibleUpdateTargets/visibleUpdateTargets",
+          "parameters": [
+            "principalId",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "installNodeClientCheck/visibleUpdateTargets/visibleUpdateTargets/visibleUpdateTargets",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientCheck/visibleUpdateTargets/visibleUpdateTargets/visibleUpdateTargets#2",
+          "parameters": [
+            "entry"
           ],
           "async": false
         },
@@ -11510,12 +11541,16 @@
             "installNodeClientCheck/installNodeClientCheck",
             "installNodeClientCheck/installNodeClientCheck#2",
             "installNodeClientCheck/installNodeClientCheck#3",
+            "installNodeClientCheck/installNodeClientCheck#4",
             "installNodeClientCheck/revision/revision",
             "installNodeClientCheck/visibleAliases/visibleAliases",
             "installNodeClientCheck/visibleAliases/visibleAliases/visibleAliases",
             "installNodeClientCheck/visibleAliases/visibleAliases/visibleAliases#2",
             "installNodeClientCheck/visibleTableWrites/visibleTableWrites",
             "installNodeClientCheck/visibleTableWrites/visibleTableWrites/visibleTableWrites",
+            "installNodeClientCheck/visibleUpdateTargets/visibleUpdateTargets",
+            "installNodeClientCheck/visibleUpdateTargets/visibleUpdateTargets/visibleUpdateTargets",
+            "installNodeClientCheck/visibleUpdateTargets/visibleUpdateTargets/visibleUpdateTargets#2",
             "installNodeClientCheck/writeAccesses/writeAccesses",
             "projectClientCheckUnavailable",
             "validBoundOutcome/validBoundOutcome",
@@ -11539,6 +11574,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "### Original UPDATE target disclosure"
+              },
+              {
+                "path": "adapters/host-node/client-check-update-publication.test.mjs",
+                "anchor": "test('installation captures the original disclosure callback and receiver once'"
               }
             ],
             "inputsOutputs": [
@@ -11553,6 +11596,14 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "### Original UPDATE target disclosure"
+              },
+              {
+                "path": "adapters/host-node/client-check-update-publication.test.mjs",
+                "anchor": "test('installation captures the original disclosure callback and receiver once'"
               }
             ],
             "identity": [
@@ -11567,6 +11618,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "### Original UPDATE target disclosure"
+              },
+              {
+                "path": "adapters/host-node/client-check-update-publication.test.mjs",
+                "anchor": "test('installation captures the original disclosure callback and receiver once'"
               }
             ],
             "ownership": [
@@ -11581,6 +11640,14 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "# Checked Program construction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "### Original UPDATE target disclosure"
+              },
+              {
+                "path": "adapters/host-node/client-check-update-publication.test.mjs",
+                "anchor": "test('installation captures the original disclosure callback and receiver once'"
               }
             ],
             "synchronization": [
@@ -11595,6 +11662,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "### Original UPDATE target disclosure"
+              },
+              {
+                "path": "adapters/host-node/client-check-update-publication.test.mjs",
+                "anchor": "test('installation captures the original disclosure callback and receiver once'"
               }
             ],
             "failure": [
@@ -11609,6 +11684,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "### Original UPDATE target disclosure"
+              },
+              {
+                "path": "adapters/host-node/client-check-update-publication.test.mjs",
+                "anchor": "test('installation captures the original disclosure callback and receiver once'"
               }
             ],
             "cancellation": [
@@ -11623,6 +11706,14 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "### Original UPDATE target disclosure"
+              },
+              {
+                "path": "adapters/host-node/client-check-update-publication.test.mjs",
+                "anchor": "test('installation captures the original disclosure callback and receiver once'"
               }
             ],
             "resources": [
@@ -11637,6 +11728,14 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "# Checked Program construction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "### Original UPDATE target disclosure"
+              },
+              {
+                "path": "adapters/host-node/client-check-update-publication.test.mjs",
+                "anchor": "test('installation captures the original disclosure callback and receiver once'"
               }
             ],
             "extension": [
@@ -11651,6 +11750,14 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "### Original UPDATE target disclosure"
+              },
+              {
+                "path": "adapters/host-node/client-check-update-publication.test.mjs",
+                "anchor": "test('installation captures the original disclosure callback and receiver once'"
               }
             ],
             "verification": [
@@ -11661,12 +11768,28 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "### Original UPDATE target disclosure"
+              },
+              {
+                "path": "adapters/host-node/client-check-update-publication.test.mjs",
+                "anchor": "test('installation captures the original disclosure callback and receiver once'"
               }
             ]
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "../../packages/client-wire/index.mjs",
+        "../../packages/sdk/host-port.mjs",
+        "./source-alias-publication.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
@@ -16648,7 +16771,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -16755,7 +16878,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -58684,7 +58807,7 @@
     },
     {
       "module": "adapters/host-node/mock-churn-risk-catalogue.mjs",
-      "sha256": "30b9a96694f048ca3fdab0ec7bee375dbf08ecbade3bf8ab1af737581608d8fa",
+      "sha256": "51be22a425671db4db99446a1500aa6d45a9192e87dfb89e9eaf7d3b2610ebf4",
       "exports": [
         "mockChurnRiskCatalogue"
       ],
@@ -58724,6 +58847,18 @@
               {
                 "path": "src/connectors_builtin_node/pkg.generated.mbti",
                 "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original physical Mock records"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
+              },
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
               }
             ],
             "inputsOutputs": [
@@ -58746,6 +58881,18 @@
               {
                 "path": "src/connectors_builtin_node/pkg.generated.mbti",
                 "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original physical Mock records"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
+              },
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
               }
             ],
             "identity": [
@@ -58768,6 +58915,18 @@
               {
                 "path": "src/connectors_builtin_node/pkg.generated.mbti",
                 "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original physical Mock records"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
+              },
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
               }
             ],
             "ownership": [
@@ -58790,6 +58949,18 @@
               {
                 "path": "src/connectors_builtin_node/pkg.generated.mbti",
                 "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original physical Mock records"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
+              },
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
               }
             ],
             "synchronization": [
@@ -58812,6 +58983,18 @@
               {
                 "path": "src/connectors_builtin_node/pkg.generated.mbti",
                 "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original physical Mock records"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
+              },
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
               }
             ],
             "failure": [
@@ -58834,6 +59017,18 @@
               {
                 "path": "src/connectors_builtin_node/pkg.generated.mbti",
                 "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original physical Mock records"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
+              },
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
               }
             ],
             "cancellation": [
@@ -58856,6 +59051,18 @@
               {
                 "path": "src/connectors_builtin_node/pkg.generated.mbti",
                 "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original physical Mock records"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
+              },
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
               }
             ],
             "resources": [
@@ -58878,6 +59085,18 @@
               {
                 "path": "src/connectors_builtin_node/pkg.generated.mbti",
                 "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original physical Mock records"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
+              },
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
               }
             ],
             "extension": [
@@ -58900,6 +59119,18 @@
               {
                 "path": "src/connectors_builtin_node/pkg.generated.mbti",
                 "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original physical Mock records"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
+              },
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
               }
             ],
             "verification": [
@@ -58922,6 +59153,18 @@
               {
                 "path": "src/connectors_builtin_node/pkg.generated.mbti",
                 "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original physical Mock records"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
+              },
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
               }
             ]
           }
