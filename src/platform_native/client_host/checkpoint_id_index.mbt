@@ -61,6 +61,7 @@ fn read_checkpoint_id_index(
 // does not grow with historical checkpoints. Legacy missing entries never
 // backfill when an unchanged checkpoint is merely observed or updated.
 fn NativeClientRunJournal::save_checkpoint_id_index(
+  self : NativeClientRunJournal,
   before : NativeClientRunRecord,
   after : NativeClientRunRecord,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
@@ -125,6 +126,7 @@ fn NativeClientRunJournal::save_checkpoint_id_index(
 // The inherited transaction custody checks remain unchanged; no claim is made
 // that all Journal work is scan-free. This operation never searches unknown IDs.
 fn NativeClientRunJournal::checkpoint_request_by_id_locked(
+  self : NativeClientRunJournal,
   scope : String,
   id : String,
 ) -> Result[@host.ClientRequestIdentity?, NativeClientRunJournalIssue] {
