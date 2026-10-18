@@ -1,5 +1,5 @@
 // GitHub's Issue read through the GraphQL API, bound to the published
-// repository's global node ID. The connector sends only two fixed, read-only
+// repository's global node ID. The connector sends only fixed, read-only
 // documents; callers supply typed variables, never query text. Every page
 // resolves the repository by `node(id:)`, so a different repository under the
 // same name is never read. Node IDs are opaque strings and compared exactly.

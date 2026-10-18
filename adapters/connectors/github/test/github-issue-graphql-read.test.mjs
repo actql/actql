@@ -441,3 +441,49 @@ test('the same actual accounted RowRun admits child observations then captures e
   assert.equal(context.rowRun.finish(), 1);
   assert.equal(context.fixture.seen().length, 2);
 });
+
+test('a lost nested reply remains the original unknown use and no complete row or resend is produced', async t => {
+  const state = world();
+  state.repositories.get('R_A').issues = [{number: 7,
+    labels: Array.from({length: 101}, (_, index) => `label-${index}`)}];
+  const context = await setup(t, state, {faults: [{kind: 'lose-reply',
+    method: 'POST', pathname: '/graphql', bodyIncludes: 'query ActqlIssueLabels('}]});
+  let published = 0;
+  const failure = await stopOf(context.read({consumePage: () => { published++; }}));
+  assert.equal(failure.stopped, true);
+  assert.deepEqual(failure.acceptedPages, []);
+  assert.equal(published, 0);
+  assert.equal(context.fixture.seen().length, 2);
+  const records = context.journal.recover();
+  assert.equal(records.length, 2);
+  assert.equal(records[1].useId, 'read-0-1');
+  assert.equal(records[1].outcome, 'unknown');
+});
+
+test('current authorization after awaited child consumption still fences the next physical field request', async t => {
+  const state = world();
+  state.repositories.get('R_A').issues = [{number: 7,
+    assignees: Array.from({length: 101}, (_, index) => `user-${index}`),
+    labels: Array.from({length: 101}, (_, index) => `label-${index}`)}];
+  let current = true;
+  const checks = [];
+  const context = await setup(t, state, {beforeAuthorize: index => {
+    checks.push(index);
+    if (!current) throw Object.assign(new Error('ExecutionAuthorizationDenied'),
+      {code: 'ExecutionAuthorizationDenied'});
+  }});
+  const originals = [];
+  let published = 0;
+  const failure = await stopOf(context.read({
+    chargePage: body => { const charge = Object.freeze({body}); originals.push(charge); return charge; },
+    consumeObservation: async charge => {
+      assert.equal(charge, originals[1]);
+      await Promise.resolve(); current = false;
+    },
+    consumePage: () => { published++; },
+  }));
+  assert.equal(failure.code, 'ExecutionAuthorizationDenied');
+  assert.deepEqual(checks, [0, 1, 2]);
+  assert.equal(context.fixture.seen().length, 2);
+  assert.equal(published, 0);
+});
