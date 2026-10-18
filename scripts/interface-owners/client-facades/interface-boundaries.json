@@ -1931,38 +1931,6 @@
             "options"
           ],
           "async": false
-        },
-        {
-          "name": "init:selectedInitialControlHostPreparation/init:selectedInitialControlHostPreparation",
-          "parameters": [
-            "kind",
-            "raw"
-          ],
-          "async": false
-        },
-        {
-          "name": "init:selectedInitialControlHostPreparation/init:selectedInitialControlHostPreparation",
-          "parameters": [
-            "kind",
-            "raw"
-          ],
-          "async": false
-        },
-        {
-          "name": "forwardOrdinary",
-          "parameters": [
-            "kind",
-            "raw"
-          ],
-          "async": false
-        },
-        {
-          "name": "forwardOrdinary",
-          "parameters": [
-            "kind",
-            "raw"
-          ],
-          "async": false
         }
       ],
       "imports": [
@@ -13188,6 +13156,14 @@
             "rawInput"
           ],
           "async": false
+        },
+        {
+          "name": "forwardOrdinary",
+          "parameters": [
+            "kind",
+            "raw"
+          ],
+          "async": false
         }
       ],
       "imports": [
@@ -13207,7 +13183,6 @@
           "operations": [
             "<module>",
             "<anonymous>",
-            "init:selectedInitialControlHostPreparation/init:selectedInitialControlHostPreparation",
             "forwardOrdinary"
           ],
           "exports": [
@@ -13340,6 +13315,14 @@
             "rawInput"
           ],
           "async": false
+        },
+        {
+          "name": "forwardOrdinary",
+          "parameters": [
+            "kind",
+            "raw"
+          ],
+          "async": false
         }
       ],
       "imports": [
@@ -13359,7 +13342,6 @@
           "operations": [
             "<module>",
             "<anonymous>",
-            "init:selectedInitialControlHostPreparation/init:selectedInitialControlHostPreparation",
             "forwardOrdinary"
           ],
           "exports": [
