@@ -26,6 +26,47 @@ export function originalModelRawTransportPersistenceMatches(port, operation, reg
     original.registration === registration;
 }
 
+// One synchronous installation binding may project a distinct existing
+// single-Call port for every prepared request. The empty descriptor is private
+// nominal membership, not a callable Store port, grant, or new cleanup owner.
+export function createModelRawTransportPersistenceFactory({store, moon, registration,
+  retainHolding, notify, operation}) {
+  if (typeof retainHolding !== 'function' || typeof notify !== 'function') {
+    throw new TypeError('MissingRawHoldingCustody');
+  }
+  const factory = Object.freeze({});
+  originalTransportPorts.set(factory, {operation: new WeakRef(operation), registration,
+    prepare: () => createModelRawTransportPersistence({store, moon, registration,
+      retainHolding, notify, operation})});
+  return factory;
+}
+
+// Consume only this original operation's factory. A single legacy port keeps
+// its existing one-Call semantics. Neither a failed binder nor an escaped next
+// callback can prepare replacement ports after the synchronous binding ends.
+export function bindOriginalModelRawTransportPersistence(persistence, operation, registration, bind) {
+  let original = originalTransportPorts.get(persistence);
+  if (persistence !== undefined &&
+      !originalModelRawTransportPersistenceMatches(persistence, operation, registration)) {
+    throw new TypeError('ForeignInferRawCapturePersistence');
+  }
+  if (original?.prepare !== undefined) originalTransportPorts.delete(persistence);
+  let open = true;
+  try {
+    return bind(() => {
+      if (!open) throw new TypeError('InferRawCaptureBindingUnavailable');
+      return original?.prepare === undefined ? persistence : original.prepare();
+    });
+  } finally {
+    open = false;
+    original = undefined;
+    persistence = undefined;
+    operation = undefined;
+    registration = undefined;
+    bind = undefined;
+  }
+}
+
 const tuple = (value, length) => {
   const fields = Array.isArray(value) ? value
     : Array.from({length}, (_, index) => runtimeOptionalField(value, index));

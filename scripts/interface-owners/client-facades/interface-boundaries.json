@@ -5,7 +5,7 @@
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "85d910cb5aaa52afad8fd80dc3adcc1f3821682db5441fa086409364d2ecba0a",
+      "sha256": "96225b6bd1b7d2b5da29172c5ec4f778fd81b190b9a980a8c4adcc2b5367b315",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",
@@ -739,7 +739,7 @@
               },
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "rowIndex, authorizationForRow, assertCurrent})` (command or guarded write)"
+                "anchor": "rowIndex, authorizationForRow, assertCurrent})`"
               },
               {
                 "path": "docs/design/connector-layout.md",

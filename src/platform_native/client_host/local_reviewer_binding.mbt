@@ -31,6 +31,7 @@ struct NativeLocalInstalledEffectReviewer {
   file : String
   original_bytes : Bytes
   reviewer : NativeLocalEffectReviewerSelection
+  initial_original : NativeLocalInitialSigningOriginal?
 }
 
 ///|
@@ -64,6 +65,7 @@ pub fn NativeLocalHostConnection::install_effect_reviewer(
     file,
     original_bytes: bytes,
     reviewer,
+    initial_original: None,
   }
   if !value.current() {
     return Err(ReviewerUnavailable)
@@ -79,6 +81,13 @@ fn NativeLocalInstalledEffectReviewer::current(
     !(self.host.selected_configuration(self.file) is Ok(bytes) &&
     bytes == self.original_bytes) {
     return false
+  }
+  match self.initial_original {
+    None => ()
+    Some(original) =>
+      if !self.initial_reviewer_original_current(original) {
+        return false
+      }
   }
   self.host.authorize({
     principal: self.reviewer.principal,
@@ -120,6 +129,32 @@ pub fn NativeLocalHostConnection::bind_effect_reviewer(
   let installed = match self.install_effect_reviewer(configuration_file~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  self.bind_selected_effect_reviewer(
+    crypto, principal, connection, reference, request, approval_scope, now, installed,
+  )
+}
+
+///|
+// Both original registration routes use the same retained Checkpoint, Client
+// read, paired-scope and terminal-current path. Registration does not issue a
+// proof, a grant, a key-use claim or permission to apply a Resolution.
+fn NativeLocalHostConnection::bind_selected_effect_reviewer(
+  self : NativeLocalHostConnection,
+  crypto : @crypto.Library,
+  principal : String,
+  connection : String,
+  reference : NativeClientSubmissionReference,
+  request : @host.ClientRequestIdentity,
+  approval_scope : @resident.ResidentOriginalEffectApprovalScope,
+  now : () -> Double,
+  installed : NativeLocalInstalledEffectReviewer,
+) -> Result[
+  NativeLocalEffectReviewerBinding,
+  NativeLocalEffectReviewerBindingIssue,
+] {
+  if !physical_equal(self, installed.host) || !installed.current() {
+    return Err(ReviewerUnavailable)
   }
   let original = match
     self.lookup_submitted_checkpoint_metadata(

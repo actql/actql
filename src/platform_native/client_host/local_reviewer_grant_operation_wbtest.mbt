@@ -1,4 +1,9 @@
 ///|
+// Exact malformed resource ordering retained from the original fixture's source.
+// Its shared positive successor is canonical; it cannot serve as this negative.
+let signing_append_noncanonical_account : Bytes = b"{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"operator\",\"entries\":[{\"entry_id\":\"explicit-policy-operations\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"cli\"]},\"resource\":{\"any_of\":[\"run\",\"result/answer\"]},\"operation\":{\"any_of\":[\"submit\",\"read\"]},\"exclusions\":[]}]}"
+
+///|
 // Real Host/SQLite/issuer Account and original public-key metadata. The
 // synthetic descriptor and subject fields below exercise ONLY the shared
 // append transaction. They cannot construct paired Reviewer materials, use
@@ -273,7 +278,7 @@ test "Signing append lost commit ACK retains Unknown and never reissues" {
 
 ///|
 test "Reviewer snapshot fixture retains invalid Account refusal and the same finite permission set" {
-  let original = @utf8.decode(policy_account_original) catch {
+  let original = @utf8.decode(signing_append_noncanonical_account) catch {
     _ => fail("fixture original encoding")
   }
   let corrected = @utf8.decode(checkpoint_lookup_account) catch {

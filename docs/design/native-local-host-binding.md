@@ -147,6 +147,138 @@ The Library, temporary key buffers, private/public encodings, Writer and escaped
 view overlap still require the existing actual caller resource supply; format
 lengths and a diagnostic ceiling are not numerical funding.
 
+### Authenticated initial Store signing original
+
+A trusted explicit first installer can carry that same session's opaque material
+and the pinned Common bootstrap policy into the existing journal initialization.
+The original marker and physical database inspection, not a caller Boolean,
+select the first branch. The existing initialization transaction establishes the
+epoch key and authenticates a closed initial-signing payload with that same key
+before inserting the installation control row and confirming COMMIT. It retains
+the original initialization intent, Host adoption, Store-root file projection,
+public-key body/CID and original PEM, exact policy body/CID, issuer identity and
+ReviewerProof purpose. The issuer identity comes from the Common policy Owner's
+original-intent projection; the payload does not issue an operational grant.
+
+The ordinary launcher requests this initial material path only after admitting
+the installed Native image and exclusively preparing the project for explicit
+`init`. Its private adoption request does not prove freshness: the same Native
+session must independently consume its original exclusive creation. Ordinary
+adoption without that request retains the legacy journal path. A request against
+existing or ambiguous state refuses instead of falling back, replacing a key or
+backfilling policy. Neither successful initialization nor a restored original
+selects a default signer or supplies Reviewer, issue, claim or signing permission.
+
+This is a closed alternative in the existing installation `host` control row.
+The historical raw adoption body remains a separate exact alternative. The
+adoption body/CID and initialization body/CID themselves do not change. The
+`issued` counter, setting-original rows and their `files.length + 1`, eight-object,
+8192-byte reservation and 2048-byte authenticated-payload bounds do not grow.
+The complete nested record must fit the existing codec/snapshot limits or the
+same transaction refuses it. Intake bounds are not physical read or workspace
+funding. No extra row, issuer file or replacement policy ledger is introduced.
+
+Restore authenticates the exact retained payload with the current original epoch,
+admits policy and public-key originals through their existing Common Owners,
+checks original intent/adoption/purpose/root role, and restores the same physical
+private-file projection. A returned view retains its Host, Library through that
+Host, original projection, policy and public metadata; current access fences the
+same retained row and physical generation again. A configured source-root key
+stays source-root, and a HostAttestation key cannot alias this ReviewerProof key
+by physical file or raw public-key identity. An old raw row, missing metadata,
+foreign policy/epoch/key, changed control revision or Unknown initialization
+never chooses a fresh capture. Lost COMMIT acknowledgement preserves the same
+operation and its uncertainty; lookup can observe an authentic committed original
+but cannot create a replacement key, policy or claim. Read failure retains its
+original typed cause; if transaction retirement also fails, both causes survive
+in the same existing Host error path, and the database remains fenced.
+
+This physical metadata seam is not default-signer selection, Account/Reviewer/
+Run authorization, first issue, use claim, signature or public approval. Those
+existing operational gates must independently bind the exact original purpose,
+Checkpoint, preimage and use. First issue alone samples the trusted clock and
+persists the finite absolute expiry; initialization and restore do not sample or
+renew it. Configured/named signers and the generic explicit issuer-file route
+retain their separate original authorization, and a missing legacy supplier stays
+unavailable. The actual caller must retain the overlapping session/material,
+HMAC/codec workspace and escaped view until their own physical acknowledgements.
+
+The private initial Reviewer registration joins that same physical original to
+an already-adopted public Host configuration without explicit signers and the
+actual selected machine actor's independent current `run:resolve` Account
+decision. The actual public-key CID labels the key; the actor labels the
+Reviewer. Neither label supplies authority. Named selection and any explicit
+signer map refuse default fallback. Replacement of the Host configuration,
+Store key generation or original installation retires this view. Configured
+Reviewer/key readers cannot consume the initial registration as their own file.
+The subsequent binding uses the configured route's same original Checkpoint,
+Client read and paired-scope checks. This registration still supplies no issuer
+grant, private-key acquisition, durable claim, signature or approval application.
+Its original Host/configuration/key and Account reads retain their overlapping
+workspace and lifetime; parsing ceilings are not reservations or close receipts.
+
+The initialized key may also supply the existing opaque Reviewer proof material
+through a closed key variant. Its configuration identity is the existing digest
+of the authenticated initial control body, and its generation identity is the
+existing digest of the retained Store file projection. This introduces no CID
+domain, configuration file or permission. The same original Checkpoint snapshot,
+unsigned proof, authenticated Submission and paired-capture readers remain in
+use. A final noncallback key/Host generation check follows the existing original
+subject fence. The explicit issuer-file operation retains its configured
+source-root key and cannot consume the initialized key variant. This connection
+reads projection metadata only: actual private-key correspondence, durable
+first issue/sample/expiry, same-use claim and signature remain independent.
+The key variant and its small scope record retain the original Host, policy,
+projection and installed Reviewer throughout overlapping current callbacks;
+these references, record storage and read workspace are not free aliases or a
+physical cleanup acknowledgement.
+
+The default-only first-issue storage phase uses the same immutable grant packet
+and Journal transaction, with an additional closed authenticated installation
+payload. The original epoch HMAC binds the first clock sample, any earlier
+original validity bound, pinned policy, initialization, exact grant/operation
+and selected Host configuration/connection. The grant retains the absolute
+expiry and one-use limit. The existing full grant/Run custody census and original
+Submission authentication remain in place; the default branch additionally
+restores the same Store-root key generation. The configured issuer-file branch
+and its packet bytes are unchanged. Existing payload, packet, work and per-request
+reservation bounds apply without relaxation.
+
+That private storage phase reads an existing operation before sampling the
+clock. Its exact original use/outcome is history only; missing or corrupt use
+custody cannot select another sample, expiry, claim or ordinal. The first
+retained default operation also fences its same original Submission, Checkpoint
+and purpose; a different operation/attempt plus decision preimage cannot bypass
+claimed or Unknown custody. This default-only restriction leaves configured
+issuer-file operations' existing exact key/preimage rule intact. A first append,
+exact attempt-bound use claim and trusted-clock lower bound share the existing
+transaction and rollback. Lost COMMIT acknowledgement fences that original
+responsibility. Neither the private stored result nor authenticated metadata is
+a physical signing permit: the enclosing original operation must retain its
+paired Checkpoint, current Client/Reviewer/key gates, exact purpose/earlier bound
+and material custody through actual physical signature and final acknowledgement.
+No public default-signer or Node physical supplier follows from this storage port.
+
+### Initial signing payload DATA
+
+The original initial-signing installation payload has a typed DATA codec in
+the existing Common Local original-record Owner. Its thirteen String fields
+keep the Native field order, spelling, escaping and existing record budgets.
+Both creation and restoration use that same closed record definition; a
+consumer need not maintain a second key vector or interpret positional fields
+outside this Owner. Nested policy/public-key original bytes and PEM text are
+retained exactly, not normalized by the codec.
+
+The decoded field record is not the Native opaque initial-signing original.
+It authenticates no Store, epoch/HMAC, actor, physical file generation or
+current installation. Existing policy/public-key admission, PEM/raw-key
+correspondence, native projection-layout checks, purpose separation and the
+original transaction/current fence remain mandatory in the physical consumer.
+A missing legacy original still cannot be filled from today's configuration.
+The field record, thirteen String references, codec arrays and decode/encode
+workspace belong to the existing installation/Host inventory; they supply no
+funding, grant, claim, key use or cleanup acknowledgement.
+
 ### Writer close custody
 
 The existing filesystem Writer records its original close outcome separately
@@ -156,6 +288,26 @@ unlinks partial material as if cleanup had succeeded. An acknowledged close is
 idempotent, while failures before close leave that first physical close available.
 This preserves the original Writer's custody rather than issuing key adoption or
 converting process exit into a creation, cleanup or signing acknowledgement.
+
+### Private Root rejection cleanup
+
+The private Root constructor retains its own descriptor-close outcome when
+privacy validation rejects a pinned directory. A failure before acquisition
+acknowledges only that no descriptor remains from this constructor; a confirmed
+rejection close is idempotent. An unconfirmed close retains the original Root
+and diagnostics, stays pending and never closes a reused descriptor. Neither
+result admits the rejected directory as a current or authorized Host Root.
+
+The additive private-Root custody entrance returns the existing
+`NativeRootOpenFailure`, retaining its constructor refusal independently of any
+cleanup diagnostic. Its `retry_cleanup` acts only on that same rejected Root;
+a missing descriptor or confirmed close clears that reference, while an
+unconfirmed close keeps it. The successful privacy/containment predicates remain unchanged. The custody
+constructor uses the existing observed namespace walk even before it has a
+final Root descriptor. Private-current observations use that same walk and
+cannot resume after an unconfirmed temporary close. The first namespace close
+failure remains original even if cleanup encounters another one. The failure object issues neither
+a usable Root nor Host adoption, and cleanup cannot retry acquisition.
 
 ## Direct Local credential grant/use scope
 
@@ -805,6 +957,34 @@ than simultaneously retaining both representations; its holding/ARC evidence
 must be checked at that connection. No new numeric profile is admitted here.
 
 ## Original named-directory observations
+
+The existing-only Adoption entrance shares the original constructor but retains
+partial acquisitions when it refuses. Its opaque failure keeps the original
+reason, each actual source/parent/child/managed Root, the actual Lock and any
+rejected Root/Lock or pending Reader constructor. Equal paths or ownership DATA
+never collapse distinct acquired descriptors or authorize closing a borrowed
+Root. This entrance cannot initialize a missing Host or repair missing intent.
+
+Cleanup uses those same objects without reopening, rereading or retrying the
+refused adoption. Original read cleanup and Root acknowledgements precede Lock
+release; an unconfirmed close keeps the same failure and exclusive Lock held.
+The original reason remains readable after successful cleanup. Successful
+acquisition still returns the existing Session: its journal/current admission,
+escaped aliases and outer funded read lifetime retain their separate Owners and
+acknowledgements. The failure carrier itself supplies no read budget, permission,
+Host transport, issuer or execution authority.
+
+The existing-only journal entrance similarly keeps a rejected original database
+with the same Session's Roots and Lock. It invokes the existing journal body
+once; a repeat returns the original failure even after cleanup, without opening
+another database or reinitializing missing custody. Session aliases close through
+that same carrier, so the legacy lock-only close cannot bypass its obligations.
+The original primary issue remains separate from a failed cleanup result.
+Database close must acknowledge before Root retirement, and the Lock is last.
+Reader or directory Unknown retains the original acquisition rather than making
+another attempt. These acknowledgements cover the acquired descriptors only;
+escaped Readers, provider aliases and the surrounding original read/loan still
+require their own actual retirement.
 
 The existing Root can also capture a transient opaque observation of its actual
 opened directory, including device/inode, mode and UID/GID. Only the path already

@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {snapshotModelRawCaptureSelection} from './infer-raw-selection.mjs';
 import {openNodeInferOperation} from './infer-operation.mjs';
-import {createModelRawTransportPersistence, originalModelRawTransportPersistenceMatches}
+import {createModelRawTransportPersistence, originalModelRawTransportPersistenceMatches,
+  createModelRawTransportPersistenceFactory, bindOriginalModelRawTransportPersistence}
   from './infer-raw-capture.mjs';
 
 function selection() {
@@ -120,4 +121,44 @@ test('private raw Store port must belong to this exact operation and registratio
   assert.equal(port.cleanup(undefined),true);
   assert.equal(originalModelRawTransportPersistenceMatches(port,original,registration),false);
   await original.close();await foreign.close();
+});
+
+test('raw persistence factory is original, consumed once and cannot escape its synchronous binding', () => {
+  const original = {}, registration = {}, children = [];
+  const factory = createModelRawTransportPersistenceFactory({operation: original, registration,
+    store: {}, moon: {}, retainHolding: () => assert.fail('No physical save'), notify() {}});
+  assert.equal(originalModelRawTransportPersistenceMatches(factory, original, registration), true);
+  for (const [port, owner, raw] of [[factory, {}, registration], [factory, original, {}],
+    [{...factory}, original, registration]]) {
+    assert.throws(() => bindOriginalModelRawTransportPersistence(port, owner, raw,
+      () => assert.fail('Foreign factory cannot bind')), /ForeignInferRawCapturePersistence/u);
+  }
+  let escaped;
+  bindOriginalModelRawTransportPersistence(factory, original, registration, next => {
+    escaped = next;
+    for (let index = 0; index < 24; index++) children.push(next());
+  });
+  assert.equal(new Set(children).size, 24, 'all prepared requests, not active four');
+  assert.equal(originalModelRawTransportPersistenceMatches(factory, original, registration), false);
+  assert.throws(() => escaped(), /InferRawCaptureBindingUnavailable/u);
+  assert.throws(() => bindOriginalModelRawTransportPersistence(factory, original, registration,
+    () => assert.fail('Factory cannot be consumed again')), /ForeignInferRawCapturePersistence/u);
+  assert.equal(children[0].cleanup(undefined), true, 'unstarted original child can retire');
+  assert.equal(originalModelRawTransportPersistenceMatches(children[1], original, registration), true,
+    'one child cleanup never retires another prepared request');
+  for (const child of children) assert.equal(child.cleanup(undefined), true);
+});
+
+test('failed factory binding retains the original child and cuts the escaped constructor port', () => {
+  const original = {}, registration = {}, failure = new Error('SameOriginalBinderFailure');
+  const factory = createModelRawTransportPersistenceFactory({operation: original, registration,
+    store: {}, moon: {}, retainHolding: () => assert.fail('No physical save'), notify() {}});
+  let child, escaped;
+  assert.throws(() => bindOriginalModelRawTransportPersistence(factory, original, registration, next => {
+    escaped = next; child = next(); throw failure;
+  }), error => error === failure);
+  assert.equal(originalModelRawTransportPersistenceMatches(child, original, registration), true);
+  assert.equal(originalModelRawTransportPersistenceMatches(factory, original, registration), false);
+  assert.throws(() => escaped(), /InferRawCaptureBindingUnavailable/u);
+  assert.equal(child.cleanup(undefined), true, 'only the same unstarted child is retired');
 });

@@ -7,7 +7,8 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {claimInferIoNotification} from './infer-io-notification.mjs';
 import {selectedInferOriginalMetadataLimits, selectedInferOriginalStoreBootstrapLimits,
   selectedInferOriginalPublicationCapacity, selectedInferOriginalCurrentStateCodec} from './infer-original-installation.mjs';
-import {originalModelRawTransportPersistenceMatches} from './infer-raw-capture.mjs';
+import {originalModelRawTransportPersistenceMatches, bindOriginalModelRawTransportPersistence}
+  from './infer-raw-capture.mjs';
 
 const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
   {code: 'ClientDispatchCleanupPending'});
@@ -18,6 +19,19 @@ const activeOperations = new WeakMap();
 const originalMetadataSources = new WeakMap();
 const metadataUnavailable = () => { throw Object.assign(new Error('InferOriginalMetadataAcquisitionUnavailable'),
   {code: 'InferOriginalMetadataAcquisitionUnavailable'}); };
+
+// Keep an escaped per-preflight setter from retaining the installing operation
+// after this synchronous constructor. Its mutable port is consumed once and
+// cleared even when the original physical factory refuses or throws.
+function prepareWithOriginalRawSetter(prepare, request, notification, retain) {
+  const set = callback => {
+    if (retain === undefined) throw new TypeError('InferRawCaptureBinderUnavailable');
+    retain(callback);
+    retain = undefined;
+  };
+  try { return prepare(request, notification, set); }
+  finally { retain = undefined; }
+}
 
 export function selectOriginalInferMetadataAcquisition(handle, ownerId, requestCid) {
   const original = originalMetadataSources.get(handle)?.deref();
@@ -84,6 +98,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     throw new TypeError('InferTrustedRuntimeScopeUnavailable');
   }
   let rawCaptureBound = false;
+  let preparedRawCaptureBinders;
   // The original installing Run has already reserved this entire simultaneous
   // envelope, including this adapter's controls. Do not derive it from counts,
   // aggregate headroom or the later Model seal's distinct requirements.
@@ -353,6 +368,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       metadataControl = undefined;
       metadataDefinition = undefined;
       rawCaptureBinder = undefined;
+      preparedRawCaptureBinders = undefined;
       runtimeObservedCallSet = undefined;
       runtimeDiagnostic = undefined;
       assertRuntimeCurrent = undefined;
@@ -479,15 +495,18 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   }
 
   let originalPreparedCallSet;
-  // Installation code retains the binder created for THIS original request.
-  // There is no provider-global map or replacement physical operation. The
-  // initial envelope funds this callback/reference even before a raw selection.
+  // One setter per original Core preflight, not one per whole execution. Core
+  // bounds and owns that finite cursor inventory before issuing its CallSet.
+  // The same original preparation envelope must cover this array/reference
+  // and setter/callback overlap BEFORE preparation, not at later registration.
+  // No provider-global map, slot scheduler or additional physical Call is used.
   const retainRawCaptureBinder = callback => {
     if (closing || reclaimed || rawCaptureBound || rawCaptureBinder !== undefined ||
         typeof callback !== 'function') {
       throw new TypeError('InferRawCaptureBinderUnavailable');
     }
-    rawCaptureBinder = callback;
+    preparedRawCaptureBinders ??= [];
+    preparedRawCaptureBinders.push(callback);
   };
   const operation = Object.freeze({run, stop, close, cleanup,
     contentGenerationCount: serializedInput === undefined ? 0 : 1,
@@ -827,7 +846,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     // Common registration supplies the nominal raw authority; this callback
     // creates neither a send claim nor an alternate cleanup owner.
     bindModelRawCapture(registration, persistence) {
-      if (closing || reclaimed || rawCaptureBound || rawCaptureBinder === undefined) {
+      if (closing || reclaimed || rawCaptureBound ||
+          rawCaptureBinder === undefined && preparedRawCaptureBinders === undefined) {
         throw new TypeError('InferRawCaptureBindingUnavailable');
       }
       if (persistence !== undefined &&
@@ -835,8 +855,21 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         throw new TypeError('ForeignInferRawCapturePersistence');
       }
       rawCaptureBound = true;
-      if (rawCaptureBinder(registration, persistence) !== undefined) {
-        throw new TypeError('InvalidInferRawCaptureBinderResult');
+      try {
+        const callbacks = preparedRawCaptureBinders ?? [rawCaptureBinder];
+        bindOriginalModelRawTransportPersistence(persistence, operation, registration, next => {
+          for (const callback of callbacks) {
+            if (callback(registration, next()) !== undefined) {
+              throw new TypeError('InvalidInferRawCaptureBinderResult');
+            }
+          }
+        });
+      } finally {
+        // A partial failure cannot retry any already bound child. Every
+        // original cursor still belongs to Common's existing cleanup census;
+        // dropping these auxiliary aliases neither retires it nor ACKs raw.
+        rawCaptureBinder = undefined;
+        preparedRawCaptureBinders = undefined;
       }
     },
     bindModelEntryPersistence: (control, plan, preparedCallSet, scope, observation) =>
@@ -969,7 +1002,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       // The original preparation envelope funds this one callback closure and
       // its overlap with Core's retained callback; no per-poll context is made.
       const prepare = ioNotification === undefined ? physicalPreflight
-        : request => physicalPreflight(request, ioNotification, retainRawCaptureBinder);
+        : request => prepareWithOriginalRawSetter(physicalPreflight, request,
+          ioNotification, retainRawCaptureBinder);
       checked(assertRuntimeCurrent === undefined
         ? moon.clientProgramBindInferPhysicalPreflight(active, prepare)
         : moon.clientProgramBindInferPhysicalPreflightCurrent(active, prepare, runtimeCurrent));

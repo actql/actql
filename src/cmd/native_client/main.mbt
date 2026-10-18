@@ -830,7 +830,10 @@ fn command() -> @argparse.Command {
           @argparse.OptionArg("parameter-declarations-file"),
         ],
       ),
-      @argparse.Command("adopt", flags=[@argparse.FlagArg("json")]),
+      @argparse.Command("adopt", flags=[
+        @argparse.FlagArg("json"),
+        @argparse.FlagArg("initialize-signing"),
+      ]),
       @argparse.Command("connect", flags=[@argparse.FlagArg("json")]),
       @argparse.Command("upgrade-policy", flags=[@argparse.FlagArg("json")], options=[
         @argparse.OptionArg("operation-id", required=true),

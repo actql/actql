@@ -161,11 +161,14 @@ fn local_grant_packet_object(
     (
       @decode.lookup(object, "preparation_fence"),
       @decode.lookup(object, "signing_purpose"),
+      @decode.lookup(object, "initial_issue"),
     ) {
-    (None, None) => ["grant", "intent"]
-    (Some(_), None) => ["grant", "intent", "preparation_fence"]
-    (None, Some(_)) => ["grant", "intent", "signing_purpose"]
-    (Some(_), Some(_)) => return Err(CustodyLost)
+    (None, None, None) => ["grant", "intent"]
+    (Some(_), None, None) => ["grant", "intent", "preparation_fence"]
+    (None, Some(_), None) => ["grant", "intent", "signing_purpose"]
+    (None, Some(_), Some(_)) =>
+      ["grant", "initial_issue", "intent", "signing_purpose"]
+    _ => return Err(CustodyLost)
   }
   local_read_evidence_object(body, names, 49152)
 }

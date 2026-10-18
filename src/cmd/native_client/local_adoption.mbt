@@ -327,13 +327,13 @@ fn execute_native_local_adoption(
     }
   }
   let host = match
-    session.open_journal(
-      sqlite,
-      crypto,
-      settings.ttl_ms,
-      settings.record_limit,
-      settings.snapshot_bytes,
-    ) {
+    local_open_initial_signing_adoption(session, sqlite, crypto, {
+      initialize_signing: operation == "adopt" &&
+      child.flags.get("initialize-signing").unwrap_or(false),
+      ttl_ms: settings.ttl_ms,
+      max_records: settings.record_limit,
+      max_snapshot_bytes: settings.snapshot_bytes,
+    }) {
     Ok(value) => value
     Err(DatabasePending(database, issue)) => {
       if database.close_checked() is Err(_) {

@@ -45,7 +45,7 @@ async function fixture(t, {closeFailures = 1, consumerFailure, openFailure} = {}
       assert.equal(selected, path);
       if (openFailure) throw openFailure;
       return {
-        stat: () => original.stat(), createReadStream: options => original.createReadStream(options),
+        stat: () => original.stat(), read: (...args) => original.read(...args),
         async close() {
           attempts++;
           if (attempts <= closeFailures) throw closeFailure;
@@ -171,16 +171,16 @@ test('actual encrypted Store read blocks retirement and close until original FD 
   }, [prepared.prepared]);
   const probe = await open(join(directory, 'objects', prepared.physicalCid.slice(7)), 'r');
   const prototype = Object.getPrototypeOf(probe);
-  const createReadStream = prototype.createReadStream;
+  const read = prototype.read;
   await probe.close();
   let original, closeAttempts = 0, captures = 0;
   const closeFailure = Object.assign(new Error('ActualOriginalFdClosePending'), {code: 'EIO'});
-  prototype.createReadStream = function(options) {
+  prototype.read = function(...args) {
     // inspectPhysicalHolding first verifies the object through verifyObject.
     // This finite hunk targets the later actual consumeObject FD, not that
     // separate metadata/verification close obligation.
     if (!new Error().stack.includes('at consumeObject ')) {
-      return Reflect.apply(createReadStream, this, [options]);
+      return Reflect.apply(read, this, args);
     }
     captures++;
     original = this;
@@ -190,10 +190,10 @@ test('actual encrypted Store read blocks retirement and close until original FD 
       if (closeAttempts <= 2) return Promise.reject(closeFailure);
       return Reflect.apply(close, this, []);
     };
-    return Reflect.apply(createReadStream, this, [options]);
+    return Reflect.apply(read, this, args);
   };
   t.after(async () => {
-    prototype.createReadStream = createReadStream;
+    prototype.read = read;
     // Failed test teardown never leaves its original FD/Store lock behind.
     if (closeFailure.cleanupHandle?.status().pending) {
       closeAttempts = 2;
@@ -210,7 +210,7 @@ test('actual encrypted Store read blocks retirement and close until original FD 
   });
   await assert.rejects(store.readPrivateEvidence('model_invocation_evidence', semanticCid, holdingCid),
     error => error === closeFailure);
-  prototype.createReadStream = createReadStream;
+  prototype.read = read;
   assert.equal(captures, 1);
   assert(original.fd >= 0);
   assert.equal(closeAttempts, 1);
