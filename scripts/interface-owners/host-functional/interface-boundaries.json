@@ -53785,15 +53785,10 @@
     "Whole-distribution or installed-cohort completion"
   ],
   "counts": {
-<<<<<<< HEAD
-    "modules": 126,
-    "operations": 3134,
-=======
     "modules": 127,
-    "operations": 3132,
->>>>>>> origin/main
-    "exports": 857,
-    "explicitContractGroups": 145
+    "operations": 3138,
+    "exports": 858,
+    "explicitContractGroups": 146
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }
