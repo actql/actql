@@ -81,6 +81,8 @@ pub fn notion_database_read_snapshot_source_cid(NotionDatabaseReadSnapshot) -> R
 
 pub fn notion_database_read_snapshot_wire(NotionDatabaseReadSnapshot) -> Result[String, NotionReadSnapshotIssue]
 
+pub fn notion_database_read_snapshots_relation_specification(Array[(String, NotionDatabaseReadSnapshot)], NotionReadSnapshotLimits, Int, Int) -> Result[String, NotionReadSnapshotIssue]
+
 pub fn notion_database_read_source_index(NotionDatabaseReadDeclaration, NotionDatabaseCatalog) -> Result[Int, NotionReadContractIssue]
 
 pub fn notion_database_source_at(NotionDatabaseCatalog, Int) -> (String, String)?

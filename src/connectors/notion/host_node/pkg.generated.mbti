@@ -46,6 +46,8 @@ pub fn notion_database_read_snapshot_source_cid(@catalog.NotionDatabaseReadSnaps
 
 pub fn notion_database_read_snapshot_wire(@catalog.NotionDatabaseReadSnapshot) -> Result[String, @catalog.NotionReadSnapshotIssue]
 
+pub fn notion_database_read_snapshots_relation_specification(Array[(String, @catalog.NotionDatabaseReadSnapshot)], Int, Int, Int, Int, Int) -> Result[String, @catalog.NotionReadSnapshotIssue]
+
 pub fn notion_next_property_request(@catalog.NotionPropertyItemPage) -> Result[@catalog.NotionPropertyItemRequest, @catalog.NotionPropertyItemIssue]
 
 pub fn notion_page_metadata_json(@catalog.OriginalNotionPage, Int, Int, Int) -> Result[String, @catalog.NotionPageIssue]
