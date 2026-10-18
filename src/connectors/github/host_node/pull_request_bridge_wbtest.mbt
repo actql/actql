@@ -83,7 +83,20 @@ test "typed PullRequest bridge refuses a foreign repository before exposing a pa
     "merged",
     [],
   )
-  assert_true(request.contains("query ActqlPullRequests("))
-  assert_true(request.contains("\"states\":[\"MERGED\"]"))
-  assert_true(!request.contains("stateReason"))
+  let outer = @json.parse(request)
+  guard outer is Object(fields) && fields.get("body") is Some(String(body)) else {
+    abort("missing original request body")
+  }
+  let inner = @json.parse(body)
+  guard inner is Object(payload) else { abort("invalid request body") }
+  let variables : Json = {
+    "id": "R_A",
+    "first": 100,
+    "after": Json::null(),
+    "states": ["MERGED"],
+    "labels": Json::null(),
+  }
+  assert_eq(payload.get("variables"), Some(variables))
+  assert_true(body.contains("query ActqlPullRequests("))
+  assert_true(!body.contains("stateReason"))
 }
