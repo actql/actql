@@ -75,6 +75,48 @@ export function graphqlRoute(world) {
         databaseId: repository.databaseId,
         nameWithOwner: repository.nameWithOwner}}}};
     }
+    if (query.startsWith('query ActqlCommentSubjects(')) {
+      if (state.commentSubjectsAnswer !== undefined) return state.commentSubjectsAnswer(query, variables);
+      const repository = state.repositories.get(variables.id);
+      if (repository === undefined) return {body: {data: {node: null}}};
+      const pull = query.includes('pullRequests(first:');
+      const all = repository[pull ? 'pullRequests' : 'issues'] ?? [];
+      const start = variables.after === null ? 0 : decode(variables.after) + 1;
+      const page = all.slice(start, start + Math.min(variables.first, state.pageSize ?? 100));
+      return {body: {data: {node: {__typename: 'Repository',
+        id: repository.answerId ?? variables.id, databaseId: repository.databaseId,
+        nameWithOwner: repository.nameWithOwner,
+        [pull ? 'pullRequests' : 'issues']: {
+          pageInfo: {hasNextPage: start + page.length < all.length,
+            endCursor: page.length === 0 ? null : encode(start + page.length - 1)},
+          nodes: page.map(subject => ({__typename: pull ? 'PullRequest' : 'Issue',
+            id: subject.id ?? `${pull ? 'PR' : 'I'}_${subject.number}`, number: subject.number,
+            updatedAt: subject.updatedAt ?? '2026-10-02T00:00:00Z'}))}}}}};
+    }
+    if (query.startsWith('query ActqlIssueComments(')) {
+      if (state.commentReadAnswer !== undefined) return state.commentReadAnswer(query, variables);
+      const pull = query.includes('... on PullRequest {');
+      for (const [repositoryId, repository] of state.repositories) {
+        const subject = (repository[pull ? 'pullRequests' : 'issues'] ?? []).find(subject =>
+          (subject.id ?? `${pull ? 'PR' : 'I'}_${subject.number}`) === variables.id);
+        if (subject === undefined) continue;
+        const originalRepository = {__typename: 'Repository', id: repository.answerId ?? repositoryId,
+          databaseId: repository.databaseId, nameWithOwner: repository.nameWithOwner};
+        const all = subject.commentRows ?? [];
+        const start = variables.after === null ? 0 : decode(variables.after) + 1;
+        const page = all.slice(start, start + Math.min(variables.first, state.commentPageSize ?? 100));
+        return {body: {data: {node: {__typename: pull ? 'PullRequest' : 'Issue',
+          id: variables.id, number: subject.number, updatedAt: subject.updatedAt ?? '2026-10-02T00:00:00Z',
+          repository: originalRepository, comments: {
+            pageInfo: {hasNextPage: start + page.length < all.length,
+              endCursor: page.length === 0 ? null : encode(start + page.length - 1)},
+            nodes: page.map(row => ({__typename: 'IssueComment',
+              id: row.nodeId, fullDatabaseId: row.id, author: row.author,
+              body: row.body, createdAt: row.createdAt, updatedAt: row.updatedAt,
+              repository: originalRepository}))}}}}};
+      }
+      return {body: {data: {node: null}}};
+    }
     if (query.startsWith('query ActqlCommentSubject(')) {
       const subject = state.subjects?.get(variables.id);
       if (subject === undefined) {

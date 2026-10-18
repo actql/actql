@@ -272,6 +272,7 @@ pub fn client_values_host_admit_effect_run_materials(
   text_rank : Bool,
   original : @host.ClientEffectIssuedNormalizationMaterials?,
   expected_request : @host.ClientRequestIdentity?,
+  source_preparation : @local.LocalSourceComputation?,
 ) -> Result[
   @host.ClientEffectRunMaterials,
   ClientValuesHostEffectRestorationIssue,
@@ -298,6 +299,7 @@ pub fn client_values_host_admit_effect_run_materials(
     client_values_host_effect_limits(),
     original_materials=original,
     expected_request~,
+    original_source=source_preparation,
   ).map_err(issue => Materials(issue))
 }
 

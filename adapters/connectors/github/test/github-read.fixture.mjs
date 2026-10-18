@@ -14,7 +14,7 @@ import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source
 import {callHttpsCredentialResource, openHttpsCredentialBinding, closeHttpsCredentialBinding} from '../../../site-node/https-credential-resource.mjs';
 import {openSqliteCredentialJournal} from '../../../site-node/sqlite-credential-journal.mjs';
 import {signRemoteCredentialGrant} from '../../../site-node/remote-credential-signature.mjs';
-import {GITHUB_GRAPHQL_READ_OPERATION, readGitHubIssuesByNode, readGitHubPullRequestsByNode} from '../site/github-issue-graphql-read.mjs';
+import {GITHUB_GRAPHQL_READ_OPERATION, readGitHubIssuesByNode, readGitHubPullRequestsByNode, readGitHubIssueCommentsByNode} from '../site/github-issue-graphql-read.mjs';
 import {graphqlRoute} from './github-graphql.fixture.mjs';
 
 const control = runtimeCore(commonMoon).remoteCredentialControl;
@@ -22,8 +22,9 @@ const cid = digit => `sha256:${digit.repeat(64)}`;
 const A = {nodeId: 'R_A', databaseId: 1296269, nameWithOwner: 'octo/hello'};
 
 export async function openGitHubReadFixture(t, state, {faults = [], beforeAuthorize, accounted = false, resource = 'issues'} = {}) {
-  assert.ok(resource === 'issues' || resource === 'pull_requests');
-  const readRows = resource === 'issues' ? readGitHubIssuesByNode : readGitHubPullRequestsByNode;
+  assert.ok(resource === 'issues' || resource === 'pull_requests' || resource === 'issue_comments');
+  const readRows = resource === 'issues' ? readGitHubIssuesByNode
+    : resource === 'pull_requests' ? readGitHubPullRequestsByNode : readGitHubIssueCommentsByNode;
   const fixture = await openHttpsExchangeFixture(t, {faults,
     routes: [graphqlRoute(() => state)]});
   const root = await mkdtemp(join(tmpdir(), 'actql-github-graphql-'));
@@ -76,7 +77,7 @@ export async function openGitHubReadFixture(t, state, {faults = [], beforeAuthor
       },
       limits: {maxPages: 5, maxRows: 100, maxBytes: 100_000,
         maxNodes: 10_000, maxDepth: 32, perPage: 100,
-        maxRequestBytes: 16_384},
+        maxRequestBytes: 16_384, maxSubjects: 100},
       ...(rowRun === undefined ? {} : {chargePage: rowRun.charge,
         consumeObservation: rowRun.observe, consumePage: rowRun.page}),
       ...overrides});
@@ -98,7 +99,8 @@ export async function accountedGitHubRows(verifyTransport, resource = 'issues') 
     sourceRef: view.source_ref, sourceViewContractCid: view.view_cid, schemaContractCid: view.carrier_schema_cid}]});
   const preparation = commonMoon.clientProgramPrepareSourceWithParameters(
     resource === 'issues' ? 'SELECT number, comments, state_reason, assignees, labels, url FROM gh.issues ORDER BY number'
-      : 'SELECT * FROM gh.pull_requests ORDER BY number',
+      : resource === 'pull_requests' ? 'SELECT * FROM gh.pull_requests ORDER BY number'
+      : 'SELECT * FROM gh.issue_comments ORDER BY id',
     'sql', check, publication, undefined, undefined);
   const program = commonMoon.clientProgramPreparationReady(preparation);
   assert.ok(program, commonMoon.clientProgramPreparationIssueCode(preparation));

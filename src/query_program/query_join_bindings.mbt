@@ -183,14 +183,37 @@ fn lower_script_join_relation(
   } else {
     None
   }
-  // A single installed JOIN keeps both Source ports in the same original
-  // Stage, as the standalone SQL lowering does. Its leading WHERE and full
-  // projection are the existing Direct capture prefix, not another Source
-  // Stage. Shared/already-bound script producers retain their prior boundary.
+  // An independent right Source needs its own capture Stage and both retained
+  // Results must precede the local JOIN. Otherwise keep the left leading WHERE
+  // and full projection at their original Direct capture prefix;
+  // a keyed right request must remain at the original JoinRight occurrence.
+  // Shared/already-bound script producers retain their prior boundary.
   // LIST_FILES adds its Request identity to the lowered binding name; sharing
   // is counted against the original published Source name, not that suffix.
   let original_left = selected_relation(@query.relation(query), scoped)
-  let capture_left = context.captured_stage is Some(_) &&
+  let capture_right = if !sources.bound.contains(right.name) &&
+    context.source_catalog is Some(_) &&
+    right.source is Captured(right_declaration) &&
+    @wire.open_object(right_declaration) is Ok(right_object) &&
+    @wire.lookup(right_object, "connector") is Some(_) &&
+    @wire.lookup(right_object, "resource") is Some(_) {
+    right_source_capture_allowed(query, right, context, limits) catch {
+      Abort(BindingPreparation(SourceSelection(issue))) =>
+        // No selected Source contract means no proof of independence. Keep the
+        // prior consumer placement; ordinary Program checking still rejects an
+        // unresolved declaration. This does not invent a Direct or keyed use.
+        if issue.kind is @source_resolution.Unresolved {
+          false
+        } else {
+          raise Abort(BindingPreparation(SourceSelection(issue)))
+        }
+      Abort(issue) => raise Abort(issue)
+    }
+  } else {
+    false
+  }
+  let capture_left = !capture_right &&
+    context.captured_stage is Some(_) &&
     sources.unshared.contains(original_left.name) &&
     !sources.bound.contains(left.name) &&
     left.source is Captured(left_declaration) &&
@@ -217,7 +240,7 @@ fn lower_script_join_relation(
     sources,
     steps,
     reserved,
-    capture=false,
+    capture=capture_right,
   )
   let bindings = script_join_bindings(reserved)
   let (body, fields, from) = compile_join_steps(
