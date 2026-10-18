@@ -27886,7 +27886,7 @@
     {
       "module": "adapters/host-node/infer-trusted-node-preload.cjs",
       "responsibilityFacet": "primary",
-      "sha256": "67819bf36bee0406dd35b01b8b34626c22742d164e5b4150794908c0bf46c782",
+      "sha256": "bad0aba6974c3bcd7767961886742d1b667974886d13cca48542b63fe04f7e95",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -28164,21 +28164,21 @@
             "init:readInitialControlInstallationAsset/init:readInitialControlInstallationAsset",
             "init:readInitialControlInstallationInput/init:readInitialControlInstallationInput",
             "init:retire/init:retire",
-            "moduleNamespace",
-            "originals/originals",
-            "publicPreloadOriginals",
-            "sdkOriginals",
-            "sdkOriginals/sdkOriginals",
-            "sdkUnavailable",
-            "sdkValue",
-            "unavailable/unavailable",
             "inputUnavailable/inputUnavailable",
+            "moduleNamespace",
             "operational/init:assertCurrent/init:assertCurrent",
             "operational/init:close/init:close",
             "operational/init:prepare/init:prepare",
             "operational/init:readAsset/init:readAsset",
             "operational/init:readInput/init:readInput",
-            "samePreparation/samePreparation"
+            "originals/originals",
+            "publicPreloadOriginals",
+            "samePreparation/samePreparation",
+            "sdkOriginals",
+            "sdkOriginals/sdkOriginals",
+            "sdkUnavailable",
+            "sdkValue",
+            "unavailable/unavailable"
           ],
           "exports": [
             "commonjs:assertInitialControlInstallationCurrent",
@@ -28215,6 +28215,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "inputsOutputs": [
@@ -28323,6 +28327,10 @@
               {
                 "path": "adapters/host-node/infer-trusted-node-preload.cjs",
                 "anchor": "let preparationOriginals, preparationInput, preparationIntake, preparationClosed = false;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "ownership": [
@@ -28549,6 +28557,10 @@
               {
                 "path": "adapters/host-node/infer-trusted-node-preload.cjs",
                 "anchor": "// Native runtime/library identities stay with this SAME actual process/module"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "extension": [
@@ -28579,6 +28591,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "verification": [
@@ -28673,6 +28689,10 @@
               {
                 "path": "adapters/host-node/initial-control-finite-host.test.mjs",
                 "anchor": "partial initialization retains the actual marker FD until its same close-only duty acknowledges"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
               }
             ]
           }
@@ -28684,6 +28704,7 @@
         "./initial-control-package-custody.cjs",
         "./initial-control-package-original.cjs",
         "./initial-control-phase-envelope.cjs",
+        "./source-managed-phase-envelope.cjs",
         "node:buffer",
         "node:http",
         "node:https",
@@ -29168,9 +29189,10 @@
     },
     {
       "module": "adapters/host-node/initial-control-image-loader.cjs",
-      "sha256": "33798df367d13a6d90dbcdf177af1dec2afc0903f85b36a627309cdb141d7ca1",
+      "sha256": "f8d6b5cfc792febb09a5f020f906f063da31f94d0f52c8efcd96a48c59128b94",
       "exports": [
-        "commonjs:installInitialControlImageLoader"
+        "commonjs:installInitialControlImageLoader",
+        "commonjs:installOrdinaryInitialControlImageLoader"
       ],
       "operations": [
         {
@@ -29204,45 +29226,46 @@
           "async": false
         },
         {
-          "name": "installInitialControlImageLoader",
+          "name": "installImageLoader",
           "parameters": [
-            "groups"
+            "groups",
+            "ordinary"
           ],
           "async": false
         },
         {
-          "name": "installInitialControlImageLoader/assertCurrent",
+          "name": "installImageLoader/assertCurrent",
           "parameters": [],
           "async": false
         },
         {
-          "name": "installInitialControlImageLoader/captureLoadedModules",
+          "name": "installImageLoader/captureLoadedModules",
           "parameters": [],
           "async": false
         },
         {
-          "name": "installInitialControlImageLoader/captureLoadedModules/captureLoadedModules",
+          "name": "installImageLoader/captureLoadedModules/captureLoadedModules",
           "parameters": [
             "original"
           ],
           "async": false
         },
         {
-          "name": "installInitialControlImageLoader/covered",
+          "name": "installImageLoader/covered",
           "parameters": [
             "url"
           ],
           "async": false
         },
         {
-          "name": "installInitialControlImageLoader/jsonInteropRecord",
+          "name": "installImageLoader/jsonInteropRecord",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "installInitialControlImageLoader/load",
+          "name": "installImageLoader/load",
           "parameters": [
             "url",
             "context",
@@ -29251,21 +29274,21 @@
           "async": false
         },
         {
-          "name": "installInitialControlImageLoader/registerFence",
+          "name": "installImageLoader/registerFence",
           "parameters": [
             "args"
           ],
           "async": false
         },
         {
-          "name": "installInitialControlImageLoader/registerHooksFence",
+          "name": "installImageLoader/registerHooksFence",
           "parameters": [
             "args"
           ],
           "async": false
         },
         {
-          "name": "installInitialControlImageLoader/resolve",
+          "name": "installImageLoader/resolve",
           "parameters": [
             "specifier",
             "context",
@@ -29274,10 +29297,24 @@
           "async": false
         },
         {
-          "name": "installInitialControlImageLoader/sealJsonOriginal",
+          "name": "installImageLoader/sealJsonOriginal",
           "parameters": [
             "original",
             "exported"
+          ],
+          "async": false
+        },
+        {
+          "name": "installInitialControlImageLoader",
+          "parameters": [
+            "groups"
+          ],
+          "async": false
+        },
+        {
+          "name": "installOrdinaryInitialControlImageLoader",
+          "parameters": [
+            "groups"
           ],
           "async": false
         },
@@ -29317,28 +29354,35 @@
             "concrete/concrete/concrete",
             "ends/ends",
             "fail/fail",
+            "installImageLoader",
+            "installImageLoader/assertCurrent",
+            "installImageLoader/captureLoadedModules",
+            "installImageLoader/captureLoadedModules/captureLoadedModules",
+            "installImageLoader/covered",
+            "installImageLoader/jsonInteropRecord",
+            "installImageLoader/load",
+            "installImageLoader/registerFence",
+            "installImageLoader/registerHooksFence",
+            "installImageLoader/resolve",
+            "installImageLoader/sealJsonOriginal",
             "installInitialControlImageLoader",
-            "installInitialControlImageLoader/assertCurrent",
-            "installInitialControlImageLoader/captureLoadedModules",
-            "installInitialControlImageLoader/captureLoadedModules/captureLoadedModules",
-            "installInitialControlImageLoader/covered",
-            "installInitialControlImageLoader/jsonInteropRecord",
-            "installInitialControlImageLoader/load",
-            "installInitialControlImageLoader/registerFence",
-            "installInitialControlImageLoader/registerHooksFence",
-            "installInitialControlImageLoader/resolve",
-            "installInitialControlImageLoader/sealJsonOriginal",
+            "installOrdinaryInitialControlImageLoader",
             "own/own",
             "starts/starts"
           ],
           "exports": [
-            "commonjs:installInitialControlImageLoader"
+            "commonjs:installInitialControlImageLoader",
+            "commonjs:installOrdinaryInitialControlImageLoader"
           ],
           "attributes": {
             "responsibility": [
               {
                 "path": "adapters/host-node/initial-control-image-loader.cjs",
                 "anchor": "// Private loader custody, not an operational admission."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "inputsOutputs": [
@@ -29379,6 +29423,10 @@
               {
                 "path": "adapters/host-node/initial-control-image-loader.cjs",
                 "anchor": "const jsonInterop = original.format === 'json'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "ownership": [
@@ -29457,6 +29505,10 @@
               {
                 "path": "adapters/host-node/initial-control-image-loader.cjs",
                 "anchor": "loading: loadedProperty.value === false, jsonInterop, properties"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "extension": [
@@ -29467,6 +29519,10 @@
               {
                 "path": "adapters/host-node/initial-control-image-loader.cjs",
                 "anchor": "// This is only a Source-handoff marker, not module/exports authentication"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "verification": [
@@ -29529,6 +29585,10 @@
               {
                 "path": "adapters/host-node/initial-control-image-loader.test.mjs",
                 "anchor": "original ESM JSON interop never licenses an abbreviated CommonJS cache record"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
               }
             ]
           }
@@ -30292,9 +30352,10 @@
     },
     {
       "module": "adapters/host-node/initial-control-package-custody.cjs",
-      "sha256": "b7cb63f6bb3d5208bcb3278b4a382f85a15b9e87ca6989b68a28015c460ddd27",
+      "sha256": "2914cdb608ee2bf4a72e770f8e5b76e481585c2775b8c6f8e5c73042cfa3f0fe",
       "exports": [
-        "commonjs:captureInitialControlPackageCustody"
+        "commonjs:captureInitialControlPackageCustody",
+        "commonjs:captureOrdinaryInitialControlPackageCustody"
       ],
       "operations": [
         {
@@ -30308,12 +30369,33 @@
           "async": false
         },
         {
-          "name": "captureInitialControlPackageCustody/assertCurrent",
+          "name": "captureOrdinaryInitialControlPackageCustody",
+          "parameters": [
+            "inventory",
+            "localRoot",
+            "consumerEntry",
+            "publicDeliveryEntry"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody",
+          "parameters": [
+            "inventory",
+            "localRoot",
+            "consumerEntry",
+            "publicPreloadEntry",
+            "ordinary"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/assertCurrent",
           "parameters": [],
           "async": false
         },
         {
-          "name": "captureInitialControlPackageCustody/captureDependency",
+          "name": "capturePackageCustody/captureDependency",
           "parameters": [
             "binding",
             "from"
@@ -30321,7 +30403,7 @@
           "async": false
         },
         {
-          "name": "captureInitialControlPackageCustody/captureGroup",
+          "name": "capturePackageCustody/captureGroup",
           "parameters": [
             "directory",
             "facts",
@@ -30333,19 +30415,19 @@
           "async": false
         },
         {
-          "name": "captureInitialControlPackageCustody/initializeHostNamespace",
+          "name": "capturePackageCustody/initializeHostNamespace",
           "parameters": [],
           "async": false
         },
         {
-          "name": "captureInitialControlPackageCustody/markUnselected",
+          "name": "capturePackageCustody/markUnselected",
           "parameters": [
             "binding"
           ],
           "async": false
         },
         {
-          "name": "captureInitialControlPackageCustody/publicDependency",
+          "name": "capturePackageCustody/publicDependency",
           "parameters": [
             "binding",
             "from"
@@ -30353,14 +30435,14 @@
           "async": false
         },
         {
-          "name": "captureInitialControlPackageCustody/readAsset",
+          "name": "capturePackageCustody/readAsset",
           "parameters": [
             "path"
           ],
           "async": false
         },
         {
-          "name": "captureInitialControlPackageCustody/resolvePackage",
+          "name": "capturePackageCustody/resolvePackage",
           "parameters": [
             "name",
             "from"
@@ -30422,14 +30504,16 @@
           "operations": [
             "<module>",
             "captureInitialControlPackageCustody",
-            "captureInitialControlPackageCustody/assertCurrent",
-            "captureInitialControlPackageCustody/captureDependency",
-            "captureInitialControlPackageCustody/captureGroup",
-            "captureInitialControlPackageCustody/initializeHostNamespace",
-            "captureInitialControlPackageCustody/markUnselected",
-            "captureInitialControlPackageCustody/publicDependency",
-            "captureInitialControlPackageCustody/readAsset",
-            "captureInitialControlPackageCustody/resolvePackage",
+            "captureOrdinaryInitialControlPackageCustody",
+            "capturePackageCustody",
+            "capturePackageCustody/assertCurrent",
+            "capturePackageCustody/captureDependency",
+            "capturePackageCustody/captureGroup",
+            "capturePackageCustody/initializeHostNamespace",
+            "capturePackageCustody/markUnselected",
+            "capturePackageCustody/publicDependency",
+            "capturePackageCustody/readAsset",
+            "capturePackageCustody/resolvePackage",
             "concrete/concrete",
             "concrete/concrete/concrete",
             "fail/fail",
@@ -30437,13 +30521,18 @@
             "own/own"
           ],
           "exports": [
-            "commonjs:captureInitialControlPackageCustody"
+            "commonjs:captureInitialControlPackageCustody",
+            "commonjs:captureOrdinaryInitialControlPackageCustody"
           ],
           "attributes": {
             "responsibility": [
               {
                 "path": "adapters/host-node/initial-control-package-custody.cjs",
                 "anchor": "// Private installed-image custody, not an operational issuer."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "inputsOutputs": [
@@ -30472,6 +30561,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The owned release-cohort transformation may change only the packaged manifest"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "ownership": [
@@ -30526,6 +30619,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "the two bound manifest extents once before capture. Admitting this representation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "extension": [
@@ -30536,6 +30633,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "or the presence of that operation alone does not enable dispatch, and only the"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "verification": [
@@ -30570,6 +30671,10 @@
               {
                 "path": "scripts/initial-control-release-metadata.test.mjs",
                 "anchor": "a normal staged cohort captures exact release images and refuses mixed or changed metadata before entry"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
               }
             ]
           }
@@ -30730,14 +30835,23 @@
     },
     {
       "module": "adapters/host-node/initial-control-phase-envelope.cjs",
-      "sha256": "d7a9161ece3649b8fbbf743ac26a40a8c3ed0fc25980539b273dc9ee43093c30",
+      "sha256": "809b938ed4f4f4b14469e561c3c8382f83bb58d38291c8043a1556cb008309d0",
       "exports": [
         "commonjs:declareInitialControlPhaseEnvelope",
-        "commonjs:inspectInitialControlPhaseEnvelope"
+        "commonjs:declareOrdinaryInitialControlPhaseEnvelope",
+        "commonjs:inspectInitialControlPhaseEnvelope",
+        "commonjs:inspectOrdinaryInitialControlPhaseEnvelope"
       ],
       "operations": [
         {
           "name": "declareInitialControlPhaseEnvelope",
+          "parameters": [
+            "heapCeilingBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "declareOrdinaryInitialControlPhaseEnvelope",
           "parameters": [
             "heapCeilingBytes"
           ],
@@ -30753,14 +30867,33 @@
           "async": false
         },
         {
-          "name": "inspectInitialControlPhaseEnvelope/dependencies",
+          "name": "inspectOrdinaryInitialControlPhaseEnvelope",
+          "parameters": [
+            "inventory",
+            "declaration",
+            "runtimeOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectPhaseEnvelope",
+          "parameters": [
+            "inventory",
+            "declaration",
+            "runtimeOriginal",
+            "ordinary"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectPhaseEnvelope/dependencies",
           "parameters": [
             "values"
           ],
           "async": false
         },
         {
-          "name": "inspectInitialControlPhaseEnvelope/images",
+          "name": "inspectPhaseEnvelope/images",
           "parameters": [
             "values"
           ],
@@ -30791,15 +30924,20 @@
           "operations": [
             "<module>",
             "declareInitialControlPhaseEnvelope",
+            "declareOrdinaryInitialControlPhaseEnvelope",
             "inspectInitialControlPhaseEnvelope",
-            "inspectInitialControlPhaseEnvelope/dependencies",
-            "inspectInitialControlPhaseEnvelope/images",
+            "inspectOrdinaryInitialControlPhaseEnvelope",
+            "inspectPhaseEnvelope",
+            "inspectPhaseEnvelope/dependencies",
+            "inspectPhaseEnvelope/images",
             "own/own",
             "unavailable/unavailable"
           ],
           "exports": [
             "commonjs:declareInitialControlPhaseEnvelope",
-            "commonjs:inspectInitialControlPhaseEnvelope"
+            "commonjs:declareOrdinaryInitialControlPhaseEnvelope",
+            "commonjs:inspectInitialControlPhaseEnvelope",
+            "commonjs:inspectOrdinaryInitialControlPhaseEnvelope"
           ],
           "attributes": {
             "responsibility": [
@@ -30810,6 +30948,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "inputsOutputs": [
@@ -30834,6 +30976,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The owned release-cohort transformation may change only the packaged manifest"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "ownership": [
@@ -30892,6 +31038,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "the two bound manifest extents once before capture. Admitting this representation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "extension": [
@@ -30902,6 +31052,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "verification": [
@@ -30920,6 +31074,10 @@
               {
                 "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
                 "anchor": "an invalid original extent refuses before numeric conversion of manifest alternatives"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
               }
             ]
           }
@@ -42846,7 +43004,7 @@
     },
     {
       "module": "adapters/host-node/node-initial-control-installation.mjs",
-      "sha256": "3bda387f398a5ae063947dbc5c122a32b5b93c0f29b7e858119b8f78818665a2",
+      "sha256": "5927c26282a0594598503c730695ba6ecd1af05c08fc117459bc5049cc8c222f",
       "exports": [
         "assertInitialControlInstallationCurrent",
         "beginInitialControlInstallation",
@@ -42889,11 +43047,12 @@
         }
       ],
       "imports": [
-        "./infer-trusted-node-preload.cjs",
         "node:module"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [],
+      "unresolvedSyntax": [
+        "runtime-dependent module dependency requires original owner/artifact mapping"
+      ],
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing Host/Resource startup installation and original preparation custody",
@@ -42921,6 +43080,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
                 "anchor": "// Internal state machine, not an operational issuer."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "inputsOutputs": [
@@ -42985,6 +43148,10 @@
               {
                 "path": "adapters/host-node/initial-control-preparation-input.test.mjs",
                 "anchor": "input projection binds its nominal Scope, five originals and original receiver"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "ownership": [
@@ -43127,6 +43294,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "overlap, captured reader and receiver, scope alias and partial-failure holdings"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "extension": [
@@ -43149,6 +43320,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The selected startup may support an original producer-controlled preparation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary installed public import has a separate fixed package-prefix"
               }
             ],
             "verification": [
@@ -43203,6 +43378,10 @@
               {
                 "path": "adapters/host-node/initial-control-preparation-input.test.mjs",
                 "anchor": "snapshot handoff refuses malformed or asynchronous results without observing them"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
               }
             ]
           }
