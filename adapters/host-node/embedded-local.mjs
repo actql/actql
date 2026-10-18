@@ -873,13 +873,19 @@ async function openInstalledHost(originalInstallation, preparation) {
           parentDirectory:snapshotDirectory,signal}));
     },
     authorization?.faultInjection);
-    journal = openClientRequestJournal(journalDirectory, {
+    const journalOptions = {
       updateOriginalControl: createUpdateTargetOriginalShapeControl(moon),
       // Private fault hooks exercise the real installed admission clock;
       // Programs and public transport requests cannot select these values.
       submissionEpochTtlMs: authorization?.faultInjection?.submissionEpochTtlMs,
       submissionEpochNow: authorization?.faultInjection?.submissionEpochNow,
-    });
+    };
+    // Only the same selected writable facility may instantiate its Journal.
+    // Unselected Hosts retain the existing constructor. A directory or option
+    // object cannot select a native constructor or issue resource admission.
+    journal = preparation === undefined
+      ? openClientRequestJournal(journalDirectory, journalOptions)
+      : preparation.openRequestJournal(journalDirectory, journalOptions);
     observation = installHostObservation(observationConnection, {journal,
       runId: ref => {
         const retained = journal.lookupRunDefinition(ref, moon, control);
@@ -3778,7 +3784,8 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   profiles.registerPreparation(host, originalInstallation, host);
   let control, controlClose, duty, observedClose, referenceRetirement;
   let moon, project, projectProfile, mockPreparation, sourceManaged, sourceManagedClose;
-  let hostJournal, hostJournalClose, hostJournalFlight;
+  let hostJournal, hostJournalClose, hostJournalOpen, hostJournalFlight;
+  let hostJournalOpenAttempted = false;
   let mockAnswers, mockModelProfile, mockModelProfileRetire, mockModelFlight;
   let adopted = false, referencesRetired = false;
   const record = {};
@@ -3838,7 +3845,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       if (pending === undefined || !Object.hasOwn(pending, 'value') || pending.value !== false) {
         throw clientOperationError('HostJournalInstallationCleanupPending');
       }
-      hostJournal = hostJournalClose = undefined;
+      hostJournal = hostJournalClose = hostJournalOpen = undefined;
       hostJournalFlight = undefined;
       record.hostJournal = undefined;
     }
@@ -3889,6 +3896,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         if (typeof hostJournalClose !== 'function') {
           throw clientOperationError('HostJournalInstallationCleanupPending');
         }
+        hostJournalOpen = original.openRequestJournal;
         const current = original.assertCurrent;
         if (typeof current !== 'function') {
           throw clientOperationError('HostJournalPreparationUnavailable');
@@ -3898,6 +3906,17 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         return original;
       });
       return hostJournalFlight;
+    },
+    openRequestJournal(directory, options) {
+      assertInitialControlHostPreparation(originals);
+      if (hostJournalOpenAttempted || hostJournal === undefined ||
+          typeof hostJournalOpen !== 'function') {
+        throw clientOperationError('HostJournalPreparationUnavailable');
+      }
+      // Mark the same physical attempt before invoking the captured receiver.
+      // A throw may retain a partial native child; no replacement is issued.
+      hostJournalOpenAttempted = true;
+      return Reflect.apply(hostJournalOpen, hostJournal, [directory, options]);
     },
     bindSourceRequest(parent, derived) {
       if (mockPreparation === undefined) return;

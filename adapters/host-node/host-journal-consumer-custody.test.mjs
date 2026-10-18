@@ -22,7 +22,7 @@ const controls=nodes.filter(node=>node.type==='VariableDeclarator'&&
   source.slice(node.start,node.end).includes('hostJournal'));
 assert.equal(methods.length,1);assert.equal(controls.length,1);
 const make=compileFunction(`
-  let hostJournal,hostJournalClose,hostJournalFlight,observedClose;
+  let hostJournal,hostJournalClose,hostJournalOpen,hostJournalFlight,observedClose;
   let sourceManaged=input.source,sourceManagedClose=input.source?.close;
   let control={},controlClose=input.controlClose,originals=input.originals;
   let originalInstallation={},duty;
