@@ -53,6 +53,7 @@ import {beginInitialControlInstallation, assertInitialControlInstallationCurrent
   readInitialControlInstallationAsset, readInitialControlInstallationInput}
   from './node-initial-control-installation.mjs';
 import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
+import {loadInstalledProjectMockAnswers} from './installed-project-mock-answers.mjs';
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
 import {prepareInstalledProjectMock, installPreparedProjectMockSources}
   from './installed-project-mock.mjs';
@@ -426,6 +427,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   let modelSdkStaticOriginals;
   let modelProviders;
   let projectTasks;
+  let mockModels;
   let store;
   // Nominal association in this SAME Host, not a capacity pool or Run Owner.
   // A key is an actual Common-issued Scope; its value is retired only after
@@ -529,7 +531,9 @@ async function openInstalledHost(originalInstallation, preparation) {
   // Initial control and Source/Compute admissions cannot cover this write.
   if (preparation !== undefined) await preparation.prepareHostJournal();
   await admitHostRootFormat(root);
-  if (registerModelProviders !== undefined && process.version === 'v22.22.0' &&
+  const originalSourcePreparation = preparation?.sourcePreparation();
+  if (originalSourcePreparation === undefined &&
+      registerModelProviders !== undefined && process.version === 'v22.22.0' &&
       process.platform === 'darwin' && process.arch === 'arm64' &&
       process.versions.openssl === '3.5.4') {
     // Issue before registering the provider table. Local project discovery
@@ -563,10 +567,15 @@ async function openInstalledHost(originalInstallation, preparation) {
   const installedResultDataPolicy = resultDataPolicy === undefined ? undefined :
     control.admitSourceFreeResultPolicy(resultDataPolicy, localContractLimits);
   const evidenceConfiguration = configureInferEvidence(inferEvidence);
-  modelProviders = installModelProviders(moon, registerModelProviders,
-    modelRuntimeView === undefined ? undefined : assertModelRuntime,
-    modelRuntimeView === undefined ? undefined : assertNewModelRuntime,
-    modelRuntimeStartupView === undefined ? undefined : bindModelSdkStaticOriginals);
+  // The explicit Mock profile never registers a configured physical Provider.
+  // Its portable Model owner retains the original fixture Task and answers;
+  // neither that DATA installation nor this empty physical table grants send.
+  modelProviders = originalSourcePreparation === undefined
+    ? installModelProviders(moon, registerModelProviders,
+      modelRuntimeView === undefined ? undefined : assertModelRuntime,
+      modelRuntimeView === undefined ? undefined : assertNewModelRuntime,
+      modelRuntimeStartupView === undefined ? undefined : bindModelSdkStaticOriginals)
+    : new Map();
   const inferSelections = new WeakMap();
   const effectSubmissions = new WeakMap();
   const effectSelections = new WeakMap();
@@ -653,6 +662,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       if (preparation.sourcePreparation() !== installationSourcePreparation) {
         throw clientOperationError('InstalledSourcePreparationChanged');
       }
+      mockModels = await preparation.installMockModels(moon);
+      projectTasks = mockModels;
     } else {
       sourceProfile = await loadInstalledSources(selectedSourcePaths,
         {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
@@ -686,9 +697,11 @@ async function openInstalledHost(originalInstallation, preparation) {
     environmentWire = composeInstalledCheckEnvironment(moon,
       baseEnvironmentWire, sourceProfile?.environmentWire,
       effectInstallation?.environmentWire);
-    environmentWire = installedModelEnvironment(moon, baseEnvironmentWire,
-      environmentWire, modelInstallation);
-    if (project !== undefined &&
+    if (mockModels === undefined) {
+      environmentWire = installedModelEnvironment(moon, baseEnvironmentWire,
+        environmentWire, modelInstallation);
+    }
+    if (mockModels === undefined && project !== undefined &&
         installedProjectOriginalsForRuntime(project, moon).modelRegistry !== undefined) {
       // These are installation-time reader ceilings, not Model fuel, memory
       // reservations or a numerical execution profile. The ordinary complete
@@ -721,8 +734,17 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (projectTasks !== undefined) {
       // Extend AFTER Host-local policy encoding. Do not NFC-normalize the
       // original public Task identifier or rebuild its preimage in JS.
-      environmentWire = projectTasks.projectEnvironmentForRuntime(moon, environmentWire,
-        JSON.parse(environmentWire).evidence_bundle_cid).environmentWire;
+      if (mockModels === undefined) {
+        environmentWire = projectTasks.projectEnvironmentForRuntime(moon, environmentWire,
+          JSON.parse(environmentWire).evidence_bundle_cid).environmentWire;
+      } else {
+        // All Task/prompt/execution/retry/backoff bodies came from this same
+        // Common profile/normalization. Do not rewrite the original model or
+        // choose a different Task/provider from current registry defaults.
+        modelInstallation = mockModels.modelInstallationForRuntime(moon, environmentWire,
+          JSON.parse(environmentWire).evidence_bundle_cid);
+        environmentWire = modelInstallation.environmentWire;
+      }
     }
     verifyInstalledConnectorBindings(sourceProfile,
       installedEffect ?? effectInstallation);
@@ -3633,6 +3655,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   let control, controlClose, duty, observedClose, referenceRetirement;
   let moon, project, projectProfile, mockPreparation, sourceManaged, sourceManagedClose;
   let hostJournal, hostJournalClose, hostJournalFlight;
+  let mockAnswers, mockModelProfile, mockModelProfileRetire, mockModelFlight;
   let adopted = false, referencesRetired = false;
   const record = {};
   function retirePreparationReferences() {
@@ -3642,6 +3665,17 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     // still owns its semantic references; do not abandon it on this path.
     const retainedMock = profiles.retainedMockPreparation(host, originalInstallation, host);
     (mockPreparation ?? retainedMock?.view)?.retire(moon);
+    // The Model owner can decline retirement while the original execution
+    // still uses these answers. Keep every original and callback on failure;
+    // Source, Journal, Promise settlement and process exit cannot ACK it.
+    mockAnswers?.retire(moon);
+    if (mockModelProfile !== undefined) {
+      if (Reflect.apply(mockModelProfileRetire, moon, [mockModelProfile]) !== true) {
+        throw clientOperationError('InstalledMockModelCleanupPending');
+      }
+      mockModelProfile = mockModelProfileRetire = undefined;
+    }
+    mockAnswers = mockModelFlight = undefined;
     if (referenceRetirement !== undefined) referenceRetirement();
     else {
       projectProfile?.retire(moon);
@@ -3761,6 +3795,44 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       return installPreparedProjectMockSources({moon, mockPreparation, sourceManaged,
         baseEnvironmentWire, authorizationFor,
         readAsset: path => readInitialControlInstallationAsset(control, originals, path)});
+    },
+    installMockModels(runtime) {
+      if (runtime !== moon || mockPreparation === undefined) {
+        throw clientOperationError('ForeignInstalledMockPreparation');
+      }
+      assertInitialControlInstallationCurrent(control, originals);
+      assertSourceManagedInstallationCurrent(sourceManaged, originals);
+      if (mockModelFlight !== undefined) return mockModelFlight;
+      mockModelFlight = Promise.resolve().then(async () => {
+        const install = moon.clientProgramInstallMockProfile;
+        mockModelProfileRetire = moon.clientProgramRetireMockProfile;
+        if (typeof install !== 'function' || typeof mockModelProfileRetire !== 'function') {
+          throw clientOperationError('InstalledMockModelRuntimeUnavailable');
+        }
+        const limits = Object.freeze({maxTasks:128,maxBytes:65536,maxNodes:4096,
+          maxDepth:64,maxMembers:256,contractNodes:4096,contractDepth:64,
+          contractTextBytes:65536,maxWork:2097152,valueNodes:4096,valueDepth:64,
+          valueTextBytes:65536,maxEntries:128});
+        const assertCurrent = () => {
+          assertInitialControlInstallationCurrent(control, originals);
+          assertSourceManagedInstallationCurrent(sourceManaged, originals);
+          mockPreparation.originalsForRuntime(moon);
+        };
+        assertCurrent();
+        mockModelProfile = checked(Reflect.apply(install, moon, [limits.maxBytes,
+          limits.maxNodes,limits.maxDepth,limits.maxMembers,limits.contractNodes,
+          limits.contractDepth,limits.contractTextBytes,limits.maxWork]));
+        record.mockModelProfile = mockModelProfile;
+        assertCurrent();
+        mockAnswers = await loadInstalledProjectMockAnswers(moon, project, projectProfile,
+          {limits,assertCurrent});
+        record.mockAnswers = mockAnswers;
+        const models = mockAnswers.bindModelsForRuntime(moon, mockModelProfile, now);
+        record.mockModels = models;
+        assertCurrent();
+        return models;
+      });
+      return mockModelFlight;
     },
     readEnvironmentSource() {
       return readInitialControlInstallationAsset(control, originals,
