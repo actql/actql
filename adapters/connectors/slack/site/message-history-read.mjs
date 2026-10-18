@@ -47,6 +47,8 @@ const replyProviderExports = ['slackPrepareMessageReplies','slackMessageRepliesM
   'slackAdmitMessageRepliesPage','slackMessageRepliesPageHasNext','slackNextMessageRepliesRequest',
   'slackFinishMessageReplies','slackMessageRepliesPageRowCount','slackMessageRepliesPageRowsWire',
   'slackCloseMessageReplies'];
+const projectionProviderExports = ['slackCoalesceMessageOriginals','slackMessageProjectionRowCount',
+  'slackMessageProjectionRowsWire'];
 const limitFields = ['maxResponseBytes','maxTotalResponseBytes','maxNodes','maxDepth',
   'maxRows','maxTotalRows','maxPages','pageSize','maxCursorBytes','maxIdentityBytes',
   'maxTargetBytes','maxValueNodes','maxValueTextBytes',
@@ -84,6 +86,7 @@ function prepareRead({moon, workspaceId, channel, names, initialAuthorization, c
   if (!moon || typeof moon !== 'object' || types.isProxy(moon)) fail('InvalidSlackMessageHistoryRead');
   const provider = captureProvider(moon,providerExports,false,'InvalidSlackMessageHistoryRead');
   const replyProvider = captureProvider(moon,replyProviderExports,true);
+  const projectionProvider = captureProvider(moon,projectionProviderExports,true);
   const context = ownInvocationContext({authorization:initialAuthorization,credential,limits,
     callbacks:{authorizationFor,current,chargeResponse,consumeObservation,consumePage}});
   if (providerExports.some(name=>typeof provider[name] !== 'function') ||
@@ -107,10 +110,10 @@ function prepareRead({moon, workspaceId, channel, names, initialAuthorization, c
       if (selected[previous] === name) fail('InvalidSlackMessageHistoryRead');
     }
   }
-  return Object.freeze({provider,replyProvider,context,workspaceId,channel,names:selected,signal});
+  return Object.freeze({provider,replyProvider,projectionProvider,context,workspaceId,channel,names:selected,signal});
 }
 
-async function executeRead(prepared, received, retainPage, retainIdentity, retainExchange) {
+async function executeRead(prepared, received, retainPage, retainIdentity, retainExchange, retainControl) {
   const {provider,context,workspaceId,channel,names,signal} = prepared, bound = context.limits;
   const observations = [];
   let history;
@@ -162,6 +165,7 @@ async function executeRead(prepared, received, retainPage, retainIdentity, retai
     history=checked(provider.slackPrepareMessageHistory(channel,bound.maxResponseBytes,
       bound.maxNodes,bound.maxDepth,Math.min(bound.maxRows,bound.pageSize),bound.maxCursorBytes,
       bound.maxValueNodes,bound.maxValueTextBytes,bound.maxPages));
+    retainControl(history);
     let pending=checked(provider.slackBeginMessageHistory(history));
     for (let index=0; index<bound.maxPages; index++) {
       await verify(SLACK_MESSAGE_HISTORY_OPERATION);
@@ -210,7 +214,7 @@ export function createSlackMessageHistoryReader(options) {
   const original = prepareRead(options), stop = new AbortController();
   const signal = original.signal === undefined ? stop.signal : AbortSignal.any([original.signal,stop.signal]);
   const state = {prepared:Object.freeze({...original,signal}),stop,phase:'ready',
-    receivedResponses:0,receivedBodyBytes:0n,observations:[],exchanges:[],pages:new Map(),workspaceIdentity:undefined};
+    receivedResponses:0,receivedBodyBytes:0n,observations:[],exchanges:[],pages:new Map(),workspaceIdentity:undefined,control:undefined};
   const handle = Object.freeze({
     async read() {
       const state = originalReader(this);
@@ -225,7 +229,7 @@ export function createSlackMessageHistoryReader(options) {
           state.pages.set(retained.token,retained);return retained;
         },identity=>{state.workspaceIdentity=identity;},exchange=>{
           state.exchanges.push(exchange);return exchange;
-        });
+        },control=>{state.control=control;});
         state.phase = 'succeeded';retainOutcome(result,state);return result;
       } catch (cause) {state.phase = 'failed';retainOutcome(cause,state);throw cause;}
     },
@@ -402,4 +406,108 @@ export function createSlackMessageRepliesReader(options) {
   original.record.selections.add(original.index);
   replyReaders.set(handle,state);
   return handle;
+}
+
+const projectionLimitFields=['maxRows','maxOccurrences','maxWork','maxComparisonNodes',
+  'maxComparisonDepth','maxComparisonTextBytes','maxRowsWireBytes','maxRowsWireNodes','maxRowsWireDepth'];
+
+function projectionRecord(value,required,optional=[]) {
+  if (value===null || typeof value!=='object' || arrayIsArray(value) || types.isProxy(value)) {
+    fail('InvalidSlackMessageProjection');
+  }
+  const keys=Reflect.ownKeys(value);
+  if (required.some(key=>!keys.includes(key)) || keys.some(key=>!required.includes(key)&&!optional.includes(key))) {
+    fail('InvalidSlackMessageProjection');
+  }
+  const result={};
+  for (const key of keys) {
+    const descriptor=Object.getOwnPropertyDescriptor(value,key);
+    if (!descriptor?.enumerable || !Object.hasOwn(descriptor,'value')) fail('InvalidSlackMessageProjection');
+    defineOwned(result,key,{value:descriptor.value,enumerable:true});
+  }
+  return freezeOwned(result);
+}
+
+function projectionArray(value,maximum) {
+  if (!arrayIsArray(value) || types.isProxy(value)) fail('InvalidSlackMessageProjection');
+  const length=value.length;
+  if (!safeInteger(length) || length<0 || length>maximum) fail('InvalidSlackMessageProjection');
+  const result=[];
+  for (let index=0;index<length;index++) defineOwned(result,index,{value:value[index],enumerable:true});
+  return freezeOwned(result);
+}
+
+export class SlackMessageProjectionFailure extends Error {
+  constructor(cause) {
+    super('SlackMessageProjectionFailed',{cause});
+    this.code='SlackMessageProjectionFailed';
+  }
+}
+
+// Completed original observations only. This neither sends another request nor
+// issues a complete Source, new grant, response ticket or cleanup receipt.
+export async function coalesceSlackMessageReaders(options) {
+  const original=projectionRecord(options,['historyReader','replyReaders','names','limits'],['signal']);
+  const source=originalReader(original.historyReader),provider=source.prepared.projectionProvider;
+  if (source.phase!=='succeeded' || source.control===undefined) fail('ForeignSlackMessageProjectionSelection');
+  if (!provider) fail('SlackMessageOriginalRuntimeUnavailable');
+  const bound=projectionRecord(original.limits,projectionLimitFields);
+  if (!projectionLimitFields.every(name=>positive(bound[name]))) fail('InvalidSlackMessageProjection');
+  const handles=projectionArray(original.replyReaders,bound.maxOccurrences),states=[],controls=[];
+  const signals=[source.prepared.signal];
+  if (original.signal!==undefined) defineOwned(signals,signals.length,{value:original.signal,enumerable:true});
+  for (let index=0;index<handles.length;index++) {
+    const reply=originalReplyReader(handles[index]);
+    if (reply.prepared.source!==source || reply.phase!=='succeeded' || reply.control===undefined) {
+      fail('ForeignSlackMessageProjectionSelection');
+    }
+    defineOwned(states,index,{value:reply,enumerable:true});
+    defineOwned(controls,index,{value:reply.control,enumerable:true});
+    defineOwned(signals,signals.length,{value:reply.prepared.signal,enumerable:true});
+  }
+  freezeOwned(states);freezeOwned(controls);freezeOwned(signals);
+  const signal=AbortSignal.any(signals);
+  const columns=projectionArray(source.prepared.provider.slackMessageColumnNames(),2147483647);
+  const names=projectionArray(original.names,columns.length);
+  for (let index=0;index<names.length;index++) {
+    let found=false;
+    for (let column=0;column<columns.length;column++) if (columns[column]===names[index]) {found=true;break;}
+    if (typeof names[index]!=='string' || !found) fail('InvalidSlackMessageProjection');
+    for (let before=0;before<index;before++) if (names[index]===names[before]) fail('InvalidSlackMessageProjection');
+  }
+  const state={historyReader:original.historyReader,handles,source,states,controls,signal,names,bound,
+    projection:undefined,wire:undefined,rows:undefined};
+  const current=async(callback,operation)=>{
+    signal.throwIfAborted();
+    await callback(operation);
+    signal.throwIfAborted();
+  };
+  try {
+    await current(source.prepared.context.callbacks.current,SLACK_MESSAGE_HISTORY_OPERATION);
+    if (states.length) {
+      await current(source.prepared.context.callbacks.current,SLACK_MESSAGE_REPLIES_OPERATION);
+      for (let index=0;index<states.length;index++) {
+        const reply=states[index];
+        if (reply.prepared.context.callbacks.current!==source.prepared.context.callbacks.current) {
+          await current(reply.prepared.context.callbacks.current,SLACK_MESSAGE_REPLIES_OPERATION);
+        }
+      }
+    }
+    signal.throwIfAborted();
+    state.projection=checked(provider.slackCoalesceMessageOriginals(source.control,controls,
+      bound.maxRows,bound.maxOccurrences,bound.maxWork,bound.maxComparisonNodes,
+      bound.maxComparisonDepth,bound.maxComparisonTextBytes));
+    const rowCount=provider.slackMessageProjectionRowCount(state.projection);
+    if (!safeInteger(rowCount) || rowCount<0 || rowCount>bound.maxRows) fail('SlackMessageProjectionRowLimit');
+    state.wire=checked(provider.slackMessageProjectionRowsWire(state.projection,names,
+      bound.maxRowsWireBytes,bound.maxRowsWireNodes,bound.maxRowsWireDepth));
+    state.rows=JSON.parse(state.wire);
+    const result=freezeOwned({rowCount,rows:state.rows,cleanupConfirmed:false});
+    retainOutcome(result,state);
+    return result;
+  } catch (cause) {
+    const failure=new SlackMessageProjectionFailure(cause);
+    retainOutcome(failure,state);
+    throw failure;
+  }
 }
