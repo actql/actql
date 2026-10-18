@@ -10293,6 +10293,612 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/connectors/notion/site/database-discovery.mjs",
+      "sha256": "12580658dbea3f5872195b44b2428ecc814bb8327e9238726ec7386e9f22ef3e",
+      "exports": [
+        "NOTION_DATABASE_RETRIEVE_OPERATION",
+        "NOTION_DATA_SOURCE_RETRIEVE_OPERATION",
+        "NotionDatabaseDiscoveryFailure",
+        "captureNotionDatabaseDiscoveryPublication",
+        "createNotionDatabaseDiscovery",
+        "notionDatabaseDiscoveryPublicationOriginals"
+      ],
+      "operations": [
+        {
+          "name": "captureNotionDatabaseDiscoveryPublication",
+          "parameters": [
+            "reader",
+            "result",
+            "limits"
+          ],
+          "async": true
+        },
+        {
+          "name": "captureNotionDatabaseDiscoveryPublication/captureNotionDatabaseDiscoveryPublication",
+          "parameters": [
+            "x",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "coordinate/coordinate",
+          "parameters": [
+            "id",
+            "kind",
+            "bound"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseDiscovery",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseDiscovery/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseDiscovery/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createNotionDatabaseDiscovery/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "discover",
+          "parameters": [
+            "original",
+            "state"
+          ],
+          "async": true
+        },
+        {
+          "name": "discover/request/request",
+          "parameters": [
+            "operation",
+            "index",
+            "path",
+            "selectedAuthorization"
+          ],
+          "async": true
+        },
+        {
+          "name": "discover/request/request/response/response",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "discover/request/request/response/response/response",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "discover/verify/verify",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "hash/hash",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "NotionDatabaseDiscoveryFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause",
+            "observations",
+            "responseCharges"
+          ],
+          "async": false
+        },
+        {
+          "name": "notionDatabaseDiscoveryPublicationOriginals",
+          "parameters": [
+            "capture"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalReader",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownData",
+          "parameters": [
+            "value",
+            "names",
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownData/ownData",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownData/ownData#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownPublication",
+          "parameters": [
+            "value",
+            "moon",
+            "declaration",
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownPublication/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownPublication/ownPublication",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "ownPublication/ports/ports",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare",
+          "parameters": [
+            "moon",
+            "declaration",
+            "initialAuthorization",
+            "sourceAuthorization",
+            "sourceAuthorizationFor",
+            "credential",
+            "authorizationFor",
+            "current",
+            "chargeResponse",
+            "consumeObservation",
+            "limits",
+            "signal",
+            "systemColumns",
+            "publication"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare/prepare",
+          "parameters": [
+            "x"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare/prepare#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare/prepare#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepare/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameRequestData",
+          "parameters": [
+            "control",
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameRequestData/sameRequestData",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/installation-preparation-fields.generated.mjs",
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-source.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "./property-item-read.mjs",
+        "node:crypto",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Notion Catalog discovery/original publication capture and actual Host/Source Credential caller",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            {
+              "name": "captureNotionDatabaseDiscoveryPublication",
+              "parameters": [
+                "reader",
+                "result",
+                "limits"
+              ],
+              "async": true
+            },
+            {
+              "name": "captureNotionDatabaseDiscoveryPublication/captureNotionDatabaseDiscoveryPublication",
+              "parameters": [
+                "x",
+                "index"
+              ],
+              "async": false
+            },
+            {
+              "name": "coordinate/coordinate",
+              "parameters": [
+                "id",
+                "kind",
+                "bound"
+              ],
+              "async": false
+            },
+            {
+              "name": "createNotionDatabaseDiscovery",
+              "parameters": [
+                "options"
+              ],
+              "async": false
+            },
+            {
+              "name": "createNotionDatabaseDiscovery/handle/init:observe/init:observe",
+              "parameters": [],
+              "async": false
+            },
+            {
+              "name": "createNotionDatabaseDiscovery/handle/init:read/init:read",
+              "parameters": [],
+              "async": true
+            },
+            {
+              "name": "createNotionDatabaseDiscovery/handle/init:requestStop/init:requestStop",
+              "parameters": [
+                "reason"
+              ],
+              "async": false
+            },
+            {
+              "name": "discover",
+              "parameters": [
+                "original",
+                "state"
+              ],
+              "async": true
+            },
+            {
+              "name": "discover/request/request",
+              "parameters": [
+                "operation",
+                "index",
+                "path",
+                "selectedAuthorization"
+              ],
+              "async": true
+            },
+            {
+              "name": "discover/request/request/response/response",
+              "parameters": [
+                "options"
+              ],
+              "async": false
+            },
+            {
+              "name": "discover/request/request/response/response/response",
+              "parameters": [],
+              "async": false
+            },
+            {
+              "name": "discover/verify/verify",
+              "parameters": [
+                "operation"
+              ],
+              "async": true
+            },
+            {
+              "name": "fail/fail",
+              "parameters": [
+                "code"
+              ],
+              "async": false
+            },
+            {
+              "name": "hash/hash",
+              "parameters": [
+                "value"
+              ],
+              "async": false
+            },
+            {
+              "name": "NotionDatabaseDiscoveryFailure/constructor:constructor/constructor:constructor",
+              "parameters": [
+                "cause",
+                "observations",
+                "responseCharges"
+              ],
+              "async": false
+            },
+            {
+              "name": "notionDatabaseDiscoveryPublicationOriginals",
+              "parameters": [
+                "capture"
+              ],
+              "async": false
+            },
+            {
+              "name": "originalReader",
+              "parameters": [
+                "handle"
+              ],
+              "async": false
+            },
+            {
+              "name": "ownData",
+              "parameters": [
+                "value",
+                "names",
+                "code"
+              ],
+              "async": false
+            },
+            {
+              "name": "ownData/ownData",
+              "parameters": [
+                "key"
+              ],
+              "async": false
+            },
+            {
+              "name": "ownData/ownData#2",
+              "parameters": [
+                "name"
+              ],
+              "async": false
+            },
+            {
+              "name": "ownPublication",
+              "parameters": [
+                "value",
+                "moon",
+                "declaration",
+                "context"
+              ],
+              "async": false
+            },
+            {
+              "name": "ownPublication/call/call",
+              "parameters": [
+                "name",
+                "args"
+              ],
+              "async": false
+            },
+            {
+              "name": "ownPublication/ownPublication",
+              "parameters": [],
+              "async": false
+            },
+            {
+              "name": "ownPublication/ports/ports",
+              "parameters": [
+                "name"
+              ],
+              "async": false
+            },
+            {
+              "name": "positive/positive",
+              "parameters": [
+                "value"
+              ],
+              "async": false
+            },
+            {
+              "name": "prepare",
+              "parameters": [
+                "moon",
+                "declaration",
+                "initialAuthorization",
+                "sourceAuthorization",
+                "sourceAuthorizationFor",
+                "credential",
+                "authorizationFor",
+                "current",
+                "chargeResponse",
+                "consumeObservation",
+                "limits",
+                "signal",
+                "systemColumns",
+                "publication"
+              ],
+              "async": false
+            },
+            {
+              "name": "prepare/prepare",
+              "parameters": [
+                "x"
+              ],
+              "async": false
+            },
+            {
+              "name": "prepare/prepare#2",
+              "parameters": [
+                "name"
+              ],
+              "async": false
+            },
+            {
+              "name": "prepare/prepare#3",
+              "parameters": [
+                "name"
+              ],
+              "async": false
+            },
+            {
+              "name": "prepare/provider/provider",
+              "parameters": [
+                "name"
+              ],
+              "async": false
+            },
+            {
+              "name": "sameRequestData",
+              "parameters": [
+                "control",
+                "left",
+                "right"
+              ],
+              "async": false
+            },
+            {
+              "name": "sameRequestData/sameRequestData",
+              "parameters": [
+                "key"
+              ],
+              "async": false
+            }
+          ],
+          "exports": [
+            "NOTION_DATABASE_RETRIEVE_OPERATION",
+            "NOTION_DATA_SOURCE_RETRIEVE_OPERATION",
+            "NotionDatabaseDiscoveryFailure",
+            "captureNotionDatabaseDiscoveryPublication",
+            "createNotionDatabaseDiscovery",
+            "notionDatabaseDiscoveryPublicationOriginals"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "A discovery reader may retain the original Host publication request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Only the same reader's successful, exact returned result may issue one opaque"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "all six existing generated request fields must match"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The capture's private getter returns provenance DATA even after retirement"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "existing Host request assertion runs before and after awaited current checks"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Copied results, another reader, a missing original request, wrong scope and a"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Failure keeps its original"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Each reader now retains its successful result alias, capture phase/failure and"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Neither publication retirement nor copied wire can reconstruct this live token."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/notion/test/database-publication-capture.test.mjs",
+                "anchor": "live publication capture retains actual Host request Catalog snapshot"
+              },
+              {
+                "path": "adapters/connectors/notion/test/database-publication-capture.test.mjs",
+                "anchor": "capture binds retained Catalog bytes to the response"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
