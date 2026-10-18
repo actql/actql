@@ -68,14 +68,14 @@ pub fn NativeLocalAdoptionSession::open_existing_journal_with_custody(
   }
   match opened {
     Ok(host) => Ok(host)
-    Err(issue) => Err(self.retain_journal_open_failure(issue, None))
+    Err(issue) => Err(self.retain_journal_open_failure(issue))
   }
 }
 
 ///|
 // One original failure carrier is shared by legacy and original-pair callers.
 // Retain the actual DB and acquisition before publishing the refusal.
-fn NativeLocalAdoptionSession::retain_journal_open_failure(
+fn NativeLocalAdoptionSession::retain_journal_open_failure_with_resources(
   self : NativeLocalAdoptionSession,
   issue : NativeLocalAdoptionIssue,
   original_resources : NativeLocalJournalOriginalResources?,
@@ -142,6 +142,10 @@ fn NativeLocalJournalOpenFailure::cleanup_read_prefix(
 fn NativeLocalJournalOpenFailure::cleanup_database(
   self : NativeLocalJournalOpenFailure,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
+  match retry_local_journal_inspection_cleanup(self.original_issue) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   if self.database is Some(database) {
     match database.close_checked() {
       Err(issue) => return Err(Physical(issue))
@@ -149,4 +153,31 @@ fn NativeLocalJournalOpenFailure::cleanup_database(
     }
   }
   Ok(())
+}
+
+///|
+// The immutable original issue already owns this exact copied DB/scratch
+// cleanup. Consume its ACK before releasing any original Root or lock; do not
+// open another inspection or replace the semantic refusal on a cleanup error.
+fn retry_local_journal_inspection_cleanup(
+  issue : NativeLocalAdoptionIssue,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  match issue {
+    Inspection(
+      Inspection(@journal.InitializationCleanupPending(_, _, original), _)
+    ) => original.retry().map_err(issue => InspectionCleanup(issue))
+    DatabasePending(_, original) =>
+      retry_local_journal_inspection_cleanup(original)
+    OriginalResourceLeave(Some(original), _) =>
+      retry_local_journal_inspection_cleanup(original)
+    _ => Ok(())
+  }
+}
+
+///|
+fn NativeLocalAdoptionSession::retain_journal_open_failure(
+  self : NativeLocalAdoptionSession,
+  issue : NativeLocalAdoptionIssue,
+) -> NativeLocalJournalOpenFailure {
+  self.retain_journal_open_failure_with_resources(issue, None)
 }

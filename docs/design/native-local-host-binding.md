@@ -1300,3 +1300,10 @@ lock. A stage failure and a failed leave remain independently represented;
 cleanup may finish that original leave but cannot replay the protected stage.
 Directory/DB close, managed-reference retirement, domain/loan and Host ACKs
 remain distinct obligations of the existing Owners.
+
+A refused Journal open may retain the existing read-only inspection's copied
+database and scratch-file cleanup inside its original issue. Journal cleanup
+must obtain that original inspection Owner's close acknowledgement before
+releasing the adoption Roots or exclusive lock. Cleanup failure preserves both
+the immutable semantic refusal and the current cleanup cause; it does not
+repeat inspection, reopen the source database or authorize initialization.

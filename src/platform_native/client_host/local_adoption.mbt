@@ -65,6 +65,7 @@ pub(all) enum NativeLocalAdoptionIssue {
     NativeLocalAdoptionIssue?,
     @arena.InstalledArenaLocalHostResourcesIssue
   )
+  InspectionCleanup(@journal.NativeRemoteJournalIssue)
 }
 
 ///|
