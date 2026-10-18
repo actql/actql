@@ -93,4 +93,5 @@ function captureInitialControlImageSource(path, expected) {
   }
 }
 
-module.exports = freeze({captureInitialControlImageSource});
+module.exports = {captureInitialControlImageSource};
+freeze(module.exports);

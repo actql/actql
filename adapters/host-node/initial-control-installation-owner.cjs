@@ -215,4 +215,5 @@ function createInitialControlInstallationOwner(operational) {
   return freeze({begin, assertCurrent});
 }
 
-module.exports = freeze({createInitialControlInstallationOwner});
+module.exports = {createInitialControlInstallationOwner};
+freeze(module.exports);
