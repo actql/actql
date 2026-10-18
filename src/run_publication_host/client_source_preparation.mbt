@@ -137,23 +137,27 @@ pub fn prepare_client_source_computation(
     )
     let table_writes = source_result(
       @source_publication.published_table_writes(environment, publication).map_err(issue => {
-        ClientSourcePreparationIssue::Publication(issue)
-      }),
+          ClientSourcePreparationIssue::Publication(issue)
+        },
+      ),
     )
     let update_targets = source_result(
       @source_publication.published_update_targets(environment, publication).map_err(issue => {
-        ClientSourcePreparationIssue::Publication(issue)
-      }),
+          ClientSourcePreparationIssue::Publication(issue)
+        },
+      ),
     )
     let store_targets = source_result(
       @source_publication.published_store_targets(environment, publication).map_err(issue => {
-        ClientSourcePreparationIssue::Publication(issue)
-      }),
+          ClientSourcePreparationIssue::Publication(issue)
+        },
+      ),
     )
     let command_targets = source_result(
       @source_publication.published_command_targets(environment, publication).map_err(issue => {
-        ClientSourcePreparationIssue::Publication(issue)
-      }),
+          ClientSourcePreparationIssue::Publication(issue)
+        },
+      ),
     )
     let lowered = source_result(
       @source_frontend.lower(
@@ -202,7 +206,8 @@ pub fn prepare_client_source_computation(
           ).map_err(issue => ClientSourcePreparationIssue::ArrayProfile(issue)),
         )
         |> ignore
-        let (original_program, original_parameters, _) = match client_effect_original_input_wires(prepared) {
+        let (original_program, original_parameters, _) = match
+          client_effect_original_input_wires(prepared) {
           Ok(value) => value
           Err(issue) => return Err(Materials(issue))
         }

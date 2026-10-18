@@ -87,6 +87,51 @@ test('source material projection is consumed by the existing task Run material O
   const material = host.sourceProgramMaterialInput(selected.prepared, environmentWire);
   const saved = host.issueTaskRunMaterials(selected.prepared, compiled, issued.admission, definition, material);
   assert.equal(typeof saved, 'string');
+  const changed = host.prepareSourceProgram(intent('SELECT 2 AS n'), material.environment, publication);
   assert.throws(() => host.issueTaskRunMaterials(selected.prepared, compiled, issued.admission, definition,
-    {...material, document: material.document.replace('1', '2')}));
+    {...material, document: host.sourceProgramMaterialInput(changed.prepared, environmentWire).document}));
+});
+
+test('source Effect materials require the same source preparation and independently retained request', () => {
+  const wire = readFileSync(new URL('./fixtures/completion-free-update-source.environment.json', import.meta.url), 'utf8').trimEnd();
+  const body = JSON.parse(wire);
+  const env = host.admitEnvironment(wire, body.evidence_bundle_cid, {rela: true});
+  const snapshot = body.schema_snapshots.find(x => x.source_ref === 'connector://crm/main/r#v');
+  const published = JSON.stringify({environmentCid: body.evidence_bundle_cid, aliases: [{
+    name: 'records', sourceRef: snapshot.source_ref,
+    sourceViewContractCid: snapshot.source_view_contract_cid,
+    schemaContractCid: snapshot.carrier_schema_contract_cid,
+  }]});
+  const text = "FROM records |> SELECT id, id AS value |> RESULT updates |> EFFECT save UPDATE TARGET 'connector://crm/account' MAPPING `mapping:crm.account.v1` FROM RESULT updates ID id SET (Name = value)";
+  const original = intent(text, 'aql-text');
+  const selected = host.prepareSourceProgram(original, env, published);
+  assert.equal(selected.kind, 'effect');
+  const compilation = host.compileEffect(selected.prepared);
+  const request = host.prepareEffectRequest(selected.prepared, compilation, scope, 'source-effect');
+  assert.equal(host.requestFields(request).callerInputIntentCid, host.submittedIntentFacts(original).cid);
+  const allowed = host.issueAllowedEffectRun(selected.prepared, compilation, {
+    executionContextCid: scope, hostPolicyCid: 'sha256:' + 'b'.repeat(64), expiresAt: '2099-01-01T00:00:00.000Z',
+  });
+  const definition = host.issueEffectRunDefinition(allowed, 'source-effect', 'same-effect-run',
+    '2026-10-19T00:00:00.000Z', '2098-01-01T00:00:00.000Z');
+  const material = host.sourceProgramMaterialInput(selected.prepared, wire);
+  const saved = host.issueEffectRunMaterials(allowed, definition, material, request);
+  const root = host.privateRunDefinition(definition).cid;
+  const fresh = host.restoreSourceProgram(host.sourceProgramOriginals(selected.prepared),
+    host.admitEnvironment(wire, body.evidence_bundle_cid, {rela: true}));
+  const restoredRequest = host.admitSourceRequestFields(fresh.prepared, fresh.originalIntent, host.requestFields(request));
+  const restored = host.admitEffectRunMaterials(saved, root, {rela: true}, undefined, restoredRequest, fresh.prepared);
+  assert.deepEqual(host.privateRunDefinition(restored.definition), host.privateRunDefinition(definition));
+  assert.deepEqual(host.requestFields(restored.request), host.requestFields(request));
+  assert.deepEqual(host.sourceProgramOriginals(restored.prepared), host.sourceProgramOriginals(selected.prepared));
+  assert.throws(() => host.admitEffectRunMaterials(saved, root, {rela: true}, undefined, restoredRequest),
+    {code: 'RunHostEffectRestorationRejected'});
+  assert.throws(() => host.admitEffectRunMaterials(saved, root, {rela: true}, undefined, undefined, fresh.prepared),
+    {code: 'RunHostEffectRestorationRejected'});
+  const changed = host.prepareSourceProgram(intent(text + ' ', 'aql-text'), env, published);
+  assert.throws(() => host.admitEffectRunMaterials(saved, root, {rela: true}, undefined, restoredRequest, changed.prepared),
+    {code: 'RunHostEffectRestorationRejected'});
+  const readOnly = host.prepareSubmittedIntent(JSON.stringify({kind: 'aql',
+    input: {text, format: 'aql-text'}, parameters: null, readOnly: true}), limits);
+  assert.throws(() => host.prepareSourceProgram(readOnly, env, published), {code: 'RunHostSourcePreparationRejected'});
 });

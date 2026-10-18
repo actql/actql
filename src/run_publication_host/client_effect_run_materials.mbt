@@ -44,7 +44,8 @@ pub fn client_effect_run_materials_request_for_dispatch(
     @publication.publication_contract_identity(materials.run_definition) ||
     @remote.dispatch_request_journal_key(dispatch)[0] !=
     client_request_authority_scope_cid(request) ||
-    client_request_input_cid(request) != client_effect_original_input_intent_cid(materials.prepared) {
+    client_request_input_cid(request) !=
+    client_effect_original_input_intent_cid(materials.prepared) {
     return Err(IdentityMismatch)
   }
   match prepared_client_effect_request_scope(materials.prepared, request) {
@@ -91,17 +92,23 @@ pub fn issue_client_effect_run_materials(
   }
   if prepared.source_intent is Some(_) {
     guard request is Some(value) &&
-      client_request_input_cid(value) == client_effect_original_input_intent_cid(prepared) else {
+      client_request_input_cid(value) ==
+      client_effect_original_input_intent_cid(prepared) else {
       return Err(Request(IdentityMismatch))
     }
-    let (original_program, original_parameters, _) = match client_effect_original_input_wires(prepared) {
+    let (original_program, original_parameters, _) = match
+      client_effect_original_input_wires(prepared) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
     if program != original_program || parameters_wire != original_parameters {
       return Err(RunMismatch)
     }
-    return issue_prepared_client_effect_run_materials(allowed, definition, request~)
+    return issue_prepared_client_effect_run_materials(
+      allowed,
+      definition,
+      request~,
+    )
   }
   // Use the same bounded encoder and Parameter Values decoder as ordinary
   // Run materials. Neither operation adds a grant or refreshes the lifetime.
@@ -206,30 +213,36 @@ pub fn admit_client_effect_run_materials(
     None => prepared
     Some(original) => {
       guard original.preparation is Effect(source_prepared) &&
-        prepared_client_effect_identity(source_prepared) == prepared_client_effect_identity(prepared) &&
-        prepared_client_effect_computation_environment_cid(source_prepared) == prepared_client_effect_computation_environment_cid(prepared) &&
-        source_prepared.source_intent is Some(intent) && physical_equal(intent, original.intent) else {
+        prepared_client_effect_identity(source_prepared) ==
+        prepared_client_effect_identity(prepared) &&
+        prepared_client_effect_computation_environment_cid(source_prepared) ==
+        prepared_client_effect_computation_environment_cid(prepared) &&
+        source_prepared.source_intent is Some(intent) &&
+        physical_equal(intent, original.intent) else {
         return Err(Request(IdentityMismatch))
       }
       source_prepared
     }
   }
   let prepared = if original_source is Some(_) {
-    if prepared_client_effect_target_selections(prepared) != body.target_selections_wire {
+    if prepared_client_effect_target_selections(prepared) !=
+      body.target_selections_wire {
       return Err(TargetSelection(InvalidMaterials))
     }
     prepared
-  } else { match body.target_selections_wire {
-    None => prepared
-    Some(wire) => {
-      let selection = match
-        admit_client_effect_target_selections(prepared.candidate, wire) {
-        Ok(value) => value
-        Err(issue) => return Err(TargetSelection(issue))
+  } else {
+    match body.target_selections_wire {
+      None => prepared
+      Some(wire) => {
+        let selection = match
+          admit_client_effect_target_selections(prepared.candidate, wire) {
+          Ok(value) => value
+          Err(issue) => return Err(TargetSelection(issue))
+        }
+        { ..prepared, target_selections: Some(selection), }
       }
-      { ..prepared, target_selections: Some(selection), }
     }
-  } }
+  }
   let infer = match
     restore_client_effect_original_infer(prepared, body.infer_input, limits) {
     Ok(value) => value
@@ -368,7 +381,8 @@ pub fn admit_client_effect_run_materials(
   }
   if normalization_profile is Some(_) ||
     prepared.target_selections is Some(_) ||
-    infer is Some(_) || original_source is Some(_) {
+    infer is Some(_) ||
+    original_source is Some(_) {
     let canonical = match
       encode_prepared_client_effect_materials(
         allowed,

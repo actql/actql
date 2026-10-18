@@ -63,7 +63,9 @@ pub fn issue_prepared_client_effect_run_materials(
 ///|
 /// Only the source frontend's original preparation can retain this intent.
 /// The legacy path keeps its exact source-free identity.
-fn client_effect_original_input_intent_cid(prepared : PreparedClientEffectComputation) -> String {
+fn client_effect_original_input_intent_cid(
+  prepared : PreparedClientEffectComputation,
+) -> String {
   match prepared.source_intent {
     None => source_free_caller_input_intent_cid()
     Some(intent) => client_submitted_intent_cid(intent)
