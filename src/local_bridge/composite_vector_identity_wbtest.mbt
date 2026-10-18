@@ -143,14 +143,19 @@ test "composite rows Bridge retains source through original current refusal and 
   )
   let source = graph_order_carrier_events_source_output(source_owner)
   let owner = composite_vector_bridge_receiver(source_owner)
-  let input = @execution.prepare_producer_read(
-    owner,
-    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
-    100,
-    1000,
-  ).unwrap()
   for cancel in [true, false] {
-    let current = Ref::new(true)
+    let current = Ref(true)
+    // Restrict the same completion through its existing original-liveness port.
+    // The output retention predicate is not an input-currentness callback.
+    let selected = @execution.restrict_completed_output(source, () => {
+      current.val
+    })
+    let input = @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, source_owner, selected).unwrap(),
+      100,
+      1000,
+    ).unwrap()
     let control = @bounded.control()
     let active = start_rows_to_vectors(
       control,
@@ -159,7 +164,7 @@ test "composite rows Bridge retains source through original current refusal and 
       input,
       composite_vector_bridge_storage_limits(),
       4096L,
-      () => current.val,
+      () => true,
     ).unwrap()
     assert_true(advance_rows_to_vectors(active, 1).unwrap() is Continue(..))
     if cancel {
