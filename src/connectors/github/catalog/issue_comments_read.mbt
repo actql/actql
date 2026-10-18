@@ -71,7 +71,7 @@ pub fn begin_issue_comments_read(
 }
 
 ///|
-fn IssueCommentsRead::refuse(
+fn[T] IssueCommentsRead::refuse(
   self : IssueCommentsRead,
   issue : GraphqlResponseIssue,
 ) -> Result[T, GraphqlResponseIssue] {
