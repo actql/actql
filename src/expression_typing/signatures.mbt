@@ -116,7 +116,7 @@ fn comparable_operands(
     }
     let c = resolve_type(t, child.inferred, child.source)
     if ordered &&
-      !["string", "number", "decimal", "boolean", "date", "timestamp"].contains(
+      !["string", "number", "int64", "decimal", "boolean", "date", "timestamp"].contains(
         type_name(c),
       ) {
       fail(child.source, TypeMismatch("author-orderable scalar"))
