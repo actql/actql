@@ -191,6 +191,10 @@ fn local_runtime_retain_root(
   root : @filesystem.Root,
 ) -> Unit raise LocalRuntimeStop {
   runtime.roots.push(root)
+  if runtime.original_resources is Some(_) {
+    root.require_current_original_read().map_err(issue => Physical(issue))
+    |> local_runtime_result
+  }
   let original = root.observe_directory().map_err(issue => Physical(issue))
     |> local_runtime_result
   runtime.directories.push(original)
@@ -536,6 +540,14 @@ fn NativeLocalPackagedRuntime::local_runtime_check_originals(
     match current {
       Err(issue) => return Err(issue)
       Ok(_) => ()
+    }
+  }
+  if self.original_resources is Some(_) {
+    for root in self.roots {
+      match root.require_current_original_read() {
+        Err(issue) => return Err(Physical(issue))
+        Ok(_) => ()
+      }
     }
   }
   for directory in self.directories {
