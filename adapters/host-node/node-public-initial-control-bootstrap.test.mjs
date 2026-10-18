@@ -113,3 +113,12 @@ test('ordinary changed installed image retains its original refusal before Host 
     'assert.equal(errors.length,2);assert.equal(errors[0],errors[1]);assert.equal(errors[0].code,"InitialControlImageChanged");');
   assert.equal(result.status,0,result.stderr);
 });
+
+test('ordinary modified intrinsic refuses before acquiring a caller snapshot',t=>{
+  const f=fixture(t);const result=f.run(
+    'import assert from"node:assert/strict";const original=Object.create;Object.create=function(...args){return original(...args);};'+
+    'const{connect}=await import("@actql/local-node");let seen=0;'+
+    'assert.throws(()=>connect({mode:"local",installation:{directory:".actql"},get profile(){seen++;}}),{code:"NodeInitialControlAdmissionUnavailable"});'+
+    'assert.equal(seen,0);');
+  assert.equal(result.status,0,result.stderr);
+});
