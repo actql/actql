@@ -916,15 +916,46 @@ export function openClientRequestJournal(directory, {
   const existed = existsSync(path);
   if (current !== existed) fail('UnknownClientRequestJournalFormat');
   const database = new DatabaseSync(path, {
-    open: true,
+    // Retain the actual wrapper before native open can acquire a connection
+    // and then fail. Cleanup must not depend on an unreachable constructor
+    // result or on eventual garbage collection of that native connection.
+    open: false,
     readOnly: false,
     enableForeignKeyConstraints: true,
   });
+  let originalDatabaseClose, originalDatabaseIsOpen;
+  const captureDatabaseCleanup = () => {
+    originalDatabaseClose ??= database.close;
+    originalDatabaseIsOpen ??= Object.getOwnPropertyDescriptor(
+      database, 'isOpen')?.get;
+    if (typeof originalDatabaseClose !== 'function' ||
+        typeof originalDatabaseIsOpen !== 'function') {
+      throw new TypeError('ClientRequestJournalConnectionCleanupUnavailable');
+    }
+  };
+  const initializationCleanup = {close() {
+    captureDatabaseCleanup();
+    const opened = applyOriginal(originalDatabaseIsOpen, database, []);
+    if (typeof opened !== 'boolean') {
+      throw new TypeError('ClientRequestJournalConnectionCleanupPending');
+    }
+    if (opened && (applyOriginal(originalDatabaseClose, database, []) !== undefined ||
+        applyOriginal(originalDatabaseIsOpen, database, []) !== false)) {
+      throw new TypeError('ClientRequestJournalConnectionCleanupPending');
+    }
+  }};
   const transaction = createSqliteTransaction(database,
     'ClientRequestJournal');
   let closed = false;
   let databaseClosed = false;
   try {
+    captureDatabaseCleanup();
+    const originalOpen = database.open;
+    if (typeof originalOpen !== 'function' ||
+        applyOriginal(originalOpen, database, []) !== undefined ||
+        applyOriginal(originalDatabaseIsOpen, database, []) !== true) {
+      throw new TypeError('ClientRequestJournalConnectionOpenUnavailable');
+    }
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
     database.exec(`
@@ -2837,7 +2868,7 @@ export function openClientRequestJournal(directory, {
     close() {
       closed = true;
       if (!databaseClosed) {
-        database.close();
+        initializationCleanup.close();
         databaseClosed = true;
       }
       // Observation cleanup is optional and never changes Run cleanup facts.
@@ -2848,6 +2879,6 @@ export function openClientRequestJournal(directory, {
   });
   return journal;
   } catch (error) {
-    throwSqliteInitializationFailure(database, error, 'client-request-journal');
+    throwSqliteInitializationFailure(initializationCleanup, error, 'client-request-journal');
   }
 }
