@@ -76,3 +76,49 @@ test('recorded original response loss is Unit only for that original one-shot re
  assert.throws(()=>checked(moon.clientProgramBigQueryNextRequest(f.session)),{code:'MoonBitHostFailure'});
  assert.equal(f.row.usage()[3],0n);f.row.assertNoCapture();
 });
+
+test('normal compiled original Job record preserves actual first request before its attempt',async t=>{
+ const f=await original(t);
+ const limits=moon.clientProgramBigQueryJobRecordLimits(8192,64,8,1024,4096);
+ const record=checked(moon.clientProgramBigQueryJobOriginalRecord(f.session,limits));
+ const request=checked(moon.clientProgramBigQueryNextRequest(f.session));
+ const wire=moon.clientProgramBigQueryJobOriginalRecordWire(record);
+ const expectedBody=JSON.stringify({configuration:{query:{maximumBytesBilled:'1000000',query:statement,useLegacySql:false}},
+  jobReference:{jobId:f.row.requestId,location:'EU',projectId:'acme-project'}});
+ assert.deepEqual(JSON.parse(wire),{format:'actql.bigquery-job-original/0.1',project:'acme-project',
+  jobId:f.row.requestId,location:'EU',method:'POST',path:'/bigquery/v2/projects/acme-project/jobs',body:expectedBody});
+ const cold=checked(moon.clientProgramBigQueryReadJobOriginalRecord(Buffer.from(wire),limits));
+ assert.equal(moon.clientProgramBigQueryJobOriginalRecordMatchesRequest(f.session,request,cold),true);
+ const material=moon.clientProgramBigQueryJobOriginalRecordMaterial(cold);
+ assert.deepEqual([0,1,2,3,4,5].map(n=>runtimeField(material,n)),['acme-project',f.row.requestId,'EU','POST',
+  '/bigquery/v2/projects/acme-project/jobs',expectedBody]);
+ assert.equal(runtimeField(moon.clientProgramBigQueryRequestMaterial(request),2),expectedBody);
+ assert.equal(f.row.usage()[3],0n);
+ checked(moon.clientProgramBigQueryAttemptRequest(f.session,request));
+ assert.equal(moon.clientProgramBigQueryJobOriginalRecordMatchesRequest(f.session,request,cold),false);
+ assert.throws(()=>checked(moon.clientProgramBigQueryJobOriginalRecord(f.session,limits)),{code:'MoonBitHostFailure'});
+ checked(moon.clientProgramBigQueryRecordResponseLoss(f.session,request));
+ assert.throws(()=>checked(moon.clientProgramBigQueryNextRequest(f.session)),{code:'MoonBitHostFailure'});
+ assert.equal(moon.clientProgramBigQueryJobRemoteDone(f.session),false);f.row.assertNoCapture();
+});
+
+test('normal compiled cold Job record refuses variants and cannot replace foreign request custody',async t=>{
+ const f=await original(t),foreign=await original(t);
+ const limits=moon.clientProgramBigQueryJobRecordLimits(8192,64,8,1024,4096);
+ const record=checked(moon.clientProgramBigQueryJobOriginalRecord(f.session,limits));
+ const wire=moon.clientProgramBigQueryJobOriginalRecordWire(record);
+ const request=checked(moon.clientProgramBigQueryNextRequest(f.session));
+ const other=checked(moon.clientProgramBigQueryNextRequest(foreign.session));
+ assert.equal(moon.clientProgramBigQueryJobOriginalRecordMatchesRequest(f.session,other,record),false);
+ assert.equal(moon.clientProgramBigQueryJobOriginalRecordMatchesRequest(foreign.session,request,record),false);
+ const data=JSON.parse(wire);data.body+=' ';
+ const changed=checked(moon.clientProgramBigQueryReadJobOriginalRecord(Buffer.from(JSON.stringify(data)),limits));
+ assert.equal(moon.clientProgramBigQueryJobOriginalRecordMatchesRequest(f.session,request,changed),false);
+ for(const change of [data=>{data.method='GET';},data=>{delete data.location;},data=>{data.extra=true;},
+  data=>{data.format='actql.bigquery-job-original/0.2';},data=>{data.jobId=null;}]){
+  const value=JSON.parse(wire);change(value);
+  assert.throws(()=>checked(moon.clientProgramBigQueryReadJobOriginalRecord(Buffer.from(JSON.stringify(value)),limits)),{code:'MoonBitHostFailure'});
+ }
+ assert.equal(f.row.usage()[3],0n);assert.equal(foreign.row.usage()[3],0n);
+ f.row.assertNoCapture();foreign.row.assertNoCapture();
+});
