@@ -290,6 +290,16 @@ without delivery remains refused, and CommonJS images still require their
 filename-bearing Module. This Node interop distinction does not authenticate
 prior cache ownership, nested library state or loader registration history.
 
+The selected preparation path also retains the native `String.prototype.trimEnd`
+used between its original environment Source and the existing normalizer.
+Replacing that method must not introduce an application callback into this
+declared control step. Ordinary unselected imports do not fix that method.
+The retained descriptor and method reference, original Source, trimmed result
+and normalizer workspace overlap under the same control lifetime. This narrow
+implementation fence does not establish coverage for every String operation,
+the VM heap or an operational supplier, and Host-view retirement is not native
+implementation retirement or physical cleanup.
+
 The original startup publishes its same immutable forwarder table before
 synchronous Host namespace initialization can reenter that Module. A missing
 captured callback must not be confused with a refusal from the original Owner
