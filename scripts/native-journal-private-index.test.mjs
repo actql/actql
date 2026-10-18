@@ -26,7 +26,7 @@ before(() => {
     qualification: 'Actual private inspection custody with controlled syscall faults; no SQLite execution'}));
 });
 for (const name of ['generic', 'selected', 'stat-failure', 'close-unknown', 'replacement', 'collision',
-  'unobserved-identity-replacement']) {
+  'unobserved-identity-replacement', 'stat-unavailable']) {
   test(`private Journal inspection index custody ${name}`, () => {
     const result = spawnSync(executable, [name, join(scratch, name)], {
       cwd: root, encoding: 'utf8', timeout: 10_000,
