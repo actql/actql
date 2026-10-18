@@ -48116,7 +48116,7 @@
     {
       "module": "packages/run-host-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "ab885ea927d8613c3af9e0ea5fad3c265524e51bf7fb9ce30ad3e750c3f14ad4",
+      "sha256": "4cb525706536bcadc04c750dd2a7d49cc54201c8f588bfc5c63134f1a652d7ac",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
       "exports": [
@@ -50668,7 +50668,11 @@
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "@actql/client-wire"
+      ],
+      "compilerFields": []
     },
     {
       "module": "packages/run-host-core/observation.d.ts",

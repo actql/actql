@@ -68,6 +68,14 @@ pub fn check_execution_write(ExecutionMapping, WriteProjection, bodies? : Array[
 
 pub fn check_write_capability_request(WriteCapabilityEvidence, SingleWriteRequest, String) -> Result[Unit, WriteCapabilityIssue]
 
+pub fn delete_projection_matches_binding(DeleteProjection, CatalogObservationBinding) -> Bool
+
+pub fn delete_projection_matches_local_binding(DeleteProjection, LocalCatalogObservationBinding) -> Bool
+
+pub fn delete_projection_observation(DeleteProjection) -> String
+
+pub fn delete_projection_resource(DeleteProjection) -> String
+
 pub fn described_field(ResourceMetadata, String) -> FieldMetadata?
 
 pub fn finish_catalog_sync(CatalogSync) -> Result[Unit, CatalogSyncIssue]
@@ -90,11 +98,15 @@ pub fn prepare_catalog_observation(CatalogSync, CatalogObservationBinding, Strin
 
 pub fn prepare_continue_write_collection(Array[WriteCollectionItem], String, WriteCollectionRequestLimits) -> Result[WriteCollectionRequest, WriteCollectionRequestIssue]
 
+pub fn prepare_delete_projection(CatalogObservation, CatalogObservationBinding, String) -> Result[DeleteProjection, DeleteProjectionIssue]
+
 pub fn prepare_execution_mapping(StaticDeclaration, String, ExecutionWrite, DeclarationLimits) -> Result[ExecutionMapping, ExecutionMappingIssue]
 
 pub fn prepare_execution_write_body(ExecutionMapping, WriteProjection, Bytes, WriteBodyLimits) -> Result[WriteBody, WriteBodyIssue]
 
 pub fn prepare_local_catalog_observation(CatalogSync, LocalCatalogObservationBinding, String, Array[String?], Array[String?], Int) -> Result[CatalogObservation, CatalogObservationIssue]
+
+pub fn prepare_local_delete_projection(CatalogObservation, LocalCatalogObservationBinding, String) -> Result[DeleteProjection, DeleteProjectionIssue]
 
 pub fn prepare_local_target_read_request(SingleWriteRequest, LocalCatalogObservationBinding, CatalogObservation, String, Int) -> Result[LocalTargetReadRequest, WriteRequestIssue]
 
@@ -187,6 +199,8 @@ pub fn read_projection_resource(ReadProjection) -> String
 pub fn read_projection_row_limit(ReadProjection) -> Int?
 
 pub fn read_projection_soql(ReadProjection) -> String
+
+pub fn recheck_delete_projection(DeleteProjection, CatalogObservation) -> Result[Unit, DeleteProjectionIssue]
 
 pub fn recheck_read_projection(ReadProjection, CatalogObservation) -> Result[Unit, ReadProjectionIssue]
 
@@ -489,6 +503,19 @@ pub struct DeclaredWritable {
   timestamp_whole_seconds : Array[String]
 }
 
+pub struct DeleteProjection {
+  observation_cid : String
+  binding : CatalogExecutionBinding
+  resource : String
+}
+
+pub(all) enum DeleteProjectionIssue {
+  Observation(CatalogObservationIssue)
+  DeletionNotProved
+  NoRecordIdentity
+  ForeignCurrentObservation
+} derive(Eq, @debug.Debug)
+
 pub(all) enum DescribeFailure {
   PermissionDenied
   RateLimited
@@ -737,6 +764,7 @@ pub struct ResourceMetadata {
   updateable : Bool
   fields : Array[FieldMetadata]
   response_sha256 : String
+  deletable : Bool?
 }
 
 pub(all) enum ResourceRequirementIssue {

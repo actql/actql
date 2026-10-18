@@ -84,6 +84,48 @@ pub fn InstalledArenaHost::prepare_domain(
 }
 
 ///|
+/// One first execution-only domain inside this same original backing. The
+/// byte candidate comes from its already charged actual control allocation;
+/// only the following ordinary physical acquire can establish an extent.
+/// Retired/partial earlier domain records cannot select a new first attempt.
+pub fn InstalledArenaHost::prepare_initial_domain(
+  self : InstalledArenaHost,
+  scope : InstalledArenaBackingBorrow,
+  fd : Int,
+  planning_work : Int,
+  attempts : Int,
+  holdings : Int,
+  transfer_bytes : Int64,
+) -> Result[
+  InstalledArenaDomainAcquisition,
+  @bootstrap.NativeBackedExecutionIssue,
+] {
+  match self.require_backing_borrow_current(scope) {
+    Err(issue) => return Err(@bootstrap.Bootstrap(issue))
+    Ok(_) => ()
+  }
+  if !self.domains.is_empty() {
+    return Err(@bootstrap.Bootstrap(@bootstrap.AlreadyConsumed))
+  }
+  let backing = match self.original_backing() {
+    Err(issue) => return Err(@bootstrap.Bootstrap(issue))
+    Ok(backing) => backing
+  }
+  let bytes = match backing.initial_payload_capacity(self) {
+    Err(issue) => return Err(@bootstrap.Bootstrap(issue))
+    Ok(bytes) => bytes
+  }
+  self.prepare_domain(scope, fd, bytes, {
+    planning_work,
+    attempts,
+    holdings,
+    transfer_bytes,
+    retained_bytes: 0L,
+    execution_bytes: bytes,
+  })
+}
+
+///|
 fn InstalledArenaDomain::prepare_original(
   self : InstalledArenaDomain,
   scope : InstalledArenaBackingBorrow,

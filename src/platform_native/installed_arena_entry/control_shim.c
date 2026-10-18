@@ -1,5 +1,6 @@
 #include "control_shim.h"
 #include <string.h>
+#include <stdatomic.h>
 #ifdef ACTQL_SCOPED_READ_ALLOCATOR
 extern int32_t actql_bootstrap_control_scope_clear(void);
 #endif
@@ -13,9 +14,16 @@ static struct {
     actql_control_tag_fn operation, issue_family;
     actql_control_description_fn description;
 } callbacks;
-static int registered;
+static _Atomic int registered;
 static actql_control_fd_fn fd_callback;
-static int fd_registered;
+static _Atomic int fd_registered;
+
+int actql_control_runtime_roots_state(void) {
+    int original = atomic_load_explicit(&registered, memory_order_acquire);
+    int descriptor = atomic_load_explicit(&fd_registered, memory_order_acquire);
+    if (original == 0 && descriptor == 0) return 0;
+    return original == 1 && descriptor == 1 ? 1 : -1;
+}
 
 void actql_native_control_register_fd_root(actql_control_fd_fn acquire) {
     if (fd_registered) return;

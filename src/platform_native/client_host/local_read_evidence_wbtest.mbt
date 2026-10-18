@@ -61,14 +61,30 @@ fn read_evidence_fixture(
   let host = policy_host_fixture(name, files=[file])
   let crypto = epoch_test_crypto()
   let scope = host.authority_scope_cid("operator", "cli", crypto).unwrap()
-  let (request, prepared, compiled, definition) = journal_test_run(
+  let (request, prepared, unselected_compiled, definition) = journal_test_run(
     "read-request",
     "read-run",
     scope~,
   )
+  // Source-free preparation has no contributing Source policy. This fixture
+  // must explicitly admit its original policy on the existing compiled Owner;
+  // neither its CID nor the read selection synthesizes provenance or a grant.
+  assert_eq(@host.prepared_client_publication_data_policy_cid(prepared), None)
+  assert_true(
+    @host.client_compiled_run_publication_policy_bodies(
+      unselected_compiled, 65536, 8192, 64,
+    )
+    is Err(@checked.MissingDependency),
+  )
+  let policy_body = "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}"
+  let compiled = @host.with_client_source_free_result_policy(
+    unselected_compiled, policy_cid, policy_body, 65536, 8192, 64,
+  ).unwrap()
   assert_eq(
-    @host.prepared_client_publication_data_policy_cid(prepared),
-    Some(policy_cid),
+    @host.client_compiled_run_publication_policy_bodies(
+      compiled, 65536, 8192, 64,
+    ).unwrap(),
+    [("data_policy", policy_cid, policy_body)],
   )
   host
   .run_journal()

@@ -53,7 +53,18 @@ fn local_intent_wire(
   child : @argparse.Matches,
 ) -> String raise ClientStop {
   let stop_before = native_requested_stop_before(child)
-  let input = if operation == "start" {
+  let query = local_quick_query_requested(operation, child)
+  let input = if query {
+    Json::object(
+      Map([
+        ("text", Json::string(required(child, "query"))),
+        (
+          "format",
+          Json::string(if operation == "sql" { "sql" } else { "aql-text" }),
+        ),
+      ]),
+    )
+  } else if operation == "start" {
     json_file(root, required(child, "program-file"), 65536L)
   } else {
     let format = required(child, "format")
@@ -86,6 +97,9 @@ fn local_intent_wire(
   ])
   if stop_before is Some(boundary) {
     fields["stopBefore"] = Json::string(boundary)
+  }
+  if query {
+    fields["readOnly"] = Json::boolean(true)
   }
   encode_request_json(Json::object(fields), 65536)
 }

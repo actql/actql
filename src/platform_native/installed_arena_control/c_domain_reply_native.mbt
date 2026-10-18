@@ -93,6 +93,47 @@ pub fn prepare_installed_arena_domain_reply(
 }
 
 ///|
+pub fn prepare_installed_arena_initial_domain_reply(
+  host : InstalledArenaHost,
+  scope : InstalledArenaBackingBorrow,
+  fd : Int,
+  planning_work : Int,
+  attempts : Int,
+  holdings : Int,
+  transfer_bytes : Int64,
+) -> InstalledArenaDomainReply {
+  match
+    host.prepare_initial_domain(
+      scope, fd, planning_work, attempts, holdings, transfer_bytes,
+    ) {
+    Err(issue) =>
+      {
+        operation: PrepareDomain,
+        host,
+        domain: None,
+        material: None,
+        issue: Some(issue),
+      }
+    Ok(PendingDomain(domain, issue)) =>
+      {
+        operation: PrepareDomain,
+        host,
+        domain: Some(domain),
+        material: None,
+        issue: Some(issue),
+      }
+    Ok(PreparedDomain(domain)) =>
+      {
+        operation: PrepareDomain,
+        host,
+        domain: Some(domain),
+        material: None,
+        issue: None,
+      }
+  }
+}
+
+///|
 pub fn current_installed_arena_domain_reply(
   host : InstalledArenaHost,
   domain : InstalledArenaDomain,
