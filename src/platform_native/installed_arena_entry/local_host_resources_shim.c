@@ -10,6 +10,7 @@ static struct {
     actql_host_resources_original_fn original;
     actql_host_resources_tag_fn operation, origin, family, closed;
     actql_host_resources_capacity_fn capacity;
+    actql_host_resources_claim_read_fn claim_read;
 } callbacks;
 static int registered;
 
@@ -19,10 +20,11 @@ void actql_native_control_register_local_host_resource_roots(
     actql_host_resources_read_fn read, actql_host_resources_sqlite_fn sqlite,
     actql_host_resources_original_fn original, actql_host_resources_tag_fn operation,
     actql_host_resources_tag_fn origin, actql_host_resources_tag_fn family,
-    actql_host_resources_tag_fn closed, actql_host_resources_capacity_fn capacity) {
+    actql_host_resources_tag_fn closed, actql_host_resources_capacity_fn capacity,
+    actql_host_resources_claim_read_fn claim_read) {
     if (registered) return;
     if (!bind || !operate || !host || !sqlite_host || !read || !sqlite ||
-        !original || !operation || !origin || !family || !closed || !capacity) {
+        !original || !operation || !origin || !family || !closed || !capacity || !claim_read) {
         registered = -1;
         return;
     }
@@ -31,7 +33,7 @@ void actql_native_control_register_local_host_resource_roots(
     callbacks.read = read; callbacks.sqlite = sqlite; callbacks.original = original;
     callbacks.operation = operation; callbacks.origin = origin;
     callbacks.family = family; callbacks.closed = closed;
-    callbacks.capacity = capacity;
+    callbacks.capacity = capacity; callbacks.claim_read = claim_read;
     registered = 1;
 }
 
@@ -52,6 +54,18 @@ int actql_host_resources_operate_into(actql_control_host *host,
         return ACTQL_CONTROL_INVALID_SLOT;
     if (registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
     *reply = callbacks.operate(host, original, operation);
+    return *reply ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
+}
+
+int actql_host_resources_claim_read_into(actql_control_host *host,
+    actql_local_host_resources *original, int64_t retained_bytes,
+    int64_t execution_bytes, actql_local_host_resources_reply **reply) {
+    if (!host || !original || !reply || *reply) return ACTQL_CONTROL_INVALID_SLOT;
+    /* The controller and the original consuming view are prepared before a
+     * child scope starts. No ambient foreign scope can supply their custody. */
+    if (registered != 1 || actql_bootstrap_control_scope_clear() != 1)
+        return ACTQL_CONTROL_UNAVAILABLE;
+    *reply = callbacks.claim_read(host, original, retained_bytes, execution_bytes);
     return *reply ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
 }
 

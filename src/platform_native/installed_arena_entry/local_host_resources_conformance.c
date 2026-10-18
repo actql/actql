@@ -137,6 +137,12 @@ int main(int argc,char **argv) {
     REQUIRE(actql_host_resources_originals_into(pair_reply,&ph,&psh,&pair_read,&pair_sql,&pair)==0);
     REQUIRE(ph==h && psh==h && pair_read==read && pair_sql==sql && pair);
     REQUIRE(actql_host_resources_drop_reply(&pair_reply,ph,psh,pair_read,pair_sql,pair)==0);
+    REQUIRE(actql_host_resources_operate_into(ph,pair,9,&pair_reply)==ACTQL_CONTROL_INVALID_SLOT && !pair_reply);
+    REQUIRE(actql_host_resources_claim_read_into(ph,pair,16*page,1024*page,&pair_reply)==0);
+    REQUIRE(actql_host_resources_operation(pair_reply)==9 && actql_host_resources_issue_origin(pair_reply)==0 &&
+        actql_host_resources_issue_family(pair_reply)==0 && actql_host_resources_close_confirmed(pair_reply)==0);
+    REQUIRE(actql_host_resources_drop_reply(&pair_reply,ph,psh,pair_read,pair_sql,pair)==0);
+    step("one original consuming read is claimed with its full existing retained and execution quote before physical work");
     phase(ph,psh,pair_read,pair_sql,pair,3,0);
     phase(ph,psh,pair_read,pair_sql,pair,4,1);
     moonbit_bytes_t root_path=moonbit_make_bytes((int32_t)strlen(argv[4]),0);

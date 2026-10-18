@@ -69,6 +69,7 @@ int actql_domain_read_prepare_into(actql_control_host * host, actql_domain * dom
 int actql_domain_transfer_into(actql_control_host * host, actql_domain * domain, actql_domain_reply ** slot);
 int actql_host_resources_bind_into(actql_control_host * host, actql_parent_read * read, actql_sqlite_original * sqlite, actql_local_host_resources_reply ** reply);
 int64_t actql_host_resources_capacity_scalar(actql_control_host * host, int32_t index);
+int actql_host_resources_claim_read_into(actql_control_host * host, actql_local_host_resources * original, int64_t retained_bytes, int64_t execution_bytes, actql_local_host_resources_reply ** reply);
 int32_t actql_host_resources_close_confirmed(actql_local_host_resources_reply * reply);
 int actql_host_resources_drop_reply(actql_local_host_resources_reply ** reply, actql_control_host * host, actql_control_host * sqlite_host, actql_parent_read * read, actql_sqlite_original * sqlite, actql_local_host_resources * original);
 int actql_host_resources_finish_closed_data(actql_control_host ** host, actql_control_host ** sqlite_host, actql_parent_read ** read, actql_sqlite_original ** sqlite, actql_local_host_resources ** original, actql_local_host_resources_reply ** reply);

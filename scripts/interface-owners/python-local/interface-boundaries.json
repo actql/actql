@@ -1,5 +1,5 @@
 {
-  "source": "9301c985ec87bd28bb4eccf8f2d65d0859609b08",
+  "source": "c6284b9264dadfc7bcf296ea13eee2c63c16068d",
   "syntaxProjectionSha256": "4a31ecaf4ac9e25c4558a6363ef836ef44d22cbc792e2ae1cd9c05bbdc05c888",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
@@ -53,7 +53,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_shim_abi.py",
-      "sha256": "e8c35677d724fae14032bf6300dd52c0de0e61d942b305099b76b9f7f8cc9862",
+      "sha256": "c70134992b39a1ee546b50ad3bba0a10a37f5c104ee68783b828a9deda7068b4",
       "generator": {
         "path": "scripts/generate-local-native-shim-bindings.py",
         "anchor": "def render("
@@ -36511,24 +36511,24 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
+          "async": false,
           "name": "bind",
           "parameters": [
             "library",
             "symbol"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "bind_group",
           "parameters": [
             "library",
             "prefix",
             "names"
-          ],
-          "async": false
+          ]
         }
       ],
-      "sha256": "e8c35677d724fae14032bf6300dd52c0de0e61d942b305099b76b9f7f8cc9862",
+      "sha256": "c70134992b39a1ee546b50ad3bba0a10a37f5c104ee68783b828a9deda7068b4",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -62223,185 +62223,195 @@
       ],
       "operations": [
         {
+          "async": false,
           "name": "_OriginalHostResourcesCustody",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "_OriginalHostResourcesCustody/__copy__",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalHostResourcesCustody/__deepcopy__",
           "parameters": [
             "self",
             "memo"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalHostResourcesCustody/__reduce__",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalHostResourcesCustody/_ack_data_retired",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalHostResourcesCustody/_bind_original",
           "parameters": [
             "cls",
             "read",
             "sqlite",
             "functions"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalHostResourcesCustody/_call",
           "parameters": [
             "self",
-            "operation"
-          ],
-          "async": false
+            "operation",
+            "claim_quote"
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalHostResourcesCustody/_drop",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalHostResourcesCustody/_fact",
           "parameters": [
             "self",
             "operation"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalHostResourcesCustody/_issue",
           "parameters": [
             "self",
             "fact"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalHostResourcesCustody/_mark_unknown",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalHostResourcesCustody/_refused_bind_data_retired",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalHostResourcesCustody/_slots",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalHostResourcesCustody/_status",
           "parameters": [
             "self",
             "code"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
+          "name": "_OriginalHostResourcesCustody/claim_read",
+          "parameters": [
+            "self",
+            "retained_bytes",
+            "execution_bytes"
+          ]
+        },
+        {
+          "async": false,
           "name": "_OriginalHostResourcesCustody/close",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalHostResourcesCustody/current",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalHostResourcesCustody/leave_scope",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalHostResourcesCustody/scope",
           "parameters": [
             "self",
             "phase",
             "cleanup"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalHostResourcesError",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "_OriginalHostResourcesError/__init__",
           "parameters": [
             "self",
             "original",
             "unknown",
             "fact"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalHostResourcesFact",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "_OriginalHostResourcesFunctions",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "_OriginalHostResourcesFunctions/__init__",
           "parameters": [
             "self",
             "library"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_resources_for_domain",
           "parameters": [
             "domain"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_retire_host_resources_registration",
           "parameters": [
             "owner"
-          ],
-          "async": false
+          ]
         }
       ],
       "imports": [
@@ -62418,7 +62428,7 @@
         "dataclasses",
         "typing"
       ],
-      "sha256": "8361b6d85b264e1e83692876c079088ecb9373c463d17c7d2cf11c4d02200d21",
+      "sha256": "8ecf47f6438266ec2a1c01fd6511e6ed4e2f7d0bdba665033a185d056e16d183",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "E / Python original Host transport; existing Native Host, Resource and Library Owners retain admission, current and physical retirement",
@@ -62450,7 +62460,8 @@
             "_OriginalHostResourcesFunctions",
             "_OriginalHostResourcesFunctions/__init__",
             "_resources_for_domain",
-            "_retire_host_resources_registration"
+            "_retire_host_resources_registration",
+            "_OriginalHostResourcesCustody/claim_read"
           ],
           "exports": [
             "Any",
@@ -62473,6 +62484,14 @@
               {
                 "path": "src/platform_native/installed_arena_control/local_host_resources_native.mbt",
                 "anchor": "pub fn InstalledArenaHost::bind_local_host_resources("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_host_resources.py",
+                "anchor": "def claim_read("
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/local_host_resources_native.mbt",
+                "anchor": "pub fn InstalledArenaHost::prepare_local_host_read_consumer("
               }
             ],
             "inputsOutputs": [
@@ -62483,6 +62502,10 @@
               {
                 "path": "src/platform_native/installed_arena_entry/local_host_resources_shim.c",
                 "anchor": "int actql_host_resources_originals_into("
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/local_host_resources_shim.h",
+                "anchor": "int actql_host_resources_claim_read_into("
               }
             ],
             "identity": [
@@ -62493,6 +62516,10 @@
               {
                 "path": "src/platform_native/installed_arena_entry/local_host_resources_shim.c",
                 "anchor": "static int same_originals("
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/local_host_resources_shim.c",
+                "anchor": "int actql_host_resources_claim_read_into("
               }
             ],
             "ownership": [
@@ -62521,6 +62548,10 @@
               {
                 "path": "src/platform_native/installed_arena_control/local_host_resources_native.mbt",
                 "anchor": "pub fn InstalledArenaHost::enter_local_host_phase("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_host_resources.py",
+                "anchor": "or self._phase is not None"
               }
             ],
             "failure": [
@@ -62535,6 +62566,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_native_host_resources.py",
                 "anchor": "def test_lost_data_finish_ack_keeps_unknown_and_never_repeats_close("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_host_resources.py",
+                "anchor": "def test_claim_lost_outslot_or_drop_ack_retains_same_carrier_without_reclaim("
               }
             ],
             "cancellation": {
@@ -62552,6 +62587,10 @@
               {
                 "path": "src/platform_native/installed_arena_control/local_host_resources_native.mbt",
                 "anchor": "pub fn InstalledArenaHost::borrow_local_host_sqlite("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_host_resources.py",
+                "anchor": "claim_quote=(retained_bytes, execution_bytes)"
               }
             ],
             "extension": [
@@ -62576,6 +62615,14 @@
               {
                 "path": "src/platform_native/installed_arena_entry/local_host_resources_conformance.c",
                 "anchor": "refused bind data retirement preserves original inputs"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_host_resources.py",
+                "anchor": "def test_claim_keeps_same_original_pair_and_serial_read_sqlite_read_phases("
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/local_host_resources_conformance.c",
+                "anchor": "one original consuming read is claimed"
               }
             ]
           }
