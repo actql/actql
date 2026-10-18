@@ -3706,7 +3706,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "ae0f86626612253fbc05697d4d2867a1d4179da19593c9d8488242a9f0c926a3",
+      "sha256": "a2c342f67e61f68d6d048ea3be3b7bfb2c8c8bda956c76446f8ddd46faf123b0",
       "exports": [
         "assertInitialControlHostPreparation",
         "connectEmbeddedLocal",

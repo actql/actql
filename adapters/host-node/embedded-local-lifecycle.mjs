@@ -139,6 +139,14 @@ export function createEmbeddedHostRegistry(sameInstallation) {
           await retainInstalledHostInitializationFailure(cause, {initialControl: retainedControl});
         const error = prepared === undefined ? owned :
           retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));
+        if (retainedControl !== undefined && prepared !== undefined &&
+            error === owned && owned.cleanupHandle.status().pending === false) {
+          // Both original cleanup and registry retirement completed. Preserve
+          // the refusal itself without re-reading an arbitrary thrown value.
+          opened.failure = cause;
+          opened.initializationPending = false;
+          throw cause;
+        }
         opened.failure = error;
         opened.initializationPending = error?.cleanupPending === true;
         const handle = error?.cleanupHandle;

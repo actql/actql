@@ -190,6 +190,23 @@ test('refused opening retains the same root until its original control completes
     {code: 'InstalledHostPreparationChanged'});
 });
 
+test('completed original control preserves the exact opening refusal', async () => {
+  const f = fixture();
+  const original = Object.freeze(new TypeError('OriginalPreparationRefused'));
+  const observation = Object.freeze({pending: false});
+  let closes = 0;
+  const control = {close() {assert.equal(this, control); closes++; return observation;}};
+  await assert.rejects(f.registry.connect('/prepared/root', 'same', async () => {throw original;},
+    options, f.host, undefined, control), error => error === original);
+  assert.equal(closes, 1);
+  assert.deepEqual(f.calls, []);
+  assert.throws(() => f.registry.assertPreparation(f.host, f.installation, f.host),
+    {code: 'InstalledHostPreparationChanged'});
+  const next = await f.registry.connect('/prepared/root', 'same', async () => f.host, options);
+  await next.close();
+  assert.equal(closes, 1, 'the completed original is never retried by a later Host');
+});
+
 test('opening child cannot replace the captured original preparation close callback', async () => {
   const f = fixture(), entered = deferred(), released = deferred();
   let pending = true, originals = 0, replacements = 0;
