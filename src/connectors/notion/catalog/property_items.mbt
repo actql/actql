@@ -45,13 +45,7 @@ pub struct NotionPropertyItemRequest {
 /// The exact-page title branch never invents a data-source Catalog or query row.
 enum NotionPropertyItemOrigin {
   QueryProperty(OriginalNotionQueryRow, OriginalNotionProperty)
-  PageTitleProperty(
-    OriginalNotionPage,
-    Int,
-    @decode.Cursor,
-    String,
-    @decode.Cursor
-  )
+  PageTitleProperty(OriginalNotionPage, String, @decode.Cursor)
 }
 
 ///|
