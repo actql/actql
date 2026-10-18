@@ -11,6 +11,7 @@ const descriptor = Object.getOwnPropertyDescriptor, own = Object.hasOwn;
 const keys = Reflect.ownKeys, integer = Number.isSafeInteger;
 const alloc = Buffer.alloc, u16 = Buffer.prototype.readUInt16BE;
 const u32 = Buffer.prototype.readUInt32BE, le32 = Buffer.prototype.readUInt32LE;
+const copy = Buffer.prototype.copy, character = String.prototype.charCodeAt;
 const unavailable = () => {
   throw Object.assign(new Error('SqliteSchemaPreparationUnavailable'),
     {code: 'SqliteSchemaPreparationUnavailable'});
@@ -27,6 +28,34 @@ export function snapshotSqliteSchemaReadLimits(value) {
     const field = descriptor(value, name);
     if (field === undefined || !own(field, 'value') || !integer(field.value) || field.value < 1) unavailable();
     result[name] = field.value;
+  }
+  return freeze(result);
+}
+
+// A selected resource recipe may name a finite set of its own ASCII DDL
+// byte strings. This is not SQL interpretation, format admission or authority.
+// Unknown/equivalent spellings remain an unsupported backend recipe; SQLite
+// still checks actual schema meaning after this support boundary.
+export function snapshotSqliteSchemaSqlSupport(value, limits) {
+  if (value === undefined) return undefined;
+  if (limits === undefined || value === null || typeof value !== 'object' ||
+      types.isProxy(value) || !Array.isArray(value)) unavailable();
+  const length = descriptor(value, 'length')?.value;
+  if (!integer(length) || length < 1 || length > limits.maxSchemaEntries) unavailable();
+  const result = [];
+  let total = 0;
+  for (let index = 0; index < length; index++) {
+    const property = descriptor(value, String(index));
+    if (property === undefined || !own(property, 'value') ||
+        typeof property.value !== 'string' || property.value.length === 0 ||
+        property.value.length > limits.maxSchemaBytes - total) unavailable();
+    const text = property.value;
+    for (let offset = 0; offset < text.length; offset++) {
+      const byte = apply(character, text, [offset]);
+      if (byte === 0 || byte > 127) unavailable();
+    }
+    total += text.length;
+    result.push(text);
   }
   return freeze(result);
 }
@@ -107,7 +136,52 @@ function varint(page, offset, limit, decode) {
   unavailable();
 }
 
-export function inspectBoundedSqliteSchema(database, wal, limits, maxSourceBytes) {
+function serialBytes(type) {
+  if (type === 0 || type === 8 || type === 9) return 0;
+  if (type >= 1 && type <= 4) return type;
+  if (type === 5) return 6;
+  if (type === 6 || type === 7) return 8;
+  if (type >= 12) return Math.floor((type - 12) / 2);
+  unavailable();
+}
+
+function supportsSchemaRecord(payload, support) {
+  const header = varint(payload, 0, payload.length, true);
+  if (header.value > payload.length || header.value < header.offset) unavailable();
+  let cursor = header.offset, body = header.value, typeName, sql;
+  for (let index = 0; index < 5; index++) {
+    const type = varint(payload, cursor, header.value, true);
+    cursor = type.offset;
+    const bytes = serialBytes(type.value);
+    if (bytes > payload.length - body) unavailable();
+    if (index === 0) typeName = {type: type.value, offset: body, bytes};
+    if (index === 4) sql = {type: type.value, offset: body, bytes};
+    body += bytes;
+  }
+  if (cursor !== header.value || body !== payload.length) unavailable();
+  if (sql.type === 0) {
+    // Only a native automatic-index entry has no SQL program. Its identity
+    // and semantic validity are still SQLite/Journal responsibilities.
+    const name = 'index';
+    if (typeName.type < 13 || typeName.type % 2 !== 1 || typeName.bytes !== name.length) unavailable();
+    for (let offset = 0; offset < name.length; offset++) {
+      if (payload[typeName.offset + offset] !== apply(character, name, [offset])) unavailable();
+    }
+    return;
+  }
+  if (sql.type < 13 || sql.type % 2 !== 1) unavailable();
+  for (const candidate of support) {
+    if (candidate.length !== sql.bytes) continue;
+    let equal = true;
+    for (let index = 0; index < candidate.length; index++) {
+      if (payload[sql.offset + index] !== apply(character, candidate, [index])) { equal = false; break; }
+    }
+    if (equal) return;
+  }
+  unavailable();
+}
+
+export function inspectBoundedSqliteSchema(database, wal, limits, maxSourceBytes, schemaSqlSupport) {
   if (!integer(maxSourceBytes) || maxSourceBytes < 512 || database.bytes < 100) unavailable();
   const header = apply(alloc, Buffer, [100]);
   at(database.fd, header, 0);
@@ -123,15 +197,57 @@ export function inspectBoundedSqliteSchema(database, wal, limits, maxSourceBytes
   const page = apply(alloc, Buffer, [pageSize]);
   const overlay = committedWal(wal, pageSize, page, limits, maxPages);
   const pending = [1], visited = new Set();
+  // Support inspection reads original record bytes only. One overflow buffer
+  // is reused; all allocated payload backings together are bounded by the
+  // existing aggregate schema payload ceiling, not by GC between iterations.
+  if (schemaSqlSupport !== undefined && be(header, 56) !== 1) unavailable();
+  const overflow = schemaSqlSupport === undefined ? undefined : apply(alloc, Buffer, [pageSize]);
+  const payloadPages = new Set();
+  const usable = pageSize - header[20];
+  if (usable < 480) unavailable();
+  const readPage = (number, target) => {
+    if (number < 1 || number > maxPages) unavailable();
+    const offset = overlay.latest.get(number);
+    if (offset === undefined) {
+      if (number * pageSize > database.bytes) unavailable();
+      at(database.fd, target, (number - 1) * pageSize);
+    } else at(wal.fd, target, offset);
+  };
+  const readPayload = (offset, bytes) => {
+    const maximumLocal = usable - 35;
+    const minimumLocal = Math.floor((usable - 12) * 32 / 255) - 23;
+    let local = bytes;
+    if (bytes > maximumLocal) {
+      local = minimumLocal + (bytes - minimumLocal) % (usable - 4);
+      if (local > maximumLocal) local = minimumLocal;
+    }
+    if (offset + local + (local < bytes ? 4 : 0) > usable) unavailable();
+    const payload = apply(alloc, Buffer, [bytes]);
+    apply(copy, page, [payload, 0, offset, offset + local]);
+    let copied = local, number = local < bytes ? be(page, offset + local) : 0;
+    while (copied < bytes) {
+      if (number === 0 || visited.has(number) || payloadPages.has(number) ||
+          visited.size + pending.length + payloadPages.size >= limits.maxSchemaPages) unavailable();
+      payloadPages.add(number);
+      readPage(number, overflow);
+      const count = Math.min(bytes - copied, usable - 4);
+      apply(copy, overflow, [payload, copied, 4, 4 + count]);
+      copied += count;
+      number = be(overflow, 0);
+    }
+    if (number !== 0) unavailable();
+    return payload;
+  };
   let entries = 0, payloadBytes = 0;
   const enqueue = number => {
-    if (number < 1 || number > maxPages || visited.has(number) ||
-        visited.size + pending.length >= limits.maxSchemaPages) unavailable();
+    if (number < 1 || number > maxPages || visited.has(number) || payloadPages.has(number) ||
+        visited.size + pending.length + payloadPages.size >= limits.maxSchemaPages) unavailable();
     pending.push(number);
   };
   while (pending.length !== 0) {
     const number = pending.pop();
-    if (visited.has(number) || visited.size === limits.maxSchemaPages) unavailable();
+    if (visited.has(number) || payloadPages.has(number) ||
+        visited.size + payloadPages.size === limits.maxSchemaPages) unavailable();
     visited.add(number);
     const offset = overlay.latest.get(number);
     if (offset === undefined) {
@@ -160,14 +276,16 @@ export function inspectBoundedSqliteSchema(database, wal, limits, maxSourceBytes
         varint(page, cell + 4, pageSize, false);
       } else {
         const payload = varint(page, cell, pageSize, true);
-        varint(page, payload.offset, pageSize, false);
+        const rowid = varint(page, payload.offset, usable, false);
         if (entries === limits.maxSchemaEntries ||
             payload.value > limits.maxSchemaBytes - payloadBytes) unavailable();
         entries++;
         payloadBytes += payload.value;
+        if (schemaSqlSupport !== undefined) supportsSchemaRecord(
+          readPayload(rowid.offset, payload.value), schemaSqlSupport);
       }
     }
   }
   return freeze({pageSize, schemaEntries: entries, schemaPayloadBytes: payloadBytes,
-    schemaPages: visited.size, committedWalFrames: overlay.frames});
+    schemaPages: visited.size + payloadPages.size, committedWalFrames: overlay.frames});
 }

@@ -7,7 +7,7 @@ import {closeSync, constants, existsSync, fstatSync, lstatSync, mkdtempSync,
 import {tmpdir} from 'node:os';
 import {basename, dirname, join, relative, isAbsolute, sep} from 'node:path';
 import {throwSqliteInitializationFailure} from './sqlite-transaction.mjs';
-import {snapshotSqliteSchemaReadLimits, inspectBoundedSqliteSchema}
+import {snapshotSqliteSchemaReadLimits, snapshotSqliteSchemaSqlSupport, inspectBoundedSqliteSchema}
   from './sqlite-schema-resource-bounds.mjs';
 
 const sameFile = (left, right) => ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs']
@@ -83,13 +83,18 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
   maxSourceBytes = Number.MAX_SAFE_INTEGER,
   unavailableCode = 'SqliteSnapshotInspectionUnavailable',
   schemaReadLimits,
+  schemaSqlSupport,
+  assertCurrent,
 } = {}) {
   if (!Number.isSafeInteger(maxSourceBytes) || maxSourceBytes < 1 ||
-      typeof unavailableCode !== 'string' || unavailableCode.length === 0) {
+      typeof unavailableCode !== 'string' || unavailableCode.length === 0 ||
+      assertCurrent !== undefined && typeof assertCurrent !== 'function') {
     throw Object.assign(new Error('InvalidSqliteSnapshotInspectionConfiguration'),
       {code: 'InvalidSqliteSnapshotInspectionConfiguration'});
   }
   schemaReadLimits = snapshotSqliteSchemaReadLimits(schemaReadLimits);
+  schemaSqlSupport = snapshotSqliteSchemaSqlSupport(schemaSqlSupport, schemaReadLimits);
+  assertCurrent?.();
   const fail = cause => {
     throw Object.assign(new Error(code, {cause}), {code, path: databasePath});
   };
@@ -209,23 +214,26 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
         outputs.push({fd, close: closeSync});
         copies.push({fd, bytes: Number(source.identity.size)});
       }
-      inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits, maxSourceBytes);
+      inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits, maxSourceBytes, schemaSqlSupport);
       while (outputs.length !== 0) {
         closeFile(outputs.at(-1));
         outputs.pop();
       }
     }
+    assertCurrent?.();
     database = new DatabaseSync(join(isolated, basename(databasePath)),
       {open: false, readOnly: true});
     // The original wrapper and cleanup are retained before native open can
     // acquire a connection and then fail. GC is not its close acknowledgement.
     captureDatabaseCleanup();
+    assertCurrent?.();
     const databaseOpen = database.open;
     if (typeof databaseOpen !== 'function' ||
         Reflect.apply(databaseOpen, database, []) !== undefined ||
         Reflect.apply(databaseIsOpen, database, []) !== true) {
       throw new TypeError('SqliteInspectionDatabaseOpenUnavailable');
     }
+    assertCurrent?.();
     result = inspect(database);
     if (existsSync(`${databasePath}-journal`) ||
         existsSync(walPath) !== hadWal || !validateSource() ||

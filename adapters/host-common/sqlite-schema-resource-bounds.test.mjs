@@ -54,6 +54,93 @@ test('schema footprint inspection precedes native open and leaves original bytes
   f.scratch.passed();
 });
 
+test('selected own-DDL support compares original SQL bytes before native schema interpretation', async () => {
+  const f = await fixture();
+  const before = readFileSync(f.path);
+  try {
+    const selected = {...options(), schemaSqlSupport: [
+      'CREATE TABLE t0(value TEXT)', 'CREATE TABLE t1(value TEXT)',
+    ]};
+    assert.equal(beforeNativeOpen(() => assert.equal(
+      inspectSqliteSnapshot(f.path, countTables, selected), 2)), 1);
+    assert.deepEqual(readFileSync(f.path), before);
+  } finally {f.close();}
+  f.scratch.passed();
+});
+
+test('an extra valid view stays unsupported before native open, without becoming a language error', async () => {
+  const f = await fixture({tables: 1});
+  let source = new DatabaseSync(f.path);
+  source.exec('CREATE VIEW v AS SELECT value FROM t0');
+  source.close(); source = undefined;
+  const before = readFileSync(f.path);
+  try {
+    assert.equal(beforeNativeOpen(() => assert.throws(() => inspectSqliteSnapshot(f.path,
+      countTables, {...options(), schemaSqlSupport: ['CREATE TABLE t0(value TEXT)']}),
+    {code: 'SqliteSchemaPreparationUnavailable'})), 0);
+    assert.equal(inspectSqliteSnapshot(f.path, database => database.prepare(
+      "SELECT count(*) AS n FROM sqlite_schema WHERE type = 'view'").get().n), 1);
+    assert.deepEqual(readFileSync(f.path), before);
+  } finally {f.close();}
+  f.scratch.passed();
+});
+
+test('own-DDL support reads the committed WAL schema rather than the older main-file definition', async () => {
+  const f = await fixture({wal: true});
+  const before = readFileSync(f.path + '-wal');
+  try {
+    assert.equal(beforeNativeOpen(() => assert.throws(() => inspectSqliteSnapshot(f.path,
+      countTables, {...options(), schemaSqlSupport: ['CREATE TABLE t0(value TEXT)']}),
+    {code: 'SqliteSchemaPreparationUnavailable'})), 0);
+    assert.equal(inspectSqliteSnapshot(f.path, countTables, {...options(), schemaSqlSupport: [
+      'CREATE TABLE t0(value TEXT)', 'CREATE TABLE t1(value TEXT)',
+    ]}), 2);
+    assert.deepEqual(readFileSync(f.path + '-wal'), before);
+  } finally {f.close();}
+  f.scratch.passed();
+});
+
+test('own-DDL payload overflow pages stay under the same pre-native resource visit bound', async () => {
+  const f = await fixture({tables: 1, pageSize: 512});
+  const sql = 'CREATE TABLE wide(' + Array.from({length: 48}, (_, i) => 'column_' + i + ' TEXT').join(',') + ')';
+  const source = new DatabaseSync(f.path); source.exec(sql); source.close();
+  const support = ['CREATE TABLE t0(value TEXT)', sql];
+  try {
+    assert.equal(inspectSqliteSnapshot(f.path, countTables,
+      {...options(), schemaSqlSupport: support}), 2);
+    assert.equal(beforeNativeOpen(() => assert.throws(() => inspectSqliteSnapshot(f.path,
+      countTables, {...options({maxSchemaPages: 1}), schemaSqlSupport: support}),
+    {code: 'SqliteSchemaPreparationUnavailable'})), 0);
+  } finally {f.close();}
+  f.scratch.passed();
+});
+
+test('an automatic native index with no SQL does not invent another program or require SQL parsing', async () => {
+  const f = await fixture({tables: 1});
+  const sql = 'CREATE TABLE unique_values(value TEXT UNIQUE)';
+  const source = new DatabaseSync(f.path); source.exec(sql); source.close();
+  try {
+    assert.equal(inspectSqliteSnapshot(f.path, countTables,
+      {...options(), schemaSqlSupport: ['CREATE TABLE t0(value TEXT)', sql]}), 2);
+  } finally {f.close();}
+  f.scratch.passed();
+});
+
+test('own-DDL support snapshots own DATA without reading accessor or Proxy elements', async () => {
+  const f = await fixture(); let reads = 0;
+  const getter = []; getter.length = 1;
+  Object.defineProperty(getter, '0', {get() {reads++; throw new Error('NotDDLData');}});
+  const proxy = new Proxy(['CREATE TABLE t0(value TEXT)'], {get() {reads++;}, ownKeys() {reads++;}});
+  try {
+    assert.equal(beforeNativeOpen(() => {
+      for (const schemaSqlSupport of [getter, proxy]) assert.throws(() => inspectSqliteSnapshot(
+        f.path, countTables, {...options(), schemaSqlSupport}), {code: 'SqliteSchemaPreparationUnavailable'});
+    }), 0);
+    assert.equal(reads, 0);
+  } finally {f.close();}
+  f.scratch.passed();
+});
+
 for (const [name, changes] of [['payload', {maxSchemaBytes: 1}], ['entries', {maxSchemaEntries: 1}]]) {
   test('unsupported schema ' + name + ' refuses before native open, not after decoding', async () => {
     const f = await fixture();
