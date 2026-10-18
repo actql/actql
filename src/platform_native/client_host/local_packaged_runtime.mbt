@@ -11,6 +11,7 @@ struct NativeLocalPackagedRuntime {
   mut reader_open_failure : @filesystem.NativeReaderOpenFailure?
   mut root_open_failure : @filesystem.NativeRootOpenFailure?
   original_read : (@arena.InstalledArenaHost, @arena.InstalledArenaOriginalRead)?
+  original_resources : @arena.InstalledArenaLocalHostResources?
   mut selection : (String, String, String, String)?
   mut product : NativeLocalPackagedProductObservation?
   mut read_scope_entered : Bool
@@ -30,6 +31,7 @@ pub(all) enum NativeLocalPackagedRuntimeIssue {
   OriginalReadUnavailable
   OriginalRead(@arena.InstalledArenaOriginalReadIssue)
   CleanupPending
+  OriginalHostResources(@arena.InstalledArenaLocalHostResourcesIssue)
 }
 
 ///|
@@ -73,6 +75,30 @@ fn local_runtime_read_begin(
   if runtime.read_scope_entered {
     return Err(CleanupPending)
   }
+  if runtime.original_resources is Some(resources) {
+    guard runtime.original_read is Some((host, original)) else {
+      return Err(OriginalReadUnavailable)
+    }
+    if !cleanup {
+      match
+        host.require_local_host_consuming_read_current(resources, original) {
+        Err(issue) => return Err(OriginalHostResources(issue))
+        Ok(_) => ()
+      }
+    }
+    let entered = if cleanup {
+      host.enter_local_host_cleanup(resources, @arena.HostRead)
+    } else {
+      host.enter_local_host_phase(resources, @arena.HostRead)
+    }
+    return match entered {
+      Err(issue) => Err(OriginalHostResources(issue))
+      Ok(_) => {
+        runtime.read_scope_entered = true
+        Ok(())
+      }
+    }
+  }
   match runtime.original_read {
     None => Ok(())
     Some((host, original)) => {
@@ -103,8 +129,18 @@ fn[T] local_runtime_read_finish(
     guard runtime.original_read is Some((host, original)) else {
       return Err(CleanupPending)
     }
-    match host.leave_domain_original_read(original) {
-      Err(issue) => return Err(OriginalRead(issue))
+    let left = match runtime.original_resources {
+      Some(resources) =>
+        host
+        .leave_local_host_phase(resources)
+        .map_err(issue => OriginalHostResources(issue))
+      None =>
+        host
+        .leave_domain_original_read(original)
+        .map_err(issue => OriginalRead(issue))
+    }
+    match left {
+      Err(issue) => return Err(issue)
       Ok(_) => runtime.read_scope_entered = false
     }
   }
@@ -114,6 +150,7 @@ fn[T] local_runtime_read_finish(
 ///|
 fn local_runtime_empty(
   original_read : (@arena.InstalledArenaHost, @arena.InstalledArenaOriginalRead)?,
+  original_resources? : @arena.InstalledArenaLocalHostResources? = None,
 ) -> NativeLocalPackagedRuntime {
   {
     manifest: None,
@@ -125,6 +162,7 @@ fn local_runtime_empty(
     reader_open_failure: None,
     root_open_failure: None,
     original_read,
+    original_resources,
     selection: None,
     product: None,
     read_scope_entered: false,
@@ -301,6 +339,57 @@ pub fn open_native_local_packaged_runtime_in_original_read(
 }
 
 ///|
+/// The same already claimed Host pair owns every Read phase in this Runtime.
+/// The caller retains all three originals; no available-pair read, replacement
+/// consumer or legacy Root is selected when this entrance refuses.
+pub fn open_native_local_packaged_runtime_in_original_host_resources(
+  original : (
+    @arena.InstalledArenaHost,
+    @arena.InstalledArenaOriginalRead,
+    @arena.InstalledArenaLocalHostResources,
+  )?,
+  root_path : String,
+  source_sha : String,
+  platform : String,
+  manifest_sha256 : String,
+  diagnostic_ceiling : Int,
+) -> Result[NativeLocalPackagedRuntime, NativeLocalPackagedRuntimeOpenIssue] {
+  guard original is Some((host, read, resources)) else {
+    return Err(Refused(OriginalReadUnavailable))
+  }
+  if !local_runtime_path_valid(root_path) || diagnostic_ceiling <= 0 {
+    return Err(Refused(InvalidInput))
+  }
+  match host.require_local_host_consuming_read_current(resources, read) {
+    Err(issue) => return Err(Refused(OriginalHostResources(issue)))
+    Ok(_) => ()
+  }
+  match host.enter_local_host_phase(resources, @arena.HostRead) {
+    Err(issue) => return Err(Refused(OriginalHostResources(issue)))
+    Ok(_) => ()
+  }
+  let runtime = local_runtime_empty(
+    Some((host, read)),
+    original_resources=Some(resources),
+  )
+  runtime.read_scope_entered = true
+  let result = match
+    @filesystem.open_root_in_current_read_context_with_custody(
+      root_path, diagnostic_ceiling,
+    ) {
+    Ok(root) =>
+      local_runtime_capture(
+        runtime, root, root_path, source_sha, platform, manifest_sha256,
+      )
+    Err(failure) => {
+      runtime.root_open_failure = Some(failure)
+      Err(Physical(failure.issue()))
+    }
+  }
+  local_runtime_finish_open(runtime, result)
+}
+
+///|
 fn local_runtime_capture(
   runtime : NativeLocalPackagedRuntime,
   root : @filesystem.Root,
@@ -434,8 +523,18 @@ fn NativeLocalPackagedRuntime::local_runtime_check_originals(
     return Err(Changed)
   }
   if self.original_read is Some((host, original)) {
-    match host.require_domain_original_read_current(original) {
-      Err(issue) => return Err(OriginalRead(issue))
+    let current = match self.original_resources {
+      Some(resources) =>
+        host
+        .require_local_host_consuming_read_current(resources, original)
+        .map_err(issue => OriginalHostResources(issue))
+      None =>
+        host
+        .require_domain_original_read_current(original)
+        .map_err(issue => OriginalRead(issue))
+    }
+    match current {
+      Err(issue) => return Err(issue)
       Ok(_) => ()
     }
   }
@@ -456,8 +555,18 @@ fn NativeLocalPackagedRuntime::local_runtime_check_originals(
     Ok(_) => ()
   }
   if self.original_read is Some((host, original)) {
-    match host.require_domain_original_read_current(original) {
-      Err(issue) => return Err(OriginalRead(issue))
+    let current = match self.original_resources {
+      Some(resources) =>
+        host
+        .require_local_host_consuming_read_current(resources, original)
+        .map_err(issue => OriginalHostResources(issue))
+      None =>
+        host
+        .require_domain_original_read_current(original)
+        .map_err(issue => OriginalRead(issue))
+    }
+    match current {
+      Err(issue) => return Err(issue)
       Ok(_) => ()
     }
   }
