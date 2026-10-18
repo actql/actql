@@ -143,7 +143,7 @@ test('application-time package capture refuses before observing a caller invento
   assert.equal(result.status, 0, result.stderr);
 });
 
-for (const route of ['local-node', 'node']) test('the actual non-eager '+route+' preload consumes generated inventory without issuing a Scope', t => {
+for (const route of ['local-node', 'node']) test('the actual eager '+route+' preload refuses unsupported raw input before its Host consumer', t => {
   const f = fixture(t), local = join(f.directory, 'node_modules/@actql/local-node');
   mkdirSync(join(local, 'adapters/host-node'), {recursive: true});
   const sources = {...f.sources,
@@ -168,7 +168,10 @@ for (const route of ['local-node', 'node']) test('the actual non-eager '+route+'
     'initial-control-phase-envelope.cjs']) {
     sources['adapters/host-node/'+name] = actual(name);
   }
-  const inventory = {...f.inventory, images: Object.entries(sources).map(([path, bytes]) => fact(path, bytes))};
+  const inventory = {...f.inventory, engine: {node: process.versions.node, v8: process.versions.v8,
+    openssl: process.versions.openssl, platform: process.platform, arch: process.arch,
+    eager: true, libraries: {...process.versions}},
+    images: Object.entries(sources).map(([path, bytes]) => fact(path, bytes))};
   if (route === 'node') {
     const node = join(f.directory, 'node_modules/@actql/node');
     mkdirSync(node, {recursive: true});
@@ -213,20 +216,20 @@ for (const route of ['local-node', 'node']) test('the actual non-eager '+route+'
     'const view={};assert.equal(root.associateHost(view,{runtime:process,host:{},installation:{},generation:{},supplier(){}}),view);',
     'let reads=0;const raw=new Proxy({},{ownKeys(){reads++;throw new Error("RawInput");}});',
     'assert.throws(()=>root.beginInitialControlInstallation({},raw),{code:"NodeInitialControlAdmissionUnavailable"});',
-    'assert.throws(()=>root.connectInitialControlHostPreparation("open",raw),{code:"NodeInitialControlAdmissionUnavailable"});',
-    'assert.throws(()=>originalLocalDispatch.selectedInitialControlHostPreparation("open",raw),{code:"NodeInitialControlAdmissionUnavailable"});',
-    ...(route === 'node' ? ['assert.throws(()=>originalNodeDispatch.selectedInitialControlHostPreparation("open",raw),{code:"NodeInitialControlAdmissionUnavailable"});'] : []),
+    'assert.throws(()=>root.connectInitialControlHostPreparation("open",raw),{code:"NodeInitialControlInputUnavailable"});',
+    'assert.throws(()=>originalLocalDispatch.selectedInitialControlHostPreparation("open",raw),{code:"NodeInitialControlInputUnavailable"});',
+    ...(route === 'node' ? ['assert.throws(()=>originalNodeDispatch.selectedInitialControlHostPreparation("open",raw),{code:"NodeInitialControlInputUnavailable"});'] : []),
     'let fakeCalls=0;',
     'require.cache[require.resolve("@actql/'+route+'/selected-infer-startup")].exports={selectedInitialControlHostPreparation(){fakeCalls++;}};',
     'require.cache[rootFile].exports={connectInitialControlHostPreparation(){fakeCalls++;}};',
-    'assert.throws(()=>originalLocalDispatch.selectedInitialControlHostPreparation("open",raw),{code:"NodeInitialControlAdmissionUnavailable"});',
-    ...(route === 'node' ? ['assert.throws(()=>originalNodeDispatch.selectedInitialControlHostPreparation("open",raw),{code:"NodeInitialControlAdmissionUnavailable"});'] : []),
+    'assert.throws(()=>originalLocalDispatch.selectedInitialControlHostPreparation("open",raw),{code:"NodeInitialControlInputUnavailable"});',
+    ...(route === 'node' ? ['assert.throws(()=>originalNodeDispatch.selectedInitialControlHostPreparation("open",raw),{code:"NodeInitialControlInputUnavailable"});'] : []),
     'assert.equal(fakeCalls,0);',
     'assert.equal(reads,0);',
     'assert.equal(actualConsumerCalls,0);',
   ].join('\n'));
   const result = spawnSync(process.execPath,
-    ['--require', '@actql/'+route+'/selected-infer-startup', entry], {
+    ['--no-lazy', '--require', '@actql/'+route+'/selected-infer-startup', entry], {
       cwd: f.directory, env: {PATH: process.env.PATH}, encoding: 'utf8', timeout: 30000});
   assert.equal(result.error, undefined); assert.equal(result.status, 0, result.stderr);
 });
