@@ -22,6 +22,10 @@ static int controlled_close(int descriptor) {
 #define close controlled_close
 #include "../component.c"
 #undef close
+/* The release amalgamation defines NDEBUG for its internal assertions. The
+ * independent fixture must retain its own assertions and executed calls. */
+#undef NDEBUG
+#include <assert.h>
 #include "scoped_read.h"
 
 int main(int argc, char **argv) {
