@@ -105,6 +105,13 @@ pub fn prepare_node_original_source_child(
   let ports = original_node_source_child_ports(
     original_node_source_child_supplier, source,
   )
+  prepare_node_original_child_ports(ports)
+}
+
+///|
+fn prepare_node_original_child_ports(
+  ports : OriginalNodeSourceChildPorts,
+) -> Result[ImportedChildLedger, ImportedChildLedgerIssue] {
   if !original_node_source_child_present(ports) {
     return Err(Unavailable)
   }

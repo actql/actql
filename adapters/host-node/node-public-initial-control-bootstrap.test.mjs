@@ -138,6 +138,22 @@ test('ordinary modified intrinsic refuses before acquiring a caller snapshot',t=
 // The real installed prefix/FS handles and separate backing are exercised.
 // Host declarations, pending-request association, intent CID and usage reports
 // below are explicit diagnostic fixtures, not Common/Account/Run acceptance.
+test('ordinary Source failed original snapshot never starts a replacement attempt',t=>{
+  const f=fixture(t,{source:true});
+  const result=f.run(
+    'import assert from"node:assert/strict";import{createRequire}from"node:module";import{connect}from"@actql/local-node";'+
+    'const client=await connect({mode:"local",installation:{directory:".actql"},profile:"mock"});'+
+    'const root=createRequire(import.meta.url)('+JSON.stringify(join(f.root,'adapters/host-node/node-public-initial-control-bootstrap.cjs'))+');'+
+    'const source=await root.prepareSourceManagedInstallation(client.originals);let seen=0;'+
+    'assert.throws(()=>root.beforeSourceSnapshot(source,client.originals,"aql","SELECT original",{get unsupported(){seen++;}}),{code:"NodeSourceManagedInputUnavailable"});'+
+    'assert.equal(seen,0);'+
+    'assert.throws(()=>root.beforeSourceSnapshot(source,client.originals,"aql","SELECT replacement",{}),{code:"SourceManagedPreparationUnavailable"});'+
+    'const closed=await root.closeSourceManagedInstallation(source,client.originals);'+
+    'assert.equal(closed.pending,false);assert.equal(closed.physicalBackingReleased,false);'+
+    'assert.equal((await client.scope.close()).pending,false);');
+  assert.equal(result.status,0,result.stderr);
+});
+
 test('ordinary Source original retains two file children and separates logical stop from FD close',t=>{
   const f=fixture(t,{source:true});
   const result=f.run(
