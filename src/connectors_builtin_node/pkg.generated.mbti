@@ -1335,6 +1335,24 @@ pub fn client_program_installed_provider_row_capture_capacity_matches(@client_lo
 
 pub fn client_program_installed_row_capture_capacity(@client_row_source_host.RowAcquisition) -> @client_local_host.ClientInstalledCaptureCapacity?
 
+pub fn client_program_installed_source_read_attach_acquisition(@client_local_host.ClientInstalledSourceRead, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, Int, Int) -> Result[Unit, @client_local_host.ClientInstalledSourceReadIssue]
+
+pub fn client_program_installed_source_read_begin(@physical_resources.ImportedChildLedger) -> Result[@client_local_host.ClientInstalledSourceRead, @client_local_host.ClientInstalledSourceReadIssue]
+
+pub fn client_program_installed_source_read_bind_effect_program(@client_local_host.ClientInstalledSourceRead, @run_publication_host.PreparedClientEffectComputation) -> Result[Unit, @client_local_host.ClientInstalledSourceReadIssue]
+
+pub fn client_program_installed_source_read_bind_program(@client_local_host.ClientInstalledSourceRead, @run_publication_host.PreparedClientProgram) -> Result[Unit, @client_local_host.ClientInstalledSourceReadIssue]
+
+pub fn client_program_installed_source_read_check_current(@client_local_host.ClientInstalledSourceRead) -> Result[Unit, @client_local_host.ClientInstalledSourceReadIssue]
+
+pub fn client_program_installed_source_read_retire(@client_local_host.ClientInstalledSourceRead) -> Result[Unit, @client_local_host.ClientInstalledSourceReadIssue]
+
+pub fn client_program_installed_source_read_start_listing_rows(@client_local_host.ClientInstalledSourceRead, @client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?, String, (@client_row_source_host.RowAttempt) -> Bool, Int64, Int64) -> Result[@client_row_source_host.RowRun, @client_local_host.ClientInstalledSourceReadIssue]
+
+pub fn client_program_installed_source_read_start_provider_rows(@client_local_host.ClientInstalledSourceRead, @client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?, String, (@client_row_source_host.RowAttempt) -> Bool, Int64, Int64) -> Result[@client_row_source_host.RowRun, @client_local_host.ClientInstalledSourceReadIssue]
+
+pub fn client_program_installed_source_read_start_rows(@client_local_host.ClientInstalledSourceRead, @client_row_source_host.RowAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool, Int64, Int64) -> Result[@client_row_source_host.RowRun, @client_local_host.ClientInstalledSourceReadIssue]
+
 pub fn client_program_issue_acquired_effect_evidence(@run_publication_host.PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication_host.ClientEffectAcquiredEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
 
 pub fn client_program_issue_acquired_effect_evidence_at(@run_publication_host.PreparedClientEffectComputation, Int, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication_host.ClientEffectAcquiredEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]

@@ -73,11 +73,24 @@ export function createEmbeddedHostRegistry(sameInstallation) {
     }
     profiles.set(host, {originalHost: host, originalInstallation: installation,
       generation, preparing: true, leases: 0, accepting: 0, closing: false,
-      handling: new Set()});
+      handling: new Map()});
   },
   assertPreparation(host, installation, generation) {
     const entry = preparationFor(host, installation, generation);
     if (entry.closing || entry.failure !== undefined) preparationChanged();
+  },
+  // Identity-only projection from this registry's actual pending calls. The
+  // Source operational supplier covers the additional request reference and
+  // Map backing before installing its consumer. This is not an issuer, grant,
+  // request parser or evidence that the call's physical work has stopped.
+  assertSourceRequest(host, installation, generation, request) {
+    const entry = preparationFor(host, installation, generation);
+    if (entry.closing || entry.failure !== undefined ||
+        request === null || typeof request !== 'object') preparationChanged();
+    for (const original of entry.handling.values()) {
+      if (original === request) return;
+    }
+    preparationChanged();
   },
   retirePreparation(host, installation, generation) {
     const entry = preparationFor(host, installation, generation);
@@ -108,7 +121,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
       } else throw entry.failure;
     }
     if (entry === undefined) {
-      entry = prepared ?? {leases: 0, accepting: 0, closing: false, handling: new Set()};
+      entry = prepared ?? {leases: 0, accepting: 0, closing: false, handling: new Map()};
       entry.identity = identity;
       entry.preparing = false;
       const opened = entry;
@@ -199,7 +212,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         await Promise.allSettled([...handling]);
         if (opened.leases !== 0) { finished = true; return; }
         const host = await opened.host;
-        await Promise.allSettled([...opened.handling]);
+        await Promise.allSettled([...opened.handling.keys()]);
         try {
           await opened.shutdown.close();
           if (!opened.finalized) {
@@ -247,7 +260,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
             // The same lease/Host handling sets own signing as well as reads.
             // Close must not forget a pending original key/use operation.
             handling.add(pending);
-            opened.handling.add(pending);
+            opened.handling.set(pending, undefined);
             pending.finally(() => {
               handling.delete(pending);
               opened.handling.delete(pending);
@@ -259,7 +272,10 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         if (sealed || opened.closing) return Promise.reject(closing());
         const pending = Promise.resolve().then(() => host.port.perform(operation, request, signal));
         handling.add(pending);
-        opened.handling.add(pending);
+        // Same pending operation, not a second request index or cache. The
+        // supplier may retain an admitted original after this Promise retires;
+        // deleting this association is neither a holding nor physical ACK.
+        opened.handling.set(pending, request);
         pending.finally(() => {
           handling.delete(pending);
           opened.handling.delete(pending);

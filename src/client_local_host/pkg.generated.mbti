@@ -41,11 +41,21 @@ pub fn advance_client_original_keyed_prefix_input(ClientOriginalKeyedPrefixInput
 
 pub fn advance_client_serialization_prefix(ClientSerializationPrefix, Int) -> Result[@local.ManagedProviderPoll, @connector_sdk.FixedComputeIssue]
 
+pub fn attach_installed_source_read_acquisition(ClientInstalledSourceRead, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, Int, Int) -> Result[Unit, ClientInstalledSourceReadIssue]
+
 pub fn begin_client_original_keyed_lookup_response(@run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedLookupInput, @run_publication_host.ClientKeyedRequest, @client_row_source_host.RowKeyedSourceCapture) -> Result[Unit, ClientOriginalKeyedChildIssue]
+
+pub fn begin_installed_source_read(@physical_resources.ImportedChildLedger) -> Result[ClientInstalledSourceRead, ClientInstalledSourceReadIssue]
+
+pub fn bind_installed_source_read_effect_program(ClientInstalledSourceRead, @run_publication_host.PreparedClientEffectComputation) -> Result[Unit, ClientInstalledSourceReadIssue]
+
+pub fn bind_installed_source_read_program(ClientInstalledSourceRead, @run_publication_host.PreparedClientProgram) -> Result[Unit, ClientInstalledSourceReadIssue]
 
 pub fn cancel_client_infer_input(ClientInferInputExecution) -> Bool
 
 pub fn cancel_client_serialization_prefix(ClientSerializationPrefix) -> Bool
+
+pub fn check_installed_source_read_current(ClientInstalledSourceRead) -> Result[Unit, ClientInstalledSourceReadIssue]
 
 pub fn cleanup_client_broad_residual(ClientBroadResidual) -> Result[Bool, @connector_sdk.FixedComputeIssue]
 
@@ -271,6 +281,8 @@ pub fn restore_client_source_capture(@query_planning.QueryRequirement, String, S
 
 pub fn retain_accounted_client_source_capture_task(ClientAccountedSourceCapture, @physical_strategy.CapturedDAG, Int) -> Result[Unit, ClientSourceCaptureIssue]
 
+pub fn retire_installed_source_read(ClientInstalledSourceRead) -> Result[Unit, ClientInstalledSourceReadIssue]
+
 pub fn retry_local_values_execution_failure_cleanup(LocalValuesExecutionFailure) -> Bool
 
 pub fn select_client_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String, ClientDuckDBAcquisitionEstimate, ClientDuckDBAcquisitionEstimate, host_priority? : Array[String]?) -> Result[ClientDuckDBAcquisitionSelection, ClientDuckDBAcquisitionIssue]
@@ -326,6 +338,12 @@ pub fn start_client_restored_serialized_infer_input(@run_publication_host.Prepar
 pub fn start_client_serialization_prefix(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @physical_resources.Ledger, workspace? : @execution_relation.ExecutionCapacity?) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue]
 
 pub fn start_client_serialized_infer_input(@run_publication_host.ClientInferOccurrence, @execution_relation.GeneratedSequence, Int, @execution_relation.CompletedOutput, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.InferPreparationLimits) -> Result[ClientInferInputExecution, ClientInferInputIssue]
+
+pub fn start_installed_source_read_listing_rows(ClientInstalledSourceRead, @client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?, String, (@client_row_source_host.RowAttempt) -> Bool, Int64, Int64) -> Result[@client_row_source_host.RowRun, ClientInstalledSourceReadIssue]
+
+pub fn start_installed_source_read_provider_rows(ClientInstalledSourceRead, @client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?, String, (@client_row_source_host.RowAttempt) -> Bool, Int64, Int64) -> Result[@client_row_source_host.RowRun, ClientInstalledSourceReadIssue]
+
+pub fn start_installed_source_read_rows(ClientInstalledSourceRead, @client_row_source_host.RowAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool, Int64, Int64) -> Result[@client_row_source_host.RowRun, ClientInstalledSourceReadIssue]
 
 // Errors
 
@@ -393,6 +411,20 @@ pub(all) enum ClientInferRetainedInputIssue {
 }
 
 type ClientInstalledCaptureCapacity
+
+type ClientInstalledSourceRead
+
+pub(all) enum ClientInstalledSourceReadIssue {
+  ForeignOriginal
+  AlreadyBound
+  AlreadyStarted
+  Unbound
+  Retired
+  CleanupPending
+  Import(@physical_resources.ImportedChildLedgerIssue)
+  Resource(@physical_resources.LedgerIssue)
+  Acquisition(@client_row_source_host.RowHostIssue)
+}
 
 type ClientKeyedJoinPreparation
 
