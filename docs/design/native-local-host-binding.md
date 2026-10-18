@@ -1046,8 +1046,11 @@ The private C transport borrows managed inputs and returns owned managed output
 references through initially empty, distinct slots. The same registered provider
 supplies all callbacks. A foreign capture cannot retire a reply, a filled slot
 cannot be overwritten, and a current/open reply cannot stand in for close.
-Opaque references remain pointers to the original managed objects, with no
-integer-handle registry, JSON restoration or direct compiler-layout access.
+Returned Session/Host/failure DATA references have a separate drop operation
+which checks the same capture before releasing references; it cannot close the
+underlying resources. Opaque references remain pointers to the original managed
+objects, with no integer-handle registry, JSON restoration or direct compiler-
+layout access.
 
 This transport does not supply initial Root acquisition, an OriginalWorkspaceRead
 or a selected SQLite Library Domain. Those scopes remain distinct. It neither

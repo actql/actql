@@ -112,6 +112,34 @@ int actql_local_journal_originals_into(
     return ACTQL_LOCAL_JOURNAL_OK;
 }
 
+/* Drop only the owned DATA references returned from this same capture.
+ * This neither closes a Session/Host nor acknowledges an escaped resource. */
+int actql_local_journal_drop_originals(
+    actql_local_journal_capture *capture, actql_local_session **session,
+    actql_local_host **host, actql_local_journal_failure **failure
+) {
+    if (!capture || !session || !host || !failure ||
+        (void *)session == (void *)host || (void *)session == (void *)failure ||
+        (void *)host == (void *)failure) return ACTQL_LOCAL_JOURNAL_INVALID_SLOT;
+    if (actql_local_journal_registered != 1) return ACTQL_LOCAL_JOURNAL_UNAVAILABLE;
+    if (!*session && !*host && !*failure) return ACTQL_LOCAL_JOURNAL_OK;
+    actql_local_session *s = actql_local_journal_callbacks.session(capture);
+    actql_local_host *h = actql_local_journal_callbacks.host(capture);
+    actql_local_journal_failure *f = actql_local_journal_callbacks.failure(capture);
+    int same = (!*session || *session == s) && (!*host || *host == h) &&
+        (!*failure || *failure == f);
+    if (s) moonbit_decref(s);
+    if (h) moonbit_decref(h);
+    if (f) moonbit_decref(f);
+    if (!same) return ACTQL_LOCAL_JOURNAL_INVALID_SLOT;
+    s = *session; h = *host; f = *failure;
+    *session = NULL; *host = NULL; *failure = NULL;
+    if (s) moonbit_decref(s);
+    if (h) moonbit_decref(h);
+    if (f) moonbit_decref(f);
+    return ACTQL_LOCAL_JOURNAL_OK;
+}
+
 int32_t actql_local_journal_operation(actql_local_journal_reply *reply) {
     return actql_local_journal_registered == 1 && reply
         ? actql_local_journal_callbacks.operation(reply) : ACTQL_LOCAL_JOURNAL_UNAVAILABLE;

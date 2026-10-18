@@ -84,6 +84,8 @@ class NativeShimBindingTests(unittest.TestCase):
                          ['capture', 'reply'])
         self.assertEqual(ORIGINS[symbol][0],
                          'src/platform_native/client_host/local_journal_shim_impl.h')
+        self.assertEqual([name for name, _ in PARAMETERS['actql_local_journal_drop_originals']],
+                         ['capture', 'session', 'host', 'failure'])
         self.assertNotIn('actql_local_journal_force_release', SIGNATURES)
 
 

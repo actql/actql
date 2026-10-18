@@ -78,6 +78,7 @@ int actql_live_channel_prepare_into(actql_control_host * host, actql_domain * do
 int actql_live_channel_report_into(actql_control_host * host, actql_domain * domain, actql_live_channel * channel, int32_t planning, int32_t attempts, int32_t holdings, int64_t transferred, int64_t uncertain, int64_t reserved_transfer, int64_t held, int64_t reserved_retention, int64_t reserved_execution, int64_t peak_retention, actql_live_channel_reply ** slot);
 int actql_local_journal_close_into(actql_local_journal_capture * capture, actql_local_journal_reply ** reply);
 int actql_local_journal_current_into(actql_local_journal_capture * capture, actql_local_journal_reply ** reply);
+int actql_local_journal_drop_originals(actql_local_journal_capture * capture, actql_local_session ** session, actql_local_host ** host, actql_local_journal_failure ** failure);
 int actql_local_journal_drop_reply(actql_local_journal_reply ** reply, actql_local_journal_capture * capture);
 int actql_local_journal_finish_closed_data(actql_local_journal_capture ** capture, actql_local_journal_reply ** reply);
 int32_t actql_local_journal_issue_family(actql_local_journal_reply * reply);

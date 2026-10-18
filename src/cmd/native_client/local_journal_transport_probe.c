@@ -10,6 +10,7 @@ int32_t actql_native_local_journal_transport_probe(
     actql_local_session *session, actql_local_session *other,
     actql_local_sqlite_library *library, actql_local_crypto_library *crypto,
     double ttl_ms, int32_t expected_issue) {
+    if (pending_count > 6) return -100;
     actql_local_journal_capture *capture = NULL, *foreign = NULL;
     actql_local_journal_reply *reply = NULL, *foreign_reply = NULL;
     actql_local_session *returned_session = NULL;
@@ -26,7 +27,13 @@ int32_t actql_native_local_journal_transport_probe(
         8, 8388608, &capture) == -1 && capture == original);
     CHECK(actql_local_journal_originals_into(capture, &returned_session,
         &host, &failure) == 0 && returned_session == session && !host && !failure);
-    moonbit_decref(returned_session); returned_session = NULL;
+    CHECK(actql_local_journal_drop_originals(foreign, &returned_session, &host, &failure) == -1);
+    CHECK(returned_session == session && !host && !failure);
+    CHECK(actql_local_journal_drop_originals(capture, &returned_session,
+        (actql_local_host **)&returned_session, &failure) == -1 && returned_session == session);
+    CHECK(actql_local_journal_drop_originals(capture, &returned_session, &host, &failure) == 0);
+    CHECK(!returned_session && !host && !failure);
+    CHECK(actql_local_journal_drop_originals(capture, &returned_session, &host, &failure) == 0);
     CHECK(actql_local_journal_current_into(capture, &reply) == 0);
     CHECK(actql_local_journal_issue_family(reply) == 1);
     CHECK(actql_local_journal_finish_closed_data(&capture, &reply) == -1);
@@ -40,9 +47,10 @@ int32_t actql_native_local_journal_transport_probe(
     CHECK(actql_local_journal_originals_into(capture, &returned_session,
         &host, &failure) == 0 && returned_session == session);
     CHECK(expected_issue ? (!host && failure) : (host && !failure));
-    moonbit_decref(returned_session); returned_session = NULL;
-    if (host) { moonbit_decref(host); host = NULL; }
-    if (failure) { moonbit_decref(failure); failure = NULL; }
+    CHECK(actql_local_journal_drop_originals(foreign, &returned_session, &host, &failure) == -1);
+    CHECK(returned_session == session && (expected_issue ? (!host && failure) : (host && !failure)));
+    CHECK(actql_local_journal_drop_originals(capture, &returned_session, &host, &failure) == 0);
+    CHECK(!returned_session && !host && !failure);
     CHECK(actql_local_journal_drop_reply(&reply, capture) == 0);
     CHECK(actql_local_journal_open_into(capture, &reply) == 0);
     CHECK(actql_local_journal_issue_family(reply) == expected_issue);
