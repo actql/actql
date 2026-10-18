@@ -2,7 +2,13 @@
 // It binds the selected native/module responsibility; it is not a byte grant,
 // proof of RSS, current authority, physical ACK or permission to send.
 // The actual Host must cover this view/control allocation before issuance.
-import startup from './infer-trusted-node-preload.cjs';
+import {createRequire} from 'node:module';
+
+// Retain the same published CJS receiver while its original preload captures
+// this Host namespace. A static CJS import would reenter the active preload
+// through the ESM loader; this private reference is not an operational issuer.
+const require = createRequire(import.meta.url);
+const startup = require('./infer-trusted-node-preload.cjs');
 const fields = Object.freeze(['host', 'supplier', 'installation', 'generation',
   'runtime', 'moduleLifetime', 'transport', 'target']);
 const constructorKey = Symbol('InferTrustedRuntimeViewConstructor');
