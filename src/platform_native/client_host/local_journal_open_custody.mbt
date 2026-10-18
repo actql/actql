@@ -10,6 +10,8 @@ struct NativeLocalJournalOpenFailure {
   mut initial_signing_cleaned : Bool
   retained_read : NativeLocalAdoptionIssue?
   mut retained_read_cleaned : Bool
+  inspection_cleanup : @journal.CoordinatorInitializationCleanup?
+  mut inspection_cleaned : Bool
   acquisition : NativeLocalAdoptionOpenFailure
   original_resources : NativeLocalJournalOriginalResources?
 }
@@ -102,6 +104,8 @@ fn NativeLocalAdoptionSession::retain_journal_open_failure(
     initial_signing_cleaned: false,
     retained_read: self.read_cleanup,
     retained_read_cleaned: false,
+    inspection_cleanup: local_journal_inspection_cleanup(issue),
+    inspection_cleaned: false,
     acquisition,
     original_resources,
   }
@@ -142,6 +146,15 @@ fn NativeLocalJournalOpenFailure::cleanup_read_prefix(
 fn NativeLocalJournalOpenFailure::cleanup_database(
   self : NativeLocalJournalOpenFailure,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
+  if !self.inspection_cleaned {
+    if self.inspection_cleanup is Some(original) {
+      match original.retry() {
+        Err(issue) => return Err(InspectionCleanup(issue))
+        Ok(_) => ()
+      }
+    }
+    self.inspection_cleaned = true
+  }
   if self.database is Some(database) {
     match database.close_checked() {
       Err(issue) => return Err(Physical(issue))
@@ -149,4 +162,21 @@ fn NativeLocalJournalOpenFailure::cleanup_database(
     }
   }
   Ok(())
+}
+
+///|
+// Inspection's own original carrier retains its copied DB and scratch files.
+// A surrounding DB/leave refusal cannot erase that distinct cleanup duty.
+fn local_journal_inspection_cleanup(
+  issue : NativeLocalAdoptionIssue,
+) -> @journal.CoordinatorInitializationCleanup? {
+  match issue {
+    Inspection(
+      Inspection(@journal.InitializationCleanupPending(_, _, original), _)
+    ) => Some(original)
+    DatabasePending(_, original) => local_journal_inspection_cleanup(original)
+    OriginalResourceLeave(Some(original), _) =>
+      local_journal_inspection_cleanup(original)
+    _ => None
+  }
 }
