@@ -76,7 +76,8 @@ async function declaredSource(runtimeRootUrl, publication) {
 }
 
 export async function writeSyntheticHistoricalHeldSalesforce({directory, document,
-  requestId, authorization, sourceProfile, siteProfile, runtimeRootUrl, now = Date.now()}) {
+  requestId, authorization, sourceProfile, siteProfile, runtimeRootUrl,
+  expressionContractUrl, now = Date.now()}) {
   const program = JSON.parse(document);
   assert.deepEqual(program, {version: 'actql/0.1', id: 'salesforce-read', stages: [
     {id: 'acquire', inputs: {remote: {connector: 'crm-main', resource: 'Test_Record__c'}},
@@ -109,7 +110,7 @@ export async function writeSyntheticHistoricalHeldSalesforce({directory, documen
   const authorityScopeCid = hash(JSON.stringify({version: 'actql-local-owner-scope/0.1', root, principalId}));
   const logicalRequestScopeCid = cid({authority_scope_cid: authorityScopeCid,
     caller_request_id: requestId, version: 'actql-logical-request/0.1'});
-  const expressionCid = cid(JSON.parse(await readFile(new URL('spec/contracts/actql-expressions.json', runtimeRootUrl), 'utf8')));
+  const expressionCid = cid(JSON.parse(await readFile(expressionContractUrl, 'utf8')));
   const filter = {neq: [{field: 'Name'}, {literal: 'record-2'}]};
   const stages = program.stages.map((stage, index) => {
     const local = {version: 'actql-stage-semantics/0.1', binding_references: [], bindings: {},

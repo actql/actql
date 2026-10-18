@@ -17,6 +17,7 @@ import stat
 from pathlib import Path
 import subprocess
 import sys
+from threading import current_thread
 from typing import Any, NamedTuple
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,11 +36,14 @@ from actql_sdk._local_native_memory_abi import bind as bind_memory  # noqa: E402
 from actql_sdk._local_distribution import _closed, _pairs  # noqa: E402
 from actql_sdk._local_native_control_custody import _OriginalControlCustody, _OriginalControlFunctions  # noqa: E402
 from actql_sdk._local_native_backing_custody import _OriginalBackingCustody, _OriginalBackingFunctions  # noqa: E402
-from actql_sdk._local_native_domain_custody import _OriginalDomainCustody, _OriginalDomainFunctions  # noqa: E402
+from actql_sdk._local_native_domain_custody import (  # noqa: E402
+    _OriginalDomainCustody, _OriginalDomainFunctions, _OriginalDomainMaterialFunctions,
+)
 from actql_sdk._local_native_process_custody import (  # noqa: E402
     _OriginalInstalledProcessCustody, _OriginalInstalledProcessFunctions,
     _OriginalInstalledProcessError,
 )
+from actql_sdk._local_native_shim_abi import bind as bind_native  # noqa: E402
 from actql_sdk._local_worker_slot import _OriginalDescriptor  # noqa: E402
 
 spec = importlib.util.spec_from_file_location('image_component_assembly', ROOT / 'scripts/produce-python-local-runtime.py')
@@ -153,12 +157,21 @@ def _compiler_holding_original(original: dict[str, Any]) -> _CompilerHoldingOrig
         body['capacity_bytes'], body['generation'], hashlib.sha256(raw).digest())
 
 
+class _InitialCompilerDomainOriginal(NamedTuple):
+    """Closed source selection of non-byte limits, not a quota or extent."""
+
+    work: int
+    attempts: int
+    holdings: int
+    transfer: int
+
+
 class _CompilerParentOriginal(NamedTuple):
     """Source-bound maintainer selection, not a Ledger or worker permit."""
 
     holding: _CompilerHoldingOriginal
     parent: tuple[int, ...]
-    child: tuple[int, ...]
+    child: tuple[int, ...] | _InitialCompilerDomainOriginal
     recipe: bytes
 
 
@@ -173,26 +186,35 @@ def _compiler_parent_original(original: dict[str, Any],
                    ('scope', 'holding_sha256', 'parent', 'child'))
     parent = _closed(body['parent'], ('bytes', 'work', 'attempts', 'holdings',
                                      'transfer', 'retained', 'execution', 'control_envelope'))
-    child = _closed(body['child'], ('bytes', 'work', 'attempts', 'holdings',
-                                   'transfer', 'retained', 'execution'))
+    initial = type(body['child']) is dict and 'kind' in body['child']
+    if initial:
+        child = _closed(body['child'], ('kind', 'work', 'attempts', 'holdings', 'transfer'))
+        if child['kind'] != 'initial_execution_domain':
+            raise ValueError('Unknown source-original compiler child selection')
+        child_numbers = tuple(child[k] for k in ('work', 'attempts', 'holdings', 'transfer'))
+    else:
+        child = _closed(body['child'], ('bytes', 'work', 'attempts', 'holdings',
+                                       'transfer', 'retained', 'execution'))
+        child_numbers = tuple(child.values())
     if (body['scope'] != 'image_compiler_parent_only'
             or body['holding_sha256'] != selected.recipe.hex()
             or selected.generation > 2**63 - 1
             or parent['bytes'] != selected.capacity_bytes
             or any(type(n) is not int or not 0 <= n <= 2**63 - 1
-                   for n in (*parent.values(), *child.values()))
+                   for n in (*parent.values(), *child_numbers))
             or any(n > 2**31 - 1 for n in (parent['work'], parent['attempts'], parent['holdings'],
                                            child['work'], child['attempts'], child['holdings']))
             or parent['bytes'] <= 0 or parent['execution'] != parent['bytes']
             or parent['retained'] != 0 or parent['control_envelope'] <= 0
-            or child['bytes'] <= 0 or child['bytes'] > parent['bytes']):
+            or (not initial and (child['bytes'] <= 0 or child['bytes'] > parent['bytes']))):
         raise ValueError('Compiler parent differs from its source-original envelope')
     # Adequacy, quota/delegation and physical page rounding remain Native
     # decisions. There is deliberately no default profile or inferred grant.
     fields = ('bytes', 'work', 'attempts', 'holdings', 'transfer', 'retained', 'execution')
+    child_original = (_InitialCompilerDomainOriginal(*(child[k] for k in ('work', 'attempts', 'holdings', 'transfer')))
+                      if initial else tuple(child[k] for k in fields))
     return _CompilerParentOriginal(selected, tuple(parent[k] for k in (*fields, 'control_envelope')),
-                                    tuple(child[k] for k in fields),
-                                    hashlib.sha256(raw).digest())
+                                    child_original, hashlib.sha256(raw).digest())
 
 
 class CompilerParentAcquisitionError(RuntimeError):
@@ -203,6 +225,88 @@ class CompilerParentAcquisitionError(RuntimeError):
         super().__init__('Original compiler parent acquisition is pending')
 
 
+class CompilerControlInitializationError(RuntimeError):
+    """Keep the same selected component and original initialization slot.
+
+    This carrier never unloads, repeats initialization or claims process
+    retirement. The existing process/runtime responsibility outlives arenas.
+    """
+
+    def __init__(self, runtime: _CompilerControlRuntime) -> None:
+        self.cleanup_runtime = runtime
+        super().__init__('Original compiler control initialization is unavailable or unconfirmed')
+
+
+class _CompilerControlRuntime:
+    """Thin original process record, not another resource or permission Owner."""
+
+    def __init__(self, original: _CompilerHoldingOriginal) -> None:
+        self.original = original
+        self.library: Any = None
+        self.slot = c_void_p()
+        self._process, self._thread = os.getpid(), current_thread()
+        self._current: Any = None
+        self._initialized = False
+        self._unknown: CompilerControlInitializationError | None = None
+        self.failure = CompilerControlInitializationError(self)
+
+    def __copy__(self) -> _CompilerControlRuntime:
+        raise TypeError('Original compiler control cannot be copied')
+
+    def __deepcopy__(self, memo: dict[int, object]) -> _CompilerControlRuntime:
+        raise TypeError('Original compiler control cannot be copied')
+
+    def __reduce__(self) -> Any:
+        raise TypeError('Original compiler control cannot be serialized')
+
+    def current(self) -> None:
+        if self._unknown is not None:
+            raise self._unknown
+        if (os.getpid() != self._process or current_thread() is not self._thread
+                or not self._initialized):
+            raise ValueError('Original compiler control process/thread is unavailable')
+        try:
+            code = self._current(self.slot)
+            if type(code) is not int or code != 0:
+                raise self.failure
+        except BaseException as primary:
+            self._unknown = self.failure
+            raise self.failure from primary
+
+
+def _prepare_compiler_control(original: dict[str, Any],
+                              selected: _CompilerHoldingOriginal) -> _CompilerControlRuntime:
+    """One same-component initializer within the trusted control envelope.
+
+    This is neither arena funding nor a loader fallback. Native publishes its
+    process-lifetime original before invoking its own emitted initializer.
+    Every failure keeps this carrier, including a loaded library without a
+    confirmed initialization reply. Nothing here issues or closes a Ledger.
+    """
+    if type(selected) is not _CompilerHoldingOriginal or selected != _compiler_holding_original(original):
+        raise ValueError('Foreign original compiler control selection')
+    recipe = original['recipe']
+    provider = original['provider_library']
+    _read_file(provider, maximum=recipe.provider_library_bytes,
+               expected=recipe.provider_library_bytes, digest=recipe.provider_library_sha256)
+    runtime = _CompilerControlRuntime(selected)
+    try:
+        runtime.library = CDLL(str(provider))
+        _read_file(provider, maximum=recipe.provider_library_bytes,
+                   expected=recipe.provider_library_bytes, digest=recipe.provider_library_sha256)
+        initialize = bind_native(runtime.library, 'actql_control_runtime_initialize_into')
+        runtime._current = bind_native(runtime.library, 'actql_control_runtime_current')
+        code = initialize(byref(runtime.slot))
+        if type(code) is not int or code != 0 or runtime.slot.value is None:
+            raise runtime.failure
+        runtime._initialized = True
+        runtime.current()
+        return runtime
+    except BaseException as primary:
+        runtime._unknown = runtime.failure
+        raise runtime.failure from primary
+
+
 class _CompilerParent:
     """Private assembly of existing Native owners, not OriginalWorkerFunding.
 
@@ -211,9 +315,10 @@ class _CompilerParent:
     actual child/delegation and process/descriptor/region confirmations.
     """
 
-    def __init__(self, original: _CompilerParentOriginal, library: CDLL,
+    def __init__(self, original: _CompilerParentOriginal, runtime: _CompilerControlRuntime,
                  descriptor: _OriginalDescriptor) -> None:
-        self.original, self.library, self.descriptor = original, library, descriptor
+        self.original, self.runtime, self.descriptor = original, runtime, descriptor
+        self.library = runtime.library
         self.host: _OriginalControlCustody | None = None
         self.backing: _OriginalBackingCustody | None = None
         self.domain: _OriginalDomainCustody | None = None
@@ -242,11 +347,27 @@ class _CompilerParent:
                 or domain._descriptor is not self.descriptor
                 or domain._functions.library is not self.library):
             raise ValueError('Original compiler parent domain is unavailable')
+        for carrier in (self.host, self.backing, domain):
+            if carrier._unknown is not None:
+                raise carrier._unknown
+        if self.host._busy:
+            raise ValueError('Original compiler parent is busy')
+        self.runtime.current()
         functions = _OriginalInstalledProcessFunctions(self.library)
+        child = self.original.child
+        if type(child) is _InitialCompilerDomainOriginal:
+            # This projection comes from the same live original domain now,
+            # not from a guessed ratio, previous DATA snapshot or new Ledger.
+            material = domain._project_original_material(_OriginalDomainMaterialFunctions(self.library))
+            if (material.source != self.original.holding.source_sha
+                    or material.recipe != self.original.recipe):
+                raise ValueError('Original compiler domain material changed')
+            retained, execution = material.scalars[13:15]
+        else:
+            retained, execution = child[5:7]
         try:
             return _OriginalInstalledProcessCustody._prepare_original(domain, functions,
-                path=path, nonce=nonce, retained=self.original.child[5],
-                execution=self.original.child[6])
+                path=path, nonce=nonce, retained=retained, execution=execution)
         except _OriginalInstalledProcessError as primary:
             # The same domain already holds the original process, including a
             # partial/Unknown reply. Do not replay preparation or release its
@@ -267,6 +388,7 @@ class _CompilerParent:
         if (self.domain is not None and (self.domain._worker_process_original is not None
                 or self.domain._installed_process_original is not None)):
             raise ValueError('Original compiler domain still has process custody')
+        self.runtime.current()
         if self.backing is not None:
             self.backing.return_after_stop()
         if self.domain is not None:
@@ -280,7 +402,7 @@ def _acquire_compiler_parent(original: dict[str, Any], selected: _CompilerHoldin
                              descriptor: _OriginalDescriptor) -> _CompilerParent:
     """Connect trusted compiler preparation to real Native bootstrap/domain.
 
-    The matching library is already initialized by the trusted control runtime.
+    The matching component initializes once in its original process custody.
     The Native bootstrap creates/reserves the original Ledger before acquiring
     this actual FD backing. Python neither exposes it nor creates a substitute.
     Missing declaration/new private ABI refuses before physical acquisition.
@@ -293,19 +415,18 @@ def _acquire_compiler_parent(original: dict[str, Any], selected: _CompilerHoldin
     opened = os.fstat(descriptor.value)
     if not stat.S_ISREG(opened.st_mode) or opened.st_size != declaration.parent[0]:
         raise ValueError('Original compiler descriptor differs from its selected backing')
-    recipe = original['recipe']
-    provider = original['provider_library']
-    _read_file(provider, maximum=recipe.provider_library_bytes,
-               expected=recipe.provider_library_bytes, digest=recipe.provider_library_sha256)
-    library = CDLL(str(provider))
-    _read_file(provider, maximum=recipe.provider_library_bytes,
-               expected=recipe.provider_library_bytes, digest=recipe.provider_library_sha256)
-    control = _OriginalControlFunctions(library)
-    backing = _OriginalBackingFunctions(library)
-    domain = _OriginalDomainFunctions(library)
-    parent = _CompilerParent(declaration, library, descriptor)
+    runtime = _prepare_compiler_control(original, selected)
+    parent = _CompilerParent(declaration, runtime, descriptor)
     size, work, attempts, holdings, transfer, retained, execution, envelope = declaration.parent
     try:
+        runtime.current()
+        control = _OriginalControlFunctions(parent.library)
+        backing = _OriginalBackingFunctions(parent.library)
+        domain = _OriginalDomainFunctions(parent.library)
+        if type(declaration.child) is _InitialCompilerDomainOriginal:
+            # Check selected transport availability before the first Host/FD
+            # acquisition; exporting a symbol still supplies no funding.
+            bind_native(parent.library, 'actql_domain_prepare_initial_into')
         parent.host = _OriginalControlCustody._prepare_original(control,
             source=selected.source_sha, recipe=declaration.recipe, generation=selected.generation,
             size=size, work=work, attempts=attempts, holdings=holdings, transfer=transfer,
@@ -316,12 +437,18 @@ def _acquire_compiler_parent(original: dict[str, Any], selected: _CompilerHoldin
         if (current.st_dev, current.st_ino, current.st_size) != (opened.st_dev, opened.st_ino, opened.st_size):
             raise ValueError('Original compiler descriptor changed during acquisition')
         parent.backing = _OriginalBackingCustody._borrow_original(parent.host, backing)
-        size, work, attempts, holdings, transfer, retained, execution = declaration.child
+        child = declaration.child
         with parent.backing._physical_scope():
-            parent.domain = _OriginalDomainCustody._prepare_original(
-                parent.host, parent.backing, descriptor, domain, size=size, work=work,
-                attempts=attempts, holdings=holdings, transfer=transfer, retained=retained,
-                execution=execution)
+            if type(child) is _InitialCompilerDomainOriginal:
+                parent.domain = _OriginalDomainCustody._prepare_initial_original(
+                    parent.host, parent.backing, descriptor, domain, work=child.work,
+                    attempts=child.attempts, holdings=child.holdings, transfer=child.transfer)
+            else:
+                size, work, attempts, holdings, transfer, retained, execution = child
+                parent.domain = _OriginalDomainCustody._prepare_original(
+                    parent.host, parent.backing, descriptor, domain, size=size, work=work,
+                    attempts=attempts, holdings=holdings, transfer=transfer, retained=retained,
+                    execution=execution)
         # Existing physical preparation is one-shot and precedes projecting
         # child material. It is neither process start nor a stop/cleanup ACK.
         # Store the same domain above before this foreign call can lose reply.
@@ -727,6 +854,46 @@ def compile_image(core_receipt: Path, expected_source: str, destination: Path, *
     return result
 
 
+def prepare_compiler_executable(core_receipt: Path, expected_source: str,
+                                destination: Path, *, bindings_source: Path | None,
+                                native_libraries: Path | None, preparation: Path | None,
+                                c_api_headers: Path | None, clang: Path | None,
+                                sdk: Path | None, seconds: float) -> dict[str, object]:
+    """Ordinary producer preparation, with no native import or compiler child.
+
+    This shares the exact original module, private binding/library staging,
+    Engine configuration and generated ABI paths with image production. No
+    physical acceptance receipt or invented LocalComponents is needed to
+    compile the producer's own executable. Actual execution still needs the
+    original Native parent/domain and its selected physical backing.
+    """
+    from python_compiler_program import prepare_program, verify_program
+
+    original = verify(core_receipt, expected_source)
+    if any(value is None for value in (bindings_source, native_libraries, preparation,
+                                       c_api_headers, clang, sdk)):
+        raise ValueError('Select original compiler binding/library/header/toolchain inputs')
+    assert bindings_source is not None and native_libraries is not None and preparation is not None
+    assert c_api_headers is not None and clang is not None and sdk is not None
+    prepared = prepare_compiler_runtime(original, bindings_source, native_libraries, preparation)
+    selected = _runtime_original(original, prepared)
+    program = prepare_program(selected, headers=c_api_headers, clang=clang, sdk=sdk,
+                              destination=destination, seconds=seconds)
+    final = _runtime_original(verify(core_receipt, expected_source), prepared)
+    if final['recipe'] != original['recipe']:
+        raise ValueError('Original compiler preparation changed')
+    verify_program(final, program)
+    result: dict[str, object] = {'scope': 'original_compiler_executable_inputs_only',
+        'source_sha': expected_source, 'module_sha256': original['module_sha256'],
+        'core_receipt_sha256': original['core_receipt_sha256'],
+        'executable': {'path': program.executable[0], 'bytes': program.executable[1],
+                       'sha256': program.executable[2]},
+        'program_receipt': str(destination / 'program-receipt.json'),
+        'native_loaded': False, 'Config': False, 'Engine': False, 'Module': False,
+        'image_compiled': False, 'physical_acceptance': False, 'normal_profile': None}
+    return result
+
+
 def compile_from_original(core_receipt: Path, expected_source: str,
                           destination: Path, *, bindings_source: Path | None = None,
                           native_libraries: Path | None = None,
@@ -769,9 +936,14 @@ if __name__ == '__main__':
     parser.add_argument('--bindings-source', type=Path)
     parser.add_argument('--native-libraries', type=Path)
     parser.add_argument('--preparation', type=Path)
+    parser.add_argument('--c-api-headers', type=Path)
+    parser.add_argument('--clang', type=Path)
+    parser.add_argument('--sdk', type=Path)
+    parser.add_argument('--seconds', type=float, default=50)
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument('--verify-only', action='store_true')
     mode.add_argument('--prepare-c-config', action='store_true')
+    mode.add_argument('--prepare-c-program', action='store_true')
     mode.add_argument('--compile', action='store_true')
     args = parser.parse_args()
     if args.verify_only:
@@ -784,6 +956,11 @@ if __name__ == '__main__':
             'native_engine_started': False, 'compiled': False, 'public_local_acceptance': False}))
     elif args.prepare_c_config:
         print(json.dumps(prepare_compiler_configuration(args.core_receipt, args.source, args.destination)))
+    elif args.prepare_c_program:
+        print(json.dumps(prepare_compiler_executable(args.core_receipt, args.source, args.destination,
+            bindings_source=args.bindings_source, native_libraries=args.native_libraries,
+            preparation=args.preparation, c_api_headers=args.c_api_headers,
+            clang=args.clang, sdk=args.sdk, seconds=args.seconds)))
     else:
         print(json.dumps(compile_from_original(args.core_receipt, args.source, args.destination,
             bindings_source=args.bindings_source, native_libraries=args.native_libraries,
