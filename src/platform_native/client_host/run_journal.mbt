@@ -331,7 +331,7 @@ fn open_native_client_run_journal_with_reads(
   max_records : Int,
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeClientRunJournal, NativeClientRunJournalIssue] {
-  if database.transaction_fenced() {
+  if client_journal_transaction_fenced(database, reads) {
     return Err(Fenced)
   }
   if max_records < 1 || max_records > 1024 {
@@ -364,7 +364,7 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
   work : () -> Result[T, NativeClientRunJournalIssue],
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[T, NativeClientRunJournalIssue] {
-  if self.fenced || self.database.transaction_fenced() {
+  if self.fenced || client_journal_transaction_fenced(self.database, reads) {
     return Err(Fenced)
   }
   if self.publication_read_locked || self.transaction_active {
@@ -393,7 +393,7 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
         Ok(_) => Ok(value)
         Err(_) => {
           self.fenced = true
-          self.database.fence_transactions()
+          fence_client_journal_transactions(self.database, reads)
           Err(TransactionUnknown)
         }
       }
@@ -407,7 +407,7 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
         Ok(_) => Err(issue)
         Err(_) => {
           self.fenced = true
-          self.database.fence_transactions()
+          fence_client_journal_transactions(self.database, reads)
           Err(TransactionUnknown)
         }
       }

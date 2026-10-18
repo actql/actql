@@ -77,6 +77,10 @@ fn NativeLocalJournalReadQueries::access(
 ) -> NativeClientJournalReadAccess {
   {
     database: self.database,
+    fenced: () => {
+      self.query(() => self.database.transaction_fenced()).unwrap_or(true)
+    },
+    fence: () => self.query(() => self.database.fence_transactions()) |> ignore,
     read: (table_name, key) => {
       match self.query(() => self.database.read(table_name, key)) {
         Ok(value) => value
