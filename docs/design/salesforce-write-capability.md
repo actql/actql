@@ -153,3 +153,52 @@ text/decimal cells, Object nodes and checked values may overlap. Their original
 byte/node/depth and caller lifetime bounds still apply; deriving the Object's
 comparison work from the observed component count is not a new capacity grant,
 normal numerical profile or claim that the entire whole-phase envelope is funded.
+
+
+## Original DELETE metadata projection
+
+Salesforce's [Describe result](https://developer.salesforce.com/docs/platform/api/guide/sforce-api-calls-describesobjects-describesobjectresult.html)
+reports the resource's `deletable` flag independently of `createable` and
+`updateable`. The Catalog Owner retains that original Boolean as optional
+metadata. Only explicit `true` can support a DELETE projection. Missing or
+malformed deletion metadata cannot acquire that meaning; independent read
+projection retains its existing behavior.
+
+- Responsibility: `DeleteProjection` is a pure eligibility projection within
+  the existing Salesforce Catalog Owner. It is not an execution capability,
+  sealed Preview, credential use or physical deletion acknowledgement.
+- Inputs and outputs: an admitted original Catalog observation, its existing
+  Site or Local execution binding and the resource name produce an opaque
+  projection only with explicit deletion proof and the existing record identity
+  rule: exact `Id`, native `id`, and confirmed non-null metadata. No proposed
+  value, writable-field mapping or fabricated absent value is required.
+- Identity: the projection retains the original observation CID, execution
+  binding and resource. Its observation identity follows exact original provider
+  bytes. Existing Catalog bodies, declarations, Contracts and CIDs do not add
+  the new flag or change their canonical serialization.
+- Ownership: Describe decoding, native record identity and projection remain
+  Salesforce-owned. Common Effect, Account, Credential Site and Journal retain
+  their original Preview, authority, dispatch and outcome responsibilities.
+- Synchronization: recheck uses the existing execution-binding comparison and
+  the current admitted observation. A refreshed occurrence can have its own
+  dispatch identity, but another org, connection revision, Site generation,
+  namespace, original Run or authority scope cannot replace the original scope.
+- Failure: absent, false or malformed deletion proof, missing or invalid native
+  identity and foreign current observations refuse the projection. A successful
+  read or an update flag does not repair those refusals.
+- Cancellation: this synchronous projection performs no I/O and acquires no
+  cleanup duty. Cancellation, Unknown and retained physical cleanup remain with
+  the original acquisition and Effect owners; projection success cannot close
+  those duties or make a mutation retryable.
+- Resources: the existing bounded Describe decoder and field inventory own the
+  optional Boolean and retained binding/resource references. Rechecking uses
+  their existing resource-copy boundary. Byte/node/depth bounds do not issue
+  capacity or authority, and dropping a projection is not physical release.
+- Extension: this projection does not expand the existing write operation or
+  request enums. A DELETE request must separately preserve its actual target,
+  before/version facts, absent after-state, original grant and conditional-send
+  semantics; an object or null stand-in is not a DELETE value.
+- Verification: owner-level positive and refusal cases cover explicit proof,
+  native identity, scope and current metadata changes, both Site and Local
+  bindings, and unchanged existing Catalog identities. These boundaries do not
+  establish a provider send, approved Preview, recovery or installed service.
