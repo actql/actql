@@ -594,6 +594,42 @@ itself authority, and an invalid configured policy never falls back to these
 defaults. Mock fixture replacement remains explicit and cannot substitute
 fixture credentials or permissions into a real connection.
 
+### Bundled mock catalogue declarations
+
+The documented churn-risk mock installation has an explicit product catalogue
+for Salesforce `Account` and Snowflake `usage_30d`. The Host selects that
+catalogue under the original mock Project/Profile and installation generation;
+it does not identify a contract from a Task, filename, row count or observed
+values. Hand-authored equivalent projects and changed fixture rows use the same
+declared schemas. Other resources require their own supplied catalogue.
+
+`mock-churn-risk-catalogue.mjs` supplies immutable field-map schema wires,
+their complete existing schema CIDs, positive query aliases and candidate-key
+facts to the existing Common Relation declaration constructor. It does not
+calculate a semantic CID, parse rows or check logical types in JavaScript.
+Common validates the schema originals and constructs the Catalog, SourceViews,
+contracts and evidence members. The `salesforce.accounts` read alias refers to
+the original `Account` resource; it does not rename the UPDATE target or issue
+an Effect Mapping.
+
+The declared Snowflake `active_users` type is logical Int64. Its later physical
+JSON codec must preserve full signed64 values without a binary64 round trip;
+an admitted Number is not implicitly promoted. Salesforce `Risk_Reason__c`
+is declared nullable Text even when all initial fixture values are null.
+Candidate keys are `id` and `account_id` respectively. The actual fixture's
+explicit key must be retained and validated against these contracts, never
+replaced with the bundled key after missing or invalid input. Every known
+field and row remains subject to original Source admission.
+
+The descriptors supply no acquisition override: the existing empty bound
+request, finite scan and projection-only contract remain with Common. Selecting
+these declarations supplies neither an Account grant nor resources, business
+Run custody, a Model profile, approval, target versions or cold restoration.
+Those original responsibilities remain independently required. The immutable
+module objects, schema/facts Strings and aliases remain retained alongside the
+Common parsed declarations, encoding/hash workspace and Host installation;
+module lifetime and bounds do not make that storage free or physically closed.
+
 ### Purpose-confined initial Local signing issuer
 
 The original explicit Local initialization/adoption may retain an internal
