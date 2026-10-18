@@ -53,7 +53,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_shim_abi.py",
-      "sha256": "7e0c6a37bd4492943dd25ce6b13d8dfc2db9529450b33182a1e3b643eeec6074",
+      "sha256": "eb2fd291e8a52104b0414c3144b3b8d03cc39540c1242e2cc273efafb7bde053",
       "generator": {
         "path": "scripts/generate-local-native-shim-bindings.py",
         "anchor": "def render("
@@ -37087,7 +37087,7 @@
           ]
         }
       ],
-      "sha256": "7e0c6a37bd4492943dd25ce6b13d8dfc2db9529450b33182a1e3b643eeec6074",
+      "sha256": "eb2fd291e8a52104b0414c3144b3b8d03cc39540c1242e2cc273efafb7bde053",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -63626,6 +63626,10 @@
               {
                 "path": "scripts/fixtures/python-original-read-adoption.py",
                 "anchor": "def main() -> None:"
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/read_crypto_cleanup_original_wbtest.mbt",
+                "anchor": "test \"Read Crypto cleanup does not turn unclaimed closing or copied carriers into an entered original\""
               }
             ]
           }
@@ -64233,6 +64237,10 @@
               {
                 "path": "scripts/fixtures/python-original-read-adoption.py",
                 "anchor": "def main() -> None:"
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/read_crypto_cleanup_original_wbtest.mbt",
+                "anchor": "test \"Read Crypto cleanup does not turn unclaimed closing or copied carriers into an entered original\""
               }
             ]
           }
