@@ -15,11 +15,11 @@ export function eventSchemas() {
   };
   const calendarWeek = [{if:{properties:{unit:{const:'week'}},required:['unit']},
     then:{required:['week_start']},else:{not:{required:['week_start']}}}];
-  const calendarTimestamp = {oneOf:[{type:'string',pattern:'^(?!0000-)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$(?![\\s\\S])'},parameter]};
+  const calendarTimestamp = {oneOf:[{type:'string',pattern:'^(?!0000-)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.(?:[0-9]{3}|[0-9]{3,8}[1-9])Z$(?![\\s\\S])'},parameter]};
   const field = {type:'string',pattern:fieldPattern};
   const interval = {type:'object',additionalProperties:false,required:['start','end'],properties:{start:field,end:field}};
   const point = {type:'object',additionalProperties:false,required:['time'],properties:{time:field}};
-  const timestamp = {oneOf:[{type:'string',pattern:'^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$(?![\\s\\S])'},parameter]};
+  const timestamp = {oneOf:[{type:'string',pattern:'^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.(?:[0-9]{3}|[0-9]{3,8}[1-9])Z$(?![\\s\\S])'},parameter]};
   return {
     calendar_bucket:{type:'object',additionalProperties:false,
       required:['time','into','unit','timezone'],allOf:calendarWeek,

@@ -66,6 +66,8 @@ fn finish_session(execution : SessionExecution) -> @records.Completed {
             abort("session output duplicate identity")
           SessionOutput(_) => abort("other session output")
           SessionExecutionIssue(_) => abort("session execution")
+          SessionTimestampPrecisionUnavailable =>
+            abort("session timestamp precision unavailable")
         }
       SessionStopped(_, ..) => abort("session stopped")
     }

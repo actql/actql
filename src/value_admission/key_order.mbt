@@ -68,9 +68,13 @@ fn compare_nonnull_order_values(
     (Boolean(a), Boolean(b), @contract.Boolean, @contract.Boolean) =>
       Ok(if a == b { 0 } else if a { 1 } else { -1 })
     (Text(a), Text(b), @contract.Text(_), @contract.Text(_))
-    | (Date(a), Date(b), @contract.Date, @contract.Date)
-    | (Timestamp(a), Timestamp(b), @contract.Timestamp, @contract.Timestamp) =>
+    | (Date(a), Date(b), @contract.Date, @contract.Date) =>
       Ok(@canonical.compare_utf16(a, b))
+    (Timestamp(a), Timestamp(b), @contract.Timestamp, @contract.Timestamp) =>
+      match compare_timestamp_text(a, b) {
+        Some(order) => Ok(order)
+        None => Err(InvalidKey)
+      }
     (Decimal(a), Decimal(b), @contract.Decimal(..), @contract.Decimal(..)) =>
       Ok(compare_key_decimal(a, b))
     (

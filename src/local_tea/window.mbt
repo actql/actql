@@ -136,10 +136,10 @@ fn event_window_coordinate(
 ) -> @grid.Coordinate? {
   if timestamp {
     guard value.value is @value.Timestamp(text) &&
-      @value.timestamp_epoch_milliseconds(text) is Some(milliseconds) else {
+      @value.timestamp_instant(text) is Some(instant) else {
       return None
     }
-    Some(@grid.from_timestamp_milliseconds(milliseconds))
+    @grid.from_timestamp_parts(instant.seconds, instant.nanoseconds)
   } else {
     guard value.value is @value.Number(number) &&
       !number.is_nan() &&

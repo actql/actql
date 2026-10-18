@@ -14,10 +14,15 @@ fn interval_clock(
     if !spend_control_text(control, text) {
       return Err(RowLimit)
     }
-    guard @admitted.timestamp_epoch_milliseconds(text) is Some(milliseconds) else {
-      return Err(InvalidRows)
+    match @admitted.timestamp_epoch_milliseconds(text) {
+      Some(milliseconds) => Ok(milliseconds)
+      None =>
+        if @admitted.timestamp_instant(text) is Some(_) {
+          Err(TemporalPrecisionUnavailable)
+        } else {
+          Err(InvalidRows)
+        }
     }
-    Ok(milliseconds)
   } else {
     guard value is Number(number) &&
       @scalar.read_safe_integer(number) is Some(milliseconds) else {
