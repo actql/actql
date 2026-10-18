@@ -171,7 +171,7 @@ test "signed64 equality and semantic key order distinguish integers beyond binar
     "-9223372036854775808", "-9007199254740993", "-1", "0", "1", "9007199254740992",
     "9007199254740993", "9223372036854775807",
   ]
-  for index in (0..<texts.length()) - 1 {
+  for index in 0..<(texts.length() - 1) {
     let left = signed64_checked(texts[index])
     let right = signed64_checked(texts[index + 1])
     assert_eq(compare_key_values(left, right), Ok(-1))
