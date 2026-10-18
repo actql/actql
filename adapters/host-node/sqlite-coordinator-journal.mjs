@@ -5,13 +5,12 @@ import {
   fsyncSync,
   mkdirSync,
   openSync,
-  readdirSync,
   realpathSync,
 } from 'node:fs';
 import {join} from 'node:path';
 import {createSqliteTransaction, throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
-import {inspectSqliteSnapshot} from '../host-common/sqlite-format-inspection.mjs';
+import {inspectSqliteSnapshot, inspectJournalDirectory} from '../host-common/sqlite-format-inspection.mjs';
 import {
   admitRemoteDispatchJson,
   admitRemoteExecutionEvidenceJson,
@@ -128,10 +127,13 @@ const tableDefinitions = [...schemaSql.matchAll(
 )].map(([sql, name]) => [name,
   sql.replace(' IF NOT EXISTS', '').replace(/;$/u, '')]);
 
-function inspectCoordinatorFormat(root, coordinatorAuthority) {
+function inspectCoordinatorFormat(root, coordinatorAuthority, maxInspectionEntries, maxInspectionBytes) {
   const path = join(root, 'coordinator-dispatch-journal.sqlite3');
   if (!existsSync(root)) return false;
-  const entries = readdirSync(root).sort();
+  const inspectEntries = () => inspectJournalDirectory(root, {maxEntries: maxInspectionEntries,
+    unavailableCode: 'CoordinatorJournalInspectionUnavailable',
+    cleanupCode: 'CoordinatorJournalInspectionCleanupPending'});
+  const entries = inspectEntries();
   if (!existsSync(path)) {
     if (entries.length !== 0) fail('UnknownCoordinatorJournalFormat');
     return false;
@@ -164,8 +166,9 @@ function inspectCoordinatorFormat(root, coordinatorAuthority) {
         fail('UnknownCoordinatorJournalDeliveryFormat');
       }
     }
-  }, {code: 'UnknownCoordinatorJournalFormat',
-    validateSource: () => JSON.stringify(readdirSync(root).sort()) ===
+  }, {code: 'UnknownCoordinatorJournalFormat', maxSourceBytes: maxInspectionBytes,
+    unavailableCode: 'CoordinatorJournalInspectionUnavailable',
+    validateSource: () => JSON.stringify(inspectEntries()) ===
       JSON.stringify(entries)});
   return true;
 }
@@ -178,6 +181,8 @@ function syncDirectory(path) {
 
 export function openSqliteCoordinatorDispatchJournal(root, {
   coordinatorAuthority,
+  maxInspectionEntries = 100_000,
+  maxInspectionBytes = 64 * 1024 * 1024,
   maxDispatches = 100_000,
   maxRequestBytes = 65_536,
   maxEvidenceBytes = 65_536,
@@ -189,6 +194,8 @@ export function openSqliteCoordinatorDispatchJournal(root, {
   maxDeliveryBytes = deliveryBytes,
 } = {}) {
   if (!text(root) || !text(coordinatorAuthority) || !count(maxDispatches) ||
+      !count(maxInspectionEntries) || maxInspectionEntries === 0 ||
+      !count(maxInspectionBytes) || maxInspectionBytes === 0 ||
       maxDispatches === 0 || !count(maxRequestBytes) ||
       maxRequestBytes === 0 || !count(maxEvidenceBytes) ||
       maxEvidenceBytes === 0 || !count(maxOutputOperations) ||
@@ -201,7 +208,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       maxDeliveryBytes === 0 || maxDeliveryBytes > deliveryBytes) {
     fail('InvalidCoordinatorJournalConfiguration');
   }
-  const current = inspectCoordinatorFormat(root, coordinatorAuthority);
+  const current = inspectCoordinatorFormat(root, coordinatorAuthority, maxInspectionEntries, maxInspectionBytes);
   mkdirSync(root, {recursive: true, mode: 0o700});
   const directory = realpathSync(root);
   const path = join(directory, 'coordinator-dispatch-journal.sqlite3');

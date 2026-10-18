@@ -5,12 +5,12 @@ import {prepareInstalledRunStateObservation, issueInstalledRunControlObservation
   from '../host-common/run-state-observation.mjs';
 import {createHash, createHmac, randomBytes, timingSafeEqual} from 'node:crypto';
 import {closeSync, constants, existsSync, fstatSync, fsyncSync, lstatSync,
-  mkdirSync, openSync, opendirSync, readSync,
+  mkdirSync, openSync, readSync,
   realpathSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {createSqliteTransaction, throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
-import {inspectSqliteSnapshot} from '../host-common/sqlite-format-inspection.mjs';
+import {inspectSqliteSnapshot, inspectJournalDirectory} from '../host-common/sqlite-format-inspection.mjs';
 import {openClientObservationStorage} from './client-observation-journal.mjs';
 import {isHostObservationProjection} from '../host-common/observation.mjs';
 import {canonicalJson} from './local-account-config.mjs';
@@ -39,61 +39,9 @@ const applyOriginal = Reflect.apply;
 // unbounded listing before checking it. Preserve the exact full-name snapshot
 // (including unrelated retained entries) for the existing currentness check.
 function journalDirectoryEntries(directory, maxInspectionEntries) {
-  let original = opendirSync(directory, {bufferSize: 1});
-  let originalClose, failed = false, primary;
-  const captureClose = () => {
-    if (originalClose !== undefined) return;
-    const selected = original.closeSync;
-    if (typeof selected !== 'function') throw new TypeError('JournalDirectoryCloseUnavailable');
-    originalClose = selected;
-  };
-  const close = () => {
-    if (original === undefined) return;
-    captureClose();
-    if (applyOriginal(originalClose, original, []) !== undefined) {
-      throw new TypeError('JournalDirectoryCleanupPending');
-    }
-    original = originalClose = undefined;
-  };
-  let entries;
-  try {
-    captureClose();
-    const read = original.readSync;
-    if (typeof read !== 'function') throw new TypeError('JournalDirectoryReadUnavailable');
-    entries = [];
-    for (;;) {
-      const entry = applyOriginal(read, original, []);
-      if (entry === null) break;
-      // One lookahead Dirent may coexist with the bounded retained names.
-      // Refusal neither drops it to pass nor calls SQLite on this directory.
-      if (entries.length === maxInspectionEntries) {
-        fail('ClientRequestJournalInspectionUnavailable');
-      }
-      entries.push(entry.name);
-    }
-    entries.sort();
-  } catch (cause) { failed = true; primary = cause; }
-  try { close(); }
-  catch (cause) {
-    const first = cause;
-    let latest = cause;
-    const status = () => Object.freeze({pending: original !== undefined,
-      errors: Object.freeze(first === latest ? [first] : [first, latest])});
-    const retry = () => {
-      try { close(); } catch (error) { latest = error; }
-      return status();
-    };
-    const carrier = Object.assign(new Error('ClientRequestJournalInspectionCleanupPending',
-      {cause: failed ? primary : cause}), {
-      code: 'ClientRequestJournalInspectionCleanupPending',
-      primaryFailure: failed ? primary : cause,
-      cleanupHandle: Object.freeze({status, retry}),
-    });
-    Object.defineProperty(carrier, 'cleanupPending', {get: () => status().pending});
-    throw carrier;
-  }
-  if (failed) throw primary;
-  return entries;
+  return inspectJournalDirectory(directory, {maxEntries: maxInspectionEntries,
+    unavailableCode: 'ClientRequestJournalInspectionUnavailable',
+    cleanupCode: 'ClientRequestJournalInspectionCleanupPending'});
 }
 
 // Closed format markers have a fixed exact length. A prior pathname stat

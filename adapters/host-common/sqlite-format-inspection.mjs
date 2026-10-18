@@ -3,13 +3,77 @@
 // descriptors, inspect an isolated DB+WAL copy, and refuse concurrent changes.
 import {DatabaseSync} from 'node:sqlite';
 import {closeSync, constants, existsSync, fstatSync, lstatSync, mkdtempSync,
-  openSync, readSync, realpathSync, rmSync, writeSync} from 'node:fs';
+  openSync, opendirSync, readSync, realpathSync, rmSync, writeSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {basename, dirname, join, relative, isAbsolute, sep} from 'node:path';
 import {throwSqliteInitializationFailure} from './sqlite-transaction.mjs';
 
 const sameFile = (left, right) => ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs']
   .every(key => left[key] === right[key]);
+
+// Original directory inspection shared by the existing SQLite journal Owners.
+// Keep complete names, including unrelated entries, for the currentness fence.
+// A ceiling is an inspection support bound, not a file-format restriction or
+// capacity grant. The same actual Dir owns one lookahead and its close duty.
+export function inspectJournalDirectory(directory, {maxEntries = 100_000,
+  unavailableCode = 'JournalDirectoryInspectionUnavailable',
+  cleanupCode = 'JournalDirectoryInspectionCleanupPending'} = {}) {
+  if (!Number.isSafeInteger(maxEntries) || maxEntries < 1) {
+    throw Object.assign(new Error('InvalidJournalDirectoryInspectionConfiguration'),
+      {code: 'InvalidJournalDirectoryInspectionConfiguration'});
+  }
+  let original = opendirSync(directory, {bufferSize: 1});
+  let originalClose, failed = false, primary;
+  const captureClose = () => {
+    if (originalClose !== undefined) return;
+    const selected = original.closeSync;
+    if (typeof selected !== 'function') throw new TypeError('JournalDirectoryCloseUnavailable');
+    originalClose = selected;
+  };
+  const close = () => {
+    if (original === undefined) return;
+    captureClose();
+    if (Reflect.apply(originalClose, original, []) !== undefined) {
+      throw new TypeError('JournalDirectoryCleanupPending');
+    }
+    original = originalClose = undefined;
+  };
+  let entries;
+  try {
+    captureClose();
+    const read = original.readSync;
+    if (typeof read !== 'function') throw new TypeError('JournalDirectoryReadUnavailable');
+    entries = [];
+    for (;;) {
+      const entry = Reflect.apply(read, original, []);
+      if (entry === null) break;
+      if (entries.length === maxEntries) {
+        throw Object.assign(new Error(unavailableCode), {code: unavailableCode});
+      }
+      entries.push(entry.name);
+    }
+    entries.sort();
+  } catch (cause) { failed = true; primary = cause; }
+  try { close(); }
+  catch (cause) {
+    const first = cause;
+    let latest = cause;
+    const status = () => Object.freeze({pending: original !== undefined,
+      errors: Object.freeze(first === latest ? [first] : [first, latest])});
+    const retry = () => {
+      try { close(); } catch (error) { latest = error; }
+      return status();
+    };
+    const carrier = Object.assign(new Error(cleanupCode, {cause: failed ? primary : cause}), {
+      code: cleanupCode, primaryFailure: failed ? primary : cause,
+      cleanupHandle: Object.freeze({status, retry}),
+    });
+    Object.defineProperty(carrier, 'cleanupPending', {get: () => status().pending});
+    throw carrier;
+  }
+  if (failed) throw primary;
+  return entries;
+}
 
 export function inspectSqliteSnapshot(databasePath, inspect, {
   code = 'UnknownSqliteJournalFormat',
