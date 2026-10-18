@@ -154,6 +154,7 @@ export async function openSalesforceEffectSiteFixture(t, {
   port = 0,
   // The validity of newly issued certificates.
   certificateDays = 1,
+  openCredentialJournal,
 }) {
   const writable = ['Test_Record__c', ...extraWritable];
   const root = await mkdtemp(join(tmpdir(), 'actql-effect-site-'));
@@ -568,7 +569,7 @@ export async function openSalesforceEffectSiteFixture(t, {
   const installed = await loadInstalledSalesforceSite(profilePath, {
     commonMoon, salesforceMoon, authorization: hostAuthorization,
     runtimeBundleCid: cid('a'), resolveSecret: async () => 'test-only-secret',
-    now: () => 1_999_999_999_999, grantLifetimeMs: 1});
+    now: () => 1_999_999_999_999, grantLifetimeMs: 1, openCredentialJournal});
   const journal = installed.credential.journal;
   t.after(async () => {
     installed.close();

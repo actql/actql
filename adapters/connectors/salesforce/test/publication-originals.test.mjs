@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile, writeFile} from 'node:fs/promises';
 import test from 'node:test';
+import {openSqliteCredentialJournal} from '../../../site-node/sqlite-credential-journal.mjs';
 import * as commonMoon from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as salesforceMoon from '../../../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
 import {describeSalesforceGeneration, restoreSalesforceGeneration,
@@ -11,9 +12,9 @@ import {openSalesforceEffectSiteFixture} from './salesforce-effect-site.fixture.
 
 const cid = x => 'sha256:' + x.repeat(64);
 const digest = b => createHash('sha256').update(b).digest('hex');
-async function fixture(t) {
+async function fixture(t, {openCredentialJournal} = {}) {
   const f = await openSalesforceEffectSiteFixture(t, {commonMoon, salesforceMoon,
-    runInvocationCid: cid('1'), dispatchRequestCid: cid('2')});
+    runInvocationCid: cid('1'), dispatchRequestCid: cid('2'), openCredentialJournal});
   const describe = async (options = {}) => {
     const result = await describeSalesforceGeneration({site: f.site,
       connectorId: 'crm-main', resources: ['Test_Record__c'],
@@ -196,4 +197,33 @@ test('a synchronous finisher cannot return through a reentrantly closed original
       assert.equal(typeof useCid, 'string');
     }
   }
+});
+
+
+test('live publication propagates the exact original outcome acknowledgement failure without a repeat finish', async t => {
+  let loseNextAck = false, lost = 0;
+  const primary = Object.assign(new Error('OriginalDescribeOutcomeAckLost'),
+    {code: 'OriginalDescribeOutcomeAckLost', originalMarker: Object.freeze({})});
+  const f = await fixture(t, {openCredentialJournal(root, options) {
+    const actual = openSqliteCredentialJournal(root, options);
+    return Object.freeze({...actual, finish(...args) {
+      const value = actual.finish(...args);
+      if (loseNextAck) {loseNextAck = false; lost++; throw primary;}
+      return value;
+    }});
+  }});
+  const before = f.seen.length, beforeRows = f.journal.recover().length;
+  loseNextAck = true;
+  await assert.rejects(f.describe(), cause => cause === primary);
+  assert.equal(lost, 1);
+  assert.equal(f.seen.length, before + 1);
+  const after = f.journal.recover();
+  assert.equal(after.length, beforeRows + 1);
+  // This specific counter loses the acknowledgement after a real COMMIT.
+  // The caller still receives no confirmed original response or publication.
+  assert.equal(after.at(-1).outcome, 'succeeded');
+  assert.throws(() => originals(f.site, f.declared, '{}', () => {}),
+    {code: 'SalesforcePublicationOriginalUnavailable'});
+  assert.equal(lost, 1);
+  assert.equal(f.seen.length, before + 1);
 });
