@@ -53,7 +53,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_shim_abi.py",
-      "sha256": "7e0c6a37bd4492943dd25ce6b13d8dfc2db9529450b33182a1e3b643eeec6074",
+      "sha256": "eb2fd291e8a52104b0414c3144b3b8d03cc39540c1242e2cc273efafb7bde053",
       "generator": {
         "path": "scripts/generate-local-native-shim-bindings.py",
         "anchor": "def render("
@@ -37087,7 +37087,7 @@
           ]
         }
       ],
-      "sha256": "7e0c6a37bd4492943dd25ce6b13d8dfc2db9529450b33182a1e3b643eeec6074",
+      "sha256": "eb2fd291e8a52104b0414c3144b3b8d03cc39540c1242e2cc273efafb7bde053",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -63204,15 +63204,20 @@
         "Any",
         "Callable",
         "NoReturn",
+        "TYPE_CHECKING",
         "annotations",
         "bind",
         "byref",
+        "c_int32",
+        "c_uint16",
         "c_void_p",
         "isfinite"
       ],
       "imports": [
         "._local_native_control_custody",
         "._local_native_host_resources",
+        "._local_native_read_crypto",
+        "._local_native_runtime",
         "._local_native_shim_abi",
         "__future__",
         "collections.abc",
@@ -63294,12 +63299,38 @@
         },
         {
           "async": false,
+          "name": "_OriginalAdoptionCustody/_open_from_original_library",
+          "parameters": [
+            "cls",
+            "resources",
+            "functions",
+            "crypto",
+            "parent_path",
+            "state_name",
+            "source_path",
+            "source_name",
+            "account_id",
+            "configuration_files",
+            "managed_root_path",
+            "diagnostic_ceiling"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalAdoptionCustody/_open_from_original_library/prepare",
+          "parameters": [
+            "out"
+          ]
+        },
+        {
+          "async": false,
           "name": "_OriginalAdoptionCustody/_open_original",
           "parameters": [
             "cls",
             "resources",
             "functions",
-            "prepare"
+            "prepare",
+            "_crypto_library"
           ]
         },
         {
@@ -63314,6 +63345,14 @@
           "name": "_OriginalAdoptionCustody/_parents_current",
           "parameters": [
             "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalAdoptionCustody/_require_crypto_library",
+          "parameters": [
+            "self",
+            "unbound"
           ]
         },
         {
@@ -63393,7 +63432,7 @@
           ]
         }
       ],
-      "sha256": "e7140ce41ae57721fb3c87198e8a0e2229374e5e3984cca40e37a2a9cbf45222",
+      "sha256": "d75036651de73e5423de3d7d8141ca05cac2850eb5a771cc91f981ef7d13dd49",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "E / existing Native adoption, Host resource-pair and Python custody Owners",
@@ -63410,9 +63449,12 @@
             "_OriginalAdoptionCustody/_drop_originals",
             "_OriginalAdoptionCustody/_drop_reply",
             "_OriginalAdoptionCustody/_mark_unknown",
+            "_OriginalAdoptionCustody/_open_from_original_library",
+            "_OriginalAdoptionCustody/_open_from_original_library/prepare",
             "_OriginalAdoptionCustody/_open_original",
             "_OriginalAdoptionCustody/_original_slots",
             "_OriginalAdoptionCustody/_parents_current",
+            "_OriginalAdoptionCustody/_require_crypto_library",
             "_OriginalAdoptionCustody/_run",
             "_OriginalAdoptionCustody/_status",
             "_OriginalAdoptionCustody/close",
@@ -63448,6 +63490,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
                 "anchor": "def _original_slots("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+                "anchor": "def _open_from_original_library("
               }
             ],
             "identity": [
@@ -63462,6 +63508,10 @@
               {
                 "path": "src/platform_native/installed_arena_entry/local_adoption_shim.c",
                 "anchor": "static int same_original("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+                "anchor": "def _require_crypto_library("
               }
             ],
             "ownership": [
@@ -63476,6 +63526,10 @@
               {
                 "path": "src/platform_native/installed_arena_entry/local_adoption_shim.c",
                 "anchor": "int actql_local_adoption_finish_closed_data("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+                "anchor": "_crypto_library._adoption_original = original"
               }
             ],
             "synchronization": [
@@ -63504,6 +63558,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_native_adoption.py",
                 "anchor": "def test_lost_prepare_or_first_open_never_repeats_and_fences_parent("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_adoption_crypto.py",
+                "anchor": "def test_lost_prepare_keeps_original_borrow_and_never_repeats("
               }
             ],
             "cancellation": [
@@ -63556,6 +63614,22 @@
               {
                 "path": "scripts/fixtures/python-original-adoption.py",
                 "anchor": "step('same retained Journal opens through its original serial Read and SQLite phases')"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_adoption_crypto.py",
+                "anchor": "def test_exact_original_utf16_and_child_ack_before_library_close("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_adoption_crypto.py",
+                "anchor": "def test_foreign_native_crypto_alias_keeps_unknown_custody("
+              },
+              {
+                "path": "scripts/fixtures/python-original-read-adoption.py",
+                "anchor": "def main() -> None:"
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/read_crypto_cleanup_original_wbtest.mbt",
+                "anchor": "test \"Read Crypto cleanup does not turn unclaimed closing or copied carriers into an entered original\""
               }
             ]
           }
@@ -63568,9 +63642,12 @@
             "Any",
             "Callable",
             "NoReturn",
+            "TYPE_CHECKING",
             "annotations",
             "bind",
             "byref",
+            "c_int32",
+            "c_uint16",
             "c_void_p",
             "isfinite"
           ],
@@ -63707,6 +63784,7 @@
         "dataclass"
       ],
       "imports": [
+        "._local_native_adoption",
         "._local_native_host_resources",
         "._local_native_shim_abi",
         "__future__",
@@ -63961,7 +64039,7 @@
           ]
         }
       ],
-      "sha256": "79603af31bc89a2b567a73e29e04a1b43e295fd0be952cf2c0f593c68d2a57bd",
+      "sha256": "b73de81969000e1db62073b8defefc3700eb2c30b4cfadae35410b69820023c9",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "E / same original Native Read component and Library transport; existing Host, Resource and Signature Owners retain admission and physical cleanup",
@@ -64034,6 +64112,10 @@
               {
                 "path": "src/platform_native/installed_arena_entry/read_crypto_shim.c",
                 "anchor": "int actql_read_crypto_originals_into("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+                "anchor": "def _open_from_original_library("
               }
             ],
             "identity": [
@@ -64048,6 +64130,10 @@
               {
                 "path": "src/platform_native/installed_arena_control/c_read_crypto_reply_native.mbt",
                 "anchor": "fn InstalledArenaHost::require_read_crypto_library_original("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+                "anchor": "def _require_crypto_library("
               }
             ],
             "ownership": [
@@ -64062,6 +64148,10 @@
               {
                 "path": "src/platform_native/installed_arena_entry/read_crypto_shim.c",
                 "anchor": "int actql_read_crypto_finish_refused_library("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+                "anchor": "_crypto_library._adoption_original = original"
               }
             ],
             "synchronization": [
@@ -64090,6 +64180,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_native_read_crypto.py",
                 "anchor": "def test_response_loss_keeps_slots_and_fences_no_resend_or_parent_close("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_adoption_crypto.py",
+                "anchor": "def test_lost_prepare_keeps_original_borrow_and_never_repeats("
               }
             ],
             "cancellation": {
@@ -64131,6 +64225,22 @@
               {
                 "path": "scripts/fixtures/python-original-read-crypto.py",
                 "anchor": "def main() -> None:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_adoption_crypto.py",
+                "anchor": "def test_exact_original_utf16_and_child_ack_before_library_close("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_adoption_crypto.py",
+                "anchor": "def test_foreign_native_crypto_alias_keeps_unknown_custody("
+              },
+              {
+                "path": "scripts/fixtures/python-original-read-adoption.py",
+                "anchor": "def main() -> None:"
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/read_crypto_cleanup_original_wbtest.mbt",
+                "anchor": "test \"Read Crypto cleanup does not turn unclaimed closing or copied carriers into an entered original\""
               }
             ]
           }

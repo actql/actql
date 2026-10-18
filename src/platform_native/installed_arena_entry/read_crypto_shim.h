@@ -29,7 +29,8 @@ void actql_native_control_register_read_crypto_roots(
     actql_read_crypto_component_fn, actql_read_crypto_library_fn,
     actql_read_crypto_tag_fn, actql_read_crypto_tag_fn, actql_read_crypto_tag_fn,
     actql_read_crypto_tag_fn, actql_read_crypto_tag_fn, actql_read_crypto_tag_fn,
-    actql_read_crypto_byte_fn, actql_read_crypto_current_fn, actql_read_crypto_tag_fn);
+    actql_read_crypto_byte_fn, actql_read_crypto_current_fn, actql_read_crypto_tag_fn,
+    actql_read_crypto_current_fn);
 int actql_read_crypto_prepare_into(actql_control_host *, actql_local_host_resources *, actql_parent_read *, actql_read_crypto_reply **);
 int actql_read_crypto_load_utf16_into(actql_control_host *, actql_local_host_resources *, actql_parent_read *, actql_read_crypto_component *, const uint16_t *, int32_t, int64_t, int32_t, actql_read_crypto_reply **);
 int actql_read_crypto_operate_into(actql_control_host *, actql_local_host_resources *, actql_parent_read *, actql_read_crypto_component *, actql_local_crypto_library *, int32_t, actql_read_crypto_reply **);

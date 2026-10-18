@@ -1503,3 +1503,15 @@ legacy domain-owning cleanup's stop/enter/leave sequence. Consequently the
 same-frame DATA retirement can check the original current Read after the child
 ACK without reviving a stopped use or interpreting it as a parent ACK. Older
 domain-owning callers retain their separate cleanup sequence.
+
+When a retained adoption Journal finishes its cleanup stages, the same pair and
+Read use are logically stopped. Remaining Libraries and their component retire
+only in that original entered cleanup frame. A separate typed observation checks
+the original Host, pair, claimed Read, component, backing and physical context;
+it revalidates the existing unreturned cleanup use without restoring normal
+current. Only Library/component close and their corresponding close-result DATA
+release consume that observation. Load, Library acquisition, HMAC, verification
+and ordinary dispatch retain their normal-current requirements. The Library's
+own acknowledgment precedes component retirement, and neither acknowledges the
+Read, domains, loan, Host or descriptor. Failed or unknown cleanup retains the
+same receiver and all outstanding aliases.

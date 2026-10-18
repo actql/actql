@@ -35,6 +35,8 @@ pub fn cleanup_installed_arena_domain_read_reply(InstalledArenaHost, InstalledAr
 
 pub fn cleanup_installed_arena_original_read_reply(InstalledArenaHost, InstalledArenaOriginalRead) -> InstalledArenaOriginalReadReply
 
+pub fn cleanup_installed_arena_read_crypto_original(InstalledArenaHost, InstalledArenaLocalHostResources, InstalledArenaOriginalRead, InstalledArenaCryptoComponent) -> Bool
+
 pub fn close_installed_arena_domain_read_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
 
 pub fn close_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply

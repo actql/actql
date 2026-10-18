@@ -92,6 +92,81 @@ fn InstalledArenaHost::require_read_crypto_reply_original(
 }
 
 ///|
+// Only an entered original cleanup phase may retire retained Crypto after its
+// Session/Journal child stopped this same Read. Normal use keeps its own fence.
+fn InstalledArenaHost::require_read_crypto_cleanup_original(
+  self : InstalledArenaHost,
+  pair : InstalledArenaLocalHostResources,
+  read : InstalledArenaOriginalRead,
+  component : InstalledArenaCryptoComponent,
+) -> Result[Unit, ReadCryptoReplyIssue] {
+  match self.original_local_host_resources(pair) {
+    Err(issue) => return Err(ReadResourcesIssue(issue))
+    Ok(_) => ()
+  }
+  if pair.closed ||
+    !pair.closing ||
+    pair.active != Some(HostRead) ||
+    !physical_equal(pair.read, read) ||
+    read.closed ||
+    !read.closing ||
+    !read.owns_read ||
+    read.consumer is None {
+    return Err(
+      ReadResourcesIssue(Domain(@bootstrap.Bootstrap(@bootstrap.Closing))),
+    )
+  }
+  match self.original_domain_read(read) {
+    Err(issue) => return Err(ReadResourcesIssue(Read(issue)))
+    Ok(_) => ()
+  }
+  match self.original_crypto_component(component) {
+    Err(issue) => return Err(ReadComponentIssue(issue))
+    Ok(_) => ()
+  }
+  if !physical_equal(component.domain, read.domain) {
+    return Err(
+      ReadComponentIssue(
+        Domain(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal)),
+      ),
+    )
+  }
+  component.domain.backing
+  .require_backed_read_cleanup_entered(
+    self,
+    component.domain.domain.unwrap(),
+    component.domain,
+  )
+  .map_err(issue => ReadComponentIssue(Domain(issue)))
+}
+
+///|
+fn InstalledArenaHost::require_read_crypto_close_original(
+  self : InstalledArenaHost,
+  pair : InstalledArenaLocalHostResources,
+  read : InstalledArenaOriginalRead,
+  component : InstalledArenaCryptoComponent,
+) -> Result[Unit, ReadCryptoReplyIssue] {
+  if pair.closing {
+    self.require_read_crypto_cleanup_original(pair, read, component)
+  } else {
+    self.require_read_crypto_reply_original(pair, read, component)
+  }
+}
+
+///|
+/// Cleanup-only observation for the original close reply/DATA transport. This
+/// never supplies load, Library acquisition, hash or verification current.
+pub fn cleanup_installed_arena_read_crypto_original(
+  host : InstalledArenaHost,
+  pair : InstalledArenaLocalHostResources,
+  read : InstalledArenaOriginalRead,
+  component : InstalledArenaCryptoComponent,
+) -> Bool {
+  host.require_read_crypto_cleanup_original(pair, read, component) is Ok(_)
+}
+
+///|
 /// Same physical frame observation for the synchronous foreign transport.
 /// The operation itself repeats the original checks; this issues no scope.
 pub fn current_installed_arena_read_crypto_original(
@@ -182,6 +257,28 @@ fn InstalledArenaHost::require_read_crypto_library_original(
 }
 
 ///|
+fn InstalledArenaHost::require_read_crypto_close_library_original(
+  self : InstalledArenaHost,
+  pair : InstalledArenaLocalHostResources,
+  read : InstalledArenaOriginalRead,
+  component : InstalledArenaCryptoComponent,
+  library : @signature.Library,
+) -> Result[Unit, ReadCryptoReplyIssue] {
+  match self.require_read_crypto_close_original(pair, read, component) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard component.component is Some(original) && original.owns_library(library) else {
+    return Err(
+      ReadComponentIssue(
+        Domain(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal)),
+      ),
+    )
+  }
+  Ok(())
+}
+
+///|
 pub fn close_installed_arena_read_crypto_library_reply(
   host : InstalledArenaHost,
   pair : InstalledArenaLocalHostResources,
@@ -190,7 +287,9 @@ pub fn close_installed_arena_read_crypto_library_reply(
   library : @signature.Library,
 ) -> InstalledArenaReadCryptoReply {
   let result = match
-    host.require_read_crypto_library_original(pair, read, component, library) {
+    host.require_read_crypto_close_library_original(
+      pair, read, component, library,
+    ) {
     Err(issue) => Err(issue)
     Ok(_) => library.close_checked().map_err(issue => ReadLibraryIssue(issue))
   }
@@ -217,7 +316,7 @@ fn InstalledArenaHost::close_read_crypto_component_in_original_frame(
   read : InstalledArenaOriginalRead,
   component : InstalledArenaCryptoComponent,
 ) -> Result[Unit, ReadCryptoReplyIssue] {
-  match self.require_read_crypto_reply_original(pair, read, component) {
+  match self.require_read_crypto_close_original(pair, read, component) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
