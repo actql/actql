@@ -38,9 +38,11 @@ pub fn project_record_create_preview_outcome(
   }
   guard @publication.effect_preview_member_kind(preview, member_index) ==
     Some("create") &&
-    @publication.effect_preview_row_identity(preview, member_index, row_index)
+    @publication.effect_preview_ordered_row_identity(
+      preview, member_index, row_index,
+    )
     is Some(row_cid) &&
-    @publication.effect_preview_row_intended_value_wire(
+    @publication.effect_preview_ordered_row_intended_value_wire(
       preview, member_index, row_index,
     )
     is Some(wire) else {
@@ -58,6 +60,10 @@ pub fn project_record_create_preview_outcome(
     @catalog.project_record_create_effect_outcome(request, response, limits) {
     Ok(value) => value
     Err(issue) => return Err(Response(issue))
+  }
+  guard @publication.effect_preview_row_index(preview, member_index, row_cid)
+    is Some(change_index) else {
+    return Err(ForeignPreview)
   }
   match
     @publication.check_effect_preview_row_outcome(
