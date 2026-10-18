@@ -253,6 +253,8 @@ pub fn client_program_bigquery_job_original_record_material(@actql/actql/connect
 
 pub fn client_program_bigquery_job_original_record_wire(@actql/actql/connectors/bigquery/read.JobOriginalRecord) -> String
 
+pub fn client_program_bigquery_job_read_matches_row_run(@actql/actql/connectors/bigquery/read.JobRead, @client_row_source_host.RowRun, @client_row_source_host.RowAcquisition) -> Bool
+
 pub fn client_program_bigquery_job_record_limits(Int, Int, Int, Int, Int) -> @actql/actql/connectors/bigquery/read.JobRecordLimits
 
 pub fn client_program_bigquery_job_remote_done(@actql/actql/connectors/bigquery/read.JobRead) -> Bool

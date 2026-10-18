@@ -151,14 +151,23 @@ fn NativeLocalConfigurationSelection::persist(
 fn NativeLocalConfigurationSelection::check_retained(
   self : NativeLocalConfigurationSelection,
   database : @sqlite.Database,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  guard database.read("client_local_settings", "manifest") is Ok(original) &&
+  guard read_client_journal_value(
+      database, "client_local_settings", "manifest", reads,
+    )
+    is Ok(original) &&
     original.revision == 0L &&
     original.body == self.manifest else {
     return Err(CustodyLost)
   }
   for file in self.files {
-    guard database.read("client_local_settings", "file:" + file.name)
+    guard read_client_journal_value(
+        database,
+        "client_local_settings",
+        "file:" + file.name,
+        reads,
+      )
       is Ok(original) &&
       original.revision == 0L &&
       original.body == file.body else {
@@ -168,7 +177,10 @@ fn NativeLocalConfigurationSelection::check_retained(
   // Exact membership, bounded independently of the database's total contents.
   let mut cursor = ""
   for _ in 0..<(self.files.length() + 1) {
-    guard database.scan_after("client_local_settings", cursor) is Ok(row) else {
+    guard scan_client_journal_value(
+        database, "client_local_settings", cursor, reads,
+      )
+      is Ok(row) else {
       return Err(CustodyLost)
     }
     if row.key != "manifest" &&
@@ -177,7 +189,9 @@ fn NativeLocalConfigurationSelection::check_retained(
     }
     cursor = row.key
   }
-  guard database.scan_after("client_local_settings", cursor)
+  guard scan_client_journal_value(
+      database, "client_local_settings", cursor, reads,
+    )
     is Err(@sqlite.NotFound) else {
     return Err(CustodyLost)
   }

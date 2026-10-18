@@ -17,6 +17,22 @@ static struct {
     actql_local_journal_reply_tag_fn operation, issue;
 } actql_local_journal_callbacks;
 static int actql_local_journal_registered;
+static actql_local_journal_original_prepare_fn actql_local_journal_original_prepare;
+static int actql_local_journal_original_registered;
+
+/* Separate append-only registration preserves the original twelve callbacks.
+ * Missing registration cannot select the legacy Library-based constructor. */
+void actql_native_control_register_local_journal_original_roots(
+    actql_local_journal_original_prepare_fn prepare
+) {
+    if (actql_local_journal_original_registered) return;
+    if (!prepare) {
+        actql_local_journal_original_registered = -1;
+        return;
+    }
+    actql_local_journal_original_prepare = prepare;
+    actql_local_journal_original_registered = 1;
+}
 
 void actql_native_control_register_local_journal_roots(
     actql_local_journal_prepare_fn prepare,
@@ -67,6 +83,27 @@ int actql_local_journal_prepare_into(
     if (actql_local_journal_registered != 1) return ACTQL_LOCAL_JOURNAL_UNAVAILABLE;
     *capture = actql_local_journal_callbacks.prepare(
         session, library, crypto, ttl_ms, max_records, max_snapshot_bytes);
+    return *capture ? ACTQL_LOCAL_JOURNAL_OK : ACTQL_LOCAL_JOURNAL_UNAVAILABLE;
+}
+
+/* All five managed inputs are borrowed. Publish only the original owned
+ * capture into the caller's empty persistent slot, before any Journal I/O.
+ * The caller retains the same provider/thread/parents and their separate ACKs.
+ * This transport neither claims a read nor observes successful Host adoption. */
+int actql_local_journal_prepare_original_into(
+    actql_local_session *session, actql_control_host *host,
+    actql_local_host_resources *resources, actql_parent_read *read,
+    actql_local_crypto_library *crypto, double ttl_ms, int32_t max_records,
+    int64_t max_snapshot_bytes, actql_local_journal_capture **capture
+) {
+    if (!session || !host || !resources || !read || !crypto || !capture || *capture)
+        return ACTQL_LOCAL_JOURNAL_INVALID_SLOT;
+    if (actql_local_journal_registered != 1 ||
+        actql_local_journal_original_registered != 1)
+        return ACTQL_LOCAL_JOURNAL_UNAVAILABLE;
+    *capture = actql_local_journal_original_prepare(
+        session, host, resources, read, crypto, ttl_ms, max_records,
+        max_snapshot_bytes);
     return *capture ? ACTQL_LOCAL_JOURNAL_OK : ACTQL_LOCAL_JOURNAL_UNAVAILABLE;
 }
 

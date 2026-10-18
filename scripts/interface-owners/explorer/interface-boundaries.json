@@ -5420,7 +5420,7 @@
     {
       "module": "packages/explorer/gateway.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9528f0201fce97f3234f89e3d03304be9da274c4e0f6f9338a199ad4e5ecc888",
+      "sha256": "7d5963af10201ffc4fb82875292046ff0dc0d2e56cc35199dfd5f4c1e8a1008b",
       "exports": [
         "createExplorerGateway",
         "gatewayLimits",
@@ -5648,24 +5648,29 @@
           "async": false
         },
         {
-          "name": "startExplorerGateway/init:close/init:close/init:close",
+          "name": "startExplorerGateway/init:close/init:close/attempt/attempt",
           "parameters": [
             "results"
           ],
           "async": false
         },
         {
-          "name": "startExplorerGateway/init:close/init:close/init:close/failed/failed",
+          "name": "startExplorerGateway/init:close/init:close/attempt/attempt/attempt",
           "parameters": [
             "result"
           ],
           "async": false
         },
         {
-          "name": "startExplorerGateway/init:close/init:close/init:close/init:close",
+          "name": "startExplorerGateway/init:close/init:close/attempt/attempt/failed/failed",
           "parameters": [
             "result"
           ],
+          "async": false
+        },
+        {
+          "name": "startExplorerGateway/init:close/init:close/init:close",
+          "parameters": [],
           "async": false
         },
         {
@@ -5764,9 +5769,10 @@
             "sameToken/sameToken",
             "startExplorerGateway",
             "startExplorerGateway/init:close/init:close",
+            "startExplorerGateway/init:close/init:close/attempt/attempt",
+            "startExplorerGateway/init:close/init:close/attempt/attempt/attempt",
+            "startExplorerGateway/init:close/init:close/attempt/attempt/failed/failed",
             "startExplorerGateway/init:close/init:close/init:close",
-            "startExplorerGateway/init:close/init:close/init:close/failed/failed",
-            "startExplorerGateway/init:close/init:close/init:close/init:close",
             "startExplorerGateway/init:close/init:close/socket/socket",
             "startExplorerGateway/init:close/init:close/socket/socket/socket",
             "startExplorerGateway/server/server",
@@ -5818,6 +5824,10 @@
               {
                 "path": "packages/explorer/README.md",
                 "anchor": "close fences new requests immediately"
+              },
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "If HTTP server close refuses, retry retains that same listener"
               }
             ],
             "synchronization": [
@@ -5832,6 +5842,10 @@
               {
                 "path": "packages/explorer/README.md",
                 "anchor": "close fences new requests immediately"
+              },
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "If HTTP server close refuses, retry retains that same listener"
               }
             ],
             "failure": [
@@ -5842,6 +5856,10 @@
               {
                 "path": "packages/explorer/gateway.mjs",
                 "anchor": "import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';"
+              },
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "If HTTP server close refuses, retry retains that same listener"
               }
             ],
             "cancellation": [
@@ -5870,6 +5888,10 @@
               {
                 "path": "packages/explorer/README.md",
                 "anchor": "close fences new requests immediately"
+              },
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "If HTTP server close refuses, retry retains that same listener"
               }
             ],
             "extension": [
@@ -5890,6 +5912,18 @@
               {
                 "path": "packages/explorer/gateway-close.test.mjs",
                 "anchor": "Closing presentation must not acknowledge an outstanding SDK call"
+              },
+              {
+                "path": "packages/explorer/gateway-server-close.test.mjs",
+                "anchor": "a refused server close retries only the same original listener"
+              },
+              {
+                "path": "packages/explorer/gateway-server-close.test.mjs",
+                "anchor": "a server close with an outstanding callback remains one pending attempt"
+              },
+              {
+                "path": "packages/explorer/gateway-server-close.test.mjs",
+                "anchor": "a known socket close failure still retains the original outstanding SDK read"
               }
             ]
           }

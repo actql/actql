@@ -3983,7 +3983,7 @@
     {
       "module": "adapters/host-node/sqlite-coordinator-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "80739e1be7dd600cfa4ac6edec4c773d9ed763b0ff7f7460084ca1837e401ea6",
+      "sha256": "015e759ddb4a64a69c361a7721df95410109412eb96d377afd5004aa0637394c",
       "exports": [
         "openSqliteCoordinatorDispatchJournal"
       ],
@@ -4007,7 +4007,9 @@
           "name": "inspectCoordinatorFormat",
           "parameters": [
             "root",
-            "coordinatorAuthority"
+            "coordinatorAuthority",
+            "maxInspectionEntries",
+            "maxInspectionBytes"
           ],
           "async": false
         },
@@ -4024,10 +4026,17 @@
           "async": false
         },
         {
+          "name": "inspectCoordinatorFormat/inspectEntries/inspectEntries",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openSqliteCoordinatorDispatchJournal",
           "parameters": [
             "root",
             "coordinatorAuthority",
+            "maxInspectionEntries",
+            "maxInspectionBytes",
             "maxDispatches",
             "maxRequestBytes",
             "maxEvidenceBytes",
@@ -4519,7 +4528,8 @@
             "openSqliteCoordinatorDispatchJournal/sameState/sameState/sameState",
             "syncDirectory",
             "tableDefinitions/tableDefinitions",
-            "text/text"
+            "text/text",
+            "inspectCoordinatorFormat/inspectEntries/inspectEntries"
           ],
           "exports": [
             "openSqliteCoordinatorDispatchJournal"
@@ -4529,65 +4539,143 @@
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Responsibility |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Inputs/outputs |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "identity": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Identity |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
+                "anchor": "if (metadataTable?.type !== 'table' || typeof metadataTable.sql !== 'string' ||"
               }
             ],
             "ownership": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Ownership |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Synchronization |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
+                "anchor": "// Admit the closed plain metadata table BEFORE selecting any of its values."
               }
             ],
             "failure": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Failure |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
+                "anchor": "// A small file can otherwise substitute a VIEW or generated-column expression"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Cancellation |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "resources": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Resources |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
+                "anchor": "maxInspectionBytes = 64 * 1024 * 1024,"
+              },
+              {
+                "path": "adapters/host-node/sqlite-coordinator-journal.mjs",
+                "anchor": "SELECT type, CASE WHEN length(sql) <= 512 THEN sql ELSE NULL END AS sql FROM sqlite_schema"
               }
             ],
             "extension": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Extension |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
               }
             ],
             "verification": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Verification |"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/coordinator-inspection-bounds.test.mjs",
+                "anchor": "Coordinator pending Dir cleanup keeps the same original receiver before any database handoff"
+              },
+              {
+                "path": "adapters/host-node/coordinator-schema-before-values.test.mjs",
+                "anchor": "refuses before selecting any of its values"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/remote-dispatch-wire.mjs",
+        "../host-common/sqlite-format-inspection.mjs",
+        "../host-common/sqlite-transaction.mjs",
+        "node:fs",
+        "node:path",
+        "node:sqlite"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/site-node/https-credential-resource.mjs",
@@ -4955,7 +5043,8 @@
             "key",
             "signal",
             "maxResponseBytes",
-            "binding"
+            "binding",
+            "retainRunResponseOriginal"
           ],
           "async": false
         },
@@ -5195,6 +5284,14 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "requestRepresentation: response.requestRepresentation"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "responseRepresentation: response.responseRepresentation"
               }
             ],
             "identity": [
@@ -5225,6 +5322,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "response.rawHeaders[index].toLowerCase()"
               }
             ],
             "ownership": [
@@ -5375,6 +5476,14 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "const requestRepresentation = !retainRunResponseOriginal"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "Object.freeze({etagCount, contentEncodingCount})"
               }
             ],
             "extension": [
@@ -5467,6 +5576,22 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "### Original Run current fences"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "physical conditional request representation after caller mutation"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "actual default Accept without inventing absent conditions"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "representation on the original fenced acquisition"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/account-target-original.test.mjs",
+                "anchor": "Account target original rejects missing weak wildcard"
               }
             ]
           }
@@ -5494,6 +5619,10 @@
               {
                 "path": "adapters/site-node/https-credential-resource.mjs",
                 "anchor": "requestBodyText"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "requestRepresentation: response.requestRepresentation"
               }
             ],
             "identity": [
@@ -5530,6 +5659,10 @@
               {
                 "path": "docs/development/credential-scope-interface.md",
                 "anchor": "- Run response resources:"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.mjs",
+                "anchor": "const requestRepresentation = !retainRunResponseOriginal"
               }
             ],
             "extension": [
@@ -5546,12 +5679,24 @@
               {
                 "path": "adapters/site-node/https-credential-resource.test.mjs",
                 "anchor": "Run response original retains the exact immutable physical POST text without deriving it from length"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "physical conditional request representation after caller mutation"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "actual default Accept without inventing absent conditions"
+              },
+              {
+                "path": "adapters/site-node/https-credential-resource.test.mjs",
+                "anchor": "representation on the original fenced acquisition"
               }
             ]
           }
         }
       ],
-      "sha256": "5d036d85cbce2d9db83da1d332447921de5355a99416a3a755883f1afa5c2ecf",
+      "sha256": "3731ebc0fdc40c078106bc2c00f995c2f791eb5b9f925ddb4bf64649787538e4",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",

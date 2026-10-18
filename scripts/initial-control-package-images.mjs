@@ -225,7 +225,8 @@ export function renderInitialControlPackageOriginal({root, destination, inputs, 
       return fact(path, bytes);
     });
   const recipe = {engine: {node: process.versions.node, v8: process.versions.v8,
-    openssl: process.versions.openssl, platform: process.platform, arch: process.arch, eager: true},
+    openssl: process.versions.openssl, platform: process.platform, arch: process.arch, eager: true,
+    libraries: {...process.versions}},
   images: facts, packages: dependencies.packages, dependencies: dependencies.bindings,
   optionalSdk: dependencies.optionalSdk ?? null, optionalSdkCoverage: dependencies.optionalSdkCoverage,
   publicNode: dependencies.publicNode ?? null, publicNodeCoverage: dependencies.publicNodeCoverage,

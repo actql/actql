@@ -12,12 +12,26 @@ const outcomes = new Set(['not_started', 'stopped', 'unknown']);
 export class AcquisitionOpenError extends Error {
   constructor(cause, outcome, recovery) {
     // The cause's own code, or its message, stays the failure's identity.
-    super(typeof cause?.code === 'string' ? cause.code
-      : typeof cause?.message === 'string' && cause.message !== ''
-        ? cause.message : 'AcquisitionFailed', {cause});
+    // Classification must not replace an arbitrary rejection reason. Read
+    // each property once: getters may change their result or throw any value.
+    let label = 'AcquisitionFailed', classificationFailed = false, classificationFailure;
+    try {
+      const code = cause?.code;
+      if (typeof code === 'string') label = code;
+      else {
+        const message = cause?.message;
+        if (typeof message === 'string' && message !== '') label = message;
+      }
+    } catch (error) {
+      classificationFailed = true;
+      classificationFailure = error;
+    }
+    super(label, {cause});
     this.code = this.message;
     this.outcome = outcome;
     this.recovery = recovery;
+    if (classificationFailed) Object.defineProperty(this, 'classificationFailure',
+      {value: classificationFailure});
   }
 }
 
@@ -30,8 +44,17 @@ export function acquisitionFailure(cause, outcome, recovery) {
     throw new TypeError('InvalidAcquisitionOutcome');
   }
   // A failure already stated by an inner step keeps its statement.
-  if (cause instanceof AcquisitionOpenError) return cause;
-  return new AcquisitionOpenError(cause, outcome, recovery);
+  let original = false, identityInspectionFailed = false, identityInspectionFailure;
+  try { original = cause instanceof AcquisitionOpenError; }
+  catch (error) {
+    identityInspectionFailed = true;
+    identityInspectionFailure = error;
+  }
+  if (original) return cause;
+  const error = new AcquisitionOpenError(cause, outcome, recovery);
+  if (identityInspectionFailed) Object.defineProperty(error, 'identityInspectionFailure',
+    {value: identityInspectionFailure});
+  return error;
 }
 
 export function acquisitionOutcome(error) {
