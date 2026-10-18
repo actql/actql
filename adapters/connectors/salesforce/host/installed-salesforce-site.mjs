@@ -25,7 +25,8 @@ import {checkpointApprovalFacts} from
   '../../../host-common/checkpoint-approval.mjs';
 import {assertAuthorizationAccountCurrent, authorizationDispatchFacts} from
   '../../../host-common/authorization-gate.mjs';
-import {describeSalesforceResources, recoverNamedSalesforceObservation} from
+import {describeSalesforceResources, recoverNamedSalesforceObservation,
+  withSalesforceNamedDescribeOriginals} from
   '../site/salesforce-named-describe.mjs';
 import {attestSalesforceEffectCapabilityAuthority} from
   '../site/salesforce-effect-capability.mjs';
@@ -125,6 +126,22 @@ function validProfile(profile) {
 // The decisions each installed authorization returned. Only these can
 // authorize a credential grant; a copied or constructed object cannot.
 const installedDecisions = new WeakMap();
+// Only this existing installer can register a live Site receiver. A copied Site
+// or a restored declaration cannot acquire a live physical observation.
+const publicationSites = new WeakMap();
+
+export async function observeInstalledSalesforcePublicationCurrent(site, declared) {
+  const receiver = publicationSites.get(site);
+  if (receiver === undefined) fail('SalesforcePublicationOriginalUnavailable');
+  await receiver.observe(declared);
+}
+
+export function withInstalledSalesforceDeclarationOriginals(site, declared, consume) {
+  const receiver = publicationSites.get(site);
+  if (receiver === undefined) fail('SalesforcePublicationOriginalUnavailable');
+  return receiver.withOriginals(declared, consume);
+}
+
 
 // Install the Host's account gate for its Salesforce Sites from the exact
 // configuration text the Host was given. An unreadable or rejected
@@ -210,6 +227,9 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     closedCode: 'SalesforceSiteClosed',
     grantCode: 'InvalidSalesforceCredentialGrantRequest'});
   const {credential, ensureOpen, sign} = custody;
+  const liveDeclarations = new WeakMap();
+  const liveDescribes = new WeakMap();
+  const profileWire = JSON.stringify(profile);
 
   // Issue one credential grant for a record operation on `resource`. The
   // decision must be the installed gate's dispatch for the same connection,
@@ -409,7 +429,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   async function describeNamed({resources, occurrence, runInvocationCid:
     runCid, dispatchRequestCid: dispatchCid, retainEvidence = false,
     maxRetainedBytes = 0, limits = DEFAULT_SALESFORCE_CATALOG_LIMITS,
-    approval, signal}) {
+    approval, signal, retainPublicationOriginals = false}) {
     ensureOpen();
     if (!Array.isArray(resources) || resources.length === 0 ||
         !resources.every(text) || !text(occurrence) ||
@@ -434,13 +454,13 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       siteGeneration: profile.siteGeneration, syncOccurrence: occurrence});
     const dispatchRequestCid = dispatchCid ?? cid({version:
       'actql-salesforce-catalog-dispatch/0.1', runInvocationCid});
-    return await describeSalesforceResources({moon: salesforceMoon,
+    const result = await describeSalesforceResources({moon: salesforceMoon,
       apiVersion: profile.apiVersion,
       connectionRevision: profile.connectionRevision, orgId: profile.orgId,
       syncOccurrence: occurrence,
       maxObservationBytes: limits.maxObservationBytes,
       resources: [...resources], credential,
-      describeLimits: limits.describe, retainEvidence, maxRetainedBytes,
+      describeLimits: limits.describe, retainEvidence, retainPublicationOriginals, maxRetainedBytes,
       authorizationForDescribe: async name => {
         if (!decided.has(name)) fail('SalesforceCatalogDescribeNotAuthorized');
         const original = decided.get(name);
@@ -451,6 +471,16 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
           runInvocationCid, taskAttempt: 1, dispatchRequestCid, maxUses: 1}),
         useId: `${occurrence}-describe-${name}`};
       }, signal});
+    if (retainPublicationOriginals) liveDescribes.set(result, () => {
+      ensureOpen();
+      signal?.throwIfAborted();
+      for (const decision of decided.values()) {
+        if (decision !== undefined) assertAuthorizationAccountCurrent(decision);
+      }
+      covered?.assertCurrent?.();
+      ensureOpen();
+    });
+    return result;
   }
 
   let syncSequence = 0;
@@ -559,11 +589,13 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   // result, with the retained describe evidence, is the explicit publication
   // input to Check; it is not current authority and issues no grant.
   async function declareCatalog({connectorId, resources, signal,
+    retainPublicationOriginals = false,
     maxEvidenceBytes = DEFAULT_SALESFORCE_CATALOG_LIMITS.maxObservationBytes,
     limits = {maxBytes: 4_000_000, maxNodes: 400_000, maxDepth: 64}} = {}) {
     ensureOpen();
     if (!Array.isArray(resources) || resources.length === 0 ||
         !resources.every(text) || !text(connectorId) ||
+        typeof retainPublicationOriginals !== 'boolean' ||
         !declarationLimits(limits) ||
         !Number.isSafeInteger(maxEvidenceBytes) || maxEvidenceBytes < 1) {
       fail('InvalidSalesforceDeclaration');
@@ -571,17 +603,27 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     const selected = [...new Set(resources)];
     const catalog = await describeNamed({resources: selected,
       occurrence: `declare-${now()}-${declareSequence++}`,
-      retainEvidence: true, maxRetainedBytes: maxEvidenceBytes, signal});
+      retainEvidence: true, retainPublicationOriginals,
+      maxRetainedBytes: maxEvidenceBytes, signal});
     if (catalog.status === 'interrupted') {
       fail(catalog.interruptionCode === 'SalesforceCatalogCancelled'
         ? 'SalesforceCatalogCancelled' : 'SalesforceCatalogRefreshInterrupted');
     }
-    return Object.freeze({...generate(catalog.observation, connectorId,
+    const declared = Object.freeze({...generate(catalog.observation, connectorId,
       describedTargets(selected, catalog.evidence), limits), observationCid: catalog.observationCid,
     evidence: catalog.evidence, observed: Object.freeze({
       observation: catalog.observation,
       observationCid: catalog.observationCid,
       observationJson: catalog.observationJson})});
+    if (retainPublicationOriginals) {
+      const assertCurrent = liveDescribes.get(catalog);
+      assertCurrent();
+      const declarationWire = checked(salesforceMoon.salesforceStaticDeclarationJson(
+        declared.declaration, limits.maxBytes, limits.maxNodes, limits.maxDepth));
+      liveDeclarations.set(declared, {catalog, assertCurrent, declarationWire,
+        observed: false, pending: false, failure: undefined});
+    }
+    return declared;
   }
 
   // Restore a declaration this Site published from its retained describe
@@ -792,7 +834,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     connectorRegistration: 'salesforce', connectorRevision: 'salesforce/0.1',
     principal: principalId, context,
   });
-  return Object.freeze({...siteFacts, authorization, credential,
+  const site = Object.freeze({...siteFacts, authorization, credential,
     issueGrant, attestEffectCapability, refreshCatalog, declareCatalog,
     restoreDeclaration, describeForAcquisition, describeEffectCatalog,
     admitCheckpointReadApproval,
@@ -806,6 +848,42 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     // Whether this Site was closed but its journal is not yet released.
     cleanupPending: custody.cleanupPending,
   });
+  const originalDeclaration = declared => {
+    const original = liveDeclarations.get(declared);
+    if (original === undefined) fail('SalesforcePublicationOriginalUnavailable');
+    if (original.failure !== undefined) throw original.failure;
+    original.assertCurrent();
+    return original;
+  };
+  publicationSites.set(site, Object.freeze({
+    async observe(declared) {
+      const original = originalDeclaration(declared);
+      if (original.pending) fail('SalesforcePublicationObservationPending');
+      original.pending = true;
+      original.observed = false;
+      try {
+        const current = await readSourceProfileJson(path, {maxBytes: 8 * 1024 * 1024});
+        original.assertCurrent();
+        if (JSON.stringify(current) !== profileWire) fail('SalesforcePublicationSiteChanged');
+        original.observed = true;
+      } catch (cause) { original.failure = cause; throw cause; }
+      finally { original.pending = false; }
+    },
+    withOriginals(declared, consume) {
+      const original = originalDeclaration(declared);
+      if (original.pending || !original.observed) fail('SalesforcePublicationCurrentUnobserved');
+      if (typeof consume !== 'function') fail('InvalidSalesforcePublicationConsumer');
+      return withSalesforceNamedDescribeOriginals(original.catalog, credential,
+        facts => {
+          original.assertCurrent();
+          return consume(Object.freeze({site, declared,
+            declaration: declared.declaration, declarationWire: original.declarationWire,
+            control: credential.control, journal: credential.journal,
+            ...facts}));
+        });
+    },
+  }));
+  return site;
 }
 
 // Compatibility entries delegate the same Site and primary failure to the

@@ -630,7 +630,7 @@ export async function openSalesforceEffectSiteFixture(t, {
     observe: recoveryGrant(observe),
     write: recoveryGrant(write),
   });
-  return {seen, journal, orgId, origin, catalog, observe, write, credential,
+  return {seen, journal, orgId, origin, site: installed, profilePath, catalog, observe, write, credential,
     refreshCatalog, recoveryConnection, declared,
     declaration: declared.declaration,
     // The execution Mapping of one write under this Site's declaration.

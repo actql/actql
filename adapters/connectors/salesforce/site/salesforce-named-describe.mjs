@@ -1,11 +1,15 @@
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {callHttpsCredentialResource} from
+import {callHttpsCredentialResource, withHttpsCredentialRunResponseOriginal} from
   '../../../site-node/https-credential-resource.mjs';
 import {matchesSalesforceCredentialOrg} from
   './salesforce-credential-binding.mjs';
 import {invocationBindingsMatch, invokeScopedCredentialOperation,
   ownInvocationAuthorization, ownInvocationLimits} from
   '../../../host-common/owned-invocation-context.mjs';
+
+// Live Describe correspondence is held only for an explicitly retained result.
+// Recovered Catalog evidence never registers in this map.
+const describeOriginals = new WeakMap();
 
 const versionPattern = /^v[1-9][0-9]*\.[0-9]+$/;
 const namePattern = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -28,6 +32,7 @@ export async function describeSalesforceResources({
   moon, apiVersion, connectionRevision, orgId, syncOccurrence,
   maxObservationBytes, resources, authorizationForDescribe, credential,
   describeLimits: requestedLimits, retainEvidence = false,
+  retainPublicationOriginals = false,
   maxRetainedBytes = 0, callResource = callHttpsCredentialResource, signal,
 }) {
   if (!moon || !versionPattern.test(apiVersion) ||
@@ -41,6 +46,8 @@ export async function describeSalesforceResources({
       new Set(resources).size !== resources.length ||
       typeof authorizationForDescribe !== 'function' ||
       typeof retainEvidence !== 'boolean' ||
+      typeof retainPublicationOriginals !== 'boolean' ||
+      (retainPublicationOriginals && !retainEvidence) ||
       (retainEvidence && (!count(maxRetainedBytes) ||
         maxRetainedBytes === 0)) ||
       typeof callResource !== 'function') {
@@ -55,6 +62,7 @@ export async function describeSalesforceResources({
   const sync = checked(moon.salesforceCatalogBeginNamed([...resources]));
   const prefix = `/services/data/${apiVersion}/sobjects/`;
   const bodies = [];
+  const originalResponses = [];
   const useCids = [];
   const digests = [];
   let scope;
@@ -80,11 +88,13 @@ export async function describeSalesforceResources({
         ? maxRetainedBytes - retainedBytes : limits.maxBytes;
       if (remaining < 1) fail('SalesforceCatalogRetainedLimit');
       const response = await invokeScopedCredentialOperation({
-        authorization, credential, callResource,
+        authorization, credential: retainPublicationOriginals
+          ? {...credential, retainRunResponseOriginal: true} : credential, callResource,
         operation: describeOperation, method: 'GET',
         path: `${prefix}${name}/describe`,
         maxResponseBytes: Math.min(limits.maxBytes, remaining), signal,
       });
+      if (retainPublicationOriginals) originalResponses.push(Object.freeze({name, response, path: `${prefix}${name}/describe`}));
       const bytes = Buffer.from(response.body);
       retainedBytes += retainEvidence ? bytes.byteLength : 0;
       bodies.push(retainEvidence ? bytes.toString('base64') : null);
@@ -128,7 +138,7 @@ export async function describeSalesforceResources({
   const observationJson = moon.salesforceCatalogObservationJson(observation);
   const outcomes = resources.map(name =>
     moon.salesforceCatalogResourceState(sync, name));
-  return Object.freeze({
+  const result = Object.freeze({
     observation, observationJson,
     observationCid: moon.salesforceCatalogObservationCid(observation),
     status: interruptionCode === undefined ? 'observed' : 'interrupted',
@@ -146,6 +156,42 @@ export async function describeSalesforceResources({
       observationJson,
     }) : undefined,
   });
+  if (retainPublicationOriginals && interruptionCode === undefined) {
+    describeOriginals.set(result, {credential, responses: Object.freeze(originalResponses)});
+  }
+  return result;
+}
+
+// The same physical Credential Owner confirms the original grant/use and raw
+// response. This synchronous projection issues neither authority nor custody.
+export function withSalesforceNamedDescribeOriginals(result, credential, consume) {
+  const original = describeOriginals.get(result);
+  if (original === undefined || original.credential !== credential ||
+      typeof consume !== 'function' ||
+      original.responses.length !== result.evidence.names.length) {
+    fail('SalesforceDescribeOriginalUnavailable');
+  }
+  const operations = original.responses.map(({name, response, path}, index) =>
+    withHttpsCredentialRunResponseOriginal(response, credential.control,
+      credential.journal, facts => {
+        if (name !== result.evidence.names[index] || facts.method !== 'GET' ||
+            facts.scope.operation !== describeOperation || facts.path !== path ||
+            facts.requestBodyBytes !== 0 ||
+            facts.response !== response || response.useCid !== result.evidence.describeUseCids[index] ||
+            facts.responseSha256 !== result.evidence.describeResponseSha256[index] ||
+            response.body.toString('base64') !== result.evidence.describeBodyBase64[index]) {
+          fail('SalesforceDescribeOriginalChanged');
+        }
+        return Object.freeze({name, ...facts});
+      }));
+  const value = consume(Object.freeze({observation: result.observation,
+    observationJson: result.observationJson, observationCid: result.observationCid,
+    evidence: result.evidence, operations: Object.freeze(operations)}));
+  if (value !== null && value !== undefined && typeof value.then === 'function') {
+    void Promise.resolve(value).catch(() => {});
+    fail('InvalidSalesforcePublicationConsumer');
+  }
+  return value;
 }
 
 /// Reproject retained describe-only evidence. It must reproduce the exact
