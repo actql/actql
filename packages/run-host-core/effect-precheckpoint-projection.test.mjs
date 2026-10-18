@@ -100,3 +100,32 @@ test('actual original Coordinator intent is bound to its same saved dispatch cla
   assert.throws(() => f.project([durable], false, f.claims));
   assert.throws(() => f.project([durable], false, claims.map((row, i) => i ? row : {...row, dispatchCid: fixed('e')})));
 });
+
+for (const field of ['savedClaims', 'durableWires']) {
+  test(`Array-backed Proxy ${field} length is captured once before bounded element reads`, () => {
+    const f = original(), originalValues = field === 'savedClaims' ? f.claims : [];
+    let lengthReads = 0, elementReads = 0;
+    const values = new Proxy(originalValues, {get(target, key, receiver) {
+      if (key === 'length') return ++lengthReads === 1 ? target.length : target.length + 100;
+      if (typeof key === 'string' && /^(?:0|[1-9][0-9]*)$/u.test(key)) {
+        const index = Number(key);
+        assert(index < target.length, 'ReadBeyondCapturedLength'); elementReads++;
+      }
+      return Reflect.get(target, key, receiver);
+    }});
+    const projected = field === 'savedClaims' ? f.project([], false, values) : f.project(values);
+    assert.equal(JSON.parse(projected.stateWire).status, 'preparing');
+    assert.equal(lengthReads, 1); assert.equal(elementReads, originalValues.length);
+    for (const length of [-1, 0.5, NaN, Infinity, '0', undefined]) {
+      let indexReads = 0;
+      const invalid = new Proxy([], {get(target, key, receiver) {
+        if (key === 'length') return length;
+        if (typeof key === 'string' && /^(?:0|[1-9][0-9]*)$/u.test(key)) indexReads++;
+        return Reflect.get(target, key, receiver);
+      }});
+      assert.throws(() => field === 'savedClaims' ? f.project([], false, invalid) : f.project(invalid),
+        {name: 'TypeError'});
+      assert.equal(indexReads, 0);
+    }
+  });
+}
