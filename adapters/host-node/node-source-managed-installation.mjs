@@ -19,7 +19,7 @@ const get = WeakMap.prototype.get, set = WeakMap.prototype.set;
 const installations = new NativeWeakMap();
 const names = freeze(['prepareSourceManagedInstallation', 'assertSourceManagedInstallationCurrent',
   'beforeSourceSnapshot', 'bindSourceSnapshot', 'bindSourceRequest',
-  'finishSourceProducer', 'closeSourceManagedInstallation']);
+  'finishSourceProducer', 'closeSourceManagedInstallation', 'sourceIntentCid']);
 const callbacks = names.map(name => {
   const d = descriptor(originalOwner, name);
   return d !== undefined && hasOwn(d, 'value') && typeof d.value === 'function' ? d.value : undefined;
@@ -112,6 +112,21 @@ export async function prepareSourceManagedInstallation(originals) {
     },
     bindSourceSnapshot(receipt, body) {syncVoid(state, 3, [receipt, body]);},
     bindSourceRequest(receipt, body, request) {syncVoid(state, 4, [receipt, body, request]);},
+    intentCid(receipt, originalFrozenBody) {
+      current(state);
+      // The fixed Root binds this exact receipt/body before using the same
+      // Common submitted-intent Owner. This result is DATA, not an issuer or
+      // permission. A selected Source never falls back to a native hash task
+      // whose separate allocator/work lifetime has not been supplied.
+      const result = invoke(7, [state.installation, state.originals, receipt, originalFrozenBody]);
+      if (typeof result !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(result)) {
+        state.failure = Object.assign(new NativeError('SourceManagedSynchronousProtocolChanged', {cause: result}),
+          {code: 'SourceManagedSynchronousProtocolChanged'});
+        throw state.failure;
+      }
+      current(state);
+      return result;
+    },
     finishSourceProducer(receipt, terminal) {
       // Producer retirement may follow lost currentness. Only the original
       // Owner can cut this producer's aliases; this is no child/physical ACK.
