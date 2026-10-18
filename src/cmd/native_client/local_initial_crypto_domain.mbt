@@ -22,6 +22,7 @@ priv enum InitialCryptoIssue {
   Domain(@initial_bootstrap.NativeBackedExecutionIssue)
   Component(@initial_arena.InstalledArenaCryptoIssue)
   Signature(@local_crypto.NativeSignatureIssue)
+  Filesystem(@local_filesystem.NativeFilesystemIssue)
   Unavailable
 }
 
@@ -39,6 +40,7 @@ priv struct InitialCryptoOriginal {
   mut component : @initial_arena.InstalledArenaCryptoComponent?
   mut outer_library : @local_crypto.Library?
   mut inner_library : @local_crypto.Library?
+  mut read_failure : @files.NativeBoundedTextFailure?
   mut scope_open : Bool
   mut primary : InitialCryptoIssue?
   mut closing : Bool
@@ -88,6 +90,7 @@ fn prepare_initial_crypto_original(
     component: None,
     outer_library: None,
     inner_library: None,
+    read_failure: None,
     scope_open: false,
     primary: None,
     closing: false,
@@ -355,13 +358,21 @@ fn InitialCryptoOriginal::close_checked(
     }
   }
   if self.host is Some(host) && self.domain is Some(domain) {
-    if self.inner_library is Some(_) || self.outer_library is Some(_) {
+    if self.read_failure is Some(_) ||
+      self.inner_library is Some(_) ||
+      self.outer_library is Some(_) {
       match
         host.enter_domain_read_cleanup(domain).map_err(issue => Domain(issue)) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
       self.scope_open = true
+      if self.read_failure is Some(failure) {
+        match failure.retry_cleanup() {
+          Ok(_) => self.read_failure = None
+          Err(issue) => return Err(Filesystem(issue))
+        }
+      }
       if self.inner_library is Some(library) {
         match library.close_checked() {
           Ok(_) => self.inner_library = None
@@ -514,5 +525,35 @@ fn local_finish_initial_crypto() -> Bool {
           true
         }
       }
+  }
+}
+
+///|
+// The existing Reader algorithm owns byte/generation/UTF8 and physical close.
+// Only this selected initial scope chooses its existing current-context port.
+fn local_initial_crypto_text_file(
+  original : InitialCryptoOriginal,
+  root : String,
+  name : String,
+  maximum : Int64,
+) -> String raise ClientStop {
+  if !original.scope_open || original.require_current() is Err(_) {
+    stop("InitialCryptoReadUnavailable")
+  }
+  match
+    @files.read_bounded_text_file_in_current_read_context_with_custody(
+      root,
+      name,
+      maximum,
+      original.profile.diagnostic_ceiling,
+    ) {
+    Ok(text) => text
+    Err(failure) => {
+      // Retain the exact failed Reader/Root, not just its DATA issue. The first
+      // error terminates this phase, so no second read replaces the receiver.
+      original.read_failure = Some(failure)
+      original.retain_primary(Unavailable)
+      stop("failed to read bounded file " + name)
+    }
   }
 }

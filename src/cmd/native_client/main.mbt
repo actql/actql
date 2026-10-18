@@ -73,6 +73,9 @@ fn text_file(
   name : String,
   maximum : Int64,
 ) -> String raise ClientStop {
+  if initial_crypto_invocation.val is Some(original) && original.scope_open {
+    return local_initial_crypto_text_file(original, root, name, maximum)
+  }
   match @files.read_bounded_text_file(root, name, maximum) {
     Ok(value) => value
     Err(_) => stop("failed to read bounded file " + name)
