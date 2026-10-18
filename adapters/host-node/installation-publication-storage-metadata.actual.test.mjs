@@ -143,11 +143,14 @@ test('one original asynchronous observation stays pending without a second read 
   // read/close actions still come from f.store, not from a synthetic binding.
   const view = createInstallationPublicationStorageMetadata(moon, delayed, bounds, () => {});
   const pending = view.observe();
-  assert.equal(entered, 1);
-  assert.equal(view.forget(), false);
-  await assert.rejects(view.observe(), {code: 'InstallationPublicationStorageObservationPending'});
-  assert.equal(entered, 1);
-  release(); await pending;
+  try {
+    assert.equal(entered, 1);
+    assert.equal(view.forget(), false);
+    await assert.rejects(view.observe(), {code: 'InstallationPublicationStorageObservationPending'});
+    assert.equal(entered, 1);
+  } finally {
+    release(); await pending;
+  }
   assert.equal(view.cid(), cid(view.wire()));
   assert.equal(await f.store.close(), true);
   assert.equal(view.forget(), true); assert.equal(f.metadata.forget(), true);
