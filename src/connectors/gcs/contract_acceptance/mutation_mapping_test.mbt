@@ -143,9 +143,13 @@ test "GCS mutation Mapping reaches actual Common Catalog roles and Mapping admis
   for kind in [@gcs.PatchMetadata, @gcs.DeleteObject] {
     let original = mutation_common_environment(kind)
     let refs = references(catalogs(original))
-    @environment.check_source_data_policies(refs, {
+    let policies = @environment.check_source_data_policies(refs, {
       max_work: 100000,
       max_policies: 100,
+    }).unwrap()
+    @environment.check_protocol_value_contracts(policies, {
+      max_envelopes: 100,
+      contracts: value_caps(),
     }).unwrap()
     |> ignore
     let mappings = @environment.check_mapping_contract_shapes(
@@ -153,6 +157,39 @@ test "GCS mutation Mapping reaches actual Common Catalog roles and Mapping admis
       caps(),
       100000,
     ).unwrap()
-    @environment.mapping_shape_at(mappings, 0).unwrap() |> ignore
+    let mapping = @environment.mapping_shape_at(mappings, 0).unwrap()
+    assert_eq(
+      @environment.mapping_shape_primary_identity(mapping),
+      Some("name"),
+    )
+    assert_eq(
+      @environment.mapping_shape_target(mapping),
+      "connector://exports/objects",
+    )
+    let (kind, other, fields) = match kind {
+      @gcs.PatchMetadata => ("update", "delete", ["content_type", "metadata"])
+      @gcs.DeleteObject => ("delete", "update", [])
+    }
+    let permission = @environment.select_mapping_permissions(
+      mapping, kind, "id", fields, 100000,
+    ).unwrap()
+    assert_eq(
+      @environment.mapping_permission_rule(permission),
+      (kind, "id", fields),
+    )
+    assert_true(
+      @environment.select_mapping_permissions(
+        mapping, other, "id", fields, 100000,
+      )
+      is Err(_),
+    )
+    assert_true(
+      @environment.select_mapping_permissions(
+        mapping, kind, "none", fields, 100000,
+      )
+      is Err(_),
+    )
+    @environment.check_mapping_conversions(mapping, 100000).unwrap() |> ignore
+    @environment.check_mapping_row_fields(mapping, 100000).unwrap() |> ignore
   }
 }

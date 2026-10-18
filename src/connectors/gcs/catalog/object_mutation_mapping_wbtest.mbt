@@ -10,8 +10,11 @@ fn mutation_mapping_fixture(
   let limits = upload_limits()
   let cid = "sha256:" + "1".repeat(64)
   let view : Json = {
-    "source_ref": "connector://exports/objects",
     "contract_cid": cid.to_json(),
+    "connector_id": "exports",
+    "connector_version": "gcs/0.1",
+    "resource_kind": "file",
+    "view_id": "records",
   }
   let catalog = upload_declaration_seal(
     {
@@ -35,7 +38,10 @@ fn mutation_mapping_fixture(
     .to_json()
   declared["catalog_cid"] = catalog_cid.to_json()
   declared["views"] = Json::array([
-    { "source_ref": "connector://exports/objects", "view_cid": cid.to_json() },
+    {
+      "source_ref": "connector://exports/objects#records",
+      "view_cid": cid.to_json(),
+    },
   ])
   let binding = prepare_object_mutation_binding(
     kind,
@@ -110,7 +116,9 @@ test "GCS DELETE Mapping derives its own purpose and never accepts UPDATE permis
       "effect_kind": "delete",
       "selector_class": "id",
       "write_fields": [],
-    "permissions": Json::array(binding.permissions.map(value => value.to_json())),
+      "permissions": Json::array(
+        binding.permissions.map(value => value.to_json()),
+      ),
     },
   ])
   let (foreign, wire) = mutation_mapping_fixture(DeleteObject, permissions=[

@@ -78,7 +78,7 @@ fn mutation_mapping_catalog(
   let mut selected = None
   for view in views {
     guard view is Object(fields) else { return Err(InvalidDeclaration) }
-    if fields.get("source_ref") == Some(target.to_json()) {
+    if fields.get("source_ref") == Some((target + "#records").to_json()) {
       guard selected is None && fields.get("view_cid") is Some(String(cid)) else {
         return Err(InvalidDeclaration)
       }
@@ -89,8 +89,11 @@ fn mutation_mapping_catalog(
   let mut matches = 0
   for view in source_views {
     guard view is Object(fields) else { return Err(InvalidDeclaration) }
-    if fields.get("source_ref") == Some(target.to_json()) &&
-      fields.get("contract_cid") == Some(cid.to_json()) {
+    if fields.get("contract_cid") == Some(cid.to_json()) &&
+      fields.get("connector_id") == Some(connector_id.to_json()) &&
+      fields.get("connector_version") == Some("gcs/0.1".to_json()) &&
+      fields.get("resource_kind") == Some("file".to_json()) &&
+      fields.get("view_id") == Some("records".to_json()) {
       matches += 1
     }
   }
