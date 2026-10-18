@@ -13,5 +13,5 @@
     ".": {"types": "./index.d.ts", "default": "./index.mjs"},
     "./selected-infer-startup": "./selected-infer-startup.cjs"
   },
-  "files": ["index.mjs", "index.d.ts", "selected-infer-startup.cjs", "README.md"]
+  "files": ["index.mjs", "index.d.ts", "selected-infer-startup.cjs", "initial-control-public-dispatch.cjs", "README.md"]
 }
