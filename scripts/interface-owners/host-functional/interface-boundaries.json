@@ -23693,7 +23693,7 @@
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e29976bec50706ce70e6ac9bab646b1375d343114a5fb1f48083638eecd91b51",
+      "sha256": "e37bf02ffea6fc161f4b267456840bd4221f9641fc461158e28dbd0f268c05ec",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -23722,12 +23722,24 @@
           "async": false
         },
         {
+          "name": "createEmbeddedHostRegistry/init:assertPreparation/init:assertPreparation",
+          "parameters": [
+            "host",
+            "installation",
+            "generation"
+          ],
+          "async": false
+        },
+        {
           "name": "createEmbeddedHostRegistry/init:connect/init:connect",
           "parameters": [
             "root",
             "identity",
             "open",
-            "options"
+            "options",
+            "preparedHost",
+            "releaseUnadopted",
+            "initialControl"
           ],
           "async": true
         },
@@ -23751,14 +23763,24 @@
           "parameters": [
             "host"
           ],
+          "async": true
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/init:connect/error/error",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:connect/init:connect/init:connect/init:connect",
+          "parameters": [],
           "async": false
         },
         {
           "name": "createEmbeddedHostRegistry/init:connect/init:connect/init:connect#2",
           "parameters": [
-            "error"
+            "cause"
           ],
-          "async": false
+          "async": true
         },
         {
           "name": "createEmbeddedHostRegistry/init:connect/init:connect/init:retry/init:retry",
@@ -23821,6 +23843,38 @@
         {
           "name": "createEmbeddedHostRegistry/init:connect/init:connect/status/status",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:registerPreparation/init:registerPreparation",
+          "parameters": [
+            "host",
+            "installation",
+            "generation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/init:retirePreparation/init:retirePreparation",
+          "parameters": [
+            "host",
+            "installation",
+            "generation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/preparationChanged/preparationChanged",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createEmbeddedHostRegistry/preparationFor",
+          "parameters": [
+            "host",
+            "installation",
+            "generation"
+          ],
           "async": false
         },
         {
@@ -23954,6 +24008,14 @@
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
                 "anchor": "function originalInitialControlClose(original) {"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Host registry retains a preparation candidate under its"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function assertInitialControlHostPreparation(originals) {"
               }
             ],
             "inputsOutputs": [
@@ -23984,6 +24046,14 @@
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
                 "anchor": "const initialControl = host.initialControl;"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "control = await beginInitialControlInstallation(originals);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
               }
             ],
             "identity": [
@@ -24014,6 +24084,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('original close receiver and callback survive pending retries without replacement'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "originals?.moduleLifetime !== import.meta"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "function preparationFor(host, installation, generation) {"
               }
             ],
             "ownership": [
@@ -24044,6 +24122,14 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "and original retry carrier. A successful sibling close cannot release the"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Project views share one original retirement record."
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               }
             ],
             "synchronization": [
@@ -24074,6 +24160,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('failed child close retains initial control until the same child ACK'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "await releaseUnadopted();"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "lifetime after the await, before exposing another lease."
               }
             ],
             "failure": [
@@ -24104,6 +24198,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('initialization does not retire control while an independent Store close remains Unknown'"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const pending = new Set(['initialization']);"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('throwing initialization cleanup getters retain the already acquired control holding'"
               }
             ],
             "cancellation": [
@@ -24134,6 +24236,14 @@
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
                 "anchor": "await attempt('stop', stop);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('final close waits in-flight ingress and dispatch without cancelling a Run'"
               }
             ],
             "resources": [
@@ -24160,6 +24270,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "// They do not issue a startup admission, physical lease or business capacity."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "escaped canonical DATA or acknowledge its physical storage, GC or capacity."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// This private installation bag holds backreferences, not canonical DATA."
               }
             ],
             "extension": [
@@ -24190,6 +24308,14 @@
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
                 "anchor": "...(initialControl === undefined ? [] : ['initialControl']),"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "membership is not capacity, authority or coverage of earlier imports."
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "// do not acquire an operational admission by omitting these private inputs."
               }
             ],
             "verification": [
@@ -24224,6 +24350,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('existing installed Host shutdown retains and closes the same initial control'"
+              },
+              {
+                "path": "adapters/host-node/embedded-host-preparation.test.mjs",
+                "anchor": "test('foreign returned Host stays in acquired shutdown custody on pair refusal'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.test.mjs",
+                "anchor": "test('copied and foreign-runtime retirement cannot retire the original project'"
               }
             ]
           }
@@ -24335,6 +24469,120 @@
               {
                 "path": "adapters/host-node/sdk-checkpoint-actions.integration.test.mjs",
                 "anchor": "test(`public ${decision}(id) binds the original Checkpoint"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createEmbeddedHostRegistry/init:assertPreparation/init:assertPreparation",
+            "createEmbeddedHostRegistry/init:connect/init:connect/init:connect/error/error",
+            "createEmbeddedHostRegistry/init:connect/init:connect/init:connect/init:connect",
+            "createEmbeddedHostRegistry/init:registerPreparation/init:registerPreparation",
+            "createEmbeddedHostRegistry/init:retirePreparation/init:retirePreparation",
+            "createEmbeddedHostRegistry/preparationChanged/preparationChanged",
+            "createEmbeddedHostRegistry/preparationFor"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Host registry retains a preparation candidate under its"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function assertInitialControlHostPreparation(originals) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "control = await beginInitialControlInstallation(originals);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "originals?.moduleLifetime !== import.meta"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "function preparationFor(host, installation, generation) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Project views share one original retirement record."
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "await releaseUnadopted();"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "lifetime after the await, before exposing another lease."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const pending = new Set(['initialization']);"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('throwing initialization cleanup getters retain the already acquired control holding'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('final close waits in-flight ingress and dispatch without cancelling a Run'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "escaped canonical DATA or acknowledge its physical storage, GC or capacity."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// This private installation bag holds backreferences, not canonical DATA."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "membership is not capacity, authority or coverage of earlier imports."
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "// do not acquire an operational admission by omitting these private inputs."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/embedded-host-preparation.test.mjs",
+                "anchor": "test('foreign returned Host stays in acquired shutdown custody on pair refusal'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.test.mjs",
+                "anchor": "test('copied and foreign-runtime retirement cannot retire the original project'"
               }
             ]
           }
@@ -27019,11 +27267,13 @@
     {
       "module": "adapters/host-node/infer-trusted-node-preload.cjs",
       "responsibilityFacet": "primary",
-      "sha256": "cc3981e9d039c0d454839cf9fe36902dc1f7529e89ab5bb42d45f7e4cd625e07",
+      "sha256": "e20bd98024a3b96e9d4092c734540c057fe13af2bf37bdc030d2c788998e21c0",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
+        "commonjs:assertInitialControlInstallationCurrent",
         "commonjs:associateHost",
+        "commonjs:beginInitialControlInstallation",
         "commonjs:bindSdkStaticModules",
         "commonjs:borrowScope",
         "commonjs:check",
@@ -27066,9 +27316,24 @@
           "async": false
         },
         {
+          "name": "init:assertInitialControlInstallationCurrent/init:assertInitialControlInstallationCurrent",
+          "parameters": [
+            "scope",
+            "sameOriginals"
+          ],
+          "async": false
+        },
+        {
           "name": "init:associateHost/init:associateHost",
           "parameters": [
             "view",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "init:beginInitialControlInstallation/init:beginInitialControlInstallation",
+          "parameters": [
             "originals"
           ],
           "async": false
@@ -27190,7 +27455,9 @@
             "checkSdkModules",
             "current",
             "currentStartup",
+            "init:assertInitialControlInstallationCurrent/init:assertInitialControlInstallationCurrent",
             "init:associateHost/init:associateHost",
+            "init:beginInitialControlInstallation/init:beginInitialControlInstallation",
             "init:bindSdkStaticModules/init:bindSdkStaticModules",
             "init:borrowScope/init:borrowScope",
             "init:check/init:check",
@@ -27207,7 +27474,9 @@
             "unavailable/unavailable"
           ],
           "exports": [
+            "commonjs:assertInitialControlInstallationCurrent",
             "commonjs:associateHost",
+            "commonjs:beginInitialControlInstallation",
             "commonjs:bindSdkStaticModules",
             "commonjs:borrowScope",
             "commonjs:check",
@@ -27228,6 +27497,10 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Internal state machine, not an operational issuer."
               }
             ],
             "inputsOutputs": [
@@ -27242,6 +27515,22 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "## Private Model raw response custody"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "function createInitialControlInstallationOwner(operational)"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "anchor": "export function assertInitialControlInstallationCurrent(scope, sameOriginals)"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "function begin(originals)"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "function issue(held)"
               }
             ],
             "identity": [
@@ -27256,6 +27545,18 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "const scopes = new NativeWeakMap();"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "const names = freeze(['host', 'installation', 'generation', 'supplier', 'moduleLifetime']);"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "asynchronous begin snapshots five originals before initialization"
               }
             ],
             "ownership": [
@@ -27270,6 +27571,18 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "# Private storage of original Model state"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Retain the record before any fallible cleanup descriptor observation."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An initialization failure preserves its original cause and cleanup duty;"
               }
             ],
             "synchronization": [
@@ -27284,6 +27597,18 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// concurrent close observes that SAME Promise"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Snapshot and consume before module initialization or any original current"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "one original namespace flight can serve different generations"
               }
             ],
             "failure": [
@@ -27298,6 +27623,18 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "const unavailable = () => fail('NodeInitialControlAdmissionUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "failed late cleanup attachment keeps its original debt"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "failed asynchronous initialization preserves its exact cause"
               }
             ],
             "cancellation": [
@@ -27312,6 +27649,18 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "## Private Model raw response custody"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "state.closing = true;"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "current refusal does not prevent cleanup of original retained duties"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "current refusal after initialization cannot issue or recycle"
               }
             ],
             "resources": [
@@ -27326,6 +27675,22 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "# Private storage of original Model state"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Escaped aliases remain the original envelope"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// here. An absent complete operational original refuses before caller reads."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary package builder derives a private image inventory"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Snapshot original child references with the captured native Map walk;"
               }
             ],
             "extension": [
@@ -27340,6 +27705,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "## Private Model raw response custody"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
               }
             ],
             "verification": [
@@ -27350,12 +27719,48 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "nominal current rejects fake copied and other-instance scopes"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "original real file descriptors remain child-owned across pending and sibling cleanup"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "anchor": "a caller current method cannot authenticate"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "later Reflect Object and collection replacements cannot authenticate"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "asynchronous initialization retains the captured original callback and receiver"
               }
             ]
           }
         }
       ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "./initial-control-installation-owner.cjs",
+        "./initial-control-package-original.cjs",
+        "node:buffer",
+        "node:http",
+        "node:https",
+        "node:module",
+        "node:net",
+        "node:path",
+        "node:process",
+        "node:stream",
+        "node:tls",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/infer-trusted-runtime-view.mjs",
@@ -27805,6 +28210,775 @@
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
+    },
+    {
+      "module": "adapters/host-node/initial-control-image-source.cjs",
+      "sha256": "b9c85060f96db776f437ab45d52f4eb139985fd5138b14234f013cadd882a138",
+      "exports": [
+        "commonjs:captureInitialControlImageSource"
+      ],
+      "operations": [
+        {
+          "name": "captureInitialControlImageSource",
+          "parameters": [
+            "path",
+            "expected"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureInitialControlImageSource/retry/retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "captureInitialControlImageSource/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "field/field",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "unchanged/unchanged",
+          "parameters": [
+            "first",
+            "last"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:buffer",
+        "node:crypto",
+        "node:fs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing private Host/Resource selected image correspondence and original byte custody; no operational admission",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "captureInitialControlImageSource",
+            "captureInitialControlImageSource/retry/retry",
+            "captureInitialControlImageSource/status/status",
+            "fail/fail",
+            "field/field",
+            "unchanged/unchanged"
+          ],
+          "exports": [
+            "commonjs:captureInitialControlImageSource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/initial-control-image-source.cjs",
+                "anchor": "// Internal byte custody only, not an installation admission or a trust factory."
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Internal state machine, not an operational issuer."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/initial-control-image-source.cjs",
+                "anchor": "function captureInitialControlImageSource(path, expected)"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "function begin(originals)"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "function issue(held)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/initial-control-image-source.cjs",
+                "anchor": "// Copy expected DATA before opening."
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-source.test.mjs",
+                "anchor": "foreign size or digest never returns Source"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "const scopes = new NativeWeakMap();"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "asynchronous begin snapshots five originals before initialization"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/initial-control-image-source.cjs",
+                "anchor": "// Always keep the same close function and numeric FD."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An initialization failure preserves its original cause and cleanup duty;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/initial-control-image-source.cjs",
+                "anchor": "finally {"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-source.test.mjs",
+                "anchor": "without rereading"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Snapshot and consume before module initialization or any original current"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "one original namespace flight can serve different generations"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/initial-control-image-source.cjs",
+                "anchor": "carrier.code = 'InitialControlImageCleanupPending';"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "failed asynchronous initialization preserves its exact cause"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/initial-control-image-source.test.mjs",
+                "anchor": "an unconfirmed close with otherwise valid bytes cannot return Source or retire a sibling FD"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "current refusal after initialization cannot issue or recycle"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/initial-control-image-source.cjs",
+                "anchor": "// The complete original Source backing and immutable decoded String overlap"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "byte backing, decoded String, hash and native decoder workspace overlap."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary package builder derives a private image inventory"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Snapshot original child references with the captured native Map walk;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "byte custody alone does not establish the complete image loader, installation"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/initial-control-image-source.test.mjs",
+                "anchor": "same-FD bounded image capture retains exact immutable UTF8 Source"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-source.test.mjs",
+                "anchor": "frozen read failure and close Unknown retain the same FD"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "later Reflect Object and collection replacements cannot authenticate"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "asynchronous initialization retains the captured original callback and receiver"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Source-image DATA and explicit syscall boundary references only; not complete image-loader coverage, an operational supplier or normal Host acceptance."
+    },
+    {
+      "module": "adapters/host-node/initial-control-installation-owner.cjs",
+      "sha256": "e368a0602df77dba9634d2e3b94eb511a6a6467721a09593c8633d7baad994f3",
+      "exports": [
+        "commonjs:createInitialControlInstallationOwner"
+      ],
+      "operations": [
+        {
+          "name": "completed/completed",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner",
+          "parameters": [
+            "operational"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/assertCurrent",
+          "parameters": [
+            "scope",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/begin",
+          "parameters": [
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/begin/begin",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/cleanupOriginal",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/close",
+          "parameters": [
+            "scope"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/close/flight/flight",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInitialControlInstallationOwner/close/flight/flight/flight",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/close/flight/flight/flight#2",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/close/flight/flight#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/issue",
+          "parameters": [
+            "held"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/issue/scope/init:assertCurrent/init:assertCurrent",
+          "parameters": [
+            "sameOriginals"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/issue/scope/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/issue/scope/init:retainPreparation/init:retainPreparation",
+          "parameters": [
+            "record",
+            "cleanupHandle"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/issue/scope/init:status/init:status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/observation",
+          "parameters": [
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/observation/observation",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/observeChild",
+          "parameters": [
+            "state",
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/remember",
+          "parameters": [
+            "state",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/retainPreparation",
+          "parameters": [
+            "scope",
+            "record",
+            "handle"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/retainPreparation/init:releaseReferences/init:releaseReferences",
+          "parameters": [
+            "originalRecord"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInitialControlInstallationOwner/stateFor",
+          "parameters": [
+            "scope"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "foreign/foreign",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "matches/matches",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "own/own",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "reference/reference",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshot/snapshot",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "unavailable/unavailable",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing private Host/Resource initial-control preparation custody; internal state only, not an operational issuer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "completed/completed",
+            "createInitialControlInstallationOwner",
+            "createInitialControlInstallationOwner/assertCurrent",
+            "createInitialControlInstallationOwner/begin",
+            "createInitialControlInstallationOwner/begin/begin",
+            "createInitialControlInstallationOwner/cleanupOriginal",
+            "createInitialControlInstallationOwner/close",
+            "createInitialControlInstallationOwner/close/flight/flight",
+            "createInitialControlInstallationOwner/close/flight/flight/flight",
+            "createInitialControlInstallationOwner/close/flight/flight/flight#2",
+            "createInitialControlInstallationOwner/close/flight/flight#2",
+            "createInitialControlInstallationOwner/issue",
+            "createInitialControlInstallationOwner/issue/scope/init:assertCurrent/init:assertCurrent",
+            "createInitialControlInstallationOwner/issue/scope/init:close/init:close",
+            "createInitialControlInstallationOwner/issue/scope/init:retainPreparation/init:retainPreparation",
+            "createInitialControlInstallationOwner/issue/scope/init:status/init:status",
+            "createInitialControlInstallationOwner/observation",
+            "createInitialControlInstallationOwner/observation/observation",
+            "createInitialControlInstallationOwner/observeChild",
+            "createInitialControlInstallationOwner/remember",
+            "createInitialControlInstallationOwner/retainPreparation",
+            "createInitialControlInstallationOwner/retainPreparation/init:releaseReferences/init:releaseReferences",
+            "createInitialControlInstallationOwner/stateFor",
+            "fail/fail",
+            "foreign/foreign",
+            "matches/matches",
+            "own/own",
+            "reference/reference",
+            "snapshot/snapshot",
+            "unavailable/unavailable"
+          ],
+          "exports": [
+            "commonjs:createInitialControlInstallationOwner"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Internal state machine, not an operational issuer."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "function createInitialControlInstallationOwner(operational)"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "anchor": "export function assertInitialControlInstallationCurrent(scope, sameOriginals)"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "function begin(originals)"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "function issue(held)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "const scopes = new NativeWeakMap();"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "const names = freeze(['host', 'installation', 'generation', 'supplier', 'moduleLifetime']);"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "asynchronous begin snapshots five originals before initialization"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Retain the record before any fallible cleanup descriptor observation."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An initialization failure preserves its original cause and cleanup duty;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// concurrent close observes that SAME Promise"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Snapshot and consume before module initialization or any original current"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "one original namespace flight can serve different generations"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "const unavailable = () => fail('NodeInitialControlAdmissionUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "failed late cleanup attachment keeps its original debt"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "failed asynchronous initialization preserves its exact cause"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "state.closing = true;"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "current refusal does not prevent cleanup of original retained duties"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "current refusal after initialization cannot issue or recycle"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Escaped aliases remain the original envelope"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// here. An absent complete operational original refuses before caller reads."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary package builder derives a private image inventory"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Snapshot original child references with the captured native Map walk;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "nominal current rejects fake copied and other-instance scopes"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "original real file descriptors remain child-owned across pending and sibling cleanup"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "anchor": "a caller current method cannot authenticate"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "later Reflect Object and collection replacements cannot authenticate"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "asynchronous initialization retains the captured original callback and receiver"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original-custody state and nominal membership references. Explicit operational controls in tests are not the actual preload envelope supplier or normal Host acceptance."
+    },
+    {
+      "module": "adapters/host-node/initial-control-package-original.cjs",
+      "sha256": "5655d70ecda3fcacb527448b3f8ccb4337b71e891b2d7d58513735dbb74c4fcc",
+      "exports": [
+        "commonjs:imageInventory"
+      ],
+      "operations": [],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing private Host/Resource selected image correspondence and original byte custody; no operational admission",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "commonjs:imageInventory"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/initial-control-package-original.cjs",
+                "anchor": "// The normal package builder replaces this source-only absence"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Internal state machine, not an operational issuer."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "scripts/initial-control-package-images.mjs",
+                "anchor": "export function renderInitialControlPackageOriginal"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "function begin(originals)"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "function issue(held)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "scripts/initial-control-package-images.mjs",
+                "anchor": "const images = new Map(outputs);"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "const scopes = new NativeWeakMap();"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "asynchronous begin snapshots five originals before initialization"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "This generated Source is correspondence DATA, not an operational issuer."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An initialization failure preserves its original cause and cleanup duty;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "anchor": "// similarly shaped caller object later cannot replace this module original."
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Snapshot and consume before module initialization or any original current"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "one original namespace flight can serve different generations"
+              }
+            ],
+            "failure": [
+              {
+                "path": "scripts/initial-control-package-images.mjs",
+                "anchor": "if (inputs.buildInputs !== undefined) return absent;"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "failed asynchronous initialization preserves its exact cause"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An initialization failure preserves its original cause and cleanup duty;"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "current refusal after initialization cannot issue or recycle"
+              }
+            ],
+            "resources": [
+              {
+                "path": "scripts/initial-control-package-images.mjs",
+                "anchor": "sourceBytes: facts.reduce"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "runtime internals and libraries remain explicit implementation domains"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary package builder derives a private image inventory"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Snapshot original child references with the captured native Map walk;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/initial-control-package-images.test.mjs",
+                "anchor": "unprepared optional SDK coverage does not discard"
+              },
+              {
+                "path": "scripts/initial-control-package-images.test.mjs",
+                "anchor": "an aliased runtime ancestor cannot be mistaken"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "later Reflect Object and collection replacements cannot authenticate"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "asynchronous initialization retains the captured original callback and receiver"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Source-image DATA and explicit syscall boundary references only; not complete image-loader coverage, an operational supplier or normal Host acceptance."
     },
     {
       "module": "adapters/host-node/installation.mjs",
@@ -32568,11 +33742,12 @@
     {
       "module": "adapters/host-node/installed-host-cleanup.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "02e38722e20c1a96c202781c9936526d515b1dedea37aa21e5a0138291ea20bd",
+      "sha256": "f719042e69f5252879811911b01ffbfb6c1416f26c959226d073cdeeeaa1676e",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
         "createInstalledHostShutdown",
+        "originalInitialControlClose",
         "releaseInstalledCredentialSite",
         "retainInstalledCredentialSiteCleanup",
         "retainInstalledHostInitializationFailure",
@@ -32757,6 +33932,11 @@
           "parameters": [
             "item"
           ],
+          "async": false
+        },
+        {
+          "name": "retainInstalledHostInitializationFailure/captureOriginalCleanup",
+          "parameters": [],
           "async": false
         },
         {
@@ -32949,6 +34129,14 @@
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
                 "anchor": "function originalInitialControlClose(original) {"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Host registry retains a preparation candidate under its"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function assertInitialControlHostPreparation(originals) {"
               }
             ],
             "inputsOutputs": [
@@ -32971,6 +34159,14 @@
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
                 "anchor": "const initialControl = host.initialControl;"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "control = await beginInitialControlInstallation(originals);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
               }
             ],
             "identity": [
@@ -32988,7 +34184,7 @@
               },
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "const originalCleanup = cause?.cleanupHandle;"
+                "anchor": "originalCleanup = cause?.cleanupHandle;"
               },
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
@@ -33001,6 +34197,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('shutdown captures original control close before its first close request'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "originals?.moduleLifetime !== import.meta"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "function preparationFor(host, installation, generation) {"
               }
             ],
             "ownership": [
@@ -33018,7 +34222,7 @@
               },
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "const originalCleanup = cause?.cleanupHandle;"
+                "anchor": "originalCleanup = cause?.cleanupHandle;"
               },
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
@@ -33027,6 +34231,14 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "and original retry carrier. A successful sibling close cannot release the"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Project views share one original retirement record."
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               }
             ],
             "synchronization": [
@@ -33044,7 +34256,7 @@
               },
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
-                "anchor": "const originalCleanup = cause?.cleanupHandle;"
+                "anchor": "originalCleanup = cause?.cleanupHandle;"
               },
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
@@ -33065,6 +34277,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('shutdown captures original control close before a preceding child await'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "await releaseUnadopted();"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "lifetime after the await, before exposing another lease."
               }
             ],
             "failure": [
@@ -33103,6 +34323,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "retains an unobserved throwing control getter for retry"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const pending = new Set(['initialization']);"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('throwing initialization cleanup getters retain the already acquired control holding'"
               }
             ],
             "cancellation": [
@@ -33125,6 +34353,14 @@
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
                 "anchor": "await attempt('stop', stop);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('final close waits in-flight ingress and dispatch without cancelling a Run'"
               }
             ],
             "resources": [
@@ -33151,6 +34387,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "// They do not issue a startup admission, physical lease or business capacity."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "escaped canonical DATA or acknowledge its physical storage, GC or capacity."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// This private installation bag holds backreferences, not canonical DATA."
               }
             ],
             "extension": [
@@ -33173,6 +34417,14 @@
               {
                 "path": "adapters/host-node/installed-host-cleanup.mjs",
                 "anchor": "...(initialControl === undefined ? [] : ['initialControl']),"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "membership is not capacity, authority or coverage of earlier imports."
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "// do not acquire an operational admission by omitting these private inputs."
               }
             ],
             "verification": [
@@ -33207,6 +34459,14 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('shutdown captures original control close before a preceding child await'"
+              },
+              {
+                "path": "adapters/host-node/embedded-host-preparation.test.mjs",
+                "anchor": "test('foreign returned Host stays in acquired shutdown custody on pair refusal'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.test.mjs",
+                "anchor": "test('copied and foreign-runtime retirement cannot retire the original project'"
               }
             ]
           }
@@ -33421,7 +34681,9 @@
             "retainInstalledHostInitializationFailure/attempt/latest/latest",
             "retainInstalledHostInitializationFailure/drain/drain#11"
           ],
-          "exports": [],
+          "exports": [
+            "originalInitialControlClose"
+          ],
           "attributes": {
             "responsibility": [
               {
@@ -33685,6 +34947,114 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('shutdown captures original control close before a preceding child await'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "retainInstalledHostInitializationFailure/captureOriginalCleanup"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Host registry retains a preparation candidate under its"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function assertInitialControlHostPreparation(originals) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "control = await beginInitialControlInstallation(originals);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "originals?.moduleLifetime !== import.meta"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "function preparationFor(host, installation, generation) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Project views share one original retirement record."
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "await releaseUnadopted();"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "lifetime after the await, before exposing another lease."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const pending = new Set(['initialization']);"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('throwing initialization cleanup getters retain the already acquired control holding'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('final close waits in-flight ingress and dispatch without cancelling a Run'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "escaped canonical DATA or acknowledge its physical storage, GC or capacity."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// This private installation bag holds backreferences, not canonical DATA."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "membership is not capacity, authority or coverage of earlier imports."
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "// do not acquire an operational admission by omitting these private inputs."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/embedded-host-preparation.test.mjs",
+                "anchor": "test('foreign returned Host stays in acquired shutdown custody on pair refusal'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.test.mjs",
+                "anchor": "test('copied and foreign-runtime retirement cannot retire the original project'"
               }
             ]
           }
@@ -39529,11 +40899,20 @@
     },
     {
       "module": "adapters/host-node/node-initial-control-installation.mjs",
-      "sha256": "bf7f9c804de728bfa32b17c74bc0392c5a6093cf698c6a60c091816be0635bae",
+      "sha256": "04dde649e234a55b184d603612b32eb467561066fe62d7647395b6c556ecd160",
       "exports": [
+        "assertInitialControlInstallationCurrent",
         "beginInitialControlInstallation"
       ],
       "operations": [
+        {
+          "name": "assertInitialControlInstallationCurrent",
+          "parameters": [
+            "scope",
+            "sameOriginals"
+          ],
+          "async": false
+        },
         {
           "name": "beginInitialControlInstallation",
           "parameters": [
@@ -39554,9 +40933,11 @@
         {
           "operations": [
             "<module>",
+            "assertInitialControlInstallationCurrent",
             "beginInitialControlInstallation"
           ],
           "exports": [
+            "assertInitialControlInstallationCurrent",
             "beginInitialControlInstallation"
           ],
           "attributes": {
@@ -39564,34 +40945,90 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "<!-- requirement-block: initial-node-control.original-before-work -->"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Internal state machine, not an operational issuer."
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/node-initial-control-installation.mjs",
                 "anchor": "export function beginInitialControlInstallation(originals)"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "function createInitialControlInstallationOwner(operational)"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.mjs",
+                "anchor": "export function assertInitialControlInstallationCurrent(scope, sameOriginals)"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "function begin(originals)"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "function issue(held)"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/node-initial-control-installation.mjs",
                 "anchor": "same Host/installation/generation/source/backend/recipe"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "const scopes = new NativeWeakMap();"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "const names = freeze(['host', 'installation', 'generation', 'supplier', 'moduleLifetime']);"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "asynchronous begin snapshots five originals before initialization"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Retain the record before any fallible cleanup descriptor observation."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An initialization failure preserves its original cause and cleanup duty;"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/node-initial-control-installation.mjs",
-                "anchor": "return Reflect.apply(begin, startup, [originals]);"
+                "anchor": "return apply(begin, startup, [originals]);"
               },
               {
                 "path": "adapters/host-node/node-initial-control-installation.mjs",
                 "anchor": "retainPreparation(originalRecord, originalCleanupHandle?) -> original duty"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// concurrent close observes that SAME Promise"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Snapshot and consume before module initialization or any original current"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "one original namespace flight can serve different generations"
               }
             ],
             "failure": [
@@ -39602,24 +41039,68 @@
               {
                 "path": "adapters/host-node/node-initial-control-installation.test.mjs",
                 "anchor": "before observing caller fields"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "const unavailable = () => fail('NodeInitialControlAdmissionUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "failed late cleanup attachment keeps its original debt"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "failed asynchronous initialization preserves its exact cause"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "<!-- requirement-block: initial-node-control.retained-custody -->"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "state.closing = true;"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "current refusal does not prevent cleanup of original retained duties"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "current refusal after initialization cannot issue or recycle"
               }
             ],
             "resources": [
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "<!-- requirement-block: initial-node-control.complete-selected-envelope -->"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Escaped aliases remain the original envelope"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// here. An absent complete operational original refuses before caller reads."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary package builder derives a private image inventory"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "// Snapshot original child references with the captured native Map walk;"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/node-initial-control-installation.mjs",
                 "anchor": "No consumer-side fallback is permitted."
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -39634,6 +41115,26 @@
               {
                 "path": "adapters/host-node/node-initial-control-installation.test.mjs",
                 "anchor": "late ordinary import has no synthetic or reusable pending admission"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "nominal current rejects fake copied and other-instance scopes"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "original real file descriptors remain child-owned across pending and sibling cleanup"
+              },
+              {
+                "path": "adapters/host-node/node-initial-control-installation.test.mjs",
+                "anchor": "a caller current method cannot authenticate"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "later Reflect Object and collection replacements cannot authenticate"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "anchor": "asynchronous initialization retains the captured original callback and receiver"
               }
             ]
           }
@@ -42374,7 +43875,7 @@
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
+                "anchor": "if (retained.moon !== moon) fail('ForeignInstalledProjectRuntime');"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -52819,11 +54320,12 @@
     {
       "module": "adapters/host-node/installed-project-configuration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "16c2d1c560fc338623b5450a1f580248a80413f77f21e4eb0b80ce6e19931bec",
+      "sha256": "2c366d1a7a7e6ae5126d7a97ebb7dc1f225afe9dabb50bfe08c11fa680ae74b6",
       "exports": [
         "admitInstalledProjectConfiguration",
         "installedProjectOriginalsForRuntime",
-        "loadInstalledProjectConfiguration"
+        "loadInstalledProjectConfiguration",
+        "retireInstalledProjectConfiguration"
       ],
       "operations": [
         {
@@ -52855,9 +54357,16 @@
           "parameters": [
             "moon",
             "directory",
-            "openFile"
+            "openFile",
+            "initialControl",
+            "initialControlOriginals"
           ],
           "async": true
+        },
+        {
+          "name": "loadInstalledProjectConfiguration/check/check",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "loadInstalledProjectConfiguration/loadInstalledProjectConfiguration",
@@ -52865,6 +54374,14 @@
             "args"
           ],
           "async": true
+        },
+        {
+          "name": "originalForRuntime",
+          "parameters": [
+            "retained",
+            "moon"
+          ],
+          "async": false
         },
         {
           "name": "readConfiguration",
@@ -52893,10 +54410,19 @@
             "runtime"
           ],
           "async": false
+        },
+        {
+          "name": "retireInstalledProjectConfiguration",
+          "parameters": [
+            "project",
+            "moon"
+          ],
+          "async": false
         }
       ],
       "imports": [
         "../host-common/runtime-result.mjs",
+        "./node-initial-control-installation.mjs",
         "./source-profile-json.mjs",
         "node:fs/promises",
         "node:path"
@@ -52934,6 +54460,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Host registry retains a preparation candidate under its"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function assertInitialControlHostPreparation(originals) {"
               }
             ],
             "inputsOutputs": [
@@ -52952,12 +54486,20 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "control = await beginInitialControlInstallation(originals);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
-                "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
+                "anchor": "if (retained.moon !== moon) fail('ForeignInstalledProjectRuntime');"
               },
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
@@ -52974,6 +54516,14 @@
               {
                 "path": "src/run_publication_host/client_project_model_task_selection.mbt",
                 "anchor": "pub fn client_project_model_task_selection_for("
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "originals?.moduleLifetime !== import.meta"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "function preparationFor(host, installation, generation) {"
               }
             ],
             "ownership": [
@@ -52996,6 +54546,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Project views share one original retirement record."
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               }
             ],
             "synchronization": [
@@ -53018,6 +54576,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "originalsForRuntime(runtime);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "await releaseUnadopted();"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "lifetime after the await, before exposing another lease."
               }
             ],
             "failure": [
@@ -53036,6 +54602,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
                 "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const pending = new Set(['initialization']);"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('throwing initialization cleanup getters retain the already acquired control holding'"
               }
             ],
             "cancellation": [
@@ -53054,6 +54628,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
                 "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('final close waits in-flight ingress and dispatch without cancelling a Run'"
               }
             ],
             "resources": [
@@ -53076,6 +54658,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "const tasks = [];"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "escaped canonical DATA or acknowledge its physical storage, GC or capacity."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// This private installation bag holds backreferences, not canonical DATA."
               }
             ],
             "extension": [
@@ -53094,6 +54684,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "This connection supplies static checked materials, not execution dependencies,"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "membership is not capacity, authority or coverage of earlier imports."
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "// do not acquire an operational admission by omitting these private inputs."
               }
             ],
             "verification": [
@@ -53116,6 +54714,14 @@
               {
                 "path": "adapters/host-node/project-model-task-host.actual.test.mjs",
                 "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])"
+              },
+              {
+                "path": "adapters/host-node/embedded-host-preparation.test.mjs",
+                "anchor": "test('foreign returned Host stays in acquired shutdown custody on pair refusal'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.test.mjs",
+                "anchor": "test('copied and foreign-runtime retirement cannot retire the original project'"
               }
             ]
           }
@@ -53137,6 +54743,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Host registry retains a preparation candidate under its"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function assertInitialControlHostPreparation(originals) {"
               }
             ],
             "inputsOutputs": [
@@ -53147,6 +54761,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "control = await beginInitialControlInstallation(originals);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
               }
             ],
             "identity": [
@@ -53161,6 +54783,14 @@
               {
                 "path": "src/run_publication_host/client_project_model_task_selection.mbt",
                 "anchor": "pub fn client_project_model_task_selection_for("
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "originals?.moduleLifetime !== import.meta"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "function preparationFor(host, installation, generation) {"
               }
             ],
             "ownership": [
@@ -53175,6 +54805,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "The existing Host shutdown drops project/Task aliases only after its original"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Project views share one original retirement record."
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               }
             ],
             "synchronization": [
@@ -53189,6 +54827,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "originalsForRuntime(runtime);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "await releaseUnadopted();"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "lifetime after the await, before exposing another lease."
               }
             ],
             "failure": [
@@ -53199,6 +54845,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
                 "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const pending = new Set(['initialization']);"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('throwing initialization cleanup getters retain the already acquired control holding'"
               }
             ],
             "cancellation": [
@@ -53209,6 +54863,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
                 "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('final close waits in-flight ingress and dispatch without cancelling a Run'"
               }
             ],
             "resources": [
@@ -53223,6 +54885,14 @@
               {
                 "path": "adapters/host-node/installed-project-model-tasks.mjs",
                 "anchor": "const tasks = [];"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "escaped canonical DATA or acknowledge its physical storage, GC or capacity."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// This private installation bag holds backreferences, not canonical DATA."
               }
             ],
             "extension": [
@@ -53233,6 +54903,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "This connection supplies static checked materials, not execution dependencies,"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "membership is not capacity, authority or coverage of earlier imports."
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "// do not acquire an operational admission by omitting these private inputs."
               }
             ],
             "verification": [
@@ -53247,6 +54925,126 @@
               {
                 "path": "adapters/host-node/project-model-task-host.actual.test.mjs",
                 "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])"
+              },
+              {
+                "path": "adapters/host-node/embedded-host-preparation.test.mjs",
+                "anchor": "test('foreign returned Host stays in acquired shutdown custody on pair refusal'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.test.mjs",
+                "anchor": "test('copied and foreign-runtime retirement cannot retire the original project'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "loadInstalledProjectConfiguration/check/check",
+            "originalForRuntime",
+            "retireInstalledProjectConfiguration"
+          ],
+          "exports": [
+            "retireInstalledProjectConfiguration"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Host registry retains a preparation candidate under its"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function assertInitialControlHostPreparation(originals) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "control = await beginInitialControlInstallation(originals);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "export function retireInstalledProjectConfiguration(project, moon) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "originals?.moduleLifetime !== import.meta"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "function preparationFor(host, installation, generation) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Project views share one original retirement record."
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "await releaseUnadopted();"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "lifetime after the await, before exposing another lease."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "const pending = new Set(['initialization']);"
+              },
+              {
+                "path": "adapters/host-node/initial-control-shutdown.test.mjs",
+                "anchor": "test('throwing initialization cleanup getters retain the already acquired control holding'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.mjs",
+                "anchor": "if (entry.closing || entry.failure !== undefined) preparationChanged();"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('final close waits in-flight ingress and dispatch without cancelling a Run'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "escaped canonical DATA or acknowledge its physical storage, GC or capacity."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// This private installation bag holds backreferences, not canonical DATA."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "membership is not capacity, authority or coverage of earlier imports."
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.mjs",
+                "anchor": "// do not acquire an operational admission by omitting these private inputs."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/embedded-host-preparation.test.mjs",
+                "anchor": "test('foreign returned Host stays in acquired shutdown custody on pair refusal'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-configuration.test.mjs",
+                "anchor": "test('copied and foreign-runtime retirement cannot retire the original project'"
               }
             ]
           }
@@ -54133,7 +55931,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "// Host, however, keeps this same view until its existing shutdown finishes."
+                "anchor": "if (adopted) throw cause; // The original opened/failed Host owns cleanup."
               }
             ],
             "resources": [
@@ -54652,9 +56450,9 @@
   ],
   "counts": {
     "modules": 127,
-    "operations": 3144,
-    "exports": 858,
-    "explicitContractGroups": 148
+    "operations": 3155,
+    "exports": 860,
+    "explicitContractGroups": 151
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {beginInitialControlInstallation} from './node-initial-control-installation.mjs';
+import {beginInitialControlInstallation, assertInitialControlInstallationCurrent}
+  from './node-initial-control-installation.mjs';
 
 // Current selected preload has no complete initial-control operational issuer.
 // These are actual absence/refusal cases, not a fixture issuing an admission or
@@ -29,4 +30,11 @@ test('late ordinary import has no synthetic or reusable pending admission', () =
   for (const originals of [undefined, null, false, {}, {}]) {
     assert.throws(() => beginInitialControlInstallation(originals), unavailable);
   }
+});
+
+test('a caller current method cannot authenticate an initial control scope', () => {
+  let observed = 0;
+  const scope = Object.freeze({assertCurrent() { observed++; }});
+  assert.throws(() => assertInitialControlInstallationCurrent(scope, {}), unavailable);
+  assert.equal(observed, 0);
 });
