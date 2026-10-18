@@ -80,6 +80,8 @@ pub fn object_mutation_cid(ObjectMutationRequest) -> String
 
 pub fn object_mutation_kind(ObjectMutationBinding) -> ObjectMutationKind
 
+pub fn object_mutation_mapping_json(ObjectMutationBinding, String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]
+
 pub fn object_mutation_metadata_max_bytes(ObjectMutationBinding) -> Int
 
 pub fn object_mutation_metadata_path(ObjectMutationBinding, String) -> Result[String, ObjectTargetReadIssue]

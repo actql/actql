@@ -786,6 +786,33 @@ or physical retirement acknowledgement.
 
 ## Verification boundary
 
+### Mutation Mapping declarations
+
+`object_mutation_mapping_json` derives Mapping candidate DATA from the selected
+GCS mutation binding and the complete source declaration. It checks the Catalog
+body hash, detached contracts, connector manifest and original `objects#records`
+member correspondence. Common must independently admit that complete role graph
+and the Mapping; these checks do not authenticate an installed original or issue
+a read/write grant.
+
+Metadata UPDATE requires the original name selector and declares exactly the
+selected `content_type`, `metadata`, or both. DELETE has its own empty-field rule;
+UPDATE support cannot stand in for DELETE. Both retain required approval and
+the original binding's permission requirements. Nullable user properties stay
+nullable: declaring a Mapping does not turn NULL into an empty map. The original
+request's effective before/after, authored intended changes, full-field
+permissions, capture, saved restore and currentness must still be bound through
+the existing Preview owner. Until that connection exists, the full-diff installed
+path remains unavailable before dispatch.
+
+Declaration parsing retains the original binding, input wire, Catalog and
+registry trees while constructing schema/identity values, permission/field
+arrays, canonical output and UTF-8/hash workspace. Explicit byte/node/depth
+bounds limit growth; they are not a physical reservation or funded phase. This
+pure synchronous projection starts no I/O, acquires no Content loan and
+acknowledges no physical cleanup. Installed execution, provider sends, saved
+publication custody and normal funding remain separate obligations.
+
 ### Original metadata and delete responses
 
 The existing GCS Owner classifies only the authenticated retained direct
