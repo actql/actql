@@ -16,6 +16,15 @@ pub struct ClientInferCallScope {
 }
 
 ///|
+/// The same original scope's admitted execution contract. This DATA view is
+/// not a new call scope, authority, resource admission or dispatch receipt.
+pub fn client_infer_call_scope_model_execution(
+  original : ClientInferCallScope,
+) -> @environment.ModelExecutionContract {
+  client_infer_plan_graph_execution_contract(original.plan)
+}
+
+///|
 pub(all) enum ClientInferCallScopeIssue {
   ForeignOwner
   ForeignInput
