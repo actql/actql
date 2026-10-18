@@ -313,7 +313,6 @@ test "mock Salesforce input retains both original keys and nullable values" {
     @execution.captured_cell(captured, 0, 0) is Some(@admitted.Text("001Acme")),
   )
   assert_true(
-    @execution.captured_cell(captured, 1, 0) ==
-    Some(@admitted.Text("001Globex")),
+    @execution.captured_cell(captured, 1, 0) is Some(@admitted.Text("001Globex")),
   )
 }
