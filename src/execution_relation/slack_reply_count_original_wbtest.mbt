@@ -35,7 +35,9 @@ test "original Slack ordinary history executes the public int64 zero predicate" 
   let schema_wire = @slack.slack_message_schema_wire(16384, 1024, 32).unwrap()
   let contract = @contract.read_checked(
     input_cursor(
-      "{\"type\":\"object\",\"nullable\":false,\"fields\":" + schema_wire + "}",
+      "{\"type\":\"object\",\"nullable\":false,\"additional_properties\":false,\"fields\":" +
+      schema_wire +
+      "}",
     ),
     { max_nodes: 2048, max_depth: 32, max_text_bytes: 16384, },
   ).unwrap()
