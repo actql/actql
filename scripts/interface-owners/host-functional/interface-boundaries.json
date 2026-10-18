@@ -28247,7 +28247,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-image-loader.cjs",
-      "sha256": "1ddb3a4e37c65dc6b14ee185437bf82b65818f934a1877b65ec93a1838432399",
+      "sha256": "5ebcf3a1eb08bde36a8401ebfad3544820edc22b0274ec8f0fb1d4bd86189d5e",
       "exports": [
         "commonjs:installInitialControlImageLoader"
       ],
@@ -28439,7 +28439,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-image-loader.test.mjs",
-                "anchor": "later hook registration and deregistration cannot restore"
+                "anchor": "registration through the published fence stays invalidated after deregistration"
               },
               {
                 "path": "adapters/host-node/initial-control-image-loader.cjs",
@@ -28463,7 +28463,7 @@
             "cancellation": [
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "invalidates the original history even if subsequently deregistered."
+                "anchor": "even after deregistration. This observation does not cover an original native"
               }
             ],
             "resources": [
@@ -28518,6 +28518,10 @@
               {
                 "path": "adapters/host-node/initial-control-image-loader.test.mjs",
                 "anchor": "application-time post-load capture cannot resnapshot changed originals"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "a retained pre-fence registration function is outside the property fence observation"
               }
             ]
           }
