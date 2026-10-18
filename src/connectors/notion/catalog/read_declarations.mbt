@@ -21,7 +21,7 @@ fn notion_database_read_declarations_is_original(
 
 ///|
 /// Whole-map byte/node/depth bounds apply before member construction. Each
-/// whole source byte is charged once before copy/hash. Each alias occurrence
+/// whole source byte is charged once before copy/hash. Each resource_alias occurrence
 /// costs one plus its UTF-16 length, and every retained value
 /// byte is charged before copying/hashing. Contract nodes, text and work share
 /// one remaining budget across all members; max_columns stays per declaration.
@@ -58,16 +58,16 @@ pub fn read_notion_database_read_declarations(
     return Err(BudgetExceeded)
   }
   let declarations = []
-  for alias in aliases {
-    if alias.is_empty() ||
-      @admitted.text_value(alias, limits.metadata.max_name_bytes) is None {
+  for resource_alias in aliases {
+    if resource_alias.is_empty() ||
+      @admitted.text_value(resource_alias, limits.metadata.max_name_bytes) is None {
       return Err(InvalidDeclaration)
     }
     if !read_contract_spend(budget, 1) ||
-      !read_contract_spend(budget, alias.length()) {
+      !read_contract_spend(budget, resource_alias.length()) {
       return Err(BudgetExceeded)
     }
-    let cursor = @decode.lookup(root, alias).unwrap()
+    let cursor = @decode.lookup(root, resource_alias).unwrap()
     let span = @decode.cursor_span(cursor)
     if span.start_byte < 0 || span.end_byte < span.start_byte ||
       span.end_byte > original_bytes.length() {

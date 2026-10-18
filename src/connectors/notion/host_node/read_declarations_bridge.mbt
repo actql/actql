@@ -47,8 +47,11 @@ pub fn notion_read_database_declarations(
 #export_name("notionDatabaseReadDeclarationsCount")
 pub fn notion_database_read_declarations_count(
   declarations : @catalog.NotionDatabaseReadDeclarations,
-) -> Int? {
-  @catalog.notion_database_read_declarations_count(declarations)
+) -> Result[Int, @catalog.NotionReadContractIssue] {
+  match @catalog.notion_database_read_declarations_count(declarations) {
+    Some(value) => Ok(value)
+    None => Err(@catalog.ForeignOriginal)
+  }
 }
 
 ///|
@@ -56,8 +59,15 @@ pub fn notion_database_read_declarations_count(
 pub fn notion_database_read_declarations_alias_at(
   declarations : @catalog.NotionDatabaseReadDeclarations,
   index : Int,
-) -> String? {
-  @catalog.notion_database_read_declarations_alias_at(declarations, index)
+) -> Result[String, @catalog.NotionReadContractIssue] {
+  if @catalog.notion_database_read_declarations_count(declarations) is None {
+    return Err(@catalog.ForeignOriginal)
+  }
+  match
+    @catalog.notion_database_read_declarations_alias_at(declarations, index) {
+    Some(value) => Ok(value)
+    None => Err(@catalog.InvalidSelection)
+  }
 }
 
 ///|
@@ -65,8 +75,17 @@ pub fn notion_database_read_declarations_alias_at(
 pub fn notion_database_read_declarations_at(
   declarations : @catalog.NotionDatabaseReadDeclarations,
   index : Int,
-) -> @catalog.NotionDatabaseReadDeclaration? {
-  @catalog.notion_database_read_declarations_at(declarations, index)
+) -> Result[
+  @catalog.NotionDatabaseReadDeclaration,
+  @catalog.NotionReadContractIssue,
+] {
+  if @catalog.notion_database_read_declarations_count(declarations) is None {
+    return Err(@catalog.ForeignOriginal)
+  }
+  match @catalog.notion_database_read_declarations_at(declarations, index) {
+    Some(value) => Ok(value)
+    None => Err(@catalog.InvalidSelection)
+  }
 }
 
 ///|
@@ -85,6 +104,9 @@ pub fn notion_database_read_declarations_matches(
 #export_name("notionDatabaseReadDeclarationsSourceCid")
 pub fn notion_database_read_declarations_source_cid(
   declarations : @catalog.NotionDatabaseReadDeclarations,
-) -> String? {
-  @catalog.notion_database_read_declarations_source_cid(declarations)
+) -> Result[String, @catalog.NotionReadContractIssue] {
+  match @catalog.notion_database_read_declarations_source_cid(declarations) {
+    Some(value) => Ok(value)
+    None => Err(@catalog.ForeignOriginal)
+  }
 }
