@@ -80,9 +80,9 @@ fn capture_sqlite_inspection(
   } else if !inspection_ready(inspection) {
     Err(inspection_issue(inspection))
   } else {
-    @utf8.decode(inspection_path(inspection)).map_err(_ =>
-      Physical(@sqlite.Physical("invalid inspection path")),
-    )
+    Ok(@utf8.decode(inspection_path(inspection))) catch {
+      _ => Err(Physical(@sqlite.Physical("invalid inspection path")))
+    }
   }
   {
     inspection,
