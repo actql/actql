@@ -27,11 +27,12 @@ export async function originalRunStateObservations(t, request, definition) {
     fields.callerInputIntentCid, fields.logicalRequestScopeCid, fields.intentFingerprintCid);
   assert(identity);
   const original = privateRunDefinition(definition);
-  const wire = JSON.parse(original.wire);
   const admitted = control.admit('run_definition', original.wire,
     {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64});
   const ref = journal.acceptDefinition(identity, {namespaceId: 'portable-state',
-    runDefinition: admitted, resultNames: ['answer'], lookupExpiresAt: wire.valid_until},
+    runDefinition: admitted, resultNames: ['answer'],
+    // Lookup retention is independent of the unchanged Run execution interval.
+    lookupExpiresAt: '2099-01-01T00:00:00.000Z'},
   moon, control).ref;
   reader = new DatabaseSync(join(scratch.path, 'client-requests.sqlite3'), {readOnly: true});
   return Object.freeze({publish(candidateWire) {
