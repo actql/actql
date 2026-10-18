@@ -4,6 +4,7 @@ import {
   "actql/actql/connectors/gcs/catalog" @gcs,
   "actql/actql/connectors/gcs/original_reference" @original,
   "actql/actql/check_environment" @environment,
+  "actql/actql/client_row_source_host" @row,
   "actql/actql/value_contract" @value,
   "actql/actql/value_admission" @admitted,
   "actql/actql/source_value" @source,

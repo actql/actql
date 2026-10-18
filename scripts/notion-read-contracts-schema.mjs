@@ -24,10 +24,33 @@ export function notionReadDeclarationSchema(protocol){
     $defs:structuredClone(checked.$defs)};
 }
 
+export function notionReadDeclarationsSchema(protocol){
+  const {$schema,$defs,...declaration}=notionReadDeclarationSchema(protocol);
+  return {$schema,type:'object',propertyNames:{type:'string',minLength:1},
+    additionalProperties:declaration,$defs};
+}
+
+export function notionPublicConnectionSchema(protocol){
+  const {$schema,$defs,...databases}=notionReadDeclarationsSchema(protocol);
+  const reference={type:'string',minLength:1,pattern:'^[^\\u0000]+$'};
+  return {$schema,type:'object',additionalProperties:false,required:['connector','credentials'],
+    properties:{connector:{const:'notion'},databases,
+      credentials:{type:'object',additionalProperties:false,required:['integration_token'],
+        properties:{integration_token:{oneOf:['env','path'].map(kind=>({
+          type:'object',additionalProperties:false,required:[kind],properties:{[kind]:reference},
+        }))}}}},$defs};
+}
+
 export function checkNotionReadDeclarationSchema(protocol){
   const schema=notionReadDeclarationSchema(protocol);
   assert.deepEqual(protocol.schemas.notion_database_read_declaration,schema);
   assert.equal(protocol.schema_cids.notion_database_read_declaration,machineCid(schema));
+  const declarations=notionReadDeclarationsSchema(protocol);
+  assert.deepEqual(protocol.schemas.notion_database_read_declarations,declarations);
+  assert.equal(protocol.schema_cids.notion_database_read_declarations,machineCid(declarations));
+  const connection=notionPublicConnectionSchema(protocol);
+  assert.deepEqual(protocol.schemas.notion_public_connection,connection);
+  assert.equal(protocol.schema_cids.notion_public_connection,machineCid(connection));
   const snapshot=notionReadSnapshotSchema();
   assert.deepEqual(protocol.schemas.notion_database_read_snapshot,snapshot);
   assert.equal(protocol.schema_cids.notion_database_read_snapshot,machineCid(snapshot));
@@ -53,6 +76,12 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
     const schema=notionReadDeclarationSchema(protocol),cid=machineCid(schema);
     protocol.schemas.notion_database_read_declaration=schema;
     protocol.schema_cids.notion_database_read_declaration=cid;
+    const declarations=notionReadDeclarationsSchema(protocol);
+    protocol.schemas.notion_database_read_declarations=declarations;
+    protocol.schema_cids.notion_database_read_declarations=machineCid(declarations);
+    const connection=notionPublicConnectionSchema(protocol);
+    protocol.schemas.notion_public_connection=connection;
+    protocol.schema_cids.notion_public_connection=machineCid(connection);
     const snapshot=notionReadSnapshotSchema();
     protocol.schemas.notion_database_read_snapshot=snapshot;
     protocol.schema_cids.notion_database_read_snapshot=machineCid(snapshot);
@@ -68,6 +97,32 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
       source=source.replace('<a id="notion-read-contracts"></a>',
         `<a id="notion-read-contracts"></a>\n\n<!-- machine-import: ${prefix}${cid} -->`);
       owner.machine_contracts.push({path,pointer,cid,version:protocol.version});
+    }
+    const declarationsPointer='/schemas/notion_database_read_declarations';
+    const declarationsCid=machineCid(declarations);
+    const declarationsRef=owner.machine_contracts.find(x=>x.path===path&&x.pointer===declarationsPointer);
+    const declarationsPrefix=`../../../${path}#${declarationsPointer} `;
+    if(declarationsRef){
+      source=source.replace(declarationsPrefix+declarationsRef.cid,declarationsPrefix+declarationsCid);
+      declarationsRef.cid=declarationsCid;
+    }else{
+      assert.ok(source.includes('<a id="notion-read-declarations"></a>'));
+      source=source.replace('<a id="notion-read-declarations"></a>',
+        `<a id="notion-read-declarations"></a>\n\n<!-- machine-import: ${declarationsPrefix}${declarationsCid} -->`);
+      owner.machine_contracts.push({path,pointer:declarationsPointer,cid:declarationsCid,version:protocol.version});
+    }
+    const connectionPointer='/schemas/notion_public_connection';
+    const connectionCid=machineCid(connection);
+    const connectionRef=owner.machine_contracts.find(x=>x.path===path&&x.pointer===connectionPointer);
+    const connectionPrefix=`../../../${path}#${connectionPointer} `;
+    if(connectionRef){
+      source=source.replace(connectionPrefix+connectionRef.cid,connectionPrefix+connectionCid);
+      connectionRef.cid=connectionCid;
+    }else{
+      assert.ok(source.includes('<a id="notion-public-connection"></a>'));
+      source=source.replace('<a id="notion-public-connection"></a>',
+        `<a id="notion-public-connection"></a>\n\n<!-- machine-import: ${connectionPrefix}${connectionCid} -->`);
+      owner.machine_contracts.push({path,pointer:connectionPointer,cid:connectionCid,version:protocol.version});
     }
     const snapshotPointer='/schemas/notion_database_read_snapshot';
     const snapshotCid=machineCid(snapshot);

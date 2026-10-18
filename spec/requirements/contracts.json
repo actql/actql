@@ -1059,6 +1059,259 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/notion-public-connection.closed-shape",
+      "statement_sha256": "920a7ffc7b219b6e3e43903ce4f2f074b004ffbf46483fc42ba4f0bb9b9d9a2f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-public-connection",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-public-connection.credential-reference-choice",
+      "statement_sha256": "910d0944d8f4c034a692f1dff47388c381fe2113c976cb3145789d9a50af217a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-public-connection",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-public-connection.reference-text",
+      "statement_sha256": "70fa01b5172abdb10f624c7898170604ce2428fb7a6b9360453570c27fccec35",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-public-connection",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-public-connection.credential-refusal",
+      "statement_sha256": "4039e9df90e8c82e24712b9496e6b04d5af527fe8eff921bf6d359f32cbbad5e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-public-connection",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-public-connection.no-secret-io",
+      "statement_sha256": "99dc03d10a3d3b8ecfba5b300c85684d625efa1d833dd99fb74f8b1d6fa87a22",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-public-connection",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-public-connection.checked-databases",
+      "statement_sha256": "78f433045f87c7662ffcba74e50d05fde4f47b98fafed770b9fb938a314a084a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-public-connection",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-public-connection.exact-source-identities",
+      "statement_sha256": "6afd201214f363cafa605f94564fc92b7cdf832bc1c0a3b747ed9fe8198556db",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-public-connection",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-public-connection.no-reencoding",
+      "statement_sha256": "80a9a47ba966acd342bd4297f1b634df3908cf6c99fe58341b7470c321354159",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-public-connection",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-public-connection.absence",
+      "statement_sha256": "1a16369db1f290d3a66c5333be2c8ee59d835dfa7d17342aa0ce48086428549a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-public-connection",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-public-connection.structural-bounds",
+      "statement_sha256": "a7b5c120609d9ac7074bcb7d7b3ed67f6172b5afa7bcef27d106d5c528f87e34",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-public-connection",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-public-connection.aggregate-work",
+      "statement_sha256": "c7bd6ee11ae7fc838cdf65fd760d644b769452b4f1980f488f21bf99ac56a1c0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-public-connection",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-public-connection.same-source-cursor",
+      "statement_sha256": "b9d5fee451fe46cfc8ffde43ed2e0e47e76cd808187e4f0668d6f162bd432698",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-public-connection",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-public-connection.no-partial-exhaustion",
+      "statement_sha256": "d94ad38d3550bee8cf79b48542eca9323f6eabc293cba903224c00516facff44",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-public-connection",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-public-connection.no-authority",
+      "statement_sha256": "a655f35a17b2295fbe84fa01687373792ff54eeb50da9e85c3a34cd48a661094",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-public-connection",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-read-declarations.closed-map",
+      "statement_sha256": "08f3b718a779ede9e498efda0749bb6eede670b322d3e0b78ebf5d7f88e1b358",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-read-declarations",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-read-declarations.ordered-aliases",
+      "statement_sha256": "e738948e003e43849fb9498731a8d70c9ad014c118afdd8e7be5e3807925239e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-read-declarations",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-read-declarations.duplicate-alias-refusal",
+      "statement_sha256": "b0341e16cd9b2c87a5116be68dbaa52d343935a8a448307673cdc244f568850f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-read-declarations",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-read-declarations.complete-validation",
+      "statement_sha256": "97a8780470e5c4834c0450b56b67301b29cb79558c8444979e86728b82cffdcc",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-read-declarations",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-read-declarations.exact-value-spans",
+      "statement_sha256": "2d18c2b9d8375ff9a20e22464cf1030218545e773062dba3a56cb731a1e78904",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-read-declarations",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-read-declarations.whole-map-bounds",
+      "statement_sha256": "b2389ce987164e60748bec2b25f23b3b4bf9ac1cc18f77abdd67e83a1653e355",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-read-declarations",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-read-declarations.aggregate-bounds",
+      "statement_sha256": "bb8830ebb74ee974fb9a85d509e85edd2413eb4b36797c552793adbca98ca04c",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-read-declarations",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-read-declarations.no-partial-exhaustion",
+      "statement_sha256": "e47ad6cbddc84a795e6cd3aa7834ce2d55a87eab66819375b660f80b36a80c6f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-read-declarations",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/notion-read-declarations.no-coverage-authority",
+      "statement_sha256": "d46b31bd7832f62e553be3cc29bb20cae3f9c1447d4ff8a417e65739577cb453",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "notion-read-declarations",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/notion-read-contracts.original-declaration",
       "statement_sha256": "84efc8ae262355d9cf22817dae8b23fe0ce7002c4315b830e38696c77bec7754",
       "status": "pending",

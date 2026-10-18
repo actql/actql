@@ -32,6 +32,16 @@ pub fn notion_database_original_json(@catalog.NotionDatabaseCatalog, Int) -> Res
 
 pub fn notion_database_read_declaration_original_json(@catalog.NotionDatabaseReadDeclaration, Int) -> Result[String, @catalog.NotionReadContractIssue]
 
+pub fn notion_database_read_declarations_alias_at(@catalog.NotionDatabaseReadDeclarations, Int) -> Result[String, @catalog.NotionReadContractIssue]
+
+pub fn notion_database_read_declarations_at(@catalog.NotionDatabaseReadDeclarations, Int) -> Result[@catalog.NotionDatabaseReadDeclaration, @catalog.NotionReadContractIssue]
+
+pub fn notion_database_read_declarations_count(@catalog.NotionDatabaseReadDeclarations) -> Result[Int, @catalog.NotionReadContractIssue]
+
+pub fn notion_database_read_declarations_matches(@catalog.NotionDatabaseReadDeclarations, Int, @catalog.NotionDatabaseReadDeclaration) -> Bool
+
+pub fn notion_database_read_declarations_source_cid(@catalog.NotionDatabaseReadDeclarations) -> Result[String, @catalog.NotionReadContractIssue]
+
 pub fn notion_database_read_snapshot_contracts(@catalog.NotionDatabaseReadSnapshot) -> Result[@catalog.NotionDataSourceReadContracts, @catalog.NotionReadSnapshotIssue]
 
 pub fn notion_database_read_snapshot_declaration(@catalog.NotionDatabaseReadSnapshot) -> Result[@catalog.NotionDatabaseReadDeclaration, @catalog.NotionReadSnapshotIssue]
@@ -45,6 +55,8 @@ pub fn notion_database_read_snapshot_source(@catalog.NotionDatabaseReadSnapshot)
 pub fn notion_database_read_snapshot_source_cid(@catalog.NotionDatabaseReadSnapshot) -> Result[String, @catalog.NotionReadSnapshotIssue]
 
 pub fn notion_database_read_snapshot_wire(@catalog.NotionDatabaseReadSnapshot) -> Result[String, @catalog.NotionReadSnapshotIssue]
+
+pub fn notion_database_read_snapshots_relation_specification(Array[String], Array[@catalog.NotionDatabaseReadSnapshot], Int, Int, Int, Int, Int) -> Result[String, @catalog.NotionReadSnapshotIssue]
 
 pub fn notion_next_property_request(@catalog.NotionPropertyItemPage) -> Result[@catalog.NotionPropertyItemRequest, @catalog.NotionPropertyItemIssue]
 
@@ -76,6 +88,18 @@ pub fn notion_property_request_json(@catalog.NotionPropertyItemRequest, Int, Int
 
 pub fn notion_property_request_matches_binding(@catalog.NotionPropertyItemRequest, @catalog.NotionDataSourceReadContracts, Int) -> Bool
 
+pub fn notion_public_connection_credential_kind(@catalog.NotionPublicConnection) -> Result[String, @catalog.NotionReadContractIssue]
+
+pub fn notion_public_connection_credential_reference(@catalog.NotionPublicConnection) -> Result[String, @catalog.NotionReadContractIssue]
+
+pub fn notion_public_connection_databases(@catalog.NotionPublicConnection) -> Result[@catalog.NotionDatabaseReadDeclarations, @catalog.NotionReadContractIssue]
+
+pub fn notion_public_connection_has_databases(@catalog.NotionPublicConnection) -> Result[Bool, @catalog.NotionReadContractIssue]
+
+pub fn notion_public_connection_original_json(@catalog.NotionPublicConnection, Int) -> Result[String, @catalog.NotionReadContractIssue]
+
+pub fn notion_public_connection_source_cid(@catalog.NotionPublicConnection) -> Result[String, @catalog.NotionReadContractIssue]
+
 pub fn notion_query_page_matches_source(@catalog.OriginalNotionQueryPage, @catalog.NotionDataSourceCatalog) -> Bool
 
 pub fn notion_query_page_metadata_json(@catalog.OriginalNotionQueryPage, Int, Int, Int) -> Result[String, @catalog.NotionQueryIssue]
@@ -90,11 +114,15 @@ pub fn notion_read_database_declaration_source_bytes(@catalog.NotionDatabaseRead
 
 pub fn notion_read_database_declaration_source_cid(@catalog.NotionDatabaseReadDeclaration) -> String
 
+pub fn notion_read_database_declarations(Bytes, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionDatabaseReadDeclarations, @catalog.NotionReadContractIssue]
+
 pub fn notion_read_database_id(@catalog.NotionDatabaseReadDeclaration) -> String
 
 pub fn notion_read_database_read_snapshot(Bytes, String, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionDatabaseReadSnapshot, @catalog.NotionReadSnapshotIssue]
 
 pub fn notion_read_page_rows_json(@catalog.NotionDataSourceReadContracts, @catalog.OriginalNotionQueryPage, Array[@catalog.NotionReadRow], Int, Int, Int, Int, Int, Int, Int) -> Result[String, @catalog.NotionReadRowIssue]
+
+pub fn notion_read_public_connection(Bytes, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.NotionPublicConnection, @catalog.NotionReadContractIssue]
 
 pub fn notion_read_row_json(@catalog.NotionReadRow, Int, Int, Int) -> Result[String, @catalog.NotionReadRowIssue]
 

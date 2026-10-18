@@ -7,6 +7,13 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {retainInferOriginalReadInstallation} from './infer-original-installation.mjs';
 import {snapshotModelRawCaptureSelection} from './infer-raw-selection.mjs';
 
+// These are aliases in the existing installation, not another Provider
+// registry. A candidate supplies configuration DATA only; the physical entry
+// must later adopt that same original through installModelProviders.
+const defaultsPreparations = new WeakMap();
+const preparedRegistrations = new WeakMap();
+const installedDefaults = new WeakMap();
+
 function checkInstallation(installation) {
   if (installation === null || typeof installation !== 'object' ||
       Array.isArray(installation) ||
@@ -137,6 +144,133 @@ function retainModelDefaultsLimits(value) {
   return Object.freeze(snapshot);
 }
 
+function modelDefaultsCallbacks(moon) {
+  return Object.freeze({reader: moon.clientProgramReadInstalledModelDefaults,
+    resolver: moon.clientProgramResolveInstalledModelDefaults,
+    bindingReader: moon.clientProgramInstalledModelDefaultsBinding,
+    usageReader: moon.clientProgramInstalledModelDefaultsUsage});
+}
+
+function modelDefaultsResolver(moon, providerId, bindingOriginals, assertCurrent, receiver,
+  {reader, resolver, bindingReader, usageReader} = modelDefaultsCallbacks(moon)) {
+  let original, bounds, readFailure;
+  return function resolveTaskDefaults(selectedModel, taskMaxOutputTokens, limits) {
+    if (this !== receiver()) {
+      throw Object.assign(new Error('InstalledModelDefaultsForeignOriginal'),
+        {code: 'InstalledModelDefaultsForeignOriginal'});
+    }
+    if (typeof assertCurrent !== 'function' || bindingOriginals === undefined ||
+        ![reader, resolver, bindingReader, usageReader].every(value => typeof value === 'function')) {
+      throw Object.assign(new Error('InstalledModelDefaultsUnavailable'),
+        {code: 'InstalledModelDefaultsUnavailable'});
+    }
+    assertCurrent();
+    const nextBounds = retainModelDefaultsLimits(limits);
+    if (selectedModel !== undefined && typeof selectedModel !== 'string' ||
+        taskMaxOutputTokens !== undefined && typeof taskMaxOutputTokens !== 'bigint') {
+      throw new TypeError('InvalidInstalledModelDefaultsSelection');
+    }
+    if (bounds !== undefined && Object.keys(nextBounds).some(key => nextBounds[key] !== bounds[key])) {
+      throw Object.assign(new Error('InstalledModelDefaultsLimitsChanged'),
+        {code: 'InstalledModelDefaultsLimitsChanged'});
+    }
+    if (bounds === undefined) {
+      bounds = nextBounds;
+      try {
+        original = checked(Reflect.apply(reader, moon, [providerId,
+          bindingOriginals.installationRevision.wire, bindingOriginals.configurationContract.wire,
+          bindingOriginals.configuration.wire, bounds.maxBytes, bounds.maxNodes, bounds.maxDepth,
+          bounds.maxMembers, bounds.maxWork]));
+        if (original === undefined || original === null) {
+          throw Object.assign(new Error('InvalidHostRuntimeResult'), {code: 'InvalidHostRuntimeResult'});
+        }
+      } catch (cause) {
+        readFailure = Object.freeze({cause});
+      }
+    }
+    if (readFailure !== undefined) throw readFailure.cause;
+    assertCurrent();
+    const binding = retainAdmittedProviderBinding(moon, providerId, bindingOriginals,
+      Reflect.apply(bindingReader, moon, [original]));
+    const resolved = checked(Reflect.apply(resolver, moon,
+      [original, selectedModel, taskMaxOutputTokens, bounds.maxWork]));
+    const usage = Reflect.apply(usageReader, moon, [original]);
+    const readUsage = Object.freeze({bytes: runtimeField(usage, 0),
+      nodes: runtimeField(usage, 1), work: runtimeField(usage, 2)});
+    assertCurrent();
+    return Object.freeze({value: original, resolved, binding, readUsage});
+  };
+}
+
+// Prepare Task DATA before a Task-specific physical assembler needs its CID.
+// No Provider, dummy invoke, resource profile, permission or send is issued.
+// The Host supplies the actual original configuration and current predicate.
+export function prepareInstalledModelProviderDefaults(moon, providerId, bindingOriginals,
+  {assertCurrent} = {}) {
+  if (typeof providerId !== 'string' || !providerId || typeof assertCurrent !== 'function') {
+    throw new TypeError('InvalidInstalledModelDefaultsPreparation');
+  }
+  const originals = retainProviderBindingOriginals(bindingOriginals);
+  if (originals === undefined) {
+    throw Object.assign(new Error('InstalledModelDefaultsUnavailable'),
+      {code: 'InstalledModelDefaultsUnavailable'});
+  }
+  let view, adoptedCurrent, spent = false;
+  const check = () => {
+    if (assertCurrent() !== undefined) {
+      throw new TypeError('InvalidInstalledModelDefaultsCurrentPredicate');
+    }
+    adoptedCurrent?.();
+  };
+  check();
+  const resolveTaskDefaults = modelDefaultsResolver(moon, providerId, originals, check, () => view);
+  const state = {moon, providerId, originals, check,
+    adopt(runtime, id, source, current, installationCurrent) {
+      check();
+      if (runtime !== moon || id !== providerId || source !== originals || spent ||
+          typeof current !== 'function' || installationCurrent !== assertCurrent) {
+        throw Object.assign(new Error('InstalledModelDefaultsForeignOriginal'),
+          {code: 'InstalledModelDefaultsForeignOriginal'});
+      }
+      // One preparation cannot migrate to another installation after a failed
+      // registration. No physical child has been acquired by this DATA stage.
+      spent = true;
+      adoptedCurrent = current;
+    }};
+  view = Object.freeze({bindingOriginals: originals, resolveTaskDefaults,
+    bindRegistration(entry) {
+      if (this !== view || entry === null || typeof entry !== 'object' ||
+          entry.providerId !== providerId || entry.bindingOriginals !== originals ||
+          preparedRegistrations.has(entry)) {
+        throw Object.assign(new Error('InstalledModelDefaultsForeignOriginal'),
+          {code: 'InstalledModelDefaultsForeignOriginal'});
+      }
+      check();
+      preparedRegistrations.set(entry, view);
+      return entry;
+    }});
+  defaultsPreparations.set(view, state);
+  return view;
+}
+
+export function assertInstalledModelDefaultsPreparation(view, moon, providerId) {
+  const original = defaultsPreparations.get(view);
+  if (original === undefined || original.moon !== moon || original.providerId !== providerId) {
+    throw Object.assign(new Error('InstalledModelDefaultsForeignOriginal'),
+      {code: 'InstalledModelDefaultsForeignOriginal'});
+  }
+  original.check();
+}
+
+export function assertInstalledModelDefaultsAdoption(provider, view, moon, providerId) {
+  assertInstalledModelDefaultsPreparation(view, moon, providerId);
+  if (installedDefaults.get(provider) !== view) {
+    throw Object.assign(new Error('InstalledModelDefaultsForeignOriginal'),
+      {code: 'InstalledModelDefaultsForeignOriginal'});
+  }
+  provider.assertNewTrustedRuntime();
+}
+
 // Registration remains physical Host capability. The common admission owner
 // subsequently binds the selected callback to its exact Task and prompt.
 export function installModelProviders(moon, register, assertHostRuntime,
@@ -179,13 +313,7 @@ export function installModelProviders(moon, register, assertHostRuntime,
     const originalReadSource = entry.originalReadInstallation, rawSource = entry.rawCaptureSelection;
     const bindingSource = entry.bindingOriginals, quantitySource = entry.quantityCapacity;
     const sdkStaticOriginals = entry.sdkStaticOriginals;
-    // Capture the actual callback runtime and receiver, not whichever exports
-    // a later Task caller happens to supply. Missing support keeps defaults
-    // unavailable without changing legacy explicit-Task registrations.
-    const defaultsReader = moon.clientProgramReadInstalledModelDefaults;
-    const defaultsResolver = moon.clientProgramResolveInstalledModelDefaults;
-    const defaultsBinding = moon.clientProgramInstalledModelDefaultsBinding;
-    const defaultsUsage = moon.clientProgramInstalledModelDefaultsUsage;
+    const defaultsCallbacks = modelDefaultsCallbacks(moon);
     let requireOriginalEagerStartup;
     // The Host supplies this private connection, not registration DATA or a
     // packet flag. Missing selected startup is Unavailable, never coverage.
@@ -212,7 +340,16 @@ export function installModelProviders(moon, register, assertHostRuntime,
         (entryPersistence !== 'async' || typeof physicalPreflight !== 'function')) {
       throw new TypeError('InstalledInferRawCaptureRequiresAsyncPhysicalPreflight');
     }
-    const bindingOriginals = retainProviderBindingOriginals(bindingSource);
+    const preparedDefaults = preparedRegistrations.get(entry);
+    const preparedState = preparedDefaults === undefined ? undefined : defaultsPreparations.get(preparedDefaults);
+    if (preparedState !== undefined && (preparedState.moon !== moon ||
+        preparedState.providerId !== providerId || preparedState.originals !== bindingSource ||
+        typeof assertNewHostRuntime !== 'function')) {
+      throw Object.assign(new Error('InstalledModelDefaultsForeignOriginal'),
+        {code: 'InstalledModelDefaultsForeignOriginal'});
+    }
+    const bindingOriginals = preparedState === undefined
+      ? retainProviderBindingOriginals(bindingSource) : preparedState.originals;
     const quantityCapacity = retainModelQuantityCapacity(quantitySource);
     if (entryPersistence === 'async' &&
         (typeof physicalPreflight !== 'function' || quantityCapacity === undefined ||
@@ -223,13 +360,25 @@ export function installModelProviders(moon, register, assertHostRuntime,
         typeof moon.clientProgramInstallAsyncModelProvider !== 'function') {
       throw new TypeError('InstalledModelAsyncProviderRuntimeUnavailable');
     }
+    // Reserve the same candidate for this one actual installation, before
+    // creating its Core Provider. Its current closure is used only after the
+    // existing map has retained the physical record below.
+    let retained;
+    if (preparedState !== undefined) {
+      preparedState.adopt(moon, providerId, bindingSource, () => {
+        if (retained === undefined) {
+          throw Object.assign(new Error('InstalledModelDefaultsUnavailable'),
+            {code: 'InstalledModelDefaultsUnavailable'});
+        }
+        retained.assertNewTrustedRuntime();
+      }, assertNewHostRuntime);
+    }
     const provider = entryPersistence === 'async'
       ? moon.clientProgramInstallAsyncModelProvider(providerId)
       : moon.clientProgramInstallModelProvider(providerId, invoke);
     if (provider === undefined) {
       throw new TypeError('InvalidInstalledModelProviderRegistration');
     }
-    let retained;
     const assertTrustedRuntime = assertHostRuntime === undefined ? undefined : () => {
       assertHostRuntime();
       if (sdkStaticOriginals !== undefined) bindSdkStaticOriginals(sdkStaticOriginals);
@@ -250,63 +399,16 @@ export function installModelProviders(moon, register, assertHostRuntime,
       requireOriginalEagerStartup();
       assertTrustedRuntime();
     };
-    let defaultsOriginal, defaultsBounds, defaultsReadFailure;
-    function resolveTaskDefaults(selectedModel, taskMaxOutputTokens, limits) {
-      if (this !== retained) {
-        throw Object.assign(new Error('InstalledModelDefaultsForeignOriginal'),
-          {code: 'InstalledModelDefaultsForeignOriginal'});
-      }
-      if (assertNewTrustedRuntime === undefined || bindingOriginals === undefined ||
-          ![defaultsReader, defaultsResolver, defaultsBinding, defaultsUsage]
-            .every(value => typeof value === 'function')) {
-        throw Object.assign(new Error('InstalledModelDefaultsUnavailable'),
-          {code: 'InstalledModelDefaultsUnavailable'});
-      }
-      assertNewTrustedRuntime();
-      const bounds = retainModelDefaultsLimits(limits);
-      if (selectedModel !== undefined && typeof selectedModel !== 'string' ||
-          taskMaxOutputTokens !== undefined && typeof taskMaxOutputTokens !== 'bigint') {
-        throw new TypeError('InvalidInstalledModelDefaultsSelection');
-      }
-      if (defaultsBounds !== undefined && Object.keys(bounds)
-        .some(key => bounds[key] !== defaultsBounds[key])) {
-        throw Object.assign(new Error('InstalledModelDefaultsLimitsChanged'),
-          {code: 'InstalledModelDefaultsLimitsChanged'});
-      }
-      if (defaultsBounds === undefined) {
-        // A refused original read cannot rebind its ceiling or become another
-        // parser attempt. Retain its exact throwable as well as successful DATA.
-        defaultsBounds = bounds;
-        try {
-          const original = checked(Reflect.apply(defaultsReader, moon, [providerId,
-            bindingOriginals.installationRevision.wire,
-            bindingOriginals.configurationContract.wire,
-            bindingOriginals.configuration.wire,
-            bounds.maxBytes, bounds.maxNodes, bounds.maxDepth, bounds.maxMembers,
-            bounds.maxWork]));
-          if (original === undefined || original === null) {
-            throw Object.assign(new Error('InvalidHostRuntimeResult'),
-              {code: 'InvalidHostRuntimeResult'});
-          }
-          defaultsOriginal = original;
-        } catch (cause) {
-          defaultsReadFailure = Object.freeze({cause});
+    const resolveTaskDefaults = preparedDefaults === undefined
+      ? modelDefaultsResolver(moon, providerId, bindingOriginals, assertNewTrustedRuntime,
+        () => retained, defaultsCallbacks)
+      : function (selectedModel, taskMaxOutputTokens, limits) {
+        if (this !== retained) {
+          throw Object.assign(new Error('InstalledModelDefaultsForeignOriginal'),
+            {code: 'InstalledModelDefaultsForeignOriginal'});
         }
-      }
-      if (defaultsReadFailure !== undefined) throw defaultsReadFailure.cause;
-      // Keep the already read original through a current refusal. Do not
-      // reparse a replacement configuration to rescue another registration.
-      assertNewTrustedRuntime();
-      const binding = retainAdmittedProviderBinding(moon, providerId,
-        bindingOriginals, Reflect.apply(defaultsBinding, moon, [defaultsOriginal]));
-      const resolved = checked(Reflect.apply(defaultsResolver, moon,
-        [defaultsOriginal, selectedModel, taskMaxOutputTokens, bounds.maxWork]));
-      const usage = Reflect.apply(defaultsUsage, moon, [defaultsOriginal]);
-      const readUsage = Object.freeze({bytes: runtimeField(usage, 0),
-        nodes: runtimeField(usage, 1), work: runtimeField(usage, 2)});
-      assertNewTrustedRuntime();
-      return Object.freeze({value: defaultsOriginal, resolved, binding, readUsage});
-    }
+        return preparedDefaults.resolveTaskDefaults(selectedModel, taskMaxOutputTokens, limits);
+      };
     retained = Object.freeze({provider, originalReadInstallation, rawCaptureSelection,
       assertTrustedRuntime, assertNewTrustedRuntime, requireEagerSdkStartup,
       bindingOriginals,
@@ -321,6 +423,7 @@ export function installModelProviders(moon, register, assertHostRuntime,
       },
       validatePrompt: (...args) => validatePrompt(...args) === true});
     result.set(providerId, retained);
+    if (preparedDefaults !== undefined) installedDefaults.set(retained, preparedDefaults);
   }
   return result;
 }

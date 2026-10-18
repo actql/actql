@@ -298,6 +298,17 @@ rejection close is idempotent. An unconfirmed close retains the original Root
 and diagnostics, stays pending and never closes a reused descriptor. Neither
 result admits the rejected directory as a current or authorized Host Root.
 
+The additive private-Root custody entrance returns the existing
+`NativeRootOpenFailure`, retaining its constructor refusal independently of any
+cleanup diagnostic. Its `retry_cleanup` acts only on that same rejected Root;
+a missing descriptor or confirmed close clears that reference, while an
+unconfirmed close keeps it. The successful privacy/containment predicates remain unchanged. The custody
+constructor uses the existing observed namespace walk even before it has a
+final Root descriptor. Private-current observations use that same walk and
+cannot resume after an unconfirmed temporary close. The first namespace close
+failure remains original even if cleanup encounters another one. The failure object issues neither
+a usable Root nor Host adoption, and cleanup cannot retry acquisition.
+
 ## Direct Local credential grant/use scope
 
 ### Explicit post-adoption issuer acquisition
@@ -946,6 +957,34 @@ than simultaneously retaining both representations; its holding/ARC evidence
 must be checked at that connection. No new numeric profile is admitted here.
 
 ## Original named-directory observations
+
+The existing-only Adoption entrance shares the original constructor but retains
+partial acquisitions when it refuses. Its opaque failure keeps the original
+reason, each actual source/parent/child/managed Root, the actual Lock and any
+rejected Root/Lock or pending Reader constructor. Equal paths or ownership DATA
+never collapse distinct acquired descriptors or authorize closing a borrowed
+Root. This entrance cannot initialize a missing Host or repair missing intent.
+
+Cleanup uses those same objects without reopening, rereading or retrying the
+refused adoption. Original read cleanup and Root acknowledgements precede Lock
+release; an unconfirmed close keeps the same failure and exclusive Lock held.
+The original reason remains readable after successful cleanup. Successful
+acquisition still returns the existing Session: its journal/current admission,
+escaped aliases and outer funded read lifetime retain their separate Owners and
+acknowledgements. The failure carrier itself supplies no read budget, permission,
+Host transport, issuer or execution authority.
+
+The existing-only journal entrance similarly keeps a rejected original database
+with the same Session's Roots and Lock. It invokes the existing journal body
+once; a repeat returns the original failure even after cleanup, without opening
+another database or reinitializing missing custody. Session aliases close through
+that same carrier, so the legacy lock-only close cannot bypass its obligations.
+The original primary issue remains separate from a failed cleanup result.
+Database close must acknowledge before Root retirement, and the Lock is last.
+Reader or directory Unknown retains the original acquisition rather than making
+another attempt. These acknowledgements cover the acquired descriptors only;
+escaped Readers, provider aliases and the surrounding original read/loan still
+require their own actual retirement.
 
 The existing Root can also capture a transient opaque observation of its actual
 opened directory, including device/inode, mode and UID/GID. Only the path already

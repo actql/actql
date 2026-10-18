@@ -51,6 +51,8 @@ pub fn prepare_original_record_target(OriginalRecordPage, Int, Int) -> Result[Or
 
 pub fn prepare_record_create_request(FormFieldCatalog, Array[RecordWriteValues], RecordMutationLimits) -> Result[RecordCreateRequest, RecordMutationIssue]
 
+pub fn prepare_record_create_request_json(FormFieldCatalog, Bytes, Int, RecordWriteLimits, RecordMutationLimits) -> Result[RecordCreateRequest, RecordCreateJsonIssue]
+
 pub fn prepare_record_delete_request(Array[OriginalRecordTarget], RecordMutationLimits) -> Result[RecordDeleteRequest, RecordMutationIssue]
 
 pub fn prepare_record_text_key_lookup(FormFieldCatalog, String, String, Array[String], RecordLookupLimits) -> Result[RecordLookupRequest, RecordLookupIssue]
@@ -66,6 +68,8 @@ pub fn project_form_fields(Bytes, String, FormFieldLimits) -> Result[FormFieldCa
 pub fn project_number_settings(Bytes, String, NumberSettingsLimits) -> Result[AppNumberSettings, NumberSettingsIssue]
 
 pub fn project_record_create_acknowledgement(RecordCreateRequest, Int, Bytes, RecordMutationLimits) -> Result[RecordCreateAcknowledgement, RecordMutationIssue]
+
+pub fn project_record_create_effect_outcome(RecordCreateRequest, RecordCreateAcknowledgement, RecordMutationLimits) -> Result[RecordCreateEffectOutcome, RecordMutationIssue]
 
 pub fn project_record_delete_acknowledgement(RecordDeleteRequest, Int, Bytes, Int, Int, Int) -> Result[RecordDeleteAcknowledgement, RecordMutationIssue]
 
@@ -83,9 +87,17 @@ pub fn recheck_record_delete_records(RecordDeleteRequest, Bytes, RecordPageLimit
 
 pub fn recheck_record_lookup_form(RecordLookupRequest, Bytes, FormFieldLimits) -> Result[Unit, RecordLookupIssue]
 
+pub fn record_create_acknowledgement_is_original(RecordCreateAcknowledgement) -> Bool
+
 pub fn record_create_acknowledgement_records(RecordCreateAcknowledgement) -> Array[(String, String)]
 
 pub fn record_create_acknowledgement_request(RecordCreateAcknowledgement) -> RecordCreateRequest
+
+pub fn record_create_effect_outcome_matches_request(RecordCreateEffectOutcome, RecordCreateRequest) -> Bool
+
+pub fn record_create_effect_outcome_response_sha256(RecordCreateEffectOutcome) -> String
+
+pub fn record_create_effect_outcome_wire(RecordCreateEffectOutcome) -> String
 
 pub fn record_create_request_app_id(RecordCreateRequest) -> String
 
@@ -93,7 +105,15 @@ pub fn record_create_request_body(RecordCreateRequest) -> String
 
 pub fn record_create_request_count(RecordCreateRequest) -> Int
 
+pub fn record_create_request_is_original(RecordCreateRequest) -> Bool
+
+pub fn record_create_request_matches_value_wire(RecordCreateRequest, String, Int, RecordWriteLimits, RecordMutationLimits) -> Result[Bool, RecordCreateJsonIssue]
+
 pub fn record_create_request_values(RecordCreateRequest) -> Array[RecordWriteValues]
+
+pub fn record_create_request_values_json(RecordCreateRequest, Int, Int, Int) -> Result[String, RecordCreateJsonIssue]
+
+pub fn record_create_required_fields(FormFieldCatalog, Int, Int) -> Result[Array[String], RecordWriteIssue]
 
 pub fn record_delete_acknowledgement_request(RecordDeleteAcknowledgement) -> RecordDeleteRequest
 
@@ -243,6 +263,18 @@ pub struct RecordCreateAcknowledgement {
   response_sha256 : String
   // private fields
 }
+
+pub struct RecordCreateEffectOutcome {
+  // private fields
+}
+
+pub(all) enum RecordCreateJsonIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidRecords
+  Write(RecordWriteIssue)
+  Request(RecordMutationIssue)
+} derive(Eq, @debug.Debug)
 
 pub struct RecordCreateRequest {
   // private fields

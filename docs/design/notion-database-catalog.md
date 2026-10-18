@@ -882,3 +882,252 @@ Generic declaration intake then retains its own decode/canonical/preimage
 workspace and new declaration alongside those originals. Structural bounds do
 not supply their funding or make returned aliases free. Installation, Run
 custody, current checks and physical reader retirement remain independent.
+
+## Installed metadata target projection
+
+The existing Notion installer retains its original declaration as the database
+metadata target. Only after the actual database response has been admitted and
+Common has selected its singleton or explicit data-source occurrence does the
+schema callback retain that exact selection and database. Its target projection
+accepts those original references and the same declaration, never a matching id,
+display name, copied selection or body/CID as a replacement. The selected wrapper
+carries the opaque references; the wrapper's JSON shape alone cannot issue them.
+Selection is one-shot, including when a later Site action fails.
+
+The existing Common selection retains a private self-reference in addition to
+its declaration/database/index. Matching, schema projection, Contract binding
+and snapshot capture require that same original selection record; copying its
+retained fields cannot recreate it. This adds a Ref/record slot and retained
+alias to the existing graph, not a wire field, grant or cleanup receipt. The
+read-only id projection remains DATA and is never sufficient for a Site use.
+
+The thin private adapter projects the fixed retrieve operation, original origin,
+GET method, exactly encoded path and empty body, plus the installation's explicit
+Account resource. It snapshots each existing provider function and its receiver
+once. Selected input fields must be own data properties; accessors, unknown
+fields, foreign originals, wrong purpose/path and a different receiver refuse.
+The URI coordinate retains exact Unicode/percent spelling without normalization;
+its input lower bound is checked before allocation and its encoded UTF-8 target
+has an independent bound. The public database declaration and all wire/CID
+domains remain unchanged.
+
+These synchronous target facts are DATA for the existing Site's independently
+scoped metadata grant/use. They neither issue a grant nor replace the original
+Host publication request, current Account decision, Site generation, physical
+issuer/key/secret, egress or resource supply. They cannot retarget a query/property
+Run grant or invent a metadata Program Run. The portable selection alone is not
+proof that a response was physically observed by this installation.
+
+The installer closure retains provider methods/receiver, declaration, origin,
+resource, database path and, after selection, the actual database/selection and
+selected path. Original and encoded coordinate strings, UTF-8 measurements,
+projected fact records and the Site's own copies/claims may overlap with the
+reader's raw responses, charges, parsed Catalogs and callbacks. All structural
+bounds remain distinct from lifetime funding. There is no asynchronous work,
+retry or cleanup acknowledgement in the projection; only the existing physical
+cleanup owner can retire those original aliases. Parent publication/reader
+cleanup must continue to retain the graph when it remains unconfirmed.
+
+The ordinary row Source Check Environment assembly preserves the complete
+checked Contracts as data. In particular, Text enumeration vectors retain exact
+Unicode, line endings, order and repetitions alongside their original carrier
+CIDs. Member sorting and the enclosing evidence preimage use the existing exact
+data canonicalizer. Host Account/configuration normalization remains separate.
+This projection holds the original parsed members, sorted arrays and canonical
+wire/hash workspace until the caller releases them; exact text is neither a
+grant nor a memory reservation. The original Source checker still admits the
+result before SQL/AQL preparation and does not relax an input Contract.
+
+The Site-backed discovery consumer binds the same original Host publication
+request, Account decision and installed credential issuer before the database
+GET. A separate schema use is issued only after the admitted database response
+selects its original data-source occurrence. Current publication, Account and
+Site observations fence each protected operation; changing an original across
+the dependent selection cannot authorize the schema request. A lost reply keeps
+that use's Journal Unknown and does not permit another reader or refreshed
+material to resend it.
+
+Closing that Site or its Journal does not retire the discovery reader's retained
+response, charge, parsed Catalog, selected schema or failure aliases. The actual
+preparation phase must fund their full overlap before I/O and retain it until
+physical custody is confirmed. Post-response charging is not that supplier;
+missing installation-phase originals remain Unavailable before ordinary I/O.
+
+### Multiple original database aliases
+
+The same Relation projection can compose an ordered, bounded inventory of
+`(resource, original snapshot)` pairs into one existing `RowRelationViewSpec`.
+Every member must retain the full system binding and pass the same original
+snapshot check as the single-view projection. Distinct aliases may use the same
+snapshot; copied records and property-only snapshots remain invalid. Exact
+Unicode alias Strings are preserved without normalization. Duplicate aliases
+are rejected before any schema output. An empty inventory emits the existing
+empty view specification; this does not prove an empty or complete installation
+inventory or any metadata observation.
+
+The caller supplies both a maximum view count and alias-work budget. Every
+occurrence costs its UTF-16 length plus one, and every comparison against an
+earlier alias costs both lengths plus one, including duplicates and rejected
+members. Work is checked before subtraction. This budget covers only alias
+inventory and exact comparisons; checked Contract/schema emission, UTF-8/hash
+work and encoding keep their existing independent bounds. One bounded outer
+writer holds ordered views, while each field-map writer, String, hash backing
+and original Contract graph can overlap with that output and the whole input
+pair array. Failure cancels the incomplete outer writer; it does not retire any
+input original or return physical holdings. Generic declaration admission then
+retains its own workspace and originals alongside the specification.
+
+The typed Node projection receives equally sized alias and original snapshot
+arrays, bounds their count and constructs the temporary pair array inside Moon.
+That backing overlaps both caller arrays until projection returns. It forwards
+this inventory to the same Common owner. It adds no JavaScript schema constructor, canonical preimage, key or
+acquisition evidence, authority, authenticated cold custody or currentness.
+The single-view API and its canonical body remain unchanged. Installation
+publication must still bind this DATA to independently admitted acquisition and
+saved custody before a physical installation or Run may use it.
+
+### Ordinary database RowRun caller
+
+The trusted installed database reader factory adapts the existing ordinary
+RowRun provider port. Common owns the saved snapshot's original declaration,
+selected source, complete checked contracts, pending property requests and row
+completion; the existing Site owns signing, claim, current authorization and
+Unknown. The factory is not a public grant constructor or an installation
+publication supplier.
+
+Its inputs are an authenticated installed snapshot, the same Site, resource,
+explicit bounds and same-runtime provider capacity. Its output is the existing
+`{capacity, prepare}` port and one `read/requestStop/observe` handle per original
+acquisition. Snapshot getters retain the same original read-contract pair;
+decoding a snapshot or matching thirteen scope fields cannot authenticate its
+installation provenance. The Host's original callbacks retain the actual
+acquisition/Run and Account decision rather than infer permission from fields.
+
+The factory captures provider and Site methods with their original receivers.
+Each prepared reader retains the original RowRun identifiers and callbacks,
+pending property requests, operation grants and original response/charge/child
+aliases. It never repeats preparation for that acquisition. Closing its HTTPS
+binding neither closes the shared Site nor retires those aliases.
+
+Every awaited Account/current check is followed by the original signal fence.
+Only a Common-issued pending occurrence selects a property operation. Its
+separate Site grant uses that same Run/dispatch and actual read decision;
+the query grant is never retargeted. Subsequent property cursors must retain the
+same original checked binding and exact page/property coordinates. The existing
+physical port independently checks each use and current authorization before
+claim/send and after the response.
+
+Missing capacity, foreign snapshots, wrong operations or original pairs refuse
+without a legacy reader fallback. Account replacement after query observation
+prevents dependent property signing/I/O. A lost property reply retains the same
+Journal Unknown, raw charge and RowRun recovery without another reader/send.
+Stop aborts that original child and closes only its transport; observation keeps
+`cleanupConfirmed:false` until a real retirement supplier exists.
+
+The original phase inventory includes factory capacity/snapshot/provider/Site
+references, captured method and wrapper closures, the acquisition WeakSet,
+per-reader control/Promise/callback graph, and the bounded pending-property Map.
+Each Map entry retains its original request, column, exact coordinate Strings,
+ordinal and operation grant/scope. Its count is bounded by admitted total rows
+times columns; pages, UTF-8/wire/contract work and temporary projections retain
+their independent bounds. These records overlap the Common row/Contract graph,
+request/signature/secret/TLS buffers, full responses and capture. They are not
+free aliases, a parser limit is not funding, and the normal installation must
+supply their full lifetime before protected I/O.
+
+Extension uses these existing snapshot, Credential and RowRun owners and keeps
+all wire/CID/version bodies unchanged. The ordinary caller tests cross actual
+Common/Account/Site/SQLite/TLS into typed RowRun capture and retain original
+failure/cleanup custody. Their explicit component capacity and installed
+metadata originals do not prove ordinary public installation, full workspace
+inventory, current Host publication persistence, physical retirement or normal
+numerical funding.
+
+
+### Live discovery publication capture
+
+A discovery reader may retain the original Host publication request and its
+exact eight-pair originals before metadata I/O. This optional path requires the
+existing installation-metadata control, the same original Subject, declaration
+SOURCE identity, actor/runtime/connector and original selected scope. The
+existing Host request assertion runs before and after awaited current checks;
+Site, Account, material, egress and funding still require their own actual
+supplier. A structurally matching control or Subject fields do not issue those
+rights. The legacy reader without this optional path remains unchanged.
+
+Only the same reader's successful, exact returned result may issue one opaque
+publication capture. Capture rechecks current and abort before constructing the
+existing Common snapshot from the original selection/source/checked Contracts.
+Copied results, another reader, a missing original request, wrong scope and a
+second capture refuse. No caller-supplied snapshot/body/CID is a capture input.
+Capture retains both separately scoped database/schema grants and scope tokens,
+actual returned use CIDs and responses, occurrence ids, ordered GET targets and
+response charges. The Journal-admitted grant scope and the requested scope can
+have distinct tokens. Both must be original members of the same control/Subject;
+all six existing generated request fields must match, and both tokens remain
+retained. Equal wire/CID or a copied field record cannot supply either original.
+It hashes each actual body before awaited caller callbacks;
+the exact retained database/schema text must reproduce that digest and length.
+Thus a raw alias mutated during charge cannot silently become the saved
+observation. The original declaration text and snapshot wire/CID are projected
+only by their existing Common getters, with the same bounded codec.
+
+The capture's private getter returns provenance DATA even after retirement for
+owned cleanup or durable lookup; it never re-admits currentness. The Host/Source
+semantic binder must independently admit its actual Store key/namespace/holding,
+generation and current operational originals. This token is not cold custody,
+issuer authority, a credential, cleanup confirmation or a Run. Cold admission
+constructs new local originals only after that independent saved custody gate.
+Neither publication retirement nor copied wire can reconstruct this live token.
+
+Each reader now retains its successful result alias, capture phase/failure and
+bounded two-operation record array. The optional publication record retains
+original request/eight-pair, original Common Subject/control, eight captured
+provider callbacks plus original receiver and call/assert closures. Operation
+records hold grant/scope/use-id/use-CID, response, target/occurrence, digest and
+byte length; hash workspace overlaps the raw body and charge callbacks. The
+capture WeakMap token/view, copied operation-reference array, exact retained
+text/UTF-8/hash workspace and snapshot codec overlap the same result, raw
+observations, response tickets and original Catalog/Contract graph. These bounds
+and aliases are not a reservation or free backing. Failure keeps its original
+error and custody; all reader observations retain cleanupConfirmed false.
+
+## Public database alias originals
+
+The public connection reader admits the documented `connector`, `databases`
+and `credentials.integration_token` fields in Common. Environment and file
+references are exclusive, nonempty exact text; they never trigger secret or
+filesystem I/O during admission. The original connection, optional map and
+per-database value spans have distinct SOURCE identities. Absent and explicit
+empty maps remain distinct and neither supplies complete workspace membership.
+The existing admitted source cursor feeds the same alias-map algorithm, with
+one remaining work and checked-Contract budget rather than another JSON parser
+or a per-member reset. Installed Site/current/issuer/custody remain separate.
+
+The connection retains its owned raw input, self-reference, reference-kind/text
+and optional original map. The source tree and cursors can retain the full input
+while the exact map-span copy, per-value copies, aliases, checked Contracts and
+hash workspace overlap. Bounded original-wire getters allocate a returned
+String with caller lifetime. Neither managed reference retirement nor these
+intake/work bounds prove physical cleanup or a numerical reservation.
+
+The existing Catalog owner admits the public `databases` object once and retains
+its ordered exact Unicode aliases and the original value span for each existing
+database declaration. The single-declaration algorithm is shared, with one
+aggregate Contract-node, Contract-text and work budget. Whole-map parse bounds
+apply before member construction; column limits continue to apply per database.
+No JavaScript type/schema parser or second semantic identity is introduced.
+
+The collection has a private constructor and nominal membership; read-only
+getters return its retained original declarations without copying their checked
+Contracts. Equal re-admitted declarations and copied collections do not replace
+those originals. Empty input membership does not establish complete workspace
+coverage. Actual Host publication/currentness, authenticated Store custody and
+cold reconstruction remain separate from this configuration DATA boundary.
+
+The owned raw map backing, preserving source/decode tree and per-member cursor
+aliases can overlap each copied value span, alias/declaration arrays, private
+collection/self reference, source hashes and all checked Contracts. Whole-map
+parse workspace, per-member Contract admission and hash workspace also overlap.
+Limits bound work/retention; they are neither a physical reservation nor proof
+of cleanup, GC reclamation or a normal numerical supplier.

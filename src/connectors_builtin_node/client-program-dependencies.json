@@ -63,6 +63,14 @@
     {
       "path": "actql/actql/connectors/kintone/host",
       "alias": "kintone_host"
+    },
+    {
+      "path": "actql/actql/connectors/bigquery/catalog",
+      "alias": "bigquery_catalog"
+    },
+    {
+      "path": "actql/actql/connectors/bigquery/read",
+      "alias": "bigquery_read"
     }
   ]
 }

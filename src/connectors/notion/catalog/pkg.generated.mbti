@@ -67,6 +67,16 @@ pub fn notion_database_read_declaration_source_bytes(NotionDatabaseReadDeclarati
 
 pub fn notion_database_read_declaration_source_cid(NotionDatabaseReadDeclaration) -> String
 
+pub fn notion_database_read_declarations_alias_at(NotionDatabaseReadDeclarations, Int) -> String?
+
+pub fn notion_database_read_declarations_at(NotionDatabaseReadDeclarations, Int) -> NotionDatabaseReadDeclaration?
+
+pub fn notion_database_read_declarations_count(NotionDatabaseReadDeclarations) -> Int?
+
+pub fn notion_database_read_declarations_matches(NotionDatabaseReadDeclarations, Int, NotionDatabaseReadDeclaration) -> Bool
+
+pub fn notion_database_read_declarations_source_cid(NotionDatabaseReadDeclarations) -> String?
+
 pub fn notion_database_read_snapshot_contracts(NotionDatabaseReadSnapshot) -> Result[NotionDataSourceReadContracts, NotionReadSnapshotIssue]
 
 pub fn notion_database_read_snapshot_declaration(NotionDatabaseReadSnapshot) -> Result[NotionDatabaseReadDeclaration, NotionReadSnapshotIssue]
@@ -80,6 +90,8 @@ pub fn notion_database_read_snapshot_source(NotionDatabaseReadSnapshot) -> Resul
 pub fn notion_database_read_snapshot_source_cid(NotionDatabaseReadSnapshot) -> Result[String, NotionReadSnapshotIssue]
 
 pub fn notion_database_read_snapshot_wire(NotionDatabaseReadSnapshot) -> Result[String, NotionReadSnapshotIssue]
+
+pub fn notion_database_read_snapshots_relation_specification(Array[(String, NotionDatabaseReadSnapshot)], NotionReadSnapshotLimits, Int, Int) -> Result[String, NotionReadSnapshotIssue]
 
 pub fn notion_database_read_source_index(NotionDatabaseReadDeclaration, NotionDatabaseCatalog) -> Result[Int, NotionReadContractIssue]
 
@@ -118,6 +130,16 @@ pub fn notion_property_read_cell_wire(NotionDataSourceReadContracts, OriginalNot
 pub fn notion_property_read_original(NotionPropertyReadColumn) -> NotionPropertyMetadata
 
 pub fn notion_property_write_matches(NotionPropertyWrite, NotionDataSourceCatalog, Int, @value_admission.CheckedValue) -> Bool
+
+pub fn notion_public_connection_credential_kind(NotionPublicConnection) -> Result[String, NotionReadContractIssue]
+
+pub fn notion_public_connection_credential_reference(NotionPublicConnection) -> Result[String, NotionReadContractIssue]
+
+pub fn notion_public_connection_databases(NotionPublicConnection) -> Result[NotionDatabaseReadDeclarations?, NotionReadContractIssue]
+
+pub fn notion_public_connection_original_json(NotionPublicConnection, Int) -> Result[String, NotionReadContractIssue]
+
+pub fn notion_public_connection_source_cid(NotionPublicConnection) -> Result[String, NotionReadContractIssue]
 
 pub fn notion_query_page_matches_source(OriginalNotionQueryPage, NotionDataSourceCatalog) -> Bool
 
@@ -193,7 +215,11 @@ pub fn project_notion_user_list(Bytes, NotionUserListLimits) -> Result[NotionUse
 
 pub fn read_notion_database_read_declaration(Bytes, NotionReadContractLimits) -> Result[NotionDatabaseReadDeclaration, NotionReadContractIssue]
 
+pub fn read_notion_database_read_declarations(Bytes, NotionReadContractLimits, Int) -> Result[NotionDatabaseReadDeclarations, NotionReadContractIssue]
+
 pub fn read_notion_database_read_snapshot(Bytes, String, NotionReadContractLimits, NotionReadSnapshotLimits) -> Result[NotionDatabaseReadSnapshot, NotionReadSnapshotIssue]
+
+pub fn read_notion_public_connection(Bytes, NotionReadContractLimits, Int, Int) -> Result[NotionPublicConnection, NotionReadContractIssue]
 
 pub fn select_notion_read_source(NotionDatabaseReadDeclaration, NotionDatabaseCatalog, Int) -> Result[NotionReadSourceSelection, NotionReadContractIssue]
 
@@ -251,6 +277,10 @@ pub(all) struct NotionDatabaseLimits {
 
 pub struct NotionDatabaseReadDeclaration {
   database_id : String
+  // private fields
+}
+
+pub struct NotionDatabaseReadDeclarations {
   // private fields
 }
 
@@ -358,6 +388,10 @@ pub(all) struct NotionPropertyWriteLimits {
   max_items : Int
   max_text_units : Int
   max_work : Int
+}
+
+pub struct NotionPublicConnection {
+  // private fields
 }
 
 pub(all) enum NotionQueryIssue {

@@ -141,6 +141,33 @@ precede actual Host registration where the original factory needs the resulting
 Task identity, but the existing original registration and Task admission must
 then bind the same captured configuration/revision, not a replacement.
 
+The private Host may prepare configuration defaults before it registers a
+Task-specific physical assembler. This stage captures the same three original
+configuration records and runtime and uses the existing Common reader once.
+It has no Provider or invocation callback. Its project Task view exposes checked
+candidate materials, but not an installed check-Environment projection.
+
+The later physical registration must explicitly adopt that exact frozen
+configuration snapshot through the same preparation. Copied or equal-wire
+records, another runtime/provider and a second installation are refused before
+creating a Core Provider. The installed project view retains the same Task,
+selection, normalization and Common defaults rather than rereading files or
+reissuing their canonical identities. It projects the ordinary Environment only
+after checking the actual installed Provider map and that original adoption.
+Both the initial configuration-current predicate and the actual registration's
+new-borrow/current predicate remain required. The latter must retain the exact
+initial Host predicate, not another closure with apparently equivalent checks.
+Ordinary legacy registration and
+its single-attempt defaults reader retain their existing behaviour.
+
+These preparation records, WeakMap associations, retained configuration Strings,
+reader callbacks, Task views and binding closures belong to the same Host
+inventory. Candidate and installed views may overlap; their aliases and the
+original decode/normalization workspace must be included together. A spent
+registration cannot move the candidate to another installation after failure.
+This connection neither acquires Model input nor issues startup, capacity,
+handling truth, egress, a resource loan, send authority or cleanup acknowledgment.
+
 Records, per-model generation values, selection references, bounded parser and
 decoder workspace, temporary name index, normalized wire and checked Contract
 holdings remain in the existing Host/Run phase inventory. The default profile

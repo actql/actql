@@ -1,0 +1,10 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/connectors/bigquery/catalog",
+  "actql/actql/client_row_source_host" @rows,
+  "actql/actql/query_planning" @planning,
+  "actql/actql/physical_resources" @resources,
+  "actql/actql/value_admission" @admitted,
+  "moonbitlang/core/encoding/utf8",
+}

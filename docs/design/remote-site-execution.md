@@ -714,6 +714,42 @@ the observed originals and generation correspondence; restore does not
 rediscover schema or renew authority. Cold grant/use admission restores DATA
 only, never a live request or permission to resend an Unknown operation.
 
+The installed Row Credential Site accepts this alternative through its existing
+publication custody. It retains the actual Host request and checked-profile
+pair, original declaration alongside its source CID, Account gate and captured
+methods/receiver, original Site/profile facts, issuer/key and SQLite Journal.
+Each registered metadata occurrence retains its original selected target,
+Common Scope, Account decision, signed grant or first failure before the first
+fallible await. A dependent target must be issued by the original declaration's
+selection owner. Its projection is DATA, not Account authorization. Duplicate
+occurrences cannot issue another grant, and observed Account/profile failure
+does not revive when equal configuration is put back.
+
+Before signing, the Site checks the bounded Host-profile observation, actual
+Site current callback and original Account configuration/decision. It repeats
+the synchronous fences after signing and supplies the existing private HTTPS
+binding with those same originals; the binding retains secret material rather
+than disclosing it to the Connector. Every physical use still needs its own
+exact Scope, current authorization and confirmed same-Journal claim. This
+issuer port does not perform metadata I/O, supply egress or reserve resources.
+
+The new purpose requires the Journal's immutable original method surface.
+Admission failure returns the existing initialization cleanup Owner with the
+same Site/Journal responsibility. Cleanup closes the private binding before
+the captured original Journal close/receiver and retires the Common aliases
+only after their acknowledgements. A thrown close, missing method or nonboolean
+return keeps the same duty pending; a completed original close is not repeated.
+The legacy Run Site retains its existing signing and close behavior.
+
+The simultaneous preparation inventory includes bounded issuer PEM bytes and
+decoded text, the original private/public KeyObjects, optional bounded ASCII
+CA text, Host/profile/Account observations, the metadata view's aliases,
+captured callbacks/receivers, the explicitly bounded occurrence inventory and
+its target/Scope/decision/grant/failure references, SQLite state and private
+secret binding. Closing aliases does not reclaim escaped grants, persisted
+Unknowns, response observations or failed cleanup state. These bounded inputs
+and reference-retirement rules are not a numerical funding profile.
+
 The private Node metadata view captures the selected Common callbacks and
 their original receiver once. It owns opaque Subject, Scope, Grant, Use and
 SignatureEnvelope aliases; copied or foreign-view values cannot cross it.

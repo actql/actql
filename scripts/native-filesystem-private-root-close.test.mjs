@@ -23,11 +23,13 @@ before(() => {
     sourceSha256: createHash('sha256').update(readFileSync(join(root, 'src/platform_native/filesystem/filesystem_stub.c'))).digest('hex'),
     qualification: 'Actual C private Root boundary; diagnostic close faults, no installed session or kernel fault claim'}));
 });
-for (const name of ['missing', 'confirmed-privacy-rejection', 'privacy-close-eio',
-  'privacy-close-eintr', 'confirmed-private']) {
+const originals = ['missing', 'confirmed-privacy-rejection', 'privacy-close-eio',
+  'privacy-close-eintr', 'confirmed-private'];
+for (const name of [...originals, ...originals.map(value => 'custody-' + value),
+  'custody-walk-close-eio', 'custody-namespace-close-eio', 'custody-current-close-eio']) {
   test(`private Root original retirement ${name}`, () => {
     const directory = join(scratch, name);
-    if (name !== 'missing') mkdirSync(directory, {mode: 0o700});
+    if (!name.endsWith('missing')) mkdirSync(directory, {mode: 0o700});
     const run = spawnSync(executable, [name, directory], {cwd: root, encoding: 'utf8', timeout: 10_000});
     assert.equal(run.status, 0, `${scratch}\n${run.error ?? ''}\n${run.stdout}\n${run.stderr}`);
     assert.throws(() => process.kill(run.pid, 0), {code: 'ESRCH'});

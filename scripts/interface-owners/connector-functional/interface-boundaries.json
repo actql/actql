@@ -4133,7 +4133,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "830cb943b5fa907fdf52a28c7e2c94f6c803d862f4fd9007cfdabd6c3f05d999",
+      "sha256": "33c4d1a6b11a2ab7c34275c42092143a63b61645e7fec78b6de9e733563adc02",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -6044,7 +6044,7 @@
               },
               {
                 "path": "adapters/host-node/installed-row-effect.mjs",
-                "anchor": "rowIndex, authorizationForRow, assertCurrent})` (command or guarded write)"
+                "anchor": "rowIndex, authorizationForRow, assertCurrent})`"
               },
               {
                 "path": "docs/design/short-command-input-capture.md",
@@ -6317,6 +6317,18 @@
               {
                 "path": "adapters/host-node/installed-row-upsert-absence.integration.test.mjs",
                 "anchor": "test('same saved mixed UPSERT restores original source requests and canonical claims without authority or send'"
+              },
+              {
+                "path": "adapters/host-node/installed-row-json.test.mjs",
+                "anchor": "CREATE uses its original request child and retains it through capture release"
+              },
+              {
+                "path": "adapters/host-node/installed-row-json.test.mjs",
+                "anchor": "CREATE child preparation failure retires that original child without a write"
+              },
+              {
+                "path": "adapters/host-node/installed-row-json.test.mjs",
+                "anchor": "CREATE child pending cleanup retains the original failure and parent duty until ACK"
               }
             ]
           }
@@ -7286,7 +7298,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-source.mjs",
-      "sha256": "52a77e2461feaa8cb08edff9302ff2d60d1e3e4ccb98afbaeecbd0902f6abd7e",
+      "sha256": "f155d60c55f412fc6e2e8d260a25dcb7a945f5462a76517d66076879fe524b39",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
@@ -7955,6 +7967,23 @@
           "async": false
         },
         {
+          "name": "openRowSourceCredentialCustody/installationMetadataJournal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/installationMetadataJournal/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/installationMetadataJournal/installationMetadataJournal",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "openRowSourceCredentialCustody/openRowSourceCredentialCustody",
           "parameters": [],
           "async": false
@@ -7976,6 +8005,16 @@
           "async": false
         },
         {
+          "name": "openRowSourceCredentialCustody/signInstallationMetadata",
+          "parameters": [
+            "metadataControl",
+            "scope",
+            "expiresUnixMilliseconds",
+            "maxUses"
+          ],
+          "async": false
+        },
+        {
           "name": "openRowSourceCredentialSite",
           "parameters": [
             "profile",
@@ -7990,6 +8029,7 @@
             "ca",
             "admitsApprovalTarget",
             "admitsEffectTargetRead",
+            "installationMetadata",
             "responseHeaders",
             "now",
             "grantLifetimeMs",
@@ -8091,6 +8131,202 @@
         },
         {
           "name": "openRowSourceCredentialSite/synchronous/synchronous",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstallationMetadataSite/account/account",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/accountMethods/accountMethods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/callAccount/callAccount",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/current/current",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstallationMetadataSite/data/data",
+          "parameters": [
+            "value",
+            "keys"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/data/data/data",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/data/data/data#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/ensureCurrent/ensureCurrent",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/factsFor/factsFor",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach",
+          "parameters": [
+            "originalCustody"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:credential/init:credential",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant",
+          "parameters": [
+            "target",
+            "metadataOccurrenceId",
+            "useId",
+            "expiresUnixMilliseconds",
+            "maxUses"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/site",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:attach/init:attach/site/site#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/invalid/invalid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/pair/pair",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/prepareInstallationMetadataSite",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/prepareInstallationMetadataSite#2",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/prepareInstallationMetadataSite#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/profileCurrent/profileCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/profileCurrent/profileCurrent/profileCurrent",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/selectedProfile/selectedProfile",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/synchronous/synchronous",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstallationMetadataSite/synchronous/synchronous/synchronous",
           "parameters": [],
           "async": false
         },
@@ -8261,6 +8497,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original installed row reader custody"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The installed Row Credential Site accepts this alternative"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
               }
             ],
             "inputsOutputs": [
@@ -8283,6 +8527,14 @@
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "async function readProvider({prepare, receiver, options})"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Each registered metadata occurrence retains its original selected target,"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
               }
             ],
             "identity": [
@@ -8309,6 +8561,18 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The ordinary row Source Check Environment assembly preserves"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "pair, original declaration alongside its source CID, Account gate and captured"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
               }
             ],
             "ownership": [
@@ -8339,6 +8603,14 @@
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Admission failure returns the existing initialization cleanup Owner with the"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "unsafe mutable Journal admission"
               }
             ],
             "synchronization": [
@@ -8369,6 +8641,14 @@
               {
                 "path": "adapters/host-node/installed-row-run.mjs",
                 "anchor": "await Reflect.apply(verifyRead, options, [])"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Before signing, the Site checks the bounded Host-profile observation, actual"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
               }
             ],
             "failure": [
@@ -8395,6 +8675,14 @@
               {
                 "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
                 "anchor": "throwing factory or method getter retains the installed original borrow without retry"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "occurrences cannot issue another grant, and observed Account/profile failure"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "Account file revoked across await"
               }
             ],
             "cancellation": [
@@ -8417,6 +8705,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "pending read and stop Promises"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Publication completion, failure and abort close new-operation admission."
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
               }
             ],
             "resources": [
@@ -8451,6 +8747,18 @@
               {
                 "path": "src/client_row_source_host/provider_capacity.mbt",
                 "anchor": "provider_retained"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The ordinary row Source Check Environment assembly preserves"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The simultaneous preparation inventory includes bounded issuer PEM bytes and"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
               }
             ],
             "extension": [
@@ -8469,6 +8777,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "foreign preparation and unsupported listing/keyed profile combinations refuse"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The legacy Run Site retains its existing signing and close behavior."
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
               }
             ],
             "verification": [
@@ -8511,6 +8827,167 @@
               {
                 "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
                 "anchor": "current refusal after factory keeps the same reader for cleanup and sends nothing"
+              },
+              {
+                "path": "adapters/connectors/notion/test/database-read-source-preparation.test.mjs",
+                "anchor": "enum survives installed Check Environment and SQL/AQL preparation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "exact Scope, current authorization and confirmed same-Journal claim. This"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openRowSourceCredentialCustody/installationMetadataJournal",
+            "openRowSourceCredentialCustody/installationMetadataJournal/init:close/init:close",
+            "openRowSourceCredentialCustody/installationMetadataJournal/installationMetadataJournal",
+            "openRowSourceCredentialCustody/signInstallationMetadata",
+            "prepareInstallationMetadataSite",
+            "prepareInstallationMetadataSite/account/account",
+            "prepareInstallationMetadataSite/accountMethods/accountMethods",
+            "prepareInstallationMetadataSite/callAccount/callAccount",
+            "prepareInstallationMetadataSite/current/current",
+            "prepareInstallationMetadataSite/data/data",
+            "prepareInstallationMetadataSite/data/data/data",
+            "prepareInstallationMetadataSite/data/data/data#2",
+            "prepareInstallationMetadataSite/ensureCurrent/ensureCurrent",
+            "prepareInstallationMetadataSite/factsFor/factsFor",
+            "prepareInstallationMetadataSite/init:attach/init:attach",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:close/init:close",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:credential/init:credential",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant#2",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/site",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/site#2",
+            "prepareInstallationMetadataSite/invalid/invalid",
+            "prepareInstallationMetadataSite/pair/pair",
+            "prepareInstallationMetadataSite/positive/positive",
+            "prepareInstallationMetadataSite/prepareInstallationMetadataSite",
+            "prepareInstallationMetadataSite/prepareInstallationMetadataSite#2",
+            "prepareInstallationMetadataSite/prepareInstallationMetadataSite#3",
+            "prepareInstallationMetadataSite/selectedProfile/selectedProfile",
+            "prepareInstallationMetadataSite/synchronous/synchronous",
+            "prepareInstallationMetadataSite/synchronous/synchronous/synchronous",
+            "prepareInstallationMetadataSite/init:close/init:close",
+            "prepareInstallationMetadataSite/profileCurrent/profileCurrent",
+            "prepareInstallationMetadataSite/profileCurrent/profileCurrent/profileCurrent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The installed Row Credential Site accepts this alternative"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Each registered metadata occurrence retains its original selected target,"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "pair, original declaration alongside its source CID, Account gate and captured"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Admission failure returns the existing initialization cleanup Owner with the"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "unsafe mutable Journal admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Before signing, the Site checks the bounded Host-profile observation, actual"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "occurrences cannot issue another grant, and observed Account/profile failure"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "Account file revoked across await"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Publication completion, failure and abort close new-operation admission."
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The simultaneous preparation inventory includes bounded issuer PEM bytes and"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Closing that Site or its Journal does not retire"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The legacy Run Site retains its existing signing and close behavior."
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "exact Scope, current authorization and confirmed same-Journal claim. This"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "adapters/connectors/notion/test/site-metadata-discovery.test.mjs",
+                "anchor": "actual original Site signs and claims separate database and dependent schema uses through Notion discovery"
               }
             ]
           }
@@ -8527,15 +9004,19 @@
         "../site-node/https-credential-resource.mjs",
         "../site-node/remote-credential-signature.mjs",
         "../site-node/sqlite-credential-journal.mjs",
+        "./installed-host-cleanup.mjs",
         "./installed-row-listing.mjs",
         "./installed-row-run.mjs",
+        "./installed-source.mjs",
         "./local-account-config.mjs",
         "./ordinary-source-binding.mjs",
+        "./source-profile-json.mjs",
         "node:crypto",
         "node:fs/promises",
         "node:path",
         "node:perf_hooks",
-        "node:timers/promises"
+        "node:timers/promises",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -9536,6 +10017,289 @@
               {
                 "path": "adapters/host-node/table-write-binding.test.mjs",
                 "anchor": "test("
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/notion/host/database-reader.mjs",
+      "sha256": "b7630c2737ceb0bdcb82ddabf57020bb38010bc9a1b7ecbb23b350c356abee15",
+      "exports": [
+        "createNotionDatabaseReaderFactory"
+      ],
+      "operations": [
+        {
+          "name": "createNotionDatabaseReaderFactory",
+          "parameters": [
+            "moon",
+            "snapshot",
+            "site",
+            "capacity",
+            "resource",
+            "limits",
+            "maxSecretBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/authorizationFor/authorizationFor",
+          "parameters": [
+            "input"
+          ],
+          "async": true
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/closeTransport/closeTransport",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/coordinates/coordinates",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
+          "parameters": [
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#3",
+          "parameters": [
+            "rows",
+            "ticket"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/invoke/invoke",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/selectedProperty/selectedProperty",
+          "parameters": [
+            "selected"
+          ],
+          "async": true
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/verify/verify",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/provider/provider/provider",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "data",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "methods",
+          "parameters": [
+            "value",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "../site/data-source-read.mjs",
+        "../site/property-item-read.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Notion Catalog original schema/pending requests and installed ordinary RowRun/Site Credential caller",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createNotionDatabaseReaderFactory",
+            "createNotionDatabaseReaderFactory/call/call",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/authorizationFor/authorizationFor",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/closeTransport/closeTransport",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/coordinates/coordinates",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:observe/init:observe",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#3",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/invoke/invoke",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/selectedProperty/selectedProperty",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/verify/verify",
+            "createNotionDatabaseReaderFactory/provider/provider",
+            "createNotionDatabaseReaderFactory/provider/provider/provider",
+            "data",
+            "fail/fail",
+            "methods",
+            "methods/methods",
+            "positive/positive",
+            "text/text"
+          ],
+          "exports": [
+            "createNotionDatabaseReaderFactory"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The trusted installed database reader factory adapts"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Its inputs are an authenticated installed snapshot"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Snapshot getters retain the same original read-contract pair"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Each prepared reader retains the original RowRun identifiers"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Every awaited Account/current check is followed"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Missing capacity, foreign snapshots, wrong operations"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Stop aborts that original child"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The original phase inventory includes factory"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Extension uses these existing snapshot"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/notion/test/database-row-reader.test.mjs",
+                "anchor": "ordinary original database RowRun captures exact typed rows"
               }
             ]
           }

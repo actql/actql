@@ -57,7 +57,8 @@ pub fn capture_notion_database_read_snapshot(
   if !read_snapshot_limits_valid(limits) {
     return Err(InvalidLimits)
   }
-  if !physical_equal(selection.database, source.database) ||
+  if !notion_read_source_selection_is_original(selection) ||
+    !physical_equal(selection.database, source.database) ||
     selection.index != source.source_index ||
     !notion_data_source_read_matches(
       read_contracts,

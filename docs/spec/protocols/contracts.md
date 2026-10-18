@@ -953,6 +953,67 @@ delivery,
 preview, or receipts. The non-secret reference itself is bound by the source
 contract so changing the host binding invalidates checked source evidence.
 
+<a id="notion-public-connection"></a>
+
+<!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/schemas/notion_public_connection sha256:2bf010f67678837163c6954e842acfde3c3a2d30ea29be4eff43cc56b7c30cb8 -->
+
+#### Original public Notion connection
+
+<!-- requirement-block: notion-public-connection.closed-shape notion-public-connection.credential-reference-choice notion-public-connection.reference-text notion-public-connection.credential-refusal notion-public-connection.no-secret-io notion-public-connection.checked-databases notion-public-connection.exact-source-identities notion-public-connection.no-reencoding notion-public-connection.absence notion-public-connection.structural-bounds notion-public-connection.aggregate-work notion-public-connection.same-source-cursor notion-public-connection.no-partial-exhaustion notion-public-connection.no-authority -->
+A public Notion connection MUST be a closed object containing `connector` equal
+to `notion`, `credentials`, and optionally `databases`. Credentials MUST be the
+closed object `{integration_token: reference}`, where reference is exactly one
+of `{env: String}` and `{path: String}`. The reference MUST be nonempty, contain
+no U+0000 and retain its exact Unicode spelling. Inline secret values, unknown
+credential names, nulls and ambiguous references MUST be rejected. Admission
+MUST NOT look up the environment, resolve a path or read a secret.
+
+When present, `databases` MUST use the same original alias-map and checked
+declaration admission below, including unused entries. The connection, map and
+each declaration MUST retain their respective exact UTF-8 SOURCE identities;
+they MUST NOT be replaced by re-encoded JSON or one another. An absent map and
+an explicit empty map MUST remain distinct. Neither proves workspace coverage.
+
+Whole-connection input byte, node and depth bounds and an explicit credential
+reference-byte bound MUST apply before operational use. One remaining work
+budget MUST charge the full input bytes, one plus reference UTF-16 length,
+the retained map-span bytes and existing aggregate declaration work. The same
+admitted source cursor MUST supply nested declarations; budget exhaustion MUST
+reject the complete connection without a successful prefix. Credential
+references and SOURCE identities MUST NOT establish a secret-material original,
+installation, Account decision, issuer, grant, permission or physical funding.
+
+<a id="notion-read-declarations"></a>
+
+<!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/schemas/notion_database_read_declarations sha256:1bae79fa45a3cd055d58f9f9860f90fe2c2d3839396b932e6d8e65ae22de3c83 -->
+
+#### Original Notion database alias maps
+
+<!-- requirement-block: notion-read-declarations.closed-map notion-read-declarations.ordered-aliases notion-read-declarations.duplicate-alias-refusal notion-read-declarations.complete-validation notion-read-declarations.exact-value-spans notion-read-declarations.whole-map-bounds notion-read-declarations.aggregate-bounds notion-read-declarations.no-partial-exhaustion notion-read-declarations.no-coverage-authority -->
+The public `databases` value MUST be an object of exact nonempty Unicode aliases
+and the existing Notion database read declarations below. Alias order and
+spelling MUST be retained without normalization; exact duplicate aliases,
+including escape-equivalent spellings, MUST be rejected. Every value, including
+unused declarations, MUST pass the same existing declaration and checked
+ValueContract admission. Each declaration's SOURCE identity MUST retain its
+exact original JSON value span, including internal whitespace and escaped
+lexemes, rather than a re-encoding. The whole map's SOURCE identity includes the
+entire original input. Neither identity is a semantic Contract or issuer proof.
+
+Whole-map byte, node and depth bounds and an explicit maximum database count
+MUST apply. Contract nodes, retained Contract text and declaration work MUST
+share one remaining budget across all members; the existing maximum columns
+remains per declaration. Work charges the full input byte count before copying
+or hashing, each alias occurrence at one plus UTF-16 length, each retained value
+span byte, and the existing declaration Contract work. Exhaustion MUST reject
+the complete map, never publish a successful prefix or reset budgets per alias.
+An empty map is valid configuration DATA, not proof of empty or complete
+workspace membership. A parsed map and original declaration membership
+MUST NOT establish installation custody, current authorization, keys, capacity, a
+Resource/Content reference or a metadata operation grant. Actual installation,
+publication storage and complete page-inventory suppliers remain independently
+required.
+
 <a id="notion-read-contracts"></a>
 
 <!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/schemas/notion_database_read_declaration sha256:39426e9830ffa735632156dcebdfd8d456c164f3087bd7e3697d0f41edc1bc55 -->
