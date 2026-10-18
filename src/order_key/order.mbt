@@ -108,8 +108,13 @@ pub fn read(source : @decode.Cursor) -> Result[Key, Issue] {
 ///|
 pub fn author_orderable(contract : @contract.Contract) -> Bool {
   match contract.shape {
-    @contract.Text(_) | Number | Boolean | Decimal(..) | Date | Timestamp =>
-      true
+    @contract.Text(_)
+    | Number
+    | Boolean
+    | Decimal(..)
+    | Date
+    | Timestamp
+    | Signed64 => true
     _ => false
   }
 }

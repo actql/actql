@@ -148,9 +148,11 @@ links one component against a verified original scoped-provider receipt, and
 copies that provider and SQLite notice into a fresh `bundle` directory. It
 compiles no second provider or TLS copy and never loads or initializes a library.
 The component install ID is `@rpath/libactql_sqlite_component.dylib`; its only
-bundled dependency is `@rpath/libactql_native_control.dylib`, found through exactly
-`@loader_path`. The copied output's metadata and hashes are checked again. No
-absolute build/review/Homebrew search path is permitted in the bundle.
+bundled dependency is directly `@loader_path/libactql_native_control.dylib`,
+with no runtime search path. The producer records the load-command binding and
+refreshes the newly generated component's ad-hoc signature before hashing it.
+The provider bytes and install identity remain unchanged. The copied output's
+metadata and hashes are checked again; no ambient search path is permitted.
 
 The provider receipt must normally belong to the same clean source. An explicit
 `--diagnostic-retained-provider-source` names an older reviewed provider for a

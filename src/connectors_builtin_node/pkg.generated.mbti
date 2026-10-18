@@ -1679,6 +1679,16 @@ pub fn client_program_kintone_delete_preview_identity(@actql/actql/connectors/ki
 
 pub fn client_program_kintone_delete_preview_matches(@actql/actql/connectors/kintone/host.RecordDeletePreview, @actql/actql/connectors/kintone/host.RecordDeleteMapping, @actql/actql/connectors/kintone/catalog.OriginalRecordTarget) -> Bool
 
+pub fn client_program_kintone_delete_preview_outcome(@actql/actql/connectors/kintone/host.RecordDeleteMapping, @actql/actql/connectors/kintone/catalog.RecordDeleteRequest, @actql/actql/connectors/kintone/catalog.RecordDeleteAcknowledgement, @run_publication.EffectPreviewIdentity, Int, Int, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordDeletePreviewOutcome, @actql/actql/connectors/kintone/host.RecordDeleteOutcomeIssue]
+
+pub fn client_program_kintone_delete_preview_outcome_matches(@actql/actql/connectors/kintone/host.RecordDeletePreviewOutcome, @actql/actql/connectors/kintone/host.RecordDeleteMapping, @actql/actql/connectors/kintone/catalog.RecordDeleteRequest, @run_publication.EffectPreviewIdentity, Int, Int) -> Bool
+
+pub fn client_program_kintone_delete_preview_outcome_response_sha256(@actql/actql/connectors/kintone/host.RecordDeletePreviewOutcome) -> String
+
+pub fn client_program_kintone_delete_preview_outcome_row_cid(@actql/actql/connectors/kintone/host.RecordDeletePreviewOutcome) -> String
+
+pub fn client_program_kintone_delete_preview_outcome_wire(@actql/actql/connectors/kintone/host.RecordDeletePreviewOutcome) -> String
+
 pub fn client_program_kintone_delete_preview_version_cid(@actql/actql/connectors/kintone/host.RecordDeletePreview) -> String
 
 pub fn client_program_kintone_delete_recheck_form(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, Bytes, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> Result[Unit, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]

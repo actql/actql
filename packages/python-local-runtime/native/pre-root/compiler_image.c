@@ -18,6 +18,13 @@
 #include "compiler_configuration.generated.h"
 #include "compiler_module_abi.h"
 
+/* Fixed diagnostic bytes only: no module/path/material is disclosed and no
+ * allocation or authority is inferred. A marker precedes its operation, so it
+ * cannot acknowledge completion, cleanup, funding or a successful image. */
+#define COMPILER_PHASE(label) \
+    ((void)write(STDERR_FILENO, "actql compiler before " label "\n", \
+                 sizeof("actql compiler before " label "\n") - 1))
+
 static int hex(unsigned char value) {
     if (value >= '0' && value <= '9') return value - '0';
     if (value >= 'a' && value <= 'f') return value - 'a' + 10;
@@ -40,8 +47,45 @@ struct compilation {
     wasm_engine_t *engine;
     wasmtime_module_t *module;
     wasmtime_error_t *error;
+    wasm_byte_vec_t diagnostic;
     wasm_byte_vec_t image;
 };
+
+/* Private maintainer diagnostics only. Wasmtime constructs this original
+ * message within the current holding; only a bounded prefix reaches stderr.
+ * It is not a control response, successful compilation or cleanup evidence. */
+static void describe_compiler_error(struct compilation *call) {
+    if (call->error == NULL || actql_native_owned_current() != call->owner) return;
+    wasmtime_error_message(call->error, &call->diagnostic);
+    static const char prefix[] = "actql compiler Wasmtime failure: ";
+    (void)write(STDERR_FILENO, prefix, sizeof(prefix) - 1);
+    size_t bytes = call->diagnostic.size < 4096 ? call->diagnostic.size : 4096;
+    if (bytes != 0 && call->diagnostic.data != NULL)
+        (void)write(STDERR_FILENO, call->diagnostic.data, bytes);
+    (void)write(STDERR_FILENO, "\n", 1);
+}
+
+/* One locked physical census from the same provider. These fixed private
+ * diagnostics are not the successful compiler protocol and grant no credit.
+ * Stack/process allocations outside the original mapping remain separate. */
+static void describe_inventory(actql_owned_capacity *owner, const char *phase) {
+    uint64_t values[16] = {0};
+    int status = actql_native_owned_inventory(owner, values, 16);
+    char output[1024];
+    int length = snprintf(output, sizeof(output),
+        "actql compiler inventory %s status=%d [", phase, status);
+    if (length <= 0 || (size_t)length >= sizeof(output)) return;
+    size_t used = (size_t)length;
+    for (size_t i = 0; i < 16; i++) {
+        length = snprintf(output + used, sizeof(output) - used,
+            "%s%" PRIu64, i == 0 ? "" : ",", values[i]);
+        if (length <= 0 || (size_t)length >= sizeof(output) - used) return;
+        used += (size_t)length;
+    }
+    if (used + 2 > sizeof(output)) return;
+    output[used++] = ']'; output[used++] = '\n';
+    (void)write(STDERR_FILENO, output, used);
+}
 
 static int close_descriptor(int *slot, bool *pending) {
     if (*slot < 0) return 0;
@@ -55,6 +99,10 @@ static int close_descriptor(int *slot, bool *pending) {
 
 static int close_compilation(struct compilation *call) {
     if (actql_native_owned_current() != call->owner) return -1;
+    if (call->diagnostic.data != NULL) {
+        wasm_byte_vec_delete(&call->diagnostic);
+        call->diagnostic = (wasm_byte_vec_t){0};
+    }
     if (call->image.data != NULL) {
         wasm_byte_vec_delete(&call->image);
         call->image = (wasm_byte_vec_t){0};
@@ -93,6 +141,8 @@ static int close_compilation(struct compilation *call) {
 static int compile_original(struct compilation *call, const char *module_path,
                             const char *output_path, size_t *image_bytes) {
     if (actql_native_owned_current() != call->owner) return 1;
+    describe_inventory(call->owner, "before-module-capture");
+    COMPILER_PHASE("module capture");
     call->module_fd = open(module_path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
     if (call->module_fd < 0) return 2;
     struct stat original;
@@ -115,6 +165,8 @@ static int compile_original(struct compilation *call, const char *module_path,
     /* Exact source/module bytes and original scope precede the first Config.
      * No alternate module, JIT fallback, Store or instance is constructed. */
     call->config_attempted = true;
+    describe_inventory(call->owner, "before-Config");
+    COMPILER_PHASE("Config");
     call->config = wasm_config_new();
     if (call->config == NULL) return 7;
     call->pool = wasmtime_pooling_allocation_config_new();
@@ -127,18 +179,30 @@ static int compile_original(struct compilation *call, const char *module_path,
     wasm_config_t *consumed = call->config;
     call->config = NULL;
     call->engine_attempted = true;
+    describe_inventory(call->owner, "before-Engine");
+    COMPILER_PHASE("Engine");
     call->engine = wasm_engine_new_with_config(consumed);
+    describe_inventory(call->owner, "after-Engine");
     if (call->engine == NULL) return 10;
     call->module_attempted = true;
+    COMPILER_PHASE("Module compilation");
     call->error = wasmtime_module_new(call->engine, call->module_bytes,
         (size_t)original.st_size, &call->module);
+    describe_inventory(call->owner, "after-Module");
     if (call->error != NULL || call->module == NULL) return 11;
+    COMPILER_PHASE("module ABI");
     if (actql_compiler_check_module_abi(call->module) != ACTQL_COMPILER_ABI_MATCH) return 12;
+    COMPILER_PHASE("serialization");
     call->error = wasmtime_module_serialize(call->module, &call->image);
+    describe_inventory(call->owner, "after-serialization");
     if (call->error != NULL || call->image.data == NULL || call->image.size == 0 ||
         call->image.size > ACTQL_COMPILER_IMAGE_MAX_BYTES ||
-        actql_native_owned_contains_live_span(call->owner, call->image.data,
+        /* The official C API owns this original Rust byte vector until
+         * close_compilation deletes it. Physical containment is not a grant
+         * or a generic export: never lend/protect/retire its heap page here. */
+        actql_native_owned_contains_live_rust_span(call->owner, call->image.data,
                                               call->image.size) != ACTQL_OWNED_OK) return 13;
+    COMPILER_PHASE("image write");
     call->output_fd = open(output_path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600);
     if (call->output_fd < 0) return 14;
     size_t offset = 0;
@@ -154,6 +218,7 @@ static int compile_original(struct compilation *call, const char *module_path,
 }
 
 int main(int argc, char **argv) {
+    COMPILER_PHASE("original binding signal");
     assert(argc == 19 && strlen(argv[1]) == 64);
     unsigned char recipe[32];
     for (size_t i = 0; i < 32; i++) {
@@ -187,6 +252,7 @@ int main(int argc, char **argv) {
     do { received = read(STDIN_FILENO, &ready, 1); }
     while (received < 0 && errno == EINTR);
     assert(received == 1 && ready == 'R');
+    COMPILER_PHASE("original domain borrow");
     assert(actql_native_domain_borrow_open(record, bytes, 4, recipe, material) == 0);
     actql_owned_capacity *original = NULL;
     assert(actql_native_domain_borrow_claim_holding(record, &original) == 0);
@@ -204,8 +270,13 @@ int main(int argc, char **argv) {
     struct compilation call = { .owner = original, .module_fd = -1, .output_fd = -1 };
     size_t image_bytes = 0;
     int result = compile_original(&call, argv[17], argv[18], &image_bytes);
+    if (result != 0) describe_compiler_error(&call);
+    COMPILER_PHASE("compiler handle cleanup");
     int handles = close_compilation(&call);
+    describe_inventory(original, "after-compiler-handle-cleanup");
+    COMPILER_PHASE("original scope leave");
     int leave = actql_native_domain_borrow_leave(record);
+    COMPILER_PHASE("original holding close");
     int close = leave == 0 && handles == 0 ?
         actql_native_domain_borrow_close_holding(record, &original) : ACTQL_OWNED_INVALID;
     bool returned = close == ACTQL_OWNED_OK && original == NULL;

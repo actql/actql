@@ -49,6 +49,10 @@ pub fn NativeLocalJournalOpenFailure::retry_cleanup(
       Ok(_) => self.retained_read_cleaned = true
     }
   }
+  match retry_local_journal_inspection_cleanup(self.original_issue) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   if self.database is Some(database) {
     match database.close_checked() {
       Err(issue) => return Err(Physical(issue))
@@ -56,6 +60,23 @@ pub fn NativeLocalJournalOpenFailure::retry_cleanup(
     }
   }
   self.acquisition.retry_cleanup()
+}
+
+///|
+// The immutable original issue already owns this exact copied DB/scratch
+// cleanup. Consume its ACK before releasing any original Root or lock; do not
+// open another inspection or replace the semantic refusal on a cleanup error.
+fn retry_local_journal_inspection_cleanup(
+  issue : NativeLocalAdoptionIssue,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  match issue {
+    Inspection(
+      Inspection(@journal.InitializationCleanupPending(_, _, original), _)
+    ) => original.retry().map_err(issue => InspectionCleanup(issue))
+    DatabasePending(_, original) =>
+      retry_local_journal_inspection_cleanup(original)
+    _ => Ok(())
+  }
 }
 
 ///|
@@ -81,34 +102,41 @@ pub fn NativeLocalAdoptionSession::open_existing_journal_with_custody(
   }
   match opened {
     Ok(host) => Ok(host)
-    Err(issue) => {
-      let (database, inner) = match issue {
-        DatabasePending(database, original) => (Some(database), original)
-        original => (None, original)
-      }
-      let acquisition : NativeLocalAdoptionOpenFailure = {
-        original_issue: inner,
-        source_root: Some(self.source_root),
-        parent: Some(self.parent),
-        root: Some(self.root),
-        managed: self.settings.managed.map(original => original.root),
-        lock: Some(self.lock),
-        root_acquisition: None,
-        lock_acquisition: None,
-        original_read_cleaned: false,
-      }
-      let original : NativeLocalJournalOpenFailure = {
-        original_issue: issue,
-        database,
-        initial_signing_failure: self.initial_signing_failure.val,
-        initial_signing_cleaned: false,
-        retained_read: self.read_cleanup,
-        retained_read_cleaned: false,
-        acquisition,
-      }
-      self.closed = true
-      self.journal_open_failure = Some(original)
-      Err(original)
-    }
+    Err(issue) => Err(self.retain_journal_open_failure(issue))
   }
+}
+
+///|
+// The existing opener and its cleanup keep this one original refusal carrier.
+fn NativeLocalAdoptionSession::retain_journal_open_failure(
+  self : NativeLocalAdoptionSession,
+  issue : NativeLocalAdoptionIssue,
+) -> NativeLocalJournalOpenFailure {
+  let (database, inner) = match issue {
+    DatabasePending(database, original) => (Some(database), original)
+    original => (None, original)
+  }
+  let acquisition : NativeLocalAdoptionOpenFailure = {
+    original_issue: inner,
+    source_root: Some(self.source_root),
+    parent: Some(self.parent),
+    root: Some(self.root),
+    managed: self.settings.managed.map(original => original.root),
+    lock: Some(self.lock),
+    root_acquisition: None,
+    lock_acquisition: None,
+    original_read_cleaned: false,
+  }
+  let original : NativeLocalJournalOpenFailure = {
+    original_issue: issue,
+    database,
+    initial_signing_failure: self.initial_signing_failure.val,
+    initial_signing_cleaned: false,
+    retained_read: self.read_cleanup,
+    retained_read_cleaned: false,
+    acquisition,
+  }
+  self.closed = true
+  self.journal_open_failure = Some(original)
+  original
 }
