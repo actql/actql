@@ -7,7 +7,12 @@ import {composeInstalledRowEffectOwners} from '../../../host-node/installed-row-
 import {composeInstalledCheckEnvironment} from '../../../host-node/installed-check-environment.mjs';
 import {createLocalAuthorizationGate} from '../../../host-node/local-account-config.mjs';
 import {accountConfiguration, effectHost, effectProgram, installedEffect,
-  moon, recordEntry} from './installed-salesforce-effect.fixture.mjs';
+  moon, recordEntry, salesforceMoon} from './installed-salesforce-effect.fixture.mjs';
+
+import {recoverAdmittedEffectRun} from '../../../host-node/entry.mjs';
+import {localContractLimits} from '../../../host-node/local-values-plan.mjs';
+import {releaseCompletedRunPreparedPayloads} from '../../../host-common/completed-run-publication.mjs';
+import {recoverCapturedSalesforceSingleRequests} from '../host/salesforce-effect-request-recovery.mjs';
 
 const orgIds = ['00D000000000001EAA', '00D000000000002EAA'];
 const write = {resource: 'Test_Record__c', kind: 'createFromResult', sources: [
@@ -109,4 +114,48 @@ test('a foreign saved installation refuses composed recovery before either Site 
       captured.accepted.ref.runDefinitionCid, continuation),
     {code: 'InstalledRowEffectInstallationChanged'});
     assert.deepEqual(values.map(value => writesOf(value).length), [0, 0]);
+  });
+
+
+test('absent member selection preserves the original valid recovery entry order',
+  {timeout: 30_000}, async t => {
+    const {values, compose} = await installations(t);
+    const original = await compose();
+    const state = join(values[0].root, 'ordered-recovery-host');
+    const first = await effectHost(t, values[0], state, {effect: original.effect,
+      stopBeforeApply: true});
+    const program = effectProgram(Object.fromEntries(original.descriptors.map(value =>
+      [value.effectId, {create: {target: value.target, mapping: value.mappingRef,
+        from: {result: 'rows'}}}])), [{id: 'ordered-original'}]);
+    const captured = await first.run(program, 'ordered-original');
+    const stage = first.outcomes[0].stage;
+    const recorded = {members: stage.apply.members};
+    const previewWire = first.control.effectComputationPreviewWire(stage.preview);
+    const body = JSON.parse(previewWire);
+    await first.close();
+    const reopened = await compose();
+    const second = await effectHost(t, values[0], state, {effect: reopened.effect});
+    const recovery = await recoverAdmittedEffectRun({requests: second.journal,
+      store: second.store, key: {namespaceId: 'namespace-a', authorityScopeCid:
+        `sha256:${'e'.repeat(64)}`, requestId: 'ordered-original',
+      runDefinitionCid: captured.accepted.ref.runDefinitionCid}, principalId: 'principal-a',
+      contractLimits: localContractLimits, authorizeEvidenceRead: async () => true});
+    try {
+      const options = {moon: salesforceMoon, recovered: recovery.computation, recorded,
+        previewWire, runIdentityCid: body.run_identity_cid,
+        authoringContextCid: body.authoring_context.authoring_context_cid,
+        previewLimits: {maxWireBytes: 1_000_000, maxNodes: 100_000, maxDepth: 64},
+        bodyLimits: {maxBytes: 100_000, maxNodes: 10_000, maxDepth: 16},
+        requestLimits: {maxPathBytes: 2048, maxTargetBytes: 1024, maxBodyBytes: 100_000},
+        maxMembers: 16, maxRows: 200, maxRetainedBytes: 16_000_000};
+      assert.equal(recoverCapturedSalesforceSingleRequests(options).requests.length, 2);
+      const reversed = {...recovery.computation,
+        connectorRecovery: [...recovery.computation.connectorRecovery].reverse()};
+      assert.deepEqual(reversed.connectorRecovery.map(entry => entry.memberIndex), [1, 0]);
+      assert.throws(() => recoverCapturedSalesforceSingleRequests({...options,
+        recovered: reversed}), {code: 'InvalidSalesforceCapturedRequestRecovery'});
+      assert.deepEqual(values.map(value => writesOf(value).length), [0, 0]);
+    } finally {
+      await releaseCompletedRunPreparedPayloads(recovery.computation.storedResults, second.control);
+    }
   });
