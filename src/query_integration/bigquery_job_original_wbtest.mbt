@@ -143,20 +143,22 @@ test "BigQuery original record closed fields reject unknown revision variants du
   let original = bigquery_record_wire()
   for
     invalid in [
-      original.replace("/0.1", "/0.2"),
-      original.replace("\"method\":\"POST\"", "\"method\":\"GET\""),
-      original.replace("\"jobId\":\"original_job-1\"", "\"jobId\":null"),
-      original.replace("\"jobId\":\"original_job-1\"", "\"jobId\":true"),
-      original.replace("\"jobId\":\"original_job-1\"", "\"jobId\":1"),
-      original.replace("\"location\":\"EU\",", ""),
+      original.replace(old="/0.1", new="/0.2"),
+      original.replace(old="\"method\":\"POST\"", new="\"method\":\"GET\""),
+      original.replace(old="\"jobId\":\"original_job-1\"", new="\"jobId\":null"),
+      original.replace(old="\"jobId\":\"original_job-1\"", new="\"jobId\":true"),
+      original.replace(old="\"jobId\":\"original_job-1\"", new="\"jobId\":1"),
+      original.replace(old="\"location\":\"EU\",", new=""),
       original.replace(
-        "\"body\":\"original body\"", "\"body\":\"original body\",\"extra\":false",
+        old="\"body\":\"original body\"",
+        new="\"body\":\"original body\",\"extra\":false",
       ),
       original.replace(
-        "\"body\":\"original body\"", "\"body\":\"original body\",\"body\":\"other\"",
+        old="\"body\":\"original body\"",
+        new="\"body\":\"original body\",\"body\":\"other\"",
       ),
-      original.replace("acme-project/jobs", "other/jobs"),
-      original.replace("original_job-1", "unsafe/job"),
+      original.replace(old="acme-project/jobs", new="other/jobs"),
+      original.replace(old="original_job-1", new="unsafe/job"),
     ] {
     assert_true(
       @bigquery_read.read_job_original_record(
