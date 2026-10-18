@@ -625,3 +625,72 @@ test('cancellation after an actual response retains the original pending or cons
       context.journal, facts => { assert.equal(facts.response, response); });
   }
 });
+
+
+test('original filter capture refuses non-array labels before I/O and keeps the admitted array snapshot', async t => {
+  const context = await setup(t, world());
+  for (const labels of ['x', new Set(['x']), {0: 'x', length: 1}, [7]]) {
+    await assert.rejects(context.read({filters: {state: 'all', labels}}),
+      {code: 'InvalidGitHubReadFilters'});
+  }
+  assert.equal(context.fixture.seen().length, 0);
+  assert.deepEqual(context.journal.recover(), []);
+  const labels = [' a ', 'β', ' a '];
+  const filters = {state: 'all', labels};
+  let captured = false;
+  const result = await context.read({filters,
+    chargePage: () => {
+      if (!captured) { labels.push('changed'); filters.state = 'draft'; captured = true; }
+    },
+  });
+  assert.equal(result.complete, true);
+  const requests = issueReads(context.fixture);
+  assert.equal(requests.length, 3);
+  for (const request of requests) {
+    assert.deepEqual(request.variables.labels, [' a ', 'β', ' a ']);
+    assert.equal(request.variables.states, null);
+  }
+});
+
+test('native label snapshot ignores an own slice payload supplier', async t => {
+  const context = await setup(t, world());
+  const labels = [' original ', 'β', ' original '];
+  let sliceCalls = 0;
+  labels.slice = () => { sliceCalls += 1; return ['replacement']; };
+  const result = await context.read({filters: {state: 'all', labels}});
+  assert.equal(result.complete, true);
+  assert.equal(sliceCalls, 0);
+  const requests = issueReads(context.fixture);
+  assert.equal(requests.length, 3);
+  for (const request of requests) {
+    assert.deepEqual(request.variables.labels, [' original ', 'β', ' original ']);
+  }
+});
+
+test('native label snapshot cannot hide an invalid member with an own some method', async t => {
+  const context = await setup(t, world());
+  const labels = ['original', 7];
+  let someCalls = 0;
+  labels.some = () => { someCalls += 1; return false; };
+  await assert.rejects(context.read({filters: {state: 'all', labels}}),
+    {code: 'InvalidGitHubReadFilters'});
+  assert.equal(someCalls, 0);
+  assert.equal(context.fixture.seen().length, 0);
+  assert.deepEqual(context.journal.recover(), []);
+});
+
+test('native label snapshot validates the single captured value of a changing index getter', async t => {
+  const context = await setup(t, world());
+  const labels = [];
+  let indexReads = 0;
+  Object.defineProperty(labels, '0', {get() {
+    indexReads += 1;
+    return indexReads === 1 ? 'original' : 'replacement';
+  }});
+  const result = await context.read({filters: {state: 'all', labels}});
+  assert.equal(result.complete, true);
+  assert.equal(indexReads, 1);
+  const requests = issueReads(context.fixture);
+  assert.equal(requests.length, 3);
+  for (const request of requests) assert.deepEqual(request.variables.labels, ['original']);
+});
