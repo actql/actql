@@ -2,6 +2,7 @@ import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, ru
 // Private selected-namespace DATA reader. Exporting this pure operation does
 // not expose the startup issuer or authenticate a caller-created packet.
 export {snapshotInitialControlHostInput} from './initial-control-host-input.mjs';
+export {readSourceManagedOriginalInput} from './source-managed-original-input.mjs';
 import {installClientRunPlan} from './client-run-plan.mjs';
 import {configureInferEvidence} from './infer-evaluation-evidence.mjs';
 // One installed Local Host for the current OS user. The Client talks to the
