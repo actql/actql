@@ -27964,6 +27964,240 @@
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred."
     },
     {
+      "module": "adapters/host-node/initial-control-image-loader.cjs",
+      "sha256": "5f5c04f1dd0fa997a7078cb0041c3ce7018f6f99230c93db9e196dc654a4da36",
+      "exports": [
+        "commonjs:installInitialControlImageLoader"
+      ],
+      "operations": [
+        {
+          "name": "concrete/concrete",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "concrete/concrete/concrete",
+          "parameters": [
+            "part"
+          ],
+          "async": false
+        },
+        {
+          "name": "ends/ends",
+          "parameters": [
+            "value",
+            "suffix"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "installInitialControlImageLoader",
+          "parameters": [
+            "groups"
+          ],
+          "async": false
+        },
+        {
+          "name": "installInitialControlImageLoader/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installInitialControlImageLoader/covered",
+          "parameters": [
+            "url"
+          ],
+          "async": false
+        },
+        {
+          "name": "installInitialControlImageLoader/load",
+          "parameters": [
+            "url",
+            "context",
+            "nextLoad"
+          ],
+          "async": false
+        },
+        {
+          "name": "installInitialControlImageLoader/registerFence",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "installInitialControlImageLoader/registerHooksFence",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "installInitialControlImageLoader/resolve",
+          "parameters": [
+            "specifier",
+            "context",
+            "nextResolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "own/own",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "starts/starts",
+          "parameters": [
+            "value",
+            "prefix"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:fs",
+        "node:module",
+        "node:path",
+        "node:url"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing private Host/Resource selected Source image custody; internal loader component, not an operational supplier",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "concrete/concrete",
+            "concrete/concrete/concrete",
+            "ends/ends",
+            "fail/fail",
+            "installInitialControlImageLoader",
+            "installInitialControlImageLoader/assertCurrent",
+            "installInitialControlImageLoader/covered",
+            "installInitialControlImageLoader/load",
+            "installInitialControlImageLoader/registerFence",
+            "installInitialControlImageLoader/registerHooksFence",
+            "installInitialControlImageLoader/resolve",
+            "own/own",
+            "starts/starts"
+          ],
+          "exports": [
+            "commonjs:installInitialControlImageLoader"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "// Private loader custody, not an operational admission."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "function installInitialControlImageLoader(groups)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "const preloading = descriptor(NodeModule.prototype,"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "const stockLoad = NodeModule._load, stockCache = NodeModule._cache;"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "// Actual loader registration, held Sources and native module registry remain"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "function registerHooksFence(...args)"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "later hook registration and deregistration cannot restore"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "a caller cache preseed cannot replace"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "function assertCurrent()"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "invalidates the original history even if subsequently deregistered."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "const images = new NativeMap(), prefixes = [];"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "cache-shaped object alone does not authenticate those originals."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "<!-- requirement-block: initial-node-control.scope-separation -->"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "// This is only a Source-handoff marker, not module/exports authentication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "actual ESM compilation uses captured Source"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "actual CommonJS compilation and original manifest type"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "a stock load replacement cannot retain"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "anchor": "the loader helper issues no operational admission"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Explicit disposable Node preload/image controls prove only the selected Source-loading and refusal component. Actual complete image graph/cache/resolver/assets/runtime original pairing, operational issuer and normal same-Host admission remain separate."
+    },
+    {
       "module": "adapters/host-node/initial-control-image-source.cjs",
       "sha256": "b9c85060f96db776f437ab45d52f4eb139985fd5138b14234f013cadd882a138",
       "exports": [
