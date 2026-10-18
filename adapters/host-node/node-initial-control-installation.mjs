@@ -22,6 +22,7 @@ const current = currentDescriptor !== undefined && hasOwn(currentDescriptor, 'va
 // envelope before any covered work. No consumer-side fallback is permitted.
 //
 // The receiver contract is:
+//   begin(originals) -> original scope, or Promise of that SAME nominal scope
 //   assertCurrent(sameOriginals) -> void/throw
 //   retainPreparation(originalRecord, originalCleanupHandle?) -> original duty
 //   status() -> original pending observation
@@ -31,6 +32,9 @@ const current = currentDescriptor !== undefined && hasOwn(currentDescriptor, 'va
 // does not interpret close/settlement/reference retirement as physical ACK.
 // There is no conversion to metadata HTTP, Source, Result, business Run, Model,
 // Content/driver or VM capacity. An unavailable envelope stays unavailable.
+// An asynchronous namespace initialization snapshots originals before awaiting;
+// callers await begin and check fixed nominal current before covered work. Its
+// original initialization failure/cleanupHandle is not replaced by this port.
 export function beginInitialControlInstallation(originals) {
   if (begin === undefined) {
     const error = new NativeError('NodeInitialControlAdmissionUnavailable');
