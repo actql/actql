@@ -27,6 +27,9 @@ const fail = (code, details = {}) => {
 // Ticket consumption and codec retirement do not release these aliases or ACK
 // the Credential/RowRun owners. No public field exposes or manufactures them.
 const retainedReads = new WeakMap();
+const nativeArrayIsArray = Array.isArray;
+const defineOwnData = Object.defineProperty;
+const freeze = Object.freeze;
 const count = value => Number.isSafeInteger(value) && value > 0;
 const pairs = headers => [headers.map(entry => entry[0]),
   headers.map(entry => entry[1])];
@@ -100,12 +103,25 @@ export async function readGitHubIssuesByNode({moon, repository,
   const filterState = filters.state;
   const filterSince = filters.since;
   if (!['open', 'closed', 'all'].includes(filterState) ||
-      !Array.isArray(inputLabels) ||
-      inputLabels.some(label => typeof label !== 'string') ||
+      !nativeArrayIsArray(inputLabels) ||
       (filterSince !== undefined && typeof filterSince !== 'string')) {
     fail('InvalidGitHubReadFilters');
   }
-  const labels = Object.freeze(inputLabels.slice());
+  const labelCount = inputLabels.length;
+  if (!Number.isInteger(labelCount) || labelCount < 0 || labelCount > 0xffffffff) {
+    fail('InvalidGitHubReadFilters');
+  }
+  // Capture each original index once, without caller methods, iterators or
+  // species. Validate the owned snapshot that every request will consume.
+  const labels = [];
+  for (let index = 0; index < labelCount; index += 1) {
+    defineOwnData(labels, index, {value: inputLabels[index],
+      writable: true, enumerable: true, configurable: true});
+  }
+  for (let index = 0; index < labelCount; index += 1) {
+    if (typeof labels[index] !== 'string') fail('InvalidGitHubReadFilters');
+  }
+  freeze(labels);
   filters = Object.freeze({state: filterState, since: filterSince, labels});
   const headers = JSON.parse(moon.githubRequestHeadersJson());
   const responseHeaders = JSON.parse(moon.githubResponseHeadersJson());
