@@ -25,7 +25,14 @@ const preloading = descriptor(NodeModule.prototype, 'isPreloading')?.get;
 const registerHooks = NodeModule.registerHooks, register = NodeModule.register;
 const stockLoad = NodeModule._load, stockCache = NodeModule._cache;
 const syncBuiltinESMExports = NodeModule.syncBuiltinESMExports;
-const fail = code => { const error = new NativeError(code); error.code = code; throw error; };
+const fail = (code, image) => {
+  const error = new NativeError(code); error.code = code;
+  // Only an already-held package-relative image key, never an absolute path
+  // or caller data. This diagnostic neither changes refusal nor admits a
+  // cache shape. Its retained String alias follows the original error duty.
+  if (image !== undefined) error.image = image;
+  throw error;
+};
 const own = (value, name) => {
   if (value === null || typeof value !== 'object') fail('InvalidInitialControlLoaderImage');
   const property = descriptor(value, name);
@@ -192,7 +199,7 @@ function installInitialControlImageLoader(groups) {
       const exportsProperty = descriptor(current, 'exports'), loadedProperty = descriptor(current, 'loaded');
       if (filenameProperty?.value !== filename || exportsProperty === undefined ||
           !hasOwn(exportsProperty, 'value') || typeof loadedProperty?.value !== 'boolean') {
-        invalidated = true; fail('InitialControlImageLoaderChanged');
+        invalidated = true; fail('InitialControlImageLoaderChanged', original.path);
       }
       const exported = exportsProperty.value;
       if (original.format === 'json') {
