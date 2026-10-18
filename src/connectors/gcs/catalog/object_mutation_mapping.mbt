@@ -168,10 +168,13 @@ pub fn object_mutation_mapping_json(
     DeleteObject => []
   }
   let field_sets = match binding.kind {
-    PatchMetadata => [["content_type"], ["metadata"], ["content_type", "metadata"]]
+    PatchMetadata =>
+      [["content_type"], ["metadata"], ["content_type", "metadata"]]
     DeleteObject => [[]]
   }
-  let permissions = Json::array(binding.permissions.map(value => value.to_json()))
+  let permissions = Json::array(
+    binding.permissions.map(value => value.to_json()),
+  )
   let rules : Array[Json] = field_sets.map(names => {
     "effect_kind": (match binding.kind {
       PatchMetadata => "update"
