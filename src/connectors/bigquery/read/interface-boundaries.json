@@ -550,7 +550,7 @@
     },
     {
       "module": "src/connectors/bigquery/read/read.mbt",
-      "sha256": "6ebb06d3da37350fa61c5e2b64076d6dc8bf26854bbd51aceee4d026dc857d69",
+      "sha256": "928f12dacd9f7514ac4bfbe933bc29bd548ac2bc6eab9bb3eca8d638af226df8",
       "exports": [],
       "operations": [
         {

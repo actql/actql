@@ -3,6 +3,8 @@ import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, ru
 // not expose the startup issuer or authenticate a caller-created packet.
 export {snapshotInitialControlHostInput} from './initial-control-host-input.mjs';
 export {readSourceManagedOriginalInput} from './source-managed-original-input.mjs';
+export {snapshotInitialControlHostInput as readInitialControlHostInput}
+  from './initial-control-host-input.mjs';
 import {installClientRunPlan} from './client-run-plan.mjs';
 import {configureInferEvidence} from './infer-evaluation-evidence.mjs';
 // One installed Local Host for the current OS user. The Client talks to the
@@ -3431,11 +3433,11 @@ export async function publishInstalledEffect({effectProfilePath, directory,
       baseEnvironmentWire, resolveSecret: resolveEffectSecret, signal, connectorTable});
 }
 
-// Only the actual early startup captures this operation. The first supported
-// producer is the omitted open input; an arbitrary object is not converted
-// into an admitted packet by this selector. This is not a public API grammar
-// restriction, an operational issuer, or a replacement Host factory.
+// Only the actual early startup captures this operation. It admits the selected
+// raw Local connect input before invoking this receiver; open preserves its
+// omitted input route. This operation alone cannot manufacture that admission.
 export function connectInitialControlHostPreparation(kind, rawInput) {
+  if (kind === 'connect') return connectEmbeddedLocal(rawInput, 'connect');
   if (kind !== 'open' || rawInput !== undefined) {
     throw clientOperationError('NodeInitialControlInputUnavailable');
   }
@@ -3539,6 +3541,16 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     options = {mode: 'local', owner: 'local',
       installation: {directory: record.openStateDirectory}};
     record.openOptions = options;
+  }
+  if (initialEntry === 'connect' && options.mode === 'local' && options.owner === undefined) {
+    // The same original supplier has already captured every descriptor. Match
+    // the Local provider's explicit default without dropping hidden/unknown
+    // fields or observing caller-owned options after the initialization await.
+    options = Object.create(Object.getPrototypeOf(options), {
+      ...Object.getOwnPropertyDescriptors(options),
+      owner: {value: 'local', enumerable: true},
+    });
+    record.connectOptions = options;
   }
   // Host-owned values never enter the SDK's transport-options packet. Snapshot
   // both once before awaits; selecting a profile is not silently ignoring it.
