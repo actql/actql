@@ -1,4 +1,11 @@
-import startup from './infer-trusted-node-preload.cjs';
+import {createRequire} from 'node:module';
+
+// The actual CJS startup may synchronously capture this ESM namespace before
+// entry. Read its already-published original forwarders through that SAME CJS
+// receiver; a static CJS import instead creates a forbidden require/ESM cycle.
+// This is only the private consumer path, not a late operational issuer.
+const require = createRequire(import.meta.url);
+const startup = require('./infer-trusted-node-preload.cjs');
 
 const ownDescriptor = Object.getOwnPropertyDescriptor;
 const hasOwn = Object.hasOwn, apply = Reflect.apply;
