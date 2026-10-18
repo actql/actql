@@ -118,7 +118,16 @@ test "actual original Host pair binds Crypto and retains separate Library Read a
   let data = @utf8.encode("The quick brown fox jumps over the lazy dog")
   let digest = inner.hmac_sha256(key, data).unwrap()
   assert_eq(
-    digest.to_unchecked_hex(),
+    digest
+    .map(byte => {
+      let part = byte.to_hex()
+      if part.length() == 1 {
+        "0" + part
+      } else {
+        part
+      }
+    })
+    .join(""),
     "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8",
   )
   assert_true(outer.verify_hmac_sha256(key, data, digest).unwrap())
