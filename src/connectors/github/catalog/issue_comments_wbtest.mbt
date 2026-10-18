@@ -217,3 +217,89 @@ test "comment Source request chooses closed native subject and fixed read query 
     is Err(InvalidCursor),
   )
 }
+
+///|
+fn comment_subjects_body(kind : String) -> String {
+  let connection = if kind == "Issue" { "issues" } else { "pullRequests" }
+  "{\"data\":{\"node\":{\"__typename\":\"Repository\",\"id\":\"R_original\",\"databaseId\":13,\"nameWithOwner\":\"o/r\",\"" +
+  connection +
+  "\":{\"pageInfo\":{\"hasNextPage\":true,\"endCursor\":\"subjects-next\"},\"nodes\":[{\"__typename\":\"" +
+  kind +
+  "\",\"id\":\"S_original\",\"number\":7,\"updatedAt\":\"2026-10-01T00:00:00Z\"}]}}}}"
+}
+
+///|
+test "comment subject Source enumerates real Issue and PullRequest originals with separate fixed queries" {
+  for kind in ["Issue", "PullRequest"] {
+    let subject = comment_read_subject(kind~)
+    let request = issue_comment_subjects_request("R_original", kind, 50, None).unwrap()
+    assert_true(request.contains("ActqlCommentSubjects"))
+    assert_false(request.contains("issueComments"))
+    assert_false(request.contains("mutation"))
+    let page = project_issue_comment_subjects_response(
+      @utf8.encode(comment_subjects_body(kind)),
+      limits(),
+      subject.repository,
+      kind,
+    ).unwrap()
+    assert_eq(page.subjects, [subject])
+    assert_true(page.has_next_page)
+    assert_eq(page.end_cursor, Some("subjects-next"))
+    // Only the matched original subject supplies the dependent query.
+    assert_true(issue_comments_request(page.subjects[0], 100, None).is_ok())
+  }
+}
+
+///|
+test "comment subject Source refuses foreign repository mixed native kind and missing continuation" {
+  let expected = comment_read_subject().repository
+  for
+    body in [
+      comment_subjects_body("Issue").replace(
+        old="\"id\":\"R_original\"",
+        new="\"id\":\"R_other\"",
+      ),
+      comment_subjects_body("Issue").replace(
+        old="\"databaseId\":13",
+        new="\"databaseId\":14",
+      ),
+      comment_subjects_body("Issue").replace(
+        old="\"nameWithOwner\":\"o/r\"",
+        new="\"nameWithOwner\":\"o/s\"",
+      ),
+      comment_subjects_body("Issue").replace(
+        old="\"Issue\"",
+        new="\"PullRequest\"",
+      ),
+      comment_subjects_body("Issue").replace(
+        old="\"number\":7",
+        new="\"number\":2147483648",
+      ),
+      comment_subjects_body("Issue").replace(
+        old="\"number\":7",
+        new="\"number\":0",
+      ),
+      comment_subjects_body("Issue").replace(
+        old="\"id\":\"S_original\"",
+        new="\"id\":\"\"",
+      ),
+      comment_subjects_body("Issue").replace(
+        old="\"endCursor\":\"subjects-next\"",
+        new="\"endCursor\":null",
+      ),
+    ] {
+    assert_true(
+      project_issue_comment_subjects_response(
+        @utf8.encode(body),
+        limits(),
+        expected,
+        "Issue",
+      )
+      is Err(_),
+    )
+  }
+  assert_true(
+    issue_comment_subjects_request("R_original", "Issue { extra }", 1, None)
+    is Err(InvalidState),
+  )
+}
