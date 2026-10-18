@@ -9,6 +9,19 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct actql_original_crypto_component actql_original_crypto_component;
+static bool actql_crypto_original_thread(actql_original_crypto_component *);
+static bool actql_crypto_original_current(actql_original_crypto_component *);
+static bool actql_crypto_original_enter(actql_original_crypto_component *);
+static void actql_crypto_original_leave(actql_original_crypto_component *);
+static int actql_crypto_original_release_library(actql_original_crypto_component *);
+static void *actql_crypto_original_symbol(actql_original_crypto_component *, const char *);
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+extern void *actql_bootstrap_current_read_context(void);
+extern void *actql_native_file_scoped_allocate(size_t);
+extern void actql_native_file_scoped_free(void *);
+#endif
+
 typedef struct bio_st BIO;
 typedef struct evp_pkey_st EVP_PKEY;
 typedef struct evp_md_ctx_st EVP_MD_CTX;
@@ -50,6 +63,9 @@ enum {
 
 typedef struct {
   void *dynamic_library;
+  actql_original_crypto_component *component;
+  bool component_borrowed;
+  bool original_allocator;
   char *error;
   int32_t diagnostic_ceiling;
   uint32_t pending_hashes;
@@ -78,8 +94,46 @@ typedef struct {
 static bool actql_signature_library_available(
   const actql_native_signature_library *library
 ) {
-  return library != NULL && library->dynamic_library != NULL && !library->closing;
+  if (library == NULL) return false;
+  if (library->component && !actql_crypto_original_current(library->component)) return false;
+  return library->dynamic_library != NULL && !library->closing &&
+    (library->component == NULL || library->component_borrowed);
 }
+
+/* Legacy allocation domains remain unchanged. Only the original component
+ * Library uses its existing provider's scoped native buffer allocation. */
+static void *actql_signature_allocate(actql_native_signature_library *library, size_t bytes) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+  if (library->original_allocator) return actql_native_file_scoped_allocate(bytes);
+#else
+  if (library->original_allocator) return NULL;
+#endif
+  return malloc(bytes);
+}
+static void actql_signature_free(actql_native_signature_library *library, void *pointer) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+  if (library->original_allocator) {actql_native_file_scoped_free(pointer);return;}
+#else
+  if (library->original_allocator) return;
+#endif
+  free(pointer);
+}
+typedef struct {actql_original_crypto_component *original; bool entered;} actql_signature_scope;
+static actql_signature_scope actql_signature_enter(actql_native_signature_library *library) {
+  actql_signature_scope scope = {0};
+  if (library == NULL || library->component == NULL) {scope.entered = true;return scope;}
+  if (actql_crypto_original_enter(library->component)) {
+    scope.original = library->component; scope.entered = true;
+  }
+  return scope;
+}
+static void actql_signature_leave(actql_signature_scope *scope) {
+  if (scope->entered && scope->original) actql_crypto_original_leave(scope->original);
+}
+#define ACTQL_SIGNATURE_SCOPE(library, refused) \
+  actql_signature_scope original_scope __attribute__((cleanup(actql_signature_leave))) = \
+    actql_signature_enter(library); \
+  if (!original_scope.entered) return (refused)
 
 // An explicit installer ceiling is independent of row/response limits.
 // Zero preserves legacy callers, never evidence of a funded numeric profile.
@@ -96,13 +150,14 @@ static bool actql_diagnostic_length(
 }
 
 static void actql_replace_error(
-  char **target, int32_t ceiling, const char *message
+  actql_native_signature_library *library, const char *message
 ) {
-  free(*target);
+  char **target = &library->error;
+  actql_signature_free(library, *target);
   *target = NULL;
   size_t length;
-  if (!actql_diagnostic_length(message, ceiling, &length)) return;
-  char *copy = malloc(length + 1);
+  if (!actql_diagnostic_length(message, library->diagnostic_ceiling, &length)) return;
+  char *copy = actql_signature_allocate(library, length + 1);
   if (copy == NULL) return;
   memcpy(copy, message, length);
   copy[length] = '\0';
@@ -132,11 +187,15 @@ static bool actql_load_symbol(
   void **target,
   const char *name
 ) {
+  if (library->component != NULL) {
+    *target = actql_crypto_original_symbol(library->component, name);
+    return *target != NULL;
+  }
   dlerror();
   *target = dlsym(library->dynamic_library, name);
   const char *error = dlerror();
   if (error == NULL && *target != NULL) return true;
-  actql_replace_error(&library->error, library->diagnostic_ceiling, error == NULL ? name : error);
+  actql_replace_error(library, error == NULL ? name : error);
   return false;
 }
 
@@ -145,13 +204,20 @@ static bool actql_load_symbol(
 
 static void actql_native_signature_library_finalize(void *value) {
   actql_native_signature_library *library = value;
+  if (library->component != NULL) {
+    // The original component/Host retains a lost Library borrow; GC cannot
+    // release it, unload the component or acknowledge its physical extent.
+    if (!actql_crypto_original_thread(library->component)) return;
+    if (!library->component_borrowed && !library->pending_hashes) moonbit_decref(library->component);
+    return;
+  }
   // Finalization is best effort, never an application cleanup acknowledgement.
   // In particular it cannot retry an unconfirmed explicit dlclose.
   if (library->dynamic_library != NULL && !library->close_unconfirmed &&
       library->pending_hashes == 0) {
     if (dlclose(library->dynamic_library) == 0) library->dynamic_library = NULL;
   }
-  free(library->error);
+  actql_signature_free(library, library->error);
   library->error = NULL;
 }
 
@@ -162,6 +228,20 @@ int32_t actql_native_signature_library_close(
   actql_native_signature_library *library
 ) {
   if (library == NULL) return 2;
+  if (library->component != NULL) {
+    if (!actql_crypto_original_thread(library->component)) return 2;
+    if (!library->component_borrowed && library->dynamic_library == NULL) return 0;
+    if (!actql_crypto_original_current(library->component)) return 2;
+    library->closing = true;
+    if (library->pending_hashes != 0) return 1;
+    // Original diagnostic buffers cannot outlive the explicit Library ACK.
+    actql_signature_free(library, library->error); library->error = NULL;
+    if (library->component_borrowed &&
+        actql_crypto_original_release_library(library->component) != 0) return 1;
+    library->component_borrowed = false;
+    library->dynamic_library = NULL;
+    return 0;
+  }
   library->closing = true;
   if (library->close_unconfirmed) return 3;
   if (library->dynamic_library == NULL) return 0;
@@ -169,7 +249,7 @@ int32_t actql_native_signature_library_close(
   dlerror();
   if (dlclose(library->dynamic_library) != 0) {
     const char *issue = dlerror();
-    actql_replace_error(&library->error, library->diagnostic_ceiling,
+    actql_replace_error(library,
       issue == NULL ? "crypto library close unconfirmed" : issue);
     library->close_unconfirmed = true;
     return 3;
@@ -184,12 +264,12 @@ static void actql_openssl_error(
 ) {
   unsigned long code = library->err_get_error();
   if (code == 0) {
-    actql_replace_error(&library->error, library->diagnostic_ceiling, fallback);
+    actql_replace_error(library, fallback);
     return;
   }
   char buffer[256];
   library->err_error_string_n(code, buffer, sizeof(buffer));
-  actql_replace_error(&library->error, library->diagnostic_ceiling, buffer);
+  actql_replace_error(library, buffer);
 }
 
 static int actql_base64url_value(unsigned char character) {
@@ -240,13 +320,13 @@ void *actql_native_signature_load_library(
   library->diagnostic_ceiling = diagnostic_ceiling;
   char *name = actql_copy_text(path, length);
   if (name == NULL) {
-    actql_replace_error(&library->error, library->diagnostic_ceiling, "invalid crypto library path");
+    actql_replace_error(library, "invalid crypto library path");
     return library;
   }
   library->dynamic_library = dlopen(name, RTLD_NOW | RTLD_LOCAL);
   free(name);
   if (library->dynamic_library == NULL) {
-    actql_replace_error(&library->error, library->diagnostic_ceiling, dlerror());
+    actql_replace_error(library, dlerror());
     return library;
   }
   if (!ACTQL_LOAD(library, bio_new_mem_buf, "BIO_new_mem_buf") ||
@@ -292,7 +372,14 @@ static void actql_native_sha256_finalize(void *value) {
   actql_native_sha256 *hash = value;
   // A lost managed receiver is not an explicit context ACK. Its physical
   // best-effort free cannot let a retained parent Library infer release.
-  actql_native_sha256_retire_context(hash, false);
+  if (hash->library && hash->library->component &&
+      !actql_crypto_original_thread(hash->library->component)) return;
+  if (hash->context != NULL && hash->library != NULL) {
+    actql_signature_scope scope = actql_signature_enter(hash->library);
+    if (!scope.entered) return;
+    actql_native_sha256_retire_context(hash, false);
+    actql_signature_leave(&scope);
+  }
   if (hash->library != NULL) moonbit_decref(hash->library);
   hash->library = NULL;
 }
@@ -300,6 +387,10 @@ static void actql_native_sha256_finalize(void *value) {
 MOONBIT_FFI_EXPORT
 bool actql_native_signature_sha256_close(actql_native_sha256 *hash) {
   if (hash == NULL) return false;
+  if (hash->library && hash->library->component &&
+      !actql_crypto_original_thread(hash->library->component)) return false;
+  if (hash->context == NULL) {hash->closed = true;return true;}
+  ACTQL_SIGNATURE_SCOPE(hash->library, false);
   actql_native_sha256_retire_context(hash, true);
   return true;
 }
@@ -314,6 +405,7 @@ void *actql_native_signature_sha256_new(
   memset(hash, 0, sizeof(*hash));
   if (!actql_signature_library_available(library) ||
       library->pending_hashes == UINT32_MAX) return hash;
+  ACTQL_SIGNATURE_SCOPE(library, hash);
   hash->library = library;
   moonbit_incref(library);
   hash->context = library->evp_md_ctx_new();
@@ -338,6 +430,7 @@ MOONBIT_FFI_EXPORT
 moonbit_bytes_t actql_native_signature_random_bytes(
   actql_native_signature_library *library, int32_t length
 ) {
+  ACTQL_SIGNATURE_SCOPE(library, moonbit_make_bytes_raw(0));
   typedef int (*random_fn)(unsigned char *, int);
   random_fn random = NULL;
   if (!actql_signature_library_available(library) ||
@@ -361,6 +454,7 @@ moonbit_bytes_t actql_native_signature_hmac_sha256(
   moonbit_bytes_t key, int32_t key_length,
   moonbit_bytes_t message, int32_t message_length
 ) {
+  ACTQL_SIGNATURE_SCOPE(library, moonbit_make_bytes_raw(0));
   typedef unsigned char *(*hmac_fn)(const EVP_MD *, const void *, int,
     const unsigned char *, size_t, unsigned char *, unsigned int *);
   hmac_fn hmac = NULL;
@@ -386,6 +480,7 @@ int32_t actql_native_signature_equal_tag(
   actql_native_signature_library *library,
   moonbit_bytes_t expected, moonbit_bytes_t supplied
 ) {
+  ACTQL_SIGNATURE_SCOPE(library, 2);
   typedef int (*compare_fn)(const void *, const void *, size_t);
   compare_fn compare = NULL;
   if (!actql_signature_library_available(library) ||
@@ -401,6 +496,7 @@ bool actql_native_signature_sha256_update(
 ) {
   if (hash == NULL || !actql_signature_library_available(hash->library) || hash->context == NULL ||
       hash->closed || length < 0) return false;
+  ACTQL_SIGNATURE_SCOPE(hash->library, false);
   return hash->library->evp_digest_update(
     hash->context, bytes, (size_t)length
   ) == 1;
@@ -414,6 +510,7 @@ moonbit_bytes_t actql_native_signature_sha256_finish(
       hash->context == NULL || hash->closed) {
     return moonbit_make_bytes_raw(0);
   }
+  ACTQL_SIGNATURE_SCOPE(hash->library, moonbit_make_bytes_raw(0));
   hash->closed = true;
   unsigned char digest[32];
   unsigned int length = 0;
@@ -447,8 +544,9 @@ MOONBIT_FFI_EXPORT
 moonbit_bytes_t actql_native_signature_library_error(
   actql_native_signature_library *library
 ) {
-  return library == NULL ? moonbit_make_bytes_raw(0) :
-    actql_copy_diagnostic(library->error, library->diagnostic_ceiling);
+  if (library == NULL || (library->component != NULL &&
+      !actql_crypto_original_current(library->component))) return moonbit_make_bytes_raw(0);
+  return actql_copy_diagnostic(library->error, library->diagnostic_ceiling);
 }
 
 MOONBIT_FFI_EXPORT
@@ -459,13 +557,14 @@ int32_t actql_native_signature_ed25519_public_key_raw32(
   moonbit_bytes_t output,
   int32_t output_length
 ) {
+  ACTQL_SIGNATURE_SCOPE(library, 2);
   if (!actql_signature_library_available(library) ||
       library->diagnostic_ceiling <= 0 || public_key == NULL ||
       public_key_length <= 0 || public_key_length > 16384 ||
       memchr(public_key, 0, (size_t)public_key_length) != NULL ||
       output == NULL || output_length != 32) return 2;
   memset(output, 0, 32);
-  actql_replace_error(&library->error, library->diagnostic_ceiling, NULL);
+  actql_replace_error(library, NULL);
   // Optional comparison support does not expand legacy load requirements.
   if (library->evp_pkey_get_raw_public_key == NULL &&
       !ACTQL_LOAD(library, evp_pkey_get_raw_public_key,
@@ -483,7 +582,7 @@ int32_t actql_native_signature_ed25519_public_key_raw32(
   }
   if (library->evp_pkey_get_base_id(key) != ACTQL_NID_ED25519) {
     library->evp_pkey_free(key);
-    actql_replace_error(&library->error, library->diagnostic_ceiling,
+    actql_replace_error(library,
                         "public key is not Ed25519");
     return 4;
   }
@@ -511,6 +610,7 @@ int32_t actql_native_signature_verify_ed25519(
   moonbit_bytes_t signature,
   int32_t signature_length
 ) {
+  ACTQL_SIGNATURE_SCOPE(library, 2);
   if (!actql_signature_library_available(library) ||
       public_key_length <= 0 || public_key_length > 16384 ||
       message_length < 0 || message_length > 1048576) {
@@ -521,7 +621,7 @@ int32_t actql_native_signature_verify_ed25519(
         signature, signature_length, decoded)) {
     return 2;
   }
-  actql_replace_error(&library->error, library->diagnostic_ceiling, NULL);
+  actql_replace_error(library, NULL);
   BIO *bio = library->bio_new_mem_buf(public_key, public_key_length);
   if (bio == NULL) {
     actql_openssl_error(library, "public key buffer failed");
@@ -535,7 +635,7 @@ int32_t actql_native_signature_verify_ed25519(
   }
   if (library->evp_pkey_get_base_id(key) != ACTQL_NID_ED25519) {
     library->evp_pkey_free(key);
-    actql_replace_error(&library->error, library->diagnostic_ceiling, "public key is not Ed25519");
+    actql_replace_error(library, "public key is not Ed25519");
     return 4;
   }
   EVP_MD_CTX *context = library->evp_md_ctx_new();
@@ -586,6 +686,7 @@ moonbit_bytes_t actql_native_signature_sign_ed25519(
 ) {
   moonbit_bytes_t result = moonbit_make_bytes_raw(1);
   result[0] = 2;
+  ACTQL_SIGNATURE_SCOPE(library, result);
   if (!actql_signature_library_available(library) ||
       private_key_length <= 0 || private_key_length > 16384 ||
       message_length < 0 || message_length > 1048576 ||
@@ -655,6 +756,7 @@ moonbit_bytes_t actql_native_private_evidence_cipher(
   final_fn final = NULL; ctrl_fn ctrl = NULL; random_fn random = NULL;
   moonbit_bytes_t result = moonbit_make_bytes_raw(1);
   result[0] = 1;
+  ACTQL_SIGNATURE_SCOPE(library, result);
   if (!actql_signature_library_available(library) || key_length != 32 ||
       aad_length < 1 || aad_length > 4096 || input_length < 1 ||
       input_length > 1048576 + 28 || (!encrypt && input_length <= 28)) return result;
@@ -671,7 +773,7 @@ moonbit_bytes_t actql_native_private_evidence_cipher(
 #undef ACTQL_PRIVATE_SYMBOL
   int length = encrypt ? input_length : input_length - 28;
   if (length > 1048576) return result;
-  unsigned char *scratch = malloc((size_t)length + 64);
+  unsigned char *scratch = actql_signature_allocate(library, (size_t)length + 64);
   if (scratch == NULL) return result;
   unsigned char nonce[12];
   unsigned char tag[16];
@@ -714,8 +816,10 @@ cleanup:
     wipe = scratch;
     for (size_t i = 0; i < (size_t)length + 64; i++) wipe[i] = 0;
   }
-  free(scratch);
+  actql_signature_free(library, scratch);
   return result;
 }
 
 #include "key_generation.h"
+
+#include "original_crypto_component.inc"
