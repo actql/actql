@@ -1,0 +1,52 @@
+{
+  "status": "private-component-candidate",
+  "version": "0.1",
+  "normal_profile": null,
+  "installed_supplier": false,
+  "target": "aarch64-apple-darwin",
+  "upstream": {
+    "version": "3.6.2",
+    "url": "https://github.com/openssl/openssl/releases/download/openssl-3.6.2/openssl-3.6.2.tar.gz",
+    "sha256": "aaf51a1fe064384f811daeaeb4ec4dce7340ec8bd893027eee676af31e83a04f"
+  },
+  "candidate_static_input": {
+    "qualification": "selected installed Homebrew static archive, not an ActQL source rebuild",
+    "bytes": 8571216,
+    "sha256": "074d179c9a8361e8f9143eb89a07954f4a251061dfb98a06c53f84153ed8d1b7",
+    "formula_sha256": "fe27b320fa5695b8b664e65696311b68b919f4ccceae2fc060a75d6206295239",
+    "receipt_sha256": "dac218841652230293ce6a3bd830c501c9484de3d14b659202f5e28fa9481205",
+    "header_count": 142,
+    "header_census_sha256": "62a552d118f779a2a4f3d278a173ec8edf4c5e2594ddeb556317cedaab69df39"
+  },
+  "local": {
+    "component.c": {
+      "bytes": 15963,
+      "sha256": "885ae5c7479d7b33d7c0f70a37eb8cb67cdc079280ae0d65f4462850d6401e7c"
+    },
+    "component.h": {
+      "bytes": 2393,
+      "sha256": "11f66859c17d50b93d45ff4a6ea90e6ca17841cbdc827786f89e6ffd0fa51757"
+    },
+    "NOTICE": {
+      "bytes": 368,
+      "sha256": "b9f30cf5ef0cfcd3fc60d7ce9bd7fe65ba8de925629a730df7b3ad2ae364f40a"
+    },
+    "fixtures/conformance.c": {
+      "bytes": 12544,
+      "sha256": "d25087145a1656ebe0be1a2b816d98a3df2925db71ca1799a92e4b8907245176"
+    },
+    "fixtures/library_conformance.c": {
+      "bytes": 9174,
+      "sha256": "6316b8b2083c269e1caaf4aebabf1f6edff0f2352589e70863e2891ee8886877"
+    }
+  },
+  "isolation": [
+    "hidden static symbols",
+    "exported component entry points only",
+    "no shared crypto dylib link",
+    "first allocation hooks checked"
+  ],
+  "capacity": "one already-admitted original provider extent; headers/realloc overlap included; no fallback or growth",
+  "minimum_macos": "26.0",
+  "license_sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a"
+}

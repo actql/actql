@@ -652,6 +652,21 @@ contracts and evidence members. The `salesforce.accounts` read alias refers to
 the original `Account` resource; it does not rename the UPDATE target or issue
 an Effect Mapping.
 
+The single owned `mock_churn_risk_catalogue.json` DATA source supplies both
+that immutable Node asset and the generated typed Common input. The portable
+Common factory admits the same declarations through the existing Relation
+owner. Its opaque catalogue keeps private source and alias arrays; count/index
+getters return the same original declarations for each logical name. Another
+factory invocation creates different originals, even when their complete
+Catalog bytes match. Native consumers reuse this factory rather than copying
+schema wires, pins or alias tables into a second implementation.
+
+Temporary typed inputs, view/alias arrays, schema parsing and hashing overlap
+the two returned declarations and private catalogue arrays. Returned tuples and
+declaration references retain their own caller lifetime. Factory construction,
+alias membership and dropping a DATA reference do not establish an installed
+generation, Source capacity, current permission or physical cleanup.
+
 The declared Snowflake `active_users` type is logical Int64. Its physical
 JSON codec must preserve full signed64 values without a binary64 round trip;
 an admitted Number is not implicitly promoted. Salesforce `Risk_Reason__c`
@@ -717,6 +732,17 @@ selected row arrays, integer text/cursor conversion and append workspace may
 overlap. Byte/node/depth/row/work bounds remain independent and are not funding.
 Failure aborts only the same attempt. Data-reference retirement, ticket
 consumption and successful row append are not physical cleanup acknowledgements.
+
+The standard RowRun page entry retains its 400,000-node and depth-32 defaults.
+An installed Source may narrow that page envelope on the same pending RowRun
+through `begin_row_run_with_page_limits`; it cannot widen those defaults or
+replace the original acquisition, schema, attempt or reference issuer. Invalid
+bounds abort only that attempt. The Host must bind the selected limits to its
+actual Source original. Explicit byte, node, depth, row and work limits remain
+DATA, independent of the Resource reservation and current read permission.
+A successful small document does not prove that the Source phase covers every
+combination of its permitted input bounds. Exhaustion still refuses without
+capture, replacement publication or a cleanup acknowledgement.
 
 ### Purpose-confined initial Local signing issuer
 

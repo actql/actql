@@ -4,9 +4,9 @@ import {readFileSync, mkdtempSync, mkdirSync, copyFileSync, writeFileSync, rmSyn
 import {dirname, join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {canonicalText} from './check-canonical-json.mjs';
-import {loadScalarPairBodies, verifyScalarPairBodies, scalarPairEvidence, scalarPairSource, assertScalarPairEvidenceFresh} from './native-local-scalar-pair-evidence.mjs';
+import {loadHistoricalScalarPairBodies, loadScalarPairBodies, verifyScalarPairBodies, scalarPairEvidence, scalarPairSource, assertScalarPairEvidenceFresh} from './native-local-scalar-pair-evidence.mjs';
 
-const original = loadScalarPairBodies();
+const original = loadHistoricalScalarPairBodies();
 
 test('authentic complete predecessor bodies and inherited dependencies explain exactly the finite pair', () => {
   assert.equal(verifyScalarPairBodies(original).length, 11);
@@ -110,4 +110,10 @@ test('closed pair vector preserves distinct complete manifest and source identit
   }
   for (const change of [{...body, permit: true}, {...body, profile: 'all-values'},
     {...body, evidence_cid: true}, {...body, platform: 'linux-x64-gnu'}]) assert.equal(valid(change), false);
+});
+
+
+test('current implementation changes cannot use the frozen historical proof operationally', () => {
+  assert.throws(() => loadScalarPairBodies(), /Unknown scalar implementation change: /u);
+  assertScalarPairEvidenceFresh();
 });

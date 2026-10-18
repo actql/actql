@@ -75,7 +75,8 @@ pub fn InstalledArenaHost::prepare_domain_original_read(
     Err(issue) => return Err(Domain(issue))
     Ok(_) => ()
   }
-  if domain.sqlite_library is Some(_) ||
+  if domain.crypto_component is Some(_) ||
+    domain.sqlite_library is Some(_) ||
     domain.live_channel is Some(_) ||
     domain.original_read is Some(_) {
     return Err(Domain(@bootstrap.Bootstrap(@bootstrap.AlreadyConsumed)))
@@ -339,6 +340,11 @@ pub fn InstalledArenaHost::close_domain_original_read(
   }
   if record.closed {
     return Ok(())
+  }
+  // Component/Library users belong to this same Read, not a parent-close ACK.
+  // Keep the original claim and frame usable for their explicit cleanup first.
+  if record.domain.crypto_component is Some(component) && !component.closed {
+    return Err(Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)))
   }
   record.closing = true
   record.ready = false

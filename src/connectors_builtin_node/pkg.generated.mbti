@@ -1345,6 +1345,8 @@ pub fn client_program_installed_source_read_bind_program(@client_local_host.Clie
 
 pub fn client_program_installed_source_read_check_current(@client_local_host.ClientInstalledSourceRead) -> Result[Unit, @client_local_host.ClientInstalledSourceReadIssue]
 
+pub fn client_program_installed_source_read_check_ledger(@client_local_host.ClientInstalledSourceRead, @physical_resources.Ledger) -> Result[Unit, @client_local_host.ClientInstalledSourceReadIssue]
+
 pub fn client_program_installed_source_read_retire(@client_local_host.ClientInstalledSourceRead) -> Result[Unit, @client_local_host.ClientInstalledSourceReadIssue]
 
 pub fn client_program_installed_source_read_start_listing_rows(@client_local_host.ClientInstalledSourceRead, @client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?, String, (@client_row_source_host.RowAttempt) -> Bool, Int64, Int64) -> Result[@client_row_source_host.RowRun, @client_local_host.ClientInstalledSourceReadIssue]
@@ -2336,6 +2338,8 @@ pub fn client_program_row_source_begin(@client_row_source_host.RowRun, Int, Int,
 pub fn client_program_row_source_begin_listing_page(@client_row_source_host.RowRun, Bytes, Int64, @client_row_source_host.RowPageCharge?) -> Result[Bool, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_begin_listing_request(@client_row_source_host.RowRun, String?, Int64) -> Result[Bool, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_begin_with_page_limits(@client_row_source_host.RowRun, Int, Int, Int, Int, Int, @value_admission.ReferenceIssuer?) -> Result[Bool, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_bind_response_cleanup(@client_row_source_host.RowRunResponseBorrow, () -> Bool) -> Result[Unit, @client_row_source_host.RowHostIssue]
 

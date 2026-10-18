@@ -2589,10 +2589,15 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (authorizedScope(value) === undefined) return found;
     return checkpoints.heldLookup(value.requestId) ?? found;
   };
+  const selectedSourcePreparation = preparation?.sourcePreparation();
+  // An unselected installed Host must supply no callback, not a no-op that
+  // still selects the Source request/Promise retention path downstream.
+  const bindOwnedRequest = selectedSourcePreparation === undefined ? undefined :
+    preparation.bindSourceRequest;
   const submissionService = installNodeClientSubmission({journal, moon,
     authorizedScope: value => hostConnection(value) ? authorizedScope(value) : undefined,
     prepareSubmit, submit, lookupRequest: lookupHeld, checkSubmissionInput: check,
-    bindOwnedRequest: preparation?.bindSourceRequest});
+    bindOwnedRequest});
   const checkpointOperations = checkpoints === undefined ? {} : {
     checkpoints: value => checkpoints.listCheckpoints({principalId: value.principalId,
       after: value.after, limit: value.limit,
@@ -3356,10 +3361,13 @@ async function openInstalledHost(originalInstallation, preparation) {
   }
   const ingress = createNodeInProcessClientHost({
     authenticate: () => principalId,
-    bindOwnedRequest: preparation?.bindSourceRequest,
+    bindOwnedRequest,
     ...hostOperations, maxRowBytes: 1024 * 1024,
   });
   const sourcePreparation = preparation?.sourcePreparation();
+  if (sourcePreparation !== selectedSourcePreparation) {
+    throw clientOperationError('InstalledSourcePreparationChanged');
+  }
   const port = observation === undefined && sourcePreparation === undefined ? ingress : Object.freeze({
     ...(sourcePreparation === undefined ? {} : {[sourcePreparationPort]: sourcePreparation}),
     perform: (operation, request, signal) => observation === undefined

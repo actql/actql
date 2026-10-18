@@ -74,6 +74,19 @@ test "Source read consumer identity without an original child is unavailable" {
   )
   value.original = Some(value)
   assert_true(check_installed_source_read_current(value) is Err(Retired))
+  // Merely supplying an actual Ledger cannot replace the missing imported
+  // original. These are explicit unaccounted test limits, not a supplier.
+  let expected = @resources.create_ledger({
+    planning_work: 1,
+    attempts: 1,
+    holdings: 1,
+    transfer_bytes: 1L,
+    retained_bytes: 1L,
+    execution_bytes: 1L,
+  }).unwrap()
+  assert_true(
+    check_installed_source_read_ledger(value, expected) is Err(Retired),
+  )
   let copied = { ..value, }
   assert_true(
     check_installed_source_read_current(copied) is Err(ForeignOriginal),

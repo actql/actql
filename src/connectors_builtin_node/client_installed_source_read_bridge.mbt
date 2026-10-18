@@ -20,6 +20,15 @@ pub fn client_program_installed_source_read_check_current(
 }
 
 ///|
+#export_name("clientProgramInstalledSourceReadCheckLedger")
+pub fn client_program_installed_source_read_check_ledger(
+  value : @client_local_host.ClientInstalledSourceRead,
+  expected : @resources.Ledger,
+) -> Result[Unit, @client_local_host.ClientInstalledSourceReadIssue] {
+  @client_local_host.check_installed_source_read_ledger(value, expected)
+}
+
+///|
 #export_name("clientProgramInstalledSourceReadBindProgram")
 pub fn client_program_installed_source_read_bind_program(
   value : @client_local_host.ClientInstalledSourceRead,
