@@ -58,6 +58,70 @@ test('registry preparation requires its exact original Host installation and gen
     {code: 'InstalledHostPreparationChanged'});
 });
 
+test('Source subject lookup accepts only the same pending request in the original registry', async t => {
+  const f = fixture();
+  let original;
+  f.host.port.perform = async (operation, request) => {
+    if (operation === 'connect') return profile;
+    assert.equal(operation, 'attach'); original = request;
+    assert.equal(f.registry.assertSourceRequest(f.host, f.installation, f.host, request), undefined);
+    assert.throws(() => f.registry.assertSourceRequest(f.host, f.installation, f.host, {...request}),
+      {code: 'InstalledHostPreparationChanged'});
+    let traps = 0;
+    const proxy = new Proxy(request, {get() {traps++;}, ownKeys() {traps++; return [];},
+      getOwnPropertyDescriptor() {traps++;}});
+    assert.throws(() => f.registry.assertSourceRequest(f.host, f.installation, f.host, proxy),
+      {code: 'InstalledHostPreparationChanged'});
+    assert.equal(traps, 0);
+    for (const [host, installation, generation] of [
+      [{}, f.installation, f.host], [f.host, {}, f.host], [f.host, f.installation, {}],
+    ]) assert.throws(() => f.registry.assertSourceRequest(host, installation, generation, request),
+      {code: 'InstalledHostPreparationChanged'});
+    const foreign = createEmbeddedHostRegistry(() => true);
+    assert.throws(() => foreign.assertSourceRequest(f.host, f.installation, f.host, request),
+      {code: 'InstalledHostPreparationChanged'});
+    return {ref, durability: 'durable', revision: 1};
+  };
+  const client = await f.acquire(); t.after(() => client.close());
+  assert.throws(() => f.registry.assertSourceRequest(f.host, f.installation, f.host, {}),
+    {code: 'InstalledHostPreparationChanged'});
+  assert.deepEqual((await client.attach(ref)).ref, ref);
+  assert.ok(original);
+  assert.throws(() => f.registry.assertSourceRequest(f.host, f.installation, f.host, original),
+    {code: 'InstalledHostPreparationChanged'}, 'Promise retirement cuts only the request association');
+});
+
+test('Source subject lookup keeps concurrent original calls separate and close drains both', async t => {
+  const f = fixture(), a = deferred(), b = deferred();
+  const started = deferred(), originals = [];
+  f.host.port.perform = async (operation, request) => {
+    if (operation === 'connect') return profile;
+    assert.equal(operation, 'attach');
+    const index = originals.length; originals.push(request);
+    if (originals.length === 2) started.resolve();
+    await (index === 0 ? a.promise : b.promise);
+    return {ref, durability: 'durable', revision: 1};
+  };
+  const client = await f.acquire();
+  const first = client.attach(ref), second = client.attach(ref);
+  void first.catch(() => {}); void second.catch(() => {});
+  t.after(async () => {a.resolve(); b.resolve(); await Promise.allSettled([first, second]); await client.close();});
+  await started.promise;
+  assert.notEqual(originals[0], originals[1]);
+  for (const original of originals) f.registry.assertSourceRequest(f.host, f.installation, f.host, original);
+  a.resolve(); await first;
+  assert.throws(() => f.registry.assertSourceRequest(f.host, f.installation, f.host, originals[0]),
+    {code: 'InstalledHostPreparationChanged'});
+  f.registry.assertSourceRequest(f.host, f.installation, f.host, originals[1]);
+  let closed = false; const closing = client.close().then(() => {closed = true;});
+  await Promise.resolve();
+  assert.equal(closed, false); assert.equal(f.calls.includes('store'), false);
+  assert.throws(() => f.registry.assertSourceRequest(f.host, f.installation, f.host, originals[1]),
+    {code: 'InstalledHostPreparationChanged'});
+  b.resolve(); await second; await closing;
+  assert.equal(closed, true); assert.equal(f.calls.filter(call => call === 'store').length, 1);
+});
+
 test('a preparing record is not an opened root or a reusable Host lease', async () => {
   const f = fixture();
   let opened = 0;

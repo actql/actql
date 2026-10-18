@@ -148,6 +148,18 @@ export function assertInitialControlHostPreparation(originals) {
   profiles.assertPreparation(originals.host, originals.installation, originals.generation);
 }
 
+// The actual selected startup captures this fixed operation, not a caller
+// predicate. Its installation phase may check the original Host before a
+// request exists. A request phase additionally requires that SAME pending
+// in-process request; neither check issues Source capacity or authority.
+export function assertSourceManagedHostPreparation(originals, originalOwnedRequest) {
+  assertInitialControlHostPreparation(originals);
+  if (originalOwnedRequest !== undefined) {
+    profiles.assertSourceRequest(originals.host, originals.installation,
+      originals.generation, originalOwnedRequest);
+  }
+}
+
 const bytesCid = bytes => `sha256:${createHash('sha256')
   .update(bytes).digest('hex')}`;
 const publicKeyCid = value => bytesCid(createPublicKey(value).export({
