@@ -14,7 +14,7 @@ pub fn client_values_host_project_effect_task_run(
     task_keys.length() != physically_claimed.length() {
     return Err(())
   }
-  let claims = task_keys.mapi((index, task_key) => {
+  let claims : Array[@host.ClientRemoteEffectTaskRunClaim] = task_keys.mapi((index, task_key) => {
     task_key,
     dispatch_cid: if dispatch_cids[index].is_empty() {
       None
