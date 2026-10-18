@@ -153,6 +153,15 @@ and module lifetime, and rechecks closing after the original current callback.
 Copying a scope's methods or constructing another internal state-machine
 instance cannot add membership to the selected preload's instance.
 
+The prepared embedded Host obtains its fixed check-environment source through
+that same nominal scope and five originals. The private startup projects the
+already captured package image; the Host does not reread its pathname or fall
+back to current file contents when that projection is unavailable. The original
+String remains in its selected module/preparation lifetime, including escaped
+aliases; this borrow is neither a new issuer nor a physical release acknowledgement.
+Independent Host entries without this preparation retain their own acquisition
+obligations and do not inherit the embedded startup admission.
+
 An eager original Host namespace may capture the startup's already-published
 immutable CJS forwarders through the same synchronous private receiver. This
 avoids a static CJS/ESM require cycle without deferring authentication to entry
@@ -225,6 +234,15 @@ handoff cannot acquire pre-entry provenance by compiling later. Preexisting
 bootstrap bodies, nested export referents, stock resolution and fixed asset
 reads still need their independent selected-domain correspondence; this cache
 handoff alone is neither a complete loader proof nor an operational issuer.
+
+Fixed control assets are projected from that same selected immutable Source
+holding through the private nominal installation port. It checks the original
+scope, five references and currentness before and after the captured supplier
+callback, returning only its original String. It neither rereads a path nor
+parses, reconstructs or authenticates new DATA. An unavailable asset stays
+unavailable; callers cannot substitute a file, receiver, Promise or matching
+digest. Scope retirement does not collect escaped Strings or acknowledge the
+separate module/image holding.
 
 This admission has no conversion to metadata HTTP, Source, Result, business Run,
 Model invocation, Content/driver or external-VM capacity or authority. Their
