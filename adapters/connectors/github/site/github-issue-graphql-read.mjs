@@ -158,7 +158,7 @@ export async function readGitHubIssuesByNode({moon, repository,
         const use = Reflect.apply(useProjection, control, [value.use]);
         if (value.response !== response || value.method !== 'POST' ||
             value.path !== GITHUB_GRAPHQL_PATH ||
-            !Buffer.from(value.requestBodyBytes).equals(Buffer.from(body, 'utf8')) ||
+            value.requestBodyText !== body || value.requestBodyBytes !== Buffer.byteLength(body, 'utf8') ||
             use[0] !== response.useCid || use[1] !== expectedGrantCid ||
             use[2] !== expectedUseId ||
             prefix.responses.slice(0, -1).some(previous => previous.response === response) ||
