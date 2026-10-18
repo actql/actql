@@ -5,9 +5,10 @@ import {fileURLToPath} from 'node:url';
 import {compileFunction} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'acorn';
-import {DatabaseSync} from 'node:sqlite';
+import {DatabaseSync, StatementSync} from 'node:sqlite';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
-import {openClientRequestJournal, observeOriginalClientRequestJournalCustody}
+import {openClientRequestJournal, observeOriginalClientRequestJournalCustody,
+  assertOriginalClientRequestJournalFacilityCurrent}
   from './client-request-journal.mjs';
 
 const source = readFileSync(new URL('./node-public-initial-control-bootstrap.cjs', import.meta.url), 'utf8');
@@ -35,7 +36,7 @@ const make = compileFunction(`
     close:(original,held)=>closeJournal(journalOriginal(original,held,true))};`,
 ['state', 'assertSamePreparation']);
 
-async function fixture({covered = true, open, read, current} = {}) {
+async function fixture({covered = true, open, read, current, nativeCurrent} = {}) {
   const scratch = await createOwnedScratch({
     parent: fileURLToPath(new URL('../../_build/', import.meta.url)),
     prefix: 'journal-root-custody-', label: 'same Root Journal custody diagnostic',
@@ -44,7 +45,8 @@ async function fixture({covered = true, open, read, current} = {}) {
   const directory = join(scratch.path, 'requests');
   const subject = Object.freeze({journalDirectory: directory, assertCurrent() { current?.(); }});
   const namespace = {};
-  const state = {namespace, journalDisposition: covered ? Object.freeze({
+  const state = {namespace, journalNative: Object.freeze({DatabaseSync, StatementSync}),
+    journalDisposition: covered ? Object.freeze({
     argumentsForOriginalJournal(actual, options) {
       assert.strictEqual(actual, subject); return options;
     },
@@ -54,6 +56,13 @@ async function fixture({covered = true, open, read, current} = {}) {
     open(path, options) {assert.strictEqual(this, namespace);
       return open === undefined ? openClientRequestJournal(path, options) : open(path, options);},
     observe: observeOriginalClientRequestJournalCustody,
+    current(database, statement) {
+      assert.strictEqual(this, namespace);
+      assert.strictEqual(database, DatabaseSync);
+      assert.strictEqual(statement, StatementSync);
+      assertOriginalClientRequestJournalFacilityCurrent(database, statement);
+      nativeCurrent?.();
+    },
   })};
   const root = make(state, actual => assert.strictEqual(actual, originals));
   return {scratch, originals, directory, root, state};
@@ -67,6 +76,37 @@ test('Root refuses missing disposition before subject read or native constructor
   const f = await fixture({covered: false, read() {reads++;}, open() {opens++;}});
   assert.throws(() => f.root.prepare(f.originals), {code: 'HostJournalPreparationUnavailable'});
   assert.equal(reads, 0); assert.equal(opens, 0); f.scratch.passed();
+});
+
+test('Root native facility refusal precedes subject read and native constructor', async () => {
+  let reads = 0, opens = 0, fences = 0;
+  const cause = new Error('OriginalNativeFacilityChanged');
+  const f = await fixture({read() {reads++;}, open() {opens++;},
+    nativeCurrent() {fences++; throw cause;}});
+  let failure;
+  assert.throws(() => f.root.prepare(f.originals), error => {
+    failure = error; return error.cause === cause;
+  });
+  assert.equal(fences, 1); assert.equal(reads, 0); assert.equal(opens, 0);
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  f.scratch.passed();
+});
+
+test('Root post-constructor native refusal retains acquired child and permits original close', async () => {
+  let acquired, changed = false;
+  const cause = new Error('OriginalNativeFacilityChangedAfterOpen');
+  const f = await fixture({nativeCurrent() {if (changed) throw cause;},
+    open(path, options) {acquired = openClientRequestJournal(path, options); changed = true; return acquired;}});
+  const original = f.root.prepare(f.originals);
+  let failure;
+  assert.throws(() => f.root.open(original, f.originals, f.directory, {}), error => {
+    failure = error; return error.cause === cause;
+  });
+  assert.equal(observeOriginalClientRequestJournalCustody(acquired).databaseClosed, false);
+  assert.equal(failure.cleanupHandle.status().nativePending, true);
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.equal(observeOriginalClientRequestJournalCustody(acquired).databaseClosed, true);
+  f.scratch.passed();
 });
 
 test('Root retains one original actual Journal through native close, not a copied pair', async () => {

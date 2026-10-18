@@ -54,6 +54,8 @@ function journalCurrent(original, held) {
   try {
     assertSamePreparation(held);
     if (entry.disposition !== state.journalDisposition) journalUnavailable();
+    apply(state.journal.current, state.namespace,
+      [state.journalNative.DatabaseSync, state.journalNative.StatementSync]);
     apply(entry.subjectCurrent, entry.subject, []);
     return entry;
   } catch (cause) {
@@ -160,6 +162,11 @@ function prepareJournal(held) {
   try {
     entry.argumentsForJournal = field(entry.disposition, 'argumentsForOriginalJournal');
     if (typeof entry.argumentsForJournal !== 'function') journalUnavailable();
+    // These constructors were captured from this startup's builtin module
+    // before the Host namespace. The fixed namespace operation must agree
+    // on the same native facility before any subject read or DB acquisition.
+    apply(state.journal.current, state.namespace,
+      [state.journalNative.DatabaseSync, state.journalNative.StatementSync]);
     entry.subject = apply(state.journal.read, state.namespace, [held]);
     entry.subjectCurrent = field(entry.subject, 'assertCurrent');
     if (typeof entry.subjectCurrent !== 'function') journalUnavailable();
@@ -859,6 +866,13 @@ try {
   // The actual prefix owns its fixed initialization and ordinary compiler
   // disposition before loading the generated inventory or covered images.
   const declaration = declareOrdinaryInitialControlPhaseEnvelope(getHeapStatistics().heap_size_limit);
+  // Retain selected builtin constructor identities before namespace callbacks.
+  // This is module/control custody only: no DatabaseSync is constructed and
+  // no writable Journal capacity is issued by loading this builtin.
+  const sqliteOriginal = require('node:sqlite');
+  const journalNative = freeze({DatabaseSync:field(sqliteOriginal,'DatabaseSync'),
+    StatementSync:field(sqliteOriginal,'StatementSync')});
+  if (Object.values(journalNative).some(value=>typeof value !== 'function')) unavailable();
   // Adopt the separate joint Source recipe before namespace, managed Source
   // metadata or raw SDK acquisition. This is not a second whole VM allowance.
   const sourceEnvelope = declareSourceManagedPhaseEnvelope(declaration);
@@ -914,7 +928,7 @@ try {
   }
   freeze(journal);
   state = {declaration,runtime,envelope,sourceEnvelope,sourceComputeEnvelope,runRequirements,
-    inventory,images,namespace,consumer,validator,reader,source,journal,prefixIntrinsics};
+    inventory,images,namespace,consumer,validator,reader,source,journal,journalNative,prefixIntrinsics};
 } catch(cause) {
   // Keep original FD/namespace/compile failure and its close-only duty. A
   // failed prefix never becomes a second factory or a retrying image read.
