@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import shlex
 import stat
 import subprocess
@@ -54,6 +55,24 @@ def produce(output: Path, openssl: Path, clang: Path, sdk: Path) -> dict[str, ob
         if observed != expected:
             raise ValueError('Stale Crypto source identity: ' + name)
         inputs[str(path)] = observed
+    selected = recipe['candidate_static_input']
+    for path, checksum in ((openssl / '.brew/openssl@3.rb', selected['formula_sha256']),
+                           (openssl / 'INSTALL_RECEIPT.json', selected['receipt_sha256'])):
+        inputs[str(path)] = original(path)
+        if inputs[str(path)]['sha256'] != checksum:
+            raise ValueError('Selected OpenSSL archive origin mismatch')
+    headers = []
+    for path in sorted((openssl / 'include').rglob('*')):
+        if path.is_symlink():
+            raise ValueError('Unqualified OpenSSL header alias')
+        if path.is_file():
+            identity = original(path)
+            inputs[str(path)] = identity
+            headers.append({'path': str(path.relative_to(openssl / 'include')), **identity})
+    header_digest = hashlib.sha256(json.dumps(
+        headers, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    if len(headers) != selected['header_count'] or header_digest != selected['header_census_sha256']:
+        raise ValueError('Selected OpenSSL header membership mismatch')
     archive = openssl / 'lib/libcrypto.a'
     inputs[str(archive)] = original(archive)
     if inputs[str(archive)] != {key: recipe['candidate_static_input'][key]
@@ -63,7 +82,18 @@ def produce(output: Path, openssl: Path, clang: Path, sdk: Path) -> dict[str, ob
     inputs[str(license_path)] = original(license_path)
     if inputs[str(license_path)]['sha256'] != recipe['license_sha256']:
         raise ValueError('Selected OpenSSL license mismatch')
-    inputs[str(clang)] = original(clang, 256 * 1024 * 1024)
+    # A linker deployment flag cannot lower the ABI of a precompiled input.
+    archive_loads = subprocess.check_output(
+        ['/Library/Developer/CommandLineTools/usr/bin/otool', '-l', str(archive)], text=True)
+    archive_minimums = re.findall(
+        r'cmd LC_BUILD_VERSION\s+cmdsize \d+\s+platform 1\s+minos ([0-9.]+)', archive_loads)
+    if not archive_minimums:
+        raise ValueError('OpenSSL archive deployment requirements unavailable')
+    def version(value: str) -> tuple[int, ...]:
+        return tuple((list(map(int, value.split('.'))) + [0, 0, 0])[:3])
+    if max(map(version, archive_minimums)) > version(recipe['minimum_macos']):
+        raise ValueError('OpenSSL archive requires a newer deployment target')
+    inputs[str(clang)] = original(clang, 512 * 1024 * 1024)
     output.mkdir(parents=True, exist_ok=False)
     exports = output / 'component.exports'
     exports.write_text(''.join('_' + name + '\n' for name in EXPORTS))
@@ -99,7 +129,7 @@ def produce(output: Path, openssl: Path, clang: Path, sdk: Path) -> dict[str, ob
     if not all('_' + name in undefined.split() for name in required):
         raise ValueError('Original process provider import missing')
     for name, expected in inputs.items():
-        if original(Path(name), 256 * 1024 * 1024) != expected:
+        if original(Path(name), 512 * 1024 * 1024) != expected:
             raise ValueError('Crypto build input changed')
     (output / 'OPENSSL-LICENSE.txt').write_bytes(license_path.read_bytes())
     (output / 'CRYPTO-NOTICE').write_bytes((SOURCE / 'NOTICE').read_bytes())
@@ -107,7 +137,8 @@ def produce(output: Path, openssl: Path, clang: Path, sdk: Path) -> dict[str, ob
               'source_qualification': recipe['candidate_static_input']['qualification'],
               'provider_binding': 'existing process provider; actual original binding required before first allocation',
               'command': command, 'inputs': inputs, 'exports': sorted(names), 'links': links,
-              'undefined': undefined, 'library': original(library),
+              'undefined': undefined, 'archive_minimum_macos': sorted(set(archive_minimums), key=version),
+              'archive_object_count': len(archive_minimums), 'library': original(library),
               'license': original(output / 'OPENSSL-LICENSE.txt'),
               'notice': original(output / 'CRYPTO-NOTICE')}
     (output / 'producer.json').write_text(json.dumps(result, indent=2) + '\n')
