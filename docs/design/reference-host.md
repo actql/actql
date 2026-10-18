@@ -652,6 +652,21 @@ contracts and evidence members. The `salesforce.accounts` read alias refers to
 the original `Account` resource; it does not rename the UPDATE target or issue
 an Effect Mapping.
 
+The single owned `mock_churn_risk_catalogue.json` DATA source supplies both
+that immutable Node asset and the generated typed Common input. The portable
+Common factory admits the same declarations through the existing Relation
+owner. Its opaque catalogue keeps private source and alias arrays; count/index
+getters return the same original declarations for each logical name. Another
+factory invocation creates different originals, even when their complete
+Catalog bytes match. Native consumers reuse this factory rather than copying
+schema wires, pins or alias tables into a second implementation.
+
+Temporary typed inputs, view/alias arrays, schema parsing and hashing overlap
+the two returned declarations and private catalogue arrays. Returned tuples and
+declaration references retain their own caller lifetime. Factory construction,
+alias membership and dropping a DATA reference do not establish an installed
+generation, Source capacity, current permission or physical cleanup.
+
 The declared Snowflake `active_users` type is logical Int64. Its physical
 JSON codec must preserve full signed64 values without a binary64 round trip;
 an admitted Number is not implicitly promoted. Salesforce `Risk_Reason__c`
