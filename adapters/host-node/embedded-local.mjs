@@ -111,6 +111,7 @@ import {installRunStateAuthority, installRunStateService,
   inspectAuthorizedRunState} from '../host-common/run-state-access.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import {prepareHostJournalInstallation} from './node-host-journal-installation.mjs';
 import * as publicationStoreModule from '../store-local/publication-store.mjs';
 import {createLocalRetainedStore} from '../store-local/files.mjs';
 import {installLocalRetainedStore, installLocalSnapshotStore} from
@@ -524,6 +525,9 @@ async function openInstalledHost(originalInstallation, preparation) {
   // Root-format admission can create and fsync the first marker. Retain the
   // actual Host subject before that operation, not only before SQLite open.
   preparation?.retainHostJournalPreparation(root, principalId, journalDirectory);
+  // The actual Journal facility precedes even root-format creation/fsync.
+  // Initial control and Source/Compute admissions cannot cover this write.
+  if (preparation !== undefined) await preparation.prepareHostJournal();
   await admitHostRootFormat(root);
   if (registerModelProviders !== undefined && process.version === 'v22.22.0' &&
       process.platform === 'darwin' && process.arch === 'arm64' &&
@@ -3628,6 +3632,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   profiles.registerPreparation(host, originalInstallation, host);
   let control, controlClose, duty, observedClose, referenceRetirement;
   let moon, project, projectProfile, mockPreparation, sourceManaged, sourceManagedClose;
+  let hostJournal, hostJournalClose, hostJournalFlight;
   let adopted = false, referencesRetired = false;
   const record = {};
   function retirePreparationReferences() {
@@ -3661,6 +3666,24 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       }
       sourceManaged = sourceManagedClose = undefined;
     }
+    if (hostJournal !== undefined) {
+      // Capture a successfully observed callback/receiver once, before the
+      // first invocation. An unobserved getter failure retains the original
+      // holding and may be observed again by this same cleanup duty.
+      hostJournalClose ??= hostJournal.close;
+      if (typeof hostJournalClose !== 'function') {
+        throw clientOperationError('HostJournalInstallationCleanupPending');
+      }
+      const observation = await Reflect.apply(hostJournalClose, hostJournal, []);
+      const pending = observation !== null && typeof observation === 'object'
+        ? Object.getOwnPropertyDescriptor(observation, 'pending') : undefined;
+      if (pending === undefined || !Object.hasOwn(pending, 'value') || pending.value !== false) {
+        throw clientOperationError('HostJournalInstallationCleanupPending');
+      }
+      hostJournal = hostJournalClose = undefined;
+      hostJournalFlight = undefined;
+      record.hostJournal = undefined;
+    }
     retirePreparationReferences();
     const observed = await Reflect.apply(controlClose, control, []);
     if (observed?.pending === false) {
@@ -3690,6 +3713,33 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         }});
       profiles.retainHostJournalPreparation(host, originalInstallation, host, view);
       view.assertCurrent();
+    },
+    prepareHostJournal() {
+      assertInitialControlHostPreparation(originals);
+      if (hostJournalFlight !== undefined) return hostJournalFlight;
+      // Install the single flight before invoking the fallible supplier. A
+      // partial failure remains the same owned carrier, never a replacement
+      // facility or another initialization attempt.
+      hostJournalFlight = Promise.resolve().then(async () => {
+        const original = await prepareHostJournalInstallation(originals);
+        if (original === undefined || original === null) {
+          throw clientOperationError('HostJournalInstallationUnavailable');
+        }
+        hostJournal = original;
+        record.hostJournal = original;
+        hostJournalClose = original.close;
+        if (typeof hostJournalClose !== 'function') {
+          throw clientOperationError('HostJournalInstallationCleanupPending');
+        }
+        const current = original.assertCurrent;
+        if (typeof current !== 'function') {
+          throw clientOperationError('HostJournalPreparationUnavailable');
+        }
+        Reflect.apply(current, original, []);
+        assertInitialControlHostPreparation(originals);
+        return original;
+      });
+      return hostJournalFlight;
     },
     bindSourceRequest(parent, derived) {
       if (mockPreparation === undefined) return;
