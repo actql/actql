@@ -1181,3 +1181,11 @@ entry/leave permanently keeps that view cleanup-only; a later available context
 cannot revive it. The same pair retains the consuming view and never restores
 its spent available-read port. Scope leave does not retire managed aliases or
 acknowledge material, domain, Library or Host cleanup.
+
+A retained Native filesystem Root can be checked against the caller's actual
+current original Read context without exporting that context or an address.
+The check rejects legacy Roots, retired descriptors and a different active
+domain even when their paths or ownership observations match. The existing
+Adoption Session applies the same physical check to each Root it owns; this
+neither substitutes for its full current/adoption fence nor combines Read and
+SQLite stages into one ambient scope.
