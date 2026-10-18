@@ -94,6 +94,28 @@ test('optional SDK rollback cannot leave dangling package indices in public Node
   assert.equal(value.packages.length, 2);
 });
 
+test('private root implementation files stay in the ordinary Local and public Node images', t => {
+  const f = fixture(t); addPublicNode(f);
+  for (const name of ['local-node', 'node']) {
+    const file = 'packages/' + name + '/package.json';
+    const manifest = JSON.parse(readFileSync(join(f.root, file), 'utf8'));
+    manifest.files = [...new Set([...(manifest.files ?? []), 'initial-control-public-dispatch.cjs'])];
+    f.put(file, JSON.stringify(manifest));
+    f.put('packages/' + name + '/initial-control-public-dispatch.cjs',
+      'module.exports=Object.freeze({selectedInitialControlHostPreparation:undefined});\n');
+  }
+  const first = f.read(f.render());
+  const local = first.images.find(value => value.path === 'initial-control-public-dispatch.cjs');
+  const node = first.publicNode.images.find(value => value.path === 'initial-control-public-dispatch.cjs');
+  assert.equal(local.sha256, node.sha256);
+  f.put('packages/local-node/initial-control-public-dispatch.cjs', 'module.exports={changed:true};\n');
+  const second = f.read(f.render());
+  assert.notEqual(second.images.find(value => value.path === local.path).sha256, local.sha256);
+  assert.equal(second.publicNode.images.find(value => value.path === node.path).sha256, node.sha256);
+  unlinkSync(join(f.destination, 'initial-control-public-dispatch.cjs'));
+  assert.throws(f.render, /ENOENT/);
+});
+
 test('public Node exact Local version conflicts remain errors rather than absent coverage', t => {
   const f = fixture(t); addPublicNode(f, {'@actql/local-node': '0.0.1'});
   assert.throws(f.render, /WrongInitialControlDependencyVersion:@actql\/local-node/);
