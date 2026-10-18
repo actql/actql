@@ -119,7 +119,16 @@ int main(int argc, char **argv) {
         EVP_PKEY_free(key); EVP_PKEY_CTX_free(key_context);
         assert(actql_crypto_component_leave(context) == 0);
         assert(actql_crypto_component_release_library() == 0);
-        assert(actql_crypto_component_close() == 0);
+        int close_status = actql_crypto_component_close();
+        if (close_status != 0) {
+            uint64_t pending[12] = {0};
+            if (actql_crypto_component_inventory(pending) == 0)
+                fprintf(stderr, "close=%d live=%llu aligned=%llu blocks=%llu headers=%llu free=%llu fail=%llu\n",
+                    close_status, (unsigned long long)pending[1], (unsigned long long)pending[2],
+                    (unsigned long long)pending[3], (unsigned long long)pending[5],
+                    (unsigned long long)pending[6], (unsigned long long)pending[7]);
+        }
+        assert(close_status == 0);
         assert(actql_crypto_component_bind(context, 32 * page) == ACTQL_CRYPTO_COMPONENT_INVALID);
     }
     system_memory(&after_malloc, &after_realloc, &after_free);
