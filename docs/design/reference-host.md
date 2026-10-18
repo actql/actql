@@ -151,6 +151,20 @@ Model invocation, Content/driver or external-VM capacity or authority. Their
 existing Resource suppliers and current authorization remain separate. The
 initial trust boundary introduces no Owner, Ledger, queue or scheduler.
 
+The existing installed Host shutdown retains the issuer's original initial
+control receiver as its final control duty. It closes that duty only after
+dispatch, Checkpoint, journal, Source, Effect, Store, observation and retained
+owner-view cleanup have completed. Failed initialization uses the same ordering
+and original retry carrier. A successful sibling close cannot release the
+initial holding while another child remains uncertain.
+
+The Host captures that same receiver's close operation for retries. Only its
+explicit `pending: false` observation completes the control duty; a fulfilled
+Promise, absent/malformed observation or replacement close function does not.
+Final runtime-reference retirement remains behind that confirmed duty. These
+cleanup consumers cannot issue an initial admission, establish its coverage,
+prove garbage collection or supply business-Run capacity.
+
 ## Installed Effect cleanup
 
 The installed Effect Site retains target-read authorization, input pins,
