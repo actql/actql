@@ -54,7 +54,7 @@ pub fn start_notion_page_title_property_item_request(
         @decode.array_length(value) is Some(_) else {
         return Err(InvalidSelection)
       }
-      selected = Some(PageTitleProperty(page, index, cursor, id, value))
+      selected = Some(PageTitleProperty(page, id, value))
     }
   }
   guard selected is Some(origin) else { return Err(InvalidSelection) }
@@ -76,7 +76,7 @@ pub fn notion_property_item_request_matches_page_title(
     return false
   }
   match request.origin {
-    PageTitleProperty(original, _, _, _, _) => physical_equal(original, page)
+    PageTitleProperty(original, _, _) => physical_equal(original, page)
     _ => false
   }
 }
@@ -93,7 +93,7 @@ pub fn admit_notion_completed_page_title(
     !notion_property_item_request_matches_page_title(terminal.request, page) {
     return Err(ForeignOriginal)
   }
-  guard terminal.request.origin is PageTitleProperty(_, _, _, _, value) else {
+  guard terminal.request.origin is PageTitleProperty(_, _, value) else {
     return Err(ForeignOriginal)
   }
   admit_property_item_chain(
