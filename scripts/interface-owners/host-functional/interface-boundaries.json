@@ -58684,7 +58684,7 @@
     },
     {
       "module": "adapters/host-node/mock-churn-risk-catalogue.mjs",
-      "sha256": "30b9a96694f048ca3fdab0ec7bee375dbf08ecbade3bf8ab1af737581608d8fa",
+      "sha256": "51be22a425671db4db99446a1500aa6d45a9192e87dfb89e9eaf7d3b2610ebf4",
       "exports": [
         "mockChurnRiskCatalogue"
       ],
