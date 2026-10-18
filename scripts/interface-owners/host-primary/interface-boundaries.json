@@ -3799,9 +3799,10 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "98e2fc939404809b9ae27312f11825dceb4bfac126e6b738db905d705dc49e71",
+      "sha256": "366d042bc495661a5b5dcc64e0e7a27be7c426db230fa9daf4a4f9a32119fa76",
       "exports": [
         "assertInitialControlHostPreparation",
+        "assertOriginalHostRequestJournalFacilityCurrent",
         "assertSourceManagedHostPreparation",
         "connectEmbeddedLocal",
         "connectInitialControlHostPreparation",
@@ -7006,7 +7007,8 @@
             "readHostJournalPreparation",
             "readInstalledMockPreparation",
             "readSourceManagedRunRequirements",
-            "sourceManagedSubmittedIntentCid"
+            "sourceManagedSubmittedIntentCid",
+            "assertOriginalHostRequestJournalFacilityCurrent"
           ],
           "attributes": {
             "responsibility": [
@@ -7045,6 +7047,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "export {openClientRequestJournal as openOriginalHostRequestJournal,"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "  assertOriginalClientRequestJournalFacilityCurrent as assertOriginalHostRequestJournalFacilityCurrent};"
               }
             ],
             "ownership": [
@@ -9289,7 +9295,7 @@
   "counts": {
     "modules": 14,
     "operations": 658,
-    "exports": 74,
+    "exports": 75,
     "explicitContractGroups": 25
   }
 }
