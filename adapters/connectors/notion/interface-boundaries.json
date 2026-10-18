@@ -320,14 +320,22 @@
     },
     {
       "module": "adapters/connectors/notion/site/property-item-read.mjs",
-      "sha256": "dadf57705f88b40beadbed3c4581f4f52aa7f5a24bb0d2226838faf3152f9667",
+      "sha256": "d6a94de793b36723e8e7f5c58ce0b694dfcd24db193bb98a69a3849871631120",
       "exports": [
         "NOTION_PROPERTY_READ_API_VERSION",
         "NOTION_PROPERTY_READ_OPERATION",
         "NotionPropertyReadFailure",
+        "createNotionPageTitleReader",
         "createNotionPropertyReader"
       ],
       "operations": [
+        {
+          "name": "createNotionPageTitleReader",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
         {
           "name": "createNotionPropertyReader",
           "parameters": [
@@ -336,24 +344,32 @@
           "async": false
         },
         {
-          "name": "createNotionPropertyReader/handle/init:observe/init:observe",
+          "name": "createPropertyReader",
+          "parameters": [
+            "options",
+            "title"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPropertyReader/handle/init:observe/init:observe",
           "parameters": [],
           "async": false
         },
         {
-          "name": "createNotionPropertyReader/handle/init:read/init:read",
+          "name": "createPropertyReader/handle/init:read/init:read",
           "parameters": [],
           "async": true
         },
         {
-          "name": "createNotionPropertyReader/handle/init:read/init:read/result/result",
+          "name": "createPropertyReader/handle/init:read/init:read/result/result",
           "parameters": [
             "response"
           ],
           "async": false
         },
         {
-          "name": "createNotionPropertyReader/handle/init:requestStop/init:requestStop",
+          "name": "createPropertyReader/handle/init:requestStop/init:requestStop",
           "parameters": [
             "reason"
           ],
@@ -422,6 +438,7 @@
             "originalRequest",
             "readContracts",
             "column",
+            "pageTitle",
             "initialAuthorization",
             "credential",
             "authorizationFor",
@@ -430,7 +447,31 @@
             "consumeObservation",
             "consumeValue",
             "limits",
-            "signal"
+            "signal",
+            "title"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/complete/complete",
+          "parameters": [
+            "page",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRead/matches/matches",
+          "parameters": [
+            "request"
           ],
           "async": false
         },
@@ -478,11 +519,13 @@
         {
           "operations": [
             "<module>",
+            "createNotionPageTitleReader",
             "createNotionPropertyReader",
-            "createNotionPropertyReader/handle/init:observe/init:observe",
-            "createNotionPropertyReader/handle/init:read/init:read",
-            "createNotionPropertyReader/handle/init:read/init:read/result/result",
-            "createNotionPropertyReader/handle/init:requestStop/init:requestStop",
+            "createPropertyReader",
+            "createPropertyReader/handle/init:observe/init:observe",
+            "createPropertyReader/handle/init:read/init:read",
+            "createPropertyReader/handle/init:read/init:read/result/result",
+            "createPropertyReader/handle/init:requestStop/init:requestStop",
             "executeRead",
             "executeRead/response/response",
             "executeRead/verify/verify",
@@ -492,6 +535,9 @@
             "originalReader",
             "positive/positive",
             "prepareRead",
+            "prepareRead/call/call",
+            "prepareRead/complete/complete",
+            "prepareRead/matches/matches",
             "prepareRead/prepareRead",
             "prepareRead/prepareRead#2",
             "prepareRead/prepareRead#3",
@@ -501,6 +547,7 @@
             "NOTION_PROPERTY_READ_API_VERSION",
             "NOTION_PROPERTY_READ_OPERATION",
             "NotionPropertyReadFailure",
+            "createNotionPageTitleReader",
             "createNotionPropertyReader"
           ],
           "attributes": {
@@ -508,6 +555,10 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "## Original property-item completion"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The physical title receiver selects this origin explicitly"
               }
             ],
             "inputsOutputs": [
@@ -522,6 +573,10 @@
               {
                 "path": "adapters/connectors/notion/site/property-item-read.mjs",
                 "anchor": "{charge,originalRequest:request,completedPage:page}"
+              },
+              {
+                "path": "adapters/connectors/notion/site/property-item-read.mjs",
+                "anchor": "export function createNotionPageTitleReader(options)"
               }
             ],
             "identity": [
@@ -532,18 +587,34 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "same selected token binding"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Common's same-Page matcher runs before I/O"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "The request/response records retain the original row/property/schema and prior"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The shared physical preparation adds bounded callback-selection arrays"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "It rechecks current Account/authorization before every operation"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "after each awaited current check, including the physical pre-send fence."
+              },
+              {
+                "path": "adapters/connectors/notion/site/property-item-read.mjs",
+                "anchor": "await context.callbacks.consumeObservation(charge);\n      await verify();"
               }
             ],
             "failure": [
@@ -554,12 +625,20 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "A lost reply remains the original journal"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "reply remains the original use's Journal Unknown"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "Cancellation/stop and failed current checks retain this same reader"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Current/abort, malformed response, output or"
               }
             ],
             "resources": [
@@ -570,12 +649,20 @@
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "These are finite structural"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The legacy mode also has the shared record-layout"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/notion-database-catalog.md",
                 "anchor": "Rollup\ncalculation and complete file/Content projection need their own actual supplier;"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "query Contract/column inputs."
               }
             ],
             "verification": [
@@ -594,6 +681,26 @@
               {
                 "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
                 "anchor": "actual Notion query and property operations retain typed rows and original response charges across both cursors"
+              },
+              {
+                "path": "adapters/connectors/notion/test/page-title-read.test.mjs",
+                "anchor": "actual original Page GET and separately scoped title pages complete without a synthetic data-source row"
+              },
+              {
+                "path": "adapters/connectors/notion/test/page-title-read.test.mjs",
+                "anchor": "actual title lost terminal reply stays original Unknown and cannot resend or refresh secret"
+              },
+              {
+                "path": "adapters/connectors/notion/test/page-title-read.test.mjs",
+                "anchor": "actual title compiled callbacks and their original receiver are captured once across awaits"
+              },
+              {
+                "path": "adapters/connectors/notion/test/page-title-read.test.mjs",
+                "anchor": "after partial observation refuses the next Common request"
+              },
+              {
+                "path": "adapters/connectors/notion/test/property-item-read.test.mjs",
+                "anchor": "after partial observation refuses the next Common request"
               }
             ]
           }
