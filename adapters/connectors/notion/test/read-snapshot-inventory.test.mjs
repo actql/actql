@@ -11,7 +11,7 @@ const limits=[131072,16384,32];
 test('original database snapshot inventory enters one Common namespace with both exact Source aliases',()=>{
   const snapshots=[databaseSnapshot(),databaseSnapshot()];
   const specification=checked(provider.notionDatabaseReadSnapshotsRelationSpecification(
-    [['tasks',snapshots[0]],['accounts',snapshots[1]]],...limits,2,1000));
+    ['tasks','accounts'],snapshots,...limits,2,1000));
   const views=JSON.parse(specification).views;assert.deepEqual(views.map(x=>x.resource),['tasks','accounts']);
   assert(views.every(x=>!Object.hasOwn(x,'facts_wire')&&!Object.hasOwn(x,'acquisition_wire')));
   const declaration=checked(common.clientProgramRowSourceRestoreRelationDeclaration('original-notion','notion','notion/0.1',specification,undefined));
@@ -29,13 +29,14 @@ test('original database snapshot inventory enters one Common namespace with both
 
 test('database snapshot inventory empty legacy and refused original paths stay DATA only',()=>{
   const snapshot=databaseSnapshot();
-  assert.equal(checked(provider.notionDatabaseReadSnapshotsRelationSpecification([], ...limits,0,0)),'{"views":[]}');
-  assert.equal(checked(provider.notionDatabaseReadSnapshotsRelationSpecification([['tasks',snapshot]],...limits,1,6)),
+  assert.equal(checked(provider.notionDatabaseReadSnapshotsRelationSpecification([],[],...limits,0,0)),'{"views":[]}');
+  assert.equal(checked(provider.notionDatabaseReadSnapshotsRelationSpecification(['tasks'],[snapshot],...limits,1,6)),
     checked(provider.notionDatabaseReadSnapshotRelationSpecification(snapshot,'tasks',...limits)));
-  for(const[views,count,work]of[
-    [[['tasks',snapshot],['other',snapshot]],1,23],
-    [[['tasks',snapshot],['other',snapshot]],2,22],
-    [[['tasks',snapshot],['tasks',snapshot]],2,23],
-    [[['tasks',{...snapshot}]],1,6],
-  ])assert.throws(()=>checked(provider.notionDatabaseReadSnapshotsRelationSpecification(views,...limits,count,work)),{code:'MoonBitHostFailure'});
+  for(const[resources,snapshots,count,work]of[
+    [['tasks','other'],[snapshot,snapshot],1,23],
+    [['tasks','other'],[snapshot,snapshot],2,22],
+    [['tasks','tasks'],[snapshot,snapshot],2,23],
+    [['tasks'],[{...snapshot}],1,6],
+    [['tasks'],[],1,6],
+  ])assert.throws(()=>checked(provider.notionDatabaseReadSnapshotsRelationSpecification(resources,snapshots,...limits,count,work)),{code:'MoonBitHostFailure'});
 });

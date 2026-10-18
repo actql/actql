@@ -977,8 +977,10 @@ pair array. Failure cancels the incomplete outer writer; it does not retire any
 input original or return physical holdings. Generic declaration admission then
 retains its own workspace and originals alongside the specification.
 
-The typed Node projection forwards the pair inventory to this same Common
-owner. It adds no JavaScript schema constructor, canonical preimage, key or
+The typed Node projection receives equally sized alias and original snapshot
+arrays, bounds their count and constructs the temporary pair array inside Moon.
+That backing overlaps both caller arrays until projection returns. It forwards
+this inventory to the same Common owner. It adds no JavaScript schema constructor, canonical preimage, key or
 acquisition evidence, authority, authenticated cold custody or currentness.
 The single-view API and its canonical body remain unchanged. Installation
 publication must still bind this DATA to independently admitted acquisition and
