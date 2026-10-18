@@ -48,6 +48,7 @@ export function snapshotClientSourceOperationLimits(limits) {
 
 export function clientSourceOperationStorage(database, {ensureOpen, transact,
   readRun, limits}) {
+  limits = snapshotClientSourceOperationLimits(limits);
   if (limits === undefined) return undefined;
   const maximumRecords = limits.maxRecords, maximumWireBytes = limits.maxWireBytes;
   const lookup = database.prepare(`SELECT * FROM client_source_operation_originals
