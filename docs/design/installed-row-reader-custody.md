@@ -179,6 +179,39 @@ turn weak membership into free capacity. These records, opening-child entries
 and escaped aliases belong to the original acquisition/issuer inventory; a
 child or Journal ACK is not their heap-reclamation certificate.
 
+### Salesforce original record-operation borrows
+
+The installed Salesforce Site selects this custody only with explicit private
+Run-acquisition limits. It remembers the exact authorization its existing
+Account/Checkpoint path issued and retains that original decision's current
+fence. `bindRecordAcquisition` refuses copied authorizations and approvals
+without an original current fence. The shared Credential custody receives the
+same authorization; no second signature or metadata-purpose conversion occurs.
+
+A separately issued read or write authorization may borrow the same private
+material only for the same Resource and the original thirteen-field acquisition
+binding. `forAuthorization` returns that original authorization alongside a
+credential borrow with the same opaque physical binding. Operation, expiry,
+use ordinal and current Account/Checkpoint approval remain independent checks
+of the original grant, Site and Journal before each physical send.
+
+The Site captures the Host's synchronous/current-observation callbacks once.
+It checks both actual decision and Host currentness before and after awaits,
+including the bounded reread of the original Site profile under its existing
+8 MiB configuration ceiling. The first observed profile/current failure stays
+refused after bytes or configuration are restored. Closing the borrow retires
+the same binding; a pending read, resolver or socket keeps the parent Journal
+pending. Neither a callback result nor a completed HTTP response is a cleanup
+acknowledgement or permission to resend an Unknown write.
+
+The original phase inventory includes Site authorization membership records,
+decision/current closures, borrow state and first failure, per-operation
+credential envelopes, escaped aliases, profile snapshot and bounded reread/
+decode/comparison workspace. These overlap original response/material/Journal
+holdings; the binding limit alone does not fund their aggregate lifetime.
+This connection does not supply a normal Source/Effect resource profile,
+conditional target evidence, sealed Preview or authenticated cold recovery.
+
 ## Installation publication storage association
 
 The existing publication Owner has a separate closed storage-association DATA
