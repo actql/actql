@@ -588,6 +588,13 @@ registerArtifactSchema('review_projection', {
   schema: 'review_projection', identity: 'review_projection_cid',
 });
 
+// Installation storage association is private DATA, not Run evidence. Append
+// its owned descriptor without renumbering any existing contract rules.
+if (document.artifact_schemas.installation_publication_storage_binding !== undefined) {
+  roots.set('installation_publication_storage_binding:true',
+    emitSchema(document.artifact_schemas.installation_publication_storage_binding));
+}
+
 // Keep compiler text segments finite without concatenating temporary rule
 // arrays. Each helper borrows the same destination. Capacity uses the pinned
 // target's existing constructor semantics (a hint only on JS), not a new
