@@ -597,10 +597,6 @@ fn lower_nearest_steps(
         }
       }
   }
-  if (query_typed is None && query_keys.length() != 1) ||
-    (candidate_typed is None && candidate_keys.length() != 1) {
-    raise Abort(UnsupportedNearest)
-  }
   for
     (source, target, keys, vector, typed) in [
       (queries, query_vectors, query_keys, query_vector, query_typed is Some(_)),
@@ -620,7 +616,14 @@ fn lower_nearest_steps(
       (
         "to_vectors",
         construction.object([
-          ("id", construction.text(keys[0].1)),
+          (
+            "id",
+            if keys.length() == 1 {
+              construction.text(keys[0].1)
+            } else {
+              construction.array(keys.map(key => construction.text(key.1)))
+            },
+          ),
           ("vector", construction.text(vector)),
         ]),
       ),

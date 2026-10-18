@@ -50,3 +50,15 @@ test('embedded vector schemas and pins reject drift', () => {
     assert.throws(() => checkVectorSchemas(copy));
   }
 });
+
+
+test('composite Bridge roles retain a closed ordered field list beside the exact legacy scalar alternative', () => {
+  const legacy = {type:'string',minLength:1};
+  const bridge = vectorSchemas().to_vectors;
+  assert.deepEqual(bridge, {type:'object',additionalProperties:false,required:['id','vector'],properties:{
+    id:{oneOf:[legacy,{type:'array',minItems:1,uniqueItems:true,items:legacy}]},vector:legacy,
+  }});
+  assert.deepEqual(vectorSchemas().nearest.properties.candidate_id, legacy,
+    'direct nearest scalar-role restatement is unchanged');
+  assert.deepEqual(vectorSchemas().nearest.properties.query_id, legacy);
+});

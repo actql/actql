@@ -599,3 +599,39 @@ columns. This implementation follows the semantic Carrier boundary instead:
 non-null KeyComparable identity values and authored role names are retained.
 The expanded identity domain is an explicit language decision; incompatible
 backend adapters require work before execution support can be claimed.
+
+## Explicit composite Relation bridges
+
+The existing `to_vectors.id` role accepts either its original single field or
+an ordered nonempty list of distinct original fields. `vector_typing` retains
+each role's cursor, name and checked input contract, including the original
+position of an invalid or repeated component. The existing Carrier constructor
+checks non-null KeyComparable domains and the separate vector role. It does
+not infer uniqueness from a field name or one component's values.
+
+`lowering_relation` retains the identity-name array under its existing name,
+binding and work limits before canonical emission. Singleton input retains the
+old scalar Bridge parameter bytes; composite input emits the ordered field
+list. Explicit query and candidate KEY tuples use this bridge independently.
+Implicit nearest completion retains its existing sole eligible String-key
+rule. The prepared operation, input producer and typed Carrier remain the
+same original correspondence; no tuple String, hash, representative member or
+synthetic identity column replaces them.
+
+The generic rows-to-records execution already retains the checked Vectors
+Carrier. Its storage compares all original typed identity components and
+preserves repeated scalar components when their complete tuples differ.
+Global uniqueness, component admission, exact scoring and output order remain
+with their existing owners. Original producer availability and cancellation
+remain separate from the completed output's retention-availability callback.
+Neither a completed type check nor a structural wire validator grants execution
+capacity, acquisition rights or authority.
+
+During preparation the original cursor/tree, ordered role cursors/names, checked
+Carrier and prepared identity-name arrays can overlap. Frontend construction
+also retains both source producers, role bindings, Bridge nodes, positional
+identity projections and any KEEP/body joins. Execution retains input reads,
+cell recheck state, checked record fields, pending append/identity scans and
+output storage under the existing lifecycle. These records, arrays, aliases and
+UTF-8/encoding workspace require the enclosing phase's actual accounting;
+semantic bounds and GC are not physical reservation or cleanup confirmation.
