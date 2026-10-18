@@ -432,7 +432,7 @@ test "BigQuery refuses foreign page token and changed total on the same original
       "bq-cursor-" + index.to_string(),
       (first.length() + second.length()).to_int64(),
     )
-    @bigquery_read.accept_query_page(read, None, first).unwrap()
+    assert_eq(@bigquery_read.accept_query_page(read, None, first).unwrap(), 1)
     assert_true(
       @bigquery_read.accept_query_page(
         read,
@@ -459,7 +459,7 @@ test "BigQuery does not infer complete result from an absent token or exhaust it
     (first.length() + second.length()).to_int64(),
     max_pages=1,
   )
-  @bigquery_read.accept_query_page(read, None, first).unwrap()
+  assert_eq(@bigquery_read.accept_query_page(read, None, first).unwrap(), 1)
   assert_true(
     @bigquery_read.accept_query_page(read, Some("next"), second)
     is Err(@bigquery_read.WrongPage),
@@ -470,7 +470,7 @@ test "BigQuery does not infer complete result from an absent token or exhaust it
     "bq-incomplete",
     incomplete.length().to_int64(),
   )
-  @bigquery_read.accept_query_page(short, None, incomplete).unwrap()
+  assert_eq(@bigquery_read.accept_query_page(short, None, incomplete).unwrap(), 1)
   assert_true(
     @bigquery_read.finish_result_read(short) is Err(@bigquery_read.Incomplete),
   )
@@ -487,7 +487,7 @@ test "BigQuery unknown physical stop retains same Job and reservation until orig
     body.length().to_int64(),
     stopped~,
   )
-  @bigquery_read.accept_query_page(read, None, body).unwrap()
+  assert_eq(@bigquery_read.accept_query_page(read, None, body).unwrap(), 2)
   @bigquery_read.finish_result_read(read).unwrap()
   assert_true(@bigquery_read.capture_result_read(read) is Err(_))
   let before = @resources.ledger_usage(ledger)
