@@ -1091,3 +1091,26 @@ text/UTF-8/hash workspace and snapshot codec overlap the same result, raw
 observations, response tickets and original Catalog/Contract graph. These bounds
 and aliases are not a reservation or free backing. Failure keeps its original
 error and custody; all reader observations retain cleanupConfirmed false.
+
+## Public database alias originals
+
+The existing Catalog owner admits the public `databases` object once and retains
+its ordered exact Unicode aliases and the original value span for each existing
+database declaration. The single-declaration algorithm is shared, with one
+aggregate Contract-node, Contract-text and work budget. Whole-map parse bounds
+apply before member construction; column limits continue to apply per database.
+No JavaScript type/schema parser or second semantic identity is introduced.
+
+The collection has a private constructor and nominal membership; read-only
+getters return its retained original declarations without copying their checked
+Contracts. Equal re-admitted declarations and copied collections do not replace
+those originals. Empty input membership does not establish complete workspace
+coverage. Actual Host publication/currentness, authenticated Store custody and
+cold reconstruction remain separate from this configuration DATA boundary.
+
+The owned raw map backing, preserving source/decode tree and per-member cursor
+aliases can overlap each copied value span, alias/declaration arrays, private
+collection/self reference, source hashes and all checked Contracts. Whole-map
+parse workspace, per-member Contract admission and hash workspace also overlap.
+Limits bound work/retention; they are neither a physical reservation nor proof
+of cleanup, GC reclamation or a normal numerical supplier.

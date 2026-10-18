@@ -111,7 +111,7 @@ test "Notion public database map checks every unused member and exact alias dupl
 ///|
 test "Notion public database map shares aggregate work and keeps whole input bounds" {
   let wire = b"{\"a\":\"db\",\"b\":\"db2\"}"
-  // Whole source 20 bytes, aliases 2+2, value spans 4+5: exact work 33.
+  // Whole source bytes, aliases 2+2, value spans 4+5: exact work 33.
   let work = wire.length() + 2 + 2 + 4 + 5
   assert_true(
     read_notion_database_read_declarations(
@@ -197,7 +197,7 @@ test "Notion public database map never resets checked Contract node and text bud
       1000,
     ),
   )
-  let one_contract_nodes = 1
+  let one_contract_nodes = 3
   assert_true(
     read_notion_database_read_declaration(@utf8.encode(value), {
       ..limits,
@@ -219,14 +219,14 @@ test "Notion public database map never resets checked Contract node and text bud
   assert_true(
     read_notion_database_read_declaration(@utf8.encode(value), {
       ..limits,
-      contracts: { ..limits.contracts, max_text_bytes: 2, },
+      contracts: { ..limits.contracts, max_text_bytes: 8, },
     })
     is Ok(_),
   )
   assert_true(
     read_notion_database_read_declarations(
       @utf8.encode(wire),
-      { ..limits, contracts: { ..limits.contracts, max_text_bytes: 2, }, },
+      { ..limits, contracts: { ..limits.contracts, max_text_bytes: 8, }, },
       2,
     )
     is Err(_),
