@@ -20,6 +20,8 @@ pub(all) enum SlackMessagePageIssue {
   DuplicateMessage
   ForeignHistoryRequest
   HistoryUnavailable
+  ForeignRepliesRequest
+  InconsistentThread
 } derive(Eq, Debug)
 
 ///|
@@ -519,6 +521,17 @@ pub fn slack_message_page_rows_wire(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[String, SlackMessagePageIssue] {
+  message_rows_wire(page.rows, names, max_bytes, max_nodes, max_depth)
+}
+
+///|
+fn message_rows_wire(
+  rows : Array[Array[@admitted.CheckedValue]],
+  names : Array[String],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, SlackMessagePageIssue] {
   if max_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidLimits)
   }
@@ -542,7 +555,7 @@ pub fn slack_message_page_rows_wire(
   }
   try {
     @encode.begin_array(writer)
-    for row in page.rows {
+    for row in rows {
       @encode.begin_object(writer)
       for (name, index) in selected {
         @encode.key(writer, name)
