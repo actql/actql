@@ -1,6 +1,8 @@
 #ifndef ACTQL_NATIVE_COMMAND_PLATFORM_H
 #define ACTQL_NATIVE_COMMAND_PLATFORM_H
 
+#include <stdbool.h>
+
 /* Private connection between the selected Native entry and the existing
  * filesystem/component owners. There is deliberately no constructor accepting
  * a path, identity, quote or limit. The entry retains the actual initial
@@ -49,7 +51,7 @@ actql_native_command_platform_current(void);
 /* Private pre-acquisition observation only. The actual original stays with
  * this Owner and is required again by every load; this is not a constructor,
  * transferable capacity or a substitute for the complete selected envelope. */
-int actql_native_command_platform_available(void);
+bool actql_native_command_platform_available(void);
 
 /* Before dlopen, including all module initializers. The same Runtime has
  * already observed and hashed this member through its retained Root/Reader.
