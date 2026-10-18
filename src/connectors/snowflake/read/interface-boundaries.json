@@ -204,7 +204,7 @@
     {
       "module": "src/connectors/snowflake/read/statement.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "6895fcb97894172edbe5d5196e6da7568bd1a971b88844c7ad8153d321cef8f2",
+      "sha256": "305e267052cff7606c28feaa8acf17e8db153dcab23d6360a7f9621588a978b2",
       "role": "connector-semantics",
       "owner": "Snowflake original SQL API protocol and exact Common response/value admission; Host retains Run/capture/cleanup",
       "exports": [],

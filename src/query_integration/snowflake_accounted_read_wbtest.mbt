@@ -27,6 +27,7 @@ fn snowflake_description_limits() -> @snowflake_description.DescriptionLimits {
 ///|
 fn snowflake_read_description(
   precision? : Int = 38,
+  temporal? : Bool = false,
 ) -> @snowflake_description.TableDescription {
   let headers = [
     "TABLE_CATALOG", "TABLE_SCHEMA", "TABLE_NAME", "COLUMN_NAME", "ORDINAL_POSITION",
@@ -51,17 +52,27 @@ fn snowflake_read_description(
     ["PRODUCT", "USAGE", "USAGE_30D", "ACTIVE_USERS", "2", "NO", "NUMBER"],
     ["PRODUCT", "USAGE", "USAGE_30D", "TREND", "3", "YES", "TEXT"],
   ]
+  if temporal {
+    data[1][6] = "DATE"
+    data[2][6] = "TIMESTAMP_LTZ"
+  }
   let rows = []
   for index, values in data {
     let row = values.map(Json::string)
     row.push(
-      if index == 1 {
+      if index == 1 && !temporal {
         Json::string(precision.to_string())
       } else {
         Json::null()
       },
     )
-    row.push(if index == 1 { Json::string("0") } else { Json::null() })
+    row.push(
+      if index == 1 && !temporal {
+        Json::string("0")
+      } else {
+        Json::null()
+      },
+    )
     row.push(if index == 1 { Json::null() } else { Json::string("256") })
     rows.push(Json::array(row))
   }
@@ -102,10 +113,12 @@ fn snowflake_read_description(
 fn snowflake_read_preparation(
   fresh_precision? : Int = 38,
   query_text? : String = "SELECT ACCOUNT_ID, ACTIVE_USERS, TREND FROM snowflake.usage_30d",
+  temporal? : Bool = false,
+  selected_fields? : Array[String] = ["ACCOUNT_ID", "ACTIVE_USERS", "TREND"],
 ) -> Result[@snowflake_read.PreparedRead, @snowflake_read.ReadIssue] raise {
   let declared = @snowflake_description.prepare_read_projection(
-    snowflake_read_description(),
-    ["ACCOUNT_ID", "ACTIVE_USERS", "TREND"],
+    snowflake_read_description(temporal~),
+    selected_fields,
     snowflake_description_limits(),
   ).unwrap()
   let declaration = @snowflake_description.generate_read_declaration(
@@ -213,7 +226,7 @@ fn snowflake_read_preparation(
           ],
           name: "remote",
           source: Captured(source),
-          visible_fields: ["ACCOUNT_ID", "ACTIVE_USERS", "TREND"],
+          visible_fields: selected_fields,
           graph_bindings: [],
         },
       ],
@@ -240,7 +253,7 @@ fn snowflake_read_preparation(
   ).unwrap()
   let (query, evidence) = query_evidence_test_bodies()
   @snowflake_read.prepare_declared_read(
-    snowflake_read_description(precision=fresh_precision),
+    snowflake_read_description(precision=fresh_precision, temporal~),
     declaration,
     requirement,
     @identity.stringify_value(query, 100000, 10000, 100),

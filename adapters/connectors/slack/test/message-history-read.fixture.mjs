@@ -81,7 +81,7 @@ export async function messageHistoryFixture(t,{account='allow',format='sql',acco
   const [key,cert]=await Promise.all([readFile(join(root,'server.key')),readFile(join(root,'server.crt'))]);
   const state={identity:{ok:true,team_id:'T-original',user_id:'U-bot',bot_id:'B-original'},
     pages:[messagePage([{type:'message',ts:'2.000001',text:'first'}],'opaque+/= cursor'),messagePage([{type:'message',ts:'1.000002',text:'second',reply_count:2}],null)],
-    requests:[],resolutions:0,charges:0,observationCharges:0,rows:[],status:200,
+    requests:[],replyPages:[],replyRequests:0,resolutions:0,charges:0,observationCharges:0,rows:[],status:200,
     secret:'slack-fixture-token',beforeResponse:undefined,resolved:undefined};
   const server=createServer({key,cert},async(request,response)=>{
     const chunks=[];for await(const chunk of request)chunks.push(chunk);
@@ -90,7 +90,9 @@ export async function messageHistoryFixture(t,{account='allow',format='sql',acco
     try {
       await state.beforeResponse?.(request,response);
       if(response.destroyed||response.writableEnded)return;
-      const body=request.url==='/api/auth.test'?state.identity:state.pages[state.requests.length-2];
+      const body=request.url==='/api/auth.test'?state.identity
+        :request.url.startsWith('/api/conversations.replies?')?state.replyPages[state.replyRequests++]
+        :state.pages[state.requests.length-2];
       assert.notEqual(body,undefined);
       response.writeHead(state.status,{'content-type':'application/json'});
       response.end(typeof body==='string'?body:JSON.stringify(body));

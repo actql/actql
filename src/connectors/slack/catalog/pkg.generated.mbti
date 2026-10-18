@@ -9,15 +9,25 @@ import {
 // Values
 pub fn admit_slack_message_history_page(SlackMessageHistory, SlackMessageHistoryRequest, Bytes) -> Result[SlackMessagePage, SlackMessagePageIssue]
 
+pub fn admit_slack_message_replies_page(SlackMessageReplies, SlackMessageRepliesRequest, Bytes) -> Result[SlackMessageRepliesPage, SlackMessagePageIssue]
+
 pub fn begin_slack_message_history(SlackMessageHistory) -> Result[SlackMessageHistoryRequest, SlackMessagePageIssue]
+
+pub fn begin_slack_message_replies(SlackMessageReplies) -> Result[SlackMessageRepliesRequest, SlackMessagePageIssue]
 
 pub fn close_slack_message_history(SlackMessageHistory) -> Unit
 
+pub fn close_slack_message_replies(SlackMessageReplies) -> Unit
+
 pub fn next_slack_message_history_request(SlackMessageHistory, SlackMessagePage) -> Result[SlackMessageHistoryRequest?, SlackMessagePageIssue]
+
+pub fn next_slack_message_replies_request(SlackMessageReplies, SlackMessageRepliesPage) -> Result[SlackMessageRepliesRequest?, SlackMessagePageIssue]
 
 pub fn prepare_slack_command_request(SlackCommandKind, @value_admission.CheckedValue, String, String?, SlackCommandRequestLimits) -> Result[SlackCommandRequest, SlackCommandRequestIssue]
 
 pub fn prepare_slack_message_history(String, SlackMessagePageLimits, Int) -> Result[SlackMessageHistory, SlackMessagePageIssue]
+
+pub fn prepare_slack_message_replies(SlackMessagePage, Int, SlackMessageRepliesLimits) -> Result[SlackMessageReplies, SlackMessagePageIssue]
 
 pub fn project_slack_channel_list(Bytes, SlackChannelListLimits) -> Result[SlackChannelListPage, SlackChannelListIssue]
 
@@ -68,6 +78,30 @@ pub fn slack_message_page_ids(SlackMessagePage) -> Array[String]
 pub fn slack_message_page_row_count(SlackMessagePage) -> Int
 
 pub fn slack_message_page_rows_wire(SlackMessagePage, Array[String], Int, Int, Int) -> Result[String, SlackMessagePageIssue]
+
+pub fn slack_message_replies_matches_original(SlackMessageReplies, SlackMessagePage, Int) -> Bool
+
+pub fn slack_message_replies_page_has_next(SlackMessageRepliesPage) -> Bool
+
+pub fn slack_message_replies_page_response_sha256(SlackMessageRepliesPage) -> String
+
+pub fn slack_message_replies_page_row_count(SlackMessageRepliesPage) -> Int
+
+pub fn slack_message_replies_page_rows_wire(SlackMessageRepliesPage, Array[String], Int, Int, Int) -> Result[String, SlackMessagePageIssue]
+
+pub fn slack_message_replies_request_channel(SlackMessageRepliesRequest) -> String
+
+pub fn slack_message_replies_request_cursor(SlackMessageRepliesRequest) -> String?
+
+pub fn slack_message_replies_request_matches(SlackMessageReplies, SlackMessageRepliesRequest) -> Bool
+
+pub fn slack_message_replies_request_oldest(SlackMessageRepliesRequest) -> String?
+
+pub fn slack_message_replies_request_ordinal(SlackMessageRepliesRequest) -> Int
+
+pub fn slack_message_replies_request_ts(SlackMessageRepliesRequest) -> String
+
+pub fn slack_message_replies_retained_page_count(SlackMessageReplies) -> Int
 
 pub fn slack_message_schema_wire(Int, Int, Int) -> Result[String, SlackMessagePageIssue]
 
@@ -168,6 +202,8 @@ pub(all) enum SlackMessagePageIssue {
   DuplicateMessage
   ForeignHistoryRequest
   HistoryUnavailable
+  ForeignRepliesRequest
+  InconsistentThread
 } derive(Eq, @debug.Debug)
 
 pub(all) struct SlackMessagePageLimits {
@@ -178,6 +214,27 @@ pub(all) struct SlackMessagePageLimits {
   max_cursor_bytes : Int
   max_value_nodes : Int
   max_value_text_bytes : Int
+}
+
+pub struct SlackMessageReplies {
+  // private fields
+}
+
+pub(all) struct SlackMessageRepliesLimits {
+  page : SlackMessagePageLimits
+  comparison : @value_admission.Limits
+  max_pages : Int
+  max_total_rows : Int
+  max_total_bytes : Int
+  max_work : Int
+}
+
+pub struct SlackMessageRepliesPage {
+  // private fields
+}
+
+pub struct SlackMessageRepliesRequest {
+  // private fields
 }
 
 pub(all) enum SlackUserListIssue {

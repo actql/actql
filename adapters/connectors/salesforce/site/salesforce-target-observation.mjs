@@ -1,14 +1,18 @@
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {invokeScopedCredentialOperation, ownInvocationContext,
+import {invocationBindingsMatch, invokeScopedCredentialOperation, ownInvocationContext,
   ownInvocationLimits} from
   '../../../host-common/owned-invocation-context.mjs';
-import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
+import {callHttpsCredentialResource, withHttpsCredentialRunResponseOriginal} from
+  '../../../site-node/https-credential-resource.mjs';
 import {matchesSalesforceCredentialOrg} from
   './salesforce-credential-binding.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});
 };
+// Membership is issued only by the actual Account read below, never by a
+// restored Catalog, copied response, ETag string or equal content identity.
+const accountTargetOriginals = new WeakMap();
 const validLimits = limits =>
   Number.isSafeInteger(limits?.maxResponseBytes) &&
   limits.maxResponseBytes >= 1 && limits.maxResponseBytes <= 1_000_000 &&
@@ -23,10 +27,10 @@ const validLimits = limits =>
 // This is neither a target guard nor evidence that a write may be sent. The
 // Connector must project the returned record and bind its exact target before
 // the common Preview and apply admission can use it.
-export async function observeSalesforceSingleTarget({
+async function observeSingleTarget({
   moon, request, currentCatalog, authorization, credential, limits,
   signal, callResource = callHttpsCredentialResource,
-}) {
+}, accountConditional) {
   if (!moon || !request || !currentCatalog || !authorization?.grant ||
       !credential || typeof callResource !== 'function' ||
       !validLimits(limits)) {
@@ -47,13 +51,30 @@ export async function observeSalesforceSingleTarget({
     fail('ForeignSalesforceTargetObservation');
   }
   checked(moon.salesforceRecheckSingleWriteRequest(request, currentCatalog));
+  if (accountConditional &&
+      // The checked SingleWriteRequest Owner derives this exact object/Id path.
+      // External-ID and collection routes cannot satisfy this profile.
+      (!/^\/services\/data\/v[1-9][0-9]*\.[0-9]+\/sobjects\/Account\/[A-Za-z0-9]{15}(?:[A-Za-z0-9]{3})?$/u
+        .test(moon.salesforceSingleWriteRequestPath(request)) ||
+       moon.salesforceSingleWriteRequestGrantOperation(request) !== 'salesforce:record:update')) {
+    fail('SalesforceAccountConditionalProfileUnavailable');
+  }
+  const useProjection = accountConditional ? context.credential.control.useProjection : undefined;
+  const grantIdentity = accountConditional ? context.credential.control.identity : undefined;
+  const expectedGrantCid = accountConditional
+    ? Reflect.apply(grantIdentity, context.credential.control, [context.authorization.grant]) : undefined;
   signal?.throwIfAborted();
   const response = await invokeScopedCredentialOperation({
     authorization: context.authorization,
-    credential: context.credential,
+    credential: accountConditional ? {...context.credential,
+      retainRunResponseOriginal: true} : context.credential,
     callResource: context.callbacks.callResource,
     operation: 'salesforce:record:observe', method: 'GET',
     path: moon.salesforceSingleWriteRequestPath(request),
+    ...(accountConditional ? {
+      headers: [['accept', 'application/json'], ['accept-encoding', 'identity']],
+      responseHeaders: ['etag', 'content-encoding'],
+    } : {}),
     maxResponseBytes: context.limits.maxResponseBytes,
     signal,
   });
@@ -67,7 +88,7 @@ export async function observeSalesforceSingleTarget({
       request, response.statusCode, response.body,
       context.limits.maxResponseBytes, context.limits.maxNodes,
       context.limits.maxDepth, context.limits.maxIdentityBytes)) : undefined;
-  return Object.freeze({
+  const observed = Object.freeze({
     request, useCid: response.useCid, statusCode: response.statusCode,
     body: response.body, record,
     versionCid: record === undefined ? undefined :
@@ -75,6 +96,101 @@ export async function observeSalesforceSingleTarget({
     beforeWire: record === undefined ? undefined :
       moon.salesforceTargetObservationBeforeValueWire(record),
   });
+  if (accountConditional) {
+    accountTargetOriginals.set(observed, {moon, request, currentCatalog,
+      control: context.credential.control, journal: context.credential.journal,
+      scope: context.scope, expectedGrantCid, expectedUseId: context.authorization.useId,
+      useProjection,
+      response, signal, failure: undefined, facts: undefined});
+  }
+  return observed;
+}
+
+export function observeSalesforceSingleTarget(options) {
+  return observeSingleTarget(options, false);
+}
+
+// A distinct physical read profile. Each call still needs its original read
+// grant and consumes one ordinary Credential use. This issues no write permit,
+// request identity, saved evidence, currentness or conditional send authority.
+export function observeSalesforceAccountConditionalTarget(options) {
+  return observeSingleTarget(options, true);
+}
+
+// A synchronous historical borrow, not a transport or digest authority.
+// The existing Credential Owner checks the original received body both before
+// and after the finisher, including result inspection. An observed mutation
+// is terminal even if another alias later restores the bytes.
+export function withSalesforceAccountTargetOriginal(observed, originals, consume) {
+  const original = accountTargetOriginals.get(observed);
+  if (original === undefined || original.moon !== originals?.moon ||
+      original.request !== originals.request ||
+      original.currentCatalog !== originals.currentCatalog ||
+      original.control !== originals.credential?.control ||
+      original.journal !== originals.credential?.journal || typeof consume !== 'function') {
+    fail('SalesforceAccountTargetOriginalUnavailable');
+  }
+  if (original.failure !== undefined) throw original.failure;
+  const check = () => {
+    try {
+      if (accountTargetOriginals.get(observed) !== original) {
+        fail('SalesforceAccountTargetOriginalUnavailable');
+      }
+      original.signal?.throwIfAborted();
+      return withHttpsCredentialRunResponseOriginal(original.response,
+        original.control, original.journal, credentialFacts => {
+          const use = Reflect.apply(original.useProjection, original.control, [credentialFacts.use]);
+          const {requestRepresentation: sent, responseRepresentation: received} = credentialFacts;
+          const values = name => original.response.headers
+            .filter(pair => pair[0] === name).map(pair => pair[1]);
+          const etags = values('etag');
+          const encodings = values('content-encoding');
+          if (observed.record === undefined || observed.statusCode !== 200 ||
+              credentialFacts.response !== original.response ||
+              credentialFacts.scope.operation !== 'salesforce:record:observe' ||
+              !invocationBindingsMatch(credentialFacts.scope, original.scope) ||
+              use[0] !== original.response.useCid || use[1] !== original.expectedGrantCid ||
+              use[2] !== original.expectedUseId ||
+              credentialFacts.method !== 'GET' ||
+              credentialFacts.path !== original.moon.salesforceSingleWriteRequestPath(original.request) ||
+              credentialFacts.requestBodyBytes !== 0 ||
+              sent?.accept !== 'application/json' || sent.acceptEncoding !== 'identity' ||
+              sent.ifMatch !== undefined || received?.etagCount !== 1 ||
+              received.contentEncodingCount > 1 || etags.length !== 1 ||
+              typeof etags[0] !== 'string' || etags[0].length > 1024 ||
+              !/^"[\x21\x23-\x7e\x80-\xff]*"$/u.test(etags[0]) ||
+              encodings.length !== received.contentEncodingCount ||
+              (encodings.length !== 0 && encodings[0] !== 'identity')) {
+            fail('SalesforceAccountConditionalRepresentationUnavailable');
+          }
+          original.facts ??= Object.freeze({request: original.request,
+            targetObservation: observed.record, versionCid: observed.versionCid,
+            etag: etags[0], response: original.response, credentialFacts});
+          return original.facts;
+        });
+    } catch (cause) { original.failure = cause; throw cause; }
+  };
+  const facts = check();
+  let primary;
+  let failed = false;
+  let result;
+  try {
+    result = consume(facts);
+    if (result !== null && result !== undefined && typeof result.then === 'function') {
+      void Promise.resolve(result).catch(() => {});
+      fail('InvalidSalesforceAccountTargetConsumer');
+    }
+  } catch (cause) { failed = true; primary = cause; }
+  try { check(); }
+  catch (cause) { if (!failed) throw cause; }
+  if (failed) throw primary;
+  return result;
+}
+
+// Retire this borrow only. Escaped response aliases, confirmed Credential
+// outcomes and physical child/Store cleanup remain their original owners'.
+export function retireSalesforceAccountTargetOriginal(observed) {
+  accountTargetOriginals.delete(observed);
 }
 
 // Keep the complete physical target-read inventory under one bounded Site

@@ -173,6 +173,14 @@ fn project_column(
       @contract.primitive(@contract.NumberType, nullable~)
     "BOOLEAN" | "boolean" =>
       @contract.primitive(@contract.BooleanType, nullable~)
+    "DATE" | "date" => @contract.primitive(@contract.DateType, nullable~)
+    "TIMESTAMP_LTZ" | "timestamp_ltz" => {
+      guard nonnegative(object, "scale") is Some(s) && s <= 9L else {
+        return Err(InvalidColumn(name))
+      }
+      scale = Some(s.to_int())
+      @contract.primitive(@contract.TimestampType, nullable~)
+    }
     "VARIANT" | "variant" | "OBJECT" | "object" | "ARRAY" | "array" =>
       @contract.primitive(@contract.JsonType, nullable~)
     _ => return Err(UnsupportedColumn(name, native_type))
