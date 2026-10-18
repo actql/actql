@@ -97,3 +97,41 @@ test('ordinary successful undefined callback return is distinct from a rejection
   assert.equal(f.state.requests[0].body.includes('bigquery-fixture-secret'), false);
   assert.equal(f.row.captureRows().length, 2);
 });
+
+test('undefined credential resolution failure is not a successful physical acquisition', async t => {
+  const f = await bigqueryHttpsFixture(t);
+  f.state.resolve = async () => { throw undefined; };
+  await assert.rejects(f.read(), error => {
+    assert.equal(error.code, 'AcquisitionFailed');
+    assert.ok(Object.hasOwn(error, 'cause'));
+    assert.equal(error.cause, undefined);
+    assert.equal(error.outcome, 'unknown'); return true;
+  });
+  assert.equal(f.state.resolutions, 1); assert.equal(f.state.requests.length, 0);
+  assert.deepEqual(f.journal.recover().map(r => r.outcome), ['failed']);
+  f.row.assertNoCapture();
+});
+
+test('an injected cleanup-port refusal cannot replace an original undefined rejection', async t => {
+  for (const secondary of [undefined, Object.freeze(new Error('OriginalCleanupPending'))]) {
+    const f = await bigqueryHttpsFixture(t);
+    // Explicit boundary fault, not a claim of a physical Common cleanup fault.
+    // The original RowRun still owns its actual registered cleanup observer.
+    const moon = {...f.moon, clientProgramBigQueryRetireReadBorrow() { throw secondary; }};
+    await assert.rejects(f.read({moon, withOriginalJob: async (_, send) => {
+      await send(); throw undefined;
+    }}), error => {
+      assert.equal(error.code, 'AcquisitionFailed');
+      assert.ok(Object.hasOwn(error, 'cause'));
+      assert.equal(error.cause, undefined);
+      assert.ok(Object.hasOwn(error, 'cleanupFailure'));
+      assert.equal(error.cleanupFailure, secondary);
+      assert.equal(Object.keys(error).includes('cleanupFailure'), false);
+      assert.equal(error.outcome, 'unknown'); return true;
+    });
+    assert.equal(f.state.requests.length, 1);
+    assert.ok(f.row.usage()[7] > 0n, 'the original Host retains responsibility');
+    f.row.close();
+    assert.deepEqual(f.row.usage().slice(4, 8), [0n, 0n, 0n, 0n]);
+  }
+});
