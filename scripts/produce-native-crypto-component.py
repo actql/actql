@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import shlex
 import stat
 import subprocess
@@ -63,6 +64,17 @@ def produce(output: Path, openssl: Path, clang: Path, sdk: Path) -> dict[str, ob
     inputs[str(license_path)] = original(license_path)
     if inputs[str(license_path)]['sha256'] != recipe['license_sha256']:
         raise ValueError('Selected OpenSSL license mismatch')
+    # A linker deployment flag cannot lower the ABI of a precompiled input.
+    archive_loads = subprocess.check_output(
+        ['/Library/Developer/CommandLineTools/usr/bin/otool', '-l', str(archive)], text=True)
+    archive_minimums = re.findall(
+        r'cmd LC_BUILD_VERSION\s+cmdsize \d+\s+platform 1\s+minos ([0-9.]+)', archive_loads)
+    if not archive_minimums:
+        raise ValueError('OpenSSL archive deployment requirements unavailable')
+    def version(value: str) -> tuple[int, ...]:
+        return tuple((list(map(int, value.split('.'))) + [0, 0, 0])[:3])
+    if max(map(version, archive_minimums)) > version(recipe['minimum_macos']):
+        raise ValueError('OpenSSL archive requires a newer deployment target')
     inputs[str(clang)] = original(clang, 512 * 1024 * 1024)
     output.mkdir(parents=True, exist_ok=False)
     exports = output / 'component.exports'
@@ -107,7 +119,8 @@ def produce(output: Path, openssl: Path, clang: Path, sdk: Path) -> dict[str, ob
               'source_qualification': recipe['candidate_static_input']['qualification'],
               'provider_binding': 'existing process provider; actual original binding required before first allocation',
               'command': command, 'inputs': inputs, 'exports': sorted(names), 'links': links,
-              'undefined': undefined, 'library': original(library),
+              'undefined': undefined, 'archive_minimum_macos': sorted(set(archive_minimums), key=version),
+              'archive_object_count': len(archive_minimums), 'library': original(library),
               'license': original(output / 'OPENSSL-LICENSE.txt'),
               'notice': original(output / 'CRYPTO-NOTICE')}
     (output / 'producer.json').write_text(json.dumps(result, indent=2) + '\n')

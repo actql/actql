@@ -45,6 +45,6 @@
     "first allocation hooks checked"
   ],
   "capacity": "one already-admitted original provider extent; headers/realloc overlap included; no fallback or growth",
-  "minimum_macos": "14.0",
+  "minimum_macos": "26.0",
   "license_sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a"
 }
