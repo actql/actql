@@ -27,7 +27,7 @@ const concrete = value => typeof value === 'string' && value.length !== 0 &&
   !isAbsolute(value) && !value.includes('\\') &&
   !value.split('/').some(part => part === '' || part === '.' || part === '..');
 
-function captureInitialControlPackageCustody(inventory, localRoot, consumerEntry) {
+function captureInitialControlPackageCustody(inventory, localRoot, consumerEntry, publicPreloadEntry) {
   // A late caller must not trigger resolution, path reads or descriptor walks.
   // This helper still cannot prove a preload's original source or funding.
   if (typeof preloading !== 'function' || apply(preloading, module, []) !== true) {
@@ -36,8 +36,11 @@ function captureInitialControlPackageCustody(inventory, localRoot, consumerEntry
   const root = realpathSync(localRoot), images = own(inventory, 'images');
   const packages = own(inventory, 'packages'), dependencies = own(inventory, 'dependencies');
   const hostModule = own(inventory, 'hostModule'), hostValidator = own(inventory, 'hostValidator');
+  const localPublicModule = own(inventory, 'localPublicModule');
+  const publicNode = own(inventory, 'publicNode'), publicNodeCoverage = own(inventory, 'publicNodeCoverage');
   if (!array(images) || !array(packages) || !array(dependencies) ||
       hostModule !== 'adapters/host-node/embedded-local.mjs' ||
+      localPublicModule !== 'index.mjs' ||
       hostValidator !== 'assertInitialControlHostPreparation') fail('InvalidInitialControlPackageImage');
   const groups = [], actualPackages = [], roots = new NativeMap(), mainSources = new NativeMap();
   function captureGroup(directory, facts, expectedName, expectedVersion) {
@@ -118,13 +121,73 @@ function captureInitialControlPackageCustody(inventory, localRoot, consumerEntry
   } else if (optional !== null || optionalCoverage !== 'absent' && optionalCoverage !== 'unprepared') {
     fail('InvalidInitialControlPackageImage');
   }
-  for (let index = 0; index < packages.length; index++) {
-    if (actualPackages[index] === undefined) fail('InvalidInitialControlPackageImage');
+  let nodeRoot;
+  const unselectedPublicPackages = new NativeSet();
+  if (publicNodeCoverage === 'prepared') {
+    if (own(publicNode, 'name') !== '@actql/node') fail('InvalidInitialControlPackageImage');
+    const next = own(publicNode, 'dependencies');
+    if (!array(next)) fail('InvalidInitialControlPackageImage');
+    if (publicPreloadEntry !== undefined) {
+      if (typeof publicPreloadEntry !== 'string' || !isAbsolute(publicPreloadEntry)) {
+        fail('InvalidInitialControlPackageImage');
+      }
+      const entry = realpathSync(publicPreloadEntry);
+      nodeRoot = dirname(entry);
+      if (entry !== join(nodeRoot, 'selected-infer-startup.cjs') || nodeRoot === root) {
+        fail('InitialControlPackageImageChanged');
+      }
+      captureGroup(nodeRoot, own(publicNode, 'images'), '@actql/node', own(publicNode, 'version'));
+    }
+    let localBound = false;
+    function publicDependency(binding, from) {
+      const name = own(binding, 'name');
+      if (name === '@actql/local-node') {
+        if (from !== nodeRoot || own(binding, 'local') !== true || resolvePackage(name, from) !== root) {
+          fail('InitialControlPackageImageChanged');
+        }
+        localBound = true;
+        return;
+      }
+      captureDependency(binding, from);
+    }
+    // For Local-only delivery the optional parent facade is not acquired.
+    // Its graph may contain additional Source facts, never usable coverage of
+    // an unloaded Node facade. Validate their reachability without loading it.
+    function markUnselected(binding) {
+      const name = own(binding, 'name');
+      if (name === '@actql/local-node') {
+        if (own(binding, 'local') !== true) fail('InvalidInitialControlPackageImage');
+        localBound = true; return;
+      }
+      const index = own(binding, 'package');
+      if (!integer(index) || index < 0 || index >= packages.length ||
+          own(packages[index], 'name') !== name) fail('InvalidInitialControlPackageImage');
+      if (apply(setHas, unselectedPublicPackages, [index])) return;
+      apply(setAdd, unselectedPublicPackages, [index]);
+      const children = own(packages[index], 'dependencies');
+      if (!array(children)) fail('InvalidInitialControlPackageImage');
+      for (let item = 0; item < children.length; item++) markUnselected(children[item]);
+    }
+    for (let index = 0; index < next.length; index++) {
+      if (nodeRoot === undefined) markUnselected(next[index]);
+      else publicDependency(next[index], nodeRoot);
+    }
+    if (!localBound) fail('InvalidInitialControlPackageImage');
+  } else if (publicNode !== null || publicNodeCoverage !== 'absent' && publicNodeCoverage !== 'unprepared') {
+    fail('InvalidInitialControlPackageImage');
   }
-  if (!apply(mapHas, mainSources, [hostModule])) fail('InvalidInitialControlPackageImage');
+  if (publicPreloadEntry !== undefined && nodeRoot === undefined) fail('InitialControlPublicNodeUnavailable');
+  for (let index = 0; index < packages.length; index++) {
+    if (actualPackages[index] === undefined && !apply(setHas, unselectedPublicPackages, [index])) {
+      fail('InvalidInitialControlPackageImage');
+    }
+  }
+  if (!apply(mapHas, mainSources, [hostModule]) || !apply(mapHas, mainSources, [localPublicModule])) {
+    fail('InvalidInitialControlPackageImage');
+  }
   const loader = installInitialControlImageLoader(groups);
   const originalRequire = createRequire(join(root, 'package.json'));
-  let namespace, initialized = false;
+  let namespace, publicNamespaces, initialized = false;
   function initializeHostNamespace() {
     if (apply(preloading, module, []) !== true) fail('InitialControlPackageCustodyUnavailable');
     loader.assertCurrent();
@@ -135,6 +198,12 @@ function captureInitialControlPackageCustody(inventory, localRoot, consumerEntry
     if (typeof descriptor(loaded, hostValidator)?.value !== 'function') {
       fail('InitialControlPackageImageChanged');
     }
+    // Compile both actual public ESM namespaces before the Module handoff.
+    // Later entry imports must reuse these same originals, not pathname bytes
+    // that can change after the Host namespace was initialized.
+    const localNamespace = originalRequire(join(root, localPublicModule));
+    const nodeNamespace = nodeRoot === undefined ? undefined : originalRequire(join(nodeRoot, 'index.mjs'));
+    publicNamespaces = freeze({local: localNamespace, node: nodeNamespace});
     loader.captureLoadedModules();
     namespace = loaded;
     initialized = true;
@@ -142,7 +211,7 @@ function captureInitialControlPackageCustody(inventory, localRoot, consumerEntry
   }
   function assertCurrent() {
     loader.assertCurrent();
-    if (!initialized) fail('InitialControlPackageCustodyUnavailable');
+    if (!initialized || publicNamespaces === undefined) fail('InitialControlPackageCustodyUnavailable');
   }
   function readAsset(path) {
     assertCurrent();

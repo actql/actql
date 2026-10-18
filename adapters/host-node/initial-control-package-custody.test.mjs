@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
-import {mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -15,7 +15,8 @@ function fixture(t, host = 'globalThis.actualHostImageValue="original";export fu
   const directory = mkdtempSync(join(tmpdir(), 'actql-package-image-custody-'));
   t.after(() => rmSync(directory, {recursive: true}));
   const root = join(directory, 'local');
-  const sources = {'package.json': Buffer.from(JSON.stringify({name: '@actql/local-node', type: 'module'})),
+  const sources = {'package.json': Buffer.from(JSON.stringify({name: '@actql/local-node', type: 'module', exports: './index.mjs'})),
+    'index.mjs': Buffer.from('globalThis.localPublicInitializations=(globalThis.localPublicInitializations??0)+1;export const originalLocal="original-local-public";'),
     'adapters/host-node/embedded-local.mjs': Buffer.from(host),
     'spec/local-check-environment.json': Buffer.from('{"original":"asset"}\n')};
   for (const [path, bytes] of Object.entries(sources)) {
@@ -23,14 +24,16 @@ function fixture(t, host = 'globalThis.actualHostImageValue="original";export fu
   }
   const inventory = {images: Object.entries(sources).map(([path, bytes]) => fact(path, bytes)),
     packages: [], dependencies: [], optionalSdk: null, optionalSdkCoverage: 'absent',
+    publicNode: null, publicNodeCoverage: 'absent', localPublicModule: 'index.mjs',
     hostModule: 'adapters/host-node/embedded-local.mjs', hostValidator: 'assertInitialControlHostPreparation'};
-  function run(body, before = '', afterCapture = '', tweak, initialize = true) {
+  function run(body, before = '', afterCapture = '', tweak, initialize = true, publicEntry) {
     const selected = structuredClone(inventory); tweak?.(selected);
     const preload = join(directory, 'preload.cjs'), entry = join(directory, 'entry.mjs');
     writeFileSync(preload, [before,
       'const {captureInitialControlPackageCustody}=require('+JSON.stringify(custody)+');',
       'const root='+JSON.stringify(root)+', inventory='+JSON.stringify(selected)+';',
-      'globalThis.packageImageCustody=captureInitialControlPackageCustody(inventory,root,'+JSON.stringify(entry)+');',
+      'globalThis.packageImageCustody=captureInitialControlPackageCustody(inventory,root,'+JSON.stringify(entry)+
+        ','+(JSON.stringify(publicEntry) ?? 'undefined')+');',
       afterCapture,
       initialize ? 'globalThis.originalHostNamespace=packageImageCustody.initializeHostNamespace();' : '',
     ].join('\n'));
@@ -41,6 +44,57 @@ function fixture(t, host = 'globalThis.actualHostImageValue="original";export fu
   }
   return {directory, root, inventory, sources, run};
 }
+
+function addPublicNode(f, source = 'import{originalLocal}from"@actql/local-node";globalThis.nodePublicInitializations=(globalThis.nodePublicInitializations??0)+1;export const originalNode=originalLocal+"/node";') {
+  const node = join(f.directory, 'node_modules/@actql/node');
+  mkdirSync(node, {recursive: true});
+  symlinkSync(f.root, join(f.directory, 'node_modules/@actql/local-node'));
+  const sources = {'package.json': Buffer.from(JSON.stringify({name: '@actql/node', version: '1.0.0',
+    type: 'module', exports: './index.mjs', dependencies: {'@actql/local-node': '1.0.0'}})),
+  'index.mjs': Buffer.from(source), 'selected-infer-startup.cjs': Buffer.from('module.exports={};')};
+  for (const [path, bytes] of Object.entries(sources)) writeFileSync(join(node, path), bytes);
+  const selected = {name: '@actql/node', version: '1.0.0',
+    images: Object.entries(sources).map(([path, bytes]) => fact(path, bytes)),
+    dependencies: [{name: '@actql/local-node', local: true}]};
+  return {node, entry: join(node, 'selected-infer-startup.cjs'), selected};
+}
+
+test('both actual public namespaces compile from captured Sources before entry and remain the same originals', t => {
+  const f = fixture(t), n = addPublicNode(f);
+  const result = f.run([
+    'import assert from "node:assert/strict";',
+    'assert.equal(localPublicInitializations,1);assert.equal(nodePublicInitializations,1);',
+    'const local=await import("@actql/local-node");const node=await import("@actql/node");',
+    'assert.equal(node.originalNode,"original-local-public/node");',
+    'assert.equal(local.originalLocal,"original-local-public");',
+    'assert.equal(localPublicInitializations,1);assert.equal(nodePublicInitializations,1);',
+    'packageImageCustody.assertCurrent();',
+  ].join('\n'), '',
+  'require("node:fs").writeFileSync('+JSON.stringify(join(n.node, 'index.mjs'))+',"throw new Error(\\"LateNodeReplacement\\")");'+
+  'require("node:fs").writeFileSync(require("node:path").join(root,"index.mjs"),"throw new Error(\\"LateLocalReplacement\\")");',
+  inventory => { inventory.publicNode = n.selected; inventory.publicNodeCoverage = 'prepared'; }, true, n.entry);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('the selected public Node wrapper refuses missing public Source coverage before any namespace compiles', t => {
+  const f = fixture(t), n = addPublicNode(f);
+  const result = f.run('throw new Error("EntryMustNotRun");', '', '', undefined, true, n.entry);
+  assert.notEqual(result.status, 0); assert.match(result.stderr, /InitialControlPublicNodeUnavailable/);
+  assert.doesNotMatch(result.stderr, /EntryMustNotRun/);
+});
+
+test('a public Node dependency cannot substitute a distinct Local installation', t => {
+  const f = fixture(t), n = addPublicNode(f);
+  const foreign = join(n.node, 'node_modules/@actql/local-node');
+  mkdirSync(foreign, {recursive: true});
+  writeFileSync(join(foreign, 'package.json'), JSON.stringify({name: '@actql/local-node', exports: './index.mjs'}));
+  writeFileSync(join(foreign, 'index.mjs'), 'throw new Error("ForeignLocalMustNotCompile");');
+  const result = f.run('throw new Error("EntryMustNotRun");', '', '', inventory => {
+    inventory.publicNode = n.selected; inventory.publicNodeCoverage = 'prepared';
+  }, true, n.entry);
+  assert.notEqual(result.status, 0); assert.match(result.stderr, /InitialControlPackageImageChanged/);
+  assert.doesNotMatch(result.stderr, /ForeignLocalMustNotCompile|EntryMustNotRun/);
+});
 
 // Real same-FD reads and Node loader/compilation; the small Host namespace is
 // an explicit fixture, not the complete installed Host, original operational
@@ -89,7 +143,7 @@ test('application-time package capture refuses before observing a caller invento
   assert.equal(result.status, 0, result.stderr);
 });
 
-test('the actual selected public preload consumes generated inventory without issuing a Scope', t => {
+for (const route of ['local-node', 'node']) test('the actual selected '+route+' preload consumes generated inventory without issuing a Scope', t => {
   const f = fixture(t), local = join(f.directory, 'node_modules/@actql/local-node');
   mkdirSync(join(local, 'adapters/host-node'), {recursive: true});
   const sources = {...f.sources,
@@ -101,13 +155,30 @@ test('the actual selected public preload consumes generated inventory without is
       'export function connectInitialControlHostPreparation(){actualConsumerCalls++;return Promise.resolve({});}'+
       'export function assertInitialControlHostPreparation(){};'),
     'package.json': Buffer.from(JSON.stringify({name: '@actql/local-node', type: 'module',
-      exports: {'./selected-infer-startup': './selected-infer-startup.cjs'}})),
+      exports: {'.': './index.mjs', './selected-infer-startup': './selected-infer-startup.cjs'}})),
     'selected-infer-startup.cjs': readFileSync(new URL('../../packages/local-node/selected-infer-startup.cjs', import.meta.url))};
   for (const name of ['infer-trusted-node-preload.cjs', 'initial-control-installation-owner.cjs',
     'initial-control-package-custody.cjs', 'initial-control-image-source.cjs', 'initial-control-image-loader.cjs']) {
     sources['adapters/host-node/'+name] = actual(name);
   }
   const inventory = {...f.inventory, images: Object.entries(sources).map(([path, bytes]) => fact(path, bytes))};
+  if (route === 'node') {
+    const node = join(f.directory, 'node_modules/@actql/node');
+    mkdirSync(node, {recursive: true});
+    const originals = {'package.json': Buffer.from(JSON.stringify({name: '@actql/node',
+      version: '1.0.0', type: 'module', exports: {'.': './index.mjs',
+        './selected-infer-startup': './selected-infer-startup.cjs'}})),
+    'selected-infer-startup.cjs': readFileSync(new URL('../../packages/node/selected-infer-startup.cjs', import.meta.url)),
+    'index.mjs': Buffer.from('import{originalLocal}from"@actql/local-node";'+
+      'import{createRequire}from"node:module";'+
+      'globalThis.originalNodeDelivery=createRequire(import.meta.url)("./selected-infer-startup.cjs");'+
+      'globalThis.actualPublicNodeValue=originalLocal;')};
+    for (const [path, bytes] of Object.entries(originals)) writeFileSync(join(node, path), bytes);
+    inventory.publicNode = {name: '@actql/node', version: '1.0.0',
+      images: Object.entries(originals).map(([path, bytes]) => fact(path, bytes)),
+      dependencies: [{name: '@actql/local-node', local: true}]};
+    inventory.publicNodeCoverage = 'prepared';
+  }
   sources['adapters/host-node/initial-control-package-original.cjs'] = Buffer.from(
     'module.exports=Object.freeze({imageInventory:'+JSON.stringify(inventory)+'});');
   for (const [path, bytes] of Object.entries(sources)) {
@@ -121,6 +192,10 @@ test('the actual selected public preload consumes generated inventory without is
     'assert.equal(actualHostImageValue,"original");',
     'assert.equal(originalDelivery,require("@actql/local-node/selected-infer-startup"));',
     'assert.equal(Object.getPrototypeOf(originalDelivery),null);',
+    ...(route === 'node' ? [
+      'assert.equal(originalNodeDelivery,require("@actql/node/selected-infer-startup"));',
+      'assert.equal(actualPublicNodeValue,"original-local-public");',
+    ] : []),
     'const root=require('+JSON.stringify(join(local, 'adapters/host-node/infer-trusted-node-preload.cjs'))+');',
     'const view={};assert.equal(root.associateHost(view,{runtime:process,host:{},installation:{},generation:{},supplier(){}}),view);',
     'let reads=0;const raw=new Proxy({},{ownKeys(){reads++;throw new Error("RawInput");}});',
@@ -130,7 +205,7 @@ test('the actual selected public preload consumes generated inventory without is
     'assert.equal(actualConsumerCalls,0);',
   ].join('\n'));
   const result = spawnSync(process.execPath,
-    ['--no-lazy', '--require', '@actql/local-node/selected-infer-startup', entry], {
+    ['--no-lazy', '--require', '@actql/'+route+'/selected-infer-startup', entry], {
       cwd: f.directory, env: {PATH: process.env.PATH}, encoding: 'utf8', timeout: 30000});
   assert.equal(result.error, undefined); assert.equal(result.status, 0, result.stderr);
 });

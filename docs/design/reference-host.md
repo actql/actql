@@ -215,6 +215,21 @@ The selected namespace and asset projection remain process/module holdings, not
 an operational intake issuer or a Host-level release acknowledgement. Stock
 resolver/bootstrap provenance and unselected library domains remain independent.
 
+The standard Node facade is a separate image domain, not a dependency of Local.
+Its generated facts identify its original public entry and dependencies, with
+an explicit edge to the same actual Local installation. When that facade is
+selected, the preload captures its Sources and checks that edge before any Host
+namespace compilation. Both Local and Node public ESM entries are initialized
+from the held Sources before the final Module handoff; later entry imports
+reuse those same namespaces. Missing facade coverage refuses that selected
+route, without loading an uncovered parent for Local-only delivery. Optional
+dependency preparation failure cannot leave a dangling package index in another
+image domain. These package facts and namespace identities remain correspondence
+DATA, not operational admissions or coverage of caller-owned opaque backing.
+The extra Source Strings, manifests, dependency paths, image/namespace records,
+graph traversal, compiler and loader workspace overlap the original Host and
+library domains. Module-cache retention or a Host close does not release them.
+
 Ancestor public preload wrappers publish their same immutable null-prototype
 table before nested loading. A later exports replacement or Node's circular-
 require warning prototype cannot stand in for that original receiver. Eager

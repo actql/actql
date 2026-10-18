@@ -286,7 +286,8 @@ if (selected) {
   // intake/runtime envelope, prior-registration proof or business capacity.
   const initialControlImages = initialControlPackageOriginal === undefined ? undefined :
     require('./initial-control-package-custody.cjs').captureInitialControlPackageCustody(
-      initialControlPackageOriginal, join(__dirname, '..', '..'), originalProcess.argv[1]);
+      initialControlPackageOriginal, join(__dirname, '..', '..'), originalProcess.argv[1],
+      publicPreload.entry === publicPreload.local ? undefined : publicPreload.entryFilename);
   let sdkStaticModules;
   // Resolve the OPTIONAL selected package from this actual consumer entry,
   // including normal external installations, never a monorepo source path.
