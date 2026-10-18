@@ -12,6 +12,50 @@ pub(all) struct PullRequestNativeFields {
 } derive(Eq, Debug)
 
 ///|
+pub(all) struct PullRequestRow {
+  common : IssueRow
+  native : PullRequestNativeFields
+} derive(Eq, Debug)
+
+///|
+pub(all) struct GraphqlPullRequestPage {
+  repository : GraphqlRepository
+  rows : Array[PullRequestRow]
+  pending_fields : Array[IssueFieldContinuation]
+  has_next_page : Bool
+  end_cursor : String?
+} derive(Eq, Debug)
+
+///|
+/// Admit the same original repository and requested native PullRequest shape.
+/// Incomplete assignee/label fields remain pending, never complete row output.
+pub fn project_pull_requests_response(
+  body : Bytes,
+  limits : PageLimits,
+  expected_node_id : String,
+  expected_database_id : Int64,
+  expected_name_with_owner : String,
+) -> Result[GraphqlPullRequestPage, GraphqlResponseIssue] {
+  project_issue_like_response(
+    body, limits, expected_node_id, expected_database_id, expected_name_with_owner,
+    true,
+  ).map(pair => {
+    let (page, native) = pair
+    let rows = []
+    for index, common in page.rows {
+      rows.push({ common, native: native[index], })
+    }
+    {
+      repository: page.repository,
+      rows,
+      pending_fields: page.pending_fields,
+      has_next_page: page.has_next_page,
+      end_cursor: page.end_cursor,
+    }
+  })
+}
+
+///|
 fn graphql_nullable_actor(
   object : @decode.ObjectView,
   name : String,

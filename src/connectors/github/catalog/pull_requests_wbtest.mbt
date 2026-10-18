@@ -124,3 +124,130 @@ test "PullRequest malformed requested fields refuse instead of becoming SQL null
     )
   }
 }
+
+///|
+fn graphql_pull_request_fixture(
+  state : String,
+  fields : Array[(String, String)],
+) -> String {
+  let common = graphql_issue(
+    1,
+    [("state", state.to_json().stringify()), ..fields],
+  ).replace_all(old="\"stateReason\":null,", new="")
+  let native = "\"__typename\":\"PullRequest\",\"baseRefName\":\"main\",\"headRefName\":\"deleted/original\",\"isDraft\":false,\"mergeable\":\"UNKNOWN\",\"mergedAt\":null,\"mergedBy\":null,\"reviewDecision\":null,"
+  (native + common.view(start_offset=1).to_owned()) |> fn(row) { "{" + row }
+}
+
+///|
+fn pull_request_outer_fixture(row : String) -> String {
+  graphql_node(
+    "R_A", 1296269, "octo/hello", "{\"hasNextPage\":false,\"endCursor\":null}", row,
+  ).replace_all(old="\"issues\":", new="\"pullRequests\":")
+}
+
+///|
+fn project_pull_request_fixture(
+  body : String,
+) -> Result[GraphqlPullRequestPage, GraphqlResponseIssue] {
+  project_pull_requests_response(
+    @utf8.encode(body),
+    page_limits(),
+    "R_A",
+    1296269L,
+    "octo/hello",
+  )
+}
+
+///|
+test "PullRequest native states stay distinct and Issue-only reason is inapplicable" {
+  for
+    (native, state) in [
+      ("OPEN", "open"),
+      ("CLOSED", "closed"),
+      ("MERGED", "merged"),
+    ] {
+    let page = project_pull_request_fixture(
+      pull_request_outer_fixture(graphql_pull_request_fixture(native, [])),
+    ).unwrap()
+    assert_eq(page.rows.length(), 1)
+    assert_eq(page.rows[0].common.state, state)
+    assert_eq(page.rows[0].common.state_reason, None)
+    assert_eq(page.rows[0].native.head, "deleted/original")
+    assert_eq(page.rows[0].native.mergeable, None)
+  }
+  // The old Issue path still requires its requested reason and rejects MERGED.
+  let issue = graphql_node(
+    "R_A",
+    1296269,
+    "octo/hello",
+    "{\"hasNextPage\":false,\"endCursor\":null}",
+    graphql_issue(1, []),
+  )
+  assert_eq(
+    project(issue.replace_all(old="\"stateReason\":null,", new="")),
+    Err(Row(MissingRequiredField("stateReason"))),
+  )
+  assert_eq(
+    project(
+      issue.replace_all(old="\"state\":\"OPEN\"", new="\"state\":\"MERGED\""),
+    ),
+    Err(Row(InvalidField("state"))),
+  )
+}
+
+///|
+test "PullRequest admission refuses foreign native types and malformed required state" {
+  let body = pull_request_outer_fixture(
+    graphql_pull_request_fixture("OPEN", []),
+  )
+  assert_eq(
+    project_pull_request_fixture(
+      body.replace_all(
+        old="\"__typename\":\"PullRequest\"",
+        new="\"__typename\":\"Issue\"",
+      ),
+    ),
+    Err(WrongType("Issue")),
+  )
+  assert_eq(
+    project_pull_request_fixture(
+      body.replace_all(old="\"__typename\":\"PullRequest\",", new=""),
+    ),
+    Err(Row(MissingRequiredField("__typename"))),
+  )
+  assert_eq(
+    project_pull_request_fixture(
+      body.replace_all(old="\"state\":\"OPEN\"", new="\"state\":\"FUTURE\""),
+    ),
+    Err(Row(InvalidField("state"))),
+  )
+}
+
+///|
+test "PullRequest page keeps the original repository and pagination refusal boundary" {
+  let body = pull_request_outer_fixture(
+    graphql_pull_request_fixture("OPEN", []),
+  )
+  assert_eq(
+    project_pull_request_fixture(
+      body.replace_all(old="\"id\":\"R_A\"", new="\"id\":\"R_B\""),
+    ),
+    Err(IdRepresentationChanged),
+  )
+  assert_eq(
+    project_pull_request_fixture(body.replace_all(old="1296269", new="1296270")),
+    Err(ForeignRepository),
+  )
+  assert_eq(
+    project_pull_request_fixture(
+      body.replace_all(old="octo/hello", new="octo/moved"),
+    ),
+    Err(BindingChanged),
+  )
+  assert_eq(
+    project_pull_request_fixture(
+      body.replace_all(old="\"hasNextPage\":false", new="\"hasNextPage\":true"),
+    ),
+    Err(MissingCursor),
+  )
+}
