@@ -10,7 +10,12 @@ const apply = Reflect.apply, descriptor = Object.getOwnPropertyDescriptor;
 const preloading = descriptor(NodeModule.prototype, 'isPreloading')?.get;
 const args = originalProcess.execArgv;
 const offset = args.length === 3 && args[0] === '--no-lazy' ? 1 : 0;
-let selectedInitialControlHostPreparation, ordinaryExports;
+let selectedInitialControlHostPreparation, ordinaryReceiver, ordinaryConnect;
+const ordinary = args.length === 0 && originalProcess.env.NODE_OPTIONS === undefined;
+function forwardOrdinary(kind,raw) {
+  if (ordinaryConnect === undefined) return undefined;
+  return apply(ordinaryConnect,ordinaryReceiver,[kind,raw]);
+}
 if (typeof preloading === 'function' && apply(preloading, module, []) === true &&
     originalProcess.env.NODE_OPTIONS === undefined && args.length === offset + 2 &&
     args[offset] === '--require' &&
@@ -35,16 +40,13 @@ if (typeof preloading === 'function' && apply(preloading, module, []) === true &
     }
   }
 }
-if (selectedInitialControlHostPreparation === undefined && args.length === 0 &&
-    originalProcess.env.NODE_OPTIONS === undefined) {
-  let ordinaryReceiver, ordinaryConnect;
-  ordinaryExports = Object.freeze(Object.setPrototypeOf({selectedInitialControlHostPreparation(kind,raw) {
-    if (ordinaryConnect === undefined) return undefined;
-    return apply(ordinaryConnect,ordinaryReceiver,[kind,raw]);
-  }},null));
+module.exports = {selectedInitialControlHostPreparation:
+  ordinary ? forwardOrdinary : selectedInitialControlHostPreparation};
+Object.setPrototypeOf(module.exports, null);
+Object.freeze(module.exports);
+if (selectedInitialControlHostPreparation === undefined && ordinary) {
   // Publish this SAME immutable receiver before the original Host namespace
   // reenters. Do not replace the table after image/module custody captures it.
-  module.exports = ordinaryExports;
   const receiver = require('./adapters/host-node/node-public-initial-control-bootstrap.cjs');
   const connect = descriptor(receiver,'selectedInitialControlHostPreparation');
   if (connect !== undefined && Object.hasOwn(connect,'value') && typeof connect.value === 'function') {
@@ -52,6 +54,3 @@ if (selectedInitialControlHostPreparation === undefined && args.length === 0 &&
     ordinaryConnect = connect.value;
   }
 }
-module.exports = ordinaryExports ?? {selectedInitialControlHostPreparation};
-Object.setPrototypeOf(module.exports, null);
-Object.freeze(module.exports);

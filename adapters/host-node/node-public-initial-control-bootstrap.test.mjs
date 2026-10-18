@@ -15,7 +15,8 @@ function fixture(t,{inventory=true,changeImage=false,publicNode=false}={}) {
   const root=join(directory,'node_modules/@actql/local-node');
   const sources=new Map();
   sources.set('package.json',Buffer.from(JSON.stringify({name:'@actql/local-node',version:'1.0.0',
-    type:'module',exports:'./index.mjs'})));
+    type:'module',exports:{'.':'./index.mjs',
+      './_internal/initial-control-public-dispatch':'./initial-control-public-dispatch.cjs'}})));
   sources.set('index.mjs',Buffer.from('import delivery from "./initial-control-public-dispatch.cjs";'+
     'export function connect(raw){return delivery.selectedInitialControlHostPreparation("connect",raw);}'));
   sources.set('spec/local-check-environment.json',Buffer.from('{"original":"ordinary-asset"}\n'));

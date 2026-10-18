@@ -146,16 +146,17 @@ function connectInitialControlHostPreparation(kind,raw) {
   // prefix. Never clear/reissue merely because a Promise rejected.
   return apply(state.consumer,state.namespace,[kind,raw]);
 }
-const table = Object.setPrototypeOf({
+const table = module.exports = {
   selectedInitialControlHostPreparation:connectInitialControlHostPreparation,
   beginInitialControlInstallation(originals,raw) {return owner.begin(originals,raw);},
   assertInitialControlInstallationCurrent(scope,originals) {return owner.assertCurrent(scope,originals);},
   readInitialControlInstallationInput(scope,originals) {return owner.readInput(scope,originals);},
   readInitialControlInstallationAsset(scope,originals,path) {return owner.readAsset(scope,originals,path);},
-},null);
+};
+Object.setPrototypeOf(table,null);
 // Same synchronous receiver handoff for the Host namespace while it loads;
 // no callable table can pass assertPrefixCurrent until initialization closes.
-module.exports = freeze(table);
+freeze(table);
 try {
   if (module.isPreloading !== false || processOriginal.execArgv.length !== 0 ||
       isMainThread !== true || threadId !== 0 ||
@@ -183,6 +184,12 @@ try {
     const nodeRoot=dirname(consumerRequire.resolve('@actql/node'));
     if (delivery.filename !== join(nodeRoot,'initial-control-public-dispatch.cjs')) unavailable();
     publicDeliveryEntry=delivery.filename;
+  } else if (delivery.parent?.filename !== undefined &&
+      delivery.parent.filename.endsWith('/initial-control-public-dispatch.cjs')) {
+    const nodeRoot=dirname(consumerRequire.resolve('@actql/node'));
+    if (delivery.parent.filename !== join(nodeRoot,'initial-control-public-dispatch.cjs') ||
+        require.cache[delivery.parent.filename] !== delivery.parent) unavailable();
+    publicDeliveryEntry=delivery.parent.filename;
   }
   const images = require('./initial-control-package-custody.cjs')
     .captureOrdinaryInitialControlPackageCustody(inventory,localRoot,processOriginal.argv[1],publicDeliveryEntry);
