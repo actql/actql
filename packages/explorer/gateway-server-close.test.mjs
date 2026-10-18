@@ -88,3 +88,66 @@ test('a server close with an outstanding callback remains one pending attempt', 
     }
   }
 });
+
+test('a known socket close failure still retains the original outstanding SDK read', async () => {
+  const close = Server.prototype.close;
+  const originalFailure = new Error('original socket cleanup refused');
+  let original, calls = 0, release, entered;
+  const admitted = new Promise(resolve => {entered = resolve;});
+  const read = new Promise(resolve => {release = resolve;});
+  Server.prototype.close = function(callback) {
+    original ??= this;
+    assert.equal(this, original);
+    if (++calls === 1) {
+      queueMicrotask(() => callback(originalFailure));
+      return this;
+    }
+    return Reflect.apply(close, this, [callback]);
+  };
+  let response;
+  try {
+    const gateway = await startExplorerGateway({client: {
+      attach() {assert.fail('No Run is opened');},
+      checkpoints() {entered(); return read;},
+      close() {assert.fail('The Client retains separate physical cleanup');},
+    }});
+    const bootstrap = await fetch(`${gateway.origin}/api/session`, {
+      method: 'POST', headers: {Origin: gateway.origin, 'Content-Type': 'application/json'},
+      body: JSON.stringify({bootstrap: gateway.issueBootstrap().bootstrap}),
+    });
+    const body = await bootstrap.json();
+    response = fetch(`${gateway.origin}/api/read/checkpoints`, {
+      method: 'POST', headers: {Origin: gateway.origin, 'Content-Type': 'application/json',
+        Cookie: bootstrap.headers.get('set-cookie').split(';')[0], 'X-Actql-CSRF': body.csrf},
+      body: '{}',
+    }).catch(() => null);
+    await admitted;
+    const first = gateway.close();
+    let settled = false;
+    void first.then(() => {settled = true;}, () => {settled = true;});
+    await nextTurn();
+    assert.equal(settled, false);
+    assert.equal(gateway.close(), first);
+    assert.equal(calls, 1, 'The original SDK settlement cannot be replaced by socket failure');
+    release({items: []});
+    await assert.rejects(first, error => {
+      assert.deepEqual(error.errors, [originalFailure]);
+      return true;
+    });
+    await response;
+    const retry = gateway.close();
+    await retry;
+    assert.equal(calls, 2);
+    assert.equal(original.listening, false);
+  } finally {
+    release?.({items: []});
+    await response;
+    Server.prototype.close = close;
+    if (original?.listening) {
+      await new Promise((resolve, reject) => {
+        Reflect.apply(close, original, [error => error ? reject(error) : resolve()]);
+        original.closeAllConnections();
+      });
+    }
+  }
+});
