@@ -32,6 +32,7 @@ pub(all) enum NotionPageParent {
 /// value, current-version guard, Reference or write authorization. Properties
 /// remain original vendor DATA and may still need property-item pagination.
 pub struct OriginalNotionPage {
+  priv original_self : Ref[OriginalNotionPage?]
   id : String
   response_sha256 : String
   parent : NotionPageParent
@@ -258,7 +259,9 @@ pub fn project_notion_page(
       return Err(BudgetExceeded)
     }
   }
-  Ok({
+  let original_self : Ref[OriginalNotionPage?] = Ref(None)
+  let page = {
+    original_self,
     id,
     response_sha256: @sha.hex(raw),
     parent,
@@ -272,7 +275,17 @@ pub fn project_notion_page(
     original,
     properties,
     raw,
-  })
+  }
+  original_self.val = Some(page)
+  Ok(page)
+}
+
+///|
+fn notion_page_is_original(page : OriginalNotionPage) -> Bool {
+  match page.original_self.val {
+    Some(original) => physical_equal(original, page)
+    None => false
+  }
 }
 
 ///|
