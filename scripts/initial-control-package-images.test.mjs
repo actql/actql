@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, unlinkSync, writeFileSync} from 'node:fs';
+import {mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, symlinkSync, unlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {runInNewContext} from 'node:vm';
@@ -58,7 +58,7 @@ test('ordinary rendered adapter and runtime bytes produce one deterministic priv
   assert.equal(value.hostValidator, 'assertInitialControlHostPreparation');
   assert.equal(value.packages.length, 2);
   assert.equal(value.dependencies.length, 2);
-  assert.equal(value.dependencyCoverage, true);
+  assert.equal(value.optionalSdkCoverage, 'absent');
   assert.equal(value.optionalSdk, null);
   assert.equal(value.images.some(item => item.path === initialControlPackageOriginal), false);
   assert.equal(value.images.find(item => item.path === 'spec/selected.json').sha256,
@@ -129,4 +129,34 @@ test('generated recipe reads the actual same manifest rather than a caller-suppl
   assert.equal('operationalAdmission' in value, false);
   assert.equal('capacity' in value, false);
   assert.equal('permission' in value, false);
+});
+
+test('unprepared optional SDK coverage does not discard original mandatory package images', t => {
+  const f = fixture(t);
+  f.put('packages/provider-ai-sdk/package.json', JSON.stringify({name: '@actql/provider-ai-sdk',
+    version: '0.0.0-development', type: 'module', exports: './index.mjs', files: ['index.mjs'],
+    dependencies: {'@actql/not-installed-fixture': '0.0.0-development'}}));
+  f.put('packages/provider-ai-sdk/index.mjs', 'export const optional = true;\n');
+  const value = f.read(f.render());
+  assert.equal(value.packages.length, 2);
+  assert.equal(value.dependencies.length, 2);
+  assert.equal(value.optionalSdk, null);
+  assert.equal(value.optionalSdkCoverage, 'unprepared');
+  assert.equal('dependencyCoverage' in value, false);
+});
+
+test('dependency reuse cannot conceal a foreign exact-version requirement', t => {
+  const f = fixture(t);
+  f.put('packages/sdk/package.json', JSON.stringify({name: '@actql/sdk',
+    version: '0.0.0-development', type: 'module', exports: './index.mjs', files: ['index.mjs'],
+    dependencies: {'@actql/client-wire': '0.0.1'}}));
+  assert.throws(f.render, /WrongInitialControlDependencyVersion:@actql\/client-wire/);
+});
+
+test('an aliased runtime ancestor cannot be mistaken for a regular selected file', t => {
+  const f = fixture(t), parent = join(f.destination, '_build/js/release/build');
+  const renamed = join(f.destination, '_build/js/release/original-build');
+  renameSync(parent, renamed);
+  symlinkSync(renamed, parent);
+  assert.throws(f.render, /AliasedInitialControlRuntime/);
 });

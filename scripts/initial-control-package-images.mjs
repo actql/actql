@@ -9,6 +9,15 @@ const concrete = path => typeof path === 'string' && !isAbsolute(path) &&
   !path.split('/').some(part => part === '..' || part === '.' || part === '') && !path.includes('\\');
 const fail = name => { throw new Error(name); };
 const fact = (path, bytes) => ({path, bytes: bytes.length, sha256: digest(bytes)});
+function regularFile(root, path, code) {
+  if (!concrete(path)) fail('InvalidInitialControlImage');
+  const parts = path.split('/');
+  for (let index = 0; index < parts.length; index++) {
+    const info = lstatSync(join(root, ...parts.slice(0, index + 1)));
+    if (index === parts.length - 1 ? !info.isFile() : !info.isDirectory()) fail(code);
+  }
+  return readFileSync(join(root, path));
+}
 
 function publicCodeFiles(root, manifest) {
   const files = new Map();
@@ -102,15 +111,17 @@ function dependencyImages(root, destination, localManifest) {
   // This is the existing startup's optional SDK resolution, not a new public
   // dependency or a Provider invocation. Missing coverage refuses its adoption.
   const sdk = join(root, 'packages/provider-ai-sdk');
-  let optionalSdk;
+  let optionalSdk, optionalSdkCoverage = 'absent';
   if (existsSync(join(sdk, 'package.json'))) {
-    try { optionalSdk = collect('@actql/provider-ai-sdk', sdk); }
+    const before = packages.length;
+    try { optionalSdk = collect('@actql/provider-ai-sdk', sdk); optionalSdkCoverage = 'prepared'; }
     catch (error) {
       if (!error.message.startsWith('UnpreparedInitialControlDependency:')) throw error;
-      return {packages: [], bindings: [], optionalSdk: undefined, complete: false};
+      packages.length = before;
+      optionalSdkCoverage = 'unprepared';
     }
   }
-  return {packages, bindings, optionalSdk, complete: true};
+  return {packages, bindings, optionalSdk, optionalSdkCoverage};
 }
 
 // The caller supplies exactly the bytes it will publish after its ordinary
@@ -128,12 +139,12 @@ export function renderInitialControlPackageOriginal({root, destination, inputs, 
     if (!concrete(file)) fail('InvalidInitialControlRuntimePath');
     const path = '_build/js/release/build/' + file, source = join(destination, path);
     if (!existsSync(source)) return absent;
-    if (!lstatSync(source).isFile()) fail('AliasedInitialControlRuntime');
-    images.set(path, readFileSync(source));
+    images.set(path, regularFile(destination, path, 'AliasedInitialControlRuntime'));
   }
   const manifestPath = join(destination, 'package.json');
   if (!existsSync(manifestPath)) return absent;
-  const manifestBytes = readFileSync(manifestPath), manifest = JSON.parse(manifestBytes);
+  const manifestBytes = regularFile(destination, 'package.json', 'AliasedInitialControlManifest');
+  const manifest = JSON.parse(manifestBytes);
   images.set('package.json', manifestBytes);
   function exported(value) {
     if (typeof value === 'string') {
@@ -141,9 +152,7 @@ export function renderInitialControlPackageOriginal({root, destination, inputs, 
       const path = value.slice(2);
       if (!concrete(path)) fail('InvalidInitialControlPublicImage');
       if (images.has(path)) return;
-      const source = join(destination, path);
-      if (!lstatSync(source).isFile()) fail('AliasedInitialControlPublicImage');
-      images.set(path, readFileSync(source));
+      images.set(path, regularFile(destination, path, 'AliasedInitialControlPublicImage'));
     } else if (value !== null && typeof value === 'object') {
       for (const child of Object.values(value)) exported(child);
     }
@@ -158,7 +167,7 @@ export function renderInitialControlPackageOriginal({root, destination, inputs, 
   const recipe = {engine: {node: process.versions.node, v8: process.versions.v8,
     openssl: process.versions.openssl, platform: process.platform, arch: process.arch, eager: true},
   images: facts, packages: dependencies.packages, dependencies: dependencies.bindings,
-  optionalSdk: dependencies.optionalSdk ?? null, dependencyCoverage: dependencies.complete,
+  optionalSdk: dependencies.optionalSdk ?? null, optionalSdkCoverage: dependencies.optionalSdkCoverage,
   sourceBytes: facts.reduce((sum, value) => sum + value.bytes, 0),
   hostModule: 'adapters/host-node/embedded-local.mjs',
   hostValidator: 'assertInitialControlHostPreparation'};
