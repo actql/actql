@@ -32,7 +32,7 @@ def main() -> None:
     source, bundle_arg, seeded_arg, fixture_arg, crypto_arg = sys.argv[1:]
     bundle, seeded, fixture = Path(bundle_arg), Path(seeded_arg), Path(fixture_arg)
     fixture.mkdir(mode=0o700, exist_ok=False)
-    library = c.CDLL(str(bundle / 'libactql_native_control.dylib'))
+    library = c.CDLL(str(bundle / 'libactql_native_control.dylib'), mode=c.RTLD_GLOBAL)
     initializer = library.actql_original_control_initialize
     initializer.argtypes, initializer.restype = [c.c_int, c.POINTER(c.c_char_p)], c.c_int
     arguments = (c.c_char_p * 2)(b'original-adoption-conformance', None)
