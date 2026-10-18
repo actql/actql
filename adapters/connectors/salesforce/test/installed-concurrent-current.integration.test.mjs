@@ -79,7 +79,9 @@ test('installed concurrent refreshes retain their own Catalog when the first fin
             assert.notEqual(firstCatalog, secondCatalog);
             assert.deepEqual(first.capabilities, second.capabilities);
             rechecks.length = 0;
-            return first;
+            // Dispatch with the earlier-completed refresh after the other
+            // one has finished. A mutable latest-Catalog cursor is not enough.
+            return second;
           },
         }}),
       });
@@ -93,7 +95,7 @@ test('installed concurrent refreshes retain their own Catalog when the first fin
     assert.equal(writes().length, 2);
     assert.ok(rechecks.length >= 2);
     for (const entry of rechecks) {
-      assert.equal(entry.observation, firstCatalog);
-      assert.notEqual(entry.observation, secondCatalog);
+      assert.equal(entry.observation, secondCatalog);
+      assert.notEqual(entry.observation, firstCatalog);
     }
   });
