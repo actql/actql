@@ -66,6 +66,7 @@ test "Native runtime package refuses missing observations and closes an empty pr
     root_open_failure: None,
     original_read: None,
     original_resources: None,
+    command_preparation: false,
     selection: None,
     product: None,
     read_scope_entered: false,

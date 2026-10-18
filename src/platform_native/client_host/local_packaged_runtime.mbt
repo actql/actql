@@ -12,6 +12,7 @@ struct NativeLocalPackagedRuntime {
   mut root_open_failure : @filesystem.NativeRootOpenFailure?
   original_read : (@arena.InstalledArenaHost, @arena.InstalledArenaOriginalRead)?
   mut original_resources : @arena.InstalledArenaLocalHostResources?
+  command_preparation : Bool
   mut selection : (String, String, String, String)?
   mut product : NativeLocalPackagedProductObservation?
   mut read_scope_entered : Bool
@@ -50,6 +51,11 @@ priv suberror LocalRuntimeStop {
 }
 
 ///|
+// Stronger command selection never issues coverage. The same entry must have
+// admitted its complete finite envelope before the first covered Root/helper.
+extern "C" fn local_runtime_command_original_available() -> Bool = "actql_native_command_platform_available"
+
+///|
 fn[T] local_runtime_stop(
   issue : NativeLocalPackagedRuntimeIssue,
 ) -> T raise LocalRuntimeStop {
@@ -73,6 +79,11 @@ fn local_runtime_read_begin(
 ) -> Result[Unit, NativeLocalPackagedRuntimeIssue] {
   if !cleanup && runtime.closed {
     return Err(Changed)
+  }
+  if !cleanup &&
+    runtime.command_preparation &&
+    !local_runtime_command_original_available() {
+    return Err(OriginalReadUnavailable)
   }
   if runtime.read_scope_entered {
     return Err(CleanupPending)
@@ -153,6 +164,7 @@ fn[T] local_runtime_read_finish(
 fn local_runtime_empty(
   original_read : (@arena.InstalledArenaHost, @arena.InstalledArenaOriginalRead)?,
   original_resources? : @arena.InstalledArenaLocalHostResources? = None,
+  command_preparation? : Bool = false,
 ) -> NativeLocalPackagedRuntime {
   {
     manifest: None,
@@ -165,6 +177,7 @@ fn local_runtime_empty(
     root_open_failure: None,
     original_read,
     original_resources,
+    command_preparation,
     selection: None,
     product: None,
     read_scope_entered: false,
@@ -314,6 +327,7 @@ pub fn open_native_local_packaged_runtime_in_original_read(
   platform : String,
   manifest_sha256 : String,
   diagnostic_ceiling : Int,
+  command_preparation? : Bool = false,
 ) -> Result[NativeLocalPackagedRuntime, NativeLocalPackagedRuntimeOpenIssue] {
   guard original_read is Some((host, original)) else {
     return Err(Refused(OriginalReadUnavailable))
@@ -321,13 +335,16 @@ pub fn open_native_local_packaged_runtime_in_original_read(
   if !local_runtime_path_valid(root_path) || diagnostic_ceiling <= 0 {
     return Err(Refused(InvalidInput))
   }
+  if command_preparation && !local_runtime_command_original_available() {
+    return Err(Refused(OriginalReadUnavailable))
+  }
   match host.enter_domain_original_read(original) {
     Err(issue) => return Err(Refused(OriginalRead(issue)))
     Ok(_) => ()
   }
   // The Runtime itself is managed by this context. Its close acknowledges its
   // Roots/readers, not its own last alias or the outer original-read carrier.
-  let runtime = local_runtime_empty(original_read)
+  let runtime = local_runtime_empty(original_read, command_preparation~)
   runtime.read_scope_entered = true
   let result = match
     @filesystem.open_root_in_current_read_context_with_custody(

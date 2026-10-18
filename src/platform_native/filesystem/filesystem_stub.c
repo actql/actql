@@ -19,12 +19,15 @@
 
 #ifdef __APPLE__
 #include <sys/acl.h>
+#include <sys/attr.h>
+#include <sys/mount.h>
 #elif defined(__linux__)
 #include <sys/xattr.h>
 #endif
 
 #ifdef ACTQL_SCOPED_READ_ALLOCATOR
 #include "scoped_read.h"
+#include "../host_bootstrap/command_platform.h"
 // The original Core backed-read use and current backing scope must already
 // be validated by the installed Native Domain before this physical entrance.
 // Outside a selected read scope these hooks use the original allocator.
@@ -60,6 +63,11 @@ typedef struct {
   int32_t close_result;
   char *close_error;
   DIR *census_stream;
+  // Selected command census uses its own descriptor, never a libc DIR. A
+  // consumed/unconfirmed close retains this number only as original duty.
+  int census_descriptor;
+  bool census_descriptor_acquired;
+  bool census_descriptor_close_consumed;
   bool census_cleanup_unconfirmed;
   char *census_cleanup_error;
   int32_t test_census_close_failures;
@@ -358,7 +366,9 @@ int32_t actql_native_filesystem_directory_census(
   int32_t length, int32_t count
 ) {
   if (!actql_census_frame_valid(frame, length, count)) return 4;
-  if (root == NULL || root->fd < 0 || root->census_stream != NULL) return -1;
+  if (root == NULL || root->fd < 0 || root->census_stream != NULL ||
+      (root->census_descriptor_acquired &&
+       !root->census_descriptor_close_consumed)) return -1;
   if (root->census_cleanup_unconfirmed || root->namespace_cleanup_unconfirmed) {
     actql_replace_bounded_error(&root->error, root->diagnostic_ceiling,
       root->census_cleanup_unconfirmed ? root->census_cleanup_error : root->namespace_cleanup_error);
@@ -467,6 +477,8 @@ int32_t actql_native_filesystem_directory_census(
   }
   return result;
 }
+
+#include "command_directory_census.inc"
 
 void actql_native_filesystem_test_fail_census_close(
   actql_native_filesystem_root *root, int32_t failures
@@ -600,7 +612,9 @@ int32_t actql_native_filesystem_root_close(
 ) {
   if (root == NULL) return -1;
   if (root->close_result != 0) return root->close_result == 1 ? 0 : -1;
-  if (root->census_stream != NULL) {
+  if (root->census_stream != NULL ||
+      (root->census_descriptor_acquired &&
+       !root->census_descriptor_close_consumed)) {
     actql_replace_bounded_error(&root->error, root->diagnostic_ceiling,
       "directory census is still active");
     return -1;

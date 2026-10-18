@@ -26,7 +26,7 @@ fn NativeLocalPackagedRuntime::local_runtime_product_current(
       Ok(value) => value
       Err(_) => return Err(InvalidManifest)
     }
-    match local_product_check_census(root, census) {
+    match local_product_check_census(root, census, self.command_preparation) {
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
@@ -38,6 +38,7 @@ fn NativeLocalPackagedRuntime::local_runtime_product_current(
 fn local_product_check_census(
   root : @filesystem.Root,
   census : @host.ClientNativeProductCensus,
+  command_preparation : Bool,
 ) -> Result[Unit, NativeLocalPackagedRuntimeIssue] {
   let expected : Array[@filesystem.NativeDirectoryMember] = []
   for index in 0..<@host.client_native_product_census_count(census) {
@@ -52,7 +53,7 @@ fn local_product_check_census(
       },
     })
   }
-  root.check_directory_members(expected).map_err(issue => Physical(issue))
+  root.check_directory_members(expected, command_preparation~).map_err(issue => Physical(issue))
 }
 
 ///|
@@ -216,7 +217,8 @@ fn local_product_capture_part(
         parent,
       ).map_err(_ => InvalidManifest)
       |> local_runtime_result
-    local_product_check_census(root, census) |> local_runtime_result
+    local_product_check_census(root, census, runtime.command_preparation)
+    |> local_runtime_result
     parents.push((parent, root))
     product.directories.push((root, part, parent))
   }

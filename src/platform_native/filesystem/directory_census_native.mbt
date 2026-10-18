@@ -8,6 +8,15 @@ extern "C" fn directory_census_ffi(
 ) -> Int = "actql_native_filesystem_directory_census"
 
 ///|
+#borrow(root, frame)
+extern "C" fn command_directory_census_ffi(
+  root : Root,
+  frame : Bytes,
+  length : Int,
+  count : Int,
+) -> Int = "actql_native_filesystem_command_directory_census"
+
+///|
 // Census-only directory spelling required by the selected npm scope route.
 // It does not change Writer/Reader/Store object names or select a package.
 fn valid_census_member_name(entry : NativeDirectoryMember) -> Bool {
@@ -24,6 +33,7 @@ fn valid_census_member_name(entry : NativeDirectoryMember) -> Bool {
 pub fn Root::check_directory_members(
   self : Root,
   expected : Array[NativeDirectoryMember],
+  command_preparation? : Bool = false,
 ) -> Result[Unit, NativeFilesystemIssue] {
   // Existing product inventory intake ceilings only; not workspace funding.
   if expected.length() > (8192 - 5) / 5 {
@@ -53,7 +63,12 @@ pub fn Root::check_directory_members(
     frame.push(b'\x00')
   }
   let bytes = Bytes::from_array(frame)
-  match directory_census_ffi(self, bytes, bytes.length(), expected.length()) {
+  let observed = if command_preparation {
+    command_directory_census_ffi(self, bytes, bytes.length(), expected.length())
+  } else {
+    directory_census_ffi(self, bytes, bytes.length(), expected.length())
+  }
+  match observed {
     0 => Ok(())
     1 => Err(GenerationMismatch)
     2 => Err(CapacityExceeded)
