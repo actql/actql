@@ -23,6 +23,7 @@ typedef struct {
   int output_descriptor;
   int private_index_attempted;
   int private_index_created;
+  int private_index_identity_observed;
   int private_index_ready;
   int private_index_close_unknown;
   int private_index_descriptor;
@@ -92,7 +93,7 @@ static int inspection_close(actql_journal_inspection *owner) {
       struct stat current;
       int status = lstat(path, &current);
       int same = owner->private_index_created &&
-        (!owner->private_index_ready || (status == 0 &&
+        (!owner->private_index_identity_observed || (status == 0 &&
         current.st_dev == owner->private_index_identity.st_dev &&
         current.st_ino == owner->private_index_identity.st_ino));
       int missing = status != 0 && errno == ENOENT;
@@ -161,6 +162,7 @@ int32_t actql_journal_inspection_prepare_private_index(
     S_ISREG(owner->private_index_identity.st_mode) &&
     owner->private_index_identity.st_size == 0 &&
     owner->private_index_identity.st_nlink == 1;
+  owner->private_index_identity_observed = observed;
   int close_result = close(descriptor);
   if (close_result != 0) {
     owner->private_index_close_unknown = 1;
