@@ -789,3 +789,77 @@ and saved-outcome reads cannot initialize missing originals or issue again.
 The [Local signing contract](../../spec/contracts/local-signing-credential.md)
 owns this distinction and the unchanged grant/use bytes. A metadata/key
 component test is not evidence of initialized default or installed approval.
+
+## Selected Node Source and managed Compute original
+
+Source-read managed admission and Common managed Compute admission are separate
+operational scopes of the existing Host and Resource owners. Neither borrows
+initial-control credits. The actual selected ordinary package prefix retains
+the original startup, runtime/module, installation and generation and declares
+the complete joint disposition before covered input acquisition or preparation.
+A matching image, scalar budget, callback, CID or accounting Ledger cannot issue
+that disposition. Selected managed-runtime assumptions are not OS reservations,
+universal V8/RSS guarantees or requirements for individual V8-object leases.
+
+The joint recipe counts the shared process heap, compiler and native/module
+domains once through their actual process and escaped-reference lifetimes.
+Preparation, original wire, decoded rows, captured inputs, sequences, DAGs,
+provider/import/output workspace, value/key frames, callbacks, failures and
+pending cleanup overlap that same domain. Both Source capture holdings remain
+beside the managed outputs. Standard direct capture settles its execution
+reservation after capture; a serial Source-to-DAG path may therefore use the
+actual maximum execution overlap, not a second whole-runtime allowance. Extended
+provider captures cannot inherit that settlement argument. Insufficient or
+uncovered scopes remain unavailable; no source or provider ceiling is reduced
+to manufacture a fitting execution.
+
+One original Run record is retained before the first packet snapshot. Its later
+claim binds the actual original SDK request and opaque checked preparation; it
+does not issue capacity retrospectively. The fixed Root compares the exact
+prepared reference before returning its one imported-child port. Resource keeps
+the typed preparation and checks physical identity again at the Host consumer.
+The private JS ABI representation is used only for that reference comparison:
+it has no public constructor, raw-field reader or admission semantics.
+
+The Host retains the unstarted admission before fallible start/take, and takes
+one original Run Ledger. The two Source reads and the generated managed DAG
+borrow that same Ledger internally. The existing physical Ledger equality at
+capture transfer remains mandatory. Independent Source-only children, equal
+limits, copied prepared values or a fresh scalar Ledger cannot replace it.
+Currentness and the existing mutable-resource/park fence both apply before
+preparation and after callbacks. Account and read/send authority stay separate.
+
+Partial initialization retains the same admission even when no Run view was
+returned. If Resource proves that neither the imported child nor its origin
+published a Ledger, cleanup reports a distinct unpublished-initialization
+outcome to the original Root, never fabricated zero usage. If a Ledger exists,
+cleanup preserves its actual usage, parked state, delegated resources,
+reservations, holdings, uncertain transfers and pending report. Logical stop
+cannot settle those obligations prematurely. Unknown stays with the original
+carrier; neither a retry nor process/Promise completion issues a replacement.
+
+Original file handles and distinct response ArrayBuffers keep their physical
+supplier and cleanup duties. Logical Run stop, Source retirement or a sibling
+ACK does not acknowledge their release, and escaped bytes remain charged.
+Host/Journal/Store initialization, external SQLite or other engines, Model,
+Effect, signing, Result/Content publication and transport require their own
+actual scopes and authority; the selected Source/managed-Compute admission does
+not fund them implicitly.
+
+The Journal's selected facility must precede the first covered Host-format or
+Journal filesystem operation, not merely database construction. It retains the
+same Host, installation, generation, principal and original paths. Database
+wrappers and their original close/native-open-state observations are retained
+before fallible open, including isolated inspection copies. Copy/source FDs are
+not retired before the database's own close is confirmed. Cleanup retries are
+close-only, retain first/latest diagnostics and observe an existing synchronous
+close flight rather than reentering it.
+
+An optional private Journal database-byte ceiling is an implementation support
+bound, not admission or a new format rule. It bounds original DB/WAL extent
+before copy/inspection and the same connection's main database growth before
+schema work. Unselected callers retain their existing behavior. That ceiling
+does not bound native heap, aggregate WAL growth, other connections or shared
+library state; those remain separate terms in the selected facility's complete
+simultaneous disposition. Unsupported originals are refused without reclassifying
+valid input as a language error, and no cleanup observation supplies authority.
