@@ -232,7 +232,7 @@ fn NativeLocalJournalCapture::open_original_journal_stages(
   }
   let database = match
     original.stage(@arena.HostSqlite, fn() {
-      let opening = if self.command_preparation_journal {
+      let opening : Result[@sqlite.Database, NativeLocalAdoptionIssue] = if self.command_preparation_journal {
         let selected = if first {
           library.initialize_owned_journal_database_with_custody(
             self.session.state_path + "/client.sqlite3",
