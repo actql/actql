@@ -6,6 +6,7 @@
 const freeze = Object.freeze, descriptor = Object.getOwnPropertyDescriptor, create = Object.create;
 const hasOwn = Object.hasOwn, keys = Reflect.ownKeys, apply = Reflect.apply;
 const NativeError = Error, NativeWeakMap = WeakMap, NativeWeakSet = WeakSet, NativeMap = Map;
+const {isPromise, isProxy} = require('node:util').types;
 const NativePromise = Promise, promiseResolve = Promise.resolve, promiseThen = Promise.prototype.then;
 const weakGet = WeakMap.prototype.get, weakSet = WeakMap.prototype.set;
 const generationHas = WeakSet.prototype.has, generationAdd = WeakSet.prototype.add;
@@ -55,10 +56,13 @@ function createInitialControlInstallationOwner(operational) {
   const prepareOperational = prepareProperty === undefined ? undefined : own(operational, 'prepare');
   const assetProperty = operational === undefined ? undefined : descriptor(operational, 'readAsset');
   const readOperationalAsset = assetProperty === undefined ? undefined : own(operational, 'readAsset');
+  const inputProperty = operational === undefined ? undefined : descriptor(operational, 'readInput');
+  const readOperationalInput = inputProperty === undefined ? undefined : own(operational, 'readInput');
   if (operational !== undefined &&
       (typeof assertOperational !== 'function' || typeof closeOperational !== 'function' ||
        prepareProperty !== undefined && typeof prepareOperational !== 'function' ||
-       assetProperty !== undefined && typeof readOperationalAsset !== 'function')) unavailable();
+       assetProperty !== undefined && typeof readOperationalAsset !== 'function' ||
+       inputProperty !== undefined && typeof readOperationalInput !== 'function')) unavailable();
   const scopes = new NativeWeakMap();
   const generations = new NativeWeakSet();
 
@@ -115,6 +119,27 @@ function createInitialControlInstallationOwner(operational) {
     assertCurrent(scope, originals);
     if (typeof source !== 'string') fail('NodeInitialControlAssetUnavailable');
     return source;
+  }
+  function readInput(scope, originals) {
+    // Only the original supplier may acquire and retain the raw packet before
+    // its first enumeration/copy. This projection cannot admit that input,
+    // infer its backing from shape/alias count or reconstruct a snapshot.
+    assertCurrent(scope, originals);
+    if (readOperationalInput === undefined) fail('NodeInitialControlInputUnavailable');
+    const state = stateFor(scope);
+    const input = apply(readOperationalInput, operational, [state.originals]);
+    // Native brand tests observe neither a then getter nor Proxy traps. The
+    // actual supplier still owns finite provenance, bounds and original DATA;
+    // these representation checks are not that operational proof.
+    if (input === null || typeof input !== 'object' || isPromise(input) || isProxy(input)) {
+      fail('NodeInitialControlInputUnavailable');
+    }
+    if (state.input !== undefined && state.input !== input) foreign();
+    state.input = input;
+    // Retain before the fallible current check. Reentrant close may deny this
+    // handoff but cannot discard its same pending supplier/preparation duty.
+    assertCurrent(scope, originals);
+    return input;
   }
   function cleanupOriginal(handle) {
     if (!reference(handle)) foreign();
@@ -197,6 +222,7 @@ function createInitialControlInstallationOwner(operational) {
         child.cleanup = undefined;
       }]);
       apply(mapClear, state.children, []);
+      state.input = undefined;
       state.originals = undefined;
       return observation(state);
     }).finally(() => { if (state.flight === flight) state.flight = undefined; });
@@ -205,7 +231,7 @@ function createInitialControlInstallationOwner(operational) {
   }
   function issue(held) {
     apply(assertOperational, operational, [held]);
-    const state = {originals: held, children: new NativeMap(), closing: false, closed: false,
+    const state = {originals: held, input: undefined, children: new NativeMap(), closing: false, closed: false,
       flight: undefined, firstError: undefined, lastError: undefined};
     const scope = freeze({assertCurrent(sameOriginals) { assertCurrent(scope, sameOriginals); },
       retainPreparation(record, cleanupHandle) { return retainPreparation(scope, record, cleanupHandle); },
@@ -213,8 +239,11 @@ function createInitialControlInstallationOwner(operational) {
     apply(weakSet, scopes, [scope, state]);
     return scope;
   }
-  function begin(originals) {
+  function begin(originals, rawInput) {
     if (assertOperational === undefined) unavailable();
+    if (rawInput !== undefined && prepareOperational === undefined) {
+      fail('NodeInitialControlInputUnavailable');
+    }
     const held = snapshot(originals);
     if (apply(generationHas, generations, [held.generation])) foreign();
     // Snapshot and consume before module initialization or any original current
@@ -228,11 +257,16 @@ function createInitialControlInstallationOwner(operational) {
     // authority or second cleanup Owner is issued here. Preserve its rejection
     // and original cleanupHandle without wrapping, retrying or treating Promise
     // settlement as physical cleanup. Current is checked after initialization.
-    const prepared = apply(prepareOperational, operational, [held]);
+    // This callback starts synchronously in the caller's original stack,
+    // before any await. Do not enumerate, clone or inspect rawInput here. The
+    // selected operational supplier must first cover raw acquisition/ownKeys,
+    // preserve callback/opaque backing custody, then call its captured reader
+    // and retain the same snapshot/partial cleanup before async initialization.
+    const prepared = apply(prepareOperational, operational, [held, rawInput]);
     return apply(promiseThen, apply(promiseResolve, NativePromise, [prepared]),
       [() => issue(held)]);
   }
-  return freeze({begin, assertCurrent, readAsset});
+  return freeze({begin, assertCurrent, readAsset, readInput});
 }
 
 module.exports = {createInitialControlInstallationOwner};

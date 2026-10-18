@@ -235,6 +235,24 @@ bootstrap bodies, nested export referents, stock resolution and fixed asset
 reads still need their independent selected-domain correspondence; this cache
 handoff alone is neither a complete loader proof nor an operational issuer.
 
+For selected JSON compiler metadata, the preload compares the actual Module's
+tree against a separate parse of the same captured Source before sealing its
+own records and arrays. Changed values, accessors or substituted alias graphs
+refuse before any node is sealed. The held Source identity is unchanged, while
+stock JSON BOM handling and primitive values are preserved. This does not
+freeze language prototypes, arbitrary CJS exports or application data, and it
+does not authenticate nested library state or earlier registration history.
+The original Module/tree/Source overlaps the second parse, comparison pairs,
+key/descriptor walk, node array, weak membership and native freeze workspace;
+sealing or later GC is not physical cleanup, a reservation or funding.
+
+The original startup publishes its same immutable forwarder table before
+synchronous Host namespace initialization can reenter that Module. A missing
+captured callback must not be confused with a refusal from the original Owner
+merely because both report unavailable. Early table capture neither admits an
+installation nor covers initialization work: the original unavailable Owner
+remains unavailable until the independent selected operational original exists.
+
 Fixed control assets are projected from that same selected immutable Source
 holding through the private nominal installation port. It checks the original
 scope, five references and currentness before and after the captured supplier
@@ -287,6 +305,29 @@ after awaits and between original file acquisitions and Common admission.
 The existing file Owner first closes or retains an acquired FD, so a current
 refusal cannot lose it before cleanup custody. Getter failures on a thrown
 initialization value likewise remain under the retained cleanup phase.
+
+The selected startup may support an original producer-controlled preparation
+packet without making every public option object data-only. Its actual intake
+coverage must precede the first raw acquisition, own-key enumeration, spread,
+descriptor copy or clone, including refusal and partial-construction workspace.
+Frozen shape, a packet label, bounds or an alias count do not prove that
+coverage. A general object without it remains unsupported by this selected
+supplier, not an invalid public API value; existing unknown-field, type and
+duplicate-consent checks and unselected entrances retain their responsibilities.
+
+The private begin port passes the same raw input unobserved to the captured
+operational preparation callback synchronously, before namespace initialization
+can await. That supplier first retains its original intake responsibility and
+then invokes only its original bounded reader. It keeps the same snapshot and
+cleanup through initialization and failure. A fixed nominal/current projection
+returns that original snapshot after begin; it cannot reconstruct one, adopt a
+replacement or infer admission from the preparation Promise's resolved DATA.
+Callbacks and opaque handles remain original Owner borrows, not traversed or
+cloned closure graphs. Their backing and extended lifetimes, the raw/snapshot
+overlap, captured reader and receiver, scope alias and partial-failure holdings
+all stay in the same declared envelope. Managed alias retirement is not their
+physical cleanup ACK. This port does not itself supply the missing operational
+original or a public consumer's earlier intake coverage.
 
 On adoption, the candidate and root lease use the same registry entry and
 actual returned Host. A foreign returned child enters its acquired shutdown
