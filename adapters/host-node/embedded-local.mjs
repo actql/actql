@@ -3498,6 +3498,10 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   // Before options snapshot, Common import, Project read, normalization or
   // Provider installation. Missing actual startup coverage remains unavailable.
   const begun = beginInitialControlInstallation(originals, options);
+  // Begin synchronously captures the admitted original packet. Keep only
+  // that supplier-owned snapshot across its initialization await, not a raw
+  // caller object whose backing can grow while the call is pending.
+  options = undefined;
   // The actual prior startup envelope must already cover this same candidate
   // and primitive path observation. Preserve open's call-time directory before
   // initialization awaits; do not resolve it again from a later process cwd.
