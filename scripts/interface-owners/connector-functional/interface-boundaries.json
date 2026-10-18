@@ -4133,7 +4133,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "830cb943b5fa907fdf52a28c7e2c94f6c803d862f4fd9007cfdabd6c3f05d999",
+      "sha256": "33c4d1a6b11a2ab7c34275c42092143a63b61645e7fec78b6de9e733563adc02",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -6317,6 +6317,18 @@
               {
                 "path": "adapters/host-node/installed-row-upsert-absence.integration.test.mjs",
                 "anchor": "test('same saved mixed UPSERT restores original source requests and canonical claims without authority or send'"
+              },
+              {
+                "path": "adapters/host-node/installed-row-json.test.mjs",
+                "anchor": "CREATE uses its original request child and retains it through capture release"
+              },
+              {
+                "path": "adapters/host-node/installed-row-json.test.mjs",
+                "anchor": "CREATE child preparation failure retires that original child without a write"
+              },
+              {
+                "path": "adapters/host-node/installed-row-json.test.mjs",
+                "anchor": "CREATE child pending cleanup retains the original failure and parent duty until ACK"
               }
             ]
           }
