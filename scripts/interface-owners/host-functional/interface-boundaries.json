@@ -52633,9 +52633,10 @@
     },
     {
       "module": "adapters/host-node/installed-project-model-tasks.mjs",
-      "sha256": "73a1184e01b8015d480216663842bb91c066ee7302d6fda0bd6d84c2758b9e99",
+      "sha256": "113ae4815f55d8ed8548219fac98cef0929a389005ab8fca971ab669fc5c7aa8",
       "exports": [
-        "loadInstalledProjectModelTasks"
+        "loadInstalledProjectModelTasks",
+        "prepareInstalledProjectModelTasks"
       ],
       "operations": [
         {
@@ -52658,7 +52659,20 @@
           "async": true
         },
         {
-          "name": "loadInstalledProjectModelTasks/call/call",
+          "name": "loadProjectModelTasks",
+          "parameters": [
+            "moon",
+            "project",
+            "providers",
+            "limits",
+            "assertCurrent",
+            "openFile",
+            "candidate"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadProjectModelTasks/call/call",
           "parameters": [
             "name",
             "args"
@@ -52666,12 +52680,41 @@
           "async": false
         },
         {
-          "name": "loadInstalledProjectModelTasks/check/check",
+          "name": "loadProjectModelTasks/check/check",
           "parameters": [],
           "async": false
         },
         {
-          "name": "loadInstalledProjectModelTasks/init:projectEnvironmentForRuntime/init:projectEnvironmentForRuntime",
+          "name": "loadProjectModelTasks/init:bindInstalledProviders/init:bindInstalledProviders",
+          "parameters": [
+            "installed"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/init:bindInstalledProviders/init:bindInstalledProviders/assertBound/assertBound",
+          "parameters": [
+            "runtime"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/init:bindInstalledProviders/init:bindInstalledProviders/bound/bound",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/installedView",
+          "parameters": [
+            "installedTasks",
+            "assertOriginals"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadProjectModelTasks/installedView/init:projectEnvironmentForRuntime/init:projectEnvironmentForRuntime",
           "parameters": [
             "runtime",
             "wire",
@@ -52680,32 +52723,44 @@
           "async": false
         },
         {
-          "name": "loadInstalledProjectModelTasks/init:projectEnvironmentForRuntime/init:projectEnvironmentForRuntime/projection/projection",
+          "name": "loadProjectModelTasks/installedView/init:projectEnvironmentForRuntime/init:projectEnvironmentForRuntime/projection/projection",
           "parameters": [
             "task"
           ],
           "async": false
         },
         {
-          "name": "loadInstalledProjectModelTasks/loadInstalledProjectModelTasks",
+          "name": "loadProjectModelTasks/loadProjectModelTasks",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "loadInstalledProjectModelTasks/loadInstalledProjectModelTasks#2",
+          "name": "loadProjectModelTasks/loadProjectModelTasks#2",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "loadInstalledProjectModelTasks/originalsForRuntime",
+          "name": "loadProjectModelTasks/originalsForRuntime",
           "parameters": [
             "runtime"
           ],
           "async": false
+        },
+        {
+          "name": "prepareInstalledProjectModelTasks",
+          "parameters": [
+            "moon",
+            "project",
+            "defaults",
+            "limits",
+            "assertCurrent",
+            "openFile"
+          ],
+          "async": true
         },
         {
           "name": "snapshotLimits",
@@ -52726,6 +52781,7 @@
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
+        "./installed-model.mjs",
         "./installed-project-configuration.mjs",
         "./source-profile-json.mjs",
         "node:fs/promises",
@@ -52742,13 +52798,6 @@
             "<module>",
             "fail/fail",
             "loadInstalledProjectModelTasks",
-            "loadInstalledProjectModelTasks/call/call",
-            "loadInstalledProjectModelTasks/check/check",
-            "loadInstalledProjectModelTasks/init:projectEnvironmentForRuntime/init:projectEnvironmentForRuntime",
-            "loadInstalledProjectModelTasks/init:projectEnvironmentForRuntime/init:projectEnvironmentForRuntime/projection/projection",
-            "loadInstalledProjectModelTasks/loadInstalledProjectModelTasks",
-            "loadInstalledProjectModelTasks/loadInstalledProjectModelTasks#2",
-            "loadInstalledProjectModelTasks/originalsForRuntime",
             "snapshotLimits",
             "snapshotLimits/snapshotLimits"
           ],
@@ -52874,6 +52923,148 @@
               {
                 "path": "adapters/host-node/project-model-task-host.actual.test.mjs",
                 "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "loadProjectModelTasks",
+            "loadProjectModelTasks/call/call",
+            "loadProjectModelTasks/check/check",
+            "loadProjectModelTasks/init:bindInstalledProviders/init:bindInstalledProviders",
+            "loadProjectModelTasks/init:bindInstalledProviders/init:bindInstalledProviders/assertBound/assertBound",
+            "loadProjectModelTasks/init:bindInstalledProviders/init:bindInstalledProviders/bound/bound",
+            "loadProjectModelTasks/installedView",
+            "loadProjectModelTasks/installedView/init:projectEnvironmentForRuntime/init:projectEnvironmentForRuntime",
+            "loadProjectModelTasks/installedView/init:projectEnvironmentForRuntime/init:projectEnvironmentForRuntime/projection/projection",
+            "loadProjectModelTasks/loadProjectModelTasks",
+            "loadProjectModelTasks/loadProjectModelTasks#2",
+            "loadProjectModelTasks/originalsForRuntime",
+            "prepareInstalledProjectModelTasks"
+          ],
+          "exports": [
+            "prepareInstalledProjectModelTasks"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The private Host may prepare configuration defaults before it registers a"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "export function prepareInstalledModelProviderDefaults("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "return Object.freeze({value: original, resolved, binding, readUsage});"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "export async function prepareInstalledProjectModelTasks("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "preparedState.providerId !== providerId || preparedState.originals !== bindingSource"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "if (installedDefaults.get(provider) !== view) {"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "assertInstalledModelDefaultsAdoption(provider, task.providerDefaults, moon, task.providerId);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "const defaultsPreparations = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const retained = Object.freeze(tasks);"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "These preparation records, WeakMap associations, retained configuration Strings,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "const defaultsCallbacks = modelDefaultsCallbacks(moon);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const wire = await readBoundedConfigurationUtf8(path,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "assertOriginals(runtime);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "spent = true;"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "if (readFailure !== undefined) throw readFailure.cause;"
+              },
+              {
+                "path": "adapters/host-node/model-task-candidate-binding.actual.test.mjs",
+                "anchor": "test('candidate adoption refuses copied/equal configuration and another runtime before Core installation'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "assertCurrent();"
+              },
+              {
+                "path": "adapters/host-node/model-task-candidate-binding.actual.test.mjs",
+                "anchor": "test('candidate files retain after-await current and pending original FD cleanup obligations'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "inventory. Candidate and installed views may overlap; their aliases and the"
+              },
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "const nextBounds = retainModelDefaultsLimits(limits);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const bounds = snapshotLimits(limits);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "This connection neither acquires Model input nor issues startup, capacity,"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "if (!candidate) return installedView(retained, originalsForRuntime);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/model-task-candidate-binding.actual.test.mjs",
+                "anchor": "test('actual Common Task candidates precede registration and retain the same defaults after adoption'"
+              },
+              {
+                "path": "adapters/host-node/model-task-candidate-binding.actual.test.mjs",
+                "anchor": "test('bound candidate currentness keeps both original project and actual registration fences'"
               }
             ]
           }
@@ -53434,9 +53625,9 @@
   ],
   "counts": {
     "modules": 126,
-    "operations": 3128,
-    "exports": 856,
-    "explicitContractGroups": 144
+    "operations": 3134,
+    "exports": 857,
+    "explicitContractGroups": 145
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }
