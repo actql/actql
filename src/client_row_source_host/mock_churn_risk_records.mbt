@@ -16,7 +16,7 @@ fn mock_rows_field(
   object : @decode.ObjectView,
   name : String,
 ) -> @decode.Cursor raise MockRowsStop {
-  @decode.required(object, name).unwrap_or_else(() => {
+  @decode.lookup(object, name).unwrap_or_else(() => {
     raise MockRowsStop(MissingField(name))
   })
 }
