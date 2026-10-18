@@ -4,35 +4,18 @@
 /* The selected executable retains this entry and its spent load records for
  * the original process lifetime. No component, member getter or caller DATA
  * can construct or replenish an entry. */
+#define ACTQL_NATIVE_COMMAND_OPTIONAL_MEMBER_BRIDGE
 #include "../../platform_native/host_bootstrap/command_platform.h"
+#undef ACTQL_NATIVE_COMMAND_OPTIONAL_MEMBER_BRIDGE
 #include <stdatomic.h>
 #include <pthread.h>
 #include <unistd.h>
 #if defined(__APPLE__)
 #include <mach-o/dyld.h>
-#define ACTQL_COMMAND_MEMBER_OPTIONAL __attribute__((weak_import))
-#else
-#define ACTQL_COMMAND_MEMBER_OPTIONAL __attribute__((weak))
 #endif
 
 /* A CLI diagnostic may not contain the selected filesystem bridge. Absence is
  * a refusal before dlopen, never a path-only or stock-library fallback. */
-extern int actql_native_observed_component_member_current(
-  actql_native_observed_component_member *) ACTQL_COMMAND_MEMBER_OPTIONAL;
-extern enum actql_native_command_component_kind
-actql_native_observed_component_member_kind(
-  actql_native_observed_component_member *) ACTQL_COMMAND_MEMBER_OPTIONAL;
-extern const void *actql_native_observed_component_member_runtime(
-  actql_native_observed_component_member *) ACTQL_COMMAND_MEMBER_OPTIONAL;
-extern const char *actql_native_observed_component_member_path(
-  actql_native_observed_component_member *) ACTQL_COMMAND_MEMBER_OPTIONAL;
-extern const char *actql_native_observed_component_member_source(
-  actql_native_observed_component_member *) ACTQL_COMMAND_MEMBER_OPTIONAL;
-extern const char *actql_native_observed_component_member_sha256(
-  actql_native_observed_component_member *) ACTQL_COMMAND_MEMBER_OPTIONAL;
-extern const char *actql_native_observed_component_member_manifest_sha256(
-  actql_native_observed_component_member *) ACTQL_COMMAND_MEMBER_OPTIONAL;
-
 struct actql_native_command_platform_load {
   actql_native_command_platform_original *entry;
   actql_native_observed_component_member *member;
