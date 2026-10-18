@@ -336,6 +336,14 @@ read and installed SQLite Domains or authorize an unbound SQLite fallback.
 Missing original bootstrap, whole-phase or retained-alias coverage remains
 unavailable.
 
+The existing-adoption consumer has a separate scoped entry. It uses the same
+Adoption constructor, original configuration selection, exclusive lock and
+failed-acquisition carrier. Its closed internal Root opening selects the scoped
+private constructor for source, parent and optional managed directories alike;
+no legacy Root substitutes for a missing context. The legacy entry retains its
+original behavior. Neither entry initializes a missing Host, and a scoped Session
+does not combine its filesystem context with a selected SQLite Library context.
+
 ## Direct Local credential grant/use scope
 
 ### Explicit post-adoption issuer acquisition

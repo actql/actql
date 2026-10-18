@@ -89,13 +89,14 @@ pub fn NativeLocalAdoptionOpenFailure::retry_cleanup(
 /// Inspect an existing original only. This entrance cannot initialize a missing
 /// Host. Success is the existing Session, not final retirement of its escaped
 /// readers/Roots or an operational signing/dispatch capability.
-pub fn begin_existing_native_local_host_adoption_with_custody(
+fn begin_existing_native_local_host_adoption_original_roots(
   parent_path : String,
   state_name : String,
   source_path : String,
   source_name : String,
   account_id : String,
   crypto : @crypto.Library,
+  root_opening : NativeLocalAdoptionRootOpening,
   configuration_files? : Array[String] = [],
   managed_root_path? : String? = None,
 ) -> Result[NativeLocalAdoptionSession, NativeLocalAdoptionOpenFailure] {
@@ -122,6 +123,7 @@ pub fn begin_existing_native_local_host_adoption_with_custody(
       managed_root_path~,
       existing_only=true,
       custody=Some(custody),
+      root_opening~,
     ) {
     Ok(original) => Ok(original)
     Err(issue) => {
@@ -135,7 +137,17 @@ pub fn begin_existing_native_local_host_adoption_with_custody(
 fn local_adoption_open_private_root(
   path : String,
   custody : NativeLocalAdoptionOpenFailure?,
+  root_opening? : NativeLocalAdoptionRootOpening = LegacyPrivateRoots,
 ) -> Result[@filesystem.Root, NativeLocalAdoptionIssue] {
+  if root_opening is CurrentOriginalReadRoots(diagnostic_ceiling) {
+    guard custody is Some(original) else { return Err(InvalidInput) }
+    return @filesystem.open_private_root_in_current_read_context_with_custody(
+      path, diagnostic_ceiling,
+    ).map_err(failure => {
+      original.root_acquisition = Some(failure)
+      Filesystem(failure.issue())
+    })
+  }
   match custody {
     None =>
       @filesystem.open_private_root(path).map_err(issue => Filesystem(issue))
