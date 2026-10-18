@@ -32,8 +32,8 @@ fn preparation_read_refusal_without_pair() -> (@sqlite.Library, @crypto.Library)
   assert_false(capture.descriptor_cleanup_acknowledged())
   assert_eq(capture.close().issue_family(), 0)
   let library = capture.library.unwrap()
-  // Actual DB close has acknowledged, but this closed capture still retains
-  // the original DB's managed Library borrow until this helper returns.
+  // The explicit legacy Library is not the selected-component checked-close
+  // route. A descriptor ACK cannot promote it to that separate physical ACK.
   assert_true(library.close_checked() is Err(Physical(_)))
   (library, capture.crypto)
 }
@@ -73,15 +73,15 @@ fn preparation_read_scope_stop() -> (@sqlite.Library, @crypto.Library) raise {
 ///|
 test "preparation read refuses an ordinary Host before the callback or selected getters" {
   let (library, crypto) = preparation_read_refusal_without_pair()
-  // The helper's original closed capture/DB aliases have now retired. This
-  // separate actual close, rather than helper return itself, is the ACK.
-  library.close_checked().unwrap()
+  // Returning the helper's aliases cannot turn this legacy fixture into an
+  // original selected component or manufacture its missing Library ACK.
+  assert_true(library.close_checked() is Err(Physical(_)))
   crypto.close_checked().unwrap()
 }
 
 ///|
 test "finishing a captured scope fences new work without acknowledging original DB or lock retirement" {
   let (library, crypto) = preparation_read_scope_stop()
-  library.close_checked().unwrap()
+  assert_true(library.close_checked() is Err(Physical(_)))
   crypto.close_checked().unwrap()
 }
