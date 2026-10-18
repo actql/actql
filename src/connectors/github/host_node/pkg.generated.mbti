@@ -38,6 +38,18 @@ pub fn github_issues_request_json(String, Int, Bool, String, String, Array[Strin
 
 pub fn github_next_page_json(Bool, String, String, String, Int, Int) -> String
 
+pub fn github_pull_request_page_read_accept(@catalog.PullRequestPageRead, Bytes) -> Result[Unit, @catalog.GraphqlResponseIssue]
+
+pub fn github_pull_request_page_read_begin(Bytes, Int, Int, Int, Int, Int, String, Double, String) -> Result[@catalog.PullRequestPageRead, @catalog.GraphqlResponseIssue]
+
+pub fn github_pull_request_page_read_close(@catalog.PullRequestPageRead) -> Unit
+
+pub fn github_pull_request_page_read_finish_json(@catalog.PullRequestPageRead) -> Result[String, @catalog.GraphqlResponseIssue]
+
+pub fn github_pull_request_page_read_next_request_json(@catalog.PullRequestPageRead, Int) -> Result[String, @catalog.GraphqlResponseIssue]
+
+pub fn github_pull_requests_request_json(String, Int, Bool, String, String, Array[String]) -> String
+
 pub fn github_rate_limit_basis_json(Array[String], Array[String]) -> String
 
 pub fn github_repository_request(String, String) -> String
