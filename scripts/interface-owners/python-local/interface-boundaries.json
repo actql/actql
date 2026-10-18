@@ -35454,7 +35454,7 @@
                 "anchor": "## Private packaged Runtime C binding"
               },
               {
-                "path": "src/platform_native/installed_arena_entry/packaged_runtime_shim.h",
+                "path": "src/platform_native/installed_arena_entry/packaged_runtime_shim.c",
                 "anchor": "actql_packaged_runtime_capture_host_resources_utf16_into"
               }
             ],
@@ -35660,7 +35660,7 @@
                 "anchor": "## Private packaged Runtime C binding"
               },
               {
-                "path": "src/platform_native/installed_arena_entry/packaged_runtime_shim.h",
+                "path": "src/platform_native/installed_arena_entry/packaged_runtime_shim.c",
                 "anchor": "actql_packaged_runtime_capture_host_resources_utf16_into"
               }
             ],
@@ -36029,7 +36029,7 @@
                 "anchor": "## Private packaged Runtime C binding"
               },
               {
-                "path": "src/platform_native/installed_arena_entry/packaged_runtime_shim.h",
+                "path": "src/platform_native/installed_arena_entry/packaged_runtime_shim.c",
                 "anchor": "actql_packaged_runtime_capture_host_resources_utf16_into"
               }
             ],
@@ -36250,7 +36250,7 @@
                 "anchor": "## Private packaged Runtime C binding"
               },
               {
-                "path": "src/platform_native/installed_arena_entry/packaged_runtime_shim.h",
+                "path": "src/platform_native/installed_arena_entry/packaged_runtime_shim.c",
                 "anchor": "actql_packaged_runtime_capture_host_resources_utf16_into"
               }
             ],
@@ -36471,7 +36471,7 @@
                 "anchor": "## Private packaged Runtime C binding"
               },
               {
-                "path": "src/platform_native/installed_arena_entry/packaged_runtime_shim.h",
+                "path": "src/platform_native/installed_arena_entry/packaged_runtime_shim.c",
                 "anchor": "actql_packaged_runtime_capture_host_resources_utf16_into"
               }
             ],
@@ -36691,7 +36691,7 @@
                 "anchor": "## Private packaged Runtime C binding"
               },
               {
-                "path": "src/platform_native/installed_arena_entry/packaged_runtime_shim.h",
+                "path": "src/platform_native/installed_arena_entry/packaged_runtime_shim.c",
                 "anchor": "actql_packaged_runtime_capture_host_resources_utf16_into"
               }
             ],
@@ -36907,7 +36907,7 @@
                 "anchor": "## Private packaged Runtime C binding"
               },
               {
-                "path": "src/platform_native/installed_arena_entry/packaged_runtime_shim.h",
+                "path": "src/platform_native/installed_arena_entry/packaged_runtime_shim.c",
                 "anchor": "actql_packaged_runtime_capture_host_resources_utf16_into"
               }
             ],
