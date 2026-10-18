@@ -37,8 +37,8 @@ test('compiled normal Node bridge retains original Job material and actual Commo
  f.row.assertNoCapture();
  const rows=f.row.captureRows();assert.equal(rows.length,2);
  assert.ok(rows[0].includes(decimal38));assert.ok(rows[1].includes('null'));
- const original=moon.clientProgramBigQueryJobOriginal(f.session);
- assert.deepEqual([0,1,2].map(n=>runtimeField(original,n)),['acme-project',f.row.requestId,'EU']);
+ const originalData=moon.clientProgramBigQueryJobOriginal(f.session);
+ assert.deepEqual([0,1,2].map(n=>runtimeField(originalData,n)),['acme-project',f.row.requestId,'EU']);
 });
 
 test('same runtime nominal response cannot be consumed by a foreign original Read',async t=>{
