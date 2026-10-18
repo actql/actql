@@ -107,3 +107,126 @@ test "original Slack ordinary history executes the public int64 zero predicate" 
     assert_true(output.rows[1][0] is Text("C1:2.000000"))
   }
 }
+
+///|
+test "typed int64 Parameters retain full endpoints and adjacent values through saved wire readmission" {
+  let schema = @schema.from_fields(
+    [
+      (
+        @schema.Unqualified("id"),
+        @contract.primitive(@contract.Signed64Type, nullable=false),
+      ),
+    ],
+    max_fields=1,
+    max_name_bytes=2,
+  ).unwrap()
+  let declaration_wire = "{\"p\":{\"type\":\"int64\",\"nullable\":false}}"
+  let all = [
+    "-9223372036854775808", "9007199254740992", "9007199254740993", "9223372036854775807",
+  ]
+  let rows = all.map(text => input_cursor("{\"id\":\"" + text + "\"}"))
+  let identities : Map[String, Bool] = Map([])
+  for text in all {
+    let declarations = @parameter.read_declarations(
+      Some(input_cursor(declaration_wire)),
+      { max_parameters: 1, max_nodes: 20, max_depth: 8, max_text_bytes: 256, },
+    ).unwrap()
+    guard @parameter.bind(
+        declarations,
+        Some(input_cursor("{\"p\":\"" + text + "\"}")),
+        { max_nodes: 20, max_depth: 8, max_text_bytes: 256, },
+      ).unwrap()
+      is @parameter.Ready(bound) else {
+      fail("exact int64 binding")
+    }
+    let value = @parameter.bound_value_at(bound, 0).unwrap()
+    let writer = @encode.writer(256, 20, 8)
+    @parameter.emit_value_identity(value, writer)
+    assert_eq(
+      @encode.finish(writer),
+      "{\"$actql_value\":[\"int64\",\"" + text + "\"]}",
+    )
+    let identity = @parameter.parameter_values_cid(bound, 1024, 100, 16)
+    assert_false(identities.contains(identity))
+    identities[identity] = true
+    let wire_writer = @encode.writer(256, 20, 8)
+    @admitted.emit_checked_wire_value(value.value, wire_writer)
+    let saved_wire = @encode.finish(wire_writer)
+    assert_eq(saved_wire, "\"" + text + "\"")
+    for predicate in ["id = $p", "$p = id"] {
+      // Cold DATA re-admission retains the original declared logical type;
+      // this is not an authenticated Host/Run restoration claim.
+      let restored_declarations = @parameter.read_declarations(
+        Some(input_cursor(declaration_wire)),
+        { max_parameters: 1, max_nodes: 20, max_depth: 8, max_text_bytes: 256, },
+      ).unwrap()
+      guard @parameter.bind(
+          restored_declarations,
+          Some(input_cursor("{\"p\":" + saved_wire + "}")),
+          { max_nodes: 20, max_depth: 8, max_text_bytes: 256, },
+        ).unwrap()
+        is @parameter.Ready(restored) else {
+        fail("saved exact typed value")
+      }
+      assert_eq(
+        @parameter.parameter_values_cid(restored, 1024, 100, 16),
+        identity,
+      )
+      let checked = @pipeline.check(
+        input_cursor("[{\"filter\":\"" + predicate + "\"}]"),
+        [("rows", schema)],
+        Some(restored_declarations),
+        Some(input_cursor("\"rows\"")),
+        {
+          max_steps: 10,
+          max_work: 100000,
+          max_text_bytes: 10000,
+          max_nodes: 1000,
+          max_tokens: 1000,
+          max_depth: 64,
+        },
+      ).unwrap()
+      let owner = @lower.bind_parameters(
+        @lower.prepare(checked, {
+          max_nodes: 1000,
+          max_references: 1000,
+          max_work: 100000,
+          max_identifier_bytes: 10000,
+        }).unwrap(),
+        Some(restored),
+        max_parameters=1,
+        max_name_bytes=1,
+      ).unwrap()
+      let captured = capture_input(
+        owner,
+        0,
+        rows,
+        max_rows=4,
+        run_limits().input_values,
+      ).unwrap()
+      let sequence = prepared_sequence(owner)
+      let generated = prepare_generated_sequence(
+        registered_relation_contracts(),
+        sequence,
+        [sequence_fragment_context(sequence, 0, 4L)],
+        ["where_0"],
+        100000,
+        10000,
+      ).unwrap()
+      let completed = execute_generated_sequence(generated, [captured], {
+        rows: run_limits(),
+        max_work: 100000,
+        max_frames: 100,
+      }).unwrap()
+      let output = test_row_output(
+        completed_output(completed, Step(0)).unwrap(),
+      )
+      assert_eq(output.rows.length(), 1)
+      guard output.rows[0][0] is Captured(@admitted.Signed64(number)) else {
+        fail("same exact captured int64")
+      }
+      assert_eq(number.to_string(), text)
+    }
+  }
+  assert_eq(identities.length(), 4)
+}

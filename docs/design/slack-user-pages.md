@@ -221,3 +221,33 @@ Journal and Resource owners retain currentness, exact request binding, claim,
 Unknown resolution, response evidence and physical cleanup responsibilities.
 A successful codec does not supply those originals or close the public Command
 execution and recovery boundary.
+
+## Original messages history projection
+
+The messages Catalog retains exact `channel:ts` identity and the independent
+original `ts` and `thread_ts` Strings. `posted_at` is the same instant in the
+existing exact UTC Timestamp domain; physical epoch text is parsed with integer
+seconds and nanoseconds, never a Host Date or binary64 conversion.
+
+A pending history request belongs to one original history control. Its admitted
+page retains that nominal occurrence and consumes the pending request before
+response parsing. Cursor and exact time pagination preserve separate vendor
+signals, reject repeated/non-progressing continuations, and leave inaccessible
+history unavailable. Protocol termination is not proof of full Source coverage,
+current authorization, physical cleanup or capacity. Replies require their own
+original operation, grants, pagination and observation lifetime; a recent
+history window cannot prove coverage of replies to older parents.
+
+The adopted missing-count projection applies only to complete ordinary records
+with both count and thread keys absent. Generic page DATA has no such original
+history occurrence and retains unknown count. Explicit zero, positive count and
+null preserve their meanings, including a positive count without thread
+metadata. Event, partial or retained-thread ambiguity never becomes zero.
+Reactions and files keep their independent nullable/retained value rules.
+
+The public `thread_ts IS NULL AND reply_count = 0` predicate uses the common
+comparison-context rule: its existing Number zero is losslessly admitted under
+the original `int64` column contract. The column is never promoted to Number,
+and a different frontend or cold read cannot reinterpret a lost raw integer.
+Original checked input, bounded RowRun capture and the same expression owner
+retain this correspondence; none issues a physical Source or Resource grant.
