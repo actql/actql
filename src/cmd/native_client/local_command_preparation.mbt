@@ -1,0 +1,653 @@
+///|
+// Selected by the trusted installer before its first covered acquisition. The
+// complete simultaneous candidate is separate from the Crypto-only selection;
+// none of these declarations provides business execution or permission.
+priv struct LocalCommandPreparationProfile {
+  source : String
+  recipe : Bytes
+  arena_bytes : Int64
+  control_bytes : Int64
+  host_limits : @initial_resources.LedgerLimits
+  read_domain_bytes : Int64
+  read_domain_limits : @initial_resources.LedgerLimits
+  sqlite_domain_bytes : Int64
+  sqlite_domain_limits : @initial_resources.LedgerLimits
+  read_budget : @initial_arena.InstalledArenaOriginalReadBudget
+  consumer_retained_bytes : Int64
+  consumer_execution_bytes : Int64
+  sqlite_heap_bytes : Int64
+  crypto_heap_bytes : Int64
+  diagnostic_ceiling : Int
+}
+
+///|
+priv enum LocalCommandPreparationIssue {
+  InvalidProfile
+  Unavailable
+  Backing(Int)
+  Host(@initial_bootstrap.NativeBootstrapIssue)
+  Domain(@initial_bootstrap.NativeBackedExecutionIssue)
+  Read(@initial_arena.InstalledArenaOriginalReadIssue)
+  Sqlite(@initial_arena.InstalledArenaSqliteIssue)
+  Pair(@initial_arena.InstalledArenaLocalHostResourcesIssue)
+  Runtime(@local_host.NativeLocalPackagedRuntimeIssue)
+  Component(@initial_arena.InstalledArenaCryptoIssue)
+  ReadCrypto(@initial_arena.InstalledArenaLocalHostCryptoIssue)
+  Signature(@local_crypto.NativeSignatureIssue)
+  Journal(@local_host.NativeLocalJournalCaptureIssue)
+  Filesystem(@files.NativeBoundedTextIssue)
+  FilesystemCleanup(@local_filesystem.NativeFilesystemIssue)
+}
+
+///|
+priv suberror LocalCommandPreparationStop {
+  LocalCommandPreparationStop(LocalCommandPreparationIssue)
+}
+
+///|
+fn[T] command_preparation_value(
+  result : Result[T, LocalCommandPreparationIssue],
+) -> T raise LocalCommandPreparationStop {
+  match result {
+    Ok(value) => value
+    Err(issue) => raise LocalCommandPreparationStop(issue)
+  }
+}
+
+///|
+// A caller retention record in the existing installer, not a replacement
+// Host/Journal/Resource Owner. Publish this original before acquiring anything.
+priv struct LocalCommandPreparationOriginal {
+  profile : LocalCommandPreparationProfile
+  backing : InitialCryptoBacking
+  mut host : @initial_arena.InstalledArenaHost?
+  mut backing_scope : @initial_arena.InstalledArenaBackingBorrow?
+  mut backing_entered : Bool
+  mut read_domain : @initial_arena.InstalledArenaDomain?
+  mut sqlite_domain : @initial_arena.InstalledArenaDomain?
+  mut read : @initial_arena.InstalledArenaOriginalRead?
+  mut consumer : @initial_arena.InstalledArenaOriginalReadConsumer?
+  mut sqlite : @initial_arena.InstalledArenaSqliteLibrary?
+  mut pair : @initial_arena.InstalledArenaLocalHostResources?
+  mut runtime : @local_host.NativeLocalPackagedRuntime?
+  mut crypto_path : String
+  mut component : @initial_arena.InstalledArenaCryptoComponent?
+  mut outer_library : @local_crypto.Library?
+  mut inner_library : @local_crypto.Library?
+  mut journal : @local_host.NativeLocalJournalCapture?
+  mut read_failure : @files.NativeBoundedTextFailure?
+  mut phase_open : Bool
+  mut standalone_cleanup_open : Bool
+  mut primary : LocalCommandPreparationIssue?
+  mut closing : Bool
+  mut closed : Bool
+}
+
+///|
+fn prepare_local_command_preparation_original(
+  profile : LocalCommandPreparationProfile,
+) -> Result[LocalCommandPreparationOriginal, LocalCommandPreparationIssue] {
+  if profile.source.length() != 40 ||
+    profile.recipe.length() != 32 ||
+    profile.arena_bytes <= 0L ||
+    profile.control_bytes <= 0L ||
+    profile.read_domain_bytes <= 0L ||
+    profile.sqlite_domain_bytes <= 0L ||
+    profile.read_domain_bytes > profile.arena_bytes ||
+    profile.sqlite_domain_bytes >
+    profile.arena_bytes - profile.read_domain_bytes ||
+    profile.host_limits.execution_bytes != profile.arena_bytes ||
+    profile.read_domain_limits.execution_bytes > profile.read_domain_bytes ||
+    profile.sqlite_domain_limits.execution_bytes > profile.sqlite_domain_bytes ||
+    profile.consumer_retained_bytes <= 0L ||
+    profile.consumer_execution_bytes <= 0L ||
+    profile.crypto_heap_bytes <= 0L ||
+    profile.sqlite_heap_bytes <= 0L ||
+    profile.diagnostic_ceiling <= 0 ||
+    profile.diagnostic_ceiling > 4096 {
+    return Err(InvalidProfile)
+  }
+  Ok({
+    profile,
+    backing: initial_crypto_backing_open(profile.arena_bytes),
+    host: None,
+    backing_scope: None,
+    backing_entered: false,
+    read_domain: None,
+    sqlite_domain: None,
+    read: None,
+    consumer: None,
+    sqlite: None,
+    pair: None,
+    runtime: None,
+    crypto_path: "",
+    component: None,
+    outer_library: None,
+    inner_library: None,
+    journal: None,
+    read_failure: None,
+    phase_open: false,
+    standalone_cleanup_open: false,
+    primary: None,
+    closing: false,
+    closed: false,
+  })
+}
+
+///|
+fn LocalCommandPreparationOriginal::retain_primary(
+  self : LocalCommandPreparationOriginal,
+  issue : LocalCommandPreparationIssue,
+) -> Unit {
+  if self.primary is None {
+    self.primary = Some(issue)
+  }
+}
+
+///|
+// Only the one physical constructor is attempted. Every partial domain/read/
+// Library is retained before the next call; a failure does not select a retry.
+fn LocalCommandPreparationOriginal::acquire(
+  self : LocalCommandPreparationOriginal,
+  root : String,
+  source : String,
+  platform : String,
+  manifest_digest : String,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  if self.host is Some(_) ||
+    self.closing ||
+    self.closed ||
+    self.primary is Some(_) ||
+    source != self.profile.source {
+    return Err(Unavailable)
+  }
+  let result = self.acquire_original(root, source, platform, manifest_digest)
+  if result is Err(issue) {
+    self.retain_primary(issue)
+  }
+  result
+}
+
+///|
+fn LocalCommandPreparationOriginal::acquire_original(
+  self : LocalCommandPreparationOriginal,
+  root : String,
+  source : String,
+  platform : String,
+  manifest_digest : String,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  try {
+    if !self.backing.current() {
+      return Err(Backing(self.backing.acquisition_issue()))
+    }
+    let profile = self.profile
+    let host = command_preparation_value(
+      @initial_arena.prepare_installed_arena_host(
+        profile.source,
+        profile.recipe,
+        1L,
+        profile.arena_bytes,
+        profile.host_limits,
+        profile.control_bytes,
+      ).map_err(issue => Host(issue)),
+    )
+    self.host = Some(host)
+    command_preparation_value(
+      host.acquire_fd(self.backing.descriptor()).map_err(issue => Host(issue)),
+    )
+    let scope = command_preparation_value(
+      host.borrow_backing().map_err(issue => Host(issue)),
+    )
+    self.backing_scope = Some(scope)
+    command_preparation_value(
+      host.enter_backing_borrow_scope(scope).map_err(issue => Host(issue)),
+    )
+    self.backing_entered = true
+    let acquired = command_preparation_value(
+      host
+      .prepare_domain(
+        scope,
+        self.backing.descriptor(),
+        profile.read_domain_bytes,
+        profile.read_domain_limits,
+      )
+      .map_err(issue => Domain(issue)),
+    )
+    let read_domain = match acquired {
+      PreparedDomain(value) => value
+      PendingDomain(value, issue) => {
+        self.read_domain = Some(value)
+        return Err(Domain(issue))
+      }
+    }
+    self.read_domain = Some(read_domain)
+    command_preparation_value(
+      host.transfer_domain(read_domain).map_err(issue => Domain(issue)),
+    )
+    let acquired = command_preparation_value(
+      host
+      .prepare_domain(
+        scope,
+        self.backing.descriptor(),
+        profile.sqlite_domain_bytes,
+        profile.sqlite_domain_limits,
+      )
+      .map_err(issue => Domain(issue)),
+    )
+    let sqlite_domain = match acquired {
+      PreparedDomain(value) => value
+      PendingDomain(value, issue) => {
+        self.sqlite_domain = Some(value)
+        return Err(Domain(issue))
+      }
+    }
+    self.sqlite_domain = Some(sqlite_domain)
+    command_preparation_value(
+      host.transfer_domain(sqlite_domain).map_err(issue => Domain(issue)),
+    )
+    command_preparation_value(
+      host.leave_backing_borrow_scope(scope).map_err(issue => Host(issue)),
+    )
+    self.backing_entered = false
+    command_preparation_value(
+      host.return_backing_borrow(scope).map_err(issue => Host(issue)),
+    )
+    self.backing_scope = None
+    command_preparation_value(
+      host.prepare_domain_read(read_domain).map_err(issue => Domain(issue)),
+    )
+    command_preparation_value(
+      host.prepare_domain_read(sqlite_domain).map_err(issue => Domain(issue)),
+    )
+    let acquired = command_preparation_value(
+      host
+      .prepare_domain_original_read(read_domain, profile.read_budget)
+      .map_err(issue => Read(issue)),
+    )
+    let read = match acquired {
+      ReadyOriginalRead(value) => value
+      PendingOriginalRead(value, issue) => {
+        self.read = Some(value)
+        return Err(Read(issue))
+      }
+    }
+    self.read = Some(read)
+    let runtime = match
+      @local_host.open_native_local_packaged_runtime_in_original_read(
+        Some((host, read)),
+        root,
+        source,
+        platform,
+        manifest_digest,
+        profile.diagnostic_ceiling,
+      ) {
+      Ok(value) => value
+      Err(Pending(value, issue)) => {
+        self.runtime = Some(value)
+        return Err(Runtime(issue))
+      }
+      Err(Refused(issue)) => return Err(Runtime(issue))
+    }
+    self.runtime = Some(runtime)
+    let (sqlite_path, crypto_path) = command_preparation_value(
+      runtime.library_paths().map_err(issue => Runtime(issue)),
+    )
+    self.crypto_path = crypto_path
+    let acquired = command_preparation_value(
+      host
+      .prepare_sqlite_library(
+        sqlite_domain,
+        sqlite_path,
+        profile.sqlite_heap_bytes,
+        profile.diagnostic_ceiling,
+      )
+      .map_err(issue => Sqlite(issue)),
+    )
+    let sqlite = match acquired {
+      ReadySqlite(value) => value
+      PendingSqlite(value, issue) => {
+        self.sqlite = Some(value)
+        return Err(Sqlite(issue))
+      }
+    }
+    self.sqlite = Some(sqlite)
+    let pair = command_preparation_value(
+      host.bind_local_host_resources(read, sqlite).map_err(issue => Pair(issue)),
+    )
+    self.pair = Some(pair)
+    let consumer = command_preparation_value(
+      host
+      .prepare_local_host_read_consumer(
+        pair,
+        profile.consumer_retained_bytes,
+        profile.consumer_execution_bytes,
+      )
+      .map_err(issue => Pair(issue)),
+    )
+    self.consumer = Some(consumer)
+    // This fixed registration belongs to the selected outer control lifetime,
+    // before any entry of the one consuming phase. It is not another Read quote.
+    self.component = Some(
+      command_preparation_value(
+        host
+        .prepare_local_host_read_crypto_control(pair, read)
+        .map_err(issue => ReadCrypto(issue)),
+      ),
+    )
+    command_preparation_value(
+      runtime
+      .bind_original_host_resources(pair)
+      .map_err(issue => Runtime(issue)),
+    )
+    Ok(())
+  } catch {
+    LocalCommandPreparationStop(issue) => Err(issue)
+  }
+}
+
+///|
+fn LocalCommandPreparationOriginal::enter(
+  self : LocalCommandPreparationOriginal,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  if self.closing || self.closed || self.primary is Some(_) || self.phase_open {
+    return Err(Unavailable)
+  }
+  guard self.host is Some(host) && self.pair is Some(pair) else {
+    return Err(Unavailable)
+  }
+  guard self.runtime is Some(runtime) else { return Err(Unavailable) }
+  match runtime.check_current() {
+    Err(issue) => {
+      self.retain_primary(Runtime(issue))
+      return Err(Runtime(issue))
+    }
+    Ok(_) => ()
+  }
+  match host.enter_local_host_phase(pair, @initial_arena.HostRead) {
+    Err(issue) => Err(Pair(issue))
+    Ok(_) => {
+      self.phase_open = true
+      Ok(())
+    }
+  }
+}
+
+///|
+fn LocalCommandPreparationOriginal::leave(
+  self : LocalCommandPreparationOriginal,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  if !self.phase_open {
+    return Ok(())
+  }
+  guard self.host is Some(host) && self.pair is Some(pair) else {
+    return Err(Unavailable)
+  }
+  match host.leave_local_host_phase(pair) {
+    Err(issue) => Err(Pair(issue))
+    Ok(_) => {
+      self.phase_open = false
+      Ok(())
+    }
+  }
+}
+
+///|
+// Only inside this original Read phase. The real typed component enforces
+// constructor thread/current context and keeps every partial Library receiver.
+fn LocalCommandPreparationOriginal::library(
+  self : LocalCommandPreparationOriginal,
+  inner : Bool,
+) -> Result[@local_crypto.Library, LocalCommandPreparationIssue] {
+  if !self.phase_open || self.closing || self.closed || self.primary is Some(_) {
+    return Err(Unavailable)
+  }
+  let retained = if inner { self.inner_library } else { self.outer_library }
+  if retained is Some(library) {
+    return Ok(library)
+  }
+  guard self.host is Some(host) &&
+    self.pair is Some(pair) &&
+    self.read is Some(read) &&
+    self.runtime is Some(_) else {
+    return Err(Unavailable)
+  }
+  try {
+    if self.outer_library is None && self.inner_library is None {
+      // Read only the already captured path. Runtime current owns its own phase
+      // and must have been checked before entry; nested Runtime calls refuse.
+      let path = self.crypto_path
+      let acquired = command_preparation_value(
+        host
+        .prepare_local_host_read_crypto(
+          pair,
+          read,
+          path,
+          self.profile.crypto_heap_bytes,
+          self.profile.diagnostic_ceiling,
+        )
+        .map_err(issue => ReadCrypto(issue)),
+      )
+      match acquired {
+        ReadyCrypto(value) => self.component = Some(value)
+        PendingCrypto(value, issue) => {
+          self.component = Some(value)
+          self.retain_primary(Component(issue))
+          return Err(Component(issue))
+        }
+      }
+    }
+    let component = command_preparation_value(
+      host
+      .current_crypto_component(self.component.unwrap())
+      .map_err(issue => Component(issue)),
+    )
+    let acquired = command_preparation_value(
+      component.new_library().map_err(issue => Signature(issue)),
+    )
+    let (library, issue) = match acquired {
+      ReadyCryptoLibrary(value) => (value, None)
+      PendingCryptoLibrary(value, issue) => (value, Some(Signature(issue)))
+    }
+    if inner {
+      self.inner_library = Some(library)
+    } else {
+      self.outer_library = Some(library)
+    }
+    match issue {
+      None => Ok(library)
+      Some(issue) => {
+        self.retain_primary(issue)
+        Err(issue)
+      }
+    }
+  } catch {
+    LocalCommandPreparationStop(issue) => {
+      self.retain_primary(issue)
+      Err(issue)
+    }
+  }
+}
+
+///|
+// The same Reader keeps its partial Root/failure. A returned String is still a
+// managed material alias and must retire before this command's Read can close.
+fn LocalCommandPreparationOriginal::text_file(
+  self : LocalCommandPreparationOriginal,
+  root : String,
+  name : String,
+  maximum : Int64,
+) -> Result[String, LocalCommandPreparationIssue] {
+  if !self.phase_open || self.closing || self.closed || self.primary is Some(_) {
+    return Err(Unavailable)
+  }
+  match
+    @files.read_bounded_text_file_in_current_read_context_with_custody(
+      root,
+      name,
+      maximum,
+      self.profile.diagnostic_ceiling,
+    ) {
+    Ok(text) => Ok(text)
+    Err(failure) => {
+      self.read_failure = Some(failure)
+      let issue = Filesystem(failure.issue())
+      self.retain_primary(issue)
+      Err(issue)
+    }
+  }
+}
+
+///|
+// Drop no original on cleanup failure. Runtime and Journal each own their own
+// full scope brackets; Library/Reader aliases are released only inside the
+// same original Read cleanup. A closed carrier is not a final physical ACK.
+fn LocalCommandPreparationOriginal::close_checked(
+  self : LocalCommandPreparationOriginal,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  if self.closed {
+    return Ok(())
+  }
+  self.closing = true
+  try {
+    command_preparation_value(self.leave())
+    if self.standalone_cleanup_open {
+      guard self.host is Some(host) && self.read is Some(read) else {
+        return Err(Unavailable)
+      }
+      command_preparation_value(
+        host.leave_domain_original_read(read).map_err(issue => Read(issue)),
+      )
+      self.standalone_cleanup_open = false
+    }
+    if self.journal is Some(journal) {
+      let reply = journal.close()
+      if reply.issue() is Some(issue) {
+        return Err(Journal(issue))
+      }
+    }
+    if self.runtime is Some(runtime) {
+      command_preparation_value(
+        runtime.close().map_err(issue => Runtime(issue)),
+      )
+    }
+    if self.host is Some(host) {
+      // An incomplete physical domain acquisition can retain the original
+      // backing borrow before any Read/Runtime/Library ever existed.
+      if self.backing_scope is Some(scope) {
+        if self.backing_entered {
+          command_preparation_value(
+            host.leave_backing_borrow_scope(scope).map_err(issue => Host(issue)),
+          )
+          self.backing_entered = false
+        }
+        command_preparation_value(
+          host.return_backing_borrow(scope).map_err(issue => Host(issue)),
+        )
+        self.backing_scope = None
+      }
+      if self.read is Some(read) {
+        if self.pair is Some(pair) {
+          command_preparation_value(
+            host
+            .enter_local_host_cleanup(pair, @initial_arena.HostRead)
+            .map_err(issue => Pair(issue)),
+          )
+          self.phase_open = true
+        } else if !self.standalone_cleanup_open {
+          command_preparation_value(
+            host
+            .enter_domain_original_read_cleanup(read)
+            .map_err(issue => Read(issue)),
+          )
+          self.standalone_cleanup_open = true
+        }
+        if self.read_failure is Some(failure) {
+          command_preparation_value(
+            failure.retry_cleanup().map_err(issue => FilesystemCleanup(issue)),
+          )
+          self.read_failure = None
+        }
+        if self.inner_library is Some(library) {
+          command_preparation_value(
+            library.close_checked().map_err(issue => Signature(issue)),
+          )
+          self.inner_library = None
+        }
+        if self.outer_library is Some(library) {
+          command_preparation_value(
+            library.close_checked().map_err(issue => Signature(issue)),
+          )
+          self.outer_library = None
+        }
+        // These closed records still retain Read-managed aliases. Keep them
+        // through their real close and then retire our own last references.
+        self.journal = None
+        self.runtime = None
+        self.crypto_path = ""
+        if self.component is Some(component) {
+          command_preparation_value(
+            host
+            .close_crypto_component(component)
+            .map_err(issue => Component(issue)),
+          )
+          self.component = None
+        }
+        if self.pair is Some(_) {
+          command_preparation_value(self.leave())
+        } else if self.standalone_cleanup_open {
+          command_preparation_value(
+            host.leave_domain_original_read(read).map_err(issue => Read(issue)),
+          )
+          self.standalone_cleanup_open = false
+        }
+      }
+      if self.pair is Some(pair) {
+        command_preparation_value(
+          host.close_local_host_resources(pair).map_err(issue => Pair(issue)),
+        )
+        self.pair = None
+        self.consumer = None
+        self.read = None
+        self.sqlite = None
+      } else {
+        if self.sqlite is Some(sqlite) {
+          command_preparation_value(
+            host.close_sqlite_library(sqlite).map_err(issue => Sqlite(issue)),
+          )
+          self.sqlite = None
+        }
+        if self.read is Some(read) {
+          command_preparation_value(
+            host.close_domain_original_read(read).map_err(issue => Read(issue)),
+          )
+          self.read = None
+        }
+      }
+      if self.read_domain is Some(domain) {
+        command_preparation_value(
+          host
+          .close_domain_after_owner_ack(domain)
+          .map_err(issue => Domain(issue)),
+        )
+        self.read_domain = None
+      }
+      if self.sqlite_domain is Some(domain) {
+        command_preparation_value(
+          host
+          .close_domain_after_owner_ack(domain)
+          .map_err(issue => Domain(issue)),
+        )
+        self.sqlite_domain = None
+      }
+      command_preparation_value(host.try_close().map_err(issue => Host(issue)))
+      self.host = None
+    }
+    if !self.backing.close_checked() {
+      return Err(Backing(self.backing.acquisition_issue()))
+    }
+    self.closed = true
+    Ok(())
+  } catch {
+    LocalCommandPreparationStop(issue) => Err(issue)
+  }
+}

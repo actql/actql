@@ -11,7 +11,7 @@ struct NativeLocalPackagedRuntime {
   mut reader_open_failure : @filesystem.NativeReaderOpenFailure?
   mut root_open_failure : @filesystem.NativeRootOpenFailure?
   original_read : (@arena.InstalledArenaHost, @arena.InstalledArenaOriginalRead)?
-  original_resources : @arena.InstalledArenaLocalHostResources?
+  mut original_resources : @arena.InstalledArenaLocalHostResources?
   mut selection : (String, String, String, String)?
   mut product : NativeLocalPackagedProductObservation?
   mut read_scope_entered : Bool
@@ -513,6 +513,37 @@ pub fn NativeLocalPackagedRuntime::check_current(
     Ok(_) => ()
   }
   local_runtime_read_finish(self, self.local_runtime_check_originals())
+}
+
+///|
+/// Join the same already admitted Runtime Read to its same-Host consuming pair.
+/// No Root, manifest, child, claim or byte allowance is recreated. The original
+/// available Read may have observed the selected SQLite path before its one
+/// consuming claim; every Runtime alias remains in that original inventory.
+/// This exchange is one-shot and retains the pair even if the following whole
+/// current check fails. Missing/foreign originals never select legacy reads.
+pub fn NativeLocalPackagedRuntime::bind_original_host_resources(
+  self : NativeLocalPackagedRuntime,
+  resources : @arena.InstalledArenaLocalHostResources,
+) -> Result[Unit, NativeLocalPackagedRuntimeIssue] {
+  if !self.ready ||
+    self.closed ||
+    self.read_scope_entered ||
+    self.original_resources is Some(_) ||
+    self.reader is Some(_) ||
+    self.reader_open_failure is Some(_) ||
+    self.root_open_failure is Some(_) {
+    return Err(Changed)
+  }
+  guard self.original_read is Some((host, read)) else {
+    return Err(OriginalReadUnavailable)
+  }
+  match host.require_local_host_consuming_read_current(resources, read) {
+    Err(issue) => return Err(OriginalHostResources(issue))
+    Ok(_) => ()
+  }
+  self.original_resources = Some(resources)
+  self.check_current()
 }
 
 ///|
