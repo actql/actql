@@ -16,6 +16,9 @@ test('bundled mock catalogue declares the original two sources independently of 
     ['snowflake', 'snowflake', 'mock_snowflake', 'mock_snowflake/0.1',
       [{name: 'snowflake.usage_30d', resource: 'usage_30d'}]],
   ]);
+  assert.deepEqual(mockChurnRiskCatalogue.map(entry => entry.updateAliases), [
+    [{name: 'salesforce.Account', resource: 'Account'}], [],
+  ]);
   const [salesforce, snowflake] = mockChurnRiskCatalogue.map(entry => entry.views[0]);
   assert.deepEqual(JSON.parse(salesforce.schema_wire), {
     id: {type: 'string', nullable: false},
@@ -48,6 +51,10 @@ test('bundled mock declarations cannot be mutated into a different selected cont
   for (const entry of mockChurnRiskCatalogue) {
     assert.throws(() => {entry.connectorId = 'foreign';}, TypeError);
     assert.throws(() => entry.queryAliases.push({}), TypeError);
+    assert.throws(() => entry.updateAliases.push({}), TypeError);
+    for (const alias of entry.updateAliases) {
+      assert.throws(() => {alias.resource = 'foreign';}, TypeError);
+    }
     assert.throws(() => {entry.queryAliases[0].resource = 'foreign';}, TypeError);
     assert.throws(() => entry.views.push({}), TypeError);
     assert.throws(() => {entry.views[0].facts_wire = '{}';}, TypeError);

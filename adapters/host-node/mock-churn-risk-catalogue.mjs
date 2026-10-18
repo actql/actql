@@ -12,6 +12,11 @@ export const mockChurnRiskCatalogue = Object.freeze([
     queryAliases: Object.freeze([
       Object.freeze({name: 'salesforce.accounts', resource: 'Account'}),
     ]),
+    // A distinct positive target name. The actual Host supplies installation
+    // provenance and the Common Mapping; the read alias cannot issue either.
+    updateAliases: Object.freeze([
+      Object.freeze({name: 'salesforce.Account', resource: 'Account'}),
+    ]),
     views: Object.freeze([
       Object.freeze({
         resource: 'Account',
@@ -30,6 +35,7 @@ export const mockChurnRiskCatalogue = Object.freeze([
     queryAliases: Object.freeze([
       Object.freeze({name: 'snowflake.usage_30d', resource: 'usage_30d'}),
     ]),
+    updateAliases: Object.freeze([]),
     views: Object.freeze([
       Object.freeze({
         resource: 'usage_30d',
