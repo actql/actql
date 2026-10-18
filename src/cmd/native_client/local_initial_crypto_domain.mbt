@@ -475,7 +475,8 @@ fn local_initial_crypto_profile(
     control_bytes: 262144L,
     host_limits: {
       planning_work: 64,
-      attempts: 8,
+      // One original capacity + one provisioning + the child maximum.
+      attempts: 1 + 1 + 8,
       holdings: 8,
       transfer_bytes: 1048576L,
       retained_bytes: 0L,
