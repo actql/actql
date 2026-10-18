@@ -251,3 +251,79 @@ test('run acquisition custody retains a non-ACK close observation without repeat
   assert.equal(f.custody.cleanupPending(), true); assert.equal(f.counts().closes, 1);
   assert.equal(f.exchange.seen().length, 0);
 });
+
+test('authorized run acquisition binds the original issued grant without signing another grant', async t => {
+  const f = await fixture(t);
+  const authorization = f.custody.sign(request());
+  const acquired = f.custody.bindRunAcquisition(authorization, current());
+  assert.equal(acquired.authorization, authorization);
+  assert.equal(acquired.authorization.grant, authorization.grant);
+  assert.equal(acquired.authorization.scope, authorization.scope);
+  assert.equal(f.counts().accepts, 1);
+  assert.throws(() => f.custody.bindRunAcquisition(authorization, current()),
+    {code: 'RowSourceCredentialAcquisitionAuthorizationConsumed'});
+  const response = await f.invoke(acquired, 'original-authorized-response',
+    {retainRunResponseOriginal: true});
+  withHttpsCredentialRunResponseOriginal(response, control, acquired.credential.journal, facts => {
+    assert.equal(facts.scope, authorization.scope);
+    assert.equal(control.useIdentity(facts.use), response.useCid);
+  });
+  assert.equal(f.exchange.seen().length, 1);
+  assert.equal(f.counts().accepts, 1);
+  assert.equal(f.counts().claims, 1);
+  assert.equal(acquired.close(), 'closed');
+  f.custody.closeOnce();
+  assert.equal(f.counts().closes, 1);
+});
+
+test('authorized run acquisition refuses copied equal grant wrappers before current callbacks or I/O', async t => {
+  const f = await fixture(t);
+  const authorization = f.custody.sign(request());
+  for (const foreign of [{...authorization},
+    {grant: control.prepare(authorization.scope), scope: authorization.scope},
+    Object.create(authorization)]) {
+    assert.throws(() => f.custody.bindRunAcquisition(foreign, {
+      assertCurrent() { assert.fail('No foreign callback'); },
+      async observeCurrent() { assert.fail('No foreign callback'); },
+    }), {code: 'ForeignRowSourceCredentialAcquisitionAuthorization'});
+  }
+  assert.equal(f.counts().accepts, 1);
+  assert.equal(f.counts().claims, 0);
+  assert.equal(f.counts().resolutions, 0);
+  assert.equal(f.exchange.seen().length, 0);
+  const acquired = f.custody.bindRunAcquisition(authorization, current());
+  assert.equal(acquired.close(), 'closed');
+});
+
+test('authorized run acquisition retains the opening child across reentrant original Journal close', async t => {
+  const f = await fixture(t);
+  const authorization = f.custody.sign(request());
+  assert.throws(() => f.custody.bindRunAcquisition(authorization, {
+    assertCurrent() {
+      assert.throws(() => f.custody.bindRunAcquisition(authorization, current()),
+        {code: 'RowSourceCredentialAcquisitionAuthorizationConsumed'});
+      assert.throws(() => f.custody.closeOnce(),
+        {code: 'RowSourceCredentialAcquisitionCleanupPending'});
+      assert.equal(f.counts().closes, 0);
+    },
+    async observeCurrent() { assert.fail('No physical operation'); },
+  }), {code: 'RowSourceSiteClosed'});
+  assert.equal(f.custody.cleanupPending(), true);
+  assert.equal(f.counts().accepts, 1);
+  assert.equal(f.counts().claims, 0);
+  assert.equal(f.exchange.seen().length, 0);
+  f.custody.closeOnce();
+  assert.equal(f.counts().closes, 1);
+  assert.equal(f.custody.cleanupPending(), false);
+});
+
+test('authorized run acquisition does not infer binding capacity from an existing grant', async t => {
+  const f = await fixture(t, {custody: {runAcquisitionLimits: undefined}});
+  const authorization = f.custody.sign(request());
+  assert.throws(() => f.custody.bindRunAcquisition(authorization, current()),
+    {code: 'RowSourceCredentialAcquisitionUnavailable'});
+  assert.equal(f.counts().accepts, 1);
+  assert.equal(f.counts().claims, 0);
+  assert.equal(f.counts().resolutions, 0);
+  assert.equal(f.exchange.seen().length, 0);
+});
