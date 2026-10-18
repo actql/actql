@@ -7,9 +7,11 @@ const {Buffer} = require('node:buffer');
 const {Readable} = require('node:stream');
 const {createRequire} = require('node:module');
 const {dirname, join} = require('node:path');
+const {getHeapStatistics} = require('node:v8');
 const originalProcess = require('node:process');
 const applyOriginal = Reflect.apply;
 const {createInitialControlInstallationOwner} = require('./initial-control-installation-owner.cjs');
+const {inspectInitialControlPhaseEnvelope} = require('./initial-control-phase-envelope.cjs');
 // Selected runtime implementation duty: ONLY the V8 internal backing of these
 // two identity indices stays with this actual startup/module and escaped-handle
 // lifetime. It is not fixed SDK storage or a numerical lease. Entry records,
@@ -87,12 +89,59 @@ const initialControlPackageOriginal = selected && eagerSdkStartup && publicPrelo
   ? require('./initial-control-package-original.cjs').imageInventory : undefined;
 
 let startup;
-// The startup association above is not a complete initial-control envelope.
-// Keep this private Owner unavailable until its actual selected image recipe,
-// original module/library domains and bounded preparation coverage are supplied
-// before entry. Neither caller methods nor the old eight-reference view can
-// install an operational original in this closure.
-const initialControl = createInitialControlInstallationOwner(undefined);
+// The selected runtime/control disposition is an explicit finite trust premise,
+// not a universal V8/RSS lease or a resource profile. Instantiate it in this
+// actual early preload, before image capture/compilation and caller acquisition.
+// Source-only, non-eager and ordinary imports retain operational absence.
+const initialControlEnvelope = initialControlPackageOriginal === undefined ? undefined :
+  inspectInitialControlPhaseEnvelope(initialControlPackageOriginal,
+    applyOriginal(getHeapStatistics, undefined, []).heap_size_limit);
+let preparationOriginals, preparationInput, preparationClosed = false;
+const samePreparation = held => preparationOriginals !== undefined &&
+  held.host === preparationOriginals.host && held.installation === preparationOriginals.installation &&
+  held.generation === preparationOriginals.generation && held.supplier === preparationOriginals.supplier &&
+  held.moduleLifetime === preparationOriginals.moduleLifetime;
+const inputUnavailable = () => {
+  throw Object.assign(new TypeError('NodeInitialControlInputUnavailable'),
+    {code: 'NodeInitialControlInputUnavailable'});
+};
+const operational = initialControlEnvelope === undefined ? undefined : Object.freeze({
+  prepare(held, rawInput) {
+    // Primitive undefined has no caller object/closure/ownKeys acquisition.
+    // Do not inspect an unsupported object, even to establish its shape.
+    if (rawInput !== undefined) inputUnavailable();
+    currentStartup();
+    if (preparationOriginals !== undefined) inputUnavailable();
+    applyOriginal(startup.initialControlHostValidator, startup.initialControlHostNamespace, [held]);
+    // One generation for this process recipe, including refused/closing work.
+    // Never replenish it on close, WeakMap deletion, settlement or GC.
+    preparationOriginals = held;
+    preparationInput = Object.freeze(Object.create(null));
+  },
+  assertCurrent(held) {
+    if (!samePreparation(held) || preparationClosed) inputUnavailable();
+    currentStartup();
+    applyOriginal(startup.initialControlHostValidator, startup.initialControlHostNamespace, [held]);
+  },
+  readInput(held) {
+    if (!samePreparation(held) || preparationClosed) inputUnavailable();
+    return preparationInput;
+  },
+  readAsset(held, path) {
+    if (!samePreparation(held) || preparationClosed) inputUnavailable();
+    return startup.initialControlImages.readAsset(path);
+  },
+  close(held) {
+    if (!samePreparation(held)) inputUnavailable();
+    // The installation Owner invokes this only after its retained children
+    // acknowledge and preparation aliases have been cut. This closes the
+    // managed preparation, not the process/module/native or escaped lifetime.
+    preparationInput = undefined;
+    preparationClosed = true;
+    return Object.freeze({pending: false});
+  },
+});
+const initialControl = createInitialControlInstallationOwner(operational);
 
 // Publish the same immutable callback table before synchronous namespace
 // initialization can reenter this Module. Capturing it is not an operational
@@ -322,6 +371,12 @@ if (selected) {
   const initialControlHostConsumer = consumerProperty !== undefined &&
     Object.hasOwn(consumerProperty, 'value') && typeof consumerProperty.value === 'function'
     ? consumerProperty.value : undefined;
+  const validatorProperty = initialControlHostNamespace === undefined ? undefined :
+    Object.getOwnPropertyDescriptor(initialControlHostNamespace, 'assertInitialControlHostPreparation');
+  const initialControlHostValidator = validatorProperty !== undefined &&
+    Object.hasOwn(validatorProperty, 'value') && typeof validatorProperty.value === 'function'
+    ? validatorProperty.value : undefined;
+  if (operational !== undefined && initialControlHostValidator === undefined) unavailable();
   // The actual process/module/native responsibility stays with this startup.
   // These originals and the existing Host overlap still need funded coverage.
   // In particular the three added descriptor records/array entries/references
@@ -333,7 +388,8 @@ if (selected) {
   // rejection, Promise settlement or retirement of this association.
   startup = {process: originalProcess, module, entry: originalProcess.argv[1], originals, publicPreload,
     promiseSpecies, sdkStaticModules, eagerSdkStartup, initialControlImages,
-    initialControlHostNamespace, initialControlHostConsumer, invalidated: false};
+    initialControlHostNamespace, initialControlHostConsumer, initialControlHostValidator,
+    initialControlEnvelope, invalidated: false};
 }
 
 function currentStartup() {

@@ -1,0 +1,73 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import module from './initial-control-phase-envelope.cjs';
+
+const {inspectInitialControlPhaseEnvelope: inspect} = module;
+const file = (path, bytes) => ({path, bytes, sha256: '0'.repeat(64)});
+const inventory = () => ({images: [file('original.cjs', 1024)], dependencies: [],
+  packages: [], publicNode: null});
+const unavailable = {code: 'NodeInitialControlEnvelopeUnavailable'};
+
+// Accounting DATA only: these cases do not authenticate a startup, supply an
+// operational original, demonstrate its native bound or open a real Host.
+test('finite disposition includes simultaneous managed, native, compiler and full capture terms', () => {
+  const selected = inspect(inventory(), 1024 * 1024);
+  assert.equal(selected.compilerBytes, 16384);
+  assert.equal(selected.moduleNativeBytes, 65536);
+  assert.equal(selected.sourceBackingBytes, 1025);
+  assert.equal(selected.nativeBytes, 268517376);
+  assert.equal(selected.preparationExternalBytes, 408944640);
+  assert.equal(selected.bytes, 678511617);
+  assert.equal(selected.limits.generations, 1);
+  assert.equal(selected.limits.preparations, 1);
+  assert.equal(selected.limits.opaqueCallerAliases, 0);
+  assert.equal(selected.lifetime, 'original-process-and-escaped-module-lifetime');
+  assert.ok(Object.isFrozen(selected)); assert.ok(Object.isFrozen(selected.limits));
+  assert.equal(selected.begin, undefined); assert.equal(selected.close, undefined);
+});
+
+test('all package/facade images and dependency edges contribute, not just Local sourceBytes', () => {
+  const value = inventory();
+  value.sourceBytes = 0;
+  value.packages = [{images: [file('dependency.mjs', 2048)], dependencies: [{package: 0}]}];
+  value.publicNode = {images: [file('index.mjs', 4096)], dependencies: [{local: true}]};
+  value.dependencies = [{package: 0}];
+  const selected = inspect(value, 1024);
+  assert.equal(selected.images, 3); assert.equal(selected.packages, 1);
+  assert.equal(selected.sourceBytes, 7168); assert.equal(selected.dependencyEdges, 3);
+});
+
+test('actual heap ceiling must fit the selected finite recipe without subtracting current usage', () => {
+  for (const bytes of [0, -1, Infinity, NaN, 1.5, 5 * 1024 ** 3 + 1]) {
+    assert.throws(() => inspect(inventory(), bytes), unavailable);
+  }
+  assert.equal(inspect(inventory(), 5 * 1024 ** 3).heapCeilingBytes, 5 * 1024 ** 3);
+});
+
+test('single-file, aggregate-source, path and image counts refuse before image acquisition', () => {
+  for (const change of [
+    value => {value.images[0].bytes = 64 * 1024 ** 2 + 1;},
+    value => {value.images = [file('a', 64 * 1024 ** 2), file('b', 64 * 1024 ** 2), file('c', 1)];},
+    value => {value.images[0].path = 'a'.repeat(4097);},
+    value => {value.images = Array.from({length: 2049}, (_, index) => file(String(index), 0));},
+  ]) {
+    const value = inventory(); change(value); assert.throws(() => inspect(value, 1024), unavailable);
+  }
+});
+
+test('packages and dependency traversal have distinct finite ceilings', () => {
+  const packages = inventory();
+  packages.packages = Array.from({length: 65}, () => ({images: [], dependencies: []}));
+  assert.throws(() => inspect(packages, 1024), unavailable);
+  const edges = inventory(); edges.dependencies = Array.from({length: 513}, () => ({}));
+  assert.throws(() => inspect(edges, 1024), unavailable);
+});
+
+test('image facts are own DATA; a source-size summary or getter cannot replace them', () => {
+  let observed = 0;
+  const value = inventory();
+  Object.defineProperty(value.images[0], 'bytes', {get() {observed++; return 1;}});
+  assert.throws(() => inspect(value, 1024), unavailable);
+  assert.equal(observed, 0);
+  assert.throws(() => inspect({sourceBytes: 1}, 1024), unavailable);
+});
