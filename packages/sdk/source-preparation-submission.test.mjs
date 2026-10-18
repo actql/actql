@@ -43,6 +43,38 @@ test('Source refusal precedes every original option access and sends nothing', a
   assert.equal(reads, 0); assert.equal(sends, 0);
 });
 
+test('selected Source observes omitted options before the SDK creates its default', async t => {
+  const original = Object.freeze(new Error('OriginalAdmissionRefusal'));
+  const observed = [];
+  let sends = 0;
+  const {client} = await fixture({beforeSourceSnapshot(kind, input, options) {
+    observed.push({kind, input, options}); throw original;
+  }, bindSourceSnapshot() {assert.fail('NoSnapshot');},
+  bindSourceRequest() {assert.fail('NoPacket');}, finishSourceProducer() {assert.fail('NoReceipt');}},
+  () => {sends++;});
+  t.after(() => client.close());
+  const program = Object.freeze({version: 'actql/0.1'});
+  await assert.rejects(client.startSource('original'), error => error === original);
+  await assert.rejects(client.start(program), error => error === original);
+  assert.deepEqual(observed, [{kind: 'aql', input: 'original', options: undefined},
+    {kind: 'program', input: program, options: undefined}]);
+  assert.equal(sends, 0);
+});
+
+test('unselected omitted options retain the existing document refusals', async t => {
+  let sends = 0;
+  const client = await connectInProcess({mode: 'local', owner: 'local'}, {
+    async perform(operation) {
+      if (operation === 'connect') return profile;
+      sends++; assert.fail('NoInvalidDocumentSend');
+    },
+  });
+  t.after(() => client.close());
+  await assert.rejects(client.startSource('original'), {code: 'InvalidAqlDocument'});
+  await assert.rejects(client.start(null), {code: 'InvalidProgramDocument'});
+  assert.equal(sends, 0);
+});
+
 test('one original receipt binds the synchronous frozen snapshot and exact transport packet', async t => {
   const receipt = {}, parameters = {n: 1}, order = [];
   const options = {format: 'sql', parameters, submissionRef: originalSubmission('source-original')};

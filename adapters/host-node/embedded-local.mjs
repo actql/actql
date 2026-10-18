@@ -54,7 +54,8 @@ import {beginInitialControlInstallation, assertInitialControlInstallationCurrent
   from './node-initial-control-installation.mjs';
 import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
-import {prepareInstalledProjectMock} from './installed-project-mock.mjs';
+import {prepareInstalledProjectMock, installPreparedProjectMockSources}
+  from './installed-project-mock.mjs';
 import {prepareSourceManagedInstallation, assertSourceManagedInstallationCurrent,
   assertSourceManagedPreparationCurrent}
   from './node-source-managed-installation.mjs';
@@ -166,6 +167,15 @@ export function assertSourceManagedHostPreparation(originals, originalOwnedReque
     profiles.assertSourceRequest(originals.host, originals.installation,
       originals.generation, originalOwnedRequest);
   }
+}
+
+// Fixed namespace projection for the actual selected Host/Journal supplier.
+// The same registry entry retained these originals before root-format I/O;
+// copied paths, matching CIDs or this record alone cannot issue a facility.
+export function readHostJournalPreparation(originals) {
+  assertInitialControlHostPreparation(originals);
+  return profiles.hostJournalPreparation(originals.host, originals.installation,
+    originals.generation);
 }
 
 // Same live ingress lineage only. Copies, CIDs and retained cold DATA cannot
@@ -509,6 +519,11 @@ async function openInstalledHost(originalInstallation, preparation) {
   if (effectInstallation !== undefined && selectedEffectPaths.length > 0) {
     throw new TypeError('InvalidInstalledEffectSite');
   }
+  const principalId = userInfo().username;
+  const journalDirectory = join(root, 'requests');
+  // Root-format admission can create and fsync the first marker. Retain the
+  // actual Host subject before that operation, not only before SQLite open.
+  preparation?.retainHostJournalPreparation(root, principalId, journalDirectory);
   await admitHostRootFormat(root);
   if (registerModelProviders !== undefined && process.version === 'v22.22.0' &&
       process.platform === 'darwin' && process.arch === 'arm64' &&
@@ -551,7 +566,6 @@ async function openInstalledHost(originalInstallation, preparation) {
   const inferSelections = new WeakMap();
   const effectSubmissions = new WeakMap();
   const effectSelections = new WeakMap();
-  const principalId = userInfo().username;
   // A prepared Local Host borrows the selected startup's original fixed image;
   // it must not reread a pathname after that original scope was admitted.
   // The independent unprepared Host entry retains its existing file route.
@@ -625,9 +639,21 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
   }
   try {
-    sourceProfile = await loadInstalledSources(selectedSourcePaths,
-      {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
-        resolveSecret: resolveSourceSecret, connectorTable});
+    const installationSourcePreparation = preparation?.sourcePreparation();
+    if (installationSourcePreparation !== undefined) {
+      // Consume the SAME selected physical Source preparation. An explicit
+      // Mock installation must not load configured live Source profiles, and
+      // its actual Account gate still defaults to Missing, never to Allow.
+      sourceProfile = await preparation.installMockSources(moon, baseEnvironmentWire,
+        () => createLocalAuthorizationGate({...authorization, principal: principalId}));
+      if (preparation.sourcePreparation() !== installationSourcePreparation) {
+        throw clientOperationError('InstalledSourcePreparationChanged');
+      }
+    } else {
+      sourceProfile = await loadInstalledSources(selectedSourcePaths,
+        {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
+          resolveSecret: resolveSourceSecret, connectorTable});
+    }
     installedEffect = await loadInstalledEffects(selectedEffectPaths, {root, principalId, moon,
         runtimeUrl, baseEnvironmentWire, resolveSecret: resolveEffectSecret, connectorTable});
     if (installedEffect !== undefined) {
@@ -762,7 +788,6 @@ async function openInstalledHost(originalInstallation, preparation) {
       {hostLookupExecutionPolicyCid: contentCid(hostLookupExecutionPolicy)})});
   const storeAuthorityCid = cid({version: 'actql-local-store-owner/0.1',
     root, principalId});
-  const journalDirectory = join(root, 'requests');
   let journal;
   let effectEvidenceKey;
   let checkpoints;
@@ -792,7 +817,6 @@ async function openInstalledHost(originalInstallation, preparation) {
     ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
     await mkdir(journalDirectory, {recursive: true, mode: 0o700});
     const snapshotDirectory = join(root, 'carrier-snapshots');
-    await mkdir(snapshotDirectory, {recursive:true,mode:0o700});
     // Installed physical wiring, never Program settings. Allocation occurs
     // only after the common driver has reserved work/capacity and captured
     // the snapshot cleanup owner. Graph row Relations use the same Store for
@@ -808,12 +832,19 @@ async function openInstalledHost(originalInstallation, preparation) {
           typeof snapshotFactory !== 'function')) {
       throw new TypeError('InvalidLocalSnapshotStoreFactory');
     }
-    localSnapshotConfiguration = installStore((key, bytes, frame, signal) =>
-      snapshotFactory === undefined
+    localSnapshotConfiguration = installStore(async (key, bytes, frame, signal) => {
+      // The existing driver invokes this physical factory only after its
+      // original attempt reserves the snapshot. Merely connecting/checking
+      // needs no snapshot directory or lease. Keep the same parent and factory.
+      signal?.throwIfAborted();
+      await mkdir(snapshotDirectory, {recursive: true, mode: 0o700});
+      signal?.throwIfAborted();
+      return snapshotFactory === undefined
         ? createLocalRetainedStore({parentDirectory:snapshotDirectory,
           capacityBytes:bytes,maxFrameBytes:frame,maxEntries:1})
         : snapshotFactory(Object.freeze({key,bytes,frame,
-          parentDirectory:snapshotDirectory,signal})),
+          parentDirectory:snapshotDirectory,signal}));
+    },
     authorization?.faultInjection);
     journal = openClientRequestJournal(journalDirectory, {
       updateOriginalControl: createUpdateTargetOriginalShapeControl(moon),
@@ -2265,6 +2296,11 @@ async function openInstalledHost(originalInstallation, preparation) {
       return {ref: retainedStart.ref, durability: retainedStart.durability,
         revision: retainedStart.revision};
     }
+    if (acquisitionCount === 2 && typeof sourceProfile?.prepareManagedRun === 'function') {
+      // The actual same Host's early admission is only being claimed here,
+      // not issued after compilation or reconstructed from graph limits.
+      sourceProfile.prepareManagedRun(submission.preparedProgram, requested);
+    }
     const preparedSources = acquisitionCount === 2
       ? await prepareAcquisitions(submission.preparedProgram) : undefined;
     const keyedPrepared = keyedAcquisition === undefined ? undefined :
@@ -3638,6 +3674,23 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     return observed;
   }});
   const preparation = Object.freeze({host, initialControl,
+    retainHostJournalPreparation(root, principalId, journalDirectory) {
+      assertInitialControlHostPreparation(originals);
+      if (root !== originalInstallation.root || typeof principalId !== 'string' ||
+          !principalId || journalDirectory !== join(root, 'requests')) {
+        throw clientOperationError('InstalledHostPreparationChanged');
+      }
+      const view = Object.freeze({root, principalId, journalDirectory,
+        assertCurrent() {
+          assertInitialControlHostPreparation(originals);
+          if (this !== view || originalInstallation.root !== root ||
+              profiles.hostJournalPreparation(host, originalInstallation, host) !== view) {
+            throw clientOperationError('InstalledHostPreparationChanged');
+          }
+        }});
+      profiles.retainHostJournalPreparation(host, originalInstallation, host, view);
+      view.assertCurrent();
+    },
     bindSourceRequest(parent, derived) {
       if (mockPreparation === undefined) return;
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
@@ -3649,6 +3702,15 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       // connection. Check the exact wrapper in its private original inventory.
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
       return sourceManaged;
+    },
+    installMockSources(runtime, baseEnvironmentWire, authorizationFor) {
+      if (runtime !== moon || mockPreparation === undefined) {
+        throw clientOperationError('ForeignInstalledMockPreparation');
+      }
+      assertSourceManagedInstallationCurrent(sourceManaged, originals);
+      return installPreparedProjectMockSources({moon, mockPreparation, sourceManaged,
+        baseEnvironmentWire, authorizationFor,
+        readAsset: path => readInitialControlInstallationAsset(control, originals, path)});
     },
     readEnvironmentSource() {
       return readInitialControlInstallationAsset(control, originals,

@@ -334,7 +334,10 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
         submissionRef: options.submissionRef ?? newSubmission()}, sourceProducer);
     } catch (cause) {return Promise.reject(cause);}
   };
-  const startSource = (text, options = {}) => withSourceProducer('aql', text, options, sourceProducer => {
+  const startSource = (text, options) => withSourceProducer('aql', text, options, sourceProducer => {
+    // Preserve omission at the actual before-copy boundary. This SDK-owned
+    // default belongs after the selected original admission, not before it.
+    if (options === undefined) options = {};
     if (typeof text !== 'string' || !text ||
         !clientSourceFormats.includes(options.format)) {
       return Promise.reject(new ClientError('InvalidAqlDocument'));
@@ -389,7 +392,8 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       }
       return retainSubmissionExplanation(freezeInput(answer), answer, context);
     },
-    start: (program, options = {}) => withSourceProducer('program', program, options, sourceProducer => {
+    start: (program, options) => withSourceProducer('program', program, options, sourceProducer => {
+      if (options === undefined) options = {};
       if (program === null || typeof program !== 'object' ||
           Array.isArray(program)) {
         return Promise.reject(new ClientError('InvalidProgramDocument'));

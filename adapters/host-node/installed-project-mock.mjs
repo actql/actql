@@ -3,6 +3,10 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {installedProjectOriginalsForRuntime} from './installed-project-configuration.mjs';
 import {loadInstalledProjectConnections} from './installed-project-connections.mjs';
 import {mockChurnRiskCatalogue} from './mock-churn-risk-catalogue.mjs';
+import {createInstalledRowSource, rowSourceCheckEnvironment} from './installed-row-source.mjs';
+import {composeInstalledCheckEnvironment} from './installed-check-environment.mjs';
+import {contentCid} from './local-account-config.mjs';
+import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
 
@@ -111,4 +115,171 @@ export async function prepareInstalledProjectMock(moon, project, profile,
     },
   });
   return view;
+}
+
+// Physical installation of the same already retained Mock declarations. The
+// ordinary Host supplies its existing Account gates and the actual selected
+// Source/managed-Compute original; neither the profile label nor this factory
+// issues a permission, a runtime parent, or a replacement Run.
+export async function installPreparedProjectMockSources({moon, mockPreparation,
+  sourceManaged, baseEnvironmentWire, authorizationFor, readAsset}) {
+  if (typeof authorizationFor !== 'function' || typeof readAsset !== 'function' ||
+      typeof sourceManaged?.assertCurrent !== 'function' ||
+      typeof sourceManaged?.prepareRun !== 'function' ||
+      typeof sourceManaged?.prepareRead !== 'function') fail('NodeManagedRunAdmissionUnavailable');
+  const bundle = mockPreparation.originalsForRuntime(moon);
+  if (bundle.sources.length !== 2) fail('InstalledMockCatalogueUnavailable');
+  let closing = false, record;
+  const sources = [], closedSources = new Set();
+  const current = () => {
+    if (closing) fail('InstalledMockSourceClosed');
+    sourceManaged.assertCurrent();
+    if (mockPreparation.originalsForRuntime(moon) !== bundle) fail('ForeignInstalledMockPreparation');
+  };
+  const sameRun = prepared => {
+    current();
+    if (record?.prepared !== prepared || record.value === undefined) fail('NodeManagedRunAdmissionUnavailable');
+    checked(moon.clientProgramInstalledManagedRunCheck(record.value, prepared, record.request));
+    return record;
+  };
+  function prepareManagedRun(prepared, request) {
+    current();
+    if (record !== undefined) {
+      if (record.failure !== undefined) throw record.failure;
+      sameRun(prepared);
+      checked(moon.clientProgramInstalledManagedRunCheck(record.value, prepared, request));
+      return;
+    }
+    // Retain every acquired original before the next fallible operation. A
+    // failed start is sticky; another caller cannot replace the original Run.
+    record = {prepared, request, original: undefined, admission: undefined,
+      value: undefined, reads: [undefined, undefined], failure: undefined};
+    try {
+      record.original = sourceManaged.prepareRun(prepared);
+      record.admission = checked(moon.clientProgramNodeManagedRunPrepare(record.original, prepared));
+      record.value = checked(moon.clientProgramInstalledManagedRunBegin(record.admission, prepared, request));
+      sameRun(prepared);
+    } catch (error) { record.failure = error; throw error; }
+  }
+  async function closeSource(index) {
+    const read = record?.reads[index];
+    if (read === undefined || read.closed) return;
+    if (read.value !== undefined) checked(moon.clientProgramInstalledSourceReadRetire(read.value));
+    // The actual FD/backing owner retains its own observation. A logical
+    // Source retirement or completed Promise cannot stand in for that duty.
+    const observed = await Reflect.apply(read.close, read.raw, []);
+    const pending = observed !== null && typeof observed === 'object'
+      ? Object.getOwnPropertyDescriptor(observed, 'pending') : undefined;
+    if (!pending || !Object.hasOwn(pending, 'value') || pending.value !== false) {
+      fail('InstalledMockSourceCleanupPending');
+    }
+    read.closed = true;
+  }
+  const close = async () => {
+    closing = true;
+    const failures = [];
+    for (const source of sources) {
+      if (closedSources.has(source)) continue;
+      try {await source.close(); closedSources.add(source);} catch (error) {failures.push(error);}
+    }
+    if (failures.length === 0 && record !== undefined) {
+      try {
+        if (record.value !== undefined) checked(moon.clientProgramInstalledManagedRunRetire(record.value));
+        else if (record.admission !== undefined) {
+          checked(moon.clientProgramNodeManagedRunCleanup(record.admission));
+        }
+      } catch (error) {failures.push(error);}
+    }
+    if (failures.length) throw new AggregateError(failures, 'InstalledMockSourceCleanupPending');
+  };
+  try {
+    for (const [index, original] of bundle.sources.entries()) {
+      current();
+      const entry = original.catalogue, declaration = original.declaration;
+      const declared = JSON.parse(original.wire);
+      const environment = rowSourceCheckEnvironment(baseEnvironmentWire, declared);
+      const authorization = await authorizationFor(entry.connection);
+      current();
+      const preparedReads = new WeakMap();
+      const adapter = await createInstalledRowSource({moon, declaration, declared,
+        environmentWire: environment.wire, connectorId: entry.connectorId,
+        connectorRegistration: entry.registration, connectorRevision: entry.revision,
+        bindingCid: contentCid({connection: entry.connection, dataPath: bundle.dataPath,
+          declaration: original.wire}), authorization, readOperation: 'read',
+        site: Object.freeze({connection: entry.connection, close: () => closeSource(index)}),
+        physicalTarget: (resource, fields) => ({connection: entry.connection,
+          resource, fields: [...fields], dataPath: bundle.dataPath}),
+        readAsset,
+        limits: {maxPages: 1, maxPageBytes: 1048576, maxPageRows: 100, maxCaptureRows: 100},
+        originalPageLimits: {maxNodes: 4096, maxDepth: 64},
+        prepareSourceRead({checkedOwner, effectful, declaration: selected, occurrence}) {
+          const run = sameRun(checkedOwner);
+          if (effectful || selected !== declaration || occurrence.stage !== index ||
+              occurrence.input !== 0 || run.reads[index] !== undefined) fail('InstalledSourcePreparationMismatch');
+          const raw = sourceManaged.prepareRead(checkedOwner, declaration, run.original);
+          const read = {raw, close: undefined, bytes: undefined, value: undefined, closed: false};
+          run.reads[index] = read;
+          read.close = Object.getOwnPropertyDescriptor(raw, 'close')?.value;
+          read.bytes = Object.getOwnPropertyDescriptor(raw, 'readOriginalBytes')?.value;
+          if (typeof read.close !== 'function' || typeof read.bytes !== 'function') {
+            fail('InstalledMockSourceUnavailable');
+          }
+          read.value = checked(moon.clientProgramInstalledManagedRunSourceRead(run.value, index));
+          return read.value;
+        },
+        async readPages({rowRun, chargePage, verifyRead, signal}) {
+          const run = sameRun(record?.prepared), read = run.reads[index];
+          if (read?.value !== rowRun.originalRead || read.closed) fail('InstalledSourcePreparationMismatch');
+          signal?.throwIfAborted();
+          await verifyRead();
+          signal?.throwIfAborted();
+          sameRun(run.prepared);
+          const bytes = await Reflect.apply(read.bytes, read.raw, []);
+          signal?.throwIfAborted();
+          sameRun(run.prepared);
+          await verifyRead();
+          signal?.throwIfAborted();
+          sameRun(run.prepared);
+          // Charge the full original response once before Common selects its
+          // original relation. Never parse/re-encode a synthetic page in JS.
+          const charge = chargePage(bytes);
+          checked(moon.clientProgramMockChurnRiskAcceptChargedDocument(rowRun.run, charge,
+            rowRun.acquisition, bundle.sources[0].declaration,
+            bundle.sources[1].declaration, bytes, 2097152));
+          sameRun(run.prepared);
+        }});
+      const queryAliases = Object.freeze(entry.queryAliases.map(alias => {
+        const view = declared.views.find(view => view.resource === alias.resource);
+        if (view === undefined) fail('InstalledMockCatalogueUnavailable');
+        return Object.freeze({name: alias.name, sourceRef: view.source_ref,
+          sourceViewContractCid: view.view_cid,
+          schemaContractCid: view.carrier_schema_cid});
+      }));
+      sources.push(Object.freeze({...adapter, queryAliases,
+        async prepare(facts) {
+          const prepared = await adapter.prepare(facts);
+          const run = sameRun(facts.preparedProgram);
+          preparedReads.set(prepared, run);
+          return prepared;
+        },
+        ledgerCapacity(prepared) {
+          const run = preparedReads.get(prepared);
+          if (run !== sameRun(record?.prepared)) fail('InstalledSourcePreparationMismatch');
+          return Object.freeze({...adapter.ledgerCapacity(prepared), managedRun: run.value});
+        }}));
+    }
+    let environmentWire;
+    for (const source of sources) environmentWire = composeInstalledCheckEnvironment(moon,
+      baseEnvironmentWire, environmentWire, source.environmentWire);
+    current();
+    return Object.freeze({realizationKey: 'installed-multi-acquired', environmentWire,
+      sources: Object.freeze(sources),
+      connectorBindings: Object.freeze(sources.flatMap(source => source.connectorBindings)),
+      queryAliases: Object.freeze(sources.flatMap(source => source.queryAliases)),
+      admitsSource: ref => sources.some(source => source.admitsSource(ref)),
+      prepareManagedRun, close});
+  } catch (error) {
+    throw await retainInstalledHostInitializationFailure(error,
+      {sourceProfile: {close}});
+  }
 }

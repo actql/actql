@@ -62,6 +62,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
     }
     entry.preparationRetired = true;
     entry.mockPreparation = undefined;
+    entry.hostJournalPreparation = undefined;
     entry.originalHost = entry.originalInstallation = entry.generation = undefined;
   };
   function originalSourceRequest(host, installation, generation, request) {
@@ -91,6 +92,21 @@ export function createEmbeddedHostRegistry(sameInstallation) {
   assertPreparation(host, installation, generation) {
     const entry = preparationFor(host, installation, generation);
     if (entry.closing || entry.failure !== undefined) preparationChanged();
+  },
+  // The actual Host retains this one original before its first root/Journal
+  // operation. This association is not a native facility, issuer or grant.
+  retainHostJournalPreparation(host, installation, generation, view) {
+    const entry = preparationFor(host, installation, generation);
+    if (entry.closing || entry.failure !== undefined ||
+        entry.hostJournalPreparation !== undefined || view === null ||
+        typeof view !== 'object' || !Object.isFrozen(view)) preparationChanged();
+    entry.hostJournalPreparation = view;
+  },
+  hostJournalPreparation(host, installation, generation) {
+    const entry = preparationFor(host, installation, generation);
+    if (entry.closing || entry.failure !== undefined ||
+        entry.hostJournalPreparation === undefined) preparationChanged();
+    return entry.hostJournalPreparation;
   },
   // Retain only this original Host's prepared mock view. This existing
   // registry association is not the Source supplier or a DATA admission.
