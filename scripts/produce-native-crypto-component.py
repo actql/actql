@@ -55,6 +55,24 @@ def produce(output: Path, openssl: Path, clang: Path, sdk: Path) -> dict[str, ob
         if observed != expected:
             raise ValueError('Stale Crypto source identity: ' + name)
         inputs[str(path)] = observed
+    selected = recipe['candidate_static_input']
+    for path, checksum in ((openssl / '.brew/openssl@3.rb', selected['formula_sha256']),
+                           (openssl / 'INSTALL_RECEIPT.json', selected['receipt_sha256'])):
+        inputs[str(path)] = original(path)
+        if inputs[str(path)]['sha256'] != checksum:
+            raise ValueError('Selected OpenSSL archive origin mismatch')
+    headers = []
+    for path in sorted((openssl / 'include').rglob('*')):
+        if path.is_symlink():
+            raise ValueError('Unqualified OpenSSL header alias')
+        if path.is_file():
+            identity = original(path)
+            inputs[str(path)] = identity
+            headers.append({'path': str(path.relative_to(openssl / 'include')), **identity})
+    header_digest = hashlib.sha256(json.dumps(
+        headers, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    if len(headers) != selected['header_count'] or header_digest != selected['header_census_sha256']:
+        raise ValueError('Selected OpenSSL header membership mismatch')
     archive = openssl / 'lib/libcrypto.a'
     inputs[str(archive)] = original(archive)
     if inputs[str(archive)] != {key: recipe['candidate_static_input'][key]

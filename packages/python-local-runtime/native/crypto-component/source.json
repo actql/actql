@@ -14,7 +14,9 @@
     "bytes": 8571216,
     "sha256": "074d179c9a8361e8f9143eb89a07954f4a251061dfb98a06c53f84153ed8d1b7",
     "formula_sha256": "fe27b320fa5695b8b664e65696311b68b919f4ccceae2fc060a75d6206295239",
-    "receipt_sha256": "dac218841652230293ce6a3bd830c501c9484de3d14b659202f5e28fa9481205"
+    "receipt_sha256": "dac218841652230293ce6a3bd830c501c9484de3d14b659202f5e28fa9481205",
+    "header_count": 142,
+    "header_census_sha256": "62a552d118f779a2a4f3d278a173ec8edf4c5e2594ddeb556317cedaab69df39"
   },
   "local": {
     "component.c": {
