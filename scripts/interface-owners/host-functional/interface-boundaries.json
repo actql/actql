@@ -28478,7 +28478,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "preload refuses unsupported raw input before its Host consumer"
+                "anchor": "preload bounds original Mock input before its explicit Host fixture"
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
@@ -30164,7 +30164,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "preload refuses unsupported raw input before its Host consumer"
+                "anchor": "preload bounds original Mock input before its explicit Host fixture"
               }
             ]
           }
