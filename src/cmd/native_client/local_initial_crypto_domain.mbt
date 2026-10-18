@@ -494,6 +494,25 @@ fn local_initial_crypto_profile(
 }
 
 ///|
+// Report the retained typed primary only. No original key, policy, path or
+// physical carrier is reconstructed from a diagnostic value.
+fn initial_crypto_issue_message(issue : InitialCryptoIssue) -> String {
+  match issue {
+    InvalidProfile => "InvalidProfile"
+    BackingUnavailable(code) => "Backing(" + code.to_string() + ")"
+    Host(issue) => "Host(" + @debug.to_string(issue) + ")"
+    Domain(issue) => "Domain(" + @debug.to_string(issue) + ")"
+    Component(@initial_arena.Domain(issue)) =>
+      "ComponentDomain(" + @debug.to_string(issue) + ")"
+    Component(@initial_arena.Signature(issue)) =>
+      "ComponentSignature(" + @debug.to_string(issue) + ")"
+    Signature(issue) => "Signature(" + @debug.to_string(issue) + ")"
+    Filesystem(_) => "Filesystem"
+    Unavailable => "Unavailable"
+  }
+}
+
+///|
 fn local_begin_initial_crypto(
   runtime : LocalPackagedRuntime,
 ) -> InitialCryptoOriginal raise ClientStop {
@@ -506,8 +525,11 @@ fn local_begin_initial_crypto(
     local_initial_crypto_profile(runtime),
   ).unwrap_or_else(() => stop("InitialCryptoProfileUnavailable"))
   initial_crypto_invocation.val = Some(original)
-  if original.primary is Some(_) {
-    stop("InitialCryptoAcquisitionUnavailable")
+  if original.primary is Some(issue) {
+    stop(
+      "InitialCryptoAcquisitionUnavailable: " +
+      initial_crypto_issue_message(issue),
+    )
   }
   original.enter().unwrap_or_else(() => stop("InitialCryptoScopeUnavailable"))
   original
