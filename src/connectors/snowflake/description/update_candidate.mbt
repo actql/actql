@@ -77,7 +77,7 @@ fn update_values(
   values : Array[(String, @admitted.CheckedValue)],
   budget : UpdateBudget,
 ) -> Array[(DescriptionColumn, @admitted.CheckedValue)] raise UpdateStop {
-  let checked = []
+  let checked : Array[(DescriptionColumn, @admitted.CheckedValue)] = []
   for (name, value) in values {
     let field = update_field(description, name, budget)
     for (prior, _) in checked {
@@ -228,7 +228,16 @@ pub fn prepare_update_candidate(
     let key_value = update_values(description, [(key_name, key)], budget)[0]
     let before = update_values(description, before_image, budget)
     let changes = update_values(description, assignments, budget)
-    let prior = before.find(pair => pair.0.name == key_name).unwrap().1
+    let mut prior = None
+    for (field, value) in before {
+      if physical_equal(field, key_value.0) {
+        prior = Some(value)
+        break
+      }
+    }
+    guard prior is Some(prior) else {
+      raise UpdateStop(IncompleteBeforeImage)
+    }
     let same_key = if key_value.1.value is @admitted.Null && prior.value is @admitted.Null {
       true
     } else {
