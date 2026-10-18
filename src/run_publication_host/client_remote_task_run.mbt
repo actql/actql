@@ -105,10 +105,13 @@ fn project_bound_client_remote_task_run(
   // Missing claimed/dispatched custody remains pending. A checked slot that
   // the persisted fence proves never started has no task cleanup obligation;
   // producer/Transfer cleanup remains required through its observed Owner.
+  // Only the effect-free branch can complete cancellation from these task
+  // facts. Effect/producer/Transfer stop and cleanup are separate originals;
+  // task settlement cannot establish that whole-Run cancellation proof.
   // This immutable effect-free unpublished snapshot supplies facts to the
   // same eligibility owner used by live and restored Run execution. The Host
   // must recheck its publication fence/revision before committing anything.
-  let cancellation_complete = confirm_client_run_cancellation({
+  let cancellation_complete = !effect_computation && confirm_client_run_cancellation({
       cancellation_requested,
       model_fence_required: false,
       model_fenced: false,
@@ -145,12 +148,8 @@ fn project_bound_client_remote_task_run(
     Ok(value) => value
     Err(_) => return Err(MissingRunId)
   }
-  let state_wire = match
-    (if effect_computation {
-      @publication.issue_pre_checkpoint_unpublished_run_state_wire
-    } else {
-      @publication.issue_effect_free_unpublished_run_state_wire
-    })(
+  let issued = if effect_computation {
+    @publication.issue_pre_checkpoint_unpublished_run_state_wire(
       run_id,
       observed_at,
       progress.result_names,
@@ -162,7 +161,23 @@ fn project_bound_client_remote_task_run(
       64,
       observed_terminal_outcome=terminal,
       execution_unknown=unknown && terminal is None,
-    ) {
+    )
+  } else {
+    @publication.issue_effect_free_unpublished_run_state_wire(
+      run_id,
+      observed_at,
+      progress.result_names,
+      progress.requests.any(request => request is Some(_)) ||
+      claimed_task_keys.length() > 0,
+      false,
+      100000,
+      10000,
+      64,
+      observed_terminal_outcome=terminal,
+      execution_unknown=unknown && terminal is None,
+    )
+  }
+  let state_wire = match issued {
     Ok(value) => value
     Err(issue) => return Err(State(issue))
   }

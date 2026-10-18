@@ -501,7 +501,6 @@ pub fn issue_effect_free_unpublished_run_state_wire(
 /// typed Host caller binds the original Effect Run and computation facts;
 /// this writer issues no Effect outcome, approval, publication or cleanup ACK.
 pub fn issue_pre_checkpoint_unpublished_run_state_wire(
-
   run_id : String,
   updated_at : String,
   declared_results : Array[String],
@@ -523,7 +522,6 @@ pub fn issue_pre_checkpoint_unpublished_run_state_wire(
 
 ///|
 fn issue_unpublished_computation_run_state_wire(
-
   run_id : String,
   updated_at : String,
   declared_results : Array[String],
