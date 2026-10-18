@@ -3556,6 +3556,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       authorizeConnection: hostConnection,
       workspaceForPrincipal: () => workspaceId,
       negotiate, maxRowBytes: 1024 * 1024, observe: diagnostic,
+      bindOwnedRequest: (parent,derived) => preparation.bindSourceRequest(parent,derived),
       async performInstalledRequest(operation,request,signal) {
         const opened = await activate();
         if (opened !== host) throw clientOperationError('InstalledHostPreparationChanged');

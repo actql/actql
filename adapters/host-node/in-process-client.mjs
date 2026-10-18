@@ -6,7 +6,7 @@ import {projectClientCheckUnavailable} from './client-check.mjs';
 import {observeClientAuthorizationFailure} from
   './client-authentication-observation.mjs';
 import {clientWorkspaceMatches, validCheckpointPage, validCheckpointReview, validClientAdmission,
-  prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,
+  prepareClientHostRequest, snapshotClientRequest, validClientBody, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,
   validRequestCancellation, validRequestLookup, validResolveResults,
   validResourceInspection, validResourceListing, validResourcePeek,
   validRunState, validResultDescription, validCheckOutcome, validOwnerObservations,
@@ -29,6 +29,13 @@ const fail = code => {
   const error = publicError(code, publicClientErrorStatus({code}));
   localErrors.add(error);
   throw error;
+};
+const freezeDeferredSnapshot = value => {
+  if (value !== null && typeof value === 'object') {
+    for (const child of Object.values(value)) freezeDeferredSnapshot(child);
+    Object.freeze(value);
+  }
+  return value;
 };
 const publicFailure = error => localErrors.has(error) ? error
   : publicError(publicClientErrorCode(error), publicClientErrorStatus(error));
@@ -76,10 +83,6 @@ export function createNodeInProcessClientHost({
   }
   return Object.freeze({async perform(operation, body, signal) {
     try {
-      // Only a selected same-Host deferred installation retains this extra
-      // original packet across its constructor wait. Ordinary ingress keeps
-      // its existing body/await path and acquires no continuation callback.
-      const installedBody = performInstalledRequest === undefined ? undefined : body;
       const tracksSource = bindOwnedRequest !== undefined &&
         ['submit', 'submit-intent', 'submit-named-intent', 'restart-intent'].includes(operation);
       const own = (parent, derived) => {
@@ -92,7 +95,19 @@ export function createNodeInProcessClientHost({
       const prepared = prepareClientHostRequest(operation,
         operation === 'read' ? {...body, format: 'jsonl'} : body);
       if (prepared === undefined) fail('InvalidClientRequest');
-      body = own(body, prepared.body);
+      let admittedBody = prepared.body;
+      if (performInstalledRequest !== undefined && operation !== 'connect') {
+        // Some ordinary read/control packets need only a shallow wire copy.
+        // The deferred constructor adds a wait, so retain an admitted deep
+        // snapshot first, using the same wire Owner rather than a new codec.
+        // This additional copy/overlap belongs to the selected facility.
+        let snapshot;
+        try { snapshot = snapshotClientRequest(admittedBody); }
+        catch { fail('InvalidClientRequest'); }
+        if (!validClientBody(operation,snapshot)) fail('InvalidClientRequest');
+        admittedBody = freezeDeferredSnapshot(snapshot);
+      }
+      body = own(body, admittedBody);
       const {connection} = prepared;
       let principalId;
       try { principalId = await authenticate(); }
@@ -131,9 +146,10 @@ export function createNodeInProcessClientHost({
       }
       if (performInstalledRequest !== undefined && operation !== 'connect') {
         // Validation and current connection authorization precede optional
-        // service construction. Continue with the SAME original packet, not
-        // a replacement prepared Program, reference or permission.
-        return await performInstalledRequest(operation,installedBody,signal);
+        // service construction. Keep this admitted immutable snapshot and its
+        // original Source lineage across the wait; never reread a mutable
+        // caller packet or replace the prepared Program/permission.
+        return await performInstalledRequest(operation,body,signal);
       }
       const invoke = async (handler, preparedProgram) => {
         if (typeof handler !== 'function') fail('ClientOperationUnavailable');

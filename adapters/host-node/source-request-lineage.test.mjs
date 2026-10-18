@@ -14,7 +14,7 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local'
 
 // Actual SDK, registry, ingress and submission transformations; explicit
 // Common/Journal/Source ports stop before admission, dispatch or physical I/O.
-async function fixture(t, inspect) {
+async function fixture(t, inspect, deferredIngress = false) {
   const registry = createEmbeddedHostRegistry((left, right) => left === right);
   const host = {}, installation = {}, receipt = {}, prepared = {};
   let packet, preparations = 0, finishes = 0, writes = 0;
@@ -46,9 +46,17 @@ async function fixture(t, inspect) {
     submit() {assert.fail('NoDispatch');}, lookupRequest() {return {kind: 'not_found'};},
     bindOwnedRequest,
   });
-  const ingress = createNodeInProcessClientHost({authenticate: () => 'original-actor',
+  const actualIngress = createNodeInProcessClientHost({authenticate: () => 'original-actor',
     authorizeConnection: () => true, negotiate: () => profile,
     submitIntent: service.submitAttempt, maxRowBytes: 65536, bindOwnedRequest});
+  const ingress = deferredIngress ? createNodeInProcessClientHost({
+    authenticate: () => 'original-actor',authorizeConnection: () => true,
+    negotiate: () => profile,maxRowBytes:65536,bindOwnedRequest,
+    async performInstalledRequest(operation,body,signal) {
+      await Promise.resolve();
+      return actualIngress.perform(operation,body,signal);
+    },
+  }) : actualIngress;
   const receiver = {beforeSourceSnapshot: () => receipt, bindSourceSnapshot() {},
     bindSourceRequest(value, _body, request) {assert.equal(value, receipt); packet = request;},
     intentCid: () => cid('d'), finishSourceProducer(value) {
@@ -72,6 +80,15 @@ test('the original SDK packet survives Host copies and the awaited actual prepar
   // The live ingress flight, not a matching body/CID, owns these aliases.
   assert.throws(() => f.original(f.prepared), {code: 'InstalledHostPreparationChanged'});
   assert.throws(() => f.original(f.packet()), {code: 'InstalledHostPreparationChanged'});
+});
+
+test('deferred same-Host ingress retains the actual SDK Source receipt through both admitted snapshots', async t => {
+  const f = await fixture(t, undefined, true);
+  await assert.rejects(f.client.startSource('SELECT 1 AS n', {
+    format:'sql',submissionRef:originalSubmission('deferred-same-original-lineage')}));
+  assert.deepEqual(f.counts(),{preparations:1,finishes:1,writes:1});
+  assert.throws(()=>f.original(f.prepared),{code:'InstalledHostPreparationChanged'});
+  assert.throws(()=>f.original(f.packet()),{code:'InstalledHostPreparationChanged'});
 });
 
 test('copied, foreign and over-limit aliases cannot manufacture another original or dispatch', async t => {

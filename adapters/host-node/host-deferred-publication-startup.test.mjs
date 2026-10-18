@@ -31,7 +31,8 @@ const make=compileFunction(`
   const host={},principalId='original',mode='local',namespaceId='original';
   const authorityScopeCid=input.scope,workspaceId=undefined,moon=input.moon,journal=input.journal;
   const sourceProfile=input.source,installedEffect=undefined,diagnostic=undefined,observation=undefined;
-  const preparation={initialControl:input.initialControl};
+  const preparation={initialControl:input.initialControl,
+    bindSourceRequest(){throw Error('No business Source in this fixture');}};
   const originalSourcePreparation=Object.freeze(Object.fromEntries(
     ['beforeSourceSnapshot','bindSourceSnapshot','bindSourceRequest','finishSourceProducer','intentCid']
       .map(name=>[name,()=>{throw Error('No business Source in this fixture');}])));
