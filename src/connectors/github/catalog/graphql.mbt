@@ -11,7 +11,7 @@ pub let repository_query : String = "query ActqlRepository($owner: String!, $nam
 ///|
 /// The fixed Issue page read. The repository is resolved by its published
 /// node ID on every page.
-pub let issues_query : String = "query ActqlIssues($id: ID!, $first: Int!, $after: String, $states: [IssueState!], $labels: [String!], $since: DateTime) { node(id: $id) { __typename ... on Repository { id databaseId nameWithOwner issues(first: $first, after: $after, states: $states, labels: $labels, filterBy: {since: $since}) { pageInfo { hasNextPage endCursor } nodes { number id title state body author { login } comments { totalCount } createdAt updatedAt closedAt } } } } }"
+pub let issues_query : String = "query ActqlIssues($id: ID!, $first: Int!, $after: String, $states: [IssueState!], $labels: [String!], $since: DateTime) { node(id: $id) { __typename ... on Repository { id databaseId nameWithOwner issues(first: $first, after: $after, states: $states, labels: $labels, filterBy: {since: $since}) { pageInfo { hasNextPage endCursor } nodes { number id title state body author { login } comments { totalCount } milestone { title } createdAt updatedAt closedAt } } } } }"
 
 ///|
 fn optional_json(value : String?) -> Json {
@@ -341,6 +341,10 @@ fn graphql_issue_row(
       }
     Missing => return Err(MissingRequiredField("author"))
   }
+  let milestone = match milestone_title(object) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let comments = match @decode.field(object, "comments") {
     Present(value) =>
       match @decode.open_object(value) {
@@ -380,6 +384,7 @@ fn graphql_issue_row(
     body,
     author,
     comments,
+    milestone,
     created_at,
     updated_at,
     closed_at,
