@@ -11641,7 +11641,7 @@
     {
       "module": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "73cfc7d5e09dd814cc6b746e28d7f3d49ee9ca82d2bcc2fe69f823b845aa643e",
+      "sha256": "bb80ca7389723b9e959207673187a6e02bc40ed1d143fd00b9b2826f8f8fc20e",
       "role": "physical-io",
       "owner": "Named describe exchange and historical evidence reprojection; MoonBit keeps incomplete Catalog semantics and original scope",
       "exports": [
