@@ -62,7 +62,7 @@ class _OriginalControlCustody:
 
     __slots__ = ('_functions', '_incoming', '_original', '_retained', '_reply',
                  '_unknown', '_unknown_carrier', '_busy', '_thread', '_process', '_closed',
-                 '_acquire_started', '_borrowed_fd')
+                 '_acquire_started', '_borrowed_fd', '_host_resources_original')
     _functions: _OriginalControlFunctions
     _incoming: c_void_p
     _original: c_void_p
@@ -76,6 +76,7 @@ class _OriginalControlCustody:
     _closed: bool
     _acquire_started: bool
     _borrowed_fd: _OriginalDescriptor | None
+    _host_resources_original: object | None
 
     @classmethod
     def _empty_original(cls, functions: _OriginalControlFunctions) -> _OriginalControlCustody:
@@ -85,6 +86,7 @@ class _OriginalControlCustody:
         host._unknown = None
         host._busy, host._closed = False, False
         host._acquire_started, host._borrowed_fd = False, None
+        host._host_resources_original = None
         host._thread, host._process = current_thread(), getpid()
         # Reporting a lost native reply must not allocate its cleanup carrier
         # after the original has moved. Failure here leaves the input untouched.
