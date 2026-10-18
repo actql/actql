@@ -188,7 +188,7 @@
     },
     {
       "module": "src/connectors/bigquery/catalog/job.mbt",
-      "sha256": "7dbbdd386743d23ea131a78492c6f958944d9c18b48a9ef9385e1664b4c19180",
+      "sha256": "6668cefdd512b307ca3051eae115cf07987b2babd9699e1e697972630e01aeb3",
       "exports": [],
       "operations": [
         {

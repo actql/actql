@@ -3,12 +3,12 @@
   "declarations": [
     {
       "module": "src/connectors/bigquery/read/job.mbt",
-      "sha256": "17533192e6cdb992c30c2b89ba87344eb9d1b9e214b6dcb96bacdfee32d5d0af",
+      "sha256": "d6bf10aa5b5452d147c698059f6c1f2306bc301f496ceb9cf05502a37cddb029",
       "exports": [],
       "operations": [
         {
           "name": "[T]fail_job",
-          "declaration": "[ T ] fail_job ( value : JobRead , issue : JobIssue , ) - > Result [ T , JobIssue ]"
+          "declaration": "[ T ] fail_job ( value : JobRead , issue : JobIssue ) - > Result [ T , JobIssue ]"
         },
         {
           "name": "accept_charged_job_response",
@@ -40,7 +40,7 @@
         },
         {
           "name": "job_original_request",
-          "declaration": "job_original_request ( value : JobRead , request : JobRequest , ) - > Bool"
+          "declaration": "job_original_request ( value : JobRead , request : JobRequest ) - > Bool"
         },
         {
           "name": "job_read_complete",
@@ -501,7 +501,7 @@
     },
     {
       "module": "src/connectors/bigquery/read/read.mbt",
-      "sha256": "103c29bf576c180f5595990c3bc6b56cffc947a7e4d649827fa77b5dbff34a78",
+      "sha256": "6ebb06d3da37350fa61c5e2b64076d6dc8bf26854bbd51aceee4d026dc857d69",
       "exports": [],
       "operations": [
         {
