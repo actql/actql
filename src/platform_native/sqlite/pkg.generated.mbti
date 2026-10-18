@@ -53,11 +53,14 @@ pub fn Library::close_checked(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Library::diagnostic_ceiling(Self) -> Int?
 pub fn Library::initialize_owned_database(Self, String, @filesystem.NativeFileOwnership, Int64) -> Result[Database, NativeSqliteIssue]
 pub fn Library::initialize_owned_database_with_custody(Self, String, @filesystem.NativeFileOwnership, Int64) -> Result[Database, NativeSqliteOpenFailure]
+pub fn Library::initialize_owned_journal_database_with_custody(Self, String, @filesystem.NativeFileOwnership, Int64) -> Result[Database, NativeSqliteOpenFailure]
 pub fn Library::open_database(Self, String, Int64) -> Result[Database, NativeSqliteIssue]
 pub fn Library::open_database_with_custody(Self, String, Int64) -> Result[Database, NativeSqliteOpenFailure]
 pub fn Library::open_existing_database(Self, String, Int64) -> Result[Database, NativeSqliteIssue]
 pub fn Library::open_existing_database_with_custody(Self, String, Int64) -> Result[Database, NativeSqliteOpenFailure]
+pub fn Library::open_existing_journal_database_with_custody(Self, String, Int64) -> Result[Database, NativeSqliteOpenFailure]
 pub fn Library::open_inspection_database(Self, String, Int64) -> Database
+pub fn Library::open_journal_inspection_database(Self, String, Int64) -> Database
 pub fn Library::version(Self) -> String
 
 pub(all) struct NativeCapacityUsage {
