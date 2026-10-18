@@ -7479,6 +7479,22 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "## Saved installation-publication physical custody"
+              },
+              {
+                "path": "adapters/store-local/object-read-extent.test.mjs",
+                "anchor": "short reads fill the same dedicated piece with no read-ahead or alias reuse"
+              },
+              {
+                "path": "docs/design/execution-completion-storage.md",
+                "anchor": "one dedicated backing"
+              },
+              {
+                "path": "adapters/store-local/streaming-object-read-bound.test.mjs",
+                "anchor": "actual multi-piece short reads reuse one verifier backing"
+              },
+              {
+                "path": "docs/design/execution-completion-storage.md",
+                "anchor": "mandatory object verifier"
               }
             ]
           }
