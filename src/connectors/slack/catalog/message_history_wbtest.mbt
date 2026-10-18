@@ -240,3 +240,25 @@ test "Slack retention limits bounds and close cannot declare complete history" {
     is Err(ForeignHistoryRequest),
   )
 }
+
+///|
+test "Slack retained thread hints cannot turn a missing reply count into zero" {
+  for
+    fragment in [
+      "\"reply_users\":[]", "\"reply_users_count\":0", "\"latest_reply\":\"1.000000\"",
+      "\"replies\":[]", "\"parent_user_id\":\"U1\"", "\"root\":{}", "\"assistant_thread\":{}",
+      "\"is_thread_broadcast\":true",
+    ] {
+    let history = message_history()
+    let request = begin_slack_message_history(history).unwrap()
+    let page = history_admit(
+      history,
+      request,
+      "[{\"type\":\"message\",\"ts\":\"1.000000\",\"text\":\"retained thread metadata\"," +
+      fragment +
+      "}]",
+      ",\"has_more\":false",
+    ).unwrap()
+    assert_true(page.rows[0][6].value is @admitted.Null, msg=fragment)
+  }
+}
