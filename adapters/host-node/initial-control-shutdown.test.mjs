@@ -147,6 +147,39 @@ for (const initialization of [false, true]) {
   });
 }
 
+test('throwing initialization cleanup getters retain the already acquired control holding', async () => {
+  let readable = false, pending = true, retries = 0, closes = 0;
+  const child = {status: () => ({pending, errors: []}), retry() {retries++;}};
+  const original = Object.freeze({get cleanupHandle() {
+    if (!readable) throw new Error('OriginalCleanupGetterPending');
+    return child;
+  }, get primaryFailure() {throw new Error('OriginalDiagnosticGetter');}});
+  const control = {close() {closes++; return {pending: false};}};
+  const failure = await retainInstalledHostInitializationFailure(original, {initialControl: control});
+  assert.equal(failure.primaryFailure, original);
+  assert.equal(failure.cleanupHandle.status().pending, true);
+  assert.equal(closes, 0);
+  readable = true; await failure.cleanupHandle.retry();
+  assert.equal(failure.cleanupHandle.status().pending, true);
+  assert.equal(retries, 1); assert.equal(closes, 0);
+  pending = false; await failure.cleanupHandle.retry();
+  assert.equal(failure.cleanupHandle.status().pending, false);
+  assert.equal(retries, 2); assert.equal(closes, 1);
+});
+
+test('a successfully absent original cleanup cannot be replaced to acknowledge its pending duty', async () => {
+  let closes = 0;
+  const original = {cleanupHandle: undefined, cleanupPending: true};
+  const control = {close() {closes++; return {pending: false};}};
+  const failure = await retainInstalledHostInitializationFailure(original, {initialControl: control});
+  original.cleanupHandle = {status: () => ({pending: false}), retry() {
+    assert.fail('Do not use a replacement cleanup owner');
+  }};
+  await failure.cleanupHandle.retry();
+  assert.equal(failure.cleanupHandle.status().pending, true);
+  assert.equal(closes, 0);
+});
+
 test('initialization preserves child-first control custody through the same retry', async () => {
   let pending = true, childRetries = 0, controlCloses = 0, storeCloses = 0;
   const child = {status: () => ({pending}), retry() {childRetries++;}};

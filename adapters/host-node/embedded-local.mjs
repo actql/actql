@@ -42,6 +42,8 @@ import {installedModelEnvironment, readInstalledModelExecution,
 import {loadInstalledProjectConfiguration, installedProjectOriginalsForRuntime,
   retireInstalledProjectConfiguration}
   from './installed-project-configuration.mjs';
+import {beginInitialControlInstallation, assertInitialControlInstallationCurrent}
+  from './node-initial-control-installation.mjs';
 import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
 import {installNodeInferRun} from './installed-infer-run.mjs';
@@ -252,7 +254,7 @@ function validateSourceNamespace(value) {
   }
 }
 
-async function openInstalledHost(originalInstallation) {
+async function openInstalledHost(originalInstallation, preparation) {
   let {root, mode = 'local', beforeDispatch, workspaceId,
   authorization, connectorTable, sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace, resolveSourceSecret,
   effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
@@ -263,7 +265,7 @@ async function openInstalledHost(originalInstallation) {
   // This is the actual returned Host generation, not a CID/configuration
   // stand-in or another resource Owner. The installer covers native/process
   // domains as trusted implementation responsibility, NOT zero bytes or RSS.
-  const host = {};
+  const host = preparation?.host ?? {};
   let modelRuntimeClosing = false;
   let modelRuntimeView;
   let modelRuntimeStartupView;
@@ -313,15 +315,7 @@ async function openInstalledHost(originalInstallation) {
     checkInferTrustedSdkEagerModules(modelRuntimeView, runtimeOriginals(),
       modelSdkStaticOriginals);
   }
-  function retireModelRuntime() {
-    if (modelRuntimeView !== undefined) {
-      if (modelRuntimeStartupView !== undefined) {
-        forgetInferTrustedStartupView(modelRuntimeStartupView, host, host);
-        modelRuntimeStartupView = undefined;
-      }
-      forgetInferTrustedRuntimeView(modelRuntimeView, host, host);
-      modelRuntimeView = undefined;
-    }
+  function retireModelPreparationReferences() {
     modelSdkStaticOriginals = undefined;
     // Drop the installer's borrowed configuration/callback and table links
     // only at the same final cleanup boundary. This is NOT process/native ACK.
@@ -337,6 +331,18 @@ async function openInstalledHost(originalInstallation) {
     projectRuntime = undefined;
     project = undefined;
   }
+  function retireModelRuntime() {
+    if (modelRuntimeView !== undefined) {
+      if (modelRuntimeStartupView !== undefined) {
+        forgetInferTrustedStartupView(modelRuntimeStartupView, host, host);
+        modelRuntimeStartupView = undefined;
+      }
+      forgetInferTrustedRuntimeView(modelRuntimeView, host, host);
+      modelRuntimeView = undefined;
+    }
+    retireModelPreparationReferences();
+  }
+  preparation?.retainReferenceRetirement(retireModelPreparationReferences);
   try {
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(hostLookupExecutionPolicy);
@@ -3244,6 +3250,7 @@ async function openInstalledHost(originalInstallation) {
   });
   return Object.assign(host, {port, store, journal, hostOperations, checkpoints, diagnostic,
     observation, ownerViews,
+    ...(preparation === undefined ? {} : {initialControl: preparation.initialControl}),
     dispatchOwner, inspectAcquisition, sourceProfile, installedEffect,
     retireTerminalEffects,
     stopModelRuntime() { modelRuntimeClosing = true; }, retireModelRuntime});
@@ -3258,7 +3265,12 @@ async function openInstalledHost(originalInstallation) {
     modelRuntimeClosing = true;
     // Retain the same original failure/child and Host reference finalizer,
     // including readonly exceptions and partial nominal retirement.
-    throw retainInstalledHostRuntimeFailure(cause, retireModelRuntime);
+    // The original initializer (including its pending physical child) closes
+    // first, then the same installation control, then runtime references.
+    const failure = preparation === undefined ? cause :
+      await retainInstalledHostInitializationFailure(cause,
+        {initialControl: preparation.initialControl});
+    throw retainInstalledHostRuntimeFailure(failure, retireModelRuntime);
   }
 }
 
@@ -3385,6 +3397,59 @@ export async function publishInstalledEffect({effectProfilePath, directory,
 }
 
 export async function connectEmbeddedLocal(options) {
+  // The actual Host generation and original installation are allocated here,
+  // not reconstructed from a later view, Project DATA or current config. Their
+  // minimal candidate record belongs to the selected prior startup envelope.
+  const host = {}, originalInstallation = {};
+  let originals = Object.freeze({host, installation: originalInstallation,
+    generation: host, supplier: connectEmbeddedLocal, moduleLifetime: import.meta});
+  profiles.registerPreparation(host, originalInstallation, host);
+  let control, controlClose, duty, observedClose, referenceRetirement;
+  let moon, project, projectProfile, adopted = false, referencesRetired = false;
+  const record = {};
+  function retirePreparationReferences() {
+    if (referencesRetired) return;
+    if (referenceRetirement !== undefined) referenceRetirement();
+    else {
+      projectProfile?.retire(moon);
+      if (project !== undefined) retireInstalledProjectConfiguration(project, moon);
+    }
+    projectProfile = project = moon = referenceRetirement = undefined;
+    for (const key of Object.keys(record)) record[key] = undefined;
+    duty?.releaseReferences(record);
+    referencesRetired = true;
+  }
+  const initialControl = Object.freeze({async close() {
+    if (observedClose !== undefined) return observedClose;
+    retirePreparationReferences();
+    const observed = await Reflect.apply(controlClose, control, []);
+    if (observed?.pending === false) {
+      if (!adopted) profiles.retirePreparation(host, originalInstallation, host);
+      // Retain the actual original observation, not a newly authored ACK.
+      observedClose = observed;
+      control = controlClose = originals = duty = undefined;
+    }
+    return observed;
+  }});
+  const preparation = Object.freeze({host, initialControl,
+    retainReferenceRetirement(original) {
+      if (referenceRetirement !== undefined || typeof original !== 'function') {
+        throw clientOperationError('InstalledHostPreparationChanged');
+      }
+      referenceRetirement = original;
+    }});
+  async function releaseUnadopted() {
+    const failure = await retainInstalledHostInitializationFailure(
+      new Error('InstalledHostPreparationCleanupPending'), {initialControl});
+    if (failure.cleanupHandle.status().pending) throw failure;
+  }
+  try {
+  // Before options snapshot, Common import, Project read, normalization or
+  // Provider installation. Missing actual startup coverage remains unavailable.
+  control = await beginInitialControlInstallation(originals);
+  controlClose = control.close;
+  assertInitialControlInstallationCurrent(control, originals);
+  duty = control.retainPreparation(record);
   // Host-owned values never enter the SDK's transport-options packet. Snapshot
   // both once before awaits; selecting a profile is not silently ignoring it.
   const {installation: suppliedInstallation, profile: requestedProfile,
@@ -3418,11 +3483,14 @@ export async function connectEmbeddedLocal(options) {
   // Discover only on the Local installation side. The same module instance
   // admits and later consumes these originals; Remote clients do no such I/O.
   const projectDirectory = process.cwd();
-  const moon = await import(runtimeUrl.href);
-  const project = await loadInstalledProjectConfiguration(moon, {directory: projectDirectory});
-  let projectProfile, adopted = false;
-  try {
+  moon = await import(runtimeUrl.href);
+  assertInitialControlInstallationCurrent(control, originals);
+  record.runtime = moon;
+  project = await loadInstalledProjectConfiguration(moon, {directory: projectDirectory});
+  assertInitialControlInstallationCurrent(control, originals);
+  record.project = project;
   projectProfile = selectInstalledProjectProfile(moon, project, requestedProfile, 65536);
+  record.projectProfile = projectProfile;
   const selectedProfile = projectProfile.originalsForRuntime(moon);
   if (selectedProfile.selected !== undefined) {
     // The original choice is admitted, but this Host has no installed mock
@@ -3434,36 +3502,43 @@ export async function connectEmbeddedLocal(options) {
   const root = installation?.directory === undefined ? project?.stateDirectory ?? localStateRoot() :
     resolve(installation.directory);
   const identity = await embeddedInstallationIdentity(root, installation, project, moon);
+  assertInitialControlInstallationCurrent(control, originals);
+  Object.assign(originalInstallation, {root, project, projectProfile, projectRuntime: moon,
+    authorization: installation?.authorization,
+    connectorTable: installation?.connectorTable,
+    sourceProfilePath: installation?.sourceProfilePath,
+    sourceProfilePaths: installation?.sourceProfilePaths,
+    sourceSelectorNamespace: installation?.sourceSelectorNamespace,
+    sourceNamespace: installation?.sourceNamespace,
+    resolveSourceSecret: installation?.resolveSourceSecret,
+    effectProfilePath: installation?.effectProfilePath,
+    effectProfilePaths: installation?.effectProfilePaths,
+    resolveEffectSecret: installation?.resolveEffectSecret,
+    modelInstallation: installation?.modelInstallation,
+    calendarArtifact: installation?.calendarArtifact,
+    registerModelProviders: installation?.registerModelProviders,
+    verifyRequestValuePolicy: installation?.verifyRequestValuePolicy,
+    resultDataPolicy: installation?.resultDataPolicy,
+    inferEvidence: installation?.inferEvidence,
+    hostCapacityPolicy: installation?.hostCapacityPolicy,
+    hostLookupExecutionPolicy: installation?.hostLookupExecutionPolicy,
+    retainedRelationOutput: installation?.retainedRelationOutput,
+    observation: installation?.observation,
+    valuesMaxRows: installation?.valuesMaxRows});
+  record.installation = originalInstallation;
   return await profiles.connect(root, identity,
-    () => {adopted = true; return openInstalledHost({root, project, projectProfile,
-        projectRuntime: moon,
-        authorization: installation?.authorization,
-        connectorTable: installation?.connectorTable,
-        sourceProfilePath: installation?.sourceProfilePath,
-        sourceProfilePaths: installation?.sourceProfilePaths,
-        sourceSelectorNamespace: installation?.sourceSelectorNamespace,
-        sourceNamespace: installation?.sourceNamespace,
-        resolveSourceSecret: installation?.resolveSourceSecret,
-        effectProfilePath: installation?.effectProfilePath,
-        effectProfilePaths: installation?.effectProfilePaths,
-        resolveEffectSecret: installation?.resolveEffectSecret,
-        modelInstallation: installation?.modelInstallation,
-        calendarArtifact: installation?.calendarArtifact,
-        registerModelProviders: installation?.registerModelProviders,
-        verifyRequestValuePolicy: installation?.verifyRequestValuePolicy,
-        resultDataPolicy: installation?.resultDataPolicy,
-        inferEvidence: installation?.inferEvidence,
-        hostCapacityPolicy: installation?.hostCapacityPolicy,
-        hostLookupExecutionPolicy: installation?.hostLookupExecutionPolicy,
-        retainedRelationOutput: installation?.retainedRelationOutput,
-        observation: installation?.observation,
-        valuesMaxRows: installation?.valuesMaxRows});}, clientOptions);
-  } finally {
-    // A reused Host already retains its own original selection. A partial new
-    // Host, however, keeps this same view until its existing shutdown finishes.
-    if (!adopted) {
-      projectProfile?.retire(moon);
-      if (project !== undefined) retireInstalledProjectConfiguration(project, moon);
+    () => {
+      assertInitialControlInstallationCurrent(control, originals);
+      adopted = true;
+      return openInstalledHost(originalInstallation, preparation);
+    }, clientOptions, host, releaseUnadopted);
+  } catch (cause) {
+    if (adopted) throw cause; // The original opened/failed Host owns cleanup.
+    if (observedClose !== undefined) throw cause;
+    if (control === undefined) {
+      throw retainInstalledHostRuntimeFailure(cause,
+        () => profiles.retirePreparation(host, originalInstallation, host));
     }
+    throw await retainInstalledHostInitializationFailure(cause, {initialControl});
   }
 }

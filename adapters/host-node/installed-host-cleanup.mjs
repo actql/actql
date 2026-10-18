@@ -35,19 +35,30 @@ export async function retainInstalledHostInitializationFailure(cause,
     originalInitialControlClose(initialControl);
   // Retain the original receiver and methods before the first cleanup await.
   // A changed error property cannot acknowledge a different physical owner.
-  const originalCleanup = cause?.cleanupHandle;
+  let originalCleanup, originalPending;
+  let cleanupCaptured = false, pendingCaptured = false;
   let originalRetry, originalStatus;
   let retryCaptured = false, statusCaptured = false;
+  function captureOriginalCleanup() {
+    if (!cleanupCaptured) {
+      originalCleanup = cause?.cleanupHandle;
+      cleanupCaptured = true;
+    }
+    if (originalCleanup === undefined && !pendingCaptured) {
+      originalPending = cause?.cleanupPending === true;
+      pendingCaptured = true;
+    }
+  }
   function captureOriginalStatus() {
+    captureOriginalCleanup();
     if (!statusCaptured) {
       originalStatus = originalCleanup?.status;
       statusCaptured = true;
     }
   }
-  const pending = new Set();
-  if (originalCleanup !== undefined || cause?.cleanupPending === true) {
-    pending.add('initialization');
-  }
+  // Establish custody before reading failure getters. A failed observation
+  // cannot discard another already acquired holding during Owner setup.
+  const pending = new Set(['initialization']);
   if (checkpoints !== undefined) pending.add('checkpoint-stop');
   if (dispatchOwner !== undefined) pending.add('dispatch');
   if (sourceProfile !== undefined) pending.add('source-profile');
@@ -59,10 +70,13 @@ export async function retainInstalledHostInitializationFailure(cause,
   if (ownerViews !== undefined) pending.add('owner-views');
   if (initialControl !== undefined) pending.add('initial-control');
   const errors = [];
+  let primaryFailure = cause;
+  try { primaryFailure = cause?.primaryFailure ?? cause; }
+  catch { /* Diagnostic access never replaces the original thrown value. */ }
   const failure = Object.assign(new Error('InstalledHostInitializationFailed',
     {cause}), {code: 'InstalledHostInitializationFailed',
-    primaryFailure: cause?.primaryFailure ?? cause});
-  let originalErrors = cause?.cleanupErrors ?? [];
+    primaryFailure});
+  let originalErrors = [];
   let observationFailure;
   function observeOriginalCleanup() {
     try {
@@ -106,6 +120,8 @@ export async function retainInstalledHostInitializationFailure(cause,
     await attempt('initialization', async () => {
       // Property access can itself fail. Keep it inside this original Owner's
       // attempt; only an unobserved method may be captured on a later retry.
+      captureOriginalCleanup();
+      if (originalCleanup === undefined && !originalPending) return;
       if (!retryCaptured) {
         originalRetry = originalCleanup?.retry;
         retryCaptured = true;
