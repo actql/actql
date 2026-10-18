@@ -11,6 +11,7 @@ fn begin_native_local_host_adoption_original(
   configuration_files? : Array[String] = [],
   managed_root_path? : String? = None,
   existing_only? : Bool = false,
+  custody? : NativeLocalAdoptionOpenFailure? = None,
 ) -> Result[NativeLocalAdoptionSession, NativeLocalAdoptionIssue] {
   if !local_adoption_name(state_name) ||
     !local_adoption_name(source_name) ||
@@ -18,9 +19,13 @@ fn begin_native_local_host_adoption_original(
     source_path.length() > 4096 {
     return Err(InvalidInput)
   }
-  let source_root = match @filesystem.open_private_root(source_path) {
+  let source_root = match
+    local_adoption_open_private_root(source_path, custody) {
     Ok(value) => value
-    Err(issue) => return Err(Filesystem(issue))
+    Err(issue) => return Err(issue)
+  }
+  if custody is Some(original) {
+    original.source_root = Some(source_root)
   }
   let source_ownership = match source_root.private_ownership() {
     Ok(value) => value
@@ -47,22 +52,33 @@ fn begin_native_local_host_adoption_original(
   }
   let settings = match
     select_native_local_configuration(
-      source_root, source_name, configuration_files, managed_root_path, crypto,
+      source_root,
+      source_name,
+      configuration_files,
+      managed_root_path,
+      crypto,
+      custody~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let parent = match @filesystem.open_private_root(parent_path) {
+  let parent = match local_adoption_open_private_root(parent_path, custody) {
     Ok(value) => value
-    Err(issue) => return Err(Filesystem(issue))
+    Err(issue) => return Err(issue)
+  }
+  if custody is Some(original) {
+    original.parent = Some(parent)
   }
   let parent_ownership = match parent.private_ownership() {
     Ok(value) => value
     Err(issue) => return Err(Filesystem(issue))
   }
-  let lock = match parent.acquire_lock("local-adoption.lock") {
+  let lock = match local_adoption_acquire_lock(parent, custody) {
     Ok(value) => value
-    Err(issue) => return Err(Filesystem(issue))
+    Err(issue) => return Err(issue)
+  }
+  if custody is Some(original) {
+    original.lock = Some(lock)
   }
   let original = match parent.inspect_directory(state_name) {
     Ok(value) => value
@@ -77,9 +93,12 @@ fn begin_native_local_host_adoption_original(
         Err(issue) => return Err(Filesystem(issue))
       }
   }
-  let root = match parent.open_child(state_name) {
+  let root = match local_adoption_open_child(parent, state_name, custody) {
     Ok(value) => value
-    Err(issue) => return Err(Filesystem(issue))
+    Err(issue) => return Err(issue)
+  }
+  if custody is Some(original) {
+    original.root = Some(root)
   }
   guard root.private_ownership() is Ok(current) &&
     current == created &&
@@ -190,5 +209,6 @@ fn begin_native_local_host_adoption_original(
     close_pending: false,
     read_cleanup: None,
     lock_close_attempted: false,
+    journal_open_failure: None,
   })
 }

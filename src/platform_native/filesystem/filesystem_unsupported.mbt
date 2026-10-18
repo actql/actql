@@ -38,6 +38,17 @@ pub fn open_private_root(
 }
 
 ///|
+pub fn open_private_root_with_custody(
+  _path : String,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Root, NativeRootOpenFailure] {
+  if diagnostic_ceiling is Some(limit) && limit <= 0 {
+    return Err({ original_issue: InvalidLimit, root: None, })
+  }
+  Err({ original_issue: UnsupportedTarget, root: None, })
+}
+
+///|
 pub fn Root::private_ownership(
   _self : Root,
 ) -> Result[NativeFileOwnership, NativeFilesystemIssue] {

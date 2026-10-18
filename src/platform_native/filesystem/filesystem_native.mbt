@@ -49,6 +49,14 @@ extern "C" fn open_private_root_ffi(
 ) -> Root = "actql_native_filesystem_open_private_root_with_diagnostics"
 
 ///|
+#borrow(path)
+extern "C" fn open_private_root_with_custody_ffi(
+  path : Bytes,
+  length : Int,
+  diagnostic_ceiling : Int,
+) -> Root = "actql_native_filesystem_open_private_root_with_custody_diagnostics"
+
+///|
 #borrow(root)
 extern "C" fn private_root_identity_ffi(root : Root) -> Bool = "actql_native_filesystem_private_root_identity"
 
@@ -63,6 +71,10 @@ extern "C" fn root_ready_ffi(root : Root) -> Bool = "actql_native_filesystem_roo
 ///|
 #borrow(root)
 extern "C" fn root_error_ffi(root : Root) -> Bytes = "actql_native_filesystem_root_error"
+
+///|
+#borrow(root)
+extern "C" fn root_acquisition_error_ffi(root : Root) -> Bytes = "actql_native_filesystem_root_acquisition_error"
 
 ///|
 #borrow(root, name)
@@ -346,6 +358,34 @@ pub fn open_private_root(
     Ok(root)
   } else {
     Err(RootOpen(decode_diagnostic_message(root_error_ffi(root))))
+  }
+}
+
+///|
+/// The same private constructor and privacy checks, retaining its rejected
+/// original separately from cleanup. Retirement never admits that failed Root.
+pub fn open_private_root_with_custody(
+  path : String,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Root, NativeRootOpenFailure] {
+  if diagnostic_ceiling is Some(limit) && limit <= 0 {
+    return Err({ original_issue: InvalidLimit, root: None, })
+  }
+  let encoded = @utf8.encode(path)
+  let root = open_private_root_with_custody_ffi(
+    encoded,
+    encoded.length(),
+    diagnostic_ceiling.unwrap_or(0),
+  )
+  if root_ready_ffi(root) {
+    Ok(root)
+  } else {
+    Err({
+      original_issue: RootOpen(
+        decode_diagnostic_message(root_acquisition_error_ffi(root)),
+      ),
+      root: Some(root),
+    })
   }
 }
 
