@@ -2338,7 +2338,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "the actual selected public preload consumes generated inventory without issuing a Scope"
+                "anchor": "preload consumes generated inventory without issuing a Scope"
               }
             ]
           }
@@ -2950,7 +2950,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "the actual selected public preload consumes generated inventory without issuing a Scope"
+                "anchor": "preload consumes generated inventory without issuing a Scope"
               }
             ]
           }

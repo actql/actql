@@ -27267,7 +27267,7 @@
     {
       "module": "adapters/host-node/infer-trusted-node-preload.cjs",
       "responsibilityFacet": "primary",
-      "sha256": "bab31c3fddd39106a25d702076a3cf1704deb28980da8ebda403207cb3cb050d",
+      "sha256": "47aecd5a3fac079bb57989f24e7b9f21aebf709429c30618723bde7580f79c4b",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -27624,6 +27624,10 @@
               {
                 "path": "adapters/host-node/initial-control-package-custody.cjs",
                 "anchor": "// The actual startup resolves its optional SDK from that SAME consumer"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Its generated facts identify its original public entry and dependencies, with"
               }
             ],
             "ownership": [
@@ -27700,6 +27704,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "table before nested loading. A later exports replacement or Node's circular-"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "anchor": "// Compile both actual public ESM namespaces before the Module handoff."
               }
             ],
             "failure": [
@@ -27806,6 +27814,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "overlap, captured reader and receiver, scope alias and partial-failure holdings"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The extra Source Strings, manifests, dependency paths, image/namespace records,"
               }
             ],
             "extension": [
@@ -27893,7 +27905,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "the actual selected public preload consumes generated inventory without issuing a Scope"
+                "anchor": "preload consumes generated inventory without issuing a Scope"
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
@@ -27902,6 +27914,14 @@
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
                 "anchor": "failed namespace initialization keeps the same original cause and never recompiles or retries"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "both actual public namespaces compile from captured Sources before entry and remain the same originals"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "a public Node dependency cannot substitute a distinct Local installation"
               }
             ]
           }
@@ -29456,7 +29476,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "the actual selected public preload consumes generated inventory without issuing a Scope"
+                "anchor": "preload consumes generated inventory without issuing a Scope"
               }
             ]
           }
@@ -29466,7 +29486,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-package-custody.cjs",
-      "sha256": "222c006936fea6b1e96e32c5767e567930f598dfec12b74104d578c4621260d4",
+      "sha256": "7d80e015c2fb64cf54faab497474705a2518ea833f1bd83047fd929eab3b0df2",
       "exports": [
         "commonjs:captureInitialControlPackageCustody"
       ],
@@ -29476,7 +29496,8 @@
           "parameters": [
             "inventory",
             "localRoot",
-            "consumerEntry"
+            "consumerEntry",
+            "publicPreloadEntry"
           ],
           "async": false
         },
@@ -29506,6 +29527,21 @@
         {
           "name": "captureInitialControlPackageCustody/initializeHostNamespace",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "captureInitialControlPackageCustody/markUnselected",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureInitialControlPackageCustody/publicDependency",
+          "parameters": [
+            "binding",
+            "from"
+          ],
           "async": false
         },
         {
@@ -29574,6 +29610,8 @@
             "captureInitialControlPackageCustody/captureDependency",
             "captureInitialControlPackageCustody/captureGroup",
             "captureInitialControlPackageCustody/initializeHostNamespace",
+            "captureInitialControlPackageCustody/markUnselected",
+            "captureInitialControlPackageCustody/publicDependency",
             "captureInitialControlPackageCustody/readAsset",
             "captureInitialControlPackageCustody/resolvePackage",
             "concrete/concrete",
@@ -29594,7 +29632,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/initial-control-package-custody.cjs",
-                "anchor": "function captureInitialControlPackageCustody(inventory, localRoot, consumerEntry)"
+                "anchor": "function captureInitialControlPackageCustody(inventory, localRoot, consumerEntry, publicPreloadEntry)"
               }
             ],
             "identity": [
@@ -29609,6 +29647,10 @@
               {
                 "path": "adapters/host-node/initial-control-package-custody.cjs",
                 "anchor": "// The actual startup resolves its optional SDK from that SAME consumer"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Its generated facts identify its original public entry and dependencies, with"
               }
             ],
             "ownership": [
@@ -29625,6 +29667,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "original Local and resolved dependency package before optional SDK and Host"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "anchor": "// Compile both actual public ESM namespaces before the Module handoff."
               }
             ],
             "failure": [
@@ -29647,6 +29693,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The same-phase envelope includes raw read backing and lookahead, concatenation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The extra Source Strings, manifests, dependency paths, image/namespace records,"
               }
             ],
             "extension": [
@@ -29679,6 +29729,14 @@
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
                 "anchor": "failed namespace initialization keeps the same original cause and never recompiles or retries"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "both actual public namespaces compile from captured Sources before entry and remain the same originals"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "a public Node dependency cannot substitute a distinct Local installation"
               }
             ]
           }
