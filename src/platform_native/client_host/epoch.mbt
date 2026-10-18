@@ -266,7 +266,7 @@ fn open_native_client_epoch_authority_with_reads(
   ttl_ms : Double,
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeClientEpochAuthority, NativeClientEpochIssue] {
-  if database.transaction_fenced() {
+  if client_journal_transaction_fenced(database, reads) {
     return Err(Fenced)
   }
   if !valid_epoch_clock(ttl_ms) || ttl_ms < 1.0 || ttl_ms > 86400000.0 {

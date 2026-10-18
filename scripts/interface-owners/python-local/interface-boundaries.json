@@ -1,5 +1,5 @@
 {
-  "source": "8f59ee10f3cf5a9d8f38c3c5a5f835d6c87b655d",
+  "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
   "syntaxProjectionSha256": "4a31ecaf4ac9e25c4558a6363ef836ef44d22cbc792e2ae1cd9c05bbdc05c888",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
@@ -53,7 +53,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_shim_abi.py",
-      "sha256": "428eacd915e6e803ae42448a57f33869401caafa25ff9039d5e342a6014b716d",
+      "sha256": "833639460633c173fe1ca8316f945b26d4c9b5a2cc8148f68fd097a3a4436b33",
       "generator": {
         "path": "scripts/generate-local-native-shim-bindings.py",
         "anchor": "def render("
@@ -34237,6 +34237,7 @@
         "contextmanager"
       ],
       "imports": [
+        "._local_native_adoption",
         "._local_native_control_custody",
         "._local_native_domain_custody",
         "._local_native_host_resources",
@@ -34251,78 +34252,79 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
+          "async": false,
           "name": "_OriginalParentReadCustody",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "_OriginalParentReadCustody/__copy__",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalParentReadCustody/__deepcopy__",
           "parameters": [
             "self",
             "memo"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalParentReadCustody/__reduce__",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalParentReadCustody/_call",
           "parameters": [
             "self",
             "operation"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalParentReadCustody/_drop",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalParentReadCustody/_fact",
           "parameters": [
             "self",
             "expected"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalParentReadCustody/_finish_data_ack",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalParentReadCustody/_mark_unknown",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalParentReadCustody/_owner_issue",
           "parameters": [
             "self",
             "fact"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalParentReadCustody/_prepare_original",
           "parameters": [
             "cls",
@@ -34333,76 +34335,75 @@
             "workspace_execution",
             "read_retained",
             "read_execution"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalParentReadCustody/_status",
           "parameters": [
             "self",
             "code"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalParentReadCustody/close",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalParentReadCustody/current",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalParentReadCustody/leave_scope",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalParentReadCustody/scope",
           "parameters": [
             "self",
             "cleanup"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalParentReadError",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "_OriginalParentReadError/__init__",
           "parameters": [
             "self",
             "original",
             "unknown",
             "fact"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalParentReadFunctions",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "_OriginalParentReadFunctions/__init__",
           "parameters": [
             "self",
             "library"
-          ],
-          "async": false
+          ]
         }
       ],
-      "sha256": "342f06059b4bc5ba94585eaaa33fc0f0f979d47c390402d1b5dd3012b29d2c61",
+      "sha256": "696a29a618851a18a8a0bb3bfc866e04d9014f27cfe2c035d1e98cb5405a5eda",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -37077,7 +37078,7 @@
           ]
         }
       ],
-      "sha256": "b2fea1eb1a417b68aa065945f8c50a2185ff9de94e8961c9dc4122a9a39ea4fd",
+      "sha256": "833639460633c173fe1ca8316f945b26d4c9b5a2cc8148f68fd097a3a4436b33",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -40024,6 +40025,7 @@
         "c_void_p"
       ],
       "imports": [
+        "._local_native_adoption",
         "._local_native_control_custody",
         "._local_native_domain_custody",
         "._local_native_host_resources",
@@ -40163,7 +40165,7 @@
           ]
         }
       ],
-      "sha256": "7998838b71885a7394235068a60c3941194533541d23776d1ff739f94a747b61",
+      "sha256": "4ad712548ffe5a6de19ece357307867f653fa4f2d7b7e62203df547b14eadb43",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -62964,6 +62966,7 @@
         }
       ],
       "imports": [
+        "._local_native_adoption",
         "._local_native_control_custody",
         "._local_native_domain_custody",
         "._local_native_original_read",
@@ -62977,7 +62980,7 @@
         "dataclasses",
         "typing"
       ],
-      "sha256": "8ecf47f6438266ec2a1c01fd6511e6ed4e2f7d0bdba665033a185d056e16d183",
+      "sha256": "9a8fce46d6bf1d6cdd2545908857fda97c7917119f925d7584ce2c8f51b86df3",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "E / Python original Host transport; existing Native Host, Resource and Library Owners retain admission, current and physical retirement",
@@ -63172,6 +63175,500 @@
               {
                 "path": "src/platform_native/installed_arena_entry/local_host_resources_conformance.c",
                 "anchor": "one original consuming read is claimed"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [
+        "Any",
+        "Callable",
+        "NoReturn",
+        "annotations",
+        "bind",
+        "byref",
+        "c_void_p",
+        "isfinite"
+      ],
+      "imports": [
+        "._local_native_control_custody",
+        "._local_native_host_resources",
+        "._local_native_shim_abi",
+        "__future__",
+        "collections.abc",
+        "ctypes",
+        "math",
+        "typing"
+      ],
+      "module": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+      "operations": [
+        {
+          "async": false,
+          "name": "_OriginalAdoptionCustody",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_OriginalAdoptionCustody/__copy__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalAdoptionCustody/__deepcopy__",
+          "parameters": [
+            "self",
+            "memo"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalAdoptionCustody/__reduce__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalAdoptionCustody/_available",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalAdoptionCustody/_call",
+          "parameters": [
+            "self",
+            "operation"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalAdoptionCustody/_check_originals",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalAdoptionCustody/_drop_originals",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalAdoptionCustody/_drop_reply",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalAdoptionCustody/_mark_unknown",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalAdoptionCustody/_open_original",
+          "parameters": [
+            "cls",
+            "resources",
+            "functions",
+            "prepare"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalAdoptionCustody/_original_slots",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalAdoptionCustody/_parents_current",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalAdoptionCustody/_run",
+          "parameters": [
+            "self",
+            "operation",
+            "journal"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalAdoptionCustody/_status",
+          "parameters": [
+            "self",
+            "code"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalAdoptionCustody/close",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalAdoptionCustody/current",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalAdoptionCustody/open_journal",
+          "parameters": [
+            "self",
+            "ttl_ms",
+            "max_records",
+            "max_snapshot_bytes"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalAdoptionError",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_OriginalAdoptionError/__init__",
+          "parameters": [
+            "self",
+            "original",
+            "unknown",
+            "fact"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalAdoptionFunctions",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_OriginalAdoptionFunctions/__init__",
+          "parameters": [
+            "self",
+            "library"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_require_adoption_retired",
+          "parameters": [
+            "read"
+          ]
+        }
+      ],
+      "sha256": "e7140ce41ae57721fb3c87198e8a0e2229374e5e3984cca40e37a2a9cbf45222",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "E / existing Native adoption, Host resource-pair and Python custody Owners",
+      "contracts": [
+        {
+          "operations": [
+            "_OriginalAdoptionCustody",
+            "_OriginalAdoptionCustody/__copy__",
+            "_OriginalAdoptionCustody/__deepcopy__",
+            "_OriginalAdoptionCustody/__reduce__",
+            "_OriginalAdoptionCustody/_available",
+            "_OriginalAdoptionCustody/_call",
+            "_OriginalAdoptionCustody/_check_originals",
+            "_OriginalAdoptionCustody/_drop_originals",
+            "_OriginalAdoptionCustody/_drop_reply",
+            "_OriginalAdoptionCustody/_mark_unknown",
+            "_OriginalAdoptionCustody/_open_original",
+            "_OriginalAdoptionCustody/_original_slots",
+            "_OriginalAdoptionCustody/_parents_current",
+            "_OriginalAdoptionCustody/_run",
+            "_OriginalAdoptionCustody/_status",
+            "_OriginalAdoptionCustody/close",
+            "_OriginalAdoptionCustody/current",
+            "_OriginalAdoptionCustody/open_journal",
+            "_OriginalAdoptionError",
+            "_OriginalAdoptionError/__init__",
+            "_OriginalAdoptionFunctions",
+            "_OriginalAdoptionFunctions/__init__",
+            "_require_adoption_retired"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "### Same-pair adoption transport"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+                "anchor": "class _OriginalAdoptionCustody:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/platform_native/installed_arena_entry/local_adoption_shim.h",
+                "anchor": "actql_local_adoption_prepare_utf16_into"
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/local_adoption_shim.h",
+                "anchor": "actql_local_adoption_originals_into"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+                "anchor": "def _original_slots("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/platform_native/client_host/local_adoption_binding_native.mbt",
+                "anchor": "priv struct NativeLocalAdoptionBinding {"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+                "anchor": "def _check_originals("
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/local_adoption_shim.c",
+                "anchor": "static int same_original("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "### Same-pair adoption transport"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+                "anchor": "resources._read._adoption_original = original"
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/local_adoption_shim.c",
+                "anchor": "int actql_local_adoption_finish_closed_data("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+                "anchor": "owner._enter()"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+                "anchor": "def _parents_current("
+              },
+              {
+                "path": "src/platform_native/client_host/local_adoption_binding_native.mbt",
+                "anchor": "let direct_read = capture.original_journal() is None"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+                "anchor": "def _mark_unknown("
+              },
+              {
+                "path": "src/platform_native/client_host/local_adoption_binding_native.mbt",
+                "anchor": "fn NativeLocalAdoptionBindingReply::issue_family("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_adoption.py",
+                "anchor": "def test_lost_prepare_or_first_open_never_repeats_and_fences_parent("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "### Same-pair adoption transport"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+                "anchor": "def close("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "### Same-pair adoption transport"
+              },
+              {
+                "path": "src/platform_native/client_host/local_adoption_binding_native.mbt",
+                "anchor": "self.host.require_local_host_consuming_read_current"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+                "anchor": "def _require_adoption_retired("
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-local-native-shim-bindings.py",
+                "anchor": "def render("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+                "anchor": "class _OriginalAdoptionFunctions:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_native_adoption.py",
+                "anchor": "class OriginalAdoptionTests("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_adoption.py",
+                "anchor": "def test_changed_crypto_session_or_child_alias_is_not_original_correspondence("
+              },
+              {
+                "path": "scripts/fixtures/native-adoption-shim.c",
+                "anchor": "int main(void)"
+              },
+              {
+                "path": "scripts/fixtures/python-original-adoption.py",
+                "anchor": "step('same retained Journal opens through its original serial Read and SQLite phases')"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "Any",
+            "Callable",
+            "NoReturn",
+            "annotations",
+            "bind",
+            "byref",
+            "c_void_p",
+            "isfinite"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "### Same-pair adoption transport"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+                "anchor": "class _OriginalAdoptionCustody:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/platform_native/installed_arena_entry/local_adoption_shim.h",
+                "anchor": "actql_local_adoption_prepare_utf16_into"
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/local_adoption_shim.h",
+                "anchor": "actql_local_adoption_originals_into"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+                "anchor": "def _original_slots("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/platform_native/client_host/local_adoption_binding_native.mbt",
+                "anchor": "priv struct NativeLocalAdoptionBinding {"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+                "anchor": "def _check_originals("
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/local_adoption_shim.c",
+                "anchor": "static int same_original("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "### Same-pair adoption transport"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+                "anchor": "resources._read._adoption_original = original"
+              },
+              {
+                "path": "src/platform_native/installed_arena_entry/local_adoption_shim.c",
+                "anchor": "int actql_local_adoption_finish_closed_data("
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Module imports and declarations perform no foreign operation; the original Host entry governs the listed methods."
+            },
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+                "anchor": "def _mark_unknown("
+              },
+              {
+                "path": "src/platform_native/client_host/local_adoption_binding_native.mbt",
+                "anchor": "fn NativeLocalAdoptionBindingReply::issue_family("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_adoption.py",
+                "anchor": "def test_lost_prepare_or_first_open_never_repeats_and_fences_parent("
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Module import cannot cancel a Run or acknowledge resource retirement; original close methods retain those separate responsibilities."
+            },
+            "resources": [
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "### Same-pair adoption transport"
+              },
+              {
+                "path": "src/platform_native/client_host/local_adoption_binding_native.mbt",
+                "anchor": "self.host.require_local_host_consuming_read_current"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+                "anchor": "def _require_adoption_retired("
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-local-native-shim-bindings.py",
+                "anchor": "def render("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_adoption.py",
+                "anchor": "class _OriginalAdoptionFunctions:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_native_adoption.py",
+                "anchor": "class OriginalAdoptionTests("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_adoption.py",
+                "anchor": "def test_changed_crypto_session_or_child_alias_is_not_original_correspondence("
+              },
+              {
+                "path": "scripts/fixtures/native-adoption-shim.c",
+                "anchor": "int main(void)"
+              },
+              {
+                "path": "scripts/fixtures/python-original-adoption.py",
+                "anchor": "step('same retained Journal opens through its original serial Read and SQLite phases')"
               }
             ]
           }
