@@ -73,3 +73,25 @@ remaining facts is inferred from the storage-association codec or its limits.
 The original Host/Store budgets cover retained source/fields, canonical writer,
 hash frames, read tree and escaped wire aliases simultaneously; a codec ceiling
 does not issue capacity or acknowledge physical retirement.
+
+The private Node consumer captures the same Store's original observation and
+membership methods, the same Common runtime ports, explicit codec bounds and
+the original synchronous Host current fence once. It observes the actual Store
+before Common admission, rechecks the fence after the await, and uses the same
+Store-private handle instead of reconstructing it from the four projected
+Strings. Repeated observation may borrow the same Common DATA value only when
+that original handle and every projected field remain identical.
+
+Only one observation may be pending in this finite view. Failed original FD
+close propagates the Store's same cleanup carrier and blocks replacement reads
+and Store closure; a rejected Promise is not physical retirement. The metadata
+view can forget its own backreferences only after the same Store reports actual
+closure. Escaped Common DATA and String aliases remain the caller's holding
+responsibility, and forgetting the view does not acknowledge their physical
+release or another publication's cleanup.
+
+This consumer remains a physical-to-DATA projection, not the independently
+admitted installation publication or cold Catalog gate. The actual private
+Host/bootstrap still has to supply that exact Store and its installation,
+provider capture, current authority and complete phase resources; a caller-made
+JavaScript object, matching fields or expected CID cannot stand in for them.
