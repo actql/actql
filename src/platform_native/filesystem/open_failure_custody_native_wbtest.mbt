@@ -92,3 +92,57 @@ test "consumed Lock close Unknown never reuses its raw descriptor" {
   writer.cancel().unwrap()
   root.close().unwrap()
 }
+
+///|
+test "private Root failure keeps original privacy or missing refusal after acknowledged constructor retirement" {
+  let private_path = @env.get_env_var("ACTQL_TEST_NATIVE_PRIVATE_ROOT").unwrap()
+  let broad_path = @env.get_env_var("ACTQL_TEST_NATIVE_BROAD_ROOT").unwrap()
+  for
+    path in [private_path + "/missing-private", broad_path, private_path + "/."] {
+    let original = match
+      open_private_root_with_custody(path, diagnostic_ceiling=Some(128)) {
+      Err(original) => original
+      Ok(_) => {
+        fail("rejected private Root was admitted")
+        return
+      }
+    }
+    guard original.issue() is RootOpen(before) else {
+      fail("original private Root refusal was not retained")
+      return
+    }
+    assert_true(original.root is Some(_))
+    original.retry_cleanup().unwrap()
+    assert_true(original.root is None)
+    original.retry_cleanup().unwrap()
+    guard original.issue() is RootOpen(after) else {
+      fail("cleanup replaced the original private Root refusal")
+      return
+    }
+    assert_eq(after, before)
+  }
+}
+
+///|
+test "private Root custody preserves successful ownership and rejects limits before physical acquisition" {
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_PRIVATE_ROOT").unwrap()
+  let root = open_private_root_with_custody(path, diagnostic_ceiling=Some(128)).unwrap()
+  let expected = root.private_ownership().unwrap()
+  assert_eq(root.private_ownership().unwrap(), expected)
+  root.close().unwrap()
+  root.close().unwrap()
+  for limit in [0, -1] {
+    let failure = match
+      open_private_root_with_custody(path, diagnostic_ceiling=Some(limit)) {
+      Err(original) => original
+      Ok(_) => {
+        fail("invalid diagnostic limit acquired a private Root")
+        return
+      }
+    }
+    assert_true(failure.issue() is InvalidLimit)
+    assert_true(failure.root is None)
+    failure.retry_cleanup().unwrap()
+    assert_true(failure.issue() is InvalidLimit)
+  }
+}

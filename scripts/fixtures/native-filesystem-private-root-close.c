@@ -19,7 +19,9 @@ static int fixture_openat(int, const char *, int, ...);
 #undef openat
 _Noreturn void moonbit_panic(void) { abort(); }
 static dev_t selected_device;
-static ino_t selected_inode;
+static ino_t selected_inode, parent_inode;
+static dev_t parent_device;
+static int fault_kind, probe_faults;
 static int original_fd = -1, close_calls, close_error;
 static int fixture_openat(int fd, const char *path, int flags, ...) {
   int result;
@@ -36,10 +38,21 @@ static int fixture_openat(int fd, const char *path, int flags, ...) {
   return result;
 }
 static int fixture_close(int fd) {
-  if (fd != original_fd) return close(fd);
-  close_calls++;
+  struct stat st;
+  bool probe = false;
+  if (probe_faults == 0 && fault_kind && original_fd >= 0 && fstat(fd, &st) == 0) {
+    if (fault_kind == 1 && st.st_dev == parent_device && st.st_ino == parent_inode)
+      probe = true;
+    if (fault_kind == 2 && fd != original_fd &&
+        st.st_dev == selected_device && st.st_ino == selected_inode)
+      probe = true;
+  }
+  if (fd == original_fd) close_calls++;
   int result = close(fd);
-  if (result == 0 && close_error) { errno = close_error; return -1; }
+  if (probe && result == 0) { probe_faults++; errno = EIO; return -1; }
+  if (fd == original_fd && fault_kind == 0 && result == 0 && close_error) {
+    errno = close_error; return -1;
+  }
   return result;
 }
 
@@ -49,21 +62,58 @@ static moonbit_bytes_t text(const char *s) {
 }
 int main(int argc, char **argv) {
   assert(argc == 3);
-  const char *name = argv[1], *directory = argv[2];
-  bool missing = !strcmp(name, "missing"), success = !strcmp(name, "confirmed-private");
+  const char *selected_case = argv[1], *directory = argv[2];
+  bool custody = !strncmp(selected_case, "custody-", 8);
+  const char *name = custody ? selected_case + 8 : selected_case;
+  bool missing = !strcmp(name, "missing"), current = !strcmp(name, "current-close-eio");
+  bool walk = !strcmp(name, "walk-close-eio"), probe = !strcmp(name, "namespace-close-eio");
+  bool success = !strcmp(name, "confirmed-private") || current;
+  if (walk) fault_kind = 1;
+  if (probe) fault_kind = 2;
+  char *parent = strdup(directory); assert(parent); char *slash = strrchr(parent, '/');
+  assert(slash); *slash = '\0'; struct stat ps; assert(stat(parent, &ps) == 0);
+  parent_device = ps.st_dev; parent_inode = ps.st_ino; free(parent);
   if (!missing) {
-    assert(chmod(directory, success ? 0700 : 0755) == 0);
+    assert(chmod(directory, success || walk || probe ? 0700 : 0755) == 0);
     struct stat s; assert(stat(directory, &s) == 0);
     selected_device = s.st_dev; selected_inode = s.st_ino;
   }
   if (!strcmp(name, "privacy-close-eio")) close_error = EIO;
   if (!strcmp(name, "privacy-close-eintr")) close_error = EINTR;
   moonbit_bytes_t path = text(directory);
-  actql_native_filesystem_root *root =
+  actql_native_filesystem_root *root = custody ?
+    actql_native_filesystem_open_private_root_with_custody_diagnostics(path, (int32_t)strlen(directory), 128) :
     actql_native_filesystem_open_private_root_with_diagnostics(path, (int32_t)strlen(directory), 128);
   moonbit_decref(path);
   assert(actql_native_filesystem_root_ready(root) == success);
-  if (success) {
+  if (!success && !missing && !walk && !probe) {
+    const char *expected = "Host root is not user-owned and private";
+    moonbit_bytes_t primary = actql_native_filesystem_root_acquisition_error(root);
+    assert(Moonbit_array_length(primary) == (int32_t)strlen(expected));
+    assert(memcmp(primary, expected, strlen(expected)) == 0);
+    moonbit_decref(primary);
+  }
+  if (walk || probe || current) {
+    assert(custody);
+    if (current) {
+      assert(close_calls == 0 && root->fd >= 0);
+      fault_kind = 2;
+      assert(!actql_native_filesystem_private_root_identity(root));
+      assert(!actql_native_filesystem_private_root_identity(root));
+      assert(probe_faults == 1);
+      assert(actql_native_filesystem_root_close(root) == -1);
+    }
+    assert(root->namespace_cleanup_unconfirmed && probe_faults == 1);
+    assert(root->fd == -1 && root->close_result == -1 && close_calls == 1);
+    assert(root->namespace_cleanup_error && root->close_error);
+    int replacement = open("/dev/null", O_RDONLY); assert(replacement >= 0);
+    if (replacement != original_fd) {
+      assert(dup2(replacement, original_fd) == original_fd); assert(close(replacement) == 0);
+    }
+    assert(actql_native_filesystem_root_close(root) == -1);
+    assert(close_calls == 1 && fcntl(original_fd, F_GETFD) >= 0);
+    assert(close(original_fd) == 0);
+  } else if (success) {
     assert(close_calls == 0 && root->fd >= 0);
     assert(actql_native_filesystem_root_close(root) == 0);
     assert(actql_native_filesystem_root_close(root) == 0 && close_calls == 1);
@@ -87,6 +137,6 @@ int main(int argc, char **argv) {
     assert(close(original_fd) == 0);
   }
   moonbit_decref(root);
-  printf("{\"case\":\"%s\",\"passed\":true,\"kernelFaultObserved\":false}\n", name);
+  printf("{\"case\":\"%s\",\"passed\":true,\"kernelFaultObserved\":false}\n", selected_case);
   return 0;
 }

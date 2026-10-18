@@ -26,6 +26,9 @@ struct NativeLocalAdoptionSession {
   mut close_pending : Bool
   mut read_cleanup : NativeLocalAdoptionIssue?
   mut lock_close_attempted : Bool
+  // Only the existing-only custodied journal entrance installs this carrier.
+  // All aliases must retire that same partial open before releasing its lock.
+  mut journal_open_failure : NativeLocalJournalOpenFailure?
 }
 
 ///|
@@ -421,6 +424,9 @@ pub fn NativeLocalAdoptionSession::close(
   // stay here. Fence new work before cleanup; do not return the adoption lock
   // while a rejected Reader still owns its original cleanup responsibility.
   self.closed = true
+  if self.journal_open_failure is Some(original) {
+    return original.retry_cleanup() is Ok(_)
+  }
   if self.initial_signing_failure.val is Some(failure) &&
     failure.retry_cleanup() is Err(_) {
     self.close_pending = true
