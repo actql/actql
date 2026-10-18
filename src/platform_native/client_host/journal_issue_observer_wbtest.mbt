@@ -587,8 +587,7 @@ fn test_observe_journal_reply(
   }
 }
 
-// End of test-only observer helpers. E's isolated diagnostic emission may use
-// this exact prefix with its original reply callback and a fixed C tag sink.
+// End of test-only observer helpers.
 
 ///|
 test "test-only original issue observer keeps phase and transaction causes" {
