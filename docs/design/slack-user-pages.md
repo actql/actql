@@ -347,3 +347,37 @@ Source owner's coalescence and capture boundary. This private reader does not
 silently overwrite an earlier captured row, establish complete channel history
 or supply a normal business ReaderLoan. Its finite terminal result alone is not
 an installed complete Slack Source.
+
+### First-original history and reply coalescence
+
+Cross-acquisition message coalescence retains each original completed history
+page and each selected completed reply prefix. The selection must refer to the
+same original history page and row; matching JSON, identifiers or projected
+cells cannot reconstruct that selection. Closing a completed protocol preserves
+its completion fact and its original references; closing an unfinished protocol
+does not make it complete. Neither operation acknowledges physical cleanup.
+
+For a duplicate `channel:ts`, the output is the exact first history CheckedValue
+row. Private presence metadata is captured alongside that row from the original
+bounded parser occurrence, including presence of `users` inside each reaction.
+Vendor omission establishes no value. Explicit null and independently justified
+ordinary-history count zero remain established facts. All overlapping facts
+across retained observations must agree, including facts first established only
+by a later response. Later supplied fields never fill or replace earlier cells.
+New keys retain their original reply CheckedValue rows. The existing full-row
+equality requirement for repeated IDs within reply pagination remains intact.
+
+An established parent count cannot be smaller than the distinct selected child
+keys. This prevents a derived parent zero from surviving incorporation of an
+actual child. These checks establish consistency of the selected original
+observations, not an atomic or latest-value snapshot, complete workspace or
+thread coverage, current authorization, or permission to retry an original Run.
+
+The projection retains history and reply controls, original pages and checked
+rows, per-row presence vectors, nested reaction presence, per-key occurrence
+lists, child-key maps and the output row-reference array. Comparison controls,
+subvalue recheck workspace and bounded output encoding overlap those retained
+originals. Page, occurrence, row, node, text and work limits bound computation;
+they do not provide resource reservations. Escaped rows and wire strings retain
+their own lifetimes after protocol close and are not reclaimed by a physical
+response or Store acknowledgement.
