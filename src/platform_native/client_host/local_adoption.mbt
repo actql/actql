@@ -59,6 +59,12 @@ pub(all) enum NativeLocalAdoptionIssue {
     NativeLocalAdoptionIssue,
     NativeClientRunJournalIssue
   )
+  OriginalResources(@arena.InstalledArenaLocalHostResourcesIssue)
+  OriginalResourceScopePending
+  OriginalResourceLeave(
+    NativeLocalAdoptionIssue?,
+    @arena.InstalledArenaLocalHostResourcesIssue
+  )
 }
 
 ///|

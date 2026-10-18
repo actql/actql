@@ -29,7 +29,9 @@ pub(all) enum NativeLocalJournalCaptureIssue {
 /// fence escaped aliases, the provider and its original read/loan separately.
 struct NativeLocalJournalCapture {
   session : NativeLocalAdoptionSession
-  library : @sqlite.Library
+  library : @sqlite.Library?
+  original_resources : NativeLocalJournalOriginalResources?
+  mut opening_database : @sqlite.Database?
   crypto : @crypto.Library
   ttl_ms : Double
   max_records : Int
@@ -60,7 +62,9 @@ pub fn prepare_native_local_journal_capture(
 ) -> NativeLocalJournalCapture {
   {
     session,
-    library,
+    library: Some(library),
+    original_resources: None,
+    opening_database: None,
     crypto,
     ttl_ms,
     max_records,
@@ -93,17 +97,24 @@ pub fn NativeLocalJournalCapture::open(
   match self.opening {
     JournalNotAttempted => {
       self.opening = JournalOpenUnconfirmed
-      self.opening = match
-        self.session.open_existing_journal_with_custody(
-          self.library,
-          self.crypto,
-          self.ttl_ms,
-          self.max_records,
-          self.max_snapshot_bytes,
-        ) {
+      let opened = match self.original_resources {
+        None =>
+          self.session.open_existing_journal_with_custody(
+            self.library.unwrap(),
+            self.crypto,
+            self.ttl_ms,
+            self.max_records,
+            self.max_snapshot_bytes,
+          )
+        Some(original) => self.open_original_journal(original)
+      }
+      self.opening = match opened {
         Ok(host) => JournalAcquired(host)
         Err(original) => JournalRefused(original)
       }
+      // The acquired Host or Session-owned failure now retains the same DB.
+      // Clear this temporary alias only after publishing that original state.
+      self.opening_database = None
     }
     _ => ()
   }
@@ -129,11 +140,16 @@ pub fn NativeLocalJournalCapture::check_current(
       JournalNotAttempted => Some(JournalNotOpened)
       JournalOpenUnconfirmed => Some(JournalOpeningUnconfirmed)
       JournalRefused(original) => Some(JournalAdoption(original.issue()))
-      JournalAcquired(host) =>
-        match host.check_binding() {
+      JournalAcquired(host) => {
+        let current = match self.original_resources {
+          None => host.check_binding()
+          Some(original) => original.check_journal_current(host)
+        }
+        match current {
           Ok(_) => None
           Err(issue) => Some(JournalAdoption(issue))
         }
+      }
     }
   }
   self.reply(ObserveCapturedJournal, issue)
@@ -155,12 +171,20 @@ pub fn NativeLocalJournalCapture::close(
     JournalOpenUnconfirmed =>
       return self.reply(CloseCapturedJournal, Some(JournalOpeningUnconfirmed))
     JournalRefused(original) => original.retry_cleanup()
-    JournalAcquired(host) => host.close_owned_root_descriptors()
+    JournalAcquired(host) =>
+      match self.original_resources {
+        None => host.close_owned_root_descriptors()
+        Some(original) => original.close_journal(host)
+      }
     JournalNotAttempted =>
-      if self.session.close() {
-        close_local_session_owned_root_descriptors(self.session)
-      } else {
-        Err(CustodyLost)
+      match self.original_resources {
+        None =>
+          if self.session.close() {
+            close_local_session_owned_root_descriptors(self.session)
+          } else {
+            Err(CustodyLost)
+          }
+        Some(original) => original.close_unopened_session(self.session)
       }
   }
   let issue = match result {
