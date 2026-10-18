@@ -18,6 +18,7 @@ This document owns capture, admission, run-identity-model, checkpoint-invariants
 
 - [Terms](#execution-terms)
 - [Run execution](#effects-and-execution)
+- [Scoped initial Node control preparation](#initial-node-control-preparation)
 - [Managed retained execution profile](#managed-retained-execution)
 - [Capture, execution, and replay](#capture-and-replay)
 - [Program and stage execution](#stage-execution)
@@ -98,6 +99,44 @@ Continuation uses the same Run and its captured outputs, with the existing
 Resolution and dispatch-time revalidation rules ([Checkpoints and Resolutions](#checkpoints)). Delivery failure does
 not undo a successful Run or authorize replay of its Effects; retry delivery
 against the materialized Results instead.
+
+<a id="initial-node-control-preparation"></a>
+
+### Scoped initial Node control preparation
+
+The selected trusted Node startup may include bounded original Project,
+configuration and Task intake, normalization and Host preparation records in
+its finite initial control scope. This is an explicit scoped implementation
+assumption, not a universal V8/RSS lease or adoption of a Native arena.
+A separate per-object V8 physical lease is not required merely to initialize
+this declared scope. Numerical release profiles remain independently selected.
+
+<!-- requirement-block: initial-node-control.original-before-work -->
+The existing Host/Resource installer MUST issue an installation-only nominal
+operational admission from the actual selected startup, source, backend,
+recipe, Host, installation and generation before the covered work, rather than
+issuing or reconstructing it from DATA, runtime references, a Boolean, a CID,
+a Ledger or a future Run reservation.
+
+<!-- requirement-block: initial-node-control.complete-selected-envelope -->
+Admission MUST cover the complete same-phase simultaneous holdings and overlap
+of the selected raw and decoded inputs, parser and normalizer intermediates,
+original records, closures, actual module/runtime/library domains and partial
+failure custody, refusing an unbounded or unaccounted selected component and
+never retrospectively funding an earlier import, discovery or installation.
+
+<!-- requirement-block: initial-node-control.scope-separation -->
+This initial admission MUST NOT supply capacity or authority for metadata HTTP,
+Source acquisition, Result handling, a business Run, Model invocation, Content
+or its physical driver, or an external VM; each retains its independently
+admitted original supplier, scope and current authorization.
+
+<!-- requirement-block: initial-node-control.retained-custody -->
+Preparation aliases MUST remain accounted to the same original lifetime until
+real owning cleanup acknowledgement or an explicitly admitted transfer accounts
+for overlapping responsibility, preserving current checks, child-first cleanup
+and uncertain duties without treating close initiation, Promise settlement,
+reference retirement or garbage collection as physical acknowledgement.
 
 <a id="managed-retained-execution"></a>
 
