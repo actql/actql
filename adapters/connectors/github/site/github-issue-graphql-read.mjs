@@ -259,16 +259,24 @@ async function readGitHubRowsByNode({moon, repository,
           const current = JSON.parse(decoded(Reflect.apply(operations.finish, moon, [original]))).page;
           if (current === null) {
             if (consumeObservation !== undefined) {
-              checkPrefix();
-              await consumeObservation(charge);
-              checkPrefix();
+              try {
+                checkPrefix();
+                await consumeObservation(charge);
+                checkPrefix();
+              } catch (cause) {
+                stopped(cause?.code ?? 'GitHubObservationNotAdmitted', {cause});
+              }
             }
           } else {
             if (rows.length + current.rows.length > owned.maxRows) stopped('GitHubReadRowLimit');
             if (consumePage !== undefined) {
-              checkPrefix();
-              await consumePage(current.rows, page, Object.freeze({charge}));
-              checkPrefix();
+              try {
+                checkPrefix();
+                await consumePage(current.rows, page, Object.freeze({charge}));
+                checkPrefix();
+              } catch (cause) {
+                stopped(cause?.code ?? 'GitHubPageNotAdmitted', {cause});
+              }
             }
             rows.push(...current.rows);
             accepted.push(Object.freeze({page, useCid: response.useCid, rows: current.rows.length}));
