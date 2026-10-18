@@ -60,8 +60,9 @@ actual request. Request material is not a grant, send receipt or durable journal
 DATE and TIMESTAMP_LTZ output formats are selected from the same original
 acquisition's projected Contracts. DATE requests `date_output_format=YYYY-MM-DD`;
 LTZ requests `timestamp_ltz_output_format=YYYY-MM-DD"T"HH24:MI:SS.FF9"Z"` with
-`timezone=UTC`. An unselected temporal column does not add a parameter. Existing
-non-temporal request bytes remain unchanged. The explicit formats avoid guessing
+`timezone=UTC`. An unselected physical temporal column does not add a parameter.
+A final query projection alone does not rewrite that original Source carrier.
+Existing non-temporal request bytes remain unchanged. The explicit formats avoid guessing
 between provider epoch representations or relying on session defaults; they do
 not convert civil or retained-offset values into this UTC domain. Response and
 request bounds, original response hashes, current authority and physical cleanup
