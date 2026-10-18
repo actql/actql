@@ -62,8 +62,43 @@ test "Calendar finer Timestamp binding refuses backend precision not the logical
     declarations=Some(declarations), bindings=Some(values),
   )
   let result = @lowering_relation.prepare_sequence(owner, sequence_limits())
-  assert_true(result is Err(_))
-  assert_false(result is Err(CalendarFailure(0, CalendarRange(@calendar_options.InvalidTimestamp))))
+  assert_true(result is Err(CalendarFailure(0, CalendarTimestampPrecisionUnavailable)))
+}
+
+///|
+test "Calendar exact literal range reaches a distinct millisecond backend refusal" {
+  for (start, end) in [
+    ("2000-01-01T00:00:00.000Z", "2000-01-01T00:00:00.000000001Z"),
+    ("2000-01-01T00:00:00.000000001Z", "2000-01-01T00:00:00.000000001Z"),
+    ("1969-12-31T23:59:59.999999999Z", "1970-01-01T00:00:00.000Z"),
+  ] {
+    let owner = calendar_preparation_owner(
+      "[{\"calendar_series\":{\"start\":\"" + start + "\",\"end\":\"" + end +
+      "\",\"unit\":\"day\",\"timezone\":\"UTC\"},\"as\":\"days\"}]",
+    )
+    assert_true(@lowering_relation.prepare_sequence(owner, sequence_limits())
+      is Err(CalendarFailure(0, CalendarTimestampPrecisionUnavailable)))
+  }
+}
+
+///|
+test "Calendar exact reversed bound range preserves logical refusal before backend precision" {
+  let declarations = @parameter.read_declarations(
+    Some(cursor("{\"a\":{\"type\":\"timestamp\"},\"z\":{\"type\":\"timestamp\"}}")),
+    { max_parameters: 2, max_nodes: 30, max_depth: 10, max_text_bytes: 100, },
+  ).unwrap()
+  let values = match @parameter.bind(declarations,
+    Some(cursor("{\"a\":\"2000-01-01T00:00:00.000000001Z\",\"z\":\"2000-01-01T00:00:00.000Z\"}")),
+    { max_nodes: 10, max_depth: 5, max_text_bytes: 100, }).unwrap() {
+    Ready(values) => values
+    _ => fail("exact original Timestamp Parameters must bind")
+  }
+  let owner = calendar_preparation_owner(
+    "[{\"calendar_series\":{\"start\":{\"$param\":\"a\"},\"end\":{\"$param\":\"z\"},\"unit\":\"day\",\"timezone\":\"UTC\"},\"as\":\"days\"}]",
+    declarations=Some(declarations), bindings=Some(values),
+  )
+  assert_true(@lowering_relation.prepare_sequence(owner, sequence_limits())
+    is Err(CalendarFailure(0, CalendarRange(@calendar_options.ReversedRange))))
 }
 
 ///|
