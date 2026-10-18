@@ -8838,6 +8838,131 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/source-managed-original-input.mjs",
+      "sha256": "e06e9fcbfad5116fc061bf8ccd41fe8a4837e59bf8e649e93482692a0e3a58b9",
+      "exports": [
+        "readSourceManagedOriginalInput"
+      ],
+      "operations": [
+        {
+          "name": "readSourceManagedOriginalInput",
+          "parameters": [
+            "kind",
+            "rawInput",
+            "rawOptions",
+            "explicitLimits"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./initial-control-host-input.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Host/Resource original Source intake and unchanged SDK submission validation",
+      "rationale": "Pure bounded own-DATA reader under the separate original Source supplier. This declaration neither issues operational coverage nor turns initial-control credits, copied data or callback aliases into Source capacity, authority or acknowledgement.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "readSourceManagedOriginalInput"
+          ],
+          "exports": [
+            "readSourceManagedOriginalInput"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/source-managed-original-input.mjs",
+                "anchor": "// Reuse the existing pure bounded own-DATA traversal, not its installation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/source-managed-original-input.mjs",
+                "anchor": "export function readSourceManagedOriginalInput(kind, rawInput, rawOptions, explicitLimits) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/source-managed-original-input.mjs",
+                "anchor": "// Preserve all fields and original aliases so the selected recipe can refuse"
+              },
+              {
+                "path": "adapters/host-node/source-managed-original-input.test.mjs",
+                "anchor": "Source intake preserves exact text, all own option DATA and its immutable snapshot"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/source-managed-original-input.mjs",
+                "anchor": "// under its separate Source phase before calling this captured reader."
+              },
+              {
+                "path": "adapters/host-node/source-managed-original-input.test.mjs",
+                "anchor": "Source intake keeps original callback aliases separate from bounded DATA"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/source-managed-original-input.mjs",
+                "anchor": "return snapshotInitialControlHostInput({kind, input: rawInput, options: rawOptions}, explicitLimits);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/source-managed-original-input.mjs",
+                "anchor": "NodeSourceManagedInputUnavailable"
+              },
+              {
+                "path": "adapters/host-node/source-managed-original-input.test.mjs",
+                "anchor": "Source intake refuses Proxy and getter inputs without observing them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/source-managed-original-input.mjs",
+                "anchor": "// issue a child, select a Program, authorize I/O or acknowledge any lifetime."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/source-managed-original-input.mjs",
+                "anchor": "// cover raw acquisition, the first ownKeys, rejection and every retained alias"
+              },
+              {
+                "path": "adapters/host-node/source-managed-original-input.test.mjs",
+                "anchor": "Source reader retains finite original bounds and refuses unsupported overlap"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/source-managed-original-input.mjs",
+                "anchor": "// The result is DATA only. It does not validate the public submission grammar,"
+              },
+              {
+                "path": "adapters/host-node/source-managed-original-input.test.mjs",
+                "anchor": "Source reader does not redefine invalid format or synthesize absent parameters"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/source-managed-original-input.test.mjs",
+                "anchor": "Source intake preserves exact text, all own option DATA and its immutable snapshot"
+              },
+              {
+                "path": "adapters/host-node/source-managed-original-input.test.mjs",
+                "anchor": "Source intake keeps original callback aliases separate from bounded DATA"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
