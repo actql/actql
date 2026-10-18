@@ -127,15 +127,31 @@ test('actual charged receiver rejects a replayed ticket without a second capture
   } finally { f.close(); }
 });
 
-test('actual charged receiver rejects a foreign acquisition even with the original body', () => {
-  const f = fixture();
+test('actual charged receiver rejects an equal-wire foreign acquisition with the original body', () => {
+  const f = fixture(), foreign = fixture();
   try {
     const run = f.start(0, 'foreign-acquisition');
     const charge = checked(moon.clientProgramRowSourceChargePage(run, body));
-    assert.throws(() => f.accept(run, charge, f.acquisitions[1].acquisition),
+    assert.equal(checked(moon.clientProgramRowSourceRequestWire(f.acquisitions[0].acquisition)),
+      checked(moon.clientProgramRowSourceRequestWire(foreign.acquisitions[0].acquisition)));
+    assert.throws(() => f.accept(run, charge, foreign.acquisitions[0].acquisition),
       {code: 'MoonBitHostFailure'});
     cannotCapture(run);
-  } finally { f.close(); }
+  } finally { f.close(); foreign.close(); }
+});
+
+test('actual charged receiver rejects equal-wire declarations issued as different originals', () => {
+  const f = fixture(), foreign = fixture();
+  try {
+    const run = f.start(0, 'foreign-declarations');
+    const charge = checked(moon.clientProgramRowSourceChargePage(run, body));
+    assert.equal(moon.clientProgramRowSourceDeclarationJson(f.declarations[0]),
+      moon.clientProgramRowSourceDeclarationJson(foreign.declarations[0]));
+    assert.throws(() => checked(moon.clientProgramMockChurnRiskAcceptChargedDocument(
+      run, charge, f.acquisitions[0].acquisition, foreign.declarations[0],
+      foreign.declarations[1], body, 1000000)), {code: 'MoonBitHostFailure'});
+    cannotCapture(run);
+  } finally { f.close(); foreign.close(); }
 });
 
 test('actual charged receiver cannot resume a closed attempt with its pending ticket', () => {
