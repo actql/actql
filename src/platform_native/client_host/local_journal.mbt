@@ -355,37 +355,19 @@ fn local_adoption_row(
 pub fn NativeLocalHostConnection::check_binding(
   self : NativeLocalHostConnection,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  if self.closed {
-    return Err(Closed)
-  }
-  if self.packaged_runtime is Some(binding) &&
-    binding.current.check_current() is Err(_) {
-    return Err(CustodyLost)
-  }
-  if self.database.transaction_fenced() {
-    return Err(Fenced)
-  }
-  match self.session.check_original() {
-    Ok(_) => ()
+  match self.check_binding_read_prefix() {
     Err(issue) => return Err(issue)
-  }
-  // The immediately preceding actual original check is staging's entry fence.
-  // Staging keeps its original terminal check, and every Common/current caller
-  // still invokes this complete binding fence before and after its own work.
-  match self.session.stage_configuration_after_original() {
     Ok(_) => ()
+  }
+  match self.check_binding_sqlite_fence() {
     Err(issue) => return Err(issue)
-  }
-  guard self.session.root.inspect_generation("client.sqlite3") is Ok(Some(file)) &&
-    file.device == self.ownership.device &&
-    file.inode == self.ownership.inode else {
-    return Err(CustodyLost)
-  }
-  match self.session.settings.check_retained(self.database) {
     Ok(_) => ()
-    Err(issue) => return Err(issue)
   }
-  local_adoption_row(self.database, self.adoption_body)
+  match self.check_binding_read_original() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  self.check_binding_sqlite_original()
 }
 
 ///|
