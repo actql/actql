@@ -34,7 +34,13 @@ const value=require(file);assert.equal(value.selectedInitialControlHostPreparati
     const dir = mkdtempSync(join(tmpdir(), 'actql-private-dispatch-parent-'));
     t.after(() => rmSync(dir, {recursive: true}));
     const entry = join(dir, 'entry.cjs'), preload = join(dir, 'preload.cjs');
-    writeFileSync(preload, `globalThis.value=require(${JSON.stringify(original)});`);
+    // A real but unrelated preload can forge a cache entry and Module parent.
+    // That DATA must not enroll its callback as the selected wrapper original.
+    writeFileSync(preload, `const Module=require('node:module'),path=require('node:path');
+const wrapper=path.join(path.dirname(${JSON.stringify(original)}),'selected-infer-startup.cjs');
+const fake=new Module(wrapper,module);fake.filename=wrapper;
+fake.exports=Object.freeze(Object.assign(Object.create(null),{selectedInitialControlHostPreparation(){throw new Error('FakeDispatch');}}));
+require.cache[wrapper]=fake;globalThis.value=fake.require(${JSON.stringify(original)});`);
     writeFileSync(entry, `require('node:assert/strict').equal(value.selectedInitialControlHostPreparation,undefined);`);
     child(['--require', preload, entry]);
   });
