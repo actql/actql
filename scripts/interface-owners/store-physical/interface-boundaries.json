@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9ede7aae10ba1a08450f7b0ee77c85d19f5186708d6bdc1db8171352589efdfb",
+      "sha256": "6a08b633286f9ab4ac3ba55bd0bd774178d60c0b5bee45423d17e338bbac96d8",
       "exports": [
         "PublicationStoreError",
         "openLocalPublicationStore",
@@ -5073,6 +5073,13 @@
           "async": false
         },
         {
+          "name": "openLocalPublicationStore/init:originalInstallationPublicationStorageBindingEvidence/init:originalInstallationPublicationStorageBindingEvidence",
+          "parameters": [
+            "handle"
+          ],
+          "async": false
+        },
+        {
           "name": "openLocalPublicationStore/init:originalModelStorageBindingEvidence/init:originalModelStorageBindingEvidence",
           "parameters": [
             "handle"
@@ -5413,6 +5420,16 @@
           "parameters": [
             "cid"
           ],
+          "async": false
+        },
+        {
+          "name": "openLocalPublicationStore/observeOriginalInstallationPublicationStorageBinding/observeOriginalInstallationPublicationStorageBinding",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openLocalPublicationStore/observeOriginalInstallationPublicationStorageBinding/observeOriginalInstallationPublicationStorageBinding/bytes/bytes",
+          "parameters": [],
           "async": false
         },
         {
@@ -7072,6 +7089,7 @@
             "openLocalPublicationStore/init:close/init:close/init:close",
             "openLocalPublicationStore/init:close/init:close/init:close#2",
             "openLocalPublicationStore/init:close/init:close/init:close#3",
+            "openLocalPublicationStore/init:originalInstallationPublicationStorageBindingEvidence/init:originalInstallationPublicationStorageBindingEvidence",
             "openLocalPublicationStore/init:originalModelStorageBindingEvidence/init:originalModelStorageBindingEvidence",
             "openLocalPublicationStore/init:originalModelStorageDimensions/init:originalModelStorageDimensions",
             "openLocalPublicationStore/init:privateEvidenceWireLimit/init:privateEvidenceWireLimit",
@@ -7120,6 +7138,8 @@
             "openLocalPublicationStore/metadataResultBindings/metadataResultBindings",
             "openLocalPublicationStore/metadataResultBindings/metadataResultBindings/metadataResultBindings",
             "openLocalPublicationStore/objectPath/objectPath",
+            "openLocalPublicationStore/observeOriginalInstallationPublicationStorageBinding/observeOriginalInstallationPublicationStorageBinding",
+            "openLocalPublicationStore/observeOriginalInstallationPublicationStorageBinding/observeOriginalInstallationPublicationStorageBinding/bytes/bytes",
             "openLocalPublicationStore/observeOriginalModelStorageBinding/observeOriginalModelStorageBinding",
             "openLocalPublicationStore/observeOriginalModelStorageBinding/observeOriginalModelStorageBinding/bytes/bytes",
             "openLocalPublicationStore/observeTrustedClock/observeTrustedClock",
@@ -7479,6 +7499,10 @@
               {
                 "path": "docs/design/execution-completion-storage.md",
                 "anchor": "## Saved installation-publication physical custody"
+              },
+              {
+                "path": "adapters/store-local/installation-publication-storage-original.test.mjs",
+                "anchor": "original installation observation projects exact Store DATA without Model evidence"
               },
               {
                 "path": "adapters/store-local/object-read-extent.test.mjs",
