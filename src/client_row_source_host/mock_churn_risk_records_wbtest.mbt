@@ -34,21 +34,39 @@ fn mock_document_text(count? : String = "4") -> String {
 }
 
 ///|
-fn mock_document_read() -> RowSourceRead {
-  // Only one selected input column: the codec must still admit both complete
-  // physical tables and their unselected fields and original keys.
+fn mock_document_read(warehouse? : Bool = true) -> RowSourceRead {
+  // The warehouse control selects one column; unselected physical fields
+  // and the other complete table must still be admitted.
+  let names = if warehouse {
+    ["active_users"]
+  } else {
+    ["id", "name", "description", "Churn_Risk__c", "Risk_Reason__c"]
+  }
   let schema = @schema.from_fields(
-    [
+    names.map(name => {
       (
-        @schema.Unqualified("active_users"),
-        @contract.primitive(@contract.Signed64Type, nullable=false),
-      ),
-    ],
-    max_fields=1,
-    max_name_bytes=32,
+        @schema.Unqualified(name),
+        @contract.primitive(
+          if name == "active_users" {
+            @contract.Signed64Type
+          } else {
+            @contract.StringType
+          },
+          nullable=name == "Risk_Reason__c",
+        ),
+      )
+    }),
+    max_fields=5,
+    max_name_bytes=128,
   ).unwrap()
   let pipeline = @pipeline.check(
-    row_presence_cursor("[{\"select\":[\"active_users\"]}]"),
+    row_presence_cursor(
+      if warehouse {
+        "[{\"select\":[\"active_users\"]}]"
+      } else {
+        "[{\"select\":[\"id\"]}]"
+      },
+    ),
     [("rows", schema)],
     None,
     Some(row_presence_cursor("\"rows\"")),
@@ -80,8 +98,8 @@ fn mock_document_read() -> RowSourceRead {
     owner,
     0,
     original,
-    ["active_users"],
-    ["active_users"],
+    names,
+    names,
     { max_bytes: 65536, max_nodes: 8192, max_depth: 32, max_rows: 100, },
     100,
     row_presence_retention(),
@@ -97,7 +115,7 @@ test "mock physical source exact integer spans reach the original typed input wi
   let snowflake = mock_document_warehouse()
   for
     text in [
-      "-9223372036854775808", "9007199254740992", "9007199254740993", "9223372036854775807",
+      "4", "-9223372036854775808", "9007199254740992", "9007199254740993", "9223372036854775807",
     ] {
     let read = mock_document_read()
     let rows = match
@@ -260,5 +278,42 @@ test "mock physical codec retains explicit work and file byte bounds" {
       10000000,
     )
     is Err(_),
+  )
+}
+
+///|
+test "mock Salesforce input retains both original keys and nullable values" {
+  let salesforce = mock_update_declaration()
+  let snowflake = mock_document_warehouse()
+  let read = mock_document_read(warehouse=false)
+  let rows = mock_churn_risk_document_rows(
+    read,
+    salesforce,
+    salesforce,
+    snowflake,
+    @utf8.encode(mock_document_text()),
+    10000000,
+  ).unwrap()
+  assert_eq(rows.length(), 2)
+  assert_eq(rows[0].length(), 5)
+  for row in 0..<2 {
+    for column in 0..<5 {
+      assert_true(
+        physical_equal(
+          rows[row][column].contract,
+          @schema.field_at(read.schema, column).unwrap().contract,
+        ),
+      )
+    }
+    assert_true(rows[row][4].value is @admitted.Null)
+  }
+  assert_eq(accept_row_source_values(read, read.columns, rows).unwrap(), 2)
+  let captured = @execution.finish_admitted_input(read.input).unwrap()
+  assert_true(
+    @execution.captured_cell(captured, 0, 0) is Some(@admitted.Text("001Acme")),
+  )
+  assert_true(
+    @execution.captured_cell(captured, 1, 0) ==
+    Some(@admitted.Text("001Globex")),
   )
 }
