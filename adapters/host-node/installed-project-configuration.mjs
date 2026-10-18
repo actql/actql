@@ -6,13 +6,30 @@ import {readBoundedConfigurationUtf8} from './source-profile-json.mjs';
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 const retainedProjects = new WeakMap();
 
+function originalForRuntime(retained, moon) {
+  if (retained.retired) fail('InstalledProjectOriginalRetired');
+  if (retained.moon !== moon) fail('ForeignInstalledProjectRuntime');
+  return retained.original;
+}
+
 // A private issued-project lookup, not a DATA or equal-wire reconstruction.
 // Consumers keep the original callback runtime through every file read.
 export function installedProjectOriginalsForRuntime(project, moon) {
   const retained = retainedProjects.get(project);
   if (retained === undefined) fail('ForeignInstalledProjectOriginal');
-  if (retained.moon !== moon) fail('ForeignInstalledProjectRuntime');
-  return retained.original;
+  return originalForRuntime(retained, moon);
+}
+
+// Managed original-reference retirement only, after the existing Host's child
+// cleanup or for an unadopted preparation. It does not acknowledge any file,
+// body, Store, startup envelope, escaped alias, garbage collection or capacity.
+export function retireInstalledProjectConfiguration(project, moon) {
+  const retained = retainedProjects.get(project);
+  if (retained === undefined) fail('ForeignInstalledProjectOriginal');
+  originalForRuntime(retained, moon);
+  retained.retired = true;
+  retained.original = undefined;
+  retained.moon = undefined;
 }
 
 function readConfiguration(moon, configurationWire, readers) {
@@ -47,11 +64,11 @@ function retainConfiguration(moon, configurationWire, modelRegistryWire,
   // equal-CID reconstruction, fallback runtime or new preparation is used.
   const original = Object.freeze({configuration, modelRegistry,
     configurationWire, modelRegistryWire});
+  const retained = {moon, original, retired: false};
   const project = Object.freeze({originalsForRuntime(runtime) {
-    if (runtime !== moon) fail('ForeignInstalledProjectRuntime');
-    return original;
+    return originalForRuntime(retained, runtime);
   }});
-  retainedProjects.set(project, {moon, original});
+  retainedProjects.set(project, retained);
   return project;
 }
 
@@ -117,8 +134,9 @@ export async function loadInstalledProjectConfiguration(moon,
     const project = Object.freeze({configurationPath, directory: selectedDirectory,
       stateDirectory: resolve(selectedDirectory, state), registryPath,
       originalsForRuntime: retained.originalsForRuntime});
-    retainedProjects.set(project, {moon,
-      original: installedProjectOriginalsForRuntime(retained, moon)});
+    // Both views share this same retirement record. Copying the getter must
+    // not leave its earlier closure able to recover retired original DATA.
+    retainedProjects.set(project, retainedProjects.get(retained));
     return project;
   }
 }

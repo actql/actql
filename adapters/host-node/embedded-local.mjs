@@ -39,7 +39,8 @@ import {installedModelEnvironment, readInstalledModelExecution,
   readInstalledModelDependencies, installModelProviders,
   admitInstalledModelProvider, admitInstalledModelProviderBinding} from
   './installed-model.mjs';
-import {loadInstalledProjectConfiguration, installedProjectOriginalsForRuntime}
+import {loadInstalledProjectConfiguration, installedProjectOriginalsForRuntime,
+  retireInstalledProjectConfiguration}
   from './installed-project-configuration.mjs';
 import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
@@ -320,6 +321,7 @@ async function openInstalledHost(originalInstallation) {
     // retire. It is not physical read/Provider/Store or numerical release ACK.
     projectTasks = undefined;
     projectProfile?.retire(projectRuntime);
+    if (project !== undefined) retireInstalledProjectConfiguration(project, projectRuntime);
     projectProfile = undefined;
     projectRuntime = undefined;
     project = undefined;
@@ -3407,9 +3409,9 @@ export async function connectEmbeddedLocal(options) {
   const projectDirectory = process.cwd();
   const moon = await import(runtimeUrl.href);
   const project = await loadInstalledProjectConfiguration(moon, {directory: projectDirectory});
-  const projectProfile = selectInstalledProjectProfile(moon, project, requestedProfile, 65536);
-  let adopted = false;
+  let projectProfile, adopted = false;
   try {
+  projectProfile = selectInstalledProjectProfile(moon, project, requestedProfile, 65536);
   const selectedProfile = projectProfile.originalsForRuntime(moon);
   if (selectedProfile.selected !== undefined) {
     // The original choice is admitted, but this Host has no installed mock
@@ -3448,6 +3450,9 @@ export async function connectEmbeddedLocal(options) {
   } finally {
     // A reused Host already retains its own original selection. A partial new
     // Host, however, keeps this same view until its existing shutdown finishes.
-    if (!adopted) projectProfile.retire(moon);
+    if (!adopted) {
+      projectProfile?.retire(moon);
+      if (project !== undefined) retireInstalledProjectConfiguration(project, moon);
+    }
   }
 }
