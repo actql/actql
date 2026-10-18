@@ -6932,6 +6932,96 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "gcs_object_mutation_mapping_json"
+          ],
+          "exports": [],
+          "attributes": {
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping.mbt",
+                "anchor": "binding.catalog_cid"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-delete-common-capture.test.mjs",
+                "anchor": "actual binding and same Mapping must have exact correspondence"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "private `gcsObjectMutationMappingJson` Node bridge"
+              }
+            ],
+            "responsibility": [
+              {
+                "path": "src/connectors/gcs/host_node/object.mbt",
+                "anchor": "Same provider Mapping owner"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "exact Mapping admitted by Common"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure synchronous typed DATA forward into the existing bounded portable Mapping owner. The separate actual child/capture owners retain await/current/read/cleanup responsibility; this bridge starts no work or callback."
+            },
+            "cancellation": {
+              "notApplicable": "No reservation, new physical operation or cancellation Owner is created. Existing child/Host/Store retain their original duties; a DATA result is not physical acknowledgement."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub(all) enum ObjectUploadDeclarationIssue"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping.mbt",
+                "anchor": "Err(InvalidDeclaration)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/gcs/host_node/object.mbt",
+                "anchor": "max_bytes : Int"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "they are not a physical reservation or funded phase"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/gcs/test/gcs-delete-common-capture.test.mjs",
+                "anchor": "actual Common captures same GCS DELETE child"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-delete-common-capture.test.mjs",
+                "anchor": "actual Common refuses a substituted GCS request target"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_mutation_mapping_json"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping.mbt",
+                "anchor": "pub fn object_mutation_mapping_json"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "does not authenticate an installation"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-delete-common-capture.test.mjs",
+                "anchor": "same original child must supply before"
+              }
+            ]
+          }
         }
       ],
       "operations": [
@@ -6992,6 +7082,10 @@
           "declaration": "gcs_object_mutation_kind ( binding : @ catalog . ObjectMutationBinding , ) - > String"
         },
         {
+          "name": "gcs_object_mutation_mapping_json",
+          "declaration": "gcs_object_mutation_mapping_json ( binding : @ catalog . ObjectMutationBinding , declared_wire : String , connector_id : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ catalog . ObjectUploadDeclarationIssue ]"
+        },
+        {
           "name": "gcs_object_patch_effect_target",
           "declaration": "gcs_object_patch_effect_target ( binding : @ catalog . ObjectMutationBinding , request : @ catalog . ObjectMutationRequest , max_bytes : Int , ) - > Result [ String , GcsFailure ]"
         },
@@ -7041,7 +7135,7 @@
         }
       ],
       "exports": [],
-      "sha256": "50b061ce6f34bfd5336e0f6bc504d8953754659f25437302d84c20505a7ee3d2"
+      "sha256": "198047e70604d1014ddd91a4e3491f69dc5cf1cbb34c0c069bf1e50a399b5ebe"
     },
     {
       "module": "src/connectors/gcs/host_node/original_reference.mbt",
@@ -8363,6 +8457,98 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "gcs_object_mutation_mapping_json"
+          ],
+          "exports": [
+            "pub fn gcs_object_mutation_mapping_json(@catalog.ObjectMutationBinding, String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]"
+          ],
+          "attributes": {
+            "identity": [
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping.mbt",
+                "anchor": "binding.catalog_cid"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-delete-common-capture.test.mjs",
+                "anchor": "actual binding and same Mapping must have exact correspondence"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "private `gcsObjectMutationMappingJson` Node bridge"
+              }
+            ],
+            "responsibility": [
+              {
+                "path": "src/connectors/gcs/host_node/object.mbt",
+                "anchor": "Same provider Mapping owner"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "exact Mapping admitted by Common"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure synchronous typed DATA forward into the existing bounded portable Mapping owner. The separate actual child/capture owners retain await/current/read/cleanup responsibility; this bridge starts no work or callback."
+            },
+            "cancellation": {
+              "notApplicable": "No reservation, new physical operation or cancellation Owner is created. Existing child/Host/Store retain their original duties; a DATA result is not physical acknowledgement."
+            },
+            "failure": [
+              {
+                "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
+                "anchor": "pub(all) enum ObjectUploadDeclarationIssue"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping.mbt",
+                "anchor": "Err(InvalidDeclaration)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/gcs/host_node/object.mbt",
+                "anchor": "max_bytes : Int"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "they are not a physical reservation or funded phase"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/gcs/test/gcs-delete-common-capture.test.mjs",
+                "anchor": "actual Common captures same GCS DELETE child"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-delete-common-capture.test.mjs",
+                "anchor": "actual Common refuses a substituted GCS request target"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_object_mutation_mapping_json"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/object_mutation_mapping.mbt",
+                "anchor": "pub fn object_mutation_mapping_json"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "does not authenticate an installation"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-delete-common-capture.test.mjs",
+                "anchor": "same original child must supply before"
+              }
+            ]
+          }
         }
       ],
       "exports": [
@@ -8398,6 +8584,7 @@
         "pub fn gcs_object_metadata_path(@catalog.ObjectMutationBinding, String) -> Result[String, GcsFailure]",
         "pub fn gcs_object_mutation_binding(String, String, String, String, String, String, Array[String], Int, Int, Int, Int, Int, Int, Int) -> Result[@catalog.ObjectMutationBinding, GcsFailure]",
         "pub fn gcs_object_mutation_kind(@catalog.ObjectMutationBinding) -> String",
+        "pub fn gcs_object_mutation_mapping_json(@catalog.ObjectMutationBinding, String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]",
         "pub fn gcs_object_patch_effect_target(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]",
         "pub fn gcs_object_prepare_delete(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
         "pub fn gcs_object_prepare_effect_patch(@catalog.ObjectMutationBinding, @catalog.ObjectMetadata, Bytes, String) -> Result[@catalog.ObjectMutationRequest, GcsFailure]",
@@ -8558,6 +8745,10 @@
           "declaration": "pub fn gcs_object_mutation_kind(@catalog.ObjectMutationBinding) -> String"
         },
         {
+          "name": "gcs_object_mutation_mapping_json",
+          "declaration": "pub fn gcs_object_mutation_mapping_json(@catalog.ObjectMutationBinding, String, String, Int, Int, Int) -> Result[String, @catalog.ObjectUploadDeclarationIssue]"
+        },
+        {
           "name": "gcs_object_patch_effect_target",
           "declaration": "pub fn gcs_object_patch_effect_target(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]"
         },
@@ -8670,7 +8861,7 @@
           "declaration": "pub fn gcs_upload_target_observation(@catalog.ObjectUploadBinding, String, Int, Bytes, Array[(String, String)]) -> Result[@catalog.ObjectUploadObservation, @catalog.ObjectUploadIssue]"
         }
       ],
-      "sha256": "98a0099750b7889853299c88bd5a3643e6f5c496004e19a90f7413257b1e036a"
+      "sha256": "768c9e05bfef02556f22d6f166f61fb783bb2405ca78870d00616a3d962df3a6"
     },
     {
       "module": "src/connectors/gcs/host_node/upload.mbt",
