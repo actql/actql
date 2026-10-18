@@ -115,6 +115,8 @@ pub fn record_create_request_values_json(RecordCreateRequest, Int, Int, Int) -> 
 
 pub fn record_create_required_fields(FormFieldCatalog, Int, Int) -> Result[Array[String], RecordWriteIssue]
 
+pub fn record_delete_acknowledgement_is_original(RecordDeleteAcknowledgement) -> Bool
+
 pub fn record_delete_acknowledgement_request(RecordDeleteAcknowledgement) -> RecordDeleteRequest
 
 pub fn record_delete_observation_body(RecordDeleteRequest, Int, Int, Int, Int) -> Result[String, RecordMutationIssue]
@@ -124,6 +126,8 @@ pub fn record_delete_request_app_id(RecordDeleteRequest) -> String
 pub fn record_delete_request_body(RecordDeleteRequest) -> String
 
 pub fn record_delete_request_count(RecordDeleteRequest) -> Int
+
+pub fn record_delete_request_is_original(RecordDeleteRequest) -> Bool
 
 pub fn record_delete_request_targets(RecordDeleteRequest) -> Array[OriginalRecordTarget]
 

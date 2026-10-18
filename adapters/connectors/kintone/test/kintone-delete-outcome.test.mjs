@@ -99,6 +99,7 @@ test('DELETE projection refuses copied native request response and Mapping and m
   assert.throws(() => f.project({moon: {...moon, clientProgramKintoneDeletePreviewOutcome: undefined}}),
     {code: 'KintoneDeleteOutcomeRuntimeUnavailable'});
   assert.throws(() => f.project({limits: {...limits, maxValueNodes: 0}}), {code: 'InvalidKintoneDeleteOutcome'});
+  assert.throws(() => f.project({limits: {...limits, maxRequestBytes: 1}}), {code: 'InvalidKintoneDeleteOutcome'});
 });
 
 test('mapped DELETE retains real original Account Site response custody and raw batch semantics', async t => {

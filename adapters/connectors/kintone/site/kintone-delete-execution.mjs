@@ -34,7 +34,8 @@ export function projectMappedKintoneDeleteOutcome({moon, mapping, declaration,
   const names = ['clientProgramKintoneDeletePreviewOutcome',
     'clientProgramKintoneDeletePreviewOutcomeWire', 'clientProgramKintoneDeletePreviewOutcomeRowCid',
     'clientProgramKintoneDeletePreviewOutcomeResponseSha256', 'clientProgramKintoneDeletePreviewOutcomeMatches',
-    'clientProgramKintoneValueLimits', 'clientProgramKintoneMutationLimits'];
+    'clientProgramKintoneValueLimits', 'clientProgramKintoneMutationLimits',
+    'clientProgramKintoneDeleteBody'];
   if (names.some(name => typeof moon?.[name] !== 'function')) {
     fail('KintoneDeleteOutcomeRuntimeUnavailable');
   }
@@ -44,6 +45,9 @@ export function projectMappedKintoneDeleteOutcome({moon, mapping, declaration,
         'maxIdentityBytes', 'maxComparisonWork', 'maxColumns', 'maxNameUnits',
         'maxValueNodes', 'maxValueDepth', 'maxValueTextBytes']
         .every(name => positive(limits?.[name]))) fail('InvalidKintoneDeleteOutcome');
+  if (Buffer.byteLength(moon.clientProgramKintoneDeleteBody(request)) > limits.maxRequestBytes) {
+    fail('InvalidKintoneDeleteOutcome');
+  }
   const values = moon.clientProgramKintoneValueLimits(limits.maxColumns, limits.maxNameUnits,
     limits.maxValueNodes, limits.maxValueDepth, limits.maxValueTextBytes);
   const bounds = moon.clientProgramKintoneMutationLimits(limits.maxRows,
