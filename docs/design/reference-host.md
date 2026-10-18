@@ -218,6 +218,15 @@ bootstrap bodies, nested export referents, stock resolution and fixed asset
 reads still need their independent selected-domain correspondence; this cache
 handoff alone is neither a complete loader proof nor an operational issuer.
 
+Fixed control assets are projected from that same selected immutable Source
+holding through the private nominal installation port. It checks the original
+scope, five references and currentness before and after the captured supplier
+callback, returning only its original String. It neither rereads a path nor
+parses, reconstructs or authenticates new DATA. An unavailable asset stays
+unavailable; callers cannot substitute a file, receiver, Promise or matching
+digest. Scope retirement does not collect escaped Strings or acknowledge the
+separate module/image holding.
+
 This admission has no conversion to metadata HTTP, Source, Result, business Run,
 Model invocation, Content/driver or external-VM capacity or authority. Their
 existing Resource suppliers and current authorization remain separate. The
