@@ -17,15 +17,21 @@ extern "C" fn crypto_component_load_ffi(
 
 ///|
 #borrow(component)
-extern "C" fn crypto_component_ready_ffi(component : OriginalCryptoComponent) -> Bool = "actql_native_crypto_component_ready"
+extern "C" fn crypto_component_ready_ffi(
+  component : OriginalCryptoComponent,
+) -> Bool = "actql_native_crypto_component_ready"
 
 ///|
 #borrow(component)
-extern "C" fn crypto_component_close_ffi(component : OriginalCryptoComponent) -> Int = "actql_native_crypto_component_close"
+extern "C" fn crypto_component_close_ffi(
+  component : OriginalCryptoComponent,
+) -> Int = "actql_native_crypto_component_close"
 
 ///|
 #borrow(component)
-extern "C" fn crypto_component_library_ffi(component : OriginalCryptoComponent) -> Library = "actql_native_crypto_component_library"
+extern "C" fn crypto_component_library_ffi(
+  component : OriginalCryptoComponent,
+) -> Library = "actql_native_crypto_component_library"
 
 ///|
 /// Requires the selected scoped runtime and an already admitted original Read
@@ -37,20 +43,35 @@ pub fn load_current_crypto_component(
   diagnostic_ceiling : Int,
 ) -> Result[NativeCryptoComponentAcquisition, NativeSignatureIssue] {
   let encoded = @utf8.encode(path)
-  if encoded.length() == 0 || encoded.length() > 4096 ||
-    encoded.any(byte => byte == 0) || heap_bytes <= 0 || diagnostic_ceiling <= 0 {
+  if encoded.length() == 0 ||
+    encoded.length() > 4096 ||
+    heap_bytes <= 0 ||
+    diagnostic_ceiling <= 0 {
     return Err(InvalidInput)
+  }
+  for byte in encoded {
+    if byte == 0 {
+      return Err(InvalidInput)
+    }
   }
   if !crypto_scope_available_ffi() {
     return Err(LibraryLoad("original scoped Crypto provider unavailable"))
   }
   let original = crypto_component_load_ffi(
-    encoded, encoded.length(), heap_bytes, diagnostic_ceiling,
+    encoded,
+    encoded.length(),
+    heap_bytes,
+    diagnostic_ceiling,
   )
   if crypto_component_ready_ffi(original) {
     Ok(ReadyCryptoComponent(original))
   } else {
-    Ok(PendingCryptoComponent(original, LibraryLoad("original Crypto component initialization failed")))
+    Ok(
+      PendingCryptoComponent(
+        original,
+        LibraryLoad("original Crypto component initialization failed"),
+      ),
+    )
   }
 }
 
@@ -67,7 +88,12 @@ pub fn OriginalCryptoComponent::new_library(
   if library_ready_ffi(library) {
     Ok(ReadyCryptoLibrary(library))
   } else {
-    Ok(PendingCryptoLibrary(library, LibraryLoad("original Crypto Library initialization failed")))
+    Ok(
+      PendingCryptoLibrary(
+        library,
+        LibraryLoad("original Crypto Library initialization failed"),
+      ),
+    )
   }
 }
 
