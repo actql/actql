@@ -2678,6 +2678,18 @@ pub fn client_project_configuration_selected_profile(@run_publication_host.Clien
 
 pub fn client_project_configuration_state_directory(@run_publication_host.ClientProjectConfiguration) -> String
 
+pub fn client_project_connections_admit(String) -> Result[@run_publication_host.ClientProjectConnections, @run_publication_host.ClientProjectBindingsIssue]
+
+pub fn client_project_connections_connector(@run_publication_host.ClientProjectConnections, Int) -> String?
+
+pub fn client_project_connections_count(@run_publication_host.ClientProjectConnections) -> Int
+
+pub fn client_project_connections_entry_original_json(@run_publication_host.ClientProjectConnections, Int) -> String?
+
+pub fn client_project_connections_name(@run_publication_host.ClientProjectConnections, Int) -> String?
+
+pub fn client_project_connections_original_wire(@run_publication_host.ClientProjectConnections) -> String
+
 pub fn client_project_model_registry_admit(String) -> Result[@run_publication_host.ClientProjectModelRegistry, @run_publication_host.ClientProjectBindingsIssue]
 
 pub fn client_project_model_registry_default_provider(@run_publication_host.ClientProjectModelRegistry) -> String?
