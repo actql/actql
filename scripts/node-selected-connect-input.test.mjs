@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {compileFunction} from 'node:vm';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {parse} from 'acorn';
 
@@ -23,8 +25,31 @@ const unused = () => assert.fail('UnexpectedUnselectedRoute');
 test('ordinary public bootstrap dependency precedes SDK initialization', () => {
   const imports = tree.body.filter(node => node.type === 'ImportDeclaration');
   assert.equal(imports[0].source.value, './initial-control-public-dispatch.cjs');
-  const sdk = imports.findIndex(node => node.source.value === '@actql/sdk');
-  assert.ok(sdk > 0);
+  assert.equal(imports.some(node => node.source.value === '@actql/sdk'), false);
+  assert.equal(tree.body.some(node => node.type === 'ExportNamedDeclaration' &&
+    node.source?.value === '@actql/sdk'), false);
+  assert.equal(tree.body.some(node => node.type === 'ExportAllDeclaration'), false);
+  const load = tree.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => value.id.type === 'ObjectPattern' &&
+      value.id.properties.some(property => property.key.name === 'connect')));
+  assert.ok(load);
+  assert.match(source.slice(load.start, load.end), /createRequire\(import\.meta\.url\)\('@actql\/sdk'\)/u);
+});
+
+test('public Node synchronous SDK load preserves original ESM classes and Remote refusal', () => {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e', `
+    import assert from 'node:assert/strict';
+    const node = await import('./packages/node/index.mjs');
+    const sdk = await import('./packages/sdk/index.mjs');
+    assert.equal(node.ClientError, sdk.ClientError);
+    assert.equal(node.RequestHeld, sdk.RequestHeld);
+    await assert.rejects(node.connect({mode:'remote',endpoint:'not-an-origin',token:'fixture'}),
+      error => error instanceof sdk.ClientError && error.code === 'InvalidConnectionEndpoint');
+  `], {cwd: root, encoding: 'utf8', timeout: 10000});
+  assert.equal(result.error, undefined);
+  assert.equal(result.signal, null);
+  assert.equal(result.status, 0, result.stderr);
 });
 
 test('selected public connect forwards the exact raw input before any facade observation or copy', async () => {
