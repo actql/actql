@@ -35,6 +35,9 @@ it cannot create an acquisition, replace its Ledger or choose a new Job on loss.
   resend. A RUNNING Job followed by a refused GET remains Unknown; socket close
   alone does not prove remote Job termination. Cleanup failure retains the
   original RowRun borrower and its registered cleanup responsibility.
+  Any JavaScript rejection value, including `undefined`, remains a failure.
+  Its original reason is retained separately from send, recording and cleanup
+  failures; no callback is required to reject with an `Error` object.
 - Cancellation: abort interrupts the original local exchange and preserves its
   uncertainty. It does not cancel the remote Job, settle business outcomes or
   allow another POST. Processing and transport closure must both finish before

@@ -82,6 +82,8 @@ export async function readBigQuerySqlApi({moon, prepared, rowRun, job, limits,
   let firstOperationEntered = false, firstOperationOpen = false, firstSendEntered = false;
   let firstSendPromise;
   let transportLost = false, recordingFailure, lastObservation, lastExchange, failure, result;
+  let failed = false, recordingFailed = false, sendFailed = false, sendFailure;
+  let cleanupFailed = false, cleanupFailure;
   try {
     signal?.throwIfAborted();
     await verifyRead();
@@ -128,7 +130,7 @@ export async function readBigQuerySqlApi({moon, prepared, rowRun, job, limits,
       } catch (error) {
         transportLost = true;
         try { checked(moon.clientProgramBigQueryRecordResponseLoss(jobRead, request)); }
-        catch (secondary) { recordingFailure = secondary; }
+        catch (secondary) { recordingFailed = true; recordingFailure = secondary; }
         throw error;
       }
       lastObservation = response;
@@ -142,7 +144,7 @@ export async function readBigQuerySqlApi({moon, prepared, rowRun, job, limits,
       try { decoded = decodeResponse(response, bounds.maxBytes); }
       catch (error) {
         try { checked(moon.clientProgramBigQueryRecordDecoderRefusal(jobRead, ticket)); }
-        catch (secondary) { recordingFailure = secondary; }
+        catch (secondary) { recordingFailed = true; recordingFailure = secondary; }
         throw error;
       }
       decodedBytes += BigInt(decoded.byteLength);
@@ -162,6 +164,7 @@ export async function readBigQuerySqlApi({moon, prepared, rowRun, job, limits,
         }
         firstOperationEntered = firstOperationOpen = true;
         let originalOperationFailure;
+        let originalOperationFailed = false;
         try {
           await withOriginalJob(Object.freeze({jobRead, request, record, wire, frame}), () => {
             if (!firstOperationOpen || firstSendEntered) fail('BigQueryOriginalJobAlreadyAttempted');
@@ -177,13 +180,20 @@ export async function readBigQuerySqlApi({moon, prepared, rowRun, job, limits,
             void firstSendPromise.catch(() => {});
             return firstSendPromise;
           });
-        } catch (error) { originalOperationFailure = error; }
+        } catch (error) { originalOperationFailed = true; originalOperationFailure = error; }
         finally { firstOperationOpen = false; }
         if (firstSendPromise !== undefined) {
           try { await firstSendPromise; }
-          catch (error) { originalOperationFailure ??= error; }
+          catch (error) {
+            sendFailed = true;
+            sendFailure = error;
+            if (!originalOperationFailed) {
+              originalOperationFailed = true;
+              originalOperationFailure = error;
+            }
+          }
         }
-        if (originalOperationFailure !== undefined) throw originalOperationFailure;
+        if (originalOperationFailed) throw originalOperationFailure;
         if (!firstSendEntered) fail('BigQueryOriginalJobUnresolved');
       } else {
         await send(request);
@@ -197,6 +207,9 @@ export async function readBigQuerySqlApi({moon, prepared, rowRun, job, limits,
       location: runtimeField(original, 2), pages: runtimeField(usage, 0), rows: runtimeField(usage, 1),
       exchanges, wireBytes, decodedBytes, lastExchange});
   } catch (error) {
+    // Any JavaScript value, including undefined, is a legitimate rejection.
+    // Presence must not depend on its value or replace it after another await.
+    failed = true;
     failure = error;
     if (read !== undefined) moon.clientProgramBigQueryInterruptRead(read);
   }
@@ -210,20 +223,28 @@ export async function readBigQuerySqlApi({moon, prepared, rowRun, job, limits,
       if (binding !== undefined) stopped = closeHttpsCredentialBinding(binding) === 'closed';
       if (read !== undefined) checked(moon.clientProgramBigQueryRetireReadBorrow(read));
     }
-  } catch (cleanupFailure) {
-    failure = Object.assign(new Error(failure?.code ?? 'BigQueryReadCleanupPending',
-      {cause: failure ?? cleanupFailure}), {code: failure?.code ?? 'BigQueryReadCleanupPending', cleanupFailure});
+  } catch (error) {
+    cleanupFailed = true;
+    cleanupFailure = error;
+    if (!failed) {
+      failed = true;
+      failure = Object.assign(new Error('BigQueryReadCleanupPending', {cause: error}),
+        {code: 'BigQueryReadCleanupPending'});
+    }
   }
-  if (!stopped && failure === undefined) {
+  if (!stopped && !failed) {
+    failed = true;
     failure = Object.assign(new Error('BigQueryReadCleanupPending'), {code: 'BigQueryReadCleanupPending'});
   }
-  if (failure !== undefined) {
+  if (failed) {
     const remoteDone = jobRead !== undefined && moon.clientProgramBigQueryJobRemoteDone(jobRead);
     const outcome = !stopped || transportLost || firstOperationEntered && !firstSendEntered ||
       attempted !== 0 && !remoteDone ? 'unknown' : attempted === 0 ? 'not_started' : 'stopped';
     const error = new AcquisitionOpenError(failure, outcome);
     if (lastObservation !== undefined) Object.defineProperty(error, 'observation', {value: lastObservation});
-    if (recordingFailure !== undefined) Object.defineProperty(error, 'recordingFailure', {value: recordingFailure});
+    if (recordingFailed) Object.defineProperty(error, 'recordingFailure', {value: recordingFailure});
+    if (sendFailed) Object.defineProperty(error, 'sendFailure', {value: sendFailure});
+    if (cleanupFailed) Object.defineProperty(error, 'cleanupFailure', {value: cleanupFailure});
     if (jobRead !== undefined) {
       const original = moon.clientProgramBigQueryJobOriginal(jobRead);
       error.originalJob = Object.freeze({project: runtimeField(original, 0),

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {bigqueryHttpsFixture, jobBody} from './bigquery-https.fixture.mjs';
+import {bigqueryHttpsFixture} from './bigquery-https.fixture.mjs';
 
 test('a rejected undefined preflight is a real failure rather than fulfilled undefined', async t => {
   const f = await bigqueryHttpsFixture(t);
