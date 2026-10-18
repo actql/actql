@@ -9,6 +9,8 @@
 #include <string.h>
 #include <unistd.h>
 extern int actql_read_context_create(actql_owned_capacity *, actql_read_context **);
+extern int actql_read_context_retain(actql_read_context *);
+extern int actql_read_context_release_after_owner_ack(actql_read_context *);
 extern int actql_read_context_enter(actql_read_context *);
 extern int actql_read_context_leave(actql_read_context *);
 extern int actql_read_context_try_close(actql_read_context **);
@@ -44,6 +46,7 @@ int main(int argc, char **argv) {
     assert(actql_native_owned_transfer(lease, 1, recipe) == 0);
     assert(actql_native_owned_enter(lease) == 0);
     assert(actql_read_context_create(lease, &context) == 0);
+    assert(actql_read_context_retain(context) == 0);
     assert(actql_read_context_enter(context) == 0);
     if (!strcmp(name, "missing-current")) {
         assert(actql_read_context_leave(context) == 0);
@@ -98,6 +101,7 @@ int main(int argc, char **argv) {
     assert(before_malloc == after_malloc && before_realloc == after_realloc && before_free == after_free);
     assert(actql_read_context_leave(context) == 0);
     assert(actql_native_owned_leave(lease) == 0);
+    assert(actql_read_context_release_after_owner_ack(context) == 0);
     assert(actql_read_context_try_close(&context) == 0 && !context);
     assert(actql_native_owned_try_close(&lease) == 0 && !lease);
     assert(dlclose(system) == 0);

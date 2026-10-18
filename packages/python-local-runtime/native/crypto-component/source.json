@@ -30,8 +30,8 @@
       "sha256": "b9f30cf5ef0cfcd3fc60d7ce9bd7fe65ba8de925629a730df7b3ad2ae364f40a"
     },
     "fixtures/conformance.c": {
-      "bytes": 6045,
-      "sha256": "ffec396ad641ef2a7572495909001f757e4dbb89f15d6bf8ebd1e126456d9bf6"
+      "bytes": 6305,
+      "sha256": "70e0bb7eadb9282e3595c5b218d1668b67f3192cc58bd7f6e213a71bdefcb2ef"
     }
   },
   "isolation": [
