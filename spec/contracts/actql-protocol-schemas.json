@@ -17119,7 +17119,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:91849cecfa9c98be1bd43feea4072d21e9347b9a63977f086e0710713eaef277",
+  "artifact_registry_cid": "sha256:8eafaa1fb7f80b59721c06f2a1003d3f61b6808e8a6f4ba8bc709cb8a807e3e5",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -17194,7 +17194,8 @@
     "model_journal_entry": "sha256:2be8611d08d277590783ff06299130c78170eb4de49b4d76d67a940d0e3fccb7",
     "model_journal_settlement": "sha256:e5739efb68a1d6059c5d9c58cd74eabbc8ca28c071e81c2b1984d26e5125161b",
     "openai_chat_prompt": "sha256:c785e9b1efaefbf6a0c74c52bc103dd2e67eb774a9c2f860642007bce1e81a9a",
-    "explanation": "sha256:785c6c2f4ae5ab75803f6316fee6eaf00c4010857020960633c7b40b4fb52d8c"
+    "explanation": "sha256:785c6c2f4ae5ab75803f6316fee6eaf00c4010857020960633c7b40b4fb52d8c",
+    "installation_publication_storage_binding": "sha256:99aa1c53014df8cb2bbaeef9768d461d55a7fcf0e765f8cc1d7c0ee496565b0d"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -102575,6 +102576,41 @@
           }
         }
       ]
+    },
+    "installation_publication_storage_binding": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-installation-publication-storage-binding-0.1.json",
+      "title": "actql-installation-publication-storage-binding-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key_generation_cid",
+        "private_namespace",
+        "store_authority_cid",
+        "store_contract_wire",
+        "version"
+      ],
+      "properties": {
+        "key_generation_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "private_namespace": {
+          "const": "publication-private"
+        },
+        "store_authority_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "store_contract_wire": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "const": "actql-installation-publication-storage-binding/0.1"
+        }
+      },
+      "$comment": "Byte-addressed DATA, no self CID. Common checks the exact existing Store contract serialization against store_authority_cid. Physical original membership, authenticated installation generation, metadata capture and funding remain independent."
     }
   }
 }

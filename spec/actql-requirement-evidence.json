@@ -18505,6 +18505,50 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.run/installation-publication-storage.closed-data",
+      "statement_sha256": "12aae82e76ce4835527d0ec6885bb802271757c760dba25b42eb9910aabd8e48",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "installation-publication-storage-association",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/installation-publication-storage.exact-store",
+      "statement_sha256": "84fdafd7cc24bf8e19571a8200064cc8e738adcd9354ceea1c36cdf314ff3d3b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "installation-publication-storage-association",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/installation-publication-storage.identity",
+      "statement_sha256": "711c3c259696bf839a8b8e75d9f1a0a3ac19c8c7d009b491e22c980388b0201a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "installation-publication-storage-association",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/installation-publication-storage.not-authority",
+      "statement_sha256": "57ea8c411cd1a37c5ef862b80904c8d82bd2ec90d8d3e2d127db3a1e9e97121e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "installation-publication-storage-association",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.run/resident-effect-resume-routing",
       "statement_sha256": "24b93cbcf8f588074a8655b0febac8a9a3ba3d09d7feb546ddde566553007bf2",
       "status": "pending",
