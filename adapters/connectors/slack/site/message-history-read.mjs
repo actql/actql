@@ -49,7 +49,7 @@ function prepareRead({moon, workspaceId, channel, names, initialAuthorization, c
   const context = ownInvocationContext({authorization:initialAuthorization,credential,limits,
     callbacks:{authorizationFor,current,chargeResponse,consumeObservation,consumePage}});
   if (providerExports.some(name=>typeof provider[name] !== 'function') ||
-      !limitFields.every(name=>positive(context.limits[name])) || context.limits.pageSize >= 1000 ||
+      !limitFields.every(name=>positive(context.limits[name])) || context.limits.pageSize > 1000 ||
       !context.credential.binding || typeof context.credential.binding !== 'object' ||
       workspaceId.length > context.limits.maxIdentityBytes || !workspaceId.isWellFormed() ||
       Buffer.byteLength(workspaceId) > context.limits.maxIdentityBytes ||

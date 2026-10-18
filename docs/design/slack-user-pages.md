@@ -254,3 +254,30 @@ the original `int64` column contract. The column is never promoted to Number,
 and a different frontend or cold read cannot reinterpret a lost raw integer.
 Original checked input, bounded RowRun capture and the same expression owner
 retain this correspondence; none issues a physical Source or Resource grant.
+
+
+## Original history transport
+
+The private history reader projects each HTTP channel/cursor/time argument from
+its original Common pending request. The captured provider callbacks retain
+their original receiver; provider replacement after a token await cannot change
+the protocol. Account and currentness are checked around every await, including
+identity observation and row consumption, before any next Common request is
+constructed. The same retained credential binding observes `auth.test` with a
+separate workspace-identity use; the history operation keeps its own grant/use.
+
+Each raw response is retained and charged before decoding. Identity consumes
+its non-row ticket before history starts. Each history page passes its exact
+ticket to the original RowRun consumer before a dependent request can be made;
+its last ticket is accounting, not evidence for an unrelated response prefix.
+Unknown transport outcomes remain with the original journal use, with no retry
+or replacement token. A terminal Catalog control does not prove complete
+thread acquisition, current physical Source publication, cleanup or funding.
+
+The live reader retains its method/callback receivers, workspace/channel/column
+Strings, immutable limits and authorization, Common history/request/page values,
+response envelopes and bodies, output wire and parsed rows, charge tokens,
+observations and failed-result aliases, cancellation signal and in-flight
+Promises together. Common closing and a closed transport do not acknowledge
+retirement of escaped aliases or return a ReaderLoan. The actual Host supplier
+must cover that simultaneous graph before this private reader is admitted.

@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {invokeScopedCredentialOperation} from '../../../host-common/owned-invocation-context.mjs';
+import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
 import {SlackMessageHistoryReadFailure,SLACK_MESSAGE_HISTORY_OPERATION} from '../site/message-history-read.mjs';
 import {messageHistoryFixture,messagePage} from './message-history-read.fixture.mjs';
 const path='/api/conversations.history?channel=C1&limit=10';
@@ -92,4 +94,41 @@ test('Slack history workspace mismatch cannot issue a history request',async t=>
   const f=await messageHistoryFixture(t);f.state.identity={ok:true,team_id:'T-foreign',user_id:'U'};
   await assert.rejects(f.create().read(),e=>e.cause.code==='ForeignSlackWorkspace'&&e.observations.length===1);
   assert.equal(f.state.requests.length,1);f.row.assertNoCapture();
+});
+
+
+test('Slack history lost response retains original Unknown use and refuses resend',async t=>{
+  const f=await messageHistoryFixture(t);
+  f.state.beforeResponse=request=>{if(request.url.startsWith('/api/conversations.history'))request.socket.destroy();};
+  const reader=f.create();await assert.rejects(reader.read(),e=>e.cause.code==='ECONNRESET');
+  const original=f.journal.recover().find(x=>x.outcome==='unknown');assert(original);
+  await assert.rejects(invokeScopedCredentialOperation({authorization:{grant:f.grant,scope:f.scope,useId:'history-0'},
+    credential:f.options.credential,callResource:callHttpsCredentialResource,operation:SLACK_MESSAGE_HISTORY_OPERATION,
+    method:'GET',path:'/api/conversations.history',query:[['channel','C1'],['limit','10']],
+    maxResponseBytes:f.options.limits.maxResponseBytes}),{code:'RemoteCredentialUseAlreadyClaimed'});
+  assert.equal(f.journal.inspect(original.useCid).outcome,'unknown');
+  assert.equal(f.state.requests.length,2);assert.equal(f.state.resolutions,2);f.row.assertNoCapture();
+});
+
+test('Slack history captures provider receivers callbacks selection and bounds before token awaits',async t=>{
+  const f=await messageHistoryFixture(t),source={...f.options.moon},moon={},limits={...f.options.limits},names=[...f.options.names];
+  for(const [name,method] of Object.entries(source)){
+    if(typeof method==='function')moon[name]=function(...args){assert.equal(this,moon);return Reflect.apply(method,source,args);};
+  }
+  const options={...f.options,moon,limits,names};
+  const reader=f.create(options);
+  f.state.resolved=()=>{moon.slackNextMessageHistoryRequest=()=>{throw new Error('replaced callback');};
+    options.channel='C-foreign';options.current=()=>{throw new Error('replaced current');};names[0]='foreign';limits.maxPages=1;};
+  assert.equal((await reader.read()).rowCount,2);f.row.finish();assert.equal(f.row.captureCount(),2);
+  const copy={...reader};await assert.rejects(copy.read(),{code:'ForeignSlackMessageHistoryReader'});
+  assert.throws(()=>copy.observe(),{code:'ForeignSlackMessageHistoryReader'});
+  assert.throws(()=>copy.requestStop(),{code:'ForeignSlackMessageHistoryReader'});
+});
+
+test('Slack history accepts an explicit maximum page size without making it a funding grant',async t=>{
+  const f=await messageHistoryFixture(t);
+  f.state.pages=[messagePage([{type:'message',ts:'1.000000',text:'single'}],null)];
+  assert.equal((await f.create({limits:{...f.options.limits,pageSize:1000}}).read()).rowCount,1);
+  assert.equal(f.state.requests[1].path,'/api/conversations.history?channel=C1&limit=1000');
+  f.row.finish();assert.equal(f.row.captureCount(),1);
 });
