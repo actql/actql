@@ -16,7 +16,9 @@ from actql_sdk._local_native_domain_custody import (
 from actql_sdk._local_native_host_resources import (
     _OriginalHostResourcesCustody, _OriginalHostResourcesFunctions, _OriginalHostResourcesError,
 )
-from actql_sdk._local_native_original_read import _OriginalParentReadCustody, _OriginalParentReadFunctions
+from actql_sdk._local_native_original_read import (
+    _OriginalParentReadCustody, _OriginalParentReadFunctions, _OriginalParentReadError,
+)
 from actql_sdk._local_native_sqlite import _OriginalSqliteCustody, _OriginalSqliteFunctions
 from actql_sdk._local_native_shim_abi import bind
 from actql_sdk._local_native_read_crypto import (
@@ -136,7 +138,15 @@ def main() -> None:
             step('separate Library acknowledgments retain the original component and parents')
         crypto.close()
         assert crypto._closed and not read._closed and not pair._closed and not host._closed
-        assert pair.current().operation == 2 and read.current().operation == 2
+        assert pair.current().operation == 2
+        # The original claim is consumed. Its old available-pair port must not
+        # become current again merely because one child has retired.
+        try:
+            read.current()
+            raise AssertionError('A spent available Read was reissued')
+        except _OriginalParentReadError as error:
+            assert not error.unknown and error.fact and error.fact.operation == 2
+            assert error.fact.issue_family == 11
         assert pair._phase == 'read' and read._scope_open
         before = capacity(host._original, 1)
         crypto.close()
