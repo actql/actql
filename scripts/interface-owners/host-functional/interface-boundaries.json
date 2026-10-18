@@ -30401,8 +30401,11 @@
     },
     {
       "module": "adapters/host-node/initial-control-phase-envelope.cjs",
-      "sha256": "63194191f743510e0b83d59797c4d4f0dd0b053e887114462cf909cd75ce7451",
-      "exports": [],
+      "sha256": "875480ac764e3e3f9b99f26bda478a8cea3a84e8a2fd4bb72d9afe4a84b4214b",
+      "exports": [
+        "commonjs:declareInitialControlPhaseEnvelope",
+        "commonjs:inspectInitialControlPhaseEnvelope"
+      ],
       "operations": [
         {
           "name": "declareInitialControlPhaseEnvelope",
@@ -30450,9 +30453,7 @@
       ],
       "imports": [],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "dynamic CommonJS export value"
-      ],
+      "unresolvedSyntax": [],
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing private Host/Resource selected initial-control lifetime; finite accounting DATA, not an issuer",
@@ -30467,7 +30468,10 @@
             "own/own",
             "unavailable/unavailable"
           ],
-          "exports": [],
+          "exports": [
+            "commonjs:declareInitialControlPhaseEnvelope",
+            "commonjs:inspectInitialControlPhaseEnvelope"
+          ],
           "attributes": {
             "responsibility": [
               {
