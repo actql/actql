@@ -98,3 +98,22 @@ test('the selected backend and every actual native library identity must corresp
   assert.throws(() => inspect(value, 1024), unavailable);
   assert.equal(reads, 0);
 });
+
+test('manifest alternatives charge the larger exact representation once, not raw bytes or two files', () => {
+  const value = inventory();
+  value.images = [{...file('package.json', 128), npmRelease: {bytes: 256}}];
+  const selected = inspect(value, 1024);
+  assert.equal(selected.images, 1); assert.equal(selected.sourceBytes, 256);
+  assert.equal(value.images[0].bytes, 128);
+  value.images[0].npmRelease.bytes = 64 * 1024 ** 2 + 1;
+  assert.throws(() => inspect(value, 1024), unavailable);
+  value.images[0] = {...file('original.cjs', 128), npmRelease: {bytes: 256}};
+  assert.throws(() => inspect(value, 1024), unavailable);
+});
+
+test('a release representation getter cannot be acquired as ordinary image DATA', () => {
+  const value = inventory(); let reads = 0;
+  value.images = [{...file('package.json', 128)}];
+  Object.defineProperty(value.images[0], 'npmRelease', {get() {reads++; return {bytes: 256};}});
+  assert.throws(() => inspect(value, 1024), unavailable); assert.equal(reads, 0);
+});
