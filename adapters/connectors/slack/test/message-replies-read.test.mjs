@@ -168,3 +168,26 @@ test('Slack replies original byte row page comparison and work limits remain fai
     assert.equal(f.state.requests.length,sends);assert(sends<=4);
   }
 });
+
+test('Slack replies cannot select an unconsumed page or a failed history original',async t=>{
+  let prepared=0;
+  const moon={...provider,slackPrepareMessageReplies(...args){
+    prepared++;return provider.slackPrepareMessageReplies(...args);
+  }};
+  const f=await messageHistoryFixture(t,{accounted:false});
+  f.state.pages=[messagePage([{type:'message',ts:'1.000001'}],null)];
+  let history,originalPage,current=true;
+  history=f.create({moon,chargeResponse:body=>Object.freeze({body}),consumeObservation:()=>{},
+    current:async()=>{await f.current();if(!current)throw Error('revoked after consumption');},
+    consumePage:(_rows,metadata)=>{
+      originalPage=metadata.originalPage;
+      assert.throws(()=>createSlackMessageRepliesReader({historyReader:history,originalPage,index:0}),
+        {code:'ForeignSlackMessageRepliesSelection'});
+      current=false;
+    }});
+  await assert.rejects(history.read(),e=>e.observations.length===2);
+  assert(originalPage);
+  assert.throws(()=>createSlackMessageRepliesReader({historyReader:history,originalPage,index:0}),
+    {code:'ForeignSlackMessageRepliesSelection'});
+  assert.equal(prepared,0);assert.equal(f.state.requests.length,2);
+});

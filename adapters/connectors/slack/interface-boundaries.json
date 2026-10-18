@@ -1784,7 +1784,7 @@
     },
     {
       "module": "adapters/connectors/slack/site/message-history-read.mjs",
-      "sha256": "0037c070eb340c3f15c7735324a8171c0aec8583ea278541ce2ddc305c87fdee",
+      "sha256": "2ad920a0bb6eeed0e4f340ea24f9d7b480c28529d3ac676098cfd243b3bc37f2",
       "exports": [
         "SLACK_MESSAGE_HISTORY_OPERATION",
         "SLACK_MESSAGE_REPLIES_OPERATION",
@@ -2196,6 +2196,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "### Original message reply pages"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "### Original message reply pages"
               }
             ],
             "inputsOutputs": [
@@ -2210,6 +2214,14 @@
               {
                 "path": "adapters/connectors/slack/site/message-history-read.mjs",
                 "anchor": "function ownColumnArray("
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "function prepareReplyRead("
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "async function executeReplyRead("
               },
               {
                 "path": "adapters/connectors/slack/site/message-history-read.mjs",
@@ -2240,6 +2252,14 @@
               {
                 "path": "adapters/connectors/slack/site/message-history-read.mjs",
                 "anchor": "context.scope.operation!==SLACK_MESSAGE_REPLIES_OPERATION"
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "source.pages.get(originalPage)"
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "context.scope.operation!==SLACK_MESSAGE_REPLIES_OPERATION"
               }
             ],
             "ownership": [
@@ -2250,6 +2270,14 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "The live reader retains"
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "const replyReaders = new WeakMap();"
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "const outcomes = new WeakMap();"
               },
               {
                 "path": "adapters/connectors/slack/site/message-history-read.mjs",
@@ -2279,6 +2307,14 @@
               },
               {
                 "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "retained.consumed=true;"
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "await context.callbacks.consumePage(rows,Object.freeze({charge,originalPage:retained.token}));"
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
                 "anchor": "await context.callbacks.consumePage(rows,Object.freeze({charge}));"
               },
               {
@@ -2298,6 +2334,10 @@
               {
                 "path": "adapters/connectors/slack/site/message-history-read.mjs",
                 "anchor": "throw new SlackMessageRepliesReadFailure(cause,observations);"
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "throw new SlackMessageRepliesReadFailure(cause,observations);"
               }
             ],
             "cancellation": [
@@ -2308,6 +2348,10 @@
               {
                 "path": "adapters/connectors/slack/test/message-history-read.test.mjs",
                 "anchor": "test('Slack history current and stop after page consumption prevent next Common request and send'"
+              },
+              {
+                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "anchor": "const signals=[stop.signal,original.source.prepared.signal];"
               },
               {
                 "path": "adapters/connectors/slack/site/message-history-read.mjs",
@@ -2326,6 +2370,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "Both controls retain full exchange records, including pending requests,"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "Both controls retain full exchange records, including pending requests,"
               }
             ],
             "extension": [
@@ -2336,6 +2384,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "Replies require their own"
+              },
+              {
+                "path": "docs/design/slack-user-pages.md",
+                "anchor": "Combining reply output with already captured history rows requires the original"
               },
               {
                 "path": "docs/design/slack-user-pages.md",
@@ -2398,6 +2450,42 @@
               {
                 "path": "adapters/connectors/slack/test/message-replies-read.test.mjs",
                 "anchor": "test('Slack replies original byte row page comparison and work limits remain fail closed'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-replies-read.test.mjs",
+                "anchor": "test('Slack replies actual original history selection retains prefix and distinct operation uses'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-replies-read.test.mjs",
+                "anchor": "test('Slack replies exact original lower time boundary never rounds nanoseconds'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-replies-read.test.mjs",
+                "anchor": "test('Slack replies reject copied foreign selection and credential before any dependent send'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-replies-read.test.mjs",
+                "anchor": "test('Slack replies current or stop after consumption prevents the next Common request and send'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-replies-read.test.mjs",
+                "anchor": "test('Slack replies retain malformed or unavailable terminal observations without completion or resend'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-replies-read.test.mjs",
+                "anchor": "test('Slack replies capture original provider receiver and columns before source or dependent awaits'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-replies-read.test.mjs",
+                "anchor": "test('Slack replies lost response retains the original Unknown use and cannot resend'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-replies-read.test.mjs",
+                "anchor": "test('Slack replies original byte row page comparison and work limits remain fail closed'"
+              },
+              {
+                "path": "adapters/connectors/slack/test/message-replies-read.test.mjs",
+                "anchor": "test('Slack replies cannot select an unconsumed page or a failed history original'"
               }
             ]
           }

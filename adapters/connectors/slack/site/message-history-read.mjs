@@ -20,6 +20,10 @@ const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2
 const arrayIsArray = Array.isArray, safeInteger = Number.isSafeInteger;
 const defineOwned = Object.defineProperty, freezeOwned = Object.freeze;
 
+function retainOutcome(value,state) {
+  if (value!==null && (typeof value==='object' || typeof value==='function')) outcomes.set(value,state);
+}
+
 // Capture each original indexed value once, including permitted index getters.
 // Caller methods, iterators and Array species never choose the retained fields.
 function ownColumnArray(value, maximum) {
@@ -222,8 +226,8 @@ export function createSlackMessageHistoryReader(options) {
         },identity=>{state.workspaceIdentity=identity;},exchange=>{
           state.exchanges.push(exchange);return exchange;
         });
-        state.phase = 'succeeded'; outcomes.set(result,state);return result;
-      } catch (cause) {state.phase = 'failed';outcomes.set(cause,state);throw cause;}
+        state.phase = 'succeeded';retainOutcome(result,state);return result;
+      } catch (cause) {state.phase = 'failed';retainOutcome(cause,state);throw cause;}
     },
     requestStop(reason) {originalReader(this).stop.abort(reason);},
     observe() {
@@ -384,8 +388,8 @@ export function createSlackMessageRepliesReader(options) {
         },control=>{state.control=control;},exchange=>{
           state.exchanges.push(exchange);return exchange;
         });
-        state.phase='succeeded';outcomes.set(result,state);return result;
-      } catch (cause) {state.phase='failed';outcomes.set(cause,state);throw cause;}
+        state.phase='succeeded';retainOutcome(result,state);return result;
+      } catch (cause) {state.phase='failed';retainOutcome(cause,state);throw cause;}
     },
     requestStop(reason) {originalReplyReader(this).stop.abort(reason);},
     observe() {
