@@ -184,3 +184,20 @@ test "CLI cold ordinary reopen restores the same initial public original without
   assert_eq(restored.public_key().unwrap().cid(), public_key)
   host.close().unwrap()
 }
+
+///|
+test "CLI initial signing Library has its explicit bounded diagnostic intake only when requested" {
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY").unwrap()
+  let ordinary = load_initial_signing_cli_crypto(path, false).unwrap()
+  assert_true(ordinary.diagnostic_ceiling() is None)
+  assert_true(ordinary.generate_ed25519_key_pair() is Err(InvalidInput))
+  ordinary.close_checked().unwrap()
+  let initial = load_initial_signing_cli_crypto(path, true).unwrap()
+  assert_eq(initial.diagnostic_ceiling(), Some(64))
+  let (private_key, public_key) = initial.generate_ed25519_key_pair().unwrap()
+  assert_true(private_key.length() == 119 && public_key.length() == 113)
+  let payload = b"initial-only Library binding"
+  let signed = initial.sign_ed25519(private_key, payload).unwrap()
+  assert_true(initial.verify_ed25519(public_key, payload, signed).unwrap())
+  initial.close_checked().unwrap()
+}
