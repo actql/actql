@@ -283,7 +283,8 @@ class _OriginalReadCryptoCustody(_OriginalReadCryptoSlots):
 
 class _OriginalReadCryptoLibrary(_OriginalReadCryptoSlots):
     """One Library or partial Library; its data aliases retire in original Read."""
-    __slots__ = ('_parent',)
+    __slots__ = ('_parent', '_adoption_original')
+    _adoption_original: Any
     _parent: _OriginalReadCryptoCustody
 
     @classmethod
@@ -293,6 +294,7 @@ class _OriginalReadCryptoLibrary(_OriginalReadCryptoSlots):
         value = cls.__new__(cls)
         value._initialize(parent._resources, parent._functions)
         value._parent = parent
+        value._adoption_original = None
         output = byref(value._reply)
         known: _OriginalReadCryptoError | None = None
         parent._resources._owner._enter()
@@ -344,6 +346,13 @@ class _OriginalReadCryptoLibrary(_OriginalReadCryptoSlots):
                     or self._library.value is None
                     or self._resources._read._crypto_original is not self._parent):
                 raise ValueError('Original Read Crypto Library is retired')
+            if operation == 4 and self._adoption_original is not None:
+                from ._local_native_adoption import _RETIRED_ADOPTION_DATA
+                if self._adoption_original is not _RETIRED_ADOPTION_DATA:
+                    pending = self._adoption_original
+                    if pending._unknown is not None:
+                        raise pending._unknown
+                    raise ValueError('Original adoption still borrows this Library')
             try:
                 self._drop()
                 originals = self._slots()[:-1]
