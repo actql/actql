@@ -1784,7 +1784,7 @@
     },
     {
       "module": "adapters/connectors/slack/site/message-history-read.mjs",
-      "sha256": "2ad920a0bb6eeed0e4f340ea24f9d7b480c28529d3ac676098cfd243b3bc37f2",
+      "sha256": "0761aedce1cf820e2e7d692ca245ce0aa74b650d763fbed30712b0b79468d197",
       "exports": [
         "SLACK_MESSAGE_HISTORY_OPERATION",
         "SLACK_MESSAGE_REPLIES_OPERATION",
@@ -2103,6 +2103,14 @@
           "async": false
         },
         {
+          "name": "retainOutcome",
+          "parameters": [
+            "value",
+            "state"
+          ],
+          "async": false
+        },
+        {
           "name": "SlackMessageHistoryReadFailure/constructor:constructor/constructor:constructor",
           "parameters": [
             "cause",
@@ -2175,6 +2183,7 @@
             "prepareReplyRead/prepareReplyRead",
             "prepareReplyRead/prepareReplyRead#2",
             "prepareReplyRead/prepareReplyRead#3",
+            "retainOutcome",
             "SlackMessageHistoryReadFailure/constructor:constructor/constructor:constructor",
             "SlackMessageRepliesReadFailure/constructor:constructor/constructor:constructor"
           ],
