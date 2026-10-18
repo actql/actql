@@ -11,8 +11,25 @@ fn create_outcome_preview(
   } else {
     original
   }
+  let after = "{\"state\":\"present\",\"value\":{\"Subject\":\"requested\",\"Tags\":[\"東京\",\"東京\"]}}"
+  let selected_after = if changed {
+    after.replace_all(old="requested", new="different")
+  } else {
+    after
+  }
+  let inventory = @publication.derive_effect_create_row_inventory(
+    [selected_after],
+    1,
+    16384,
+    2000,
+    24,
+  ).unwrap()
+  let issued_wire = wire.replace_all(
+    old="\"create-original-correlation\"",
+    new=inventory[0].1,
+  )
   let admitted = @publication.author_effect_preview_semantic_wire(
-    wire, "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    issued_wire, "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a", 16384,
     2000, 24,
   )
