@@ -391,6 +391,37 @@ reference retirement are neither zero cost, GC evidence nor physical ACK.
 
 ### Original project profile choice
 
+#### Original mock answer materials
+
+The existing Model Owner admits the selected `task`/`answers` document against
+the same original public Task declaration's output Contract. `default` and
+every `by_key` value, including unused entries, are checked under aggregate
+value node/text and document/work limits. Key labels remain exact data; this
+admission neither establishes input-key uniqueness nor selects an answer for a
+request. Empty declared answers remain empty, not an invented default. Equal
+Task identifiers, copied inventories and retired originals cannot replace the
+same declaration/inventory pair. Escaped checked values retain their own
+Contract references after inventory retirement.
+
+The private Node installation reader acquires only the original selected
+profile's named answer files and their registered Task files. Task locators
+are relative to the original registry; answer locators are relative to the
+original project configuration. The same captured runtime, project/profile
+pair and currentness callback survive each awaited read/close. Replacing a file
+does not rewrite a retained original. Read/close failure keeps the existing
+original-FD cleanup carrier and does not retry the read.
+
+All wires, source/decoded trees, typed default/entry values, exact key strings,
+project/profile/Task references, selection traversal, reader buffers and
+callback/view closures overlap until their original retirement. The Host funds
+that complete inventory independently; finite bounds are not funding. Managed
+retirement drops these aliases only, not escaped values, physical cleanup or
+capacity. Original file acquisition/admission is not installation of mock
+records, a Model invocation, policy/default resolution, a Provider grant,
+durable Run adoption or a supported complete mock execution profile. Existing
+unsupported Host profile entry points continue to refuse until those suppliers
+are connected.
+
 The same project configuration Owner selects an explicit profile override or
 the original project's default without changing either original. Selection
 retains the exact String and nominal configuration, including original absence.

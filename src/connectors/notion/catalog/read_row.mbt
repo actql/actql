@@ -224,9 +224,13 @@ pub fn complete_notion_read_row_property(
   column : Int,
   page : NotionPropertyItemPage,
 ) -> Result[Unit, NotionReadRowIssue] {
-  if !read_row_is_original(row) ||
-    !property_item_page_is_original(page) ||
-    !physical_equal(page.request.row, row.row) {
+  if !read_row_is_original(row) || !property_item_page_is_original(page) {
+    return Err(ForeignOriginal)
+  }
+  guard page.request.origin is QueryProperty(original_row, property) else {
+    return Err(ForeignOriginal)
+  }
+  if !physical_equal(original_row, row.row) {
     return Err(ForeignOriginal)
   }
   if column < 0 || column >= row.binding.columns.length() {
@@ -235,10 +239,7 @@ pub fn complete_notion_read_row_property(
   if row.complete is Some(_) || row.cells[column] is Some(_) {
     return Err(AlreadySupplied)
   }
-  if !physical_equal(
-      page.request.property.metadata,
-      row.binding.columns[column].property,
-    ) {
+  if !physical_equal(property.metadata, row.binding.columns[column].property) {
     return Err(ForeignOriginal)
   }
   if !read_row_spend(row, page.total_bytes) ||

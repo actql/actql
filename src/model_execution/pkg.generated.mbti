@@ -156,6 +156,14 @@ pub fn model_execution_sealing_observation(ModelExecution) -> Bool
 
 pub fn model_execution_unknown_calls(ModelExecution) -> Bool
 
+pub fn model_mock_answer_at(ModelMockAnswers, @check_environment.PublicModelTaskDeclaration, Int) -> Result[(String, @value_admission.CheckedValue)?, ModelMockAnswerIssue]
+
+pub fn model_mock_answer_count(ModelMockAnswers, @check_environment.PublicModelTaskDeclaration) -> Result[Int, ModelMockAnswerIssue]
+
+pub fn model_mock_answer_default(ModelMockAnswers, @check_environment.PublicModelTaskDeclaration) -> Result[@value_admission.CheckedValue?, ModelMockAnswerIssue]
+
+pub fn model_mock_answer_usage(ModelMockAnswers) -> (Int, Int, Int)
+
 pub fn model_observation_verification_matches(ModelObservationVerification, ModelExecution) -> Bool
 
 pub fn model_observation_verification_value(ModelObservationVerification) -> @run_publication.RunEvidenceValue?
@@ -256,6 +264,8 @@ pub fn project_native_decision_answers(NativeDecisionRequest, AdmittedModelProvi
 
 pub fn project_openai_chat_request(AdmittedModelProvider, ModelRequest, Int, Int, Int, Int, Int) -> Result[(String, String, String, String, String, String, String), OpenAIChatProjectionIssue]
 
+pub fn read_model_mock_answer_document(@check_environment.PublicModelTaskDeclaration, String, String, ModelMockAnswerLimits) -> Result[ModelMockAnswers, ModelMockAnswerIssue]
+
 pub fn read_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]
 
 pub fn read_verified_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Array[ModelAttemptRecords], @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]
@@ -285,6 +295,8 @@ pub fn retain_model_outcomes(ModelOutcomeRead) -> ModelOutcomeRead?
 pub fn retain_model_slot_replay(ModelSlotReplayRead) -> ModelSlotReplayRead?
 
 pub fn retain_verified_model_capture(VerifiedModelCapture) -> VerifiedModelCapture?
+
+pub fn retire_model_mock_answers(ModelMockAnswers, @check_environment.PublicModelTaskDeclaration) -> Result[Unit, ModelMockAnswerIssue]
 
 pub fn retire_native_decision_projection(NativeDecisionProjection) -> Unit
 
@@ -512,6 +524,27 @@ pub(all) struct ModelExecutionLimits {
   value_limits : @value_admission.Limits
   ledger : @physical_resources.LedgerLimits
 }
+
+pub(all) enum ModelMockAnswerIssue {
+  InvalidLimits
+  BodyLimit
+  WorkLimit
+  EntryLimit
+  InvalidBody
+  TaskIdentity
+  OutputValue
+  ForeignOriginal
+  Retired
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ModelMockAnswerLimits {
+  document : @check_environment.Limits
+  values : @value_admission.Limits
+  max_entries : Int
+  max_work : Int
+}
+
+type ModelMockAnswers
 
 pub(all) enum ModelObservation {
   Continue(Int64, Int64)
