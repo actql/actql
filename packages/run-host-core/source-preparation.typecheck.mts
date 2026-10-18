@@ -1,7 +1,7 @@
 import {prepareSourceProgram, prepareSourceRequest, admitSourceRequestFields,
   sourceProgramMaterialInput, sourceProgramOriginals, sourceProgramSourceInput,
   restoreSourceProgram, requestFields, compileTasks, compileEffect,
-  type CheckEnvironment, type SubmittedIntent} from './index.mjs';
+  type CheckEnvironment, type SubmittedIntent} from '@actql/run-host-core';
 declare const environment: CheckEnvironment;
 declare const original: SubmittedIntent;
 const selected = prepareSourceProgram(original, environment, '{}');
