@@ -37,7 +37,7 @@ export function repositoryOccurrences(directory = root) {
   // Scan tracked files and new nonignored files before git add as well.
   const paths = [...new Set(execFileSync('git', ['ls-files', '-z',
     '--cached', '--others', '--exclude-standard'], {cwd: directory,
-    encoding: 'utf8'}).split('\0').filter(Boolean))].sort();
+    encoding: 'utf8', maxBuffer: 16 * 1024 * 1024}).split('\0').filter(Boolean))].sort();
   return paths.flatMap(path => {
     if (path === inventoryPath) return [];
     let bytes;

@@ -3,7 +3,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdirSync, mkdtempSync, rmSync, writeFileSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import test from 'node:test';
-import {occurrences, repositoryOccurrences, violations} from
+import {occurrences, repositoryOccurrences, violations, checkRepository} from
   './check-owned-contract-versions.mjs';
 import {publicWireLanguageVectors} from './fixtures/public-wire-language-vectors.mjs';
 
@@ -140,4 +140,31 @@ test('project configuration malformed-version refusal registers exactly its orig
   assert.equal(violations(occurrences(source, 'src/run_publication_host/project-writer.mbt'), inventory).length, 1);
   assert.equal(violations(occurrences(source.replace('"{}", "[]", "null",', '"{}", "null", "[]",'), path), inventory).length, 1);
   assert(source.includes('admit_client_project_configuration(wire) is Err(InvalidConfiguration)'));
+});
+
+// NUL-delimited discovery must reach every original path, including names
+// after the child-process default output limit and paths not yet staged.
+test('complete repository scan checks tracked and unstaged paths beyond one MiB', t => {
+  const scratch = join(process.cwd(), '_build', 'version-gate-tests');
+  mkdirSync(scratch, {recursive: true});
+  const directory = mkdtempSync(join(scratch, 'wide-'));
+  t.after(() => rmSync(directory, {recursive: true, force: true}));
+  execFileSync('git', ['init', '-q', directory]);
+  const relative = join('a'.repeat(200), 'b'.repeat(200), 'c'.repeat(200));
+  mkdirSync(join(directory, relative), {recursive: true});
+  mkdirSync(join(directory, 'scripts'));
+  writeFileSync(join(directory, 'scripts/owned-contract-version-legacy.json'), JSON.stringify(empty));
+  const paths = Array.from({length: 1500}, (_, i) => join(relative,
+    String(i).padStart(4, '0') + '-' + 'n'.repeat(190) + '.mjs'));
+  for (const path of paths.slice(0, 750)) writeFileSync(join(directory, path), source(future));
+  execFileSync('git', ['add', '--', relative], {cwd: directory});
+  for (const path of paths.slice(750)) writeFileSync(join(directory, path), source(future));
+  const listed = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'],
+    {cwd: directory, maxBuffer: 16 * 1024 * 1024});
+  assert(listed.byteLength > 1024 * 1024);
+  assert.deepEqual(repositoryOccurrences(directory).map(value => value.path), paths);
+  assert.throws(() => checkRepository(directory), error =>
+    error.message.includes(paths[0]) && error.message.includes(paths.at(-1)));
+  for (const path of paths) writeFileSync(join(directory, path), source('0.1'));
+  assert.doesNotThrow(() => checkRepository(directory));
 });
