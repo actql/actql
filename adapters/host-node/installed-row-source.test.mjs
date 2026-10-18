@@ -466,11 +466,11 @@ test('shared issuer loading requires its original synchronous resolver before Jo
   commonMoon: moon, now: () => 1_700_000_000_000, grantLifetimeMs: 1000,
   openCredentialJournal(root, options) {opens++; return openSqliteCredentialJournal(root, options);}};
   const resolver = async () => 'test-only-secret';
-  for (const result of [undefined, {}, Promise.resolve(resolver),
-    Promise.reject(new Error('OriginalAsyncResolverFactoryFailure'))]) {
-    if (result instanceof Promise) void result.catch(() => {});
+  for (const prepareResolver of [() => undefined, () => ({}),
+    () => Promise.resolve(resolver),
+    () => Promise.reject(new Error('OriginalAsyncResolverFactoryFailure'))]) {
     await assert.rejects(loadRowSourceCredentialCustody(options,
-      {prepareResolver: () => result}), {code: 'InvalidRowSourceCredentialSite'});
+      {prepareResolver}), {code: 'InvalidRowSourceCredentialSite'});
     assert.equal(opens, 0);
   }
   const primary = Object.freeze(new Error('OriginalResolverFactoryFailure'));
