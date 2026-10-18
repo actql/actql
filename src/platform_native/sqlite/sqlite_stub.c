@@ -125,7 +125,13 @@ typedef struct {
   bool test_name_scan_refusal;
   actql_heap_wal_fn journal_inspection_observer;
   actql_heap_wal_fn journal_descriptor_ack;
+  bool journal_pin_close_unknown;
+  int journal_pin_descriptor;
 } actql_native_sqlite_database;
+
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+static bool actql_component_origin(const void *, void *);
+#endif
 
 static actql_heap_wal_fn actql_original_journal_wal_port(
   actql_native_sqlite_library *, const char *);
@@ -389,7 +395,11 @@ static void *actql_open_inspection_database(
     return database;
   }
   int flags = SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX;
-  if (journal_copy) flags |= SQLITE_OPEN_URI | SQLITE_OPEN_NOFOLLOW;
+  /* The pinned unix VFS opens DB/WAL/SHM with O_NOFOLLOW. Unlike the generic
+   * inspection route, SQLITE_OPEN_NOFOLLOW additionally rejects ancestor
+   * aliases such as the platform temporary directory; do not impose that
+   * unrelated restriction on the same original isolated copy. */
+  if (journal_copy) flags |= SQLITE_OPEN_URI;
   int code = library->open_v2(text, &database->database, flags, NULL);
   actql_adapter_free(library, text);
   if (code != SQLITE_OK) {
@@ -417,6 +427,7 @@ int32_t actql_native_sqlite_close_checked(
 ) {
   if (database == NULL) return 1;
   if (!actql_library_current(database->library)) return 0;
+  if (database->journal_pin_close_unknown) return 0;
   if (database->lookup_generation != 0) return 0;
   if (database->database == NULL) {
     actql_retire_result_storage(database);
@@ -484,7 +495,8 @@ static void actql_native_sqlite_database_finalize(void *value) {
   actql_native_sqlite_database *database = value;
   actql_native_sqlite_database_close(database);
   if (database->library != NULL && database->library->selected_component &&
-      (database->database != NULL || (database->journal_descriptor_ack != NULL &&
+      (database->database != NULL || database->journal_pin_close_unknown ||
+       (database->journal_descriptor_ack != NULL &&
        database->journal_descriptor_ack(NULL) != ACTQL_SQLITE_COMPONENT_OK))) return;
   actql_adapter_free(database->library, database->error);
   actql_adapter_free(database->library, database->result_body);
@@ -1026,7 +1038,10 @@ static void *actql_open_database(
         (existing ? original.st_size < 1 : original.st_size != 0) ||
         (mode == 2 && ((uint64_t)original.st_dev != expected_device ||
           (uint64_t)original.st_ino != expected_inode))) {
-      if (pinned >= 0) close(pinned);
+      if (pinned >= 0 && close(pinned) != 0 && journal_exclusive) {
+        database->journal_pin_descriptor = pinned;
+        database->journal_pin_close_unknown = true;
+      }
       actql_adapter_free(library, path_text);
       actql_replace_error_for(database->library, &database->error, database->diagnostic_ceiling, "existing database is unavailable");
       return database;
@@ -1046,7 +1061,11 @@ static void *actql_open_database(
         selected.st_dev != original.st_dev || selected.st_ino != original.st_ino)
       code = SQLITE_CANTOPEN;
   }
-  if (pinned >= 0) close(pinned);
+  if (pinned >= 0 && close(pinned) != 0 && journal_exclusive) {
+    database->journal_pin_descriptor = pinned;
+    database->journal_pin_close_unknown = true;
+    code = SQLITE_IOERR_CLOSE;
+  }
   actql_adapter_free(library, path_text);
   if (code != SQLITE_OK) {
     actql_database_error(database, "open SQLite database failed");
