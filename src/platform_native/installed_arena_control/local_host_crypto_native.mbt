@@ -21,10 +21,18 @@ pub fn InstalledArenaHost::prepare_local_host_read_crypto(
     Err(issue) => return Err(Resources(issue))
     Ok(_) => ()
   }
-  if pair.active != Some(HostRead) ||
-    !(read.consumer is Some(consumer) && consumer.scope == ConsumerScopeOpen) {
+  guard pair.active == Some(HostRead) &&
+    read.consumer is Some(consumer) &&
+    consumer.scope == ConsumerScopeOpen else {
     return Err(
       Resources(Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending))),
+    )
+  }
+  // Necessary bound only: the complete quote must also include metadata,
+  // alignment, diagnostics, retention and all other simultaneous Read users.
+  if heap_bytes > consumer.execution_bytes {
+    return Err(
+      Resources(Read(Read(@resources.Resource(@resources.ExecutionLimit)))),
     )
   }
   let domain = read.domain
