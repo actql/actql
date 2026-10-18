@@ -1,12 +1,25 @@
 ///|
+// A failed test cleanup retains its exact Session rather than treating stack
+// unwinding or process exit as an original descriptor acknowledgement.
+let scoped_adoption_pending_session : Ref[NativeLocalAdoptionSession?] = Ref(None)
+
+///|
+fn scoped_adoption_close_session(session : NativeLocalAdoptionSession) -> Unit raise {
+  assert_true(scoped_adoption_pending_session.val is None)
+  scoped_adoption_pending_session.val = Some(session)
+  assert_true(session.close())
+  close_local_session_owned_root_descriptors(session).unwrap()
+  scoped_adoption_pending_session.val = None
+}
+
+///|
 fn scoped_adoption_refusal(
   value : Result[NativeLocalAdoptionSession, NativeLocalAdoptionOpenFailure],
 ) -> NativeLocalAdoptionOpenFailure raise {
   match value {
     Err(original) => original
     Ok(session) => {
-      session.close().unwrap()
-      close_local_session_owned_root_descriptors(session).unwrap()
+      scoped_adoption_close_session(session)
       fail("missing original read context acquired a Session")
       abort("unreachable")
     }
@@ -55,8 +68,7 @@ test "scoped existing adoption refuses before acquiring Roots and preserves the 
   assert_true(restored.existing_only)
   assert_false(restored.initial_signing_eligible.val)
   restored.check_original().unwrap()
-  restored.close().unwrap()
-  close_local_session_owned_root_descriptors(restored).unwrap()
+  scoped_adoption_close_session(restored)
 }
 
 ///|
