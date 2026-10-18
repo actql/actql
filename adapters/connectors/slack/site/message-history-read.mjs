@@ -12,6 +12,9 @@ export const SLACK_MESSAGE_REPLIES_OPERATION = 'slack:messages:replies';
 export const SLACK_WORKSPACE_IDENTITY_OPERATION = 'slack:workspace:identity';
 const readers = new WeakMap();
 const replyReaders = new WeakMap();
+// Escaped success/failure objects keep their original prefix and custody graph.
+// Weak reachability and eventual collection are not physical cleanup evidence.
+const outcomes = new WeakMap();
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
 const arrayIsArray = Array.isArray, safeInteger = Number.isSafeInteger;
@@ -219,8 +222,8 @@ export function createSlackMessageHistoryReader(options) {
         },identity=>{state.workspaceIdentity=identity;},exchange=>{
           state.exchanges.push(exchange);return exchange;
         });
-        state.phase = 'succeeded'; return result;
-      } catch (cause) {state.phase = 'failed'; throw cause;}
+        state.phase = 'succeeded'; outcomes.set(result,state);return result;
+      } catch (cause) {state.phase = 'failed';outcomes.set(cause,state);throw cause;}
     },
     requestStop(reason) {originalReader(this).stop.abort(reason);},
     observe() {
@@ -381,8 +384,8 @@ export function createSlackMessageRepliesReader(options) {
         },control=>{state.control=control;},exchange=>{
           state.exchanges.push(exchange);return exchange;
         });
-        state.phase='succeeded';return result;
-      } catch (cause) {state.phase='failed';throw cause;}
+        state.phase='succeeded';outcomes.set(result,state);return result;
+      } catch (cause) {state.phase='failed';outcomes.set(cause,state);throw cause;}
     },
     requestStop(reason) {originalReplyReader(this).stop.abort(reason);},
     observe() {

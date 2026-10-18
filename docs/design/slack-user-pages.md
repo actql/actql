@@ -316,3 +316,34 @@ observation tickets and cleanup custody, and consume each prior response ticket
 before a dependent exchange. This DATA protocol supplies no transport authority,
 normal ReaderLoan or complete workspace coverage. Closing its control keeps
 retained aliases and is not a physical cleanup acknowledgment.
+
+The private physical reader exposes an opaque original-page token only through
+the history consumer's page metadata. The exact history reader retains its
+Common page/request, actual exchange and raw response, operation authorization,
+charge and workspace identity. A token is eligible only after consumption and
+the subsequent original-current check, and the history read must have completed
+successfully. Copies, a token from another reader, an invalid row occurrence or
+a second selection of that occurrence do not start another reply reader.
+
+The reply reader captures the original provider callbacks before history I/O,
+retains their receiver and checks the same credential binding/control/journal/
+resolver references and Run/Account context. Its `slack:messages:replies` grant
+and uses are separate from history and workspace identity. Before each exchange
+and after awaited callbacks it rechecks the original history current callback
+and any distinct reply current callback. A previous `auth.test` observation is
+retained identity evidence, never a permission for a different operation.
+
+Both controls retain full exchange records, including pending requests,
+authorizations, actual responses and charges, even when later projection fails.
+Escaped result and failure objects keep that same original prefix through
+private outcome membership. The reply reader keeps the closed Common control
+and its typed page prefix as well as raw response aliases. These records,
+callbacks, maps, selection sets, parsed output and concurrent workspaces belong
+to the actual Host resource inventory; bounds, weak maps, closure settlement
+and garbage collection are not capacity or physical acknowledgments.
+
+Combining reply output with already captured history rows requires the original
+Source owner's coalescence and capture boundary. This private reader does not
+silently overwrite an earlier captured row, establish complete channel history
+or supply a normal business ReaderLoan. Its finite terminal result alone is not
+an installed complete Slack Source.
