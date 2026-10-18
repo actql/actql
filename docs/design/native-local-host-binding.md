@@ -974,6 +974,18 @@ escaped aliases and outer funded read lifetime retain their separate Owners and
 acknowledgements. The failure carrier itself supplies no read budget, permission,
 Host transport, issuer or execution authority.
 
+The existing-only journal entrance similarly keeps a rejected original database
+with the same Session's Roots and Lock. It invokes the existing journal body
+once; a repeat returns the original failure even after cleanup, without opening
+another database or reinitializing missing custody. Session aliases close through
+that same carrier, so the legacy lock-only close cannot bypass its obligations.
+The original primary issue remains separate from a failed cleanup result.
+Database close must acknowledge before Root retirement, and the Lock is last.
+Reader or directory Unknown retains the original acquisition rather than making
+another attempt. These acknowledgements cover the acquired descriptors only;
+escaped Readers, provider aliases and the surrounding original read/loan still
+require their own actual retirement.
+
 The existing Root can also capture a transient opaque observation of its actual
 opened directory, including device/inode, mode and UID/GID. Only the path already
 retained by that Root is used to compare the named directory. A bounded no-follow

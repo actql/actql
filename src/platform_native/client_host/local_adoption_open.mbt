@@ -209,5 +209,6 @@ fn begin_native_local_host_adoption_original(
     close_pending: false,
     read_cleanup: None,
     lock_close_attempted: false,
+    journal_open_failure: None,
   })
 }
