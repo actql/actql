@@ -1138,7 +1138,8 @@ both callback runtimes. Their callback records, current closure and receiver,
 full original file, source/decode graph, entry UTF-8 encode, copied Notion
 input, alias/value copies, Contracts and hash workspace can overlap. Explicit
 intake/selection limits are bounds, not a reservation. Retirement cuts only the
-view's own references; escaped DATA remains caller-owned, and neither retirement
+view's selected DATA/callback-reference record. A retained failure and escaped
+DATA keep their own lifetimes; neither retirement
 nor file close is metadata response retirement, installation/cold custody,
 credential authority, a physical ACK or numerical funding.
 
