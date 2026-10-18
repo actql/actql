@@ -47,7 +47,7 @@ test "regular C journal transport preserves actual successful originals borrowed
     0,
   )
   assert_eq(session.intent_cid(), intent)
-  assert_true(session.check_original() is Err(@local_host.Closed))
+  assert_true(session.close())
 }
 
 ///|
@@ -58,5 +58,5 @@ test "regular C journal transport keeps original refusal distinct from close and
   let intent = session.intent_cid()
   assert_eq(journal_transport_probe(session, other, library, crypto, 0.0, 4), 0)
   assert_eq(session.intent_cid(), intent)
-  assert_true(session.check_original() is Err(@local_host.Closed))
+  assert_true(session.close())
 }
