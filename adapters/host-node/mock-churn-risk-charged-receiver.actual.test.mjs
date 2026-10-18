@@ -76,8 +76,13 @@ function fixture() {
     return run;
   }
   function accept(run, charge, acquisition, bytes = body) {
-    return checked(moon.clientProgramMockChurnRiskAcceptChargedDocument(run, charge,
-      acquisition, declarations[0], declarations[1], bytes, 1000000));
+    try {
+      return checked(moon.clientProgramMockChurnRiskAcceptChargedDocument(run, charge,
+        acquisition, declarations[0], declarations[1], bytes, 1000000));
+    } catch (error) {
+      error.message += `: ${inspect(error.cause, {depth: 12})}`;
+      throw error;
+    }
   }
   return {declarations, acquisitions, start, accept,
     close() { for (const run of runs) moon.clientProgramRowSourceClose(run); }};
