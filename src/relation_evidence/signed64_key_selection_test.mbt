@@ -14,6 +14,16 @@ test "original non-null signed64 evidence supplies exact scalar and canonical ke
         max_name_bytes=6,
       ).unwrap(),
     )
+    if nullable {
+      assert_true(
+        @relation_evidence.declare_primary_key(cursor("[\"number\"]"), input, {
+          max_fields: 10,
+          max_name_bytes: 100,
+        })
+        is Err(_),
+      )
+      continue
+    }
     let set = @relation_evidence.collect_keys(
       cursor("null"),
       input,

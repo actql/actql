@@ -36,7 +36,7 @@ test "publication fallback retains signed64 order without admitting Array values
         ["number"],
         None,
         None,
-        None,
+        no_lineage,
         max_work=decision.work - 1,
         max_text_bytes=decision.text_bytes,
       )
