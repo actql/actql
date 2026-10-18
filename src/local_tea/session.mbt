@@ -187,6 +187,7 @@ pub(all) enum SessionIssue {
   SessionWorkspaceLimit
   SessionOutput(@records.Issue)
   SessionExecutionIssue(@bounded.Issue)
+  SessionTimestampPrecisionUnavailable
 } derive(Eq, Debug)
 
 ///|
@@ -380,8 +381,15 @@ fn session_load_step(state : SessionState) -> Result[Unit, SessionIssue] {
       }
       if state.term == state.keys {
         guard @lower.event_session_uses_timestamp(state.prepared)
-          is Some(timestamp) &&
-          session_time(value, timestamp) is Some(time) else {
+          is Some(timestamp) else {
+          return Err(InvalidSessionValue(state.record, state.term))
+        }
+        guard session_time(value, timestamp) is Some(time) else {
+          if timestamp &&
+            value.value is @value.Timestamp(text) &&
+            @value.timestamp_instant(text) is Some(_) {
+            return Err(SessionTimestampPrecisionUnavailable)
+          }
           return Err(InvalidSessionValue(state.record, state.term))
         }
         state.times[state.record] = time

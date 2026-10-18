@@ -1,12 +1,31 @@
 ///|
 pub struct Coordinate {
   coefficient : @bigint.BigInt
-  exponent : Int
+  denominator : @bigint.BigInt
 }
 
 ///|
 pub fn from_timestamp_milliseconds(value : Int64) -> Coordinate {
-  { coefficient: @bigint.BigInt::from_int64(value), exponent: 0, }
+  {
+    coefficient: @bigint.BigInt::from_int64(value),
+    denominator: @bigint.BigInt::from_int(1),
+  }
+}
+
+///|
+/// Exact rational milliseconds from an already admitted UTC Value projection.
+/// Nanoseconds are bounded before forming the BigInt numerator. This does not
+/// admit a Value, acquire memory or issue an operational clock.
+pub fn from_timestamp_parts(seconds : Int64, nanoseconds : Int) -> Coordinate? {
+  if nanoseconds < 0 || nanoseconds >= 1000000000 {
+    return None
+  }
+  Some({
+    coefficient: @bigint.BigInt::from_int64(seconds) *
+    @bigint.BigInt::from_int(1000000000) +
+    @bigint.BigInt::from_int(nanoseconds),
+    denominator: @bigint.BigInt::from_int(1000000),
+  })
 }
 
 ///|
@@ -17,7 +36,7 @@ pub fn from_finite_number(number : Double) -> Coordinate? {
   let bits = number.reinterpret_as_uint64()
   let absolute = bits & 0x7fffffffffffffffUL
   if absolute == 0UL {
-    return Some({ coefficient: @bigint.BigInt::from_int(0), exponent: 0, })
+    return Some(from_timestamp_milliseconds(0L))
   }
   let encoded = ((bits >> 52) & 0x7ffUL).to_int()
   let fraction = bits & 0x000fffffffffffffUL
@@ -26,18 +45,31 @@ pub fn from_finite_number(number : Double) -> Coordinate? {
   } else {
     @bigint.BigInt::from_uint64(fraction | 0x0010000000000000UL)
   }
+  let signed = if (bits & 0x8000000000000000UL) == 0UL {
+    coefficient
+  } else {
+    -coefficient
+  }
+  let exponent = if encoded == 0 { -1074 } else { encoded - 1023 - 52 }
   Some({
-    coefficient: if (bits & 0x8000000000000000UL) == 0UL {
-      coefficient
+    coefficient: if exponent > 0 {
+      signed << exponent
     } else {
-      -coefficient
+      signed
     },
-    exponent: if encoded == 0 {
-      -1074
+    denominator: if exponent < 0 {
+      @bigint.BigInt::from_int(1) << -exponent
     } else {
-      encoded - 1023 - 52
+      @bigint.BigInt::from_int(1)
     },
   })
+}
+
+///|
+pub fn compare_coordinates(left : Coordinate, right : Coordinate) -> Int {
+  (left.coefficient * right.denominator).compare(
+    right.coefficient * left.denominator,
+  )
 }
 
 ///|
@@ -59,16 +91,8 @@ pub fn latest_start(
   step : Int64,
   offset : Int64,
 ) -> @bigint.BigInt {
-  let denominator = if time.exponent < 0 {
-    @bigint.BigInt::from_int(1) << -time.exponent
-  } else {
-    @bigint.BigInt::from_int(1)
-  }
-  let numerator = if time.exponent > 0 {
-    time.coefficient << time.exponent
-  } else {
-    time.coefficient
-  }
+  let denominator = time.denominator
+  let numerator = time.coefficient
   let origin = @bigint.BigInt::from_int64(offset)
   let interval = @bigint.BigInt::from_int64(step)
   let index = floor_div(
@@ -80,11 +104,7 @@ pub fn latest_start(
 
 ///|
 pub fn compare(time : Coordinate, boundary : @bigint.BigInt) -> Int {
-  if time.exponent >= 0 {
-    (time.coefficient << time.exponent).compare(boundary)
-  } else {
-    time.coefficient.compare(boundary << -time.exponent)
-  }
+  time.coefficient.compare(boundary * time.denominator)
 }
 
 ///|

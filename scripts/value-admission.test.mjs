@@ -41,3 +41,26 @@ test('checked-only enum extents use the explicit checked contract reader without
   const legacy=structuredClone(corpus);legacy.cases=legacy.cases.filter(value=>!value.id.startsWith('text-enum-'));
   assert.equal(generate(legacy).includes('@contract.read_checked'),false,'absence retains original author route');
 });
+
+test('exact Timestamp corpus retains fixed wire hashes and compares original admitted peers',()=>{
+  const cases=read().cases.filter(value=>value.id.startsWith('timestamp-precision-'));
+  assert.ok(cases.length>=18);
+  const accepted=cases.filter(value=>value.expected==='accepted');
+  assert.ok(accepted.some(value=>value.value.endsWith('.123Z')),'old millisecond bytes');
+  assert.ok(accepted.some(value=>value.value.endsWith('.218404Z')),'microseconds');
+  assert.ok(accepted.some(value=>value.value.endsWith('.123000001Z')),'nanosecond neighbor');
+  const output=generate({...read(),cases});
+  assert.match(output,/@value_admission\.emit_checked_wire_value/);
+  assert.match(output,/@value_admission\.compare_key_values/);
+  assert.match(output,/@identity\.cid_value/);
+  for(const mutate of [
+    c=>{c.cases.find(value=>value.expected_wire).expected_wire+=' ';},
+    c=>{c.cases.find(value=>value.expected_wire_cid).expected_wire_cid='sha256:'+'0'.repeat(64);},
+    c=>{c.cases.find(value=>Object.hasOwn(value,'peer')).expected_order=2;},
+    c=>{c.cases.find(value=>Object.hasOwn(value,'peer')).peer=1;},
+    c=>{c.cases.find(value=>value.expected_wire).expected='InvalidTimestamp';},
+  ]){
+    const invalid=structuredClone(read());mutate(invalid);
+    assert.throws(()=>generate(invalid));
+  }
+});
