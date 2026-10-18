@@ -4,6 +4,7 @@ import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {createRequire} from 'node:module';
+import {spawnSync} from 'node:child_process';
 import * as actual from './node-source-managed-installation.mjs';
 
 test('the actual absent Source issuer refuses without observing caller originals', async () => {
@@ -24,7 +25,9 @@ async function fixture(t, {ordinaryAbsent = false} = {}) {
   const root = fileURLToPath(new URL('../../', import.meta.url));
   await mkdir(join(root, '_build'), {recursive:true});
   const scratch = {path: await mkdtemp(join(root, '_build/source-forward-controls-'))};
-  await writeFile(join(scratch.path, 'infer-trusted-node-preload.cjs'), 'module.exports={};\n');
+  await writeFile(join(scratch.path, 'infer-trusted-node-preload.cjs'), ordinaryAbsent
+    ? "module.exports={prepareSourceManagedInstallation(){throw new Error('MustNotBorrowPreloadReceiver');}};\n"
+    : 'module.exports={};\n');
   await writeFile(join(scratch.path, 'node-public-initial-control-bootstrap.cjs'), ordinaryAbsent
     ? 'module.exports={};\n' : "module.exports=require('./infer-trusted-node-preload.cjs');\n");
   const owner = createRequire(import.meta.url)(join(scratch.path, 'infer-trusted-node-preload.cjs'));
@@ -50,19 +53,21 @@ async function fixture(t, {ordinaryAbsent = false} = {}) {
   const consumer = await import(pathToFileURL(join(scratch.path, 'consumer.mjs')));
   // Keep these tiny explicit-port fixtures; no automatic test-failure cleanup
   // can be mistaken for an original Source/physical acknowledgement.
-  return {s, consumer, owner, originals, installation, receipt};
+  return {s, consumer, owner, originals, installation, receipt, path: scratch.path};
 }
 
 test('ordinary Source absence cannot borrow the explicit preload receiver or observe caller originals', async t => {
   const f = await fixture(t, {ordinaryAbsent: true});
-  let observed = 0;
-  const raw = new Proxy({}, {get() {observed++;}, ownKeys() {observed++;},
-    getOwnPropertyDescriptor() {observed++;}});
-  await assert.rejects(f.consumer.prepareSourceManagedInstallation(raw),
-    {code: 'SourceManagedPreparationUnavailable'});
-  assert.equal(observed, 0);
-  assert.equal(f.s.calls.length, 0);
-  assert.equal(f.s.closes, 0);
+  // Node's test child has test-runner execArgv. Exercise the actual ordinary
+  // selector in a fresh plain child, not by changing its production predicate.
+  const entry = join(f.path, 'ordinary-absence.mjs');
+  await writeFile(entry, "import assert from'node:assert/strict';import{prepareSourceManagedInstallation}from'./consumer.mjs';" +
+    "assert.deepEqual(process.execArgv,[]);let observed=0;const raw=new Proxy({},{get(){observed++;},ownKeys(){observed++;},getOwnPropertyDescriptor(){observed++;}});" +
+    "await assert.rejects(prepareSourceManagedInstallation(raw),{code:'SourceManagedPreparationUnavailable'});assert.equal(observed,0);");
+  const result = spawnSync(process.execPath, [entry], {encoding: 'utf8', timeout: 10000});
+  assert.equal(result.error, undefined);
+  assert.equal(result.signal, null);
+  assert.equal(result.status, 0, result.stderr);
 });
 
 test('four producer calls synchronously forward exact originals to the captured receiver', async t => {
