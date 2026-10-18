@@ -42,7 +42,8 @@ import {installedModelEnvironment, readInstalledModelExecution,
 import {loadInstalledProjectConfiguration, installedProjectOriginalsForRuntime,
   retireInstalledProjectConfiguration}
   from './installed-project-configuration.mjs';
-import {beginInitialControlInstallation, assertInitialControlInstallationCurrent}
+import {beginInitialControlInstallation, assertInitialControlInstallationCurrent,
+  readInitialControlInstallationAsset}
   from './node-initial-control-installation.mjs';
 import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
@@ -409,8 +410,12 @@ async function openInstalledHost(originalInstallation, preparation) {
   const effectSubmissions = new WeakMap();
   const effectSelections = new WeakMap();
   const principalId = userInfo().username;
-  const baseEnvironmentWire = selectInstalledHostEnvironment(moon, (await readFile(join(packageRoot,
-    'spec/local-check-environment.json'), 'utf8')).trimEnd(), hostCapacityPolicy,
+  // A prepared Local Host borrows the selected startup's original fixed image;
+  // it must not reread a pathname after that original scope was admitted.
+  // The independent unprepared Host entry retains its existing file route.
+  const environmentSource = preparation === undefined ? await readFile(join(packageRoot,
+    'spec/local-check-environment.json'), 'utf8') : preparation.readEnvironmentSource();
+  const baseEnvironmentWire = selectInstalledHostEnvironment(moon, environmentSource.trimEnd(), hostCapacityPolicy,
     hostLookupExecutionPolicy);
   // Both adapters restore published declarations without provider I/O. The
   // combined environment is admitted before either can dispatch work.
@@ -3444,6 +3449,10 @@ export async function connectEmbeddedLocal(options) {
     return observed;
   }});
   const preparation = Object.freeze({host, initialControl,
+    readEnvironmentSource() {
+      return readInitialControlInstallationAsset(control, originals,
+        'spec/local-check-environment.json');
+    },
     retainReferenceRetirement(original) {
       if (referenceRetirement !== undefined || typeof original !== 'function') {
         throw clientOperationError('InstalledHostPreparationChanged');

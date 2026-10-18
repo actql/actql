@@ -153,6 +153,15 @@ and module lifetime, and rechecks closing after the original current callback.
 Copying a scope's methods or constructing another internal state-machine
 instance cannot add membership to the selected preload's instance.
 
+The prepared embedded Host obtains its fixed check-environment source through
+that same nominal scope and five originals. The private startup projects the
+already captured package image; the Host does not reread its pathname or fall
+back to current file contents when that projection is unavailable. The original
+String remains in its selected module/preparation lifetime, including escaped
+aliases; this borrow is neither a new issuer nor a physical release acknowledgement.
+Independent Host entries without this preparation retain their own acquisition
+obligations and do not inherit the embedded startup admission.
+
 An eager original Host namespace may capture the startup's already-published
 immutable CJS forwarders through the same synchronous private receiver. This
 avoids a static CJS/ESM require cycle without deferring authentication to entry
