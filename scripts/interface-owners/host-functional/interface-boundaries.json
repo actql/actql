@@ -58681,6 +58681,172 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/host-node/mock-churn-risk-catalogue.mjs",
+      "sha256": "8d900a11d6193e686e4cf0104b6def0e7bae24010707b8400a9025d483ab8228",
+      "exports": [
+        "mockChurnRiskCatalogue"
+      ],
+      "operations": [],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing mock installation and Common Relation declaration/ValueContract owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "mockChurnRiskCatalogue"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
+              },
+              {
+                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
+                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
+              },
+              {
+                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
+                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
+              },
+              {
+                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
+                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
+              },
+              {
+                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
+                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
+              },
+              {
+                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
+                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
+              },
+              {
+                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
+                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
+              },
+              {
+                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
+                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
+              },
+              {
+                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
+                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
+              },
+              {
+                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
+                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
+              },
+              {
+                "path": "adapters/host-node/mock-churn-risk-catalogue.actual.test.mjs",
+                "anchor": "test('actual Common owns both mock Relation declarations and exact original key facts'"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "generated": [],
