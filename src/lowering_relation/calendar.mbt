@@ -80,8 +80,7 @@ fn calendar_range_bound(
     minimum = Int64::min(minimum, offset)
     maximum = Int64::max(maximum, offset)
   }
-  let width = end_ms - start_ms +
-    (maximum - minimum) * 1000L
+  let width = end_ms - start_ms + (maximum - minimum) * 1000L
   let minimum_span = match @calendar_options.unit(@calendar.options(checked)) {
     Day => 86400000L
     Week => 604800000L
