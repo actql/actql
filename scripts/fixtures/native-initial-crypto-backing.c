@@ -55,10 +55,13 @@ static void interrupted_initial_stat(void) {
   assert(value && !value->ready && value->fd == original_fd && value->name_present);
   fprintf(stderr, "retained original partial backing: %s\n", value->name);
   assert(open_calls == 1 && truncate_calls == 0 && close_calls == 0);
+  assert(actql_initial_crypto_backing_acquisition_issue(value) == EINTR);
+  assert(!value->identity_observed && !value->descriptor_exposed);
   assert(actql_initial_crypto_backing_descriptor(value) == -1);
   assert(actql_initial_crypto_backing_close(value) == 1);
   assert(actql_initial_crypto_backing_close(value) == 1);
   assert(close_calls == 1 && open_calls == 1 && truncate_calls == 0);
+  assert(actql_initial_crypto_backing_acquisition_issue(value) == EINTR);
   assert(!actql_initial_crypto_backing_current(value));
   assert(fcntl(original_fd, F_GETFD) == -1 && errno == EBADF);
   struct stat actual;

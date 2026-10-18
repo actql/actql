@@ -26,3 +26,9 @@ extern "C" fn InitialCryptoBacking::descriptor(
 extern "C" fn InitialCryptoBacking::close_checked(
   original : InitialCryptoBacking,
 ) -> Bool = "actql_initial_crypto_backing_close"
+
+///|
+#borrow(original)
+extern "C" fn InitialCryptoBacking::acquisition_issue(
+  original : InitialCryptoBacking,
+) -> Int = "actql_initial_crypto_backing_acquisition_issue"

@@ -1,6 +1,7 @@
 #define _DARWIN_C_SOURCE
 #define _POSIX_C_SOURCE 200809L
 #include "moonbit.h"
+#include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <pthread.h>
@@ -19,6 +20,9 @@ typedef struct {
   int ready;
   int close_result; /* 0 pending, 1 actual ACK, -1 consumed/Unknown */
   int name_present;
+  int identity_observed;
+  int descriptor_exposed;
+  int acquisition_errno;
   dev_t device;
   ino_t inode;
   off_t bytes;
@@ -35,7 +39,8 @@ static int same_thread(const actql_initial_crypto_backing *original) {
 
 static int same_descriptor(const actql_initial_crypto_backing *original) {
   struct stat actual;
-  return original->fd >= 0 && fstat(original->fd, &actual) == 0 &&
+  return original->identity_observed && original->fd >= 0 &&
+    fstat(original->fd, &actual) == 0 &&
     S_ISREG(actual.st_mode) && actual.st_dev == original->device &&
     actual.st_ino == original->inode && actual.st_uid == geteuid();
 }
@@ -64,9 +69,13 @@ void *actql_initial_crypto_backing_open(int64_t bytes) {
   original->close_result = 0;
   original->name_present = 1;
   struct stat actual;
-  if (fstat(original->fd, &actual) != 0) return original;
+  if (fstat(original->fd, &actual) != 0) {
+    original->acquisition_errno = errno;
+    return original;
+  }
   original->device = actual.st_dev;
   original->inode = actual.st_ino;
+  original->identity_observed = 1;
   if (!same_descriptor(original) || fchmod(original->fd, 0600) != 0) return original;
   /* Unlink before a usable descriptor escapes. Partial failures retain the
    * exact original name and descriptor for checked cleanup, never a reopen. */
@@ -90,13 +99,33 @@ int32_t actql_initial_crypto_backing_current(actql_initial_crypto_backing *origi
 /* This private synchronous borrow is only an argument to the existing actual
  * acquire_fd/domain constructor; the integer itself is never an authority. */
 int32_t actql_initial_crypto_backing_descriptor(actql_initial_crypto_backing *original) {
-  return actql_initial_crypto_backing_current(original) ? original->fd : -1;
+  if (!actql_initial_crypto_backing_current(original)) return -1;
+  original->descriptor_exposed = 1;
+  return original->fd;
+}
+
+int32_t actql_initial_crypto_backing_acquisition_issue(actql_initial_crypto_backing *original) {
+  return same_thread(original) ? original->acquisition_errno : EINVAL;
 }
 
 int32_t actql_initial_crypto_backing_close(actql_initial_crypto_backing *original) {
   if (!same_thread(original)) return 0;
   if (original->close_result == 1) return 1;
-  if (original->close_result < 0 || !same_descriptor(original)) return 0;
+  if (original->close_result < 0) return 0;
+  if (!original->identity_observed) {
+    /* mkstemp confirmed this original open, but no descriptor borrow escaped.
+     * A later observation is cleanup-only: preserve the original acquisition
+     * failure and never set ready, reopen, truncate or issue another borrow. */
+    if (original->ready || original->descriptor_exposed || !original->name_present)
+      return 0;
+    struct stat actual;
+    if (fstat(original->fd, &actual) != 0 || !S_ISREG(actual.st_mode) ||
+        actual.st_uid != geteuid()) return 0;
+    original->device = actual.st_dev;
+    original->inode = actual.st_ino;
+    original->identity_observed = 1;
+  }
+  if (!same_descriptor(original)) return 0;
   if (original->name_present) {
     struct stat actual;
     if (lstat(original->name, &actual) != 0 || actual.st_dev != original->device ||
