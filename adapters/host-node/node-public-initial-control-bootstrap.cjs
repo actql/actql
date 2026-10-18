@@ -57,6 +57,10 @@ function journalCurrent(original, held) {
     apply(state.journal.current, state.namespace,
       [state.journalNative.DatabaseSync, state.journalNative.StatementSync]);
     apply(entry.subjectCurrent, entry.subject, []);
+    if (entry.ownership !== undefined) {
+      apply(state.journal.ownershipCurrent, state.namespace,
+        [entry.ownership, join(field(entry.subject, 'root'), 'publication')]);
+    }
     return entry;
   } catch (cause) {
     entry.closing = true;
@@ -68,6 +72,7 @@ function journalStatus(entry) {
   return freeze({pending: !entry.closed,
     nativePending: entry.journal !== undefined,
     constructorCleanupPending: entry.cleanup !== undefined,
+    ownershipPending: entry.ownership !== undefined,
     // Retiring this facility never returns the process-lived module/native
     // domain or escaped immutable records as physical byte credit.
     physicalBackingReleased: false});
@@ -92,6 +97,16 @@ function journalAcknowledged(observation) {
     ? descriptor(observation, 'pending') : undefined;
   return pending !== undefined && own(pending, 'value') && pending.value === false;
 }
+function journalExclusionDependency(entry) {
+  // This is the actual Root's original native custody, not a caller status
+  // flag. Ownership-opening cleanup is not a native Journal dependency on
+  // itself; it is retained and drained separately by closeJournal.
+  if (entry.nativeAttempted && entry.cleanup !== undefined) return freeze({pending: true});
+  if (entry.journal === undefined) return freeze({pending: false});
+  const observation = apply(state.journal.observe, state.namespace, [entry.journal]);
+  return freeze({pending: field(observation, 'databaseClosed') !== true ||
+    field(observation, 'observationDatabaseClosed') !== true});
+}
 function closeJournal(entry) {
   entry.closing = true;
   if (entry.closeFlight !== undefined) return entry.closeFlight;
@@ -99,6 +114,12 @@ function closeJournal(entry) {
   // native/constructor cleanup. Retry observes this same duty, not a re-open.
   const flight = apply(journalPromiseThen, apply(journalPromiseResolve, journalPromise, []), [async () => {
     try {
+      // An acquired child must be retained by the original opening flight
+      // before close can inspect it. Closing prevents that flight from
+      // starting native work after its awaited ownership/current boundary.
+      if (entry.openFlight !== undefined) {
+        try { await entry.openFlight; } catch {}
+      }
       if (entry.cleanup !== undefined) {
         if (typeof entry.cleanupStatus !== 'function' ||
             typeof entry.cleanupRetry !== 'function') return journalStatus(entry);
@@ -119,6 +140,12 @@ function closeJournal(entry) {
         if (field(observation, 'databaseClosed') !== true ||
             field(observation, 'observationDatabaseClosed') !== true) return journalStatus(entry);
         entry.journal = entry.journalClose = undefined;
+      }
+      if (entry.ownership !== undefined) {
+        const observation = await apply(state.journal.ownershipClose, state.namespace,
+          [entry.ownership]);
+        if (!journalAcknowledged(observation)) return journalStatus(entry);
+        entry.ownership = undefined;
       }
       entry.closed = true;
       entry.subject = entry.subjectCurrent = undefined;
@@ -155,13 +182,17 @@ function prepareJournal(held) {
   const entry = journalInstallation = {original, originals: held,
     disposition: state.journalDisposition, subject: undefined, subjectCurrent: undefined,
     argumentsForJournal: undefined,
-    attempted: false, journal: undefined, journalClose: undefined,
+    attempted: false, nativeAttempted: false, openFlight: undefined,
+    ownership: undefined, dependency: undefined,
+    journal: undefined, journalClose: undefined,
     cleanup: undefined, cleanupStatus: undefined, cleanupRetry: undefined,
     closing: false, closed: false, closeFlight: undefined,
     firstError: undefined, latestError: undefined};
   try {
     entry.argumentsForJournal = field(entry.disposition, 'argumentsForOriginalJournal');
     if (typeof entry.argumentsForJournal !== 'function') journalUnavailable();
+    entry.ownershipBounds = field(entry.disposition, 'ownershipBounds');
+    entry.dependency = freeze({status: () => journalExclusionDependency(entry)});
     // These constructors were captured from this startup's builtin module
     // before the Host namespace. The fixed namespace operation must agree
     // on the same native facility before any subject read or DB acquisition.
@@ -180,21 +211,44 @@ function openJournal(original, held, directory, options) {
   // The selected disposition's fixed argument boundary must precede native
   // work. No caller option object or scalar may select a facility/limit.
   entry.attempted = true;
+  let selected;
   try {
-    const selected = apply(entry.argumentsForJournal, entry.disposition, [entry.subject, options]);
-    const journal = apply(state.journal.open, state.namespace, [directory, selected]);
-    entry.journal = journal;
-    // Retain returned native custody before all fallible field/current reads.
-    entry.journalClose = field(journal, 'close');
-    if (typeof entry.journalClose !== 'function') journalUnavailable();
-    apply(state.journal.observe, state.namespace, [journal]);
-    journalCurrent(original, held);
-    return journal;
+    selected = apply(entry.argumentsForJournal, entry.disposition, [entry.subject, options]);
   } catch (cause) {
     try { journalCleanup(entry, cause); }
     catch (cleanupFailure) { journalFailure(entry, cleanupFailure); }
     throw journalCarrier(entry, cause);
   }
+  const flight = apply(journalPromiseThen, apply(journalPromiseResolve, journalPromise, []), [async () => {
+    try {
+      journalCurrent(original, held);
+      // Root format admission has already completed in the Host caller.
+      // Acquire the same Store exclusion before the native Journal; no fresh
+      // publication prefix is created during the earlier preparation phase.
+      const ownership = await apply(state.journal.ownershipPrepare, state.namespace,
+        [join(field(entry.subject, 'root'), 'publication'), entry.ownershipBounds, entry.dependency]);
+      entry.ownership = ownership;
+      if (ownership === undefined) journalUnavailable();
+      journalCurrent(original, held);
+      entry.nativeAttempted = true;
+      const journal = apply(state.journal.open, state.namespace, [directory, selected]);
+      entry.journal = journal;
+      // Retain returned native custody before all fallible field/current reads.
+      entry.journalClose = field(journal, 'close');
+      if (typeof entry.journalClose !== 'function') journalUnavailable();
+      apply(state.journal.observe, state.namespace, [journal]);
+      journalCurrent(original, held);
+      return journal;
+    } catch (cause) {
+      try { journalCleanup(entry, cause); }
+      catch (cleanupFailure) { journalFailure(entry, cleanupFailure); }
+      throw journalCarrier(entry, cause);
+    }
+  }]);
+  entry.openFlight = flight;
+  const settled = () => { if (entry.openFlight === flight) entry.openFlight = undefined; };
+  apply(journalPromiseThen, flight, [settled, settled]);
+  return flight;
 }
 const sourceChildren = new WeakMap();
 const sourceUnavailable = () => fail('SourceManagedPreparationUnavailable');
@@ -922,6 +976,9 @@ try {
   const journal = {};
   for (const [name, exported] of Object.entries({read: 'readHostJournalPreparation',
     open: 'openOriginalHostRequestJournal', observe: 'observeOriginalHostRequestJournalCustody',
+    ownershipPrepare: 'prepareOriginalHostPublicationOwnership',
+    ownershipCurrent: 'assertOriginalHostPublicationOwnershipCurrent',
+    ownershipClose: 'closeOriginalHostPublicationOwnership',
     current: 'assertOriginalHostRequestJournalFacilityCurrent'})) {
     const entry = descriptor(namespace, exported);
     journal[name] = entry !== undefined && own(entry, 'value') ? entry.value : undefined;

@@ -897,7 +897,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     // object cannot select a native constructor or issue resource admission.
     journal = preparation === undefined
       ? openClientRequestJournal(journalDirectory, journalOptions)
-      : preparation.openRequestJournal(journalDirectory, journalOptions);
+      : await preparation.openRequestJournal(journalDirectory, journalOptions);
     observation = installHostObservation(observationConnection, {journal,
       runId: ref => {
         const retained = journal.lookupRunDefinition(ref, moon, control);

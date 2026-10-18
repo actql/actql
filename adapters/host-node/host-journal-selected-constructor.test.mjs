@@ -59,21 +59,27 @@ test('failed selected Journal construction retains its attempt without fallback 
   assert.equal(calls,1);
 });
 
-test('actual selected Host assignment cannot fall back to the unselected Journal constructor',()=>{
+test('actual selected Host assignment awaits its original opening flight without an unselected fallback',async()=>{
   const assignments=nodes.filter(node=>node.type==='AssignmentExpression'&&node.left.name==='journal'&&
     node.right.type==='ConditionalExpression');
   assert.equal(assignments.length,1);
-  const invoke=compileFunction(`let journal;${source.slice(assignments[0].start,assignments[0].end)};return journal;`,
+  const invoke=compileFunction(`return (async()=>{let journal;${source.slice(assignments[0].start,assignments[0].end)};return journal;})();`,
     ['preparation','openClientRequestJournal','journalDirectory','journalOptions']);
   const options={},journal={};let selected=0,ordinary=0;
   const open=(directory,actual)=>{assert.equal(directory,'/original/requests');
     assert.strictEqual(actual,options);ordinary++;return journal;};
+  let release;
   const preparation={openRequestJournal(directory,actual){assert.strictEqual(this,preparation);
-    assert.equal(directory,'/original/requests');assert.strictEqual(actual,options);selected++;return journal;}};
-  assert.strictEqual(invoke(preparation,open,'/original/requests',options),journal);
+    assert.equal(directory,'/original/requests');assert.strictEqual(actual,options);selected++;
+    return new Promise(resolve=>{release=()=>resolve(journal);});}};
+  let returned=false;
+  const pending=invoke(preparation,open,'/original/requests',options).then(value=>{returned=true;return value;});
+  assert.equal(returned,false);
   assert.equal(selected,1);assert.equal(ordinary,0);
-  assert.strictEqual(invoke(undefined,open,'/original/requests',options),journal);
+  release();
+  assert.strictEqual(await pending,journal);
+  assert.strictEqual(await invoke(undefined,open,'/original/requests',options),journal);
   assert.equal(ordinary,1);
-  assert.throws(()=>invoke({},open,'/original/requests',options),TypeError);
+  await assert.rejects(invoke({},open,'/original/requests',options),TypeError);
   assert.equal(ordinary,1);
 });

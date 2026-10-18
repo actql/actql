@@ -10,11 +10,14 @@ import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody,
   assertOriginalClientRequestJournalFacilityCurrent}
   from './client-request-journal.mjs';
+import {prepareLocalPublicationStoreOwnership, assertOriginalPreparedLocalPublicationStoreOwnership,
+  closePreparedLocalPublicationStoreOwnership, openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
 
 const source = readFileSync(new URL('./node-public-initial-control-bootstrap.cjs', import.meta.url), 'utf8');
 const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'script'});
 const names = ['journalOriginal', 'journalFailure', 'journalCurrent', 'journalStatus',
-  'journalCleanup', 'journalAcknowledged', 'closeJournal', 'journalCarrier',
+  'journalCleanup', 'journalAcknowledged', 'journalExclusionDependency', 'closeJournal', 'journalCarrier',
   'prepareJournal', 'openJournal'];
 const bodies = names.map(name => {
   const nodes = ast.body.filter(node => node.type === 'FunctionDeclaration' && node.id.name === name);
@@ -33,20 +36,24 @@ const make = compileFunction(`
     if(property===undefined||!own(property,'value'))journalUnavailable();return property.value;};
   ${bodies}
   return {prepare:prepareJournal,open:openJournal,current:journalCurrent,
+    ownership:(original,held)=>journalOriginal(original,held,true).ownership,
     close:(original,held)=>closeJournal(journalOriginal(original,held,true))};`,
-['state', 'assertSamePreparation']);
+['state', 'assertSamePreparation', 'join']);
 
-async function fixture({covered = true, open, read, current, nativeCurrent} = {}) {
+async function fixture({covered = true, open, read, current, nativeCurrent,
+  prepareOwnership = prepareLocalPublicationStoreOwnership} = {}) {
   const scratch = await createOwnedScratch({
     parent: fileURLToPath(new URL('../../_build/', import.meta.url)),
     prefix: 'journal-root-custody-', label: 'same Root Journal custody diagnostic',
   });
   const originals = Object.freeze({host: {}, installation: {}, generation: {}});
   const directory = join(scratch.path, 'requests');
-  const subject = Object.freeze({journalDirectory: directory, assertCurrent() { current?.(); }});
+  const subject = Object.freeze({root: scratch.path, journalDirectory: directory,
+    assertCurrent() { current?.(); }});
   const namespace = {};
   const state = {namespace, journalNative: Object.freeze({DatabaseSync, StatementSync}),
     journalDisposition: covered ? Object.freeze({
+    ownershipBounds: Object.freeze({maxWireBytes: 16384, maxDirectoryEntries: 64}),
     argumentsForOriginalJournal(actual, options) {
       assert.strictEqual(actual, subject); return options;
     },
@@ -56,6 +63,9 @@ async function fixture({covered = true, open, read, current, nativeCurrent} = {}
     open(path, options) {assert.strictEqual(this, namespace);
       return open === undefined ? openClientRequestJournal(path, options) : open(path, options);},
     observe: observeOriginalClientRequestJournalCustody,
+    ownershipPrepare: prepareOwnership,
+    ownershipCurrent: assertOriginalPreparedLocalPublicationStoreOwnership,
+    ownershipClose: closePreparedLocalPublicationStoreOwnership,
     current(database, statement) {
       assert.strictEqual(this, namespace);
       assert.strictEqual(database, DatabaseSync);
@@ -64,9 +74,106 @@ async function fixture({covered = true, open, read, current, nativeCurrent} = {}
       nativeCurrent?.();
     },
   })};
-  const root = make(state, actual => assert.strictEqual(actual, originals));
+  const root = make(state, actual => assert.strictEqual(actual, originals), join);
   return {scratch, originals, directory, root, state};
 }
+
+test('Root preparation creates no owner; awaited ownership precedes the same native Journal', async () => {
+  let opened = 0;
+  const f = await fixture({open(path, options) {
+    assert.equal(typeof JSON.parse(readFileSync(join(f.scratch.path,
+      'publication', 'owner', 'owner.json'), 'utf8')).token, 'string');
+    opened++;
+    return openClientRequestJournal(path, options);
+  }});
+  const original = f.root.prepare(f.originals);
+  assert.throws(() => readFileSync(join(f.scratch.path, 'publication')), {code: 'ENOENT'});
+  await f.root.open(original, f.originals, f.directory, {});
+  assert.equal(opened, 1);
+  assert.equal((await f.root.close(original, f.originals)).pending, false);
+  assert.throws(() => readFileSync(join(f.scratch.path, 'publication', 'owner', 'owner.json')),
+    {code: 'ENOENT'});
+  f.scratch.passed();
+});
+
+test('Root retains awaited ownership before post-acquisition current refusal and native work', async () => {
+  let changed = false, opens = 0;
+  const cause = new Error('OriginalChangedAfterOwnership');
+  const f = await fixture({current() {if (changed) throw cause;},
+    async prepareOwnership(...args) {
+      const original = await prepareLocalPublicationStoreOwnership(...args);
+      changed = true;
+      return original;
+    }, open() {opens++;}});
+  const original = f.root.prepare(f.originals);
+  let failure;
+  await assert.rejects(f.root.open(original, f.originals, f.directory, {}), error => {
+    failure = error; return error.cause === cause;
+  });
+  assert.equal(opens, 0);
+  assert.equal(failure.cleanupHandle.status().ownershipPending, true);
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.throws(() => readFileSync(join(f.scratch.path, 'publication', 'owner', 'owner.json')),
+    {code: 'ENOENT'});
+  f.scratch.passed();
+});
+
+test('Root close awaits its original ownership flight and never starts a native child afterwards', async () => {
+  let release, acquired, opens = 0;
+  const acquiredPromise = new Promise(resolve => {acquired = resolve;});
+  const f = await fixture({async prepareOwnership(...args) {
+    const original = await prepareLocalPublicationStoreOwnership(...args);
+    acquired();
+    await new Promise(resolve => {release = resolve;});
+    return original;
+  }, open() {opens++;}});
+  const original = f.root.prepare(f.originals);
+  const opening = f.root.open(original, f.originals, f.directory, {});
+  const rejected = assert.rejects(opening, {code: 'HostJournalInstallationCleanupPending'});
+  await acquiredPromise;
+  let settled = false;
+  const closing = f.root.close(original, f.originals).then(value => {settled = true; return value;});
+  await Promise.resolve();
+  assert.equal(settled, false);
+  release();
+  await rejected;
+  assert.equal((await closing).pending, false);
+  assert.equal(opens, 0);
+  f.scratch.passed();
+});
+
+test('Root and adopted Store keep the same exclusion until both original physical duties acknowledge', async () => {
+  const nativeClose = DatabaseSync.prototype.close;
+  let permitted = false;
+  const cause = new Error('OriginalSharedJournalClosePending');
+  const f = await fixture({open(path, options) {
+    DatabaseSync.prototype.close = function (...args) {
+      if (!permitted) throw cause;
+      return Reflect.apply(nativeClose, this, args);
+    };
+    try {return openClientRequestJournal(path, options);}
+    finally {DatabaseSync.prototype.close = nativeClose;}
+  }});
+  const original = f.root.prepare(f.originals);
+  await f.root.open(original, f.originals, f.directory, {});
+  const directory = join(f.scratch.path, 'publication');
+  const store = await openLocalPublicationStore({directory,
+    storeAuthorityCid: 'sha256:' + 'a'.repeat(64), capacityBytes: 65536,
+    maxObjectBytes: 4096, maxObjects: 8, maxContractNodes: 100, maxContractDepth: 10},
+  createPublicationContractControlFixture(), undefined, undefined,
+  f.root.ownership(original, f.originals));
+  const owner = readFileSync(join(directory, 'owner', 'owner.json'));
+  assert.equal((await f.root.close(original, f.originals)).pending, true);
+  await assert.rejects(store.close(), {code: 'PublicationStoreCleanupPending'});
+  assert.deepEqual(readFileSync(join(directory, 'owner', 'owner.json')), owner);
+  permitted = true;
+  // Journal ACK cannot stand in for the adopted Store's payload/release ACK.
+  assert.equal((await f.root.close(original, f.originals)).pending, true);
+  assert.deepEqual(readFileSync(join(directory, 'owner', 'owner.json')), owner);
+  assert.equal(await store.close(), true);
+  assert.equal((await f.root.close(original, f.originals)).pending, false);
+  f.scratch.passed();
+});
 
 // Actual production Root statements and actual SQLite/FS Journal, but with
 // an explicit unaccounted Host/disposition fixture. This is custody/ordering
@@ -99,7 +206,7 @@ test('Root post-constructor native refusal retains acquired child and permits or
     open(path, options) {acquired = openClientRequestJournal(path, options); changed = true; return acquired;}});
   const original = f.root.prepare(f.originals);
   let failure;
-  assert.throws(() => f.root.open(original, f.originals, f.directory, {}), error => {
+  await assert.rejects(f.root.open(original, f.originals, f.directory, {}), error => {
     failure = error; return error.cause === cause;
   });
   assert.equal(observeOriginalClientRequestJournalCustody(acquired).databaseClosed, false);
@@ -115,7 +222,7 @@ test('Root retains one original actual Journal through native close, not a copie
   for (const [token, pair] of [[{}, f.originals], [original, {...f.originals}]]) {
     assert.throws(() => f.root.current(token, pair), {code: 'HostJournalPreparationUnavailable'});
   }
-  const journal = f.root.open(original, f.originals, f.directory, {});
+  const journal = await f.root.open(original, f.originals, f.directory, {});
   assert.equal(observeOriginalClientRequestJournalCustody(journal).databaseClosed, false);
   assert.throws(() => f.root.open(original, f.originals, f.directory, {}),
     {code: 'HostJournalPreparationUnavailable'});
@@ -133,7 +240,7 @@ test('post-constructor current refusal retains the same native child behind orig
     open(path, options) {journal = openClientRequestJournal(path, options); changed = true; return journal;}});
   const original = f.root.prepare(f.originals);
   let failure;
-  assert.throws(() => f.root.open(original, f.originals, f.directory, {}), error => {
+  await assert.rejects(f.root.open(original, f.originals, f.directory, {}), error => {
     failure = error; return error.cause === originalFailure;
   });
   assert.equal(failure.cleanupHandle.status().nativePending, true);
@@ -150,7 +257,7 @@ test('constructor cleanup is retained before fallible current and close reentry 
   const cause = Object.assign(new Error('OriginalConstructorCleanupPending'), {cleanupHandle: cleanup});
   f = await fixture({open() {throw cause;}});
   const original = f.root.prepare(f.originals);
-  assert.throws(() => f.root.open(original, f.originals, f.directory, {}), error => {
+  await assert.rejects(f.root.open(original, f.originals, f.directory, {}), error => {
     failure = error; return error.cause === cause;
   });
   const first = failure.cleanupHandle.retry();
@@ -164,7 +271,7 @@ test('constructor cleanup is retained before fallible current and close reentry 
 test('Root closes the same optional observation child without erasing its attempt history', async () => {
   const f = await fixture();
   const original = f.root.prepare(f.originals);
-  const journal = f.root.open(original, f.originals, f.directory, {});
+  const journal = await f.root.open(original, f.originals, f.directory, {});
   journal.observationStorage();
   journal.close();
   assert.equal(observeOriginalClientRequestJournalCustody(journal).observationAttempted, true);
@@ -177,7 +284,7 @@ test('secondary native close failure stays pending and retries the same captured
   let secondary, journal, permitted = false, calls = 0;
   const f = await fixture();
   const original = f.root.prepare(f.originals);
-  journal = f.root.open(original, f.originals, f.directory, {});
+  journal = await f.root.open(original, f.originals, f.directory, {});
   DatabaseSync.prototype.close = function () {
     secondary ??= this;
     assert.strictEqual(this, secondary);
@@ -210,7 +317,7 @@ test('secondary open failure retains its original wrapper for close without open
   const originalOpen = DatabaseSync.prototype.open;
   const f = await fixture();
   const original = f.root.prepare(f.originals);
-  const journal = f.root.open(original, f.originals, f.directory, {});
+  const journal = await f.root.open(original, f.originals, f.directory, {});
   let secondary, opens = 0;
   DatabaseSync.prototype.open = function () {
     secondary = this; opens++;
