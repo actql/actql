@@ -872,6 +872,17 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/catalog-and-lock.slack-ordinary-history-reply-count",
+      "statement_sha256": "b863fc235280406e0623a1294a81d9d1f7a58c294fb156420c432596d29ef976",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "catalog-and-lock",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/catalog-and-lock.canonical-preimage",
       "statement_sha256": "a81f2b7e12f78eae763b1e327deb5ae0ba4124754d4b4542c13cf284f38f5ba7",
       "status": "pending",
@@ -3997,7 +4008,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "91478c341ea5943e1b2b6105e7864406cc56099df875967c904289aba719d30a",
+      "statement_sha256": "515e30481866a9393a9ff9b03553aa08d61401dd84cb1f5750bf09d078d5f25a",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

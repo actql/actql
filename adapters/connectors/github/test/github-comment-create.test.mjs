@@ -67,7 +67,9 @@ async function setup(t, {world = newWorld(), faults = [], body = 'hello',
   t.after(async () => {
     for (const ledger of ledgers) ledger.close?.();
     journal.close();
-    await rm(root, {recursive: true, force: true});
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      t.diagnostic(`Retained GitHub comment credential fixture: ${root}`);
+    } else await rm(root, {recursive: true, force: true});
   });
   let grants = 0;
   // One single-use grant for one operation.

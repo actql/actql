@@ -900,6 +900,10 @@ async function callCredentialResource({
       failure: undefined, facts: Object.freeze({grant: claimed.grant,
         use: claimed.use, scope, response: result, method: operation.method,
         path: operation.path, requestBodyBytes: operation.requestBytes,
+        // Retain only the actual immutable text sent by this original operation.
+        // This private historical projection is not a request reconstructed from
+        // a byte count, CID or provider result; binary bodies remain unprojected.
+        requestBodyText: typeof operation.body === 'string' ? operation.body : undefined,
         responseSha256: createHash('sha256').update(response.body).digest('hex')})};
     runResponseOriginals.set(result, retained);
     finishing = true;

@@ -822,6 +822,20 @@ Implementation-package pinning belongs to Host deployment and supply-chain
 verification, not the portable program lock. Runtime schema snapshots and
 Resource observations belong to plan and receipt evidence, not the program lock.
 
+<!-- requirement-block: catalog-and-lock.slack-ordinary-history-reply-count -->
+The Slack messages Catalog projection MUST preserve an explicit `reply_count`
+as its exact admitted nonnegative `int64`; an explicit null remains unknown,
+and malformed, negative or overflowing counts are refused. Only an original
+admitted complete ordinary history record with both `reply_count` and
+`thread_ts` genuinely absent may project exact `int64` zero. A thread parent,
+reply, partial record, event ambiguity or unsupported completeness remains
+unknown or refused. This rule is an ActQL projection, not a general vendor
+count guarantee. Explicit positive counts with absent thread metadata are not
+a new contradiction. Preserve exact original `ts` and `thread_ts`, and do not
+apply this inference to reactions, files or other missing fields. Equal
+response DATA, a Source label or a caller Bool cannot supply the original
+history membership or observation/current/custody obligations.
+
 <!-- requirement-block: catalog-and-lock.canonical-preimage -->
 The Catalog self-CID MUST hash the complete canonical Catalog excluding only its
 root `catalog_cid`. SourceView and Command self-CIDs exclude only their root
@@ -1775,7 +1789,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:eb0ecb638320a18d96185cb680c9706e4efb4390b65c8bee2e5d6fef08afd708 -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:9efa186558e562852090b637504e965234a3b846bbb1cf87547e8ad5df060e0f -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:3c07ce1eb5eeba94cb2be58d56f38ee200645a6b5cbcc554230b5811f5a03a9b -->
 
 <a id="parameter-value-projection"></a>
@@ -2816,7 +2830,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:341a4525d3d871b79f08e2b4604938bbec84d371016a8ce73d1be15a25abd14f
+../../../spec/contracts/actql-check-environment.json# sha256:b51a15f3272b0f6d2a2883b3ecfcc71ace3ebe3ead27e087a194f8aeaa542bd5
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:621725e41f803d118b749abf99a40f4c23e2bd3fb15078912c69ff7f82c6f85a
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:27cb211cc9578f9b5fac27dc3d75c5236b13eebe501224b14f21eafbccda2d25

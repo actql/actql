@@ -7,9 +7,21 @@ import {
 }
 
 // Values
+pub fn admit_slack_message_history_page(SlackMessageHistory, SlackMessageHistoryRequest, Bytes) -> Result[SlackMessagePage, SlackMessagePageIssue]
+
+pub fn begin_slack_message_history(SlackMessageHistory) -> Result[SlackMessageHistoryRequest, SlackMessagePageIssue]
+
+pub fn close_slack_message_history(SlackMessageHistory) -> Unit
+
+pub fn next_slack_message_history_request(SlackMessageHistory, SlackMessagePage) -> Result[SlackMessageHistoryRequest?, SlackMessagePageIssue]
+
 pub fn prepare_slack_command_request(SlackCommandKind, @value_admission.CheckedValue, String, String?, SlackCommandRequestLimits) -> Result[SlackCommandRequest, SlackCommandRequestIssue]
 
+pub fn prepare_slack_message_history(String, SlackMessagePageLimits, Int) -> Result[SlackMessageHistory, SlackMessagePageIssue]
+
 pub fn project_slack_channel_list(Bytes, SlackChannelListLimits) -> Result[SlackChannelListPage, SlackChannelListIssue]
+
+pub fn project_slack_message_page(Bytes, String, SlackMessagePageLimits) -> Result[SlackMessagePage, SlackMessagePageIssue]
 
 pub fn project_slack_user_list(Bytes, SlackUserListLimits) -> Result[SlackUserListPage, SlackUserListIssue]
 
@@ -38,6 +50,26 @@ pub fn slack_command_request_kind(SlackCommandRequest) -> SlackCommandKind
 pub fn slack_command_request_marker(SlackCommandRequest) -> String?
 
 pub fn slack_command_request_path(SlackCommandRequest) -> String
+
+pub fn slack_message_column_names() -> Array[String]
+
+pub fn slack_message_history_request_channel(SlackMessageHistoryRequest) -> String
+
+pub fn slack_message_history_request_cursor(SlackMessageHistoryRequest) -> String?
+
+pub fn slack_message_history_request_latest(SlackMessageHistoryRequest) -> String?
+
+pub fn slack_message_history_request_matches(SlackMessageHistory, SlackMessageHistoryRequest) -> Bool
+
+pub fn slack_message_history_request_ordinal(SlackMessageHistoryRequest) -> Int
+
+pub fn slack_message_page_ids(SlackMessagePage) -> Array[String]
+
+pub fn slack_message_page_row_count(SlackMessagePage) -> Int
+
+pub fn slack_message_page_rows_wire(SlackMessagePage, Array[String], Int, Int, Int) -> Result[String, SlackMessagePageIssue]
+
+pub fn slack_message_schema_wire(Int, Int, Int) -> Result[String, SlackMessagePageIssue]
 
 pub fn slack_user_list_column_names() -> Array[String]
 
@@ -107,6 +139,44 @@ pub(all) struct SlackCommandRequestLimits {
   max_bytes : Int
   max_nodes : Int
   max_depth : Int
+  max_value_text_bytes : Int
+}
+
+pub struct SlackMessageHistory {
+  // private fields
+}
+
+pub struct SlackMessageHistoryRequest {
+  // private fields
+}
+
+pub struct SlackMessagePage {
+  response_sha256 : String
+  next_cursor : String?
+  has_more : Bool
+  history_limited : Bool
+  // private fields
+}
+
+pub(all) enum SlackMessagePageIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+  InvalidPagination
+  InvalidSelection(String)
+  InvalidCell(String)
+  DuplicateMessage
+  ForeignHistoryRequest
+  HistoryUnavailable
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SlackMessagePageLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_rows : Int
+  max_cursor_bytes : Int
+  max_value_nodes : Int
   max_value_text_bytes : Int
 }
 
