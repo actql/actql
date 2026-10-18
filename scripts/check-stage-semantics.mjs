@@ -5,7 +5,7 @@ import {machineCid} from './actql-spec-family.mjs';
 
 const read = path => JSON.parse(readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 const args = process.argv.slice(2);
-assert.ok(args.length === 0 || (args.length === 1 && args[0] === '--write'));
+assert.ok(args.length === 0 || (args.length === 1 && ['--write', '--check'].includes(args[0])));
 // The STRPOS adoption changes current expression-dependent source identities,
 // not the canonical bytes or validity of their retained predecessor bodies.
 const history = read('portability/corpus/historical/pre-strpos-stage-identities.json');
@@ -23,6 +23,63 @@ for (const c of history.cases) {
   if (Object.hasOwn(c.envelope, 'expression_contract_cid')) {
     assert.equal(c.envelope.expression_contract_cid, history.expression_contract_cid);
   }
+}
+
+// The same declared composition is checked for current and complete retained
+// predecessor inputs; neither expected CID is derived from compiler output.
+function programEnvelope(stages, cid, mode, accepted) {
+  const [a, b] = stages.cases.slice(0, 2).map(c => structuredClone(c.envelope));
+  const port = mode === 1 ? {result: {stage: 'a', result: 'r'}}
+    : mode === 2 ? {receipt: {stage: 'a', effect: 'd'}} : null;
+  if (port) b.local_body.inputs.rows = port;
+  return {
+    version: 'actql-program-semantics/0.1', actql_version: 'actql/0.1',
+    expression_contract_cid: cid,
+    parameters: a.parameters, bindings: a.bindings,
+    parameter_references: [a, b].flatMap((s, i) => s.parameter_references.map(r => ({...r, path: `/stages/${i}${r.path}`}))),
+    binding_references: a.binding_references.map(r => ({...r, path: `/stages/0${r.path}`})),
+    program_template: {
+      stages: [
+        {id: 'a', after: 'initial', imports: {}, stage_semantics_cid: machineCid(a)},
+        {id: 'b', after: accepted ? 'accepted' : 'completed', imports: port ? {rows: port} : {}, stage_semantics_cid: machineCid(b)},
+      ],
+      exports: {out: {from: {stage: 'b', result: 'r'}}},
+    },
+  };
+}
+
+const signedHistory = read('portability/corpus/historical/pre-signed64-stage-identities.json');
+assert.equal(signedHistory.version, 'actql-historical-stage-identity-vectors/0.1');
+assert.equal(signedHistory.source_commit, 'a4d37c4d08ff19e0689d98c75a485ae3cea45707');
+verifyIdentity(signedHistory,
+  'sha256:9d442845e98e7d289dc7a2780163475f99fff2b5a60f4f19bf685fc923922a94');
+verifyIdentity(signedHistory.expression_contract, signedHistory.expression_contract_cid);
+const retained = name => signedHistory.original_vectors[`portability/corpus/${name}.json`];
+for (const name of ['stage-semantics', 'local-unit-stage-body']) {
+  for (const c of retained(name).cases) {
+    assert.equal(c.envelope.expression_contract_cid, signedHistory.expression_contract_cid);
+    verifyIdentity(c.envelope, c.expected_cid);
+  }
+}
+for (const c of retained('stage-definition').cases) {
+  const stage = retained('stage-semantics').cases.find(s => s.name === c.stage_case);
+  assert(stage);
+  verifyIdentity({version: 'actql-stage-definition/0.1', id: c.id,
+    stage_semantics_cid: stage.expected_cid}, c.expected_cid);
+}
+for (const c of retained('program-semantics').cases) {
+  verifyIdentity(programEnvelope(retained('stage-semantics'),
+    signedHistory.expression_contract_cid, c.import_mode, c.accepted), c.expected_cid);
+}
+for (const c of retained('program-definition').cases) {
+  const program = retained('program-semantics').cases.find(p =>
+    p.import_mode === c.import_mode && p.accepted === c.accepted);
+  assert(program);
+  verifyIdentity({version: 'actql-program-definition/0.1', id: c.id,
+    program_semantics_cid: program.expected_cid}, c.expected_cid);
+}
+for (const c of retained('stage-parameter-declarations').cases) {
+  verifyIdentity(c.expected_declarations, c.expected_cid);
 }
 const cid = machineCid(read('spec/contracts/actql-expressions.json'));
 assert.equal(read('spec/contracts/actql-aoa.json').expression_contract_cid, cid);
@@ -56,24 +113,7 @@ assert.equal(programs.version, 'actql-program-semantics-vectors/0.1');
 for (const {import_mode: mode, accepted, expected_cid} of programs.cases) {
   assert.ok([0, 1, 2].includes(mode));
   assert.equal(typeof accepted, 'boolean');
-  const [a, b] = vectors.cases.slice(0, 2).map(c => structuredClone(c.envelope));
-  const port = mode === 1 ? {result: {stage: 'a', result: 'r'}}
-    : mode === 2 ? {receipt: {stage: 'a', effect: 'd'}} : null;
-  if (port) b.local_body.inputs.rows = port;
-  const envelope = {
-    version: 'actql-program-semantics/0.1', actql_version: 'actql/0.1',
-    expression_contract_cid: cid,
-    parameters: a.parameters, bindings: a.bindings,
-    parameter_references: [a, b].flatMap((s, i) => s.parameter_references.map(r => ({...r, path: `/stages/${i}${r.path}`}))),
-    binding_references: a.binding_references.map(r => ({...r, path: `/stages/0${r.path}`})),
-    program_template: {
-      stages: [
-        {id: 'a', after: 'initial', imports: {}, stage_semantics_cid: machineCid(a)},
-        {id: 'b', after: accepted ? 'accepted' : 'completed', imports: port ? {rows: port} : {}, stage_semantics_cid: machineCid(b)},
-      ],
-      exports: {out: {from: {stage: 'b', result: 'r'}}},
-    },
-  };
+  const envelope = programEnvelope(vectors, cid, mode, accepted);
   verifyIdentity(envelope, expected_cid);
   programTests += `\n///|\ntest "program semantics: ${mode} ${accepted}" {\n  assert_program_semantics(${mode}, ${accepted}, ${JSON.stringify(canonicalText(envelope))}, ${JSON.stringify(expected_cid)})\n}\n`;
 }
@@ -137,4 +177,4 @@ for (const [path, content] of [
   if (args[0] === '--write') writeFileSync(url, content);
   else assert.equal(readFileSync(url, 'utf8'), content, `stale generated file: ${path}`);
 }
-console.log(`${vectors.cases.length} stage and ${programs.cases.length} Program semantics, ${stageDefinitions.cases.length} Stage and ${definitions.cases.length} Program Definition identities, ${stageDeclarations.cases.length} local declaration and ${unitBodies.cases.length} Unit body projections, and ${history.cases.length} retained pre-STRPOS identities verified; no executable conformance claim.`);
+console.log(`${vectors.cases.length} stage and ${programs.cases.length} Program semantics, ${stageDefinitions.cases.length} Stage and ${definitions.cases.length} Program Definition identities, ${stageDeclarations.cases.length} local declaration and ${unitBodies.cases.length} Unit body projections, and ${history.cases.length} retained pre-STRPOS identities and complete pre-Signed64 expression/vector originals verified; no executable conformance claim.`);

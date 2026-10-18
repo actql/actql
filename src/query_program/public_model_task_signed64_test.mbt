@@ -365,6 +365,19 @@ test "SQL and AQL Signed64 public INFER use the same checked computation" {
   }
   let a = prepare(sql)
   let b = prepare(aql)
+  for source in [sql, aql] {
+    let explicit = prepare(
+      source.replace(
+        old="INPUT (notes, active_users, trend)",
+        new="ITEM KEY (id) INPUT (notes = notes, active_users = active_users, trend = trend) KEEP (id, notes, active_users, trend)",
+      ),
+    )
+    assert_eq(semantic(a), semantic(explicit))
+    assert_shorthand_checked_identity(
+      check_shorthand_identity_program(a, environment),
+      check_shorthand_identity_program(explicit, environment),
+    )
+  }
   assert_eq(semantic(a), semantic(b))
   assert_shorthand_checked_identity(
     check_shorthand_identity_program(a, environment),
@@ -377,32 +390,19 @@ test "public Signed64 INFER refuses Number Decimal and Text inputs without promo
   let environment = public_signed64_task_environment()
   let source = "SELECT a.id AS id, a.description AS notes, u.active_users, u.trend FROM salesforce.accounts AS a JOIN snowflake.usage_30d AS u ON a.id=u.account_id |> INFER `model-task:churn-risk.v1` INPUT (notes, active_users, trend) AS risk"
   for kind in ["number", "decimal", "string"] {
-    let program = match
-      compile(
-        @query.parse_query(source, syntax_limits()).unwrap(),
-        public_signed64_hero_context(environment, kind~),
-        construction_limits(),
-      ) {
-      Ok(value) => value
-      Err(issue) =>
-        fail(
-          "public Signed64 wrong " +
-          kind +
-          ": " +
-          infer_defaults_issue_tag(issue),
-        )
+    let result = compile(
+      @query.parse_query(source, syntax_limits()).unwrap(),
+      public_signed64_hero_context(environment, kind~),
+      construction_limits(),
+    )
+    let refusal = match result {
+      Ok(program) => infer_defaults_final_refusal(program, environment)
+      Err(_) => infer_defaults_prefix_refusal(result)
     }
-    guard @check.check_parsed(program, environment, None, check_limits())
-      is Rejected(error) else {
-      fail("non-Signed64 public input admitted: " + kind)
-    }
-    match @check.diagnostic_cause(error) {
-      Source(SourceView(Program(Program(Pipeline(_, issue))))) =>
-        assert_eq(
-          issue.kind,
-          @pipeline.Infer(@evidence.Expression(@typing.TypeMismatch("int64"))),
-        )
-      other => raise other
-    }
+    assert_eq(
+      refusal,
+      @pipeline.Infer(@evidence.Expression(@typing.TypeMismatch("int64"))),
+      msg=kind,
+    )
   }
 }

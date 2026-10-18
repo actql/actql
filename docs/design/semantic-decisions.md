@@ -760,3 +760,20 @@ remain unchanged. Signed64 is a separate adopted logical type and this Text
 extension adopts none of its proposed arithmetic overloads. Contract/schema
 registration is not evidence of an actual supplier, installed Model execution,
 normal funding or recovery acceptance.
+
+### Expression-dependent Stage identity closure
+
+The generated Stage expression-contract pointer and independent Stage, Program,
+Definition and Unit-body projections follow the same current normative expression
+body as Common expression admission. Extending a logical scalar therefore changes
+these dependent source identities even when the authored query contains no use of
+the new scalar. Complete predecessor expression bodies and projection vectors stay
+independently verifiable; they do not become an alternate current expression root.
+Ordinary interface freshness checks this existing Stage generator as well as the
+Catalog dependency generator.
+
+A JOIN followed by INFER uses the existing Script producer-binding path for both
+explicit and omitted item keys. That path checks the actual joined prefix and its
+original schemas and keys before inference. The retained-Result JOIN specialization
+remains available for queries without INFER; no type conversion, inferred key or
+additional authority follows from routing through Script.
