@@ -164,6 +164,25 @@ completion. Concurrent closes share one flight, completed siblings are not
 retried, and diagnostics retain the first and latest error records rather than
 an unbounded history. Escaped aliases remain the original envelope's duty.
 
+The original supplier may initialize its selected Host module namespace through
+one asynchronous flight. Begin snapshots all five original references and
+consumes the generation before that initialization; it checks original current
+afterward before returning the nominal scope. The caller awaits begin and uses
+the fixed Owner validator before importing Common or discovering the Project.
+An initialization failure preserves its original cause and cleanup duty; neither
+a provisional scope nor Promise settlement substitutes for that duty's ACK.
+
+The ordinary package builder derives a private image inventory from the exact
+rewritten adapter outputs, runtime images and selected dependency manifests.
+This generated Source is correspondence DATA, not an operational issuer. A
+same-FD image read checks its original extent, identity and complete digest,
+holds its immutable UTF-8 Source and closes that same descriptor before handing
+the Source onward. Close failure retains the original FD and close-only retry;
+it cannot return Source, reopen the image or retire a sibling. The temporary
+byte backing, decoded String, hash and native decoder workspace overlap. Such
+byte custody alone does not establish the complete image loader, installation
+admission, current Host or preparation envelope.
+
 This admission has no conversion to metadata HTTP, Source, Result, business Run,
 Model invocation, Content/driver or external-VM capacity or authority. Their
 existing Resource suppliers and current authorization remain separate. The

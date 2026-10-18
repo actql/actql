@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {closeSync, fstatSync, mkdtempSync, openSync, rmSync} from 'node:fs';
+import {closeSync, fstatSync, mkdtempSync, openSync, readFileSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {createContext, runInContext} from 'node:vm';
 import ownerModule from './initial-control-installation-owner.cjs';
 
 const {createInitialControlInstallationOwner: createOwner} = ownerModule;
@@ -29,6 +30,118 @@ test('unavailable actual original refuses before reading caller descriptors', ()
   const packet = new Proxy({}, {ownKeys() { throw new Error('UnexpectedCallerRead'); }});
   assert.throws(() => owner.begin(packet), {code: 'NodeInitialControlAdmissionUnavailable'});
   assert.throws(() => owner.assertCurrent({}, packet), {code: 'NodeInitialControlAdmissionUnavailable'});
+});
+
+test('asynchronous begin snapshots five originals before initialization and checks current after it', async () => {
+  let finish, prepares = 0, currents = 0, heldByPrepare;
+  const wait = new Promise(resolve => { finish = resolve; });
+  const original = originals(), same = {...original};
+  const root = {prepare(held) {
+    assert.equal(this, root); prepares++; heldByPrepare = held;
+    assert.ok(Object.isFrozen(held));
+    assert.deepEqual({...held}, same);
+    return wait;
+  }, assertCurrent(held) {
+    assert.equal(this, root); currents++;
+    assert.equal(held, heldByPrepare);
+    assert.deepEqual({...held}, same);
+  }, close(held) { assert.equal(held, heldByPrepare); return {pending: false}; }};
+  const owner = createOwner(root), pending = owner.begin(original);
+  assert.ok(pending instanceof Promise);
+  assert.equal(prepares, 1);
+  assert.equal(currents, 0);
+  for (const name of Object.keys(original)) original[name] = {};
+  assert.throws(() => owner.begin(same), changed);
+  finish({aResolvedObjectIsNotAnAdmission: true});
+  const scope = await pending;
+  assert.equal(currents, 1);
+  owner.assertCurrent(scope, same);
+  assert.throws(() => owner.assertCurrent(scope, original), changed);
+  assert.equal((await scope.close()).pending, false);
+});
+
+test('asynchronous initialization retains the captured original callback and receiver', async () => {
+  let finish, calls = 0;
+  const wait = new Promise(resolve => { finish = resolve; });
+  const root = {prepare() { assert.equal(this, root); calls++; return wait; },
+    assertCurrent() { assert.equal(this, root); }, close() { return {pending: false}; }};
+  const owner = createOwner(root);
+  root.prepare = () => { throw new Error('ReplacementMustNotInitialize'); };
+  const pending = owner.begin(originals());
+  assert.equal(calls, 1);
+  finish();
+  const scope = await pending;
+  assert.equal((await scope.close()).pending, false);
+});
+
+test('one original namespace flight can serve different generations without sharing their scopes', async () => {
+  let finish, imports = 0, flight;
+  const root = {prepare() {
+    flight ??= new Promise(resolve => { imports++; finish = resolve; });
+    return flight;
+  }, assertCurrent() {}, close() { return {pending: false}; }};
+  const owner = createOwner(root), first = originals(), second = originals();
+  const firstPending = owner.begin(first), secondPending = owner.begin(second);
+  assert.equal(imports, 1);
+  assert.notEqual(firstPending, secondPending);
+  finish();
+  const [firstScope, secondScope] = await Promise.all([firstPending, secondPending]);
+  assert.notEqual(firstScope, secondScope);
+  assert.throws(() => owner.assertCurrent(firstScope, second), changed);
+  assert.equal((await firstScope.close()).pending, false);
+  owner.assertCurrent(secondScope, second);
+  assert.equal((await secondScope.close()).pending, false);
+});
+
+test('failed asynchronous initialization preserves its exact cause and original pending cleanup', async t => {
+  const directory = mkdtempSync(join(tmpdir(), 'actql-initial-control-init-duty-'));
+  const fd = openSync(join(directory, 'original'), 'wx');
+  let closed = false, retries = 0, currents = 0;
+  t.after(() => { if (!closed) closeSync(fd); rmSync(directory, {recursive: true}); });
+  const cleanupHandle = Object.freeze({status() { return {pending: !closed}; },
+    retry() { retries++; closeSync(fd); closed = true; }});
+  const cause = Object.freeze(Object.assign(new Error('OriginalInitializationUnknown'), {cleanupHandle}));
+  const root = {prepare() { return Promise.reject(cause); },
+    assertCurrent() { currents++; }, close() { throw new Error('ScopeWasNotIssued'); }};
+  const owner = createOwner(root), original = originals();
+  await assert.rejects(owner.begin(original), error => error === cause && error.cleanupHandle === cleanupHandle);
+  assert.equal(currents, 0);
+  assert.equal(retries, 0);
+  assert.ok(fstatSync(fd).isFile());
+  assert.equal(cleanupHandle.status().pending, true);
+  assert.throws(() => owner.begin(original), changed);
+  // Only the original initialization duty can acknowledge this actual FD.
+  cleanupHandle.retry();
+  assert.equal(cleanupHandle.status().pending, false);
+  assert.equal(retries, 1);
+});
+
+test('current refusal after initialization cannot issue or recycle the consumed generation', async () => {
+  let finish, current = true, checks = 0;
+  const wait = new Promise(resolve => { finish = resolve; });
+  const cause = Object.freeze(new Error('OriginalCandidateRetiredDuringInitialization'));
+  const root = {prepare() { return wait; }, assertCurrent() { checks++; if (!current) throw cause; },
+    close() { throw new Error('NoScopeToClose'); }};
+  const owner = createOwner(root), original = originals(), pending = owner.begin(original);
+  current = false;
+  finish();
+  await assert.rejects(pending, error => error === cause);
+  assert.equal(checks, 1);
+  assert.throws(() => owner.begin(original), changed);
+});
+
+test('synchronous prepare failures and malformed captured preparation descriptors do not become scopes', () => {
+  const cause = Object.freeze(new Error('OriginalSynchronousInitializationFailure'));
+  const root = {prepare() { throw cause; }, assertCurrent() { throw new Error('NotInitialized'); },
+    close() { return {pending: false}; }};
+  const owner = createOwner(root), original = originals();
+  assert.throws(() => owner.begin(original), error => error === cause);
+  assert.throws(() => owner.begin(original), changed);
+  let reads = 0;
+  const getter = Object.defineProperty({...root}, 'prepare', {get() { reads++; return root.prepare; }});
+  assert.throws(() => createOwner(getter), changed);
+  assert.equal(reads, 0);
+  assert.throws(() => createOwner({...root, prepare: true}), {code: 'NodeInitialControlAdmissionUnavailable'});
 });
 
 test('nominal current rejects fake copied and other-instance scopes without calling their methods', () => {
@@ -276,4 +389,56 @@ test('a generation cannot be reissued by reentry from its original current callb
   assert.equal(nested, 1);
   assert.equal((await scope.close()).pending, false);
   assert.throws(() => owner.begin(original), changed);
+});
+
+test('later Reflect Object and collection replacements cannot authenticate or discharge a scope', async () => {
+  // Mutate a fresh test-only realm, never the test runner's native intrinsics.
+  // This is an internal-state counter, not an actual preload envelope issuer.
+  const context = createContext({module: {exports: {}}, firstPending: true, secondPending: true});
+  runInContext(readFileSync(new URL('./initial-control-installation-owner.cjs', import.meta.url), 'utf8'), context);
+  runInContext(`
+    const owner = module.exports.createInitialControlInstallationOwner({
+      assertCurrent() {}, close() { return {pending: false}; }
+    });
+    const originals = {host: {}, installation: {}, generation: {}, supplier() {}, moduleLifetime: {}};
+    const scope = owner.begin(originals);
+    const firstRecord = {}, secondRecord = {};
+    scope.retainPreparation(firstRecord, {status() { return {pending: firstPending}; }, retry() { firstPending = false; }})
+      .releaseReferences(firstRecord);
+    scope.retainPreparation(secondRecord, {status() { return {pending: secondPending}; }, retry() {}})
+      .releaseReferences(secondRecord);
+    let replacementCalls = 0;
+    const replacement = () => { replacementCalls++; throw new Error('ReplacementMustNotRun'); };
+    Reflect.apply = replacement;
+    Reflect.ownKeys = replacement;
+    Object.getOwnPropertyDescriptor = replacement;
+    Object.hasOwn = replacement;
+    Object.freeze = replacement;
+    Object.create = replacement;
+    Object.assign = replacement;
+    Array.prototype[Symbol.iterator] = replacement;
+    WeakMap.prototype.get = replacement;
+    WeakMap.prototype.set = replacement;
+    WeakSet.prototype.has = replacement;
+    WeakSet.prototype.add = replacement;
+    Map.prototype.get = replacement;
+    Map.prototype.set = replacement;
+    Map.prototype.values = replacement;
+    Map.prototype.forEach = replacement;
+    Map.prototype.clear = replacement;
+    let rejected = false;
+    try { owner.assertCurrent({...scope}, originals); }
+    catch (error) { rejected = error.code === 'NodeInitialControlOriginalChanged'; }
+    if (!rejected) throw new Error('ForeignScopeAccepted');
+    owner.assertCurrent(scope, originals);
+    globalThis.firstClose = scope.close();
+    globalThis.finish = async () => {
+      const first = await firstClose;
+      if (!first.pending || first.pendingPreparations !== 1) throw new Error('SiblingWasRetired');
+      secondPending = false;
+      const last = await scope.close();
+      if (last.pending || replacementCalls !== 0) throw new Error('NativeOriginalWasNotRetained');
+    };
+  `, context);
+  await context.finish();
 });

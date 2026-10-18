@@ -27,6 +27,7 @@ function installation(t) {
       readFileSync(join(root, 'packages', name, 'selected-infer-startup.cjs')));
   }
   for (const name of ['infer-trusted-node-preload.cjs', 'initial-control-installation-owner.cjs',
+    'initial-control-package-original.cjs',
     'infer-trusted-runtime-view.mjs']) {
     put(join(local, 'adapters/host-node', name), readFileSync(join(root, 'adapters/host-node', name)));
   }
@@ -116,6 +117,7 @@ test('public Local selected startup uses its same package without the standard w
   // another installation. Its entry imports that SAME Local private fixture.
   for (const name of ['selected-infer-startup.cjs', 'adapters/host-node/infer-trusted-node-preload.cjs',
     'adapters/host-node/initial-control-installation-owner.cjs',
+    'adapters/host-node/initial-control-package-original.cjs',
     'adapters/host-node/infer-trusted-runtime-view.mjs']) {
     fixture.put(join(fixture.directory, 'node_modules/@actql/local-node', name),
       readFileSync(join(fixture.local, name)));

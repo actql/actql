@@ -6,6 +6,8 @@ import {build} from 'esbuild';
 import {adapterModuleGraph} from './adapter-module-graph.mjs';
 import {rewriteLocalNodePackageImports} from './local-node-package-imports.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
+import {initialControlPackageOriginal, renderInitialControlPackageOriginal}
+  from './initial-control-package-images.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const inside = (root, path) => {
@@ -147,14 +149,25 @@ if (external !== undefined) {
   for (const entry of inputs.dataInputs) external.outputPath(relative(external.host.root, join(destination, entry.destination)));
 }
 if (stat('adapters') !== undefined) walk(join(destination, 'adapters'));
+const outputs = new Map();
 for (const {path, source} of sourcePaths) {
-  const output = join(destination, path);
   let bytes = external !== undefined && path === inputs.installationTable.destination
     ? Buffer.from(inputs.installationTable.render(destination)) : readFileSync(source);
   if (path.endsWith('.mjs') && (external === undefined || inside(inputs.coreRoot, source))) {
     const code = rewriteLocalNodePackageImports(bytes.toString('utf8'), path);
     bytes = Buffer.from(code);
   }
+  outputs.set(path, bytes);
+}
+const dataInputs = external === undefined
+  ? inputs.dataFiles.map(path => ({source: join(root, path), destination: path})) : inputs.dataInputs;
+for (const entry of dataInputs) outputs.set(entry.destination, readFileSync(entry.source));
+if (outputs.has(initialControlPackageOriginal)) {
+  outputs.set(initialControlPackageOriginal,
+    renderInitialControlPackageOriginal({root, destination, inputs, outputs}));
+}
+for (const {path} of sourcePaths) {
+  const output = join(destination, path), bytes = outputs.get(path);
   expected.add(path);
   if (check) {
     if (!readFileSync(output).equals(bytes)) {
@@ -175,10 +188,9 @@ function walk(directory, prefix = '') {
   }
 }
 walk(join(destination, 'adapters'));
-for (const entry of external === undefined ? inputs.dataFiles.map(path => ({source: join(root, path), destination: path}))
-  : inputs.dataInputs) {
+for (const entry of dataInputs) {
   const path = entry.destination;
-  const bytes = readFileSync(entry.source);
+  const bytes = outputs.get(path);
   const output = join(destination, path);
   if (check) {
     if (!readFileSync(output).equals(bytes)) {
