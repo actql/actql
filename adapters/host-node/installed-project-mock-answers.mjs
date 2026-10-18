@@ -132,6 +132,7 @@ export async function loadInstalledProjectMockAnswers(moon,project,profile,
           fail('ForeignInstalledMockModelOriginal');
         }
         if(modelBinding.failed)throw modelBinding.failure;
+        modelBinding.value.originalsForRuntime(runtime);
         return modelBinding.value;
       }
       // This SAME answer owner retains each actual Model installation before

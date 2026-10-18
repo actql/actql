@@ -122,6 +122,7 @@ test('changed opaque Model provider refuses without a new normalization or insta
   const f = fixture(), bound = f.bind();
   f.replaceProvider();
   assert.throws(() => bound.originalsForRuntime(f.moon), {code: 'ForeignInstalledMockModelOriginal'});
+  assert.throws(f.bind, {code: 'ForeignInstalledMockModelOriginal'});
   assert.deepEqual(f.counts(), {installs: 1, normalizes: 1, retiredAnswers: 0});
   f.view.retire(f.moon);
 });
