@@ -30,10 +30,11 @@ const cid = digit => `sha256:${digit.repeat(64)}`;
 const A = {nodeId: 'R_A', databaseId: 1296269, nameWithOwner: 'octo/hello'};
 const issues = count => Array.from({length: count}, (_, index) =>
   ({number: index + 1}));
-const row = number => ({number, node_id: `I_${number}`,
+const row = number => ({number: String(number), node_id: `I_${number}`,
   // GitHub's GraphQL states no body as "", kept exactly as given.
   title: `Issue ${number}`, state: 'open', body: '', author: 'octocat',
-  comments: 0, milestone: null, created_at: '2026-10-01T00:00:00.000Z',
+  comments: '0', state_reason: null, assignees: [], labels: [],
+  url: `https://github.com/octo/hello/issues/${number}`, milestone: null, created_at: '2026-10-01T00:00:00.000Z',
   updated_at: '2026-10-02T00:00:00.000Z', closed_at: null});
 
 async function setup(t, state, {faults = []} = {}) {
@@ -47,7 +48,9 @@ async function setup(t, state, {faults = []} = {}) {
   });
   t.after(async () => {
     journal.close();
-    await rm(root, {recursive: true, force: true});
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      t.diagnostic(`Retained GitHub GraphQL credential fixture: ${root}`);
+    } else await rm(root, {recursive: true, force: true});
   });
   const scope = Object.freeze({
     issuerAuthority: 'authority-a', principal: 'principal-a',
@@ -114,7 +117,7 @@ test('a same-name repository B never changes the requested node', async t => {
   state.names.set('octo/hello', 'R_B');
   state.repositories.get('R_A').nameWithOwner = 'octo/hello';
   const result = await context.read();
-  assert.deepEqual(result.rows.map(entry => entry.number), [1, 2, 3, 4, 5]);
+  assert.deepEqual(result.rows.map(entry => entry.number), ['1', '2', '3', '4', '5']);
   assert.ok(issueReads(context.fixture).every(request =>
     request.variables.id === 'R_A'));
 });
@@ -193,7 +196,10 @@ test('a missing, repeated or non-advancing cursor stops the read', async t => {
       nodes: [{number: 1, id: 'I_1', title: 'Issue 1', state: 'OPEN',
         body: '', author: {login: 'octocat'}, comments: {totalCount: 0},
         createdAt: '2026-10-01T00:00:00Z', updatedAt: '2026-10-02T00:00:00Z',
-        closedAt: null, milestone: null}]}}}}});
+        closedAt: null, milestone: null, stateReason: null,
+        assignees: {totalCount: 0, pageInfo: {hasNextPage: false, endCursor: null}, nodes: []},
+        labels: {totalCount: 0, pageInfo: {hasNextPage: false, endCursor: null}, nodes: []},
+        url: 'https://github.com/octo/hello/issues/1'}]}}}}});
   const missing = await setup(t, {...world(), answer: page(null)});
   assert.equal((await stopOf(missing.read())).refusal.kind, 'MissingCursor');
   const repeated = await setup(t, {...world(), answer: page('same')});

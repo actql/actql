@@ -92,7 +92,7 @@ export async function readGitHubIssuesByNode({moon, repository,
   const decoded = value => {
     try { return checked(value); }
     catch (cause) {
-      const refusal = JSON.parse(moon.githubGraphqlReadIssueJson(cause));
+      const refusal = JSON.parse(moon.githubGraphqlReadIssueJson(cause.cause));
       stopped(refusalCodes[refusal.kind] ?? 'GitHubGraphQLRefused',
         {refusal, ...(refusal.kind === 'RateLimited' ? {basis: lastBasis} : {})});
     }

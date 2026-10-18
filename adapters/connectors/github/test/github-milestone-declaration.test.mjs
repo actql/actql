@@ -9,7 +9,7 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 test('the normal GitHub declaration admits a nullable milestone title', async () => {
   const wire = await readFile(new URL('../../../../src/connectors/github/source-views.json',
     import.meta.url), 'utf8');
-  const original = checked(moon.clientProgramRowSourceRestoreDeclaration(
+  const original = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
     'github-original', 'github', 'github/0.1', wire, undefined));
   const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(original));
   assert.ok(declared.views[0].fields.includes('milestone'));
@@ -18,7 +18,7 @@ test('the normal GitHub declaration admits a nullable milestone title', async ()
   assert.equal(schemas.length, 1);
   assert.deepEqual(schemas[0].body.fields.milestone,
     {type: 'string', nullable: true});
-  const restored = checked(moon.clientProgramRowSourceRestoreDeclaration(
+  const restored = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
     'github-original', 'github', 'github/0.1', wire, declared.catalog_cid));
   assert.equal(moon.clientProgramRowSourceDeclarationJson(restored),
     moon.clientProgramRowSourceDeclarationJson(original));
