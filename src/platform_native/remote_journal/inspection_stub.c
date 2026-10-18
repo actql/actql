@@ -51,7 +51,9 @@ typedef struct {
   char *directory;
   char *copy;
   int descriptors[2];
+  int descriptor_close_errno[2];
   int output_descriptor;
+  int output_close_errno;
   int private_index_attempted;
   int private_index_created;
   int private_index_identity_observed;
@@ -99,23 +101,40 @@ static int inspection_remove(const char *path) {
   return unlink(path) == 0 || errno == ENOENT;
 }
 
+// Each original descriptor gets one close attempt. An unconfirmed result
+// retains its number and errno as cleanup duty, never as a retryable FD.
+static int inspection_close_descriptor(int *descriptor, int *close_errno) {
+  if (*close_errno != 0) return 0;
+  if (*descriptor < 0) return 1;
+  *close_errno = EIO;
+  if (close(*descriptor) != 0) {
+    *close_errno = errno != 0 ? errno : EIO;
+    return 0;
+  }
+  *descriptor = -1;
+  *close_errno = 0;
+  return 1;
+}
+
 static int inspection_close(actql_journal_inspection *owner) {
   // A consumed close cannot be retried through a possibly reused number.
-  if (owner->private_index_close_unknown) return 0;
+  if (owner->private_index_close_unknown || owner->output_close_errno != 0 ||
+      owner->descriptor_close_errno[0] != 0 ||
+      owner->descriptor_close_errno[1] != 0) return 0;
   if (owner->output_descriptor >= 0) {
-    if (close(owner->output_descriptor) != 0) {
+    if (!inspection_close_descriptor(&owner->output_descriptor,
+                                     &owner->output_close_errno)) {
       inspection_error(owner, "close inspection copy failed");
       return 0;
     }
-    owner->output_descriptor = -1;
   }
   for (int index = 0; index < 2; index++) {
     if (owner->descriptors[index] >= 0) {
-      if (close(owner->descriptors[index]) != 0) {
+      if (!inspection_close_descriptor(&owner->descriptors[index],
+                                       &owner->descriptor_close_errno[index])) {
         inspection_error(owner, "close inspection source failed");
         return 0;
       }
-      owner->descriptors[index] = -1;
     }
   }
   if (owner->copy != NULL) {
@@ -389,11 +408,11 @@ static void *inspection_open_bounded(
       if (!complete) break;
       position += read_count;
     }
-    if (close(output) != 0) {
+    if (!inspection_close_descriptor(&owner->output_descriptor,
+                                     &owner->output_close_errno)) {
       inspection_error(owner, "copy inspection source failed");
       return owner;
     }
-    owner->output_descriptor = -1;
     if (!complete) {
       inspection_error(owner, "copy inspection source failed");
       return owner;
