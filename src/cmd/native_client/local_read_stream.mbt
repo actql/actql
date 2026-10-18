@@ -1,6 +1,7 @@
 ///|
 fn local_read_issue(issue : @local_host.NativeLocalReadBindingIssue) -> String {
   match issue {
+    MaterialUnavailable => "LocalResultMaterialUnavailable"
     Adoption(issue) => local_host_issue(issue)
     Journal(CustodyLost) => "LocalReadCustodyLost"
     Journal(TransactionUnknown) => "LocalReadAdmissionUnknown"

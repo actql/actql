@@ -19,7 +19,7 @@ priv struct PreparedVectorExpansionNode {
 
 ///|
 priv struct PreparedVectorBridgeRoles {
-  identity : String
+  identities : Array[String]
   vector : String
 }
 
@@ -131,7 +131,7 @@ fn vector_expansion_reference_count(
 
 ///|
 priv enum PreparedVectorParams {
-  VectorBridgeParams(String, String)
+  VectorBridgeParams(Array[String], String)
   VectorNormalizeParams
   VectorScoreParams(@vector_checking.Metric, Array[Double])
   VectorNearestParams(
@@ -534,26 +534,61 @@ fn checked_query_values(
 }
 
 ///|
+fn checked_vector_bridge_roles(
+  vectors : @carrier.Vectors,
+  max_name_bytes : Int,
+  max_work : Int,
+) -> Result[(PreparedVectorBridgeRoles, Int, Int), VectorIssue] {
+  let count = @carrier.vector_identity_count(vectors)
+  if count <= 0 {
+    return Err(InvalidVectorWiring)
+  }
+  if max_name_bytes < 0 || count >= max_work {
+    return Err(VectorPreparationLimit)
+  }
+  let identities : Array[String] = []
+  let mut names = 0
+  for index in 0..<count {
+    guard @carrier.vector_identity_at(vectors, index) is Some(identity) else {
+      return Err(InvalidVectorWiring)
+    }
+    let name = @schema.reference_name(identity.name)
+    if name.length() > max_name_bytes - names {
+      return Err(VectorPreparationLimit)
+    }
+    let bytes = @utf8.encode(name).length()
+    if bytes > max_name_bytes - names {
+      return Err(VectorPreparationLimit)
+    }
+    names += bytes
+    identities.push(name)
+  }
+  let vector = @schema.reference_name(@carrier.vector_components(vectors).name)
+  if vector.length() > max_name_bytes - names {
+    return Err(VectorPreparationLimit)
+  }
+  let bytes = @utf8.encode(vector).length()
+  if bytes > max_name_bytes - names {
+    return Err(VectorPreparationLimit)
+  }
+  Ok(({ identities, vector, }, names + bytes, count + 1))
+}
+
+///|
 fn checked_nearest_bridge_roles(
   input : @vector.NearestInput,
+  max_name_bytes : Int,
+  max_work : Int,
 ) -> Result[(PreparedVectorBridgeRoles?, Int, Int), VectorIssue] {
   if !nearest_input_requires_bridge(input) {
     return Ok((None, 0, 0))
   }
-  guard @vector.nearest_input_vectors(input) is Some(vectors) &&
-    @carrier.vector_identity_count(vectors) == 1 &&
-    @carrier.vector_identity_at(vectors, 0) is Some(identity) else {
+  guard @vector.nearest_input_vectors(input) is Some(vectors) else {
     return Err(InvalidVectorWiring)
   }
-  let identity = @schema.reference_name(identity.name)
-  let vector = @schema.reference_name(@carrier.vector_components(vectors).name)
-  Ok(
-    (
-      Some({ identity, vector, }),
-      @utf8.encode(identity).length() + @utf8.encode(vector).length(),
-      2,
-    ),
-  )
+  checked_vector_bridge_roles(vectors, max_name_bytes, max_work).map(result => {
+    (Some(result.0), result.1, result.2)
+  })
 }
 
 ///|
@@ -677,20 +712,23 @@ fn prepare_vector_node(
     VectorValue(checked) =>
       match @vector.operation(checked) {
         @vector.ToVectors => {
-          guard @vector.output(checked) is @carrier.VectorValue(output) &&
-            @carrier.vector_identity_count(output) == 1 &&
-            @carrier.vector_identity_at(output, 0) is Some(identity) else {
+          guard @vector.output(checked) is @carrier.VectorValue(output) else {
             return Err(InvalidVectorWiring)
           }
-          let id = @schema.reference_name(identity.name)
-          let components = @schema.reference_name(
-            @carrier.vector_components(output).name,
-          )
+          let count = @carrier.vector_identity_count(output)
+          if count >= max_bindings {
+            return Err(VectorPreparationLimit)
+          }
+          let (roles, names, work) = match
+            checked_vector_bridge_roles(output, max_name_bytes, max_work) {
+            Ok(value) => value
+            Err(issue) => return Err(issue)
+          }
           (
-            VectorBridgeParams(id, components),
-            2,
-            @utf8.encode(id).length() + @utf8.encode(components).length(),
-            2,
+            VectorBridgeParams(roles.identities, roles.vector),
+            count + 1,
+            names,
+            work,
           )
         }
         @vector.NormalizeVectors => (VectorNormalizeParams, 0, 0, 0)
@@ -714,9 +752,14 @@ fn prepare_vector_node(
     NearestValue(checked) => {
       let pair = @vector.nearest_pair(checked)
       let options = @vector.nearest_pair_options(pair)
+      if max_work < 3 {
+        return Err(VectorPreparationLimit)
+      }
       let (candidate, candidate_names, candidate_work) = match
         checked_nearest_bridge_roles(
           @vector.nearest_pair_input(pair, @evidence.Candidates),
+          max_name_bytes,
+          max_work - 3,
         ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
@@ -724,6 +767,8 @@ fn prepare_vector_node(
       let (query, query_names, query_work) = match
         checked_nearest_bridge_roles(
           @vector.nearest_pair_input(pair, @evidence.Queries),
+          max_name_bytes - candidate_names,
+          max_work - 3 - candidate_work,
         ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
@@ -815,6 +860,23 @@ fn prepare_vector_node(
 }
 
 ///|
+// Canonical singleton spelling remains unchanged; a tuple retains its order.
+fn emit_vector_identity_roles(
+  out : @encode.Writer,
+  identities : Array[String],
+) -> Unit raise @encode.EncodeFailure {
+  if identities.length() == 1 {
+    @encode.string_value(out, identities[0])
+  } else {
+    @encode.begin_array(out)
+    for identity in identities {
+      @encode.string_value(out, identity)
+    }
+    @encode.end_array(out)
+  }
+}
+
+///|
 fn emit_vector_operation(
   prepared : PreparedVector,
   inputs : Array[String],
@@ -837,7 +899,7 @@ fn emit_vector_operation(
   match prepared.params {
     VectorBridgeParams(id, components) => {
       @encode.key(out, "id")
-      @encode.string_value(out, id)
+      emit_vector_identity_roles(out, id)
       @encode.key(out, "vector")
       @encode.string_value(out, components)
     }
@@ -1124,7 +1186,7 @@ fn emit_nearest_bridge_node(
   @encode.key(out, "params")
   @encode.begin_object(out)
   @encode.key(out, "id")
-  @encode.string_value(out, fields.identity)
+  emit_vector_identity_roles(out, fields.identities)
   @encode.key(out, "vector")
   @encode.string_value(out, fields.vector)
   @encode.end_object(out)
