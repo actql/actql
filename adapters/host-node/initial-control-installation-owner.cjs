@@ -66,6 +66,13 @@ function createInitialControlInstallationOwner(operational) {
   const scopes = new NativeWeakMap();
   const generations = new NativeWeakSet();
 
+  function requireOperational() {
+    // Private pre-dispatch absence fence only, before a Host candidate exists.
+    // It issues no scope, observes no caller and invokes no original callback.
+    // Same-Host/current/raw-acquisition checks still belong to actual begin.
+    if (assertOperational === undefined) unavailable();
+  }
+
   function remember(state, cause) {
     const record = freeze({cause});
     state.firstError ??= record;
@@ -266,7 +273,7 @@ function createInitialControlInstallationOwner(operational) {
     return apply(promiseThen, apply(promiseResolve, NativePromise, [prepared]),
       [() => issue(held)]);
   }
-  return freeze({begin, assertCurrent, readAsset, readInput});
+  return freeze({begin, assertCurrent, readAsset, readInput, requireOperational});
 }
 
 module.exports = {createInitialControlInstallationOwner};

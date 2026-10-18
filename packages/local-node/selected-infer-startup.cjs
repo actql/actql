@@ -4,5 +4,6 @@
 // does not manufacture early process responsibility or numerical coverage.
 // The original Root can capture this SAME ancestor table while its namespace
 // initializes. Do not replace it after the Root's pre-entry Module handoff.
-module.exports = Object.freeze({});
+// Null prototype avoids Node's circular-require warning prototype mutation.
+module.exports = Object.freeze(Object.create(null));
 require('./adapters/host-node/infer-trusted-node-preload.cjs');

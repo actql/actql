@@ -43,6 +43,17 @@ test('missing operational or intake originals refuse before raw input acquisitio
   assert.equal(observations, 0);
 });
 
+test('private operational presence check issues no scope and invokes no original callback', () => {
+  assert.throws(() => createOwner(undefined).requireOperational(),
+    {code: 'NodeInitialControlAdmissionUnavailable'});
+  let callbacks = 0;
+  const root = {assertCurrent() { callbacks++; }, close() { callbacks++; }};
+  const owner = createOwner(root);
+  assert.equal(owner.requireOperational(), undefined);
+  assert.equal(callbacks, 0);
+  assert.throws(() => owner.assertCurrent({}, originals()), changed);
+});
+
 test('captured prepare receives the same raw input synchronously before its first await', async () => {
   let covered = false, observations = 0, finish, calls = 0, heldByPrepare;
   const raw = new Proxy({}, {ownKeys() { observations++; assert.equal(covered, true); return []; }});

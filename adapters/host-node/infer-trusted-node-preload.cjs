@@ -97,6 +97,21 @@ const initialControl = createInitialControlInstallationOwner(undefined);
 // initialization can reenter this Module. Capturing it is not an operational
 // admission; the original unavailable Owner still handles every early call.
 module.exports = {
+  connectInitialControlHostPreparation(kind, rawInput) {
+    // An immutable image or exported callback is not an intake issuer. Keep
+    // absence before raw reads, current callbacks or candidate construction.
+    initialControl.requireOperational();
+    currentStartup();
+    const consumer = startup.initialControlHostConsumer;
+    if (consumer === undefined || kind !== 'open' && kind !== 'connect') {
+      throw Object.assign(new TypeError('NodeInitialControlAdmissionUnavailable'),
+        {code: 'NodeInitialControlAdmissionUnavailable'});
+    }
+    // Only the captured actual Host operation/receiver receives the same raw
+    // input synchronously. It retains the same candidate and begins original
+    // acquisition before copying; only its existing Client Promise may escape.
+    return Reflect.apply(consumer, startup.initialControlHostNamespace, [kind, rawInput]);
+  },
   beginInitialControlInstallation(originals, rawInput) {
     return initialControl.begin(originals, rawInput);
   },
@@ -294,6 +309,11 @@ if (selected) {
     } catch { unavailable(); }
   }
   const initialControlHostNamespace = initialControlImages?.initializeHostNamespace();
+  const consumerProperty = initialControlHostNamespace === undefined ? undefined :
+    Object.getOwnPropertyDescriptor(initialControlHostNamespace, 'connectInitialControlHostPreparation');
+  const initialControlHostConsumer = consumerProperty !== undefined &&
+    Object.hasOwn(consumerProperty, 'value') && typeof consumerProperty.value === 'function'
+    ? consumerProperty.value : undefined;
   // The actual process/module/native responsibility stays with this startup.
   // These originals and the existing Host overlap still need funded coverage.
   // In particular the three added descriptor records/array entries/references
@@ -305,7 +325,7 @@ if (selected) {
   // rejection, Promise settlement or retirement of this association.
   startup = {process: originalProcess, module, entry: originalProcess.argv[1], originals, publicPreload,
     promiseSpecies, sdkStaticModules, eagerSdkStartup, initialControlImages,
-    initialControlHostNamespace, invalidated: false};
+    initialControlHostNamespace, initialControlHostConsumer, invalidated: false};
 }
 
 function currentStartup() {
