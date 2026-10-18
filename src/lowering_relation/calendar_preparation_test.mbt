@@ -46,6 +46,27 @@ fn calendar_preparation_owner(
 }
 
 ///|
+test "Calendar finer Timestamp binding refuses backend precision not the logical timestamp" {
+  let declarations = @parameter.read_declarations(
+    Some(cursor("{\"a\":{\"type\":\"timestamp\"},\"z\":{\"type\":\"timestamp\"}}")),
+    { max_parameters: 2, max_nodes: 30, max_depth: 10, max_text_bytes: 100, },
+  ).unwrap()
+  let values = match @parameter.bind(declarations,
+    Some(cursor("{\"a\":\"2000-01-01T00:00:00.000Z\",\"z\":\"2000-01-01T00:00:00.000000001Z\"}")),
+    { max_nodes: 10, max_depth: 5, max_text_bytes: 100, }).unwrap() {
+    Ready(values) => values
+    _ => fail("exact original Timestamp Parameters must bind")
+  }
+  let owner = calendar_preparation_owner(
+    "[{\"calendar_series\":{\"start\":{\"$param\":\"a\"},\"end\":{\"$param\":\"z\"},\"unit\":\"day\",\"timezone\":\"UTC\"},\"as\":\"days\"}]",
+    declarations=Some(declarations), bindings=Some(values),
+  )
+  let result = @lowering_relation.prepare_sequence(owner, sequence_limits())
+  assert_true(result is Err(_))
+  assert_false(result is Err(CalendarFailure(0, CalendarRange(@calendar_options.InvalidTimestamp))))
+}
+
+///|
 test "Calendar occurrence projection rejects foreign pipeline operation and step" {
   let body =
     #|[{"calendar_series":{"start":"2000-01-01T00:00:00.000Z","end":"2000-01-03T00:00:00.000Z","unit":"day","timezone":"UTC"},"as":"first"},{"calendar_series":{"start":"2000-01-01T00:00:00.000Z","end":"2000-01-03T00:00:00.000Z","unit":"day","timezone":"UTC"},"as":"second"}]
