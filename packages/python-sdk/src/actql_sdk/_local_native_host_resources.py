@@ -132,7 +132,8 @@ class _OriginalHostResourcesCustody:
                         raise original._mark_unknown()
                     original._status(functions.refused(*outputs))
                     original._ack_data_retired()
-                    owner._host_resources_original = _RETIRED_HOST_RESOURCES_DATA
+                    # The failed selected binding still fences new work on
+                    # these inputs until their separate original cleanup ACKs.
                     raise known
                 if not original._bound:
                     raise original._mark_unknown()
@@ -195,6 +196,9 @@ class _OriginalHostResourcesCustody:
         if any(slot.value is not None for slot in self._slots()):
             raise self._mark_unknown()
         self._closed = True
+
+    def _refused_bind_data_retired(self) -> bool:
+        return self._closed and not self._bound and self._unknown is None
 
     def _call(self, operation: int) -> _OriginalHostResourcesFact:
         if self._unknown is not None:
@@ -293,7 +297,17 @@ class _OriginalHostResourcesCustody:
             # paths perform no second Library/context physical close.
             self._sqlite.close()
             self._read.close()
-        self._owner._host_resources_original = _RETIRED_HOST_RESOURCES_DATA
+        _retire_host_resources_registration(self._owner)
+
+
+def _retire_host_resources_registration(owner: _OriginalControlCustody) -> None:
+    original = owner._host_resources_original
+    if (type(original) is _OriginalHostResourcesCustody
+            and original._closed and original._unknown is None
+            and original._read._closed and original._sqlite._closed):
+        # Pair DATA retirement alone does not retire either input. Break this
+        # reverse registration only after both original parent DATA ACKs.
+        owner._host_resources_original = _RETIRED_HOST_RESOURCES_DATA
 
 
 def _resources_for_domain(domain: _OriginalDomainCustody) -> tuple[_OriginalHostResourcesCustody, _Phase] | None:

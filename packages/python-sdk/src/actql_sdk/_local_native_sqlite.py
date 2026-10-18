@@ -174,6 +174,8 @@ class _OriginalSqliteCustody:
         # Same-domain one-shot tombstone, not a fresh permit/cleanup Owner.
         # Break the Python registration cycle only after known data-drop ACK.
         self._domain._sqlite_library_original = _RETIRED_SQLITE_DATA
+        from ._local_native_host_resources import _retire_host_resources_registration
+        _retire_host_resources_registration(self._domain._owner)
 
     def _call(self, operation: int) -> _OriginalArenaFact:
         if self._unknown is not None:

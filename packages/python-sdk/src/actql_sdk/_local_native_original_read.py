@@ -189,6 +189,8 @@ class _OriginalParentReadCustody:
             raise self._mark_unknown()
         self._closed = True
         self._domain._parent_read_original = _RETIRED_PARENT_READ_DATA
+        from ._local_native_host_resources import _retire_host_resources_registration
+        _retire_host_resources_registration(self._domain._owner)
 
     def _call(self, operation: int) -> _OriginalArenaFact:
         if self._unknown is not None:
@@ -260,9 +262,12 @@ class _OriginalParentReadCustody:
         if joined is not None:
             if joined[0]._read is not self:
                 raise ValueError('Foreign original Host read carrier')
-            with joined[0].scope('read', cleanup=cleanup):
-                yield
-            return
+            if not (cleanup and joined[0]._refused_bind_data_retired()):
+                with joined[0].scope('read', cleanup=cleanup):
+                    yield
+                return
+            # Refused bind DATA does not grant a phase. Continue only the
+            # existing original Read cleanup and its own leave ACK below.
         self._call(5 if cleanup else 3)
         try:
             yield

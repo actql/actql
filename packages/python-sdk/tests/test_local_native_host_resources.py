@@ -139,6 +139,30 @@ class OriginalHostResourcesTests(unittest.TestCase):
         self.assertFalse(f.r._closed or f.s._closed)
         self.assertEqual(sum(x[0]=='refused' for x in f.pair_events),1)
 
+    def test_refused_selected_pair_never_falls_back_to_legacy_new_work(self):
+        f=PairFixture();f.bind_issue=(2,10);f.pair_present=False
+        with self.assertRaises(_OriginalHostResourcesError) as failure:f.pair()
+        p=failure.exception.cleanup_resources
+        before=(list(f.parent_events),list(f.events))
+        with self.assertRaises(ValueError):
+            with f.r.scope():pass
+        with self.assertRaises(ValueError):
+            with f.s._domain._read_scope(f.read_functions):pass
+        self.assertEqual(before,(f.parent_events,f.events))
+        # Only the same original cleanup ports remain available. They do not
+        # resurrect the failed binding or call its absent Native pair.
+        with f.r.scope(cleanup=True):self.assertTrue(f.r._scope_open)
+        with f.s._domain._read_scope(f.read_functions,cleanup=True):pass
+        self.assertFalse(any(x[0]=='operate' for x in f.pair_events))
+        f.s.close();self.assertIs(f.host._host_resources_original,p)
+        f.parent_close_issue=5
+        with self.assertRaises(Exception):f.r.close()
+        self.assertIs(f.host._host_resources_original,p)
+        self.assertFalse(f.r._closed)
+        f.parent_close_issue=0;f.r.close()
+        self.assertIs(f.host._host_resources_original,_RETIRED_HOST_RESOURCES_DATA)
+        self.assertFalse(f.host._closed or f.descriptor.close_attempted)
+
     def test_bind_loss_after_outslot_keeps_same_carrier_and_forbids_resend(self):
         f=PairFixture();f.bind_fault=OSError('reply lost after native bind')
         with self.assertRaises(_OriginalHostResourcesError) as e:f.pair()

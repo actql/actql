@@ -353,9 +353,12 @@ class _OriginalDomainCustody:
             if (type(functions) is not _OriginalDomainReadFunctions
                     or functions.library is not self._functions.library):
                 raise ValueError('Foreign original Host read functions')
-            with joined[0].scope(joined[1], cleanup=cleanup):
-                yield
-            return
+            if not (cleanup and joined[0]._refused_bind_data_retired()):
+                with joined[0].scope(joined[1], cleanup=cleanup):
+                    yield
+                return
+            # No pair was issued. Only this same original domain's cleanup
+            # port remains usable, never its ordinary new-work scope.
         self._call(12 if cleanup else 10, functions)
         try:
             yield

@@ -28796,7 +28796,7 @@
           "async": false
         }
       ],
-      "sha256": "557a39a67c8b06461c5cf1c4a934e869c59189cc0e808e1ea65b2095503afee3",
+      "sha256": "1be43dcb840a205ef355afddaec01a642c57f1422b793a2aa1499082f89013db",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -34242,7 +34242,7 @@
           "async": false
         }
       ],
-      "sha256": "773ecd489da35249b779f7605f2096b98de3dcd9ad8fe877b0f2834e44039000",
+      "sha256": "342f06059b4bc5ba94585eaaa33fc0f0f979d47c390402d1b5dd3012b29d2c61",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -39433,6 +39433,7 @@
       "imports": [
         "._local_native_control_custody",
         "._local_native_domain_custody",
+        "._local_native_host_resources",
         "._local_native_shim_abi",
         "._local_native_sqlite_database",
         "__future__",
@@ -39569,7 +39570,7 @@
           ]
         }
       ],
-      "sha256": "1d1f03d933768ebccaa57ecad03a738fb6837154723c03d976931831c3129a78",
+      "sha256": "7998838b71885a7394235068a60c3941194533541d23776d1ff739f94a747b61",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -62260,6 +62261,13 @@
           "async": false
         },
         {
+          "name": "_OriginalHostResourcesCustody/_refused_bind_data_retired",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
           "name": "_OriginalHostResourcesCustody/_slots",
           "parameters": [
             "self"
@@ -62343,6 +62351,13 @@
             "domain"
           ],
           "async": false
+        },
+        {
+          "name": "_retire_host_resources_registration",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
         }
       ],
       "imports": [
@@ -62359,7 +62374,7 @@
         "dataclasses",
         "typing"
       ],
-      "sha256": "c40d1ca87972c3c0b6c08ae70cc8f3696c21aad56305eca1b2317ea3952237fd",
+      "sha256": "8361b6d85b264e1e83692876c079088ecb9373c463d17c7d2cf11c4d02200d21",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "E / Python original Host transport; existing Native Host, Resource and Library Owners retain admission, current and physical retirement",
@@ -62378,6 +62393,7 @@
             "_OriginalHostResourcesCustody/_fact",
             "_OriginalHostResourcesCustody/_issue",
             "_OriginalHostResourcesCustody/_mark_unknown",
+            "_OriginalHostResourcesCustody/_refused_bind_data_retired",
             "_OriginalHostResourcesCustody/_slots",
             "_OriginalHostResourcesCustody/_status",
             "_OriginalHostResourcesCustody/close",
@@ -62389,7 +62405,8 @@
             "_OriginalHostResourcesFact",
             "_OriginalHostResourcesFunctions",
             "_OriginalHostResourcesFunctions/__init__",
-            "_resources_for_domain"
+            "_resources_for_domain",
+            "_retire_host_resources_registration"
           ],
           "exports": [
             "Any",
