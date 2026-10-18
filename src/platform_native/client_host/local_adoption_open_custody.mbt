@@ -86,6 +86,22 @@ pub fn NativeLocalAdoptionOpenFailure::retry_cleanup(
 }
 
 ///|
+// Allocate the original partial-acquisition carrier before entering any I/O.
+fn new_local_adoption_open_failure() -> NativeLocalAdoptionOpenFailure {
+  {
+    original_issue: InvalidInput,
+    source_root: None,
+    parent: None,
+    root: None,
+    managed: None,
+    lock: None,
+    root_acquisition: None,
+    lock_acquisition: None,
+    original_read_cleaned: false,
+  }
+}
+
+///|
 /// Inspect an existing original only. This entrance cannot initialize a missing
 /// Host. Success is the existing Session, not final retirement of its escaped
 /// readers/Roots or an operational signing/dispatch capability.
@@ -100,17 +116,7 @@ fn begin_existing_native_local_host_adoption_original_roots(
   configuration_files? : Array[String] = [],
   managed_root_path? : String? = None,
 ) -> Result[NativeLocalAdoptionSession, NativeLocalAdoptionOpenFailure] {
-  let custody : NativeLocalAdoptionOpenFailure = {
-    original_issue: InvalidInput,
-    source_root: None,
-    parent: None,
-    root: None,
-    managed: None,
-    lock: None,
-    root_acquisition: None,
-    lock_acquisition: None,
-    original_read_cleaned: false,
-  }
+  let custody = new_local_adoption_open_failure()
   match
     begin_native_local_host_adoption_original(
       parent_path,

@@ -1092,3 +1092,26 @@ or a selected SQLite Library Domain. Those scopes remain distinct. It neither
 provides a joint scope nor makes an unbound Library or heap fallback admissible.
 A complete normal installed caller must still supply those original resources,
 current authority and outer lifetime obligations; absence remains unavailable.
+
+
+## Existing adoption capture
+
+The trusted physical caller retains a first-stage capture before entering any
+Root acquisition. Preparation snapshots bounded selection DATA and allocates the
+same partial-acquisition carrier used by Adoption. Existing-only open enters
+once, publishing an unconfirmed outcome first, then retaining either the actual
+Session or original failure before returning. An interrupted return cannot
+become another acquisition or a cleanup acknowledgement. Scoped and legacy
+constructors are separate entrances; a missing original read scope never falls
+back to legacy allocation or initializes a missing Host.
+
+The capture may retain one journal capture for that same Session. It publishes
+the inner holder before handing it out, refuses replacement Libraries/options,
+and delegates subsequent current observation to its complete binding fence.
+Parent close requires the inner database and descriptor acknowledgements first.
+Without an inner journal it closes only its original Session or partial failure.
+The opening refusal remains available after cleanup; a later cleanup error does
+not replace it. Descriptor retirement does not acknowledge escaped Readers,
+Session/provider aliases or the caller's original Domain/read/workspace loan.
+This holder supplies no physical scope, permission, transport binding or funded
+normal installation profile.
