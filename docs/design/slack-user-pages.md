@@ -155,6 +155,39 @@ those aliases. Missing original reader capacity remains unavailable at the
 normal Host entrance; neither profile bounds nor startup-only capacity fills
 that independent supplier responsibility.
 
+## Channels Source
+
+The existing Slack Catalog projects `conversations.list` pages into `id`,
+`name`, `topic`, `purpose`, `member_count`, `is_private`, `is_archived` and
+`created`. Nested topic/purpose values remain exact text. Missing observations
+remain nullable; they never become empty text, zero counts or false flags.
+Counts use the distinct Signed64 contract. Their exact original numeric token
+is normalized as an integral decimal and checked before conversion; the JSON
+parser's binary64 placeholder is not the value. Creation seconds use checked
+integer multiplication and the existing canonical UTC Timestamp owner.
+
+The physical reader selects public/private channels and includes archived
+channels. It rejects observed IM/MPIM discriminants, duplicate channel ids and
+repeated cursors. An empty page with a continuation is not terminal. Every
+returned column is checked before projection. No identifier prefix, channel
+name or one-page result supplies workspace identity or whole-input proof.
+
+The installed Source exposes separate users and channels views through the
+existing Resource-to-operation binding. Each actual RowRun uses its own
+`slack:users:list` or `slack:channels:list` grant and the same Site's separate
+workspace-identity grant on the original token. Account/current/abort checks
+remain per original read. The plural Source binding identifies a new installed
+generation; no saved Run or predecessor publication is rewritten.
+
+Channel response bytes, parse/decode trees, exact numeric-token text, normalized
+integer/UTC text, checked values and rows-wire workspace overlap. The page,
+identifier/cursor sets, original callbacks, reader failures, returned responses
+and escaped aliases remain retained. The installation also retains its two
+reader factories, acquisition memberships and declaration callbacks. Declared
+bounds are not a Resource supplier. Missing normal reader capacity refuses;
+transport closure, Journal success and GC never establish raw retirement or
+return the original reservation. Cleanup remains unconfirmed until its actual
+owner can prove those duties complete.
 
 ## Original Command request encoding
 

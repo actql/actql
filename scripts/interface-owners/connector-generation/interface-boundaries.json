@@ -5,7 +5,7 @@
     {
       "module": "adapters/connectors-builtin/installations.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bf28eb881da5755df184e2333a84b00c93162198677c23746805b6404c7bbdad",
+      "sha256": "3e911908d12f1749d9a1072573126476549f015327c8a81dada28c25cc2074e4",
       "exports": [
         "installedConnectors"
       ],
@@ -684,6 +684,10 @@
               {
                 "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
                 "anchor": "installed Notion optional TLS authority is bounded original PEM before native transport"
+              },
+              {
+                "path": "adapters/connectors/slack/test/installed-slack-channels.test.mjs",
+                "anchor": "test('installed Slack channels original Source"
               }
             ]
           }
