@@ -18,6 +18,7 @@ options(
     "key_generation_native_wbtest.mbt": [ "native" ],
     "key_generation_unsupported.mbt": [ "not", "native" ],
     "signature_native_wbtest.mbt": [ "native" ],
+    "original_close_native_wbtest.mbt": [ "native" ],
     "diagnostic_ceiling_native_wbtest.mbt": [ "native" ],
     "private_evidence_native_wbtest.mbt": [ "native" ],
     "signature_unsupported.mbt": [ "not", "native" ],
