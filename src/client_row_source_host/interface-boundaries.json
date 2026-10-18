@@ -1567,16 +1567,8 @@
             ],
             "verification": [
               {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/relation_write_mapping.mbt",
-                "anchor": "pub fn prepare_relation_row_write_mapping("
+                "path": "src/client_row_source_host/relation_write_mapping_wbtest.mbt",
+                "anchor": "test \"Relation write Mapping preserves full Array Decimal and original target fields\""
               }
             ]
           }
