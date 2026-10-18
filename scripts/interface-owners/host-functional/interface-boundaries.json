@@ -28354,7 +28354,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "preload consumes generated inventory without issuing a Scope"
+                "anchor": "preload refuses unsupported raw input before its Host consumer"
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
@@ -29996,7 +29996,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "preload consumes generated inventory without issuing a Scope"
+                "anchor": "preload refuses unsupported raw input before its Host consumer"
               }
             ]
           }
@@ -30444,7 +30444,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-phase-envelope.cjs",
-      "sha256": "b7c4bdd7a989c85c4a0d138349aec62af21afc5d84fafe9d9200ea386580700b",
+      "sha256": "d7a9161ece3649b8fbbf743ac26a40a8c3ed0fc25980539b273dc9ee43093c30",
       "exports": [
         "commonjs:declareInitialControlPhaseEnvelope",
         "commonjs:inspectInitialControlPhaseEnvelope"
@@ -30630,6 +30630,10 @@
               {
                 "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
                 "anchor": "manifest alternatives charge the larger exact representation once"
+              },
+              {
+                "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
+                "anchor": "an invalid original extent refuses before numeric conversion of manifest alternatives"
               }
             ]
           }
