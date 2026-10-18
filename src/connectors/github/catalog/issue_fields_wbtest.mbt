@@ -161,9 +161,24 @@ test "incomplete or retired Issue codec state never emits completed rows" {
 
 ///|
 test "the original continuation decoder retains its explicit total page ceiling" {
-  let read = begin_issue_page_read(@utf8.encode(fields_original()), limits(), 2,
-    "R_A", 1296269L, "octo/hello").unwrap()
-  issue_page_read_accept(read, @utf8.encode(field_response("assignees", ["b"], 3, Some("A1")))).unwrap()
-  assert_eq(issue_page_read_accept(read, @utf8.encode(field_response("assignees", ["a"], 3, None))), Err(BudgetExceeded))
+  let read = begin_issue_page_read(
+    @utf8.encode(fields_original()),
+    limits(),
+    2,
+    "R_A",
+    1296269L,
+    "octo/hello",
+  ).unwrap()
+  issue_page_read_accept(
+    read,
+    @utf8.encode(field_response("assignees", ["b"], 3, Some("A1"))),
+  ).unwrap()
+  assert_eq(
+    issue_page_read_accept(
+      read,
+      @utf8.encode(field_response("assignees", ["a"], 3, None)),
+    ),
+    Err(BudgetExceeded),
+  )
   assert_true(issue_page_read_finish(read) is Err(_))
 }

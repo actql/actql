@@ -193,8 +193,8 @@ fn graphql_text_connection(
     match after {
       Some(value) if !value.is_empty() &&
         value.length() <= 1024 &&
-        !values.is_empty() && values.length().to_int64() < total =>
-        Ok((values, Some(value), total))
+        !values.is_empty() &&
+        values.length().to_int64() < total => Ok((values, Some(value), total))
       _ => Err(InvalidField(name))
     }
   } else {
