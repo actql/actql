@@ -54,8 +54,14 @@ export async function loadInstalledNotionProjectConnection(moon,providerMoon,pro
       keys.some(key=>!Object.hasOwn(descriptors[key],'value')))fail('InvalidNotionProjectConnection');
   const limits=descriptors.limits.value,assertCurrent=descriptors.assertCurrent.value,
     openFile=descriptors.openFile===undefined?open:descriptors.openFile.value;
-  if(!text(name)||typeof assertCurrent!=='function'||typeof openFile!=='function')fail('InvalidNotionProjectConnection');
-  const bounded=readLimits(limits),common=ports(moon,projectPorts),provider=ports(providerMoon,providerPorts);
+  if(typeof name!=='string'||name.length===0||typeof assertCurrent!=='function'||typeof openFile!=='function')fail('InvalidNotionProjectConnection');
+  const bounded=readLimits(limits);
+  let work=bounded.maxSelectionWork,index;
+  const spend=amount=>{if(amount>work)fail('NotionProjectConnectionSelectionLimit');work-=amount;};
+  // Charge before scanning the supplied name or opening its selected file.
+  spend(1);spend(name.length);
+  if(!text(name))fail('InvalidNotionProjectConnection');
+  const common=ports(moon,projectPorts),provider=ports(providerMoon,providerPorts);
   const call=(method,...args)=>Reflect.apply(common[method],moon,args);
   const fence=()=>{
     const result=Reflect.apply(assertCurrent,options,[]);
@@ -71,13 +77,12 @@ export async function loadInstalledNotionProjectConnection(moon,providerMoon,pro
   if(originals.connections===undefined)fail('NotionProjectConnectionUnavailable');
   const count=call('clientProjectConnectionsCount',originals.connections);
   if(!Number.isSafeInteger(count)||count<0||count>bounded.maxConnections)fail('NotionProjectConnectionSelectionLimit');
-  let work=bounded.maxSelectionWork,index;
-  const spend=amount=>{if(amount>work)fail('NotionProjectConnectionSelectionLimit');work-=amount;};
-  spend(1);spend(name.length);
   for(let i=0;i<count;i++){
+    spend(1);
     const candidate=call('clientProjectConnectionsName',originals.connections,i);
+    if(typeof candidate!=='string')fail('ForeignNotionProjectConnection');
+    spend(candidate.length);
     if(!text(candidate))fail('ForeignNotionProjectConnection');
-    spend(1);spend(candidate.length);
     if(candidate===name){
       if(index!==undefined)fail('ForeignNotionProjectConnection');
       index=i;
