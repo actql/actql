@@ -17,6 +17,12 @@ const limits = freeze({imageFiles: 2048, packages: 64, dependencyEdges: 512,
   generations: 1, preparations: 1, projectTasks: 128,
   configurationBytes: 65536, taskBytes: 65536, sourceNodes: 4096,
   sourceDepth: 64, taskWork: 2097152, opaqueCallerAliases: 0,
+  // External child backing is separate from the managed/native assumption.
+  // The existing journal inspectors enforce combined DB+WAL extent BEFORE
+  // creating their isolated copy. The source and copy coexist; their original
+  // FDs/Dir/SQLite connection and pending close remain with that child Owner.
+  journalInspectionBytes: 64 * MiB, journalInspectionEntries: 100000,
+  journalCopyReadBufferBytes: 65536,
   // Actual selected V8 heap ceiling is read by the early runtime original;
   // these distinct native/compiler terms are declared runtime assumptions.
   // They are not obtained from heap usage, a source CID or an unused arena.
@@ -55,6 +61,11 @@ function declareInitialControlPhaseEnvelope(heapCeilingBytes) {
   if (!integer(bytes)) unavailable();
   return freeze({limits, heapCeilingBytes, compilerBytes, moduleNativeBytes, sourceBackingBytes,
     nativeBytes, preparationExternalBytes: limits.preparationExternalBytes, bytes,
+    journalInspection: freeze({pinnedSourceBytes: limits.journalInspectionBytes,
+      isolatedCopyBytes: limits.journalInspectionBytes,
+      readBufferBytes: limits.journalCopyReadBufferBytes,
+      names: limits.journalInspectionEntries, sequential: true,
+      lifetime: 'same-original-physical-child-until-its-close-acknowledgement'}),
     lifetime: 'original-process-and-escaped-module-lifetime'});
 }
 

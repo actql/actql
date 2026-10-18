@@ -124,6 +124,52 @@ not a general V8/RSS lease, a Native arena adopted by JS, or a numerical release
 profile. A separate physical lease for each V8 object is not a prerequisite to
 initializing this declared trusted control scope.
 
+The first concrete selected recipe consumes one installation generation for the
+entire original process lifetime. It supports only the original omitted `open`
+input: no caller object, callback graph or key enumeration is acquired. The
+real early preload declares its full envelope before loading the generated
+inventory, capturing images or initializing the Host namespace. It then matches
+the selected Node/V8/OpenSSL/backend and every declared native library identity,
+captures the original namespace validator, and admits only the same private
+registry's Host, installation, generation, supplier and module lifetime. The
+same producer keeps one original empty packet across initialization; repeated
+or unsupported entries cannot replenish or reconstruct this admission.
+
+This recipe makes the following finite implementation assumptions explicit;
+they are not measured RSS, an OS quota, a normal numerical profile or a theorem
+about arbitrary V8 workloads. The actual heap ceiling must fit 5 GiB. Native
+runtime/control backing is conservatively declared as 256 MiB plus 16 times the
+maximum selected 128 MiB source graph and 64 KiB for each of at most 2048 image
+modules. Captured source backing additionally includes the whole graph and
+16 KiB per image for small backing/lookahead overlap. A maximum 64 packages and
+512 dependency edges bound the retained module/manifest inventory. The selected
+managed heap includes decoded Strings, parser/normalizer trees, records,
+closures, indices, Promise/error referents and escaped aliases. The separate
+preparation encoding disposition retains 48 bounded 65536-byte encodings for
+each of 128 Tasks plus configuration and registry. None of these terms is
+reduced using a smaller observed source, low current heap usage or GC.
+
+External physical children are a distinct part of that phase, not resources
+issued by the declaration. Actual image, Project and Task readers retain their
+same file handles, bounded backing and lookahead through close failure. Journal
+classification retains at most 100000 complete names plus one original Dirent;
+fixed markers use one original FD and only their exact closed body plus one
+byte. Each isolated SQLite inspection pins a combined DB/WAL extent of at most
+64 MiB before making any copy; its same source, isolated copy, sequential 64 KiB
+buffer and actual SQLite connection coexist until that child's own cleanup.
+Larger valid retained state is inspection Unavailable, not corrupt, truncated,
+deleted or permission to bypass classification. These work limits do not fund
+stored business records or authorize another database, Source or metadata read.
+
+The actual preload's private operational closure, not this accounting DATA,
+issues the nominal scope. Its persistent native/module/library/image domains
+remain charged for the real process and escaped-module lifetime, even after
+the Host closes. The existing Host first completes every original physical
+child, cuts only its managed preparation aliases, notifies the original retained
+record and calls the captured scope close. Only the original `pending:false`
+allows final retirement; a false/throwing FD close, replacement callback,
+settled Promise or successful sibling cannot supply that acknowledgement.
+
 The actual private bootstrap issues its installation-only nominal admission
 before the covered work. It retains the selected startup, source, backend,
 recipe and same Host/installation/generation originals. An eight-reference

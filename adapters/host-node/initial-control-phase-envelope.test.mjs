@@ -25,6 +25,10 @@ test('finite disposition includes simultaneous managed, native, compiler and ful
   assert.equal(selected.limits.generations, 1);
   assert.equal(selected.limits.preparations, 1);
   assert.equal(selected.limits.opaqueCallerAliases, 0);
+  assert.deepEqual(selected.declaration.journalInspection, {
+    pinnedSourceBytes: 67108864, isolatedCopyBytes: 67108864,
+    readBufferBytes: 65536, names: 100000, sequential: true,
+    lifetime: 'same-original-physical-child-until-its-close-acknowledgement'});
   assert.equal(selected.declaration.lifetime, 'original-process-and-escaped-module-lifetime');
   assert.ok(Object.isFrozen(selected)); assert.ok(Object.isFrozen(selected.limits));
   assert.equal(selected.begin, undefined); assert.equal(selected.close, undefined);
