@@ -144,4 +144,3 @@ test('an unknown row is never resent after a restart', async t => {
   assert.equal(writesOf(installation.org).length, 1);
   assert.equal(installation.org.records()[0].Name, 'a00000000000001');
 });
-

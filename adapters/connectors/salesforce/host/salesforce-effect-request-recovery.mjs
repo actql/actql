@@ -165,4 +165,3 @@ export function recoverCapturedSalesforceSingleRequests({
     previewLimits, bodyLimits, requestLimits, maxMembers, maxRows});
   return Object.freeze({...result, catalogs: Object.freeze(catalogs)});
 }
-
