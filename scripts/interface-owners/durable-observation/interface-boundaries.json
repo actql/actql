@@ -5433,7 +5433,8 @@
         },
         {
           "operations": [
-            "withHttpsCredentialRunResponseOriginal"
+            "withHttpsCredentialRunResponseOriginal",
+            "withHttpsCredentialRunResponseOriginal/withHttpsCredentialRunResponseOriginal"
           ],
           "exports": [
             "withHttpsCredentialRunResponseOriginal"
