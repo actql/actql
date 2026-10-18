@@ -97,15 +97,16 @@ function inspectInitialControlPhaseEnvelope(inventory, declaration, runtimeOrigi
     files += values.length;
     for (let index = 0; index < values.length; index++) {
       const value = values[index], originalBytes = own(value, 'bytes'), path = own(value, 'path');
+      if (!integer(originalBytes) || originalBytes < 0) unavailable();
       const releaseProperty = descriptor(value, 'npmRelease');
       let bytes = originalBytes;
       if (releaseProperty !== undefined) {
         if (!hasOwn(releaseProperty, 'value') || path !== 'package.json') unavailable();
         const releaseBytes = own(releaseProperty.value, 'bytes');
         if (!integer(releaseBytes) || releaseBytes < 0) unavailable();
-        bytes = Math.max(bytes, releaseBytes);
+        bytes = bytes > releaseBytes ? bytes : releaseBytes;
       }
-      if (!integer(originalBytes) || originalBytes < 0 || !integer(bytes) || bytes < 0 || bytes > limits.imageBytes ||
+      if (!integer(bytes) || bytes < 0 || bytes > limits.imageBytes ||
           bytes > limits.sourceBytes - sourceBytes ||
           typeof path !== 'string' || path.length > limits.pathCodeUnits) unavailable();
       sourceBytes += bytes;
