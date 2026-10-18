@@ -31,8 +31,9 @@ function createSourceResponseBackingOwner(ports) {
   const pools = new NativeWeakMap(), loans = new NativeWeakMap();
   // Strong original records deliberately survive alias-cut and child return.
   // The process/module domain, not GC or a Source close, owns this allocation.
-  // Each supported installation has one finite pool; no released window is
-  // reused and no successful sibling replenishes another child's allowance.
+  // Each supported installation has one finite reservation. Every response
+  // gets a separate actual ArrayBuffer: exposing Buffer.buffer must not expose
+  // another response. No returned allocation is reused or replenished.
   const originals = [];
   let attempted = false;
   const requireCurrent = scope => apply(current, ports, [scope]);
@@ -60,7 +61,7 @@ function createSourceResponseBackingOwner(ports) {
     attempted = true;
     const pool = freeze(Object.create(null));
     const state = {scope, bytes, maxLoans, allocated: 0, children: [],
-      original: undefined, buffer: undefined, closing: false,
+      original: undefined, closing: false,
       firstError: undefined, lastError: undefined};
     apply(set, pools, [pool, state]);
     originals[originals.length] = state;
@@ -72,8 +73,6 @@ function createSourceResponseBackingOwner(ports) {
       if (state.original === undefined || isPromise(state.original)) {
         fail('SourceResponseBackingUnavailable');
       }
-      requireCurrent(scope);
-      state.buffer = apply(alloc, Buffer, [bytes]);
       requireCurrent(scope);
       return pool;
     } catch (cause) {
@@ -87,7 +86,7 @@ function createSourceResponseBackingOwner(ports) {
   function acquire(pool, scope, readOriginal, maxBytes) {
     const parent = poolFor(pool, scope);
     requireCurrent(scope);
-    if (parent.closing || parent.buffer === undefined || !integer(maxBytes) ||
+    if (parent.closing || parent.original === undefined || !integer(maxBytes) ||
         maxBytes < 1 || maxBytes > parent.bytes - parent.allocated ||
         parent.children.length >= parent.maxLoans ||
         readOriginal === null || (typeof readOriginal !== 'object' && typeof readOriginal !== 'function')) {
@@ -95,7 +94,8 @@ function createSourceResponseBackingOwner(ports) {
     }
     const loan = freeze(Object.create(null));
     const state = {parent, scope, readOriginal, offset: parent.allocated, maxBytes,
-      written: 0, borrowed: undefined, entered: false, finished: false, failed: false,
+      written: 0, borrowed: undefined, buffer: undefined,
+      entered: false, finished: false, failed: false,
       writerStopped: false, aliasesReleased: false, returned: false,
       body: undefined, firstError: undefined, lastError: undefined};
     // Commit the non-reusable window and partial original BEFORE the original
@@ -109,6 +109,12 @@ function createSourceResponseBackingOwner(ports) {
       if (state.borrowed === undefined || isPromise(state.borrowed)) {
         fail('SourceResponseBackingUnavailable');
       }
+      requireCurrent(scope);
+      // Allocate the full original response backing BEFORE httpsRequest/read.
+      // Never use pooled slices: the consumer can observe Buffer.buffer.
+      // offset is only the monotonic reservation census, not a physical
+      // pointer or a claim that different native allocations share a mapping.
+      state.buffer = apply(alloc, Buffer, [maxBytes]);
       requireCurrent(scope);
       return loan;
     } catch (cause) { remember(state, cause); throw cause; }
@@ -129,7 +135,7 @@ function createSourceResponseBackingOwner(ports) {
               state.failed || !isBuffer(chunk) || chunk.length > state.maxBytes - state.written) {
             fail('SourceResponseBodyLimit');
           }
-          apply(copy, chunk, [state.parent.buffer, state.offset + state.written]);
+          apply(copy, chunk, [state.buffer, state.written]);
           state.written += chunk.length;
           requireCurrent(state.scope);
         } catch (cause) {
@@ -144,8 +150,7 @@ function createSourceResponseBackingOwner(ports) {
           fail('SourceResponseBodyUnavailable');
         }
         state.finished = true;
-        state.body = apply(subarray, state.parent.buffer,
-          [state.offset, state.offset + state.written]);
+        state.body = apply(subarray, state.buffer, [0, state.written]);
         requireCurrent(state.scope);
         return state.body;
       },
@@ -184,7 +189,8 @@ function createSourceResponseBackingOwner(ports) {
     const state = poolFor(pool, scope);
     return freeze({bytes: state.bytes, allocated: state.allocated,
       children: state.children.length, closing: state.closing,
-      backingRetained: state.buffer !== undefined, parentBytesReleased: false});
+      backingRetained: state.children.some(child => child.buffer !== undefined),
+      parentBytesReleased: false});
   }
   return freeze({allocate, acquire, start, releaseAliases, settle, status, close, poolStatus});
 }

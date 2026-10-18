@@ -24,14 +24,15 @@ function fixture() {
   return {scope, state, ports, owner, pool};
 }
 
-test('original byte backing uses distinct non-reusable windows without chunk copies or concat', () => {
+test('original byte backing uses distinct non-reusable allocations without chunk copies or concat', () => {
   const f = fixture(), first = {}, second = {};
   const a = f.owner.acquire(f.pool, f.scope, first, 8), b = f.owner.acquire(f.pool, f.scope, second, 8);
   const writeA = f.owner.start(a, f.scope, first), writeB = f.owner.start(b, f.scope, second);
   writeA.write(Buffer.from('abc')); writeB.write(Buffer.from('xyz'));
   const bodyA = writeA.finish(), bodyB = writeB.finish();
   assert.equal(bodyA.toString(), 'abc'); assert.equal(bodyB.toString(), 'xyz');
-  assert.equal(bodyA.buffer, bodyB.buffer); assert.equal(bodyB.byteOffset - bodyA.byteOffset, 8);
+  assert.notEqual(bodyA.buffer, bodyB.buffer);
+  assert.equal(bodyA.buffer.byteLength, 8); assert.equal(bodyB.buffer.byteLength, 8);
   assert.deepEqual(f.state.windows, [[0, 8], [8, 8]]);
   writeA.stop(); f.owner.releaseAliases(a, f.scope, first);
   assert.equal(f.owner.settle(a).pending, false);
