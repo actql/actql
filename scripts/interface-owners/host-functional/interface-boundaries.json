@@ -28451,7 +28451,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "preload consumes generated inventory without issuing a Scope"
+                "anchor": "preload refuses unsupported raw input before its Host consumer"
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
@@ -29349,7 +29349,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-image-source.cjs",
-      "sha256": "b9c85060f96db776f437ab45d52f4eb139985fd5138b14234f013cadd882a138",
+      "sha256": "ded10c0291b112d5cd79668904407902ceea2d20775173493bb24522bd33abf8",
       "exports": [
         "commonjs:captureInitialControlImageSource"
       ],
@@ -29462,6 +29462,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "asynchronous begin snapshots five originals before initialization"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The owned release-cohort transformation may change only the packaged manifest"
               }
             ],
             "ownership": [
@@ -29500,6 +29504,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "failed asynchronous initialization preserves its exact cause"
+              },
+              {
+                "path": "scripts/initial-control-release-metadata.test.mjs",
+                "anchor": "the exact original and normal release metadata bytes are distinct admitted representations"
               }
             ],
             "cancellation": [
@@ -29528,6 +29536,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
                 "anchor": "// Snapshot original child references with the captured native Map walk;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "the two bound manifest extents once before capture. Admitting this representation"
               }
             ],
             "extension": [
@@ -29556,6 +29568,10 @@
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
                 "anchor": "asynchronous initialization retains the captured original callback and receiver"
+              },
+              {
+                "path": "scripts/initial-control-release-metadata.test.mjs",
+                "anchor": "a normal staged cohort captures exact release images and refuses mixed or changed metadata before entry"
               }
             ]
           }
@@ -30077,7 +30093,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "preload consumes generated inventory without issuing a Scope"
+                "anchor": "preload refuses unsupported raw input before its Host consumer"
               }
             ]
           }
@@ -30087,7 +30103,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-package-custody.cjs",
-      "sha256": "7d80e015c2fb64cf54faab497474705a2518ea833f1bd83047fd929eab3b0df2",
+      "sha256": "b7cb63f6bb3d5208bcb3278b4a382f85a15b9e87ca6989b68a28015c460ddd27",
       "exports": [
         "commonjs:captureInitialControlPackageCustody"
       ],
@@ -30121,7 +30137,9 @@
             "directory",
             "facts",
             "expectedName",
-            "expectedVersion"
+            "expectedVersion",
+            "expectedReleaseVersion",
+            "expectedRepresentation"
           ],
           "async": false
         },
@@ -30182,6 +30200,14 @@
           "async": false
         },
         {
+          "name": "optionalField/optionalField",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "own/own",
           "parameters": [
             "value",
@@ -30218,6 +30244,7 @@
             "concrete/concrete",
             "concrete/concrete/concrete",
             "fail/fail",
+            "optionalField/optionalField",
             "own/own"
           ],
           "exports": [
@@ -30252,6 +30279,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Its generated facts identify its original public entry and dependencies, with"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The owned release-cohort transformation may change only the packaged manifest"
               }
             ],
             "ownership": [
@@ -30278,6 +30309,10 @@
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
                 "anchor": "a mismatched captured package image refuses before Host and entry compilation"
+              },
+              {
+                "path": "scripts/initial-control-release-metadata.test.mjs",
+                "anchor": "the exact original and normal release metadata bytes are distinct admitted representations"
               }
             ],
             "cancellation": [
@@ -30298,6 +30333,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The extra Source Strings, manifests, dependency paths, image/namespace records,"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "the two bound manifest extents once before capture. Admitting this representation"
               }
             ],
             "extension": [
@@ -30338,6 +30377,10 @@
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
                 "anchor": "a public Node dependency cannot substitute a distinct Local installation"
+              },
+              {
+                "path": "scripts/initial-control-release-metadata.test.mjs",
+                "anchor": "a normal staged cohort captures exact release images and refuses mixed or changed metadata before entry"
               }
             ]
           }
@@ -30498,7 +30541,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-phase-envelope.cjs",
-      "sha256": "435aa89eb69a5aacda846ba346ebaa966ad4a0d01b345db35f3ed4bab32b3d1d",
+      "sha256": "d7a9161ece3649b8fbbf743ac26a40a8c3ed0fc25980539b273dc9ee43093c30",
       "exports": [
         "commonjs:declareInitialControlPhaseEnvelope",
         "commonjs:inspectInitialControlPhaseEnvelope"
@@ -30598,6 +30641,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The owned release-cohort transformation may change only the packaged manifest"
               }
             ],
             "ownership": [
@@ -30628,6 +30675,10 @@
               {
                 "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
                 "anchor": "the selected backend and every actual native library identity must correspond before capture"
+              },
+              {
+                "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
+                "anchor": "a release representation getter cannot be acquired as ordinary image DATA"
               }
             ],
             "cancellation": [
@@ -30648,6 +30699,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Initial Node control and preparation"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "the two bound manifest extents once before capture. Admitting this representation"
               }
             ],
             "extension": [
@@ -30668,6 +30723,14 @@
               {
                 "path": "adapters/host-node/initial-control-finite-host.test.mjs",
                 "anchor": "partial initialization retains the actual marker FD until its same close-only duty acknowledges"
+              },
+              {
+                "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
+                "anchor": "manifest alternatives charge the larger exact representation once"
+              },
+              {
+                "path": "adapters/host-node/initial-control-phase-envelope.test.mjs",
+                "anchor": "an invalid original extent refuses before numeric conversion of manifest alternatives"
               }
             ]
           }
