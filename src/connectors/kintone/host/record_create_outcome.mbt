@@ -69,7 +69,7 @@ pub fn project_record_create_preview_outcome(
     @publication.check_effect_preview_row_outcome(
       preview,
       member_index,
-      row_index,
+      change_index,
       row_cid,
       @catalog.record_create_effect_outcome_wire(projected),
       limits.max_output_bytes,

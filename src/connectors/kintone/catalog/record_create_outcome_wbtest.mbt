@@ -49,6 +49,16 @@ test "CREATE outcome refuses copied equal request and a multi-record response as
     b"{\"ids\":[\"1\"],\"revisions\":[\"2\"]}",
     mutation_limits(),
   ).unwrap()
+  let copied_response : RecordCreateAcknowledgement = { ..response, }
+  assert_false(record_create_acknowledgement_is_original(copied_response))
+  assert_true(
+    project_record_create_effect_outcome(
+      request,
+      copied_response,
+      mutation_limits(),
+    )
+    is Err(UncorrelatedResult),
+  )
   let copied : RecordCreateRequest = { ..request, }
   assert_true(
     project_record_create_effect_outcome(copied, response, mutation_limits())

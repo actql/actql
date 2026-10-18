@@ -108,6 +108,7 @@ pub fn record_create_mapping_matches_request(
   request : @catalog.RecordCreateRequest,
 ) -> Bool {
   record_create_mapping_is_original(value) &&
+  @catalog.record_create_request_is_original(request) &&
   @catalog.record_create_request_values(request).all(write => {
     let written = @catalog.record_write_values_fields(write)
     @catalog.record_write_values_match_catalog(write, value.original.catalog) &&

@@ -16,7 +16,9 @@ pub fn project_record_create_effect_outcome(
   if !mutation_limits_valid(limits) {
     return Err(InvalidLimits)
   }
-  if !physical_equal(response.request, request) ||
+  if !record_create_request_is_original(request) ||
+    !record_create_acknowledgement_is_original(response) ||
+    !physical_equal(response.request, request) ||
     request.records.length() != 1 ||
     response.records.length() != 1 {
     return Err(UncorrelatedResult)

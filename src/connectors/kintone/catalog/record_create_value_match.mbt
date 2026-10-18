@@ -14,7 +14,8 @@ pub fn record_create_request_matches_value_wire(
     max_input_bytes <= 2 {
     return Err(InvalidLimits)
   }
-  if request.records.length() != 1 {
+  if !record_create_request_is_original(request) ||
+    request.records.length() != 1 {
     return Err(InvalidRecords)
   }
   guard @scalar.admit_utf8_length(value_wire, max_input_bytes - 2) is Ok(_) else {
