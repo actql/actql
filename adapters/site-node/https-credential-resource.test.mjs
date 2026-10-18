@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {generateKeyPairSync} from 'node:crypto';
+import {createHash, generateKeyPairSync} from 'node:crypto';
 import {readFile, mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {tmpdir} from 'node:os';
@@ -15,7 +15,7 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {invokeScopedCredentialOperation} from
   '../host-common/owned-invocation-context.mjs';
 import {callHttpsCredentialResource, closeHttpsCredentialBinding,
-  openHttpsCredentialBinding} from
+  openHttpsCredentialBinding, withHttpsCredentialRunResponseOriginal} from
   './https-credential-resource.mjs';
 import {openSqliteCredentialJournal} from
   './sqlite-credential-journal.mjs';
@@ -204,6 +204,168 @@ async function call(setup, grant, grantScope, useId, overrides = {}) {
     ...overrides,
   });
 }
+
+test('Run response original retains the actual physical claim, request and bytes', async t => {
+  const setup = await fixture(t);
+  const selected = scope(setup.origin);
+  const prepared = control.prepare(selected);
+  setup.journal.acceptGrant(setup.sign(prepared), control);
+  let claimed;
+  const journal = Object.freeze({...setup.journal, claim(...args) {
+    claimed = setup.journal.claim(...args);
+    return claimed;
+  }});
+  const response = await call({...setup, journal}, prepared, selected, 'captured',
+    {retainRunResponseOriginal: true});
+  assert.equal(setup.journal.inspect(response.useCid).outcome, 'succeeded');
+  const digest = createHash('sha256').update('{"records":[1,2]}').digest('hex');
+  const useCid = withHttpsCredentialRunResponseOriginal(response, control, journal, original => {
+    assert.equal(original.grant, claimed.grant);
+    assert.notEqual(original.grant, prepared);
+    assert.equal(original.use, claimed.use);
+    assert.equal(original.scope, selected);
+    assert.equal(original.response, response);
+    assert.equal(original.method, 'GET');
+    assert.equal(original.path, '/records');
+    assert.equal(original.requestBodyBytes, 0);
+    assert.equal(original.responseSha256, digest);
+    assert.equal(Object.hasOwn(original, 'secret'), false);
+    return control.useIdentity(original.use);
+  });
+  assert.equal(useCid, response.useCid);
+  assert.equal(setup.requests(), 1);
+});
+
+test('Run response original refuses copies, foreign owners and default uncaptured responses', async t => {
+  const setup = await fixture(t);
+  const selected = scope(setup.origin);
+  const grant = control.prepare(selected);
+  setup.journal.acceptGrant(setup.sign(grant), control);
+  const captured = await call(setup, grant, selected, 'captured',
+    {retainRunResponseOriginal: true});
+  const uncaptured = await call(setup, grant, selected, 'ordinary');
+  const absent = {code: 'RemoteCredentialRunResponseOriginalUnavailable'};
+  for (const [response, ownerControl, ownerJournal] of [
+    [{...captured}, control, setup.journal],
+    [captured, {...control}, setup.journal],
+    [captured, control, {...setup.journal}],
+    [uncaptured, control, setup.journal],
+  ]) assert.throws(() => withHttpsCredentialRunResponseOriginal(response,
+    ownerControl, ownerJournal, () => assert.fail('foreign receiver')), absent);
+  assert.deepEqual(Object.keys(captured), Object.keys(uncaptured));
+  assert.equal(setup.requests(), 2);
+});
+
+test('Run response original permanently refuses changed bytes without changing the Journal', async t => {
+  const setup = await fixture(t);
+  const selected = scope(setup.origin);
+  const grant = control.prepare(selected);
+  setup.journal.acceptGrant(setup.sign(grant), control);
+  const response = await call(setup, grant, selected, 'mutated',
+    {retainRunResponseOriginal: true});
+  const byte = response.body[0];
+  response.body[0] ^= 1;
+  const read = () => withHttpsCredentialRunResponseOriginal(response,
+    control, setup.journal, () => assert.fail('changed receiver'));
+  assert.throws(read, {code: 'RemoteCredentialRunResponseChanged'});
+  response.body[0] = byte;
+  assert.throws(read, {code: 'RemoteCredentialRunResponseChanged'});
+  assert.equal(setup.journal.inspect(response.useCid).outcome, 'succeeded');
+  assert.equal(setup.requests(), 1);
+});
+
+test('Run response original consumer failure cannot reclassify or resend a confirmed response', async t => {
+  const setup = await fixture(t);
+  const selected = scope(setup.origin);
+  const grant = control.prepare(selected);
+  setup.journal.acceptGrant(setup.sign(grant), control);
+  const response = await call(setup, grant, selected, 'observer',
+    {retainRunResponseOriginal: true});
+  const failure = new Error('OriginalConsumerFailure');
+  assert.throws(() => withHttpsCredentialRunResponseOriginal(response, control,
+    setup.journal, () => {throw failure;}), error => error === failure);
+  assert.throws(() => withHttpsCredentialRunResponseOriginal(response, control,
+    setup.journal, async () => undefined), {code: 'InvalidRemoteCredentialRunResponseConsumer'});
+  assert.equal(withHttpsCredentialRunResponseOriginal(response, control,
+    setup.journal, original => control.useIdentity(original.use)), response.useCid);
+  assert.equal(setup.journal.inspect(response.useCid).outcome, 'succeeded');
+  await assert.rejects(call(setup, grant, selected, 'observer',
+    {retainRunResponseOriginal: true}), {code: 'RemoteCredentialUseAlreadyClaimed'});
+  assert.equal(setup.requests(), 1);
+});
+
+test('Run response original lost reply retains Unknown and provides no replacement original', async t => {
+  const setup = await fixture(t, {onRequest(request) {request.socket.destroy(); return true;}});
+  const selected = scope(setup.origin);
+  const grant = control.prepare(selected);
+  setup.journal.acceptGrant(setup.sign(grant), control);
+  await assert.rejects(call(setup, grant, selected, 'lost-original',
+    {retainRunResponseOriginal: true}), {code: 'ECONNRESET'});
+  assert.equal(setup.journal.recover().length, 1);
+  assert.equal(setup.journal.recover()[0].outcome, 'unknown');
+  await assert.rejects(call(setup, grant, selected, 'lost-original',
+    {retainRunResponseOriginal: true}), {code: 'RemoteCredentialUseAlreadyClaimed'});
+  assert.throws(() => withHttpsCredentialRunResponseOriginal({}, control,
+    setup.journal, () => assert.fail('lost response receiver')),
+  {code: 'RemoteCredentialRunResponseOriginalUnavailable'});
+  assert.equal(setup.requests(), 1);
+});
+
+test('Run response original unconfirmed outcome COMMIT is not repeated or published', async t => {
+  const setup = await fixture(t);
+  const selected = scope(setup.origin);
+  const grant = control.prepare(selected);
+  setup.journal.acceptGrant(setup.sign(grant), control);
+  let finishes = 0;
+  const failure = new Error('OriginalOutcomeCommitUnknown');
+  const journal = Object.freeze({...setup.journal, finish() {finishes++; throw failure;}});
+  await assert.rejects(call({...setup, journal}, grant, selected, 'commit-unknown',
+    {retainRunResponseOriginal: true}), error => error === failure);
+  assert.equal(finishes, 1);
+  const retained = setup.journal.recover();
+  assert.equal(retained.length, 1);
+  assert.equal(retained[0].outcome, 'claimed');
+  await assert.rejects(call({...setup, journal}, grant, selected, 'commit-unknown',
+    {retainRunResponseOriginal: true}), {code: 'RemoteCredentialUseAlreadyClaimed'});
+  assert.equal(finishes, 1);
+  assert.equal(setup.requests(), 1);
+});
+
+test('Run response original refuses the actual installation-metadata purpose before claim or I/O', async t => {
+  const setup = await fixture(t);
+  // Actual Common DATA fixtures, not an operational metadata issuer.
+  const metadata = runtimeCore(moon).installationPreparationMetadata();
+  const subject = metadata.prepareSubject({accountConfigurationCid: cid('1'),
+    accountId: 'account-a', connection: 'crm', connectorRegistration: 'salesforce',
+    connectorRevision: 'salesforce/0.1', declarationSourceCid: cid('2'),
+    installationRequestId: 'publication-original', principal: 'principal-a',
+    runtimeBundleCid: cid('a'), siteGeneration: 4, siteKey: 'site-a'});
+  const selected = metadata.prepareScope(subject, {metadataOccurrenceId: 'describe-a',
+    operation: 'salesforce:catalog:describe', resourceOrigin: setup.origin,
+    requestMethod: 'GET', requestPath: '/records',
+    requestBodyCid: `sha256:${createHash('sha256').update('').digest('hex')}`});
+  const metadataControl = metadata.forSubject(subject);
+  const grant = metadataControl.prepare({issuerAuthority: 'credential-authority-a',
+    scope: selected, expiresUnixMilliseconds: 2_000_000_000_000n, maxUses: 1});
+  const resolveSecret = async () => 'provider-secret';
+  const binding = openHttpsCredentialBinding({scope: selected,
+    control: metadataControl, journal: setup.journal, resolveSecret,
+    maxSecretBytes: 64, assertCurrent() {}});
+  try {
+    // The existing missing-binding refusal still precedes purpose admission.
+    await assert.rejects(call(setup, grant, selected, 'wrong-purpose',
+      {control: metadataControl, retainRunResponseOriginal: true}),
+    {code: 'InvalidRemoteCredentialBinding'});
+    await assert.rejects(call(setup, grant, selected, 'bound-wrong-purpose',
+      {control: metadataControl, binding, resolveSecret, retainRunResponseOriginal: true}),
+    {code: 'InvalidRemoteCredentialRunResponseCapture'});
+    assert.equal(setup.journal.recover().length, 0);
+    assert.equal(setup.requests(), 0);
+  } finally {
+    assert.equal(closeHttpsCredentialBinding(binding), 'closed');
+    metadata.retireMetadataView();
+  }
+});
 
 test('scoped credential is claimed before an authenticated HTTPS request',
   async t => {
@@ -1219,3 +1381,179 @@ test('retiring a binary request during secret resolution keeps pending custody a
     assert.equal(setup.requests(), 0);
     assert.equal(setup.journal.recover()[0].outcome, 'failed');
   });
+
+test('Run binding current fence refuses stale originals before claim or secret lookup', async t => {
+  const setup = await fixture(t, {retain: true});
+  const original = scope(setup.origin);
+  const grant = control.prepare(original);
+  setup.journal.acceptGrant(setup.sign(grant), control);
+  let resolutions = 0, observations = 0;
+  const resolveSecret = async () => { resolutions++; return 'provider-secret'; };
+  const cause = Object.assign(new Error('OriginalRunSiteStale'), {code: 'OriginalRunSiteStale'});
+  const binding = openHttpsCredentialBinding({scope: original, control,
+    journal: setup.journal, resolveSecret, maxSecretBytes: 64,
+    assertCurrent() { throw cause; }});
+  t.after(() => assert.equal(closeHttpsCredentialBinding(binding), 'closed'));
+  await assert.rejects(call(setup, grant, original, 'stale-before-claim', {
+    binding, resolveSecret, currentBeforeSend: async () => { observations++; },
+  }), error => error === cause);
+  assert.equal(resolutions, 0); assert.equal(observations, 0);
+  assert.equal(setup.requests(), 0); assert.equal(setup.journal.recover().length, 0);
+});
+
+function fencedRun(setup, original, assertCurrent, resolveSecret = async () => 'provider-secret') {
+  const grant = control.prepare(original);
+  setup.journal.acceptGrant(setup.sign(grant), control);
+  const binding = openHttpsCredentialBinding({scope: original, control,
+    journal: setup.journal, resolveSecret, maxSecretBytes: 64, assertCurrent});
+  return {grant, binding, invoke: (useId, currentBeforeSend, overrides = {}) =>
+    call(setup, grant, original, useId, {binding, resolveSecret,
+      currentBeforeSend, ...overrides})};
+}
+
+test('Run binding current fence preserves original callback and confirmed claim correspondence', async t => {
+  const setup = await fixture(t, {retain: true});
+  const original = scope(setup.origin), order = [];
+  const f = fencedRun(setup, original, function (...args) {
+    assert.equal(this, undefined); assert.deepEqual(args, []); order.push('fence');
+  }, async () => { order.push('resolver'); return 'provider-secret'; });
+  t.after(() => assert.equal(closeHttpsCredentialBinding(f.binding), 'closed'));
+  const response = await f.invoke('fenced-success', async function (...args) {
+    assert.equal(this, undefined); assert.deepEqual(args, []); order.push('observe');
+  }, {retainRunResponseOriginal: true});
+  assert.deepEqual(order, ['fence', 'observe', 'fence', 'resolver', 'observe',
+    'fence', 'fence', 'observe', 'fence']);
+  assert.equal(setup.requests(), 1);
+  assert.equal(setup.journal.inspect(response.useCid).outcome, 'succeeded');
+  withHttpsCredentialRunResponseOriginal(response, control, setup.journal, facts => {
+    assert.notEqual(facts.grant, f.grant);
+    assert.equal(control.useIdentity(facts.use), response.useCid);
+    assert.equal(facts.scope, original); assert.equal(facts.response, response);
+  });
+});
+
+test('Run binding current fence requires synchronous void and the awaited original observation', async t => {
+  const setup = await fixture(t, {retain: true});
+  const original = scope(setup.origin);
+  const resolveSecret = async () => { assert.fail('No secret lookup'); };
+  assert.throws(() => openHttpsCredentialBinding({scope: original, control,
+    journal: setup.journal, resolveSecret, maxSecretBytes: 64, assertCurrent: true}),
+  {code: 'InvalidRemoteCredentialBinding'});
+  for (const assertCurrent of [() => true, async () => {}, () => Promise.reject(new Error('OriginalFence'))]) {
+    const f = fencedRun(setup, original, assertCurrent, resolveSecret);
+    await assert.rejects(f.invoke('invalid-fence', async () => {}),
+      {code: 'InvalidRemoteCredentialCurrentFence'});
+    assert.equal(closeHttpsCredentialBinding(f.binding), 'closed');
+  }
+  const f = fencedRun(setup, original, () => {}, resolveSecret);
+  await assert.rejects(f.invoke('missing-observation'), {code: 'InvalidRemoteCredentialCall'});
+  assert.equal(closeHttpsCredentialBinding(f.binding), 'closed');
+  assert.equal(setup.requests(), 0); assert.equal(setup.journal.recover().length, 0);
+});
+
+test('Run binding current fence observes revocation during admission and resolver awaits', async t => {
+  for (const revokedAt of [1, 2]) {
+    const setup = await fixture(t, {retain: true});
+    let current = true, observations = 0, resolutions = 0;
+    const cause = Object.assign(new Error('OriginalRunAuthorityRevoked'), {code: 'OriginalRunAuthorityRevoked'});
+    const f = fencedRun(setup, scope(setup.origin), () => { if (!current) throw cause; },
+      async () => { resolutions++; return 'provider-secret'; });
+    await assert.rejects(f.invoke(`revoked-${revokedAt}`, async () => {
+      await Promise.resolve(); if (++observations === revokedAt) current = false;
+    }), error => error === cause);
+    assert.equal(resolutions, revokedAt - 1); assert.equal(setup.requests(), 0);
+    assert.deepEqual(setup.journal.recover().map(row => row.outcome), revokedAt === 1 ? [] : ['failed']);
+    assert.equal(closeHttpsCredentialBinding(f.binding), 'closed');
+  }
+});
+
+test('Run binding current fence refuses response disclosure after the final awaited revocation', async t => {
+  const setup = await fixture(t, {retain: true});
+  let current = true, observations = 0, resolutions = 0;
+  const cause = Object.assign(new Error('OriginalResponseAuthorityRevoked'), {code: 'OriginalResponseAuthorityRevoked'});
+  const f = fencedRun(setup, scope(setup.origin), () => { if (!current) throw cause; },
+    async () => { resolutions++; return 'provider-secret'; });
+  const observe = async () => { await Promise.resolve(); if (++observations === 3) current = false; };
+  await assert.rejects(f.invoke('response-revoked', observe, {retainRunResponseOriginal: true}),
+    error => error === cause);
+  current = true; // Restored DATA cannot clear the original unknown attempt.
+  await assert.rejects(f.invoke('no-replacement', observe), error => error === cause);
+  assert.equal(setup.requests(), 1); assert.equal(resolutions, 1); assert.equal(observations, 3);
+  assert.deepEqual(setup.journal.recover().map(row => row.outcome), ['unknown']);
+  assert.equal(closeHttpsCredentialBinding(f.binding), 'closed');
+});
+
+test('Run binding current fence keeps original Journal authorization after the response await', async t => {
+  const setup = await fixture(t, {retain: true});
+  const f = fencedRun(setup, scope(setup.origin), () => {});
+  let observations = 0;
+  await assert.rejects(f.invoke('journal-revoked', async () => {
+    if (++observations === 3) setup.journal.revoke(control.identity(f.grant));
+  }));
+  assert.equal(observations, 3); assert.equal(setup.requests(), 1);
+  assert.deepEqual(setup.journal.recover().map(row => row.outcome), ['unknown']);
+  assert.equal(closeHttpsCredentialBinding(f.binding), 'closed');
+});
+
+test('Run binding current fence holds cleanup pending through the original response observation', async t => {
+  const setup = await fixture(t, {retain: true});
+  const f = fencedRun(setup, scope(setup.origin), () => {});
+  const entered = deferred(), released = deferred();
+  let observations = 0;
+  const result = f.invoke('response-held', async () => {
+    if (++observations === 3) { entered.resolve(); await released.promise; }
+  });
+  await entered.promise;
+  assert.equal(setup.requests(), 1); assert.equal(closeHttpsCredentialBinding(f.binding), 'pending');
+  assert.equal(closeHttpsCredentialBinding(f.binding), 'pending');
+  await assert.rejects(f.invoke('no-resend', async () => {}), {code: 'RemoteCredentialBindingRetiring'});
+  released.resolve();
+  await assert.rejects(result, {code: 'RemoteCredentialBindingRetiring'});
+  assert.deepEqual(setup.journal.recover().map(row => row.outcome), ['unknown']);
+  assert.equal(closeHttpsCredentialBinding(f.binding), 'closed');
+  assert.equal(closeHttpsCredentialBinding(f.binding), 'closed');
+  assert.equal(observations, 3); assert.equal(setup.requests(), 1);
+});
+
+test('Run binding current fence retains an unconfirmed original outcome without another claim or COMMIT', async t => {
+  const setup = await fixture(t, {retain: true});
+  const original = scope(setup.origin), prepared = control.prepare(original);
+  setup.journal.acceptGrant(setup.sign(prepared), control);
+  let claims = 0, finishes = 0, resolutions = 0;
+  const cause = Object.assign(new Error('OriginalOutcomeCommitUnconfirmed'), {code: 'OriginalOutcomeCommitUnconfirmed'});
+  const journal = Object.freeze({...setup.journal,
+    claim(...args) { claims++; return setup.journal.claim(...args); },
+    finish() { finishes++; throw cause; },
+  });
+  const resolveSecret = async () => { resolutions++; return 'provider-secret'; };
+  const binding = openHttpsCredentialBinding({scope: original, control, journal,
+    resolveSecret, maxSecretBytes: 64, assertCurrent: () => {}});
+  const invoke = useId => call({...setup, journal}, prepared, original, useId,
+    {binding, resolveSecret, currentBeforeSend: async () => {}});
+  await assert.rejects(invoke('commit-unconfirmed'), error => error === cause);
+  await assert.rejects(invoke('no-new-attempt'), error => error === cause);
+  assert.equal(claims, 1); assert.equal(finishes, 1); assert.equal(resolutions, 1);
+  assert.equal(setup.requests(), 1);
+  assert.deepEqual(setup.journal.recover().map(row => row.outcome), ['claimed']);
+  assert.equal(closeHttpsCredentialBinding(binding), 'closed');
+});
+
+test('Run binding current fence cannot replace retained material during a later resolver await', async t => {
+  const setup = await fixture(t, {retain: true});
+  const original = scope(setup.origin), entered = deferred(), released = deferred();
+  let material = 'provider-secret', resolutions = 0, observations = 0;
+  const f = fencedRun(setup, original, () => {}, async () => {
+    if (++resolutions === 2) { entered.resolve(); await released.promise; }
+    return material;
+  });
+  const observe = async () => { observations++; };
+  await f.invoke('original-material', observe);
+  const result = f.invoke('rotating-material', observe);
+  await entered.promise;
+  material = 'other-account-secret'; released.resolve();
+  await assert.rejects(result, {code: 'RemoteCredentialBindingChanged'});
+  await assert.rejects(f.invoke('no-relookup', observe), {code: 'RemoteCredentialBindingChanged'});
+  assert.equal(resolutions, 2); assert.equal(observations, 4); assert.equal(setup.requests(), 1);
+  assert.deepEqual(setup.journal.recover().map(row => row.outcome), ['succeeded', 'failed']);
+  assert.equal(closeHttpsCredentialBinding(f.binding), 'closed');
+});
