@@ -12,16 +12,27 @@ const nativeApply = Reflect.apply;
 const descriptor = Object.getOwnPropertyDescriptor, hasOwn = Object.hasOwn;
 const ownKeys = Reflect.ownKeys;
 const freeze = Object.freeze, defineProperty = Object.defineProperty;
-const NativeError = Error, NativeMap = Map, parse = JSON.parse;
+const prototype = Object.getPrototypeOf, sameValue = Object.is;
+const objectPrototype = Object.prototype, arrayPrototype = Array.prototype;
+const NativeError = Error, NativeMap = Map, NativeWeakSet = WeakSet, parse = JSON.parse;
+const weakHas = WeakSet.prototype.has, weakAdd = WeakSet.prototype.add;
 const nativeMapGet = Map.prototype.get, nativeMapSet = Map.prototype.set, nativeMapHas = Map.prototype.has;
 const nativeMapEach = Map.prototype.forEach;
 const isArray = Array.isArray, safeInteger = Number.isSafeInteger;
 const nativeStartsWith = String.prototype.startsWith, nativeEndsWith = String.prototype.endsWith;
+const nativeCharCodeAt = String.prototype.charCodeAt, nativeSlice = String.prototype.slice;
 const preloading = descriptor(NodeModule.prototype, 'isPreloading')?.get;
 const registerHooks = NodeModule.registerHooks, register = NodeModule.register;
 const stockLoad = NodeModule._load, stockCache = NodeModule._cache;
 const syncBuiltinESMExports = NodeModule.syncBuiltinESMExports;
-const fail = code => { const error = new NativeError(code); error.code = code; throw error; };
+const fail = (code, image) => {
+  const error = new NativeError(code); error.code = code;
+  // Only an already-held package-relative image key, never an absolute path
+  // or caller data. This diagnostic neither changes refusal nor admits a
+  // cache shape. Its retained String alias follows the original error duty.
+  if (image !== undefined) error.image = image;
+  throw error;
+};
 const own = (value, name) => {
   if (value === null || typeof value !== 'object') fail('InvalidInitialControlLoaderImage');
   const property = descriptor(value, name);
@@ -107,11 +118,12 @@ function installInitialControlImageLoader(groups) {
       const exportsProperty = held.module === undefined ? undefined : descriptor(held.module, 'exports');
       let same = held.module === undefined ? property === undefined :
         property !== undefined && hasOwn(property, 'value') && property.value === held.module &&
-        descriptor(held.module, 'filename')?.value === held.filename &&
         exportsProperty !== undefined && hasOwn(exportsProperty, 'value') &&
         exportsProperty.value === held.exports &&
-        (descriptor(held.module, 'loaded')?.value === true ||
-          held.loading && nativeApply(preloading, module, []) === true);
+        (held.jsonInterop ? jsonInteropRecord(held.module) :
+          descriptor(held.module, 'filename')?.value === held.filename &&
+          (descriptor(held.module, 'loaded')?.value === true ||
+            held.loading && nativeApply(preloading, module, []) === true));
       if (same && held.properties !== undefined) {
         const names = ownKeys(held.exports);
         same = names.length === held.properties.length;
@@ -126,6 +138,60 @@ function installInitialControlImageLoader(groups) {
       }
       if (!same) { invalidated = true; fail('InitialControlImageLoaderChanged'); }
     }
+  }
+  function jsonInteropRecord(value) {
+    // Node's synchronous ESM JSON translator publishes a completed two-field
+    // cache record, not a filename-bearing CommonJS Module. This exact header
+    // is accepted ONLY for delivered JSON below, with a same-Source tree check;
+    // it cannot authenticate an arbitrary cache preseed or CommonJS record.
+    if (value === null || typeof value !== 'object' || prototype(value) !== objectPrototype) return false;
+    const names = ownKeys(value);
+    if (names.length !== 2 || names[0] !== 'exports' || names[1] !== 'loaded') return false;
+    for (let index = 0; index < names.length; index++) {
+      const property = descriptor(value, names[index]);
+      if (property === undefined || !hasOwn(property, 'value') || property.writable !== true ||
+          property.enumerable !== true || property.configurable !== true ||
+          names[index] === 'loaded' && property.value !== true) return false;
+    }
+    return true;
+  }
+  function sealJsonOriginal(original, exported) {
+    // Only selected JSON compiler metadata, not arbitrary CJS exports, library
+    // caches or application input. Compare the actual parsed tree with the
+    // SAME captured Source before sealing any node. Preserve stock Node's JSON
+    // BOM handling without changing the held Source bytes or their identity.
+    const source = original.source;
+    const expected = parse(nativeApply(nativeCharCodeAt, source, [0]) === 0xfeff
+      ? nativeApply(nativeSlice, source, [1]) : source);
+    const checks = [{actual: exported, expected}], objects = [], seen = new NativeWeakSet();
+    for (let index = 0; index < checks.length; index++) {
+      const pair = checks[index], actual = pair.actual, expected = pair.expected;
+      if (expected === null || typeof expected !== 'object') {
+        if (!sameValue(actual, expected)) fail('InitialControlImageLoaderChanged');
+        continue;
+      }
+      if (actual === null || typeof actual !== 'object' ||
+          isArray(actual) !== isArray(expected) ||
+          prototype(actual) !== (isArray(expected) ? arrayPrototype : objectPrototype) ||
+          nativeApply(weakHas, seen, [actual])) fail('InitialControlImageLoaderChanged');
+      nativeApply(weakAdd, seen, [actual]);
+      const names = ownKeys(actual), expectedNames = ownKeys(expected);
+      if (names.length !== expectedNames.length) fail('InitialControlImageLoaderChanged');
+      for (let item = 0; item < names.length; item++) {
+        const name = names[item], value = descriptor(actual, name);
+        if (name !== expectedNames[item] || value === undefined || !hasOwn(value, 'value')) {
+          fail('InitialControlImageLoaderChanged');
+        }
+        checks[checks.length] = {actual: value.value, expected: descriptor(expected, name).value};
+      }
+      objects[objects.length] = actual;
+    }
+    // Native JSON trees have only these original records/arrays and primitive
+    // leaves. Never freeze Object/Array prototypes, CJS function graphs or a
+    // caller's unrelated objects. The expected parse, pair/keys/descriptor walk,
+    // WeakSet and node array overlap the original Module/tree/Source; none is
+    // free workspace or an operational admission. Escaped nodes keep lifetime.
+    for (let index = 0; index < objects.length; index++) freeze(objects[index]);
   }
   function captureLoadedModules() {
     // Only the original preload can finish this handoff, immediately after its
@@ -148,11 +214,17 @@ function installInitialControlImageLoader(groups) {
       }
       const current = property.value, filenameProperty = descriptor(current, 'filename');
       const exportsProperty = descriptor(current, 'exports'), loadedProperty = descriptor(current, 'loaded');
-      if (filenameProperty?.value !== filename || exportsProperty === undefined ||
+      const jsonInterop = original.format === 'json' && filenameProperty === undefined &&
+        nativeApply(nativeMapHas, delivered, [original.url]) && jsonInteropRecord(current);
+      if ((!jsonInterop && filenameProperty?.value !== filename) || exportsProperty === undefined ||
           !hasOwn(exportsProperty, 'value') || typeof loadedProperty?.value !== 'boolean') {
-        invalidated = true; fail('InitialControlImageLoaderChanged');
+        invalidated = true; fail('InitialControlImageLoaderChanged', original.path);
       }
       const exported = exportsProperty.value;
+      if (original.format === 'json') {
+        try { sealJsonOriginal(original, exported); }
+        catch (cause) { invalidated = true; throw cause; }
+      }
       let properties;
       if (exported !== null && (typeof exported === 'object' || typeof exported === 'function')) {
         const names = ownKeys(exported); properties = [];
@@ -170,7 +242,7 @@ function installInitialControlImageLoader(groups) {
       // Preexisting bootstrap records have their separate original Source duty.
       // Capturing their identity here never proves their already-executed body.
       loadedModules[loadedModules.length] = {filename, module: current, exports: exported,
-        loading: loadedProperty.value === false, properties};
+        loading: loadedProperty.value === false, jsonInterop, properties};
     }]);
     loadedCaptured = true;
     assertCurrent();

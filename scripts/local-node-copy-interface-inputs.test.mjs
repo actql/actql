@@ -15,6 +15,22 @@ function destination(t) {
   return directory;
 }
 
+test('ordinary Local copy includes the public preload and every private image custody dependency', async t => {
+  const output = destination(t), inputs = localNodePackageInputs(root);
+  const entry = 'adapters/host-node/infer-trusted-node-preload.cjs';
+  assert(inputs.adapterEntries.includes(entry));
+  const copies = await localNodeAdapterSourceInputs({root, inputs});
+  const originals = [entry, 'adapters/host-node/initial-control-installation-owner.cjs',
+    'adapters/host-node/initial-control-package-original.cjs',
+    'adapters/host-node/initial-control-package-custody.cjs',
+    'adapters/host-node/initial-control-image-source.cjs',
+    'adapters/host-node/initial-control-image-loader.cjs'];
+  for (const path of originals) assert(copies.some(value => value.path === path), path);
+  await buildLocalNodeAdapters({root, inputs, destination: output});
+  for (const path of originals) assert.deepEqual(readFileSync(join(output,path)), readFileSync(join(root,path)),path);
+  await buildLocalNodeAdapters({root, inputs, destination: output, check:true});
+});
+
 test('ordinary copy-input reader feeds the unchanged actual package byte check without a compiler', async t => {
   const output = destination(t), inputs = localNodePackageInputs(root);
   const copies = await localNodeAdapterSourceInputs({root, inputs});

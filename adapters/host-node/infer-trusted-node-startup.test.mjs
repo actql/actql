@@ -45,6 +45,10 @@ test('selected eager Common builder retains the same original code-point primiti
   child(['--no-lazy', '--require', preload], 'builder-codepoint-originals'));
 test('ordinary embedded import preserves application code-point and constructor selection', () =>
   child([], 'codepoint-unselected'));
+test('selected environment normalizer retains the original trailing-whitespace primitive', () =>
+  child(['--require', preload], 'environment-trim-original'));
+test('ordinary embedded import preserves application environment normalizer selection', () =>
+  child([], 'environment-trim-unselected'));
 test('selected BODY preserves its original Readable iterator and native next', () =>
   child(['--require', preload], 'read-body-iterator'));
 test('ordinary embedded import preserves application iterator method selection', () =>
