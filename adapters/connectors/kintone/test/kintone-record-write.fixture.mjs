@@ -4,7 +4,10 @@ import assert from 'node:assert/strict';
 import {createHash, generateKeyPairSync} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
-import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+// The physical component must bind the bytes of the same loaded runtime.
+const commonRuntime = process.env.ACTQL_TEST_KINTONE_COMMON_RUNTIME_URL ??
+  new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href;
+const common = await import(commonRuntime);
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {runtimePair} from '../../../host-common/compiler-binding.generated.mjs';
 import {canonicalJson, createLocalAuthorizationGate} from '../../../host-node/local-account-config.mjs';
@@ -140,8 +143,7 @@ export async function writeFixture(t, {kind = 'update', guestSpaceId, effect = '
     journalRoot: join(root, 'credential-journal'), resourceOrigin: tls.origin,
     namespaceId: 'kintone-fixture', environment: 'test', siteKey: 'original-site', siteGeneration: 1},
     principalId: 'operator', authorization, connection: 'kintone:fixture', connectorRegistration: 'kintone',
-    connectorRevision: 'kintone/0.1', runtimeBundleCid: cid(await readFile(new URL(
-      '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url))),
+    connectorRevision: 'kintone/0.1', runtimeBundleCid: cid(await readFile(new URL(commonRuntime))),
     commonMoon: common, ca: tls.ca, admitsApprovalTarget: () => false,
     resolveSecret: async () => {state.resolutions++; await state.resolve?.(); return state.secret;}});
   const authorizations = new Map();
