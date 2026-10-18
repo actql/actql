@@ -1,6 +1,7 @@
 import {constants} from 'node:fs';
-import {lstat, mkdir, open, readFile, readdir} from 'node:fs/promises';
+import {lstat, mkdir, open, opendir} from 'node:fs/promises';
 import {join} from 'node:path';
+import {readBoundedConfigurationText, withOriginalFile} from './source-profile-json.mjs';
 
 const markerName = 'host-format.json';
 const markerBytes = Buffer.from(JSON.stringify({
@@ -15,17 +16,35 @@ function formatError(code, root) {
   return Object.assign(new Error(code), {code, root});
 }
 
-async function entryNames(root) {
+async function firstEntry(root, openDirectory) {
   try {
     const state = await lstat(root);
     if (!state.isDirectory() || state.isSymbolicLink()) {
       throw formatError('UnknownHostRootFormat', root);
     }
-    return await readdir(root);
   } catch (error) {
     if (error?.code === 'ENOENT') return undefined;
     throw error;
   }
+  // Only emptiness is needed. Do not materialize an arbitrary directory and
+  // count it afterward. Node's original Dir owns one buffered Dirent here;
+  // the same captured close/receiver remains responsible across read await.
+  let opened = false;
+  try {
+    return await withOriginalFile(root, async path => {
+      const original = await openDirectory(path, {bufferSize: 1});
+      opened = true;
+      return original;
+    }, original => original.read());
+  } catch (cause) {
+    if (!opened && cause?.code === 'ENOENT') return undefined;
+    throw cause;
+  }
+}
+
+async function entryExists(root, name) {
+  try { await lstat(join(root, name)); return true; }
+  catch (cause) { if (cause?.code === 'ENOENT') return false; throw cause; }
 }
 
 async function admitMarker(root) {
@@ -38,20 +57,35 @@ async function admitMarker(root) {
     }
     throw error;
   }
-  if (!state.isFile() || state.size !== markerBytes.byteLength ||
-      !(await readFile(path)).equals(markerBytes)) {
+  if (!state.isFile() || state.size !== markerBytes.byteLength) {
     throw formatError('UnsupportedHostRootFormat', root);
   }
+  let text;
+  try { text = await readBoundedConfigurationText(path, {maxBytes: markerBytes.byteLength}); }
+  catch (cause) {
+    if (cause?.message === 'InvalidInstalledSourceProfile' && !cause.cleanupPending) {
+      throw formatError('UnsupportedHostRootFormat', root);
+    }
+    throw cause;
+  }
+  if (text !== markerBytes.toString('utf8')) throw formatError('UnsupportedHostRootFormat', root);
 }
 
-export async function admitHostRootFormat(root) {
-  let names = await entryNames(root);
-  if (names?.includes(markerName)) {
+export async function admitHostRootFormat(root, {openDirectory = opendir} = {}) {
+  let entry = await firstEntry(root, openDirectory);
+  // The closed format already gives the only names relevant to this choice.
+  // A valid marker keeps priority even with unrelated or legacy entries; a
+  // legacy name keeps priority over other unknown contents. No full listing
+  // or new cardinality/language restriction is required to preserve that law.
+  if (entry !== undefined && await entryExists(root, markerName)) {
     await admitMarker(root);
     return 'current';
   }
-  if (names !== undefined && names.length > 0) {
-    const legacy = names.some(name => legacyEntries.has(name));
+  if (entry !== undefined && entry !== null) {
+    let legacy = false;
+    for (const name of legacyEntries) {
+      if (await entryExists(root, name)) { legacy = true; break; }
+    }
     throw formatError(legacy ? 'LegacyHostRootFormat' :
       'UnknownHostRootFormat', root);
   }
@@ -59,28 +93,24 @@ export async function admitHostRootFormat(root) {
   // The root is absent or empty. A second read keeps existing, unmarked
   // content from being mistaken for a fresh installation before the marker.
   await mkdir(root, {recursive: true, mode: 0o700});
-  names = await entryNames(root);
-  if (names === undefined || names.length > 0) {
+  entry = await firstEntry(root, openDirectory);
+  if (entry !== null) {
     throw formatError('UnknownHostRootFormat', root);
   }
   const markerPath = join(root, markerName);
-  let handle;
   try {
-    handle = await open(markerPath, constants.O_CREAT | constants.O_EXCL |
-      constants.O_WRONLY, 0o600);
-    await handle.writeFile(markerBytes);
-    await handle.sync();
+    await withOriginalFile(markerPath, path => open(path,
+      constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY, 0o600), async original => {
+      await original.writeFile(markerBytes);
+      await original.sync();
+    });
   } catch (error) {
     if (error?.code === 'EEXIST') {
       await admitMarker(root);
       return 'current';
     }
     throw error;
-  } finally {
-    await handle?.close();
   }
-  const directory = await open(root, constants.O_RDONLY);
-  try { await directory.sync(); }
-  finally { await directory.close(); }
+  await withOriginalFile(root, path => open(path, constants.O_RDONLY), original => original.sync());
   return 'new';
 }
