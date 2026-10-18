@@ -1,6 +1,7 @@
 ///|
 pub(all) struct SlackMessageRepliesLimits {
   page : SlackMessagePageLimits
+  comparison : @admitted.Limits
   max_pages : Int
   max_total_rows : Int
   max_total_bytes : Int
@@ -55,6 +56,9 @@ pub fn prepare_slack_message_replies(
     limits.max_total_rows <= 0 ||
     limits.max_total_bytes <= 0 ||
     limits.max_work <= 0 ||
+    limits.comparison.max_nodes <= 0 ||
+    limits.comparison.max_depth <= 0 ||
+    limits.comparison.max_text_bytes <= 0 ||
     page.max_bytes <= 0 ||
     page.max_nodes <= 0 ||
     page.max_depth <= 0 ||
@@ -196,11 +200,11 @@ fn replies_row_equal(
       return Err(BudgetExceeded)
     }
     let equality = match
-      @admitted.start_complete_equality(left[index], right[index], {
-        max_nodes: replies.limits.page.max_value_nodes,
-        max_depth: replies.limits.page.max_depth,
-        max_text_bytes: replies.limits.page.max_value_text_bytes,
-      }) {
+      @admitted.start_complete_equality(
+        left[index],
+        right[index],
+        replies.limits.comparison,
+      ) {
       Ok(value) => value
       Err(_) => return Err(BudgetExceeded)
     }

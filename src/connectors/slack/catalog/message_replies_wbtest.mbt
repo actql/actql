@@ -2,6 +2,7 @@
 fn replies_limits() -> SlackMessageRepliesLimits {
   {
     page: message_limits(),
+    comparison: { max_nodes: 2048, max_depth: 16, max_text_bytes: 32768, },
     max_pages: 4,
     max_total_rows: 16,
     max_total_bytes: 32768,
