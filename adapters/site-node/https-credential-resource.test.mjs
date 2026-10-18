@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {generateKeyPairSync} from 'node:crypto';
+import {createHash, generateKeyPairSync} from 'node:crypto';
 import {readFile, mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {tmpdir} from 'node:os';
@@ -15,7 +15,7 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {invokeScopedCredentialOperation} from
   '../host-common/owned-invocation-context.mjs';
 import {callHttpsCredentialResource, closeHttpsCredentialBinding,
-  openHttpsCredentialBinding} from
+  openHttpsCredentialBinding, withHttpsCredentialRunResponseOriginal} from
   './https-credential-resource.mjs';
 import {openSqliteCredentialJournal} from
   './sqlite-credential-journal.mjs';
@@ -204,6 +204,132 @@ async function call(setup, grant, grantScope, useId, overrides = {}) {
     ...overrides,
   });
 }
+
+test('Run response original retains the actual physical claim, request and bytes', async t => {
+  const setup = await fixture(t);
+  const selected = scope(setup.origin);
+  const prepared = control.prepare(selected);
+  setup.journal.acceptGrant(setup.sign(prepared), control);
+  let claimed;
+  const journal = Object.freeze({...setup.journal, claim(...args) {
+    claimed = setup.journal.claim(...args);
+    return claimed;
+  }});
+  const response = await call({...setup, journal}, prepared, selected, 'captured',
+    {retainRunResponseOriginal: true});
+  assert.equal(setup.journal.inspect(response.useCid).outcome, 'succeeded');
+  const digest = createHash('sha256').update('{"records":[1,2]}').digest('hex');
+  const useCid = withHttpsCredentialRunResponseOriginal(response, control, journal, original => {
+    assert.equal(original.grant, claimed.grant);
+    assert.notEqual(original.grant, prepared);
+    assert.equal(original.use, claimed.use);
+    assert.equal(original.scope, selected);
+    assert.equal(original.response, response);
+    assert.equal(original.method, 'GET');
+    assert.equal(original.path, '/records');
+    assert.equal(original.requestBodyBytes, 0);
+    assert.equal(original.responseSha256, digest);
+    assert.equal(Object.hasOwn(original, 'secret'), false);
+    return control.useIdentity(original.use);
+  });
+  assert.equal(useCid, response.useCid);
+  assert.equal(setup.requests(), 1);
+});
+
+test('Run response original refuses copies, foreign owners and default uncaptured responses', async t => {
+  const setup = await fixture(t);
+  const selected = scope(setup.origin);
+  const grant = control.prepare(selected);
+  setup.journal.acceptGrant(setup.sign(grant), control);
+  const captured = await call(setup, grant, selected, 'captured',
+    {retainRunResponseOriginal: true});
+  const uncaptured = await call(setup, grant, selected, 'ordinary');
+  const absent = {code: 'RemoteCredentialRunResponseOriginalUnavailable'};
+  for (const [response, ownerControl, ownerJournal] of [
+    [{...captured}, control, setup.journal],
+    [captured, {...control}, setup.journal],
+    [captured, control, {...setup.journal}],
+    [uncaptured, control, setup.journal],
+  ]) assert.throws(() => withHttpsCredentialRunResponseOriginal(response,
+    ownerControl, ownerJournal, () => assert.fail('foreign receiver')), absent);
+  assert.deepEqual(Object.keys(captured), Object.keys(uncaptured));
+  assert.equal(setup.requests(), 2);
+});
+
+test('Run response original permanently refuses changed bytes without changing the Journal', async t => {
+  const setup = await fixture(t);
+  const selected = scope(setup.origin);
+  const grant = control.prepare(selected);
+  setup.journal.acceptGrant(setup.sign(grant), control);
+  const response = await call(setup, grant, selected, 'mutated',
+    {retainRunResponseOriginal: true});
+  const byte = response.body[0];
+  response.body[0] ^= 1;
+  const read = () => withHttpsCredentialRunResponseOriginal(response,
+    control, setup.journal, () => assert.fail('changed receiver'));
+  assert.throws(read, {code: 'RemoteCredentialRunResponseChanged'});
+  response.body[0] = byte;
+  assert.throws(read, {code: 'RemoteCredentialRunResponseChanged'});
+  assert.equal(setup.journal.inspect(response.useCid).outcome, 'succeeded');
+  assert.equal(setup.requests(), 1);
+});
+
+test('Run response original consumer failure cannot reclassify or resend a confirmed response', async t => {
+  const setup = await fixture(t);
+  const selected = scope(setup.origin);
+  const grant = control.prepare(selected);
+  setup.journal.acceptGrant(setup.sign(grant), control);
+  const response = await call(setup, grant, selected, 'observer',
+    {retainRunResponseOriginal: true});
+  const failure = new Error('OriginalConsumerFailure');
+  assert.throws(() => withHttpsCredentialRunResponseOriginal(response, control,
+    setup.journal, () => {throw failure;}), error => error === failure);
+  assert.throws(() => withHttpsCredentialRunResponseOriginal(response, control,
+    setup.journal, async () => undefined), {code: 'InvalidRemoteCredentialRunResponseConsumer'});
+  assert.equal(withHttpsCredentialRunResponseOriginal(response, control,
+    setup.journal, original => control.useIdentity(original.use)), response.useCid);
+  assert.equal(setup.journal.inspect(response.useCid).outcome, 'succeeded');
+  await assert.rejects(call(setup, grant, selected, 'observer',
+    {retainRunResponseOriginal: true}), {code: 'RemoteCredentialUseAlreadyClaimed'});
+  assert.equal(setup.requests(), 1);
+});
+
+test('Run response original lost reply retains Unknown and provides no replacement original', async t => {
+  const setup = await fixture(t, {onRequest(request) {request.socket.destroy(); return true;}});
+  const selected = scope(setup.origin);
+  const grant = control.prepare(selected);
+  setup.journal.acceptGrant(setup.sign(grant), control);
+  await assert.rejects(call(setup, grant, selected, 'lost-original',
+    {retainRunResponseOriginal: true}), {code: 'ECONNRESET'});
+  assert.equal(setup.journal.recover().length, 1);
+  assert.equal(setup.journal.recover()[0].outcome, 'unknown');
+  await assert.rejects(call(setup, grant, selected, 'lost-original',
+    {retainRunResponseOriginal: true}), {code: 'RemoteCredentialUseAlreadyClaimed'});
+  assert.throws(() => withHttpsCredentialRunResponseOriginal({}, control,
+    setup.journal, () => assert.fail('lost response receiver')),
+  {code: 'RemoteCredentialRunResponseOriginalUnavailable'});
+  assert.equal(setup.requests(), 1);
+});
+
+test('Run response original unconfirmed outcome COMMIT is not repeated or published', async t => {
+  const setup = await fixture(t);
+  const selected = scope(setup.origin);
+  const grant = control.prepare(selected);
+  setup.journal.acceptGrant(setup.sign(grant), control);
+  let finishes = 0;
+  const failure = new Error('OriginalOutcomeCommitUnknown');
+  const journal = Object.freeze({...setup.journal, finish() {finishes++; throw failure;}});
+  await assert.rejects(call({...setup, journal}, grant, selected, 'commit-unknown',
+    {retainRunResponseOriginal: true}), error => error === failure);
+  assert.equal(finishes, 1);
+  const retained = setup.journal.recover();
+  assert.equal(retained.length, 1);
+  assert.equal(retained[0].outcome, 'claimed');
+  await assert.rejects(call({...setup, journal}, grant, selected, 'commit-unknown',
+    {retainRunResponseOriginal: true}), {code: 'RemoteCredentialUseAlreadyClaimed'});
+  assert.equal(finishes, 1);
+  assert.equal(setup.requests(), 1);
+});
 
 test('scoped credential is claimed before an authenticated HTTPS request',
   async t => {

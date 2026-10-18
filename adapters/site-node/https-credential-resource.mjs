@@ -1,4 +1,5 @@
 import {request as httpsRequest} from 'node:https';
+import {createHash} from 'node:crypto';
 import {types} from 'node:util';
 import {prepareGoogleServiceAccountAssertion, googleServiceAccountAssertionRequest}
   from './google-service-account-assertion.mjs';
@@ -22,6 +23,38 @@ const count = value => Number.isSafeInteger(value) && value >= 0;
 // fields. Scope equality is only identity; each operation still claims and
 // authorizes its own nominal use in the original journal.
 const bindings = new WeakMap();
+
+// Optional original-response correspondence remains in this Credential Owner.
+// The exact returned response is the key; bytes/CIDs or a replayed Journal row
+// cannot construct the original physical claim. This contains no secret.
+const runResponseOriginals = new WeakMap();
+
+// Private synchronous consumer for an original legacy Run response. This is
+// historical DATA, not current authority, a new use, Store custody or an ACK.
+// Consumer exceptions never reclassify the already confirmed Journal outcome.
+export function withHttpsCredentialRunResponseOriginal(response, control,
+  journal, consume) {
+  const original = runResponseOriginals.get(response);
+  if (original === undefined || !original.confirmed ||
+      original.control !== control || original.journal !== journal ||
+      typeof consume !== 'function') {
+    fail('RemoteCredentialRunResponseOriginalUnavailable');
+  }
+  if (original.failure !== undefined) throw original.failure;
+  const body = response.body;
+  if (body !== original.body || body.byteLength !== original.byteLength ||
+      createHash('sha256').update(body).digest('hex') !== original.facts.responseSha256) {
+    original.failure = Object.assign(new Error('RemoteCredentialRunResponseChanged'),
+      {code: 'RemoteCredentialRunResponseChanged'});
+    throw original.failure;
+  }
+  const result = consume(original.facts);
+  if (result !== null && result !== undefined && typeof result.then === 'function') {
+    void Promise.resolve(result).catch(() => {});
+    fail('InvalidRemoteCredentialRunResponseConsumer');
+  }
+  return result;
+}
 
 // Private trusted installation input, never a Program/wire-selected dependency.
 // Vendor claim/signature validation remains in the original signer.
@@ -676,6 +709,7 @@ async function callCredentialResource({
   maxRequestBytes = 1_048_576,
   maxResponseBytes = 1_048_576,
   returnRejectedResponse = false,
+  retainRunResponseOriginal = false,
   currentBeforeSend,
   signal,
 }, binding) {
@@ -687,10 +721,17 @@ async function callCredentialResource({
       !text(useId) || !count(maxRequestBytes) || maxRequestBytes === 0 ||
       !count(maxResponseBytes) || maxResponseBytes === 0 ||
       typeof returnRejectedResponse !== 'boolean' ||
+      typeof retainRunResponseOriginal !== 'boolean' ||
       (currentBeforeSend !== undefined && typeof currentBeforeSend !== 'function')) {
     fail('InvalidRemoteCredentialCall');
   }
   const metadata = binding?.metadata === true;
+  // The installation-metadata alternative has its own opaque Subject/Scope.
+  // It must not be interpreted as the existing Run-purpose grant/use pair.
+  if (retainRunResponseOriginal && (metadata || Object.hasOwn(control, 'kind') ||
+      types.isProxy(scope) || !Object.isFrozen(scope))) {
+    fail('InvalidRemoteCredentialRunResponseCapture');
+  }
   const selectedScope = metadata ? control.scopeFields(scope) : scope;
   const operation = operationFor(operations, selectedScope, maxRequestBytes);
   if (metadata && (typeof currentBeforeSend !== 'function' ||
@@ -824,21 +865,38 @@ async function callCredentialResource({
     // below like any other failure after the request started.
     const headers = observeResponseHeaders(response.headers,
       operation.responseHeaders);
-    finishing = true;
-    journal.finish(claimed.record.useCid, accepted ? 'succeeded' : 'failed');
-    return Object.freeze({
+    if (!retainRunResponseOriginal) {
+      finishing = true;
+      journal.finish(claimed.record.useCid, accepted ? 'succeeded' : 'failed');
+      return Object.freeze({useCid: claimed.record.useCid, accepted,
+        statusCode: response.statusCode, headers, body: response.body});
+    }
+    const result = Object.freeze({
       useCid: claimed.record.useCid,
       accepted,
       statusCode: response.statusCode,
       headers,
       body: response.body,
     });
+    // All fallible allocation/hash work precedes the outcome COMMIT. No
+    // receiver runs here, and a failed COMMIT publishes no original response.
+    const retained = {control, journal, body: response.body,
+      byteLength: response.body.byteLength, confirmed: false,
+      failure: undefined, facts: Object.freeze({grant: claimed.grant,
+        use: claimed.use, scope, response: result, method: operation.method,
+        path: operation.path, requestBodyBytes: operation.requestBytes,
+        responseSha256: createHash('sha256').update(response.body).digest('hex')})};
+    runResponseOriginals.set(result, retained);
+    finishing = true;
+    journal.finish(claimed.record.useCid, accepted ? 'succeeded' : 'failed');
+    retained.confirmed = true;
+    return result;
   } catch (error) {
-    // Do not repeat a fallible outcome COMMIT on the new auth path. The
+    // Do not repeat a fallible outcome COMMIT on the protected typed paths. The
     // existing Journal and its original unknown claim retain responsibility.
-    if ((authenticated || metadata) && finishing) {
+    if ((authenticated || metadata || retainRunResponseOriginal) && finishing) {
       if (metadata) binding.pendingOutcome = error;
-      else token.pendingOutcome = error;
+      else if (authenticated) token.pendingOutcome = error;
       throw error;
     }
     const outcome = requestStarted &&
