@@ -36,6 +36,7 @@ priv enum LocalCommandPreparationIssue {
   CommandSignature(@local_crypto.NativeSignatureIssue)
   CommandJournal(@local_host.NativeLocalJournalCaptureIssue)
   CommandAdoption(@local_host.NativeLocalAdoptionIssue)
+  CommandCapture(@local_host.NativeLocalAdoptionCaptureIssue)
   CommandApplication(String)
   CommandFilesystem(@files.NativeBoundedTextIssue)
   CommandFilesystemCleanup(@local_filesystem.NativeFilesystemIssue)
@@ -76,6 +77,10 @@ priv struct LocalCommandPreparationOriginal {
   mut component : @initial_arena.InstalledArenaCryptoComponent?
   mut outer_library : @local_crypto.Library?
   mut inner_library : @local_crypto.Library?
+  mut product : @local_host.NativeLocalProductConfigurationCapture?
+  mut adoption : @local_host.NativeLocalAdoptionCapture?
+  mut selected_root : @local_filesystem.Root?
+  mut selected_root_failure : @local_filesystem.NativeRootOpenFailure?
   mut journal : @local_host.NativeLocalJournalCapture?
   mut journal_read_open : Bool
   mut reply_outcome : Result[String, String]?
@@ -129,6 +134,10 @@ fn prepare_local_command_preparation_original(
     component: None,
     outer_library: None,
     inner_library: None,
+    product: None,
+    adoption: None,
+    selected_root: None,
+    selected_root_failure: None,
     journal: None,
     journal_read_open: false,
     reply_outcome: None,
@@ -696,6 +705,34 @@ fn LocalCommandPreparationOriginal::close_checked(
           )
           self.read_failure = None
         }
+        if self.adoption is Some(adoption) {
+          let reply = adoption.close()
+          if reply.issue() is Some(issue) {
+            return Err(CommandCapture(issue))
+          }
+          if !adoption.descriptor_cleanup_acknowledged() {
+            return Err(CommandUnavailable)
+          }
+        }
+        if self.product is Some(product) {
+          command_preparation_value(
+            product.close().map_err(issue => CommandAdoption(issue)),
+          )
+        }
+        if self.selected_root_failure is Some(failure) {
+          command_preparation_value(
+            failure
+            .retry_cleanup()
+            .map_err(issue => CommandFilesystemCleanup(issue)),
+          )
+          self.selected_root_failure = None
+        }
+        if self.selected_root is Some(root) {
+          command_preparation_value(
+            root.close().map_err(issue => CommandFilesystemCleanup(issue)),
+          )
+          self.selected_root = None
+        }
         if self.inner_library is Some(library) {
           command_preparation_value(
             library.close_checked().map_err(issue => CommandSignature(issue)),
@@ -711,6 +748,8 @@ fn LocalCommandPreparationOriginal::close_checked(
         // These closed records still retain Read-managed aliases. Keep them
         // through their real close and then retire our own last references.
         self.journal = None
+        self.adoption = None
+        self.product = None
         self.reply_outcome = None
         self.runtime = None
         self.crypto_path = ""
@@ -831,5 +870,215 @@ fn LocalCommandPreparationOriginal::read_command(
         }
         None => Err(CommandUnavailable)
       }
+  }
+}
+
+///|
+// The trusted command snapshots selection inside its actual Read. The same
+// captured Product originals are rechecked; this never synthesizes a missing
+// installation marker, creates a replacement selection, or skips its claim.
+fn LocalCommandPreparationOriginal::stage_product(
+  self : LocalCommandPreparationOriginal,
+  parent : String,
+  name : String,
+  originals : Array[(String, Bytes)]?,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  if !self.phase_open || self.closing || self.closed || self.primary is Some(_) {
+    return Err(CommandUnavailable)
+  }
+  try {
+    let product = match self.product {
+      Some(original) => original
+      None => {
+        let crypto = command_preparation_value(self.library(false))
+        let original = command_preparation_value(
+          @local_host.prepare_native_local_product_configuration_capture_in_current_read_context(
+            parent,
+            name,
+            crypto,
+            self.profile.diagnostic_ceiling,
+            originals~,
+          ).map_err(issue => CommandAdoption(issue)),
+        )
+        self.product = Some(original)
+        original
+      }
+    }
+    command_preparation_value(
+      product.open().map_err(issue => CommandAdoption(issue)),
+    )
+    |> ignore
+    command_preparation_value(
+      product.stage_configuration().map_err(issue => CommandAdoption(issue)),
+    )
+    Ok(())
+  } catch {
+    LocalCommandPreparationStop(issue) => {
+      self.retain_primary(issue)
+      Err(issue)
+    }
+  }
+}
+
+///|
+// Retain this independently opened discovery Root before inspecting ownership.
+// A matching path, decoded configuration or another Root cannot close it.
+fn LocalCommandPreparationOriginal::select_configuration_root(
+  self : LocalCommandPreparationOriginal,
+  path : String,
+) -> Result[@local_filesystem.Root, LocalCommandPreparationIssue] {
+  if !self.phase_open ||
+    self.closing ||
+    self.closed ||
+    self.primary is Some(_) ||
+    self.selected_root is Some(_) ||
+    self.selected_root_failure is Some(_) {
+    return Err(CommandUnavailable)
+  }
+  match
+    @local_filesystem.open_private_root_in_current_read_context_with_custody(
+      path,
+      self.profile.diagnostic_ceiling,
+    ) {
+    Ok(root) => {
+      self.selected_root = Some(root)
+      Ok(root)
+    }
+    Err(failure) => {
+      self.selected_root_failure = Some(failure)
+      let issue = CommandFilesystemCleanup(failure.issue())
+      self.retain_primary(issue)
+      Err(issue)
+    }
+  }
+}
+
+///|
+// The same original holder is published before acquiring Roots, Lock or key
+// material. Only explicit initialization selects the original initial branch;
+// existing-only commands never manufacture absent installation originals.
+fn LocalCommandPreparationOriginal::prepare_adoption(
+  self : LocalCommandPreparationOriginal,
+  input : @local_host.NativeLocalExistingAdoptionInput,
+  initialize : Bool,
+) -> Result[
+  @local_host.NativeLocalAdoptionSession,
+  LocalCommandPreparationIssue,
+] {
+  if !self.phase_open ||
+    self.closing ||
+    self.closed ||
+    self.primary is Some(_) ||
+    self.adoption is Some(_) {
+    return Err(CommandUnavailable)
+  }
+  try {
+    let crypto = command_preparation_value(self.library(true))
+    let selected = if initialize {
+      @local_host.prepare_native_local_initial_adoption_capture_in_current_read_context(
+        input,
+        crypto,
+        self.profile.diagnostic_ceiling,
+      )
+    } else {
+      @local_host.prepare_native_local_existing_adoption_capture_in_current_read_context(
+        input,
+        crypto,
+        self.profile.diagnostic_ceiling,
+      )
+    }
+    let capture = command_preparation_value(
+      selected.map_err(issue => CommandAdoption(issue)),
+    )
+    self.adoption = Some(capture)
+    if capture.open().issue() is Some(issue) {
+      return Err(CommandCapture(issue))
+    }
+    match capture.original_session() {
+      Some(session) => Ok(session)
+      None => Err(CommandUnavailable)
+    }
+  } catch {
+    LocalCommandPreparationStop(issue) => {
+      self.retain_primary(issue)
+      Err(issue)
+    }
+  }
+}
+
+///|
+// Retain the same Journal before its first Read/SQL exchange. Material is
+// generated only by the same explicitly eligible original Session, never by
+// restoring a path or reissuing a key after failure/Unknown.
+fn LocalCommandPreparationOriginal::open_adopted_journal(
+  self : LocalCommandPreparationOriginal,
+  initialize_signing : Bool,
+  options : LocalInitialSigningAdoptionOptions,
+) -> Result[@local_host.NativeLocalHostConnection, LocalCommandPreparationIssue] {
+  if !self.phase_open ||
+    self.closing ||
+    self.closed ||
+    self.primary is Some(_) ||
+    self.journal is Some(_) {
+    return Err(CommandUnavailable)
+  }
+  guard self.adoption is Some(adoption) &&
+    self.host is Some(host) &&
+    self.pair is Some(pair) &&
+    self.read is Some(read) else {
+    return Err(CommandUnavailable)
+  }
+  try {
+    let journal = if initialize_signing {
+      let session = adoption.original_session().unwrap()
+      let crypto = command_preparation_value(self.library(true))
+      let material = command_preparation_value(
+        session
+        .create_initial_signing_material(crypto)
+        .map_err(original => CommandAdoption(original.issue())),
+      )
+      command_preparation_value(
+        adoption
+        .capture_initial_journal_with_original_resources(
+          host,
+          pair,
+          read,
+          material,
+          @run_host.client_local_default_signing_bootstrap_policy(),
+          options.ttl_ms,
+          options.max_records,
+          options.max_snapshot_bytes,
+        )
+        .map_err(issue => CommandCapture(issue)),
+      )
+    } else {
+      command_preparation_value(
+        adoption
+        .capture_journal_with_original_resources(
+          host,
+          pair,
+          read,
+          options.ttl_ms,
+          options.max_records,
+          options.max_snapshot_bytes,
+        )
+        .map_err(issue => CommandCapture(issue)),
+      )
+    }
+    self.journal = Some(journal)
+    command_preparation_value(self.leave())
+    if journal.open().issue() is Some(issue) {
+      self.retain_primary(CommandJournal(issue))
+      return Err(CommandJournal(issue))
+    }
+    match journal.original_host() {
+      Some(original) => Ok(original)
+      None => Err(CommandUnavailable)
+    }
+  } catch {
+    LocalCommandPreparationStop(issue) => {
+      self.retain_primary(issue)
+      Err(issue)
+    }
   }
 }
