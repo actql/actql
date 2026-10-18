@@ -18,6 +18,8 @@ pub(all) enum SlackMessagePageIssue {
   InvalidSelection(String)
   InvalidCell(String)
   DuplicateMessage
+  ForeignHistoryRequest
+  HistoryUnavailable
 } derive(Eq, Debug)
 
 ///|
@@ -29,6 +31,7 @@ pub struct SlackMessagePage {
   has_more : Bool
   history_limited : Bool
   priv rows : Array[Array[@admitted.CheckedValue]]
+  priv history_request : SlackMessageHistoryRequest?
 }
 
 ///|
@@ -205,6 +208,7 @@ fn message_runtime_cell(
   ts : String,
   max_bytes : Int,
   max_text_bytes : Int,
+  original_history : SlackMessageHistoryRequest?,
 ) -> Result[@admitted.Value, SlackMessagePageIssue] {
   match name {
     "id" => return message_runtime_text(channel + ":" + ts, max_text_bytes)
@@ -222,6 +226,11 @@ fn message_runtime_cell(
       )
     }
     _ => ()
+  }
+  if name == "reply_count" &&
+    original_history is Some(_) &&
+    ordinary_history_without_thread(row) {
+    return Ok(@admitted.signed64_value(0L))
   }
   let cell = match @decode.field(row, name) {
     Missing | ExplicitNull => return Ok(@admitted.null_value())
@@ -254,10 +263,37 @@ fn message_runtime_cell(
 }
 
 ///|
+fn ordinary_history_without_thread(row : @decode.ObjectView) -> Bool {
+  // Only actual absent keys support the adopted non-thread projection. An
+  // explicit count wins, including a positive count without thread metadata.
+  if @decode.field(row, "reply_count") is not Missing ||
+    @decode.field(row, "thread_ts") is not Missing ||
+    @decode.field(row, "subtype") is not Missing {
+    return false
+  }
+  guard @decode.lookup(row, "text") is Some(text) && @decode.text(text) is Ok(_) else { return false }
+  for name in ["event_ts", "message", "previous_message", "deleted_ts"] {
+    if @decode.field(row, name) is not Missing { return false }
+  }
+  true
+}
+
+///|
 pub fn project_slack_message_page(
   bytes : Bytes,
   channel : String,
   limits : SlackMessagePageLimits,
+) -> Result[SlackMessagePage, SlackMessagePageIssue] {
+  // Generic/partial/thread DATA cannot declare the original history context.
+  project_message_page(bytes, channel, limits, None)
+}
+
+///|
+fn project_message_page(
+  bytes : Bytes,
+  channel : String,
+  limits : SlackMessagePageLimits,
+  original_history : SlackMessageHistoryRequest?,
 ) -> Result[SlackMessagePage, SlackMessagePageIssue] {
   if limits.max_bytes <= 0 ||
     limits.max_nodes <= 0 ||
@@ -406,6 +442,7 @@ pub fn project_slack_message_page(
           ts,
           limits.max_bytes,
           limits.max_value_text_bytes,
+          original_history,
         ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
@@ -437,6 +474,7 @@ pub fn project_slack_message_page(
     has_more,
     history_limited,
     rows,
+    history_request: original_history,
   })
 }
 
