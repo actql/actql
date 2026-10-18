@@ -227,3 +227,23 @@ test('live publication propagates the exact original outcome acknowledgement fai
   assert.equal(lost, 1);
   assert.equal(f.seen.length, before + 1);
 });
+
+test('inside-finisher mutation is refused before returning and restoring bytes cannot restore membership', async t => {
+  const f = await fixture(t), x = await f.describe();
+  await observe(f.site, x.declared, x.body);
+  const before = f.seen.length;
+  let op, first;
+  try {
+    assert.throws(() => originals(f.site, x.declared, x.body, facts => {
+      op = facts.operations[0]; first = op.response.body[0];
+      op.response.body[0] ^= 1;
+      return 'must not be disclosed';
+    }), {code: 'RemoteCredentialRunResponseChanged'});
+  } finally {
+    if (op !== undefined) op.response.body[0] = first;
+  }
+  assert.throws(() => originals(f.site, x.declared, x.body, () => {}),
+    {code: 'RemoteCredentialRunResponseChanged'});
+  assert.equal(f.journal.inspect(op.response.useCid).outcome, 'succeeded');
+  assert.equal(f.seen.length, before);
+});
