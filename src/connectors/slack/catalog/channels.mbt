@@ -243,7 +243,15 @@ pub fn project_slack_channel_list(
                 is Some(text) else {
                 return Err(InvalidCell(name))
               }
-              @admitted.checked_timestamp_value(text, contract).unwrap().value
+              guard @admitted.checked_timestamp_value(
+                  text,
+                  @contract.with_nullability(contract, false),
+                )
+                is Some(checked) else {
+                return Err(InvalidCell(name))
+              }
+              // Recheck the DATA under the original nullable column contract below.
+              checked.value
             }
             guard @admitted.recheck_runtime_value_usage(
                 runtime, contract, value_limits,
