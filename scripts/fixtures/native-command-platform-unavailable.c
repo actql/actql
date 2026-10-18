@@ -4,6 +4,7 @@
 
 int main(void) {
   assert(actql_native_command_platform_current() == NULL);
+  assert(!actql_native_command_platform_available());
   assert(actql_native_command_platform_begin_load((void *)1,
     ACTQL_NATIVE_COMMAND_SQLITE_COMPONENT, (void *)2) == NULL);
   assert(!actql_native_command_platform_observe_load((void *)1, (void *)2));

@@ -9,6 +9,7 @@ extern int fixture_member_checks(void);
 static void *foreign_thread(void *raw) {
   actql_native_command_platform_load *load = raw;
   assert(actql_native_command_platform_current() == NULL);
+  assert(!actql_native_command_platform_available());
   assert(!actql_native_command_platform_load_current(load));
   assert(!actql_native_command_platform_module_released(load, (void *)1));
   return NULL;
@@ -35,6 +36,7 @@ int main(int argc, char **argv) {
   actql_native_command_platform_original *entry =
     actql_native_command_platform_current();
   assert(entry == &actql_command_entry);
+  assert(actql_native_command_platform_available());
   int finalized = 0;
   actql_native_observed_component_member *member = fixture_member(1,0,&finalized);
   assert(!actql_native_command_platform_begin_load(
