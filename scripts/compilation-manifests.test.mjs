@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
+import {gunzipSync} from 'node:zlib';
 import {execFileSync} from 'node:child_process';
 import {dirname, relative} from 'node:path';
 import test from 'node:test';
@@ -255,12 +256,20 @@ test('original UPDATE selection custody preserves prior combined identity', () =
   selection.before);
   const integrated = read('scripts/fixtures/logical-update-target/main2874-manifest-identity.json');
   assert.deepEqual(integrated.frozen_before, selection.after);
-  // The v0.1 Effect forms moved the grammar after main 2874; only the two
-  // normative query inputs and the identity differ from that integrated manifest.
+  // Effect forms and explicit composite roles moved the source/query grammar.
+  // Signed64 additionally changes the inherited expression dependency. Validate
+  // that complete original body before restoring the historical manifest edge.
   const currentManifest = read('spec/manifests/actql-grammar-0.1.json');
+  const originalTypes = JSON.parse(gunzipSync(readFileSync(
+    'scripts/fixtures/pre-signed64-type-closure.json.gz'))).records;
+  const expression = structuredClone(originalTypes['spec/contracts/actql-expressions.json']);
+  expression.inherited_text_time_profile_cid =
+    read('portability/corpus/signed64-identities.json').inheritedBarrier.currentCid;
+  assert.deepEqual(read('spec/contracts/actql-expressions.json'), expression);
+  assert.equal(currentManifest.expression_contract_cid, machineCid(expression));
   const currentAligned = {...currentManifest};
   for (const key of ['grammar_manifest_cid', 'query_text_grammar_sha256',
-    'query_text_rules_sha256', 'source_grammar_cid']) currentAligned[key] = integrated.after[key];
+    'query_text_rules_sha256', 'source_grammar_cid', 'expression_contract_cid']) currentAligned[key] = integrated.after[key];
   assert.deepEqual(currentAligned, integrated.after);
   for (const value of [integrated.frozen_before, integrated.main_before, integrated.after]) {
     const {grammar_manifest_cid: expected, ...body} = value;
