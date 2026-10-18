@@ -127,3 +127,19 @@ test('actual title compiled callbacks and their original receiver are captured o
   assert.equal((await reader.read()).valueWire,'"é\\r\\n😀"');
   for(const name of names)assert.equal(reads.get(name),1);
 });
+
+for(const mode of ['revoke','stop'])test(`actual title ${mode} after partial observation refuses the next Common request`,async t=>{
+  const f=await fixture(t),moon={...f.options.moon},cause=new Error('OriginalTitleObservationInvalidated');
+  let nextRequests=0,invalid=false,reader;
+  moon.notionNextPropertyRequest=function(...args){nextRequests++;return Reflect.apply(f.options.moon.notionNextPropertyRequest,f.options.moon,args);};
+  reader=f.title({moon,current:async()=>{if(invalid)throw cause;await f.current();},
+    consumeObservation:async charge=>{f.options.consumeObservation(charge);await Promise.resolve();
+      if(mode==='revoke')invalid=true;else reader.requestStop(cause);}});
+  let failure;await assert.rejects(reader.read(),error=>{failure=error;return error.cause===cause;});
+  assert.equal(nextRequests,0);assert.equal(f.state.requests.length,2);assert.equal(f.state.resolutions,2);
+  assert.deepEqual(f.state.values,[]);assert.equal(failure.observations.length,1);
+  assert.equal(failure.observations[0].body,f.state.charges.at(-1).originalBody);
+  assert.equal(f.state.observations.at(-1),f.state.charges.at(-1));
+  assert.equal(reader.observe().cleanupConfirmed,false);
+  await assert.rejects(reader.read(),{code:'NotionPropertyReaderAlreadyStarted'});
+});
