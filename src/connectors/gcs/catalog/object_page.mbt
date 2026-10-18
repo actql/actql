@@ -180,8 +180,8 @@ pub fn object_metadata_page_row_json(
 }
 
 ///|
-// RFC 3339 provider text becomes the same exact UTC instant in the existing
-// Timestamp carrier. Preserve up to nine fractional digits without binary64,
+// RFC 3339 provider text becomes the same UTC instant in the existing
+// exact Timestamp carrier. Preserve up to nine fractional digits without binary64,
 // rounding or a Host Date. The retained physical report is independent.
 fn object_source_timestamp(text : String) -> String? {
   if text.length() < 20 || text.length() > 35 {
