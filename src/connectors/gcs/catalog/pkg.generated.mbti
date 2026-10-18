@@ -146,6 +146,8 @@ pub fn recheck_object_mutation(ObjectMutationBinding, ObjectMutationRequest, Obj
 
 pub fn recheck_object_upload(ObjectUploadBinding, ObjectUploadRequest, ObjectUploadObservation) -> Result[Unit, ObjectUploadIssue]
 
+pub fn restore_object_mutation_value_wire(ObjectMutationBinding, String, Int, Array[(String, String)], Bytes, String, Bytes, String, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]
+
 // Errors
 
 // Types and methods

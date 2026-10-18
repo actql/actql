@@ -813,6 +813,32 @@ pure synchronous projection starts no I/O, acquires no Content loan and
 acknowledges no physical cleanup. Installed execution, provider sends, saved
 publication custody and normal funding remain separate obligations.
 
+### Retained mutation request material
+
+`restore_object_mutation_value_wire` re-admits the retained original metadata
+response status, headers and exact bytes, the separately retained response hash,
+canonical Effect Value changes, exact request body and request CID. The request
+CID alone does not include the raw response hash: equal parsed fields and
+generation conditions cannot substitute a differently encoded response. The
+existing target-read Owner rechecks status, identity encoding and available
+generation/metageneration headers; the existing request Owner derives the same
+conditional path and body using the retained marker, never a fresh marker.
+
+This synchronous API returns DATA bound to the supplied local binding. It does
+not authenticate a saved capture, reconstruct an old live pointer, open a Store,
+issue the live child's current closure, claim dispatch or send a request.
+Authenticated capture/Store custody, the actual installation/current authority,
+approved Preview and the existing Unknown/non-resend decision remain mandatory
+in the consuming Host. DELETE keeps empty changes/body and absent after-state;
+the same physical limitations as the original request still apply.
+
+Retained bytes and header/intent/body Strings overlap hash workspace, bounded
+metadata and Value decoder trees, before/after maps, canonical writers,
+reconstructed request preimages and escaped request projections. The original
+physical owner keeps any byte loan, FD, credential or Store duty until its own
+actual retirement. Parsing limits, return from this API, forgotten aliases and
+GC do not return that capacity or supply a normal numerical profile.
+
 ### Original metadata and delete responses
 
 The existing GCS Owner classifies only the authenticated retained direct
