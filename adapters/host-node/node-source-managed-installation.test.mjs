@@ -20,11 +20,13 @@ test('the actual absent Source issuer refuses without observing caller originals
 // Execute the exact consumer Source with an explicitly substituted CJS
 // receiver. These test-only ports prove forwarding/custody, not a selected
 // startup, Resource issuer, original Source capacity or real Host positive.
-async function fixture(t) {
+async function fixture(t, {ordinaryAbsent = false} = {}) {
   const root = fileURLToPath(new URL('../../', import.meta.url));
   await mkdir(join(root, '_build'), {recursive:true});
   const scratch = {path: await mkdtemp(join(root, '_build/source-forward-controls-'))};
   await writeFile(join(scratch.path, 'infer-trusted-node-preload.cjs'), 'module.exports={};\n');
+  await writeFile(join(scratch.path, 'node-public-initial-control-bootstrap.cjs'), ordinaryAbsent
+    ? 'module.exports={};\n' : "module.exports=require('./infer-trusted-node-preload.cjs');\n");
   const owner = createRequire(import.meta.url)(join(scratch.path, 'infer-trusted-node-preload.cjs'));
   const originals = Object.freeze({}), installation = Object.freeze({}), receipt = Object.freeze({});
   const s = {current: true, close: {pending: false}, closes: 0, calls: [], returnReceipt: receipt,
@@ -50,6 +52,18 @@ async function fixture(t) {
   // can be mistaken for an original Source/physical acknowledgement.
   return {s, consumer, owner, originals, installation, receipt};
 }
+
+test('ordinary Source absence cannot borrow the explicit preload receiver or observe caller originals', async t => {
+  const f = await fixture(t, {ordinaryAbsent: true});
+  let observed = 0;
+  const raw = new Proxy({}, {get() {observed++;}, ownKeys() {observed++;},
+    getOwnPropertyDescriptor() {observed++;}});
+  await assert.rejects(f.consumer.prepareSourceManagedInstallation(raw),
+    {code: 'SourceManagedPreparationUnavailable'});
+  assert.equal(observed, 0);
+  assert.equal(f.s.calls.length, 0);
+  assert.equal(f.s.closes, 0);
+});
 
 test('four producer calls synchronously forward exact originals to the captured receiver', async t => {
   const f = await fixture(t), view = await f.consumer.prepareSourceManagedInstallation(f.originals);

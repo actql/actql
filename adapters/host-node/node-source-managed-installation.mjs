@@ -1,9 +1,14 @@
 import {createRequire} from 'node:module';
 import {types} from 'node:util';
 
-// The preload may synchronously initialize this ESM namespace. Its already
-// published CJS receiver avoids a static CJS/ESM initialization cycle.
-const originalOwner = createRequire(import.meta.url)('./infer-trusted-node-preload.cjs');
+// The actual ordinary prefix or the unchanged preload initializes this ESM
+// namespace. Capture that SAME published receiver before application entry;
+// never discover a later callback table or use one entrance's original to
+// rescue another entrance. Selection alone supplies no Source admission.
+const require = createRequire(import.meta.url);
+const ordinary = process.execArgv.length === 0 && process.env.NODE_OPTIONS === undefined;
+const originalOwner = ordinary ? require('./node-public-initial-control-bootstrap.cjs') :
+  require('./infer-trusted-node-preload.cjs');
 
 // Fixed private startup receiver only. A shape, callback supplied by a Client,
 // scalar quota or initial-control scope cannot create a Source installation.
