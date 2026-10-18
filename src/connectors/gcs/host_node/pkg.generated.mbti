@@ -47,6 +47,8 @@ pub fn gcs_content_metadata_json(Bytes, String, String, String, Int64, Int) -> R
 
 pub fn gcs_object_check_patch_input(@catalog.ObjectMutationBinding, Bytes, String, Bool) -> Result[Unit, GcsFailure]
 
+pub fn gcs_object_delete_effect_target(@catalog.ObjectMutationBinding, @catalog.ObjectMutationRequest, Int) -> Result[String, GcsFailure]
+
 pub fn gcs_object_failure_code(GcsFailure) -> String
 
 pub fn gcs_object_listing_prefix(String, Bytes, Int, Int, Int) -> Result[String, GcsFailure]
