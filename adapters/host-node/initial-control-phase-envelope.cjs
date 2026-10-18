@@ -122,4 +122,5 @@ function inspectInitialControlPhaseEnvelope(inventory, declaration, runtimeOrigi
     sourceBytes, declaration, runtimeOriginal});
 }
 
-module.exports = freeze({declareInitialControlPhaseEnvelope, inspectInitialControlPhaseEnvelope});
+module.exports = {declareInitialControlPhaseEnvelope, inspectInitialControlPhaseEnvelope};
+freeze(module.exports);
