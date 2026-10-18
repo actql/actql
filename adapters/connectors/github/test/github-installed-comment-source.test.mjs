@@ -77,7 +77,8 @@ async function fixture(t, {commentsRead = 'allow'} = {}) {
     const preparation = common.clientProgramPrepareEffectFreeWithParameters(JSON.stringify({
       version: 'actql/0.1', id: 'installed-comments', stages: [{id: 'scan',
         inputs: {remote: {connector: 'gh-original', resource: 'issue_comments'}},
-        steps: [{select: ['id', 'subject_number', 'author', 'body'], as: 'comments'},
+        steps: [{filter: 'id > 0', as: 'positive_comment_ids'},
+          {select: ['id', 'subject_number', 'author', 'body'], as: 'comments'},
           {from: 'comments', assert_rows: {unique_by: ['id']}, as: 'unique_comments'},
           {from: 'unique_comments', sort: [{id: 'asc'}], as: 'ordered_comments'}],
         results: {r: {from: 'ordered_comments', fields: ['id', 'subject_number', 'author', 'body']}}}],
