@@ -6529,7 +6529,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
-                "anchor": "retainInstalledHostRuntimeFailure(cause, () => forget(root, opened));"
+                "anchor": "retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));"
               }
             ],
             "synchronization": [
