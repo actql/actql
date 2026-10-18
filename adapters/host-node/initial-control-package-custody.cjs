@@ -27,7 +27,7 @@ const concrete = value => typeof value === 'string' && value.length !== 0 &&
   !isAbsolute(value) && !value.includes('\\') &&
   !value.split('/').some(part => part === '' || part === '.' || part === '..');
 
-function captureInitialControlPackageCustody(inventory, localRoot) {
+function captureInitialControlPackageCustody(inventory, localRoot, consumerEntry) {
   // A late caller must not trigger resolution, path reads or descriptor walks.
   // This helper still cannot prove a preload's original source or funding.
   if (typeof preloading !== 'function' || apply(preloading, module, []) !== true) {
@@ -109,7 +109,12 @@ function captureInitialControlPackageCustody(inventory, localRoot) {
   for (let index = 0; index < dependencies.length; index++) captureDependency(dependencies[index], root);
   const optional = own(inventory, 'optionalSdk'), optionalCoverage = own(inventory, 'optionalSdkCoverage');
   if (optionalCoverage === 'prepared') {
-    captureDependency({name: '@actql/provider-ai-sdk', package: optional}, root);
+    if (typeof consumerEntry !== 'string' || !isAbsolute(consumerEntry)) {
+      fail('InvalidInitialControlPackageImage');
+    }
+    // The actual startup resolves its optional SDK from that SAME consumer
+    // entry, not from Local's potentially different nested dependency slot.
+    captureDependency({name: '@actql/provider-ai-sdk', package: optional}, dirname(consumerEntry));
   } else if (optional !== null || optionalCoverage !== 'absent' && optionalCoverage !== 'unprepared') {
     fail('InvalidInitialControlPackageImage');
   }
