@@ -172,8 +172,17 @@ pub fn NativeLocalProductConfigurationCapture::close(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if self.opening is ProductAcquired(session) && !session.close() {
-    return Err(CustodyLost)
+  if self.opening is ProductAcquired(session) {
+    // The original carrier has already retired child I/O and Roots before
+    // checking this same Lock. Its checked entrance preserves the actual ACK;
+    // the legacy first-close Bool must not be invoked a second time.
+    match session.lock.close_checked() {
+      Err(issue) => return Err(Filesystem(issue))
+      Ok(_) => {
+        session.closed = true
+        session.close_pending = false
+      }
+    }
   }
   self.cleanup_acknowledged = true
   Ok(())
