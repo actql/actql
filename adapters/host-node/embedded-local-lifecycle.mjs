@@ -1,7 +1,8 @@
 // The existing installed Host owns execution and durable data. This registry
 // only leases its in-process connection and retains its physical close retry.
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
-import {createInstalledHostShutdown, retainInstalledHostRuntimeFailure}
+import {createInstalledHostShutdown, retainInstalledHostRuntimeFailure,
+  retainInstalledHostInitializationFailure, originalInitialControlClose}
   from './installed-host-cleanup.mjs';
 
 export function installedHostShutdown(host) {
@@ -85,7 +86,10 @@ export function createEmbeddedHostRegistry(sameInstallation) {
     if (!entry.preparing) preparationChanged();
     forget(undefined, entry);
   },
-  async connect(root, identity, open, options, preparedHost, releaseUnadopted) {
+  async connect(root, identity, open, options, preparedHost, releaseUnadopted,
+    initialControl) {
+    const retainedControl = initialControl === undefined ? undefined :
+      Object.freeze({close: originalInitialControlClose(initialControl)});
     const prepared = preparedHost === undefined ? undefined : profiles.get(preparedHost);
     if (preparedHost !== undefined && (typeof root !== 'string' || !root ||
         prepared === undefined || prepared.originalHost !== preparedHost ||
@@ -127,12 +131,14 @@ export function createEmbeddedHostRegistry(sameInstallation) {
           throw failure;
         }
         return host;
-      }).catch(cause => {
+      }).catch(async cause => {
         // A prepared generation also owns its original registry references.
         // Keep their retirement behind the SAME initializer's captured child
         // status/retry, rather than waiting for an unrelated later connect.
-        const error = prepared === undefined ? cause :
-          retainInstalledHostRuntimeFailure(cause, () => forget(root, opened));
+        const owned = retainedControl === undefined ? cause :
+          await retainInstalledHostInitializationFailure(cause, {initialControl: retainedControl});
+        const error = prepared === undefined ? owned :
+          retainInstalledHostRuntimeFailure(owned, () => forget(root, opened));
         opened.failure = error;
         opened.initializationPending = error?.cleanupPending === true;
         const handle = error?.cleanupHandle;

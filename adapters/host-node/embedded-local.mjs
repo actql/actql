@@ -3535,11 +3535,14 @@ export async function connectEmbeddedLocal(options) {
   record.installation = originalInstallation;
   return await profiles.connect(root, identity,
     () => {
-      assertInitialControlInstallationCurrent(control, originals);
+      // This same registry entry now owns even a refused opening/current gate.
       adopted = true;
+      assertInitialControlInstallationCurrent(control, originals);
       return openInstalledHost(originalInstallation, preparation);
-    }, clientOptions, host, releaseUnadopted);
+    }, clientOptions, host, releaseUnadopted, initialControl);
   } catch (cause) {
+    // An unadopted preparation is released here. An opened or failed
+    // Host, however, keeps this same view until its existing shutdown finishes.
     if (adopted) throw cause; // The original opened/failed Host owns cleanup.
     if (observedClose !== undefined) throw cause;
     if (control === undefined) {

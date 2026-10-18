@@ -1,6 +1,6 @@
 // Failed initialization has no returned Host to own its resources. Keep the
 // same retry/status protocol as publication cleanup, without restarting work.
-function originalInitialControlClose(original) {
+export function originalInitialControlClose(original) {
   let close, captured = false;
   function captureOriginalClose() {
     if (!captured) {
@@ -25,6 +25,7 @@ function originalInitialControlClose(original) {
     if (observed?.pending !== false) {
       throw new TypeError('InstalledHostInitialControlCleanupPending');
     }
+    return observed;
   };
 }
 
