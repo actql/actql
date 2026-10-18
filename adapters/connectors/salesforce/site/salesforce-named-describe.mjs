@@ -189,13 +189,30 @@ export function withSalesforceNamedDescribeOriginals(result, credential, consume
         }
         return Object.freeze({name, ...facts});
       }));
-  const value = consume(Object.freeze({observation: result.observation,
-    observationJson: result.observationJson, observationCid: result.observationCid,
-    evidence: result.evidence, operations: Object.freeze(operations)}));
-  if (value !== null && value !== undefined && typeof value.then === 'function') {
-    void Promise.resolve(value).catch(() => {});
-    fail('InvalidSalesforcePublicationConsumer');
+  // Raw aliases reach the synchronous finisher. The Credential Owner remains
+  // the sole membership/hash authority before any result can leave this borrow.
+  const recheckOriginals = () => {
+    for (const {response} of original.responses) {
+      withHttpsCredentialRunResponseOriginal(response, credential.control,
+        credential.journal, () => undefined);
+    }
+  };
+  let value;
+  try {
+    value = consume(Object.freeze({observation: result.observation,
+      observationJson: result.observationJson, observationCid: result.observationCid,
+      evidence: result.evidence, operations: Object.freeze(operations)}));
+    if (value !== null && value !== undefined && typeof value.then === 'function') {
+      void Promise.resolve(value).catch(() => {});
+      fail('InvalidSalesforcePublicationConsumer');
+    }
+  } catch (cause) {
+    // Observe and latch changed original membership even on failure, while
+    // retaining the finisher's exact primary exception and cleanup carrier.
+    try { recheckOriginals(); } catch { /* The original Credential Owner retains this failure. */ }
+    throw cause;
   }
+  recheckOriginals();
   return value;
 }
 

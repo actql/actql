@@ -223,7 +223,11 @@ text and restored Catalogs cannot enter this live-only receiver.
   text, rather than reconstructing a use or declaration from JSON or a CID.
 - Live publication identity: nominal Site, live declaration and original physical
   response membership are required. Exact raw response bytes are checked against
-  their retained digest and Describe evidence. Generation serialization and its
+  their retained digest and Describe evidence on entry. After the synchronous
+  finisher and result inspection, the same Credential Owner rechecks each
+  original before its result can return. An observed mutation remains refused
+  after bytes are restored. A throwing finisher keeps its exact primary error;
+  the Credential Owner still observes and retains changed-response membership. Generation serialization and its
   16,000,000-byte UTF8 text ceiling are unchanged; declaration and Catalog bodies
   are not renamed or rehashed into another identity domain.
 - Live publication ownership: original Credential control, Journal, claims,

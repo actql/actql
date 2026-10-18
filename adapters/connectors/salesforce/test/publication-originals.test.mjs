@@ -247,3 +247,44 @@ test('inside-finisher mutation is refused before returning and restoring bytes c
   assert.equal(f.journal.inspect(op.response.useCid).outcome, 'succeeded');
   assert.equal(f.seen.length, before);
 });
+
+
+test('a mutating finisher keeps its exact primary error while the Credential Owner latches the changed original', async t => {
+  const f = await fixture(t), x = await f.describe();
+  await observe(f.site, x.declared, x.body);
+  const before = f.seen.length, primary = Object.assign(new Error('OriginalFinisherFailed'),
+    {originalMarker: Object.freeze({})});
+  let op, first;
+  try {
+    assert.throws(() => originals(f.site, x.declared, x.body, facts => {
+      op = facts.operations[0]; first = op.response.body[0];
+      op.response.body[0] ^= 1;
+      throw primary;
+    }), cause => cause === primary);
+  } finally {
+    if (op !== undefined) op.response.body[0] = first;
+  }
+  assert.throws(() => originals(f.site, x.declared, x.body, () => {}),
+    {code: 'RemoteCredentialRunResponseChanged'});
+  assert.equal(f.journal.inspect(op.response.useCid).outcome, 'succeeded');
+  assert.equal(f.seen.length, before);
+});
+
+test('finisher result inspection cannot mutate an original after the final Credential check', async t => {
+  const f = await fixture(t), x = await f.describe();
+  await observe(f.site, x.declared, x.body);
+  const before = f.seen.length;
+  let op, first;
+  try {
+    assert.throws(() => originals(f.site, x.declared, x.body, facts => {
+      op = facts.operations[0]; first = op.response.body[0];
+      return {get then() { op.response.body[0] ^= 1; return undefined; }};
+    }), {code: 'RemoteCredentialRunResponseChanged'});
+  } finally {
+    if (op !== undefined) op.response.body[0] = first;
+  }
+  assert.throws(() => originals(f.site, x.declared, x.body, () => {}),
+    {code: 'RemoteCredentialRunResponseChanged'});
+  assert.equal(f.journal.inspect(op.response.useCid).outcome, 'succeeded');
+  assert.equal(f.seen.length, before);
+});
