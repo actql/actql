@@ -14,6 +14,12 @@ enum actql_crypto_component_status {
  * The caller supplies its already-current original Domain. This is not a
  * resource issuer, a signer selection or an installed numerical profile. */
 int actql_crypto_component_bind(actql_read_context *original, size_t heap_bytes);
+/* Existing typed Library construction uses these current-original aliases;
+ * they never select a context or rebind an existing component by DATA. */
+int actql_crypto_component_bind_current(size_t heap_bytes);
+int actql_crypto_component_enter_current(void);
+int actql_crypto_component_leave_current(void);
+int actql_crypto_component_is_current(void);
 int actql_crypto_component_enter(actql_read_context *original);
 int actql_crypto_component_leave(actql_read_context *original);
 /* The existing Library must retain this borrow until all EVP/BIO/key/hasher

@@ -290,3 +290,18 @@ int actql_crypto_component_close(void) {
 #undef CLOSE_RETURN
 }
 const char *actql_crypto_component_version(void) { return OPENSSL_VERSION_TEXT; }
+
+int actql_crypto_component_bind_current(size_t heap_bytes) {
+    return actql_crypto_component_bind(actql_bootstrap_current_read_context(), heap_bytes);
+}
+int actql_crypto_component_enter_current(void) {
+    if (!original_thread_current()) return ACTQL_CRYPTO_COMPONENT_INVALID;
+    return actql_crypto_component_enter(original_context);
+}
+int actql_crypto_component_leave_current(void) {
+    if (!original_thread_current()) return ACTQL_CRYPTO_COMPONENT_INVALID;
+    return actql_crypto_component_leave(original_context);
+}
+int actql_crypto_component_is_current(void) {
+    return current() && state->initialized && !state->closing && !state->failed;
+}

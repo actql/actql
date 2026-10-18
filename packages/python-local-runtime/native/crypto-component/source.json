@@ -18,12 +18,12 @@
   },
   "local": {
     "component.c": {
-      "bytes": 14618,
-      "sha256": "77da2688e9a9121970b8bc16921ec95c5fc45716468b1e9b037ae89f5eb04ce6"
+      "bytes": 15273,
+      "sha256": "0f76ee03ebf9b642f4af8f07cd4f20a0df811c593f463fba5b11db4db054df0c"
     },
     "component.h": {
-      "bytes": 1721,
-      "sha256": "71acbad38c4406f8efbc45dccaf1f8d1d04355e2db1d1c10392474ff0e2398bf"
+      "bytes": 2073,
+      "sha256": "6038d66da0b1c9b86b8691837a8d62b42efb824fff817d09a0c08ab49d4f5ce1"
     },
     "NOTICE": {
       "bytes": 368,
