@@ -2630,8 +2630,8 @@ function effectTaskProgressSnapshot(value) {
 
 // Read each native Array element once. Caller-owned iteration, some and slice
 // methods are not the supplier of the captured durable/claim facts.
-function effectProjectionArray(value) {
-  if (!Array.isArray(value)) throw new TypeError('InvalidRunHostEffectRunProjection');
+function effectProjectionArray(value, maximum) {
+  if (!Array.isArray(value) || value.length > maximum) throw new TypeError('InvalidRunHostEffectRunProjection');
   const length = value.length;
   const snapshot = [];
   for (let index = 0; index < length; index++) snapshot.push(value[index]);
@@ -2642,8 +2642,12 @@ function effectProjectionArray(value) {
  * are not a whole Effect/producer/Transfer stop, publication or release ACK. */
 export function projectEffectSiteRun(allowed, definition, authority, durableWires,
   observedAt, cancellationRequested, savedClaims) {
-  const wires = effectProjectionArray(durableWires);
-  const claims = effectProjectionArray(savedClaims);
+  // The original checked graph bounds both complete claims and the at-most
+  // one durable Coordinator record for each task, before reading elements.
+  const original = admittedEffectTaskProgress(allowed, definition, authority, []);
+  const count = owner.clientValuesHostEffectTaskProgressFields(original).length;
+  const wires = effectProjectionArray(durableWires, count);
+  const claims = effectProjectionArray(savedClaims, count);
   if (typeof observedAt !== 'string' || typeof cancellationRequested !== 'boolean') {
     throw new TypeError('InvalidRunHostEffectRunProjection');
   }

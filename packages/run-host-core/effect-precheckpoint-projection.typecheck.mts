@@ -17,7 +17,6 @@ projectEffectSiteRun(prepared, definition, 'authority', [], 'clock', false, clai
 // @ts-expect-error Complete original claim facts cannot be omitted.
 projectEffectSiteRun(allowed, definition, 'authority', [], 'clock', false);
 // @ts-expect-error No absent locator is synthesized from undefined.
-projectEffectSiteRun(allowed, definition, 'authority', [], 'clock', false,
-  [{taskKey: 'original', dispatchCid: undefined, dispatchReserved: false, physicalStartClaimed: false}]);
+projectEffectSiteRun(allowed, definition, 'authority', [], 'clock', false, [{taskKey: 'original', dispatchCid: undefined, dispatchReserved: false, physicalStartClaimed: false}]);
 // @ts-expect-error Published readiness is not mutable DATA.
 result.publicationReady = true;

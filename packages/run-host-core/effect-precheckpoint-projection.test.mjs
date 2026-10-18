@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {validRunState} from '@actql/client-wire';
 import {admitEnvironment, prepareEffect, compileEffect, prepareEffectRequest,
   issueAllowedEffectRun, issueEffectRunDefinition, inspectEffectTaskProgress,
   projectEffectSiteRun, issueEffectSourceDispatch} from './index.mjs';
@@ -32,7 +33,8 @@ test('original pre-checkpoint candidate is unpublished and cancellation request 
   for (const cancelled of [false, true]) {
     const projected = f.project([], cancelled), state = JSON.parse(projected.stateWire);
     assert.equal(state.status, 'preparing'); assert.equal(state.run_id, 'original-effect');
-    assert.equal(state.revision, undefined); assert.equal(state.result_available, false);
+    assert.equal(state.revision, undefined); assert.equal(validRunState(state), false);
+    assert.equal(state.result_available, false);
     assert.equal(projected.publicationReady, false);
     assert.equal(Object.hasOwn(projected, 'cleanupComplete'), false);
     assert.equal(projected.taskCleanupComplete, false);
@@ -73,6 +75,10 @@ test('native Array facts are captured once without caller-owned iteration or val
   claims.slice = () => [{taskKey: 'foreign'}]; claims.some = () => false;
   assert.equal(JSON.parse(f.project(wires, false, claims).stateWire).status, 'preparing');
   assert.equal(reads, 1);
+  const oversized = new Array(f.claims.length + 1); let oversizedReads = 0;
+  Object.defineProperty(oversized, 0, {get() {oversizedReads++; throw new Error('MustNotRead');}});
+  assert.throws(() => f.project([], false, oversized), {name: 'TypeError'});
+  assert.equal(oversizedReads, 0);
   const malformed = [1]; malformed.some = () => false;
   assert.throws(() => f.project(malformed));
   for (const value of ['[]', new Set(), {length: 0}]) assert.throws(() => f.project(value));
