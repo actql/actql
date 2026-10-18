@@ -106,7 +106,9 @@ fn original_mock_fixture(
     limits.bodies,
     limits.max_work,
   ).unwrap()
-  @model.admit_model_provider(provider, execution, dependencies, (_, _) => true).unwrap()
+  @model.admit_original_model_mock_provider(
+    installation, execution, dependencies,
+  ).unwrap()
   |> ignore
   let plan = @publication_host.issue_prepared_client_infer_plan_graph(
     prepared_program,

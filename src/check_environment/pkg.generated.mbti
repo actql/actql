@@ -545,6 +545,8 @@ pub fn normalize_public_mock_model_task(PublicModelTaskDeclaration, ModelMockPro
 
 pub fn normalize_public_model_task(PublicModelTaskDeclaration, ModelProviderDefaults, ResolvedModelProviderDefaults, String, ModelTaskLimits) -> Result[NormalizedPublicModelTask, ModelTaskIssue]
 
+pub fn normalized_public_mock_model_task_matches_prompt(NormalizedPublicModelTask, PublicModelTaskDeclaration, ModelMockProfile, ModelTaskContract, ModelDependency) -> Bool
+
 pub fn normalized_public_mock_model_task_matches_task(NormalizedPublicModelTask, PublicModelTaskDeclaration, ModelMockProfile, ModelTaskContract) -> Bool
 
 pub fn normalized_public_mock_model_task_original_for(NormalizedPublicModelTask, PublicModelTaskDeclaration, ModelMockProfile) -> Bool
