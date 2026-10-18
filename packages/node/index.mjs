@@ -1,6 +1,13 @@
 import initialControlPublicDispatch from './initial-control-public-dispatch.cjs';
 import {resolve} from 'node:path';
-import {connect as connectHost, ClientError} from '@actql/sdk';
+import {createRequire} from 'node:module';
+
+// Load the same SDK namespace synchronously AFTER the actual fixed bootstrap
+// prefix evaluates. A static SDK import/re-export would link and compile that
+// graph before the prefix runs. Keep no TLA so the existing preload image can
+// still load this facade synchronously; these are the SDK's original classes.
+const {connect: connectHost, ClientError, RequestHeld} =
+  createRequire(import.meta.url)('@actql/sdk');
 
 // Capture the actual early private consumer once, not a later cache export or
 // a caller option. Its presence selects an entrance, never an admission. The
@@ -9,7 +16,7 @@ const selectedInitialControlHostPreparation =
   initialControlPublicDispatch.selectedInitialControlHostPreparation;
 const applyInitialControl = Reflect.apply;
 
-export {ClientError, RequestHeld} from '@actql/sdk';
+export {ClientError, RequestHeld};
 
 // The standard installation has one fixed Local provider slot. Resolution
 // does not load Local code for a connected Host and never installs packages.
