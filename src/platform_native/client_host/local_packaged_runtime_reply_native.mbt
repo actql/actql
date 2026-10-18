@@ -38,6 +38,37 @@ pub fn capture_native_local_packaged_runtime_reply(
 }
 
 ///|
+/// Keep the same Read in the transport while the Runtime retains and uses
+/// its original consuming Host pair internally for every physical phase.
+pub fn capture_native_local_packaged_runtime_in_host_resources_reply(
+  original : (
+    @arena.InstalledArenaHost,
+    @arena.InstalledArenaOriginalRead,
+    @arena.InstalledArenaLocalHostResources,
+  )?,
+  root_path : String,
+  source_sha : String,
+  platform : String,
+  manifest_sha256 : String,
+  diagnostic_ceiling : Int,
+) -> NativeLocalPackagedRuntimeReply {
+  let (runtime, issue) = match
+    open_native_local_packaged_runtime_in_original_host_resources(
+      original, root_path, source_sha, platform, manifest_sha256, diagnostic_ceiling,
+    ) {
+    Ok(value) => (Some(value), None)
+    Err(Refused(issue)) => (None, Some(issue))
+    Err(Pending(value, issue)) => (Some(value), Some(issue))
+  }
+  {
+    operation: CapturePackagedRuntime,
+    original_read: original.map(value => (value.0, value.1)),
+    runtime,
+    issue,
+  }
+}
+
+///|
 fn local_packaged_runtime_unit_reply(
   operation : NativeLocalPackagedRuntimeOperation,
   runtime : NativeLocalPackagedRuntime,
@@ -135,7 +166,10 @@ fn local_packaged_runtime_issue_tag(
     Some(Physical(_)) => 5
     Some(OriginalReadUnavailable) => 6
     Some(OriginalRead(@arena.Child(@resources.Unknown))) => 7
+    Some(OriginalHostResources(@arena.Read(@arena.Child(@resources.Unknown)))) =>
+      7
     Some(OriginalRead(_)) => 8
     Some(CleanupPending) => 9
+    Some(OriginalHostResources(_)) => 10
   }
 }
