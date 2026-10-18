@@ -32,6 +32,7 @@ import {selectAcquiredEffectSources} from './acquired-effect-sources.mjs';
 import {withLocalExecutionPauseHandler} from '../local-node/retained-store.mjs';
 import {acquiredEffectContinuation} from './acquired-effect-continuation.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
+import {sourcePreparationPort} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {BOUND_SOURCE_INVENTORY, BOUND_SOURCE_SUBMISSION,
   ordinarySourceDescriptors} from './ordinary-source-binding.mjs';
 import {capturedDuckDBConfiguration} from './captured-duckdb-source.mjs';
@@ -53,6 +54,10 @@ import {beginInitialControlInstallation, assertInitialControlInstallationCurrent
   from './node-initial-control-installation.mjs';
 import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
+import {prepareInstalledProjectMock} from './installed-project-mock.mjs';
+import {prepareSourceManagedInstallation, assertSourceManagedInstallationCurrent,
+  assertSourceManagedPreparationCurrent}
+  from './node-source-managed-installation.mjs';
 import {installNodeInferRun} from './installed-infer-run.mjs';
 import {installNodeModelContinuation} from './installed-model-continuation.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
@@ -161,6 +166,75 @@ export function assertSourceManagedHostPreparation(originals, originalOwnedReque
     profiles.assertSourceRequest(originals.host, originals.installation,
       originals.generation, originalOwnedRequest);
   }
+}
+
+// The selected Source Root captures this fixed original projection. A copied
+// packet, equal configuration or public view cannot reconstruct the private
+// registry's same Host/installation/generation association.
+export function readInstalledMockPreparation(originals) {
+  assertSourceManagedHostPreparation(originals);
+  const retained = profiles.mockPreparation(originals.host, originals.installation,
+    originals.generation);
+  if (retained.view === undefined) throw clientOperationError('InstalledMockPreparationUnavailable');
+  return retained.view.originalsForRuntime(retained.runtime);
+}
+
+// Called only by the selected Source Root's captured namespace operation,
+// after its original managed preparation holding exists, but before that Root
+// acquires the fixture FD and completes the same Source installation. The
+// opaque original is checked by the fixed Root receiver, never by its shape.
+export function prepareInstalledMockSourcePreparation(originals, originalSourceInstallation) {
+  assertSourceManagedHostPreparation(originals);
+  assertSourceManagedPreparationCurrent(originalSourceInstallation, originals);
+  const previous = profiles.mockPreparation(originals.host, originals.installation,
+    originals.generation, true);
+  if (previous !== undefined) {
+    if (previous.sourceInstallation !== originalSourceInstallation) {
+      throw clientOperationError('ForeignInstalledMockPreparation');
+    }
+    return previous.flight;
+  }
+  const {project, projectProfile, projectRuntime} = originals.installation;
+  const retained = {runtime: projectRuntime, sourceInstallation: originalSourceInstallation,
+    view: undefined, flight: undefined};
+  profiles.retainMockPreparation(originals.host, originals.installation,
+    originals.generation, retained);
+  const assertCurrent = () => {
+    assertSourceManagedHostPreparation(originals);
+    assertSourceManagedPreparationCurrent(originalSourceInstallation, originals);
+  };
+  retained.flight = (async () => {
+    const view = await prepareInstalledProjectMock(projectRuntime, project, projectProfile,
+      {assertCurrent});
+    // Retain the acquired original before the fallible final current check.
+    // Failure keeps this same view and flight; it never prepares another pair.
+    retained.view = view;
+    assertCurrent();
+    view.originalsForRuntime(projectRuntime);
+  })();
+  return retained.flight;
+}
+
+// Same existing Common intent admission/identity as the receiving Host. This
+// selected Source path avoids creating a separate native WebCrypto operation;
+// its Root checks the original receipt and registered frozen body first.
+export function sourceManagedSubmittedIntentCid(originals, originalSourceInstallation, body) {
+  assertSourceManagedHostPreparation(originals);
+  assertSourceManagedPreparationCurrent(originalSourceInstallation, originals);
+  const moon = originals.installation.projectRuntime;
+  const wire = canonicalValueJson({kind: body.kind, input: body.input,
+    parameters: body.parameters,
+    ...(Object.hasOwn(body, 'stopBefore') ? {stopBefore: body.stopBefore} : {}),
+    ...(Object.hasOwn(body, 'readOnly') ? {readOnly: body.readOnly} : {})}, {dataKeys: true});
+  const intent = moon.clientSubmittedIntent(wire, 1048576, 65536, 64);
+  if (intent === undefined) throw clientOperationError('NodeSourceManagedIntentUnavailable');
+  const cid = moon.clientSubmittedIntentCid(intent);
+  assertSourceManagedHostPreparation(originals);
+  assertSourceManagedPreparationCurrent(originalSourceInstallation, originals);
+  if (typeof cid !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(cid)) {
+    throw clientOperationError('InvalidHostRuntimeResult');
+  }
+  return cid;
 }
 
 const bytesCid = bytes => `sha256:${createHash('sha256')
@@ -3275,9 +3349,12 @@ async function openInstalledHost(originalInstallation, preparation) {
     authenticate: () => principalId,
     ...hostOperations, maxRowBytes: 1024 * 1024,
   });
-  const port = observation === undefined ? ingress : Object.freeze({
-    perform: (operation, request, signal) => observation.run(operation,
-      undefined, () => ingress.perform(operation, request, signal)),
+  const sourcePreparation = preparation?.sourcePreparation();
+  const port = observation === undefined && sourcePreparation === undefined ? ingress : Object.freeze({
+    ...(sourcePreparation === undefined ? {} : {[sourcePreparationPort]: sourcePreparation}),
+    perform: (operation, request, signal) => observation === undefined
+      ? ingress.perform(operation, request, signal)
+      : observation.run(operation, undefined, () => ingress.perform(operation, request, signal)),
   });
   return Object.assign(host, {port, store, journal, hostOperations, checkpoints, diagnostic,
     observation, ownerViews,
@@ -3454,16 +3531,22 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     generation: host, supplier: connectEmbeddedLocal, moduleLifetime: import.meta});
   profiles.registerPreparation(host, originalInstallation, host);
   let control, controlClose, duty, observedClose, referenceRetirement;
-  let moon, project, projectProfile, adopted = false, referencesRetired = false;
+  let moon, project, projectProfile, mockPreparation, sourceManaged, sourceManagedClose;
+  let adopted = false, referencesRetired = false;
   const record = {};
   function retirePreparationReferences() {
     if (referencesRetired) return;
+    // The Root can fail after its fixed callback retained a view but before
+    // returning the Source installation to this caller. That same candidate
+    // still owns its semantic references; do not abandon it on this path.
+    const retainedMock = profiles.retainedMockPreparation(host, originalInstallation, host);
+    (mockPreparation ?? retainedMock?.view)?.retire(moon);
     if (referenceRetirement !== undefined) referenceRetirement();
     else {
       projectProfile?.retire(moon);
       if (project !== undefined) retireInstalledProjectConfiguration(project, moon);
     }
-    projectProfile = project = moon = referenceRetirement = undefined;
+    mockPreparation = projectProfile = project = moon = referenceRetirement = undefined;
     for (const key of Object.keys(record)) record[key] = undefined;
     // This private installation bag holds backreferences, not canonical DATA.
     // Its opaque identity remains the same for the original cleanup pair.
@@ -3473,6 +3556,15 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   }
   const initialControl = Object.freeze({async close() {
     if (observedClose !== undefined) return observedClose;
+    if (sourceManaged !== undefined) {
+      const observation = await Reflect.apply(sourceManagedClose, sourceManaged, []);
+      const pending = observation !== null && typeof observation === 'object'
+        ? Object.getOwnPropertyDescriptor(observation, 'pending') : undefined;
+      if (pending === undefined || !Object.hasOwn(pending, 'value') || pending.value !== false) {
+        throw clientOperationError('InstalledSourcePreparationCleanupPending');
+      }
+      sourceManaged = sourceManagedClose = undefined;
+    }
     retirePreparationReferences();
     const observed = await Reflect.apply(controlClose, control, []);
     if (observed?.pending === false) {
@@ -3486,6 +3578,13 @@ export async function connectEmbeddedLocal(options, initialEntry) {
     return observed;
   }});
   const preparation = Object.freeze({host, initialControl,
+    sourcePreparation() {
+      if (mockPreparation === undefined) return undefined;
+      // Missing or retired selected coverage cannot become an unselected SDK
+      // connection. Check the exact wrapper in its private original inventory.
+      assertSourceManagedInstallationCurrent(sourceManaged, originals);
+      return sourceManaged;
+    },
     readEnvironmentSource() {
       return readInitialControlInstallationAsset(control, originals,
         'spec/local-check-environment.json');
@@ -3599,6 +3698,26 @@ export async function connectEmbeddedLocal(options, initialEntry) {
   projectProfile = selectInstalledProjectProfile(moon, project, requestedProfile, 65536);
   record.projectProfile = projectProfile;
   const selectedProfile = projectProfile.originalsForRuntime(moon);
+  Object.assign(originalInstallation, {project, projectProfile, projectRuntime: moon});
+  if (selectedProfile.selected === 'mock') {
+    // The actual Source admission precedes its connection/catalogue/control
+    // preparation. Initial control cannot fund those allocations or file I/O.
+    // A missing original refuses here, with no legacy snapshot/read fallback.
+    sourceManaged = await prepareSourceManagedInstallation(originals);
+    sourceManagedClose = sourceManaged.close;
+    record.sourceManaged = sourceManaged;
+    // The same actual Root called the fixed operation above under its own
+    // prior managed holding, then acquired the original file/child backing.
+    // Do not reconstruct missing metadata after its returned admission.
+    const retained = profiles.mockPreparation(host, originalInstallation, host);
+    mockPreparation = retained.view;
+    if (mockPreparation === undefined || retained.runtime !== moon) {
+      throw clientOperationError('InstalledMockPreparationUnavailable');
+    }
+    record.mockPreparation = mockPreparation;
+    mockPreparation.originalsForRuntime(moon);
+    sourceManaged.assertCurrent();
+  }
   if (selectedProfile.selected !== undefined) {
     // The original choice is admitted, but this Host has no installed mock
     // records/answers or another named physical-profile supplier yet. Refuse

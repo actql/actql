@@ -16,6 +16,9 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local'
     maxRows: 10, maxBatchRows: 10, maxBatchRetainedValueBytes: 1024}};
 
 async function fixture(receiver, perform) {
+  // Explicit metadata-only Source double; no canonical-identity proof or
+  // operational supplier is inferred from this synthetic response.
+  receiver.intentCid ??= () => cid('d');
   const port = {[sourcePreparationPort]: receiver, async perform(operation, packet) {
     if (operation === 'connect') return profile;
     return perform(operation, packet);
@@ -128,4 +131,29 @@ test('packet binding refusal remains NotSent and never reaches the Host', async 
   await assert.rejects(client.startSource('SELECT 1 AS n', {format: 'sql',
     submissionRef: originalSubmission('source-no-send')}), {code: 'SubmissionNotSent'});
   assert.equal(sends, 0); assert.equal(finishes, 1);
+});
+
+test('selected Source uses its original same-body intent identity without starting WebCrypto', async t => {
+  let digests = 0, hashes = 0, sends = 0, body;
+  const originalDigest = Object.getOwnPropertyDescriptor(crypto.subtle, 'digest');
+  Object.defineProperty(crypto.subtle, 'digest', {configurable: true,
+    value() {digests++; throw new Error('UnfundedNativeDigest');}});
+  t.after(() => {
+    if (originalDigest === undefined) delete crypto.subtle.digest;
+    else Object.defineProperty(crypto.subtle, 'digest', originalDigest);
+  });
+  const receipt = {};
+  const {client} = await fixture({beforeSourceSnapshot() {return receipt;},
+    bindSourceSnapshot(original, value) {assert.equal(original, receipt); body = value;},
+    intentCid(original, value) {
+      assert.equal(original, receipt); assert.equal(value, body); hashes++;
+      return cid('e'); // Explicit port metadata, not a canonical-identity oracle.
+    }, bindSourceRequest() {}, finishSourceProducer() {}}, (_operation, request) => {
+    assert.equal(request.intentCid, cid('e')); sends++;
+    return readySubmissionAttempt(request, admission);
+  });
+  await client.startSource('SELECT 1 AS n', {format: 'sql',
+    submissionRef: originalSubmission('source-owned-intent'), attemptId: 'original-attempt'});
+  await client.close();
+  assert.equal(digests, 0); assert.equal(hashes, 1); assert.equal(sends, 1);
 });
