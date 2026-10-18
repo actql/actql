@@ -12710,7 +12710,7 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "58e0e95f5916971419de92d2318f24271df168b5702dde657e2be5d7be2517d3",
+      "sha256": "577c474e65590438976541050e7108ad71e20f91d72c23a9a024dd5767a075f5",
       "role": "connector-semantics",
       "owner": "Salesforce bounded retained Catalog and exact prepared request recovery; no restored current, credential, dispatch or response authority",
       "exports": [
@@ -12739,14 +12739,14 @@
             "requestLimits",
             "maxMembers",
             "maxRows",
-            "maxRetainedBytes"
+            "maxRetainedBytes",
+            "memberIndexes"
           ],
           "async": false
         },
         {
           "name": "recoverCapturedSalesforceSingleRequests/members/members",
           "parameters": [
-            "entry",
             "memberIndex"
           ],
           "async": false
@@ -12771,7 +12771,8 @@
             "requestLimits",
             "maxMembers",
             "maxRows",
-            "maxIdentityBytes"
+            "maxIdentityBytes",
+            "memberIndexes"
           ],
           "async": false
         },
@@ -12786,7 +12787,7 @@
           "name": "recoverPreparedSalesforceSingleRequests/requests/requests",
           "parameters": [
             "member",
-            "memberIndex"
+            "selectedIndex"
           ],
           "async": false
         },
@@ -12795,6 +12796,24 @@
           "parameters": [
             "claim",
             "rowIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectedMemberIndexes",
+          "parameters": [
+            "value",
+            "count",
+            "maximum",
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectedMemberIndexes/selectedMemberIndexes",
+          "parameters": [
+            "_",
+            "index"
           ],
           "async": false
         }
@@ -12810,7 +12829,9 @@
             "recoverPreparedSalesforceSingleRequests",
             "recoverPreparedSalesforceSingleRequests/positive/positive",
             "recoverPreparedSalesforceSingleRequests/requests/requests",
-            "recoverPreparedSalesforceSingleRequests/requests/requests/requests"
+            "recoverPreparedSalesforceSingleRequests/requests/requests/requests",
+            "selectedMemberIndexes",
+            "selectedMemberIndexes/selectedMemberIndexes"
           ],
           "exports": [
             "recoverCapturedSalesforceSingleRequests",
@@ -12821,54 +12842,90 @@
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
                 "anchor": "does not restore apply or credential authority"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Responsibility: the existing installed Row Effect routes recovery"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
                 "anchor": "recoverCapturedSalesforceSingleRequests"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Inputs and outputs: optional `recoverMemberRequests` receives"
               }
             ],
             "identity": [
               {
                 "path": "src/connectors/salesforce/catalog/write_request.mbt",
                 "anchor": "recover_single_write_request"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Identity: each selected position belongs"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
                 "anchor": "the caller retains Run, cancellation"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Ownership: original installations retain their Sites"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
                 "anchor": "Synchronous, bounded reconstruction only"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Synchronization: reconstruction is synchronous"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
                 "anchor": "InvalidSalesforceCapturedRequestRecovery"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Failure: missing scoped recovery support"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
                 "anchor": "current authorization, response custody and physical send responsibilities"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Cancellation: successful reconstruction neither cancels"
               }
             ],
             "resources": [
               {
                 "path": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
                 "anchor": "maxRetainedBytes"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Resources: selection is bounded"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/salesforce-write-capability.md",
                 "anchor": "## Recovery"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Extension: this composition profile remains"
               }
             ],
             "verification": [
@@ -12879,6 +12936,10 @@
               {
                 "path": "adapters/connectors/salesforce/test/installed-execution-closure.test.mjs",
                 "anchor": "ordinary Salesforce installation uses only shared Effect execution and vendor request recovery"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "- Verification: `installed-composed-recovery.integration.test.mjs` exercises"
               }
             ]
           }

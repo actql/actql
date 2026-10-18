@@ -34,7 +34,7 @@ const storeConfiguration = directory => ({directory,
 // `stopBeforeApply` ends the process's part after the capture, as a Host
 // stopped while the Set waits for approval would.
 export async function effectHost(t, installation, state, {effect,
-  wrapStage, stopBeforeApply = false, unitOf = installedRowEffectUnit} = {}) {
+  wrapStage, wrapRecoveredStage, stopBeforeApply = false, unitOf = installedRowEffectUnit} = {}) {
   const installed = effect ?? await installation.load();
   const environmentWire = installed.environmentWire;
   const environment = moon.clientProgramCheckEnvironment(environmentWire,
@@ -82,6 +82,7 @@ export async function effectHost(t, installation, state, {effect,
         limits.maxDepth));
       const stage = await installed.prepareCaptured({moon, control, store,
         execution, checkedHost: owned, prepared: facts.prepared,
+        compilation: facts.compilation,
         identity: facts.identity, plan,
         previewContext: {runDefinition: facts.definition,
           runInvocation: plan.invocationOwner, compiledPlan},
@@ -191,9 +192,10 @@ export async function effectHost(t, installation, state, {effect,
         throw error;
       }
       try {
+        const owned = wrapRecoveredStage === undefined ? stage : wrapRecoveredStage(stage);
         const result = await completeRecoveredEffectRun({
-          apply: stage.apply, receipt: stage.receipt,
-          publication: stage.publication});
+          apply: owned.apply, receipt: owned.receipt,
+          publication: owned.publication});
         outcomes.push({stage, result});
         return {stage, result};
       } catch (error) {
