@@ -197,3 +197,18 @@ for(const mode of['false','throw'])test('real marker FD '+mode+' close retains t
   }
   scratch.passed();
 });
+
+test('retained journal copy extent is an inspection Unavailable, not corrupt or rewritten state',async()=>{
+  const{directory,scratch}=await fixture();
+  const first=openClientRequestJournal(directory);first.close();
+  const before=await readFile(join(directory,'client-requests.sqlite3'));
+  let journal;
+  try{
+    assert.throws(()=>{journal=openClientRequestJournal(directory,{maxInspectionBytes:1});},
+      {code:'ClientRequestJournalInspectionUnavailable'});
+    assert.deepEqual(await readFile(join(directory,'client-requests.sqlite3')),before);
+    journal=openClientRequestJournal(directory,{maxInspectionBytes:before.length});journal.close();journal=undefined;
+    assert.deepEqual(await readFile(join(directory,'client-requests.sqlite3')),before);
+  }finally{journal?.close();}
+  scratch.passed();
+});

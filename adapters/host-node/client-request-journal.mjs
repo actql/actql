@@ -842,7 +842,7 @@ function inspectCancellationStorage(database, enabled) {
 
 // A read-only SQLite connection can still create -shm beside a WAL database.
 // Inspect a private copy and refuse a source that changes during inspection.
-function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspectionEntries) {
+function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspectionEntries, maxInspectionBytes) {
   const entries = journalDirectoryEntries(directory, maxInspectionEntries);
   const featurePath = join(directory, cancellationMarkerName);
   const enabled = entries.includes(cancellationMarkerName);
@@ -891,7 +891,8 @@ function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspecti
     inspectIntentRetirementStorage(database, retirementEnabled);
     inspectRestartStorage(database, restartEnabled);
     inspectNameStorage(database, nameEnabled);
-  }, {code: 'UnknownClientRequestJournalFormat',
+  }, {code: 'UnknownClientRequestJournalFormat', maxSourceBytes: maxInspectionBytes,
+    unavailableCode: 'ClientRequestJournalInspectionUnavailable',
     validateSource: () => journalMarkerMatches(markerPath, journalMarker) &&
       (!enabled || journalMarkerMatches(featurePath, cancellationMarker)) &&
       (!submissionEnabled || journalMarkerMatches(submissionPath, submissionMarker)) &&
@@ -903,7 +904,7 @@ function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspecti
       JSON.stringify(journalDirectoryEntries(directory, maxInspectionEntries)) === JSON.stringify(entries)});
 }
 
-function admitJournalDirectory(directory, maxInspectionEntries) {
+function admitJournalDirectory(directory, maxInspectionEntries, maxInspectionBytes) {
   if (!existsSync(directory)) return false;
   const state = lstatSync(directory);
   if (!state.isDirectory() || state.isSymbolicLink()) {
@@ -927,7 +928,7 @@ function admitJournalDirectory(directory, maxInspectionEntries) {
     fail('UnknownClientRequestJournalFormat');
   }
   try {
-    inspectJournalSnapshot(directory, databasePath, markerPath, maxInspectionEntries);
+    inspectJournalSnapshot(directory, databasePath, markerPath, maxInspectionEntries, maxInspectionBytes);
   } catch (cause) {
     if (cause?.cleanupPending) throw cause;
     if (cause?.code === 'ClientRequestJournalInspectionUnavailable') throw cause;
@@ -940,6 +941,7 @@ function admitJournalDirectory(directory, maxInspectionEntries) {
 export function openClientRequestJournal(directory, {
   maxRecords = 100_000,
   maxInspectionEntries = 100_000,
+  maxInspectionBytes = 64 * 1024 * 1024,
   maxRunDefinitionWireBytes = 65_536,
   submissionEpochTtlMs = maxEpochTtlMs,
   submissionEpochNow = Date.now,
@@ -947,13 +949,14 @@ export function openClientRequestJournal(directory, {
 } = {}) {
   if (!pathText(directory) || !Number.isSafeInteger(maxRecords) ||
       !Number.isSafeInteger(maxInspectionEntries) || maxInspectionEntries < 1 ||
+      !Number.isSafeInteger(maxInspectionBytes) || maxInspectionBytes < 1 ||
       maxRecords < 1 || !Number.isSafeInteger(maxRunDefinitionWireBytes) ||
       maxRunDefinitionWireBytes < 1024 ||
       !Number.isSafeInteger(submissionEpochTtlMs) || submissionEpochTtlMs < 1 ||
       submissionEpochTtlMs > maxEpochTtlMs || typeof submissionEpochNow !== 'function') {
     fail('InvalidClientRequestJournalConfiguration');
   }
-  const current = admitJournalDirectory(directory, maxInspectionEntries);
+  const current = admitJournalDirectory(directory, maxInspectionEntries, maxInspectionBytes);
   mkdirSync(directory, {recursive: true, mode: 0o700});
   const root = realpathSync(directory);
   const path = join(root, 'client-requests.sqlite3');

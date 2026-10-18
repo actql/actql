@@ -14,7 +14,14 @@ const sameFile = (left, right) => ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs']
 export function inspectSqliteSnapshot(databasePath, inspect, {
   code = 'UnknownSqliteJournalFormat',
   validateSource = () => true,
+  maxSourceBytes = Number.MAX_SAFE_INTEGER,
+  unavailableCode = 'SqliteSnapshotInspectionUnavailable',
 } = {}) {
+  if (!Number.isSafeInteger(maxSourceBytes) || maxSourceBytes < 1 ||
+      typeof unavailableCode !== 'string' || unavailableCode.length === 0) {
+    throw Object.assign(new Error('InvalidSqliteSnapshotInspectionConfiguration'),
+      {code: 'InvalidSqliteSnapshotInspectionConfiguration'});
+  }
   const fail = cause => {
     throw Object.assign(new Error(code, {cause}), {code, path: databasePath});
   };
@@ -23,21 +30,33 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
   const walPath = `${databasePath}-wal`;
   let isolated;
   let database;
+  let databaseClose;
   let result;
   const complete = new Error('SqliteSnapshotInspectionComplete');
   let primaryFailure = complete;
+  const closeFile = original => {
+    if (Reflect.apply(original.close, undefined, [original.fd]) !== undefined) {
+      throw new TypeError('SqliteInspectionFileCleanupPending');
+    }
+  };
   const cleanup = {
     close() {
       if (database !== undefined) {
-        database.close();
-        database = undefined;
+        // Capture once before handing the database to the inspector. Retry
+        // only that original close; a later replacement is not an ACK.
+        databaseClose ??= database.close;
+        if (typeof databaseClose !== 'function' ||
+            Reflect.apply(databaseClose, database, []) !== undefined) {
+          throw new TypeError('SqliteInspectionDatabaseCleanupPending');
+        }
+        database = databaseClose = undefined;
       }
       while (sources.length !== 0) {
-        closeSync(sources.at(-1).fd);
+        closeFile(sources.at(-1));
         sources.pop();
       }
       while (outputs.length !== 0) {
-        closeSync(outputs.at(-1));
+        closeFile(outputs.at(-1));
         outputs.pop();
       }
       if (isolated !== undefined) {
@@ -49,15 +68,23 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
   try {
     if (existsSync(`${databasePath}-journal`)) fail();
     const hadWal = existsSync(walPath);
+    let retainedSourceBytes = 0n;
     for (const path of hadWal ? [databasePath, walPath] : [databasePath]) {
       const fd = openSync(path, constants.O_RDONLY |
         (constants.O_NOFOLLOW ?? 0));
-      const source = {path, fd};
+      const source = {path, fd, close: closeSync};
       sources.push(source);
       const identity = fstatSync(fd, {bigint: true});
       source.identity = identity;
       if (!identity.isFile() ||
           identity.size > BigInt(Number.MAX_SAFE_INTEGER)) fail();
+      retainedSourceBytes += identity.size;
+      // The original pinned DB and WAL coexist with their isolated copies.
+      // Refuse their combined extent before allocating scratch or invoking
+      // SQLite; an inspection limit is neither a format rule nor funding.
+      if (retainedSourceBytes > BigInt(maxSourceBytes)) {
+        throw Object.assign(new Error(unavailableCode), {code: unavailableCode});
+      }
     }
     const scratch = realpathSync(tmpdir());
     const sourceDirectory = realpathSync(dirname(databasePath));
@@ -68,7 +95,8 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
     isolated = mkdtempSync(join(scratch, 'actql-journal-format-'));
     for (const source of sources) {
       const output = openSync(join(isolated, basename(source.path)), 'wx', 0o600);
-      outputs.push(output);
+      const originalOutput = {fd: output, close: closeSync};
+      outputs.push(originalOutput);
       try {
         const chunk = Buffer.allocUnsafe(64 * 1024);
         let offset = 0;
@@ -86,12 +114,16 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
           offset += count;
         }
       } finally {
-        closeSync(output);
+        closeFile(originalOutput);
         outputs.pop();
       }
     }
     database = new DatabaseSync(join(isolated, basename(databasePath)),
       {open: true, readOnly: true});
+    databaseClose = database.close;
+    if (typeof databaseClose !== 'function') {
+      throw new TypeError('SqliteInspectionDatabaseCloseUnavailable');
+    }
     result = inspect(database);
     if (existsSync(`${databasePath}-journal`) ||
         existsSync(walPath) !== hadWal || !validateSource() ||
