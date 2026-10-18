@@ -40,6 +40,14 @@ int main(int argc, char **argv) {
     size_t request=sizeof(struct moonbit_object)+argc*sizeof(void *);
     void *actual=mi_malloc(request); assert(actual!=NULL);
     assert(mi_usable_size(actual)==mi_good_size(request)); mi_free(actual);
+    if (strcmp(name,"mimalloc-boundary")==0) {
+      assert(argc==3 && strlen(argv[2])==135);
+      size_t edge=sizeof(struct moonbit_object)+strlen(argv[2])+1;
+      assert(edge==144);
+      void *block=mi_malloc(edge); assert(block!=NULL);
+      assert(mi_usable_size(block)==mi_good_size(edge));
+      assert(mi_good_size(edge)==160); mi_free(block);
+    }
     int64_t raw = 0, decoded = 0;
     for (int i=0;i<argc;++i) {
       size_t n = strlen(argv[i]);

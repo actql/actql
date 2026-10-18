@@ -27,7 +27,7 @@ before(() => {
       qualification:'actual C/O0 wrapper with pinned mimalloc size/usable conformance; no Host, Read or command admission'}));
   }
 });
-for (const name of ['selected','absent','missing-source','context-limit','invalid-bound','quoted-growth','home-absent','home-overlong','home-unicode','home-empty']) {
+for (const name of ['selected','absent','missing-source','context-limit','invalid-bound','quoted-growth','home-absent','home-overlong','home-unicode','home-empty','mimalloc-boundary']) {
   test(`original preargument wrapper ${name}`, () => {
     const env = {...process.env};
     if (name === 'absent') delete env.ACTQL_NATIVE_LOCAL_RUNTIME;
@@ -36,7 +36,7 @@ for (const name of ['selected','absent','missing-source','context-limit','invali
     if (name === 'home-overlong') env.HOME = '/' + 'x'.repeat(4096 * 3 + 3);
     if (name === 'home-unicode') env.HOME = '/' + 'あ'.repeat(4095);
     if (name === 'home-empty') env.HOME = '';
-    const run = spawnSync(binaries[name === 'missing-source' ? 'missing' : 'selected'], name === 'quoted-growth' ? [name, '', 'ascii', '日本語', '😀', 'x', 'y', 'z', 'tail'] : [name],
+    const run = spawnSync(binaries[name === 'missing-source' ? 'missing' : 'selected'], name === 'quoted-growth' ? [name, '', 'ascii', '日本語', '😀', 'x', 'y', 'z', 'tail'] : name === 'mimalloc-boundary' ? [name, 'x'.repeat(135)] : [name],
       {env, cwd:root, encoding:'utf8', timeout:10_000});
     assert.equal(run.status, 0, `${run.error ?? ''}\n${run.stdout}\n${run.stderr}`);
     assert.equal(run.stdout.trim(), 'original preargument wrapper passed');
