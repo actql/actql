@@ -158,7 +158,8 @@ export function bindClientSourceOperationRowRun(source, moon, program,
   preparedSource, frame) {
   const binding = sources.get(source);
   if (binding === undefined || binding.program !== program ||
-      binding.preparedSource !== preparedSource) fail('ForeignClientSourceOperation');
+      binding.preparedSource !== preparedSource ||
+      binding.original.original.requestControl !== moon) fail('ForeignClientSourceOperation');
   binding.original.current();
   if (binding.frame !== undefined) {
     if (binding.moon !== moon || ['run', 'acquisition', 'requestId', 'runInvocationCid', 'dispatchRequestCid']

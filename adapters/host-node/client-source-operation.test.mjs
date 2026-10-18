@@ -12,7 +12,7 @@ import {request, requestControl, controls, definition, options}
 
 // Real same-file SQLite/COMMIT/reopen, with explicit semantic-control stand-ins.
 // These cases do not replace the separate actual Common binding counter.
-function fixture(t, limits = {maxRecords: 8, maxWireBytes: 4096}) {
+function fixture(t, limits = {maxRecords: 8, maxWireBytes: 4096}, missingJobProjection = false) {
   const parent = fileURLToPath(new URL('../../_build/source-operation-fixtures/', import.meta.url));
   fs.mkdirSync(parent, {recursive: true});
   const directory = fs.mkdtempSync(join(parent, 'case-'));
@@ -22,7 +22,12 @@ function fixture(t, limits = {maxRecords: 8, maxWireBytes: 4096}) {
   const publication = Object.freeze({...previous,
     checkClientCompiledRunOwner(value, owner) {assert.equal(value, compiled); assert.equal(owner, program);},
     checkClientCompiledRunDefinition(value, run) {assert.equal(value, compiled); assert.equal(run.identity, definition.identity);}});
+  const jobs = new WeakMap(), records = new WeakMap();
   const control = Object.freeze({...requestControl,
+    ...(missingJobProjection ? {} : {clientProgramBigQueryJobReadMatchesRowRun: (job, run, acquisition) =>
+      jobs.get(job)?.frame.run === run && jobs.get(job)?.frame.acquisition === acquisition}),
+    clientProgramBigQueryJobOriginalRecordMatchesRequest: (job, issued, record) => jobs.get(job)?.request === issued && jobs.get(job)?.record === record,
+    clientProgramBigQueryJobOriginalRecordWire: record => records.get(record),
     clientProgramMatchesRequestIdentity: (value, identity) => value === program && identity === request,
     clientRunStartAction: (_identity, _retained, _run, _cid, reserved, current) => !current ? 5 : reserved ? 1 : 0,
     clientRunPhysicalStartWithCancellationAction: (_identity, _retained, _run, _cid, reserved, fresh, current, cancelled) =>
@@ -46,18 +51,17 @@ function fixture(t, limits = {maxRecords: 8, maxWireBytes: 4096}) {
     runInvocationCid: 'sha256:' + '6'.repeat(64), dispatchRequestCid: 'sha256:' + '7'.repeat(64)});
   const jobRead = {}, firstRequest = {}, record = {};
   const wire = '{"body":"original","format":"actql.bigquery-job-original/0.1"}';
-  const moon = Object.freeze({
-    clientProgramBigQueryJobReadMatchesRowRun: (job, run, acquisition) => job === jobRead && run === frame.run && acquisition === frame.acquisition,
-    clientProgramBigQueryJobOriginalRecordMatchesRequest: (job, issued, original) => job === jobRead && issued === firstRequest && original === record,
-    clientProgramBigQueryJobOriginalRecordWire: value => {assert.equal(value, record); return wire;}});
+  const moon = control;
   const occurrence = {stage: 0, input: 0, task: 0};
   const original = Object.freeze({jobRead, request: firstRequest, record, wire, frame});
+  const registerJob = original => {jobs.set(original.jobRead, original); records.set(original.record, original.wire);};
+  registerJob(original);
   return {directory, ref, program, compiled, prepared, control, publication, frame, moon, occurrence, original, store,
     get journal() {return journal;}, get scope() {return scope;}, start,
     source(value = occurrence, selected = prepared) {return bindClientSourceOperation(scope, journal, store, program, selected, value);},
     port(value) {return bindClientSourceOperationRowRun(value, moon, program, prepared, frame);},
     reopen() {journal.close(); journal = openClientRequestJournal(directory, {sourceOperationLimits: limits});},
-    closeStore() {storeClosed = true;},
+    closeStore() {storeClosed = true;}, registerJob,
     mutate(sql) {const db = new DatabaseSync(join(directory, 'client-requests.sqlite3')); try {db.exec(sql);} finally {db.close();}}};
 }
 
@@ -91,6 +95,7 @@ test('copied scope and different original Program or prepared Source cannot bind
   assert.throws(() => bindClientSourceOperation(f.scope, f.journal, {}, f.program, f.prepared, f.occurrence), {code: 'ForeignClientSourceOperation'});
   const source = f.source();
   assert.throws(() => bindClientSourceOperationRowRun(source, f.moon, f.program, {...f.prepared}, f.frame), {code: 'ForeignClientSourceOperation'});
+  assert.throws(() => bindClientSourceOperationRowRun(source, {...f.moon}, f.program, f.prepared, f.frame), {code: 'ForeignClientSourceOperation'});
   assert.throws(() => f.source(f.occurrence, {}), {code: 'ForeignClientSourceOperation'});
   f.port(source);
   assert.throws(() => bindClientSourceOperationRowRun(source, f.moon, f.program, f.prepared, {...f.frame, run: {}}), {code: 'ForeignClientSourceOperation'});
@@ -108,9 +113,8 @@ test('foreign nominal Job/read/request/record and changed wire refuse before CAS
 });
 
 test('an unavailable Common original Job/RowRun projection cannot be replaced by frame DATA', t => {
-  const f = fixture(t); f.start(); const source = f.source();
-  const {clientProgramBigQueryJobReadMatchesRowRun: _missing, ...moon} = f.moon;
-  const port = bindClientSourceOperationRowRun(source, moon, f.program, f.prepared, f.frame);
+  const f = fixture(t, undefined, true); f.start(); const source = f.source();
+  const port = bindClientSourceOperationRowRun(source, f.moon, f.program, f.prepared, f.frame);
   assert.throws(() => port(f.original, () => assert.fail('No physical send')), {code: 'ClientSourceOperationBindingUnavailable'});
   assert.equal(f.journal.lookupOriginalSourceOperation(f.ref, f.occurrence), undefined);
 });
@@ -164,12 +168,9 @@ test('same-Run sibling original Sources retain separate keys without releasing t
   const second = f.source(secondAt, prepared);
   const frame = Object.freeze({...f.frame, run: {}, acquisition: {}, requestId: 'sibling-attempt'});
   const original = Object.freeze({...f.original, jobRead: {}, request: {}, record: {}, frame, wire: 'sibling-original'});
-  const moon = Object.freeze({
-    clientProgramBigQueryJobReadMatchesRowRun: (job, run, acquisition) => job === original.jobRead && run === frame.run && acquisition === frame.acquisition,
-    clientProgramBigQueryJobOriginalRecordMatchesRequest: (job, request, record) => job === original.jobRead && request === original.request && record === original.record,
-    clientProgramBigQueryJobOriginalRecordWire: record => {assert.equal(record, original.record); return original.wire;}});
+  f.registerJob(original);
   f.port(first)(f.original, () => sent++);
-  bindClientSourceOperationRowRun(second, moon, f.program, prepared, frame)(original, () => sent++);
+  bindClientSourceOperationRowRun(second, f.moon, f.program, prepared, frame)(original, () => sent++);
   assert.equal(sent, 2);
   assert.equal(f.journal.lookupOriginalSourceOperation(f.ref, f.occurrence).originalWire, f.original.wire);
   assert.equal(f.journal.lookupOriginalSourceOperation(f.ref, secondAt).originalWire, original.wire);
