@@ -274,7 +274,7 @@ test('a non-ASCII label filter continues on page two with the same value',
       {query: {labels: label}}));
     const result = await context.read({filters: [['labels', label]]});
     assert.equal(result.complete, true);
-    assert.deepEqual(result.rows.map(entry => entry.number), [1, 2, 3]);
+    assert.deepEqual(result.rows.map(entry => entry.number), ['1', '2', '3']);
     const seen = context.fixture.seen();
     assert.equal(seen.length, 2);
     // Both requests carry exactly the same label value, UTF-8 percent-encoded

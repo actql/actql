@@ -6,6 +6,8 @@
 pub struct IssuePageRead {
   page : GraphqlIssuePage
   limits : PageLimits
+  max_pages : Int
+  mut pages : Int
   pending : Array[IssueFieldProgress]
   mut index : Int
   mut closed : Bool
@@ -25,10 +27,14 @@ pub struct IssueFieldProgress {
 pub fn begin_issue_page_read(
   body : Bytes,
   limits : PageLimits,
+  max_pages : Int,
   expected_node_id : String,
   expected_database_id : Int64,
   expected_name_with_owner : String,
 ) -> Result[IssuePageRead, GraphqlResponseIssue] {
+  if max_pages < 1 {
+    return Err(InvalidResponse)
+  }
   let page = match
     project_issues_response(
       body, limits, expected_node_id, expected_database_id, expected_name_with_owner,
@@ -43,7 +49,7 @@ pub fn begin_issue_page_read(
     after: field.after,
     seen: [field.after],
   })
-  Ok({ page, limits, pending, index: 0, closed: false, })
+  Ok({ page, limits, max_pages, pages: 1, pending, index: 0, closed: false, })
 }
 
 ///|
@@ -103,6 +109,9 @@ pub fn issue_page_read_accept(
     return Err(InvalidResponse)
   }
   read.closed = true
+  if read.pages >= read.max_pages {
+    return Err(BudgetExceeded)
+  }
   let next = read.pending[read.index]
   let row = read.page.rows[next.row_index]
   let data = match admit_body(body, read.limits) {
@@ -191,6 +200,7 @@ pub fn issue_page_read_accept(
   }
   // Preserve provider order, duplicates, empty strings and original text.
   original.append(values)
+  read.pages += 1
   read.closed = false
   Ok(())
 }

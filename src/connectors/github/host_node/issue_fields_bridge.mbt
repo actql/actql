@@ -9,6 +9,7 @@ pub fn github_issue_page_read_begin(
   max_nodes : Int,
   max_depth : Int,
   max_rows : Int,
+  max_pages : Int,
   expected_node_id : String,
   expected_database_id : Double,
   expected_name_with_owner : String,
@@ -16,6 +17,7 @@ pub fn github_issue_page_read_begin(
   @catalog.begin_issue_page_read(
     body,
     { max_bytes, max_nodes, max_depth, max_rows, },
+    max_pages,
     expected_node_id,
     expected_database_id.to_int64(),
     expected_name_with_owner,

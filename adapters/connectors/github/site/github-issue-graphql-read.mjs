@@ -35,7 +35,7 @@ const refusalCodes = Object.freeze({
 });
 
 function checkLimits(limits) {
-  if (!limits || !count(limits.maxPages) || !count(limits.maxRows) ||
+  if (!limits || !count(limits.maxPages) || limits.maxPages > 2147483647 || !count(limits.maxRows) ||
       !count(limits.maxBytes) || !count(limits.maxNodes) ||
       !count(limits.maxDepth) || !count(limits.perPage) ||
       limits.perPage > 100 || !count(limits.maxRequestBytes)) {
@@ -142,7 +142,7 @@ export async function readGitHubIssuesByNode({moon, repository,
     const {response, charge} = await exchange(request.body);
     const original = decoded(moon.githubIssuePageReadBegin(response.body,
       owned.maxBytes, owned.maxNodes, owned.maxDepth, owned.perPage,
-      repository.nodeId, repository.databaseId, repository.nameWithOwner));
+      owned.maxPages - requests + 1, repository.nodeId, repository.databaseId, repository.nameWithOwner));
     let current;
     try {
       for (;;) {
