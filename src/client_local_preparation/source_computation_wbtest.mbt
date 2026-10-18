@@ -23,13 +23,30 @@ fn source_computation_publication(env : @checked.CheckEnvironment) -> String {
 }
 
 ///|
+fn source_computation_failure(value : Result[LocalSourceComputation, LocalSourceComputationIssue]) -> String {
+  match value {
+    Ok(_) => "ready"
+    Err(Input) => "input"
+    Err(Publication(_)) => "publication"
+    Err(Frontend(_)) => "frontend"
+    Err(Syntax(_)) => "syntax"
+    Err(Pure(_)) => "pure"
+    Err(Effect(_)) => "effect"
+    Err(ArrayProfile(_)) => "array"
+    Err(TargetOriginalsUnavailable) => "target-originals"
+    Err(ReadOnly) => "read-only"
+  }
+}
+
+///|
 test "public SQL and AQL keep the original intent and one parsed preparation" {
   let env = environment()
   for
     (text, format) in [("SELECT 1 AS n", "sql"), ("SELECT 1 AS n", "aql-text")] {
     let intent = source_computation_intent(text, format~)
     let publication = source_computation_publication(env)
-    let original = prepare_local_source_computation(intent, env, publication).unwrap()
+    let outcome = prepare_local_source_computation(intent, env, publication)
+    guard outcome is Ok(original) else { fail(source_computation_failure(outcome)) }
     guard local_source_computation_preparation(original) is Pure(prepared) else {
       fail("Expected Pure")
     }
@@ -61,12 +78,10 @@ test "public SQL and AQL keep the original intent and one parsed preparation" {
 test "source preparation refuses mismatched publication and format without fallback" {
   let env = environment()
   let intent = source_computation_intent("SELECT 1 AS n")
-  assert_true(
-    prepare_local_source_computation(
+  let mismatch = prepare_local_source_computation(
       intent, env, "{\"environmentCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"aliases\":[]}",
     )
-    is Err(Publication(_)),
-  )
+  assert_true(mismatch is Err(Publication(_)), msg=source_computation_failure(mismatch))
   for format in ["json", "yaml", "unknown"] {
     assert_true(
       prepare_local_source_computation(
