@@ -53,7 +53,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_shim_abi.py",
-      "sha256": "309b1be5fb758c757e78e8bba2518cb689559855ad00d58cf693142e580829e9",
+      "sha256": "71ad8e90172be873cbd35548b385c63a308a5aeb0b7f20f6f7e34c11a76c3c9c",
       "generator": {
         "path": "scripts/generate-local-native-shim-bindings.py",
         "anchor": "def render("
@@ -36447,6 +36447,7 @@
         "SIGNATURES",
         "bind",
         "bind_group",
+        "c_double",
         "c_int",
         "c_int32",
         "c_int64",
@@ -36481,7 +36482,7 @@
           ]
         }
       ],
-      "sha256": "309b1be5fb758c757e78e8bba2518cb689559855ad00d58cf693142e580829e9",
+      "sha256": "71ad8e90172be873cbd35548b385c63a308a5aeb0b7f20f6f7e34c11a76c3c9c",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -36771,6 +36772,7 @@
             "PARAMETERS",
             "POINTER",
             "SIGNATURES",
+            "c_double",
             "c_int",
             "c_int32",
             "c_int64",

@@ -435,6 +435,60 @@ static bool refused_child_root(const char *directory) {
     assert(actql_read_context_release_after_owner_ack(other)==0);
     finish(&lease,&context); finish(&foreign,&other); return true;
 }
+
+static bool real_private_root(const char *directory, const char *suffix, bool ready) {
+    char selected[4096];
+    int length=snprintf(selected,sizeof(selected),"%s%s",directory,suffix);
+    assert(length>0 && (size_t)length<sizeof(selected));
+    actql_owned_capacity *lease=lease_new();
+    actql_read_context *context=context_new(lease);
+    assert(actql_read_context_retain(context)==0);
+    context_enter(lease,context);
+    moonbit_bytes_t path=moonbit_make_bytes_raw(length);
+    memcpy(path,selected,(size_t)length);
+    actql_filesystem_scoped_acquisition *result=
+        actql_native_filesystem_acquire_current_private_root(path,length,256);
+    moonbit_decref(path);
+    assert(actql_native_filesystem_acquisition_status(result)==0);
+    assert(actql_native_filesystem_acquisition_has_original(result));
+    actql_native_filesystem_root *root=actql_native_filesystem_acquisition_root(result);
+    moonbit_decref(result);
+    assert(root->read_context==context && root->read_context_user);
+    assert(context->users==2);
+    assert(ready ? root->fd>=0 && root->error==NULL : root->fd<0 && root->error!=NULL);
+    moonbit_bytes_t diagnostic=NULL;
+    if(!ready) {
+        assert(actql_native_filesystem_scoped_root_error(root,&diagnostic)==0);
+        assert(Moonbit_array_length(diagnostic)>0);
+    }
+    context_leave(lease,context);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
+    assert(context->users==1);
+    assert(actql_read_context_try_close(&context)==ACTQL_OWNED_BUSY);
+    assert(actql_native_owned_enter(lease)==0);
+    int32_t physical=-99;
+    assert(actql_native_filesystem_scoped_root_close(root,&physical)==0 && physical==0);
+    assert(context->users==0);
+    assert(actql_native_filesystem_scoped_root_close(root,&physical)==0 && physical==0);
+    assert(actql_native_owned_leave(lease)==0);
+    assert(actql_read_context_try_close(&context)==ACTQL_OWNED_BUSY);
+    moonbit_decref(root);
+    if(diagnostic!=NULL) {
+        assert(actql_read_context_try_close(&context)==ACTQL_OWNED_BUSY);
+        moonbit_decref(diagnostic);
+    }
+    finish(&lease,&context);
+    return true;
+}
+
+static bool private_root_without_current(const char *directory) {
+    size_t before_moon=stock_mi_allocations,before_file=stock_file_allocations;
+    actql_native_filesystem_root *root=NULL;
+    assert(actql_native_filesystem_scoped_open_current_private_root(
+        (moonbit_bytes_t)directory,(int32_t)strlen(directory),256,&root)==ACTQL_OWNED_INVALID);
+    assert(root==NULL && before_moon==stock_mi_allocations && before_file==stock_file_allocations);
+    return true;
+}
 #endif
 int main(int argc,char **argv) {
     struct rlimit core={0,0}; assert(setrlimit(RLIMIT_CORE,&core)==0);
@@ -461,6 +515,12 @@ int main(int argc,char **argv) {
     assert(real_child_root(argv[1],false)); executed++; puts("{\"case\":\"child-retains-context-reader-and-alias\",\"ok\":true}");
     assert(real_child_root(argv[1],true)); executed++; puts("{\"case\":\"failed-child-retains-original-custody\",\"ok\":true}");
     assert(refused_child_root(argv[1])); executed++; puts("{\"case\":\"child-refuses-foreign-and-closed-parent\",\"ok\":true}");
+    assert(real_private_root(argv[1],"",true)); executed++; puts("{\"case\":\"private-root-original-context-and-alias\",\"ok\":true}");
+    assert(real_private_root(argv[1],"/broad",false)); executed++; puts("{\"case\":\"private-root-mode-refusal-keeps-original\",\"ok\":true}");
+    assert(real_private_root(argv[1],"/absent",false)); executed++; puts("{\"case\":\"private-root-missing-refusal-keeps-original\",\"ok\":true}");
+    assert(real_private_root(argv[1],"/alias",false)); executed++; puts("{\"case\":\"private-root-symlink-refusal-keeps-original\",\"ok\":true}");
+    assert(real_private_root(argv[1],"/.",false)); executed++; puts("{\"case\":\"private-root-dot-refusal-keeps-original\",\"ok\":true}");
+    assert(private_root_without_current(argv[1])); executed++; puts("{\"case\":\"private-root-missing-context-no-acquisition\",\"ok\":true}");
 #endif
     printf("{\"success\":true,\"discovered\":%u,\"executed\":%u,\"passed\":%u,\"failed\":0,\"public_e2e\":0}\n",executed,executed,executed);
     return 0;

@@ -16,10 +16,10 @@ OUTPUT = Path('packages/python-sdk/src/actql_sdk/_local_native_shim_abi.py')
 HEADER = ENTRY / 'shim_abi.generated.h'
 SHIMS = ('control', 'backing', 'domain', 'domain_read', 'worker_selection',
          'original_read', 'live_channel', 'process', 'sqlite', 'sqlite_database',
-         'packaged_product')
+         'packaged_product', 'local_journal')
 SCALARS = {'int': 'c_int', 'int32_t': 'c_int32', 'int64_t': 'c_int64',
            'uint64_t': 'c_uint64', 'size_t': 'c_size_t', 'uint16_t': 'c_uint16',
-           'uint8_t': 'c_ubyte', 'unsigned char': 'c_ubyte'}
+           'uint8_t': 'c_ubyte', 'unsigned char': 'c_ubyte', 'double': 'c_double'}
 
 
 def ctype(text: str) -> str:
@@ -39,10 +39,18 @@ def ctype(text: str) -> str:
     return result
 
 
+def source_path(shim: str) -> Path:
+    # The existing Native Host owns this one implementation. Its .c includes
+    # the .h body so ordinary Moon incremental builds track include changes.
+    if shim == 'local_journal':
+        return Path('src/platform_native/client_host/local_journal_shim_impl.h')
+    return ENTRY / (shim + '_shim.c')
+
+
 def declarations(root: Path = ROOT):
     declarations = {}
     for shim in SHIMS:
-        path = ENTRY / (shim + '_shim.c')
+        path = source_path(shim)
         original = (root / path).read_text()
         source = original
         # Expand only the local, named operation macros already used by these
@@ -89,7 +97,7 @@ def declarations(root: Path = ROOT):
 
 def render(root: Path = ROOT) -> str:
     lines = ['"""Generated from named existing C shim definitions; do not edit."""',
-             'from ctypes import POINTER, c_int, c_int32, c_int64, c_uint64, c_size_t, c_uint16, c_ubyte, c_void_p',
+             'from ctypes import POINTER, c_int, c_int32, c_int64, c_uint64, c_size_t, c_uint16, c_ubyte, c_void_p, c_double',
              'from typing import Any',
              '', 'SIGNATURES: dict[str, tuple[list[Any], Any]] = {']
     entries = declarations(root)

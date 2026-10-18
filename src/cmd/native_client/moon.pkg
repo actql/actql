@@ -45,6 +45,6 @@ import {
 } for "wbtest"
 
 options(
-  "native-stub": [ "stdout_stub.c" ],
+  "native-stub": [ "stdout_stub.c", "local_journal_transport_probe.c" ],
   link: { "native": { "cc-flags": "-O0" } },
 )
