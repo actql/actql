@@ -175,3 +175,32 @@ test "Native storage positive DATA cannot issue the absent platform original" {
   assert_true(command_preparation_invocation.val is None)
   assert_true(initial_crypto_invocation.val is None)
 }
+
+///|
+test "Native storage original page alignment is preserved for both heaps" {
+  let profile = native_storage_arithmetic_profile()
+  let page = native_storage_page_bytes()
+  assert_true(page > 0L)
+  let profile = {
+    ..profile,
+    sqlite_heap_bytes: profile.sqlite_heap_bytes + 1L,
+    crypto_heap_bytes: profile.crypto_heap_bytes + 1L,
+  }
+  let quote = quote_local_command_native_storage(profile).unwrap()
+  assert_eq(quote.sqlite_execution_bytes, 134217728L + page + 17L)
+  assert_eq(quote.read_execution_bytes, 1048576L + page + 24L)
+  assert_eq(quote.platform_required_bytes, 19L)
+}
+
+///|
+test "Native storage original page alignment rejects overflow and false page" {
+  assert_true(
+    native_storage_page_round(1L, 0L) is Err(NativeStorageInvalidInput),
+  )
+  assert_true(
+    native_storage_page_round(9223372036854775807L, 16384L)
+    is Err(NativeStorageOverflow),
+  )
+  assert_eq(native_storage_page_round(16384L, 16384L).unwrap(), 16384L)
+  assert_eq(native_storage_page_round(16385L, 16384L).unwrap(), 32768L)
+}

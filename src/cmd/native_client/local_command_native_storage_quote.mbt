@@ -44,6 +44,9 @@ priv enum LocalCommandNativeStorageIssue {
 }
 
 ///|
+extern "C" fn native_storage_page_bytes() -> Int64 = "actql_native_command_storage_page_bytes"
+
+///|
 priv struct LocalCommandNativeStorageQuote {
   source : String
   snapshot_bytes : Int64
@@ -69,6 +72,18 @@ fn native_storage_sum(
     total += value
   }
   Ok(total)
+}
+
+///|
+fn native_storage_page_round(
+  bytes : Int64,
+  page : Int64,
+) -> Result[Int64, LocalCommandNativeStorageIssue] {
+  if bytes <= 0L || page <= 0L { return Err(NativeStorageInvalidInput) }
+  let remainder = bytes % page
+  if remainder == 0L { return Ok(bytes) }
+  let padding = page - remainder
+  native_storage_sum([bytes, padding])
 }
 
 ///|
@@ -177,14 +192,22 @@ fn quote_local_command_native_storage(
   }
   // Index/cache/statement/FD storage is already inside this configured heap.
   // Add the heap exactly once to the SQLite domain, never to both domains.
-  let sqlite = match native_storage_sum([profile.sqlite_heap_bytes, external]) {
+  let sqlite_extent = match native_storage_page_round(profile.sqlite_heap_bytes, native_storage_page_bytes()) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let crypto_extent = match native_storage_page_round(profile.crypto_heap_bytes, native_storage_page_bytes()) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let sqlite = match native_storage_sum([sqlite_extent, external]) {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
   // The one Crypto heap serves both original Libraries, all hooked OpenSSL
   // allocations, realloc overlap and cleanup. Native buffers remain separate.
   let read = match
-    native_storage_sum([profile.crypto_heap_bytes, managed, platform, native]) {
+    native_storage_sum([crypto_extent, managed, native]) {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
