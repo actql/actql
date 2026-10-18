@@ -6,6 +6,8 @@
 #include <assert.h>
 #include <dlfcn.h>
 #include <stdio.h>
+#include <pthread.h>
+#include <stdatomic.h>
 #include <string.h>
 #include <unistd.h>
 extern int actql_read_context_create(actql_owned_capacity *, actql_read_context **);
@@ -29,6 +31,29 @@ typedef void (*key_context_free_fn)(EVP_PKEY_CTX *);
 typedef void (*key_free_fn)(EVP_PKEY *);
 typedef int (*raw_key_fn)(const EVP_PKEY *, unsigned char *, size_t *);
 typedef void (*memory_functions_fn)(CRYPTO_malloc_fn *, CRYPTO_realloc_fn *, CRYPTO_free_fn *);
+
+typedef struct {
+    actql_owned_capacity *lease;
+    actql_read_context *context;
+    atomic_int ready, go;
+} competing_close;
+static void *foreign_close(void *raw) {
+    competing_close *value = raw;
+    assert(actql_native_owned_enter(value->lease) == 0);
+    assert(actql_read_context_enter(value->context) == 0);
+    atomic_store(&value->ready, 1);
+    while (!atomic_load(&value->go)) usleep(100);
+    for (int i = 0; i < 512; i++) {
+        uint64_t untouched[12] = {0};
+        assert(actql_crypto_component_close() == ACTQL_CRYPTO_COMPONENT_INVALID);
+        assert(actql_crypto_component_inventory(untouched) == ACTQL_CRYPTO_COMPONENT_INVALID);
+        assert(actql_crypto_component_enter(value->context) == ACTQL_CRYPTO_COMPONENT_INVALID);
+        for (int j = 0; j < 12; j++) assert(untouched[j] == 0);
+    }
+    assert(actql_read_context_leave(value->context) == 0);
+    assert(actql_native_owned_leave(value->lease) == 0);
+    return NULL;
+}
 
 int main(int argc, char **argv) {
     assert(argc == 3);
@@ -155,7 +180,17 @@ int main(int argc, char **argv) {
         }
         assert(actql_crypto_component_leave(context) == 0);
         assert(actql_crypto_component_release_library() == 0);
+        pthread_t competitor;
+        competing_close competing = {.lease = lease, .context = context};
+        int has_competitor = !strcmp(name, "foreign-thread-close");
+        if (has_competitor) {
+            atomic_init(&competing.ready, 0); atomic_init(&competing.go, 0);
+            assert(pthread_create(&competitor, NULL, foreign_close, &competing) == 0);
+            while (!atomic_load(&competing.ready)) usleep(100);
+            atomic_store(&competing.go, 1);
+        }
         int close_status = actql_crypto_component_close();
+        if (has_competitor) assert(pthread_join(competitor, NULL) == 0);
         if (close_status != 0) {
             uint64_t pending[12] = {0};
             if (actql_crypto_component_inventory(pending) == 0)

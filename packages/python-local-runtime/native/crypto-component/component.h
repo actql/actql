@@ -9,7 +9,9 @@ enum actql_crypto_component_status {
     ACTQL_CRYPTO_COMPONENT_BUSY = -2,
     ACTQL_CRYPTO_COMPONENT_FAILED = -3
 };
-/* The caller supplies its already-current original Domain. This is not a
+/* The selected component is affine to the actual constructor thread. Other
+ * threads refuse before original state access, even with the same read context.
+ * The caller supplies its already-current original Domain. This is not a
  * resource issuer, a signer selection or an installed numerical profile. */
 int actql_crypto_component_bind(actql_read_context *original, size_t heap_bytes);
 int actql_crypto_component_enter(actql_read_context *original);

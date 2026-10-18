@@ -18,20 +18,20 @@
   },
   "local": {
     "component.c": {
-      "bytes": 13212,
-      "sha256": "5024c4f25f7c77f06f6d4d1a3aa499321cbd833914ede120809dbad3c61b2013"
+      "bytes": 14618,
+      "sha256": "77da2688e9a9121970b8bc16921ec95c5fc45716468b1e9b037ae89f5eb04ce6"
     },
     "component.h": {
-      "bytes": 1564,
-      "sha256": "84f3e1917a0702d6af0e0d7bc228c10003e0fa86cdff9facc2c1720a4fad9b55"
+      "bytes": 1721,
+      "sha256": "71acbad38c4406f8efbc45dccaf1f8d1d04355e2db1d1c10392474ff0e2398bf"
     },
     "NOTICE": {
       "bytes": 368,
       "sha256": "b9f30cf5ef0cfcd3fc60d7ce9bd7fe65ba8de925629a730df7b3ad2ae364f40a"
     },
     "fixtures/conformance.c": {
-      "bytes": 10986,
-      "sha256": "40855500283eecb839276b7242c1647a1da516ccbdf31980874ea7ba81433961"
+      "bytes": 12544,
+      "sha256": "d25087145a1656ebe0be1a2b816d98a3df2925db71ca1799a92e4b8907245176"
     }
   },
   "isolation": [

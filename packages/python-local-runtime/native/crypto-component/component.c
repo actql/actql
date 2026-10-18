@@ -9,6 +9,7 @@
 #include <dlfcn.h>
 #include <stdalign.h>
 #include <stdatomic.h>
+#include <pthread.h>
 #include <stdint.h>
 #include <string.h>
 #include <unistd.h>
@@ -39,6 +40,16 @@ static void *original_extent;
 static actql_owned_capacity *original_lease;
 static actql_read_context *original_context;
 static _Atomic int attempted;
+/* Fixed constructor indexes are covered by the initial control envelope, not
+ * an OpenSSL heap allocation. Publish the thread identity before any original
+ * state access. The selected initial-Crypto component is thread-affine. */
+static pthread_t original_thread;
+static _Atomic int original_thread_published;
+static atomic_flag close_flight = ATOMIC_FLAG_INIT;
+static int original_thread_current(void) {
+    return atomic_load_explicit(&original_thread_published, memory_order_acquire) &&
+        pthread_equal(pthread_self(), original_thread);
+}
 static int cleanup_ack, heap_ack, context_ack, context_retained, hooks_installed;
 static pid_t original_process;
 static const size_t alignment = alignof(max_align_t);
@@ -49,12 +60,12 @@ static size_t rounded(size_t n) {
 }
 static size_t header_bytes(void) { return rounded(sizeof(block)); }
 static int current(void) {
-    return state && original_process == getpid() &&
+    return original_thread_current() && state && original_process == getpid() &&
         actql_native_owned_current() == original_lease &&
         actql_bootstrap_current_read_context() == original_context;
 }
 static int lock_state(void) {
-    return state && original_process == getpid() &&
+    return original_thread_current() && state && original_process == getpid() &&
         !atomic_flag_test_and_set_explicit(&state->lock, memory_order_acquire);
 }
 static void unlock_state(void) {
@@ -146,7 +157,9 @@ int actql_crypto_component_bind(actql_read_context *original, size_t bytes) {
         !actql_native_owned_current() || !provider_origin()) return ACTQL_CRYPTO_COMPONENT_INVALID;
     int expected = 0;
     if (!atomic_compare_exchange_strong(&attempted, &expected, 1)) return ACTQL_CRYPTO_COMPONENT_INVALID;
-    original_process = getpid(); original_lease = actql_native_owned_current();
+    original_thread = pthread_self(); original_process = getpid();
+    atomic_store_explicit(&original_thread_published, 1, memory_order_release);
+    original_lease = actql_native_owned_current();
     original_context = original;
     if (actql_read_context_retain(original) != 0) return ACTQL_CRYPTO_COMPONENT_FAILED;
     context_retained = 1;
@@ -190,7 +203,7 @@ int actql_crypto_component_borrow_library(void) {
     unlock_state(); return ok ? 0 : ACTQL_CRYPTO_COMPONENT_BUSY;
 }
 int actql_crypto_component_release_library(void) {
-    if (!state || original_process != getpid() || !lock_state()) return ACTQL_CRYPTO_COMPONENT_INVALID;
+    if (!original_thread_current() || !state || original_process != getpid() || !lock_state()) return ACTQL_CRYPTO_COMPONENT_INVALID;
     int ok = state->libraries != 0 && !state->operations;
     if (ok) state->libraries--;
     unlock_state(); return ok ? 0 : ACTQL_CRYPTO_COMPONENT_BUSY;
@@ -228,13 +241,23 @@ int actql_crypto_component_inventory(uint64_t out[12]) {
     memcpy(out, values, sizeof values); unlock_state(); return 0;
 }
 int actql_crypto_component_close(void) {
-    if (!attempted || original_process != getpid()) return ACTQL_CRYPTO_COMPONENT_INVALID;
-    if (context_ack) return 0;
+    if (!original_thread_current() || !attempted || original_process != getpid())
+        return ACTQL_CRYPTO_COMPONENT_INVALID;
+    /* This flight spans callbacks AND physical retirement. The allocator lock
+     * remains available to the original OpenSSL cleanup callbacks. Pending or
+     * failed close releases only this flight, never its original custody. */
+    if (atomic_flag_test_and_set_explicit(&close_flight, memory_order_acquire))
+        return ACTQL_CRYPTO_COMPONENT_BUSY;
+#define CLOSE_RETURN(value) do { \
+    atomic_flag_clear_explicit(&close_flight, memory_order_release); \
+    return (value); \
+} while (0)
+    if (context_ack) CLOSE_RETURN(0);
     if (state) {
-        if (!current() || !lock_state()) return ACTQL_CRYPTO_COMPONENT_INVALID;
-        if (state->libraries || state->operations) {unlock_state(); return ACTQL_CRYPTO_COMPONENT_BUSY;}
+        if (!current() || !lock_state()) CLOSE_RETURN(ACTQL_CRYPTO_COMPONENT_INVALID);
+        if (state->libraries || state->operations) {unlock_state(); CLOSE_RETURN(ACTQL_CRYPTO_COMPONENT_BUSY);}
         state->closing = 1; unlock_state();
-        if (!hooks_installed) return ACTQL_CRYPTO_COMPONENT_FAILED;
+        if (!hooks_installed) CLOSE_RETURN(ACTQL_CRYPTO_COMPONENT_FAILED);
         if (!cleanup_ack) {
             /* OpenSSL's hashtable retirement allocates a replacement empty
              * table before releasing the old table. These cleanup-only
@@ -245,24 +268,25 @@ int actql_crypto_component_close(void) {
             if (state->default_provider) {
                 if (OSSL_PROVIDER_unload(state->default_provider) != 1) {
                     state->cleanup_active = 0;
-                    return ACTQL_CRYPTO_COMPONENT_FAILED;
+                    CLOSE_RETURN(ACTQL_CRYPTO_COMPONENT_FAILED);
                 }
                 state->default_provider = NULL;
             }
             OPENSSL_thread_stop(); OPENSSL_cleanup(); state->cleanup_active = 0; cleanup_ack = 1;
         }
-        if (!lock_state()) return ACTQL_CRYPTO_COMPONENT_BUSY;
+        if (!lock_state()) CLOSE_RETURN(ACTQL_CRYPTO_COMPONENT_BUSY);
         int pending = state->blocks != 0 || state->failed;
         unlock_state();
-        if (pending) return ACTQL_CRYPTO_COMPONENT_BUSY;
+        if (pending) CLOSE_RETURN(ACTQL_CRYPTO_COMPONENT_BUSY);
     }
     if (!heap_ack && original_extent) {
         if (actql_native_owned_retire(original_lease, original_extent) != 0)
-            return ACTQL_CRYPTO_COMPONENT_FAILED;
+            CLOSE_RETURN(ACTQL_CRYPTO_COMPONENT_FAILED);
         heap_ack = 1; state = NULL; original_extent = NULL;
     }
     if (context_retained && actql_read_context_release_after_owner_ack(original_context) != 0)
-        return ACTQL_CRYPTO_COMPONENT_FAILED;
-    context_ack = 1; return 0;
+        CLOSE_RETURN(ACTQL_CRYPTO_COMPONENT_FAILED);
+    context_ack = 1; CLOSE_RETURN(0);
+#undef CLOSE_RETURN
 }
 const char *actql_crypto_component_version(void) { return OPENSSL_VERSION_TEXT; }
