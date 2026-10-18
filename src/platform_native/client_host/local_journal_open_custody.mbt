@@ -49,6 +49,10 @@ pub fn NativeLocalJournalOpenFailure::retry_cleanup(
       Ok(_) => self.retained_read_cleaned = true
     }
   }
+  match retry_local_journal_inspection_cleanup(self.original_issue) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   if self.database is Some(database) {
     match database.close_checked() {
       Err(issue) => return Err(Physical(issue))
@@ -56,6 +60,23 @@ pub fn NativeLocalJournalOpenFailure::retry_cleanup(
     }
   }
   self.acquisition.retry_cleanup()
+}
+
+///|
+// The immutable original issue already owns this exact copied DB/scratch
+// cleanup. Consume its ACK before releasing any original Root or lock; do not
+// open another inspection or replace the semantic refusal on a cleanup error.
+fn retry_local_journal_inspection_cleanup(
+  issue : NativeLocalAdoptionIssue,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  match issue {
+    Inspection(
+      Inspection(@journal.InitializationCleanupPending(_, _, original), _)
+    ) => original.retry().map_err(issue => InspectionCleanup(issue))
+    DatabasePending(_, original) =>
+      retry_local_journal_inspection_cleanup(original)
+    _ => Ok(())
+  }
 }
 
 ///|
