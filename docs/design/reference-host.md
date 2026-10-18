@@ -297,6 +297,29 @@ The existing file Owner first closes or retains an acquired FD, so a current
 refusal cannot lose it before cleanup custody. Getter failures on a thrown
 initialization value likewise remain under the retained cleanup phase.
 
+The selected startup may support an original producer-controlled preparation
+packet without making every public option object data-only. Its actual intake
+coverage must precede the first raw acquisition, own-key enumeration, spread,
+descriptor copy or clone, including refusal and partial-construction workspace.
+Frozen shape, a packet label, bounds or an alias count do not prove that
+coverage. A general object without it remains unsupported by this selected
+supplier, not an invalid public API value; existing unknown-field, type and
+duplicate-consent checks and unselected entrances retain their responsibilities.
+
+The private begin port passes the same raw input unobserved to the captured
+operational preparation callback synchronously, before namespace initialization
+can await. That supplier first retains its original intake responsibility and
+then invokes only its original bounded reader. It keeps the same snapshot and
+cleanup through initialization and failure. A fixed nominal/current projection
+returns that original snapshot after begin; it cannot reconstruct one, adopt a
+replacement or infer admission from the preparation Promise's resolved DATA.
+Callbacks and opaque handles remain original Owner borrows, not traversed or
+cloned closure graphs. Their backing and extended lifetimes, the raw/snapshot
+overlap, captured reader and receiver, scope alias and partial-failure holdings
+all stay in the same declared envelope. Managed alias retirement is not their
+physical cleanup ACK. This port does not itself supply the missing operational
+original or a public consumer's earlier intake coverage.
+
 On adoption, the candidate and root lease use the same registry entry and
 actual returned Host. A foreign returned child enters its acquired shutdown
 custody before the pair refusal. Reusing an existing Host first retires only
