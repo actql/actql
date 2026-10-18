@@ -146,10 +146,33 @@ test "comparison context never promotes nonliteral or conflicting Number domains
 ///|
 test "comparison NULL annotations and ordinary Number literal identity stay unchanged" {
   assert_type(
-    "{\"eq\":[{\"field\":\"i\"},{\"literal\":null}]}",
-    int64_fields(),
-    "null",
-    "{\"type\":\"boolean\",\"nullable\":true}",
+    "{\"eq\":[{\"field\":\"i\"},{\"literal\":0}]}", "{\"i\":{\"type\":\"int64\",\"nullable\":true}}",
+    "null", "{\"type\":\"boolean\",\"nullable\":true}",
+  )
+  // Ordinary literal-NULL comparison remains a syntax refusal, before typing.
+  assert_true(
+    @syntax.admit(cursor("{\"eq\":[{\"field\":\"i\"},{\"literal\":null}]}"), {
+      max_nodes: 1000,
+      max_depth: 100,
+      max_text_bytes: 10000,
+      max_tokens: 1000,
+      tree: {
+        max_nodes: 1000,
+        max_depth: 100,
+        max_string_bytes: 10000,
+        max_total_string_bytes: 10000,
+      },
+    })
+    is Err(_),
+  )
+  // Negative zero never supplies an admitted Number value in the first place.
+  assert_true(
+    @source.parse_json("{\"literal\":-0}", {
+      max_input_bytes: 100,
+      max_nodes: 10,
+      max_depth: 10,
+    })
+    is Err(_),
   )
   assert_type(
     "{\"is_distinct_from\":[{\"literal\":null},{\"field\":\"i\"}]}",
