@@ -19,7 +19,8 @@ const get = WeakMap.prototype.get, set = WeakMap.prototype.set;
 const installations = new NativeWeakMap();
 const names = freeze(['prepareSourceManagedInstallation', 'assertSourceManagedInstallationCurrent',
   'beforeSourceSnapshot', 'bindSourceSnapshot', 'bindSourceRequest',
-  'finishSourceProducer', 'closeSourceManagedInstallation', 'sourceIntentCid', 'prepareSourceManagedRead']);
+  'finishSourceProducer', 'closeSourceManagedInstallation', 'sourceIntentCid', 'prepareSourceManagedRead',
+  'prepareSourceManagedRun']);
 const callbacks = names.map(name => {
   const d = descriptor(originalOwner, name);
   return d !== undefined && hasOwn(d, 'value') && typeof d.value === 'function' ? d.value : undefined;
@@ -134,13 +135,22 @@ export async function prepareSourceManagedInstallation(originals) {
       if (result !== undefined) unavailable();
     },
     assertCurrent() {current(state);},
-    prepareRead(originalDerivedRequest, originalDeclaration) {
+    prepareRun(originalCheckedPrepared) {
+      current(state);
+      // The fixed Root returns its pre-snapshot original only after the actual
+      // Host resolves the same pending SDK request and checked preparation.
+      const result=invoke(9,[state.installation,state.originals,originalCheckedPrepared]);
+      if (result===null || typeof result!=='object' || isPromise(result)) unavailable();
+      current(state);
+      return result;
+    },
+    prepareRead(originalDerivedRequest, originalDeclaration, originalRun) {
       current(state);
       // The same captured Root follows the actual Host's retained transform
       // binding, then checks its own receipt and declaration originals. This
       // wrapper cannot construct a child from a declaration label or ordinal.
       const read = invoke(8, [state.installation, state.originals,
-        originalDerivedRequest, originalDeclaration]);
+        originalDerivedRequest, originalDeclaration, originalRun]);
       if (read === null || typeof read !== 'object' || isPromise(read)) unavailable();
       current(state);
       return read;

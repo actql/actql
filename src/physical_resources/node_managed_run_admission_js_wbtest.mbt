@@ -9,7 +9,10 @@ extern "js" fn absent_node_managed_run_reference() -> OriginalNodeManagedRunRefe
 ///|
 test "absent actual Node managed Run issuer refuses before observing a supplied reference" {
   assert_true(
-    prepare_node_managed_run_admission(absent_node_managed_run_reference()) is
-    Err(Unavailable),
+    prepare_node_managed_run_admission(
+      absent_node_managed_run_reference(),
+      Ref(1),
+    )
+    is Err(Unavailable),
   )
 }
