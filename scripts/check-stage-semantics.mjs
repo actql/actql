@@ -2,10 +2,19 @@ import assert from 'node:assert/strict';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {canonicalText, verifyIdentity} from './check-canonical-json.mjs';
 import {machineCid} from './actql-spec-family.mjs';
+import {resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
 
-const read = path => JSON.parse(readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
 const args = process.argv.slice(2);
+let root = fileURLToPath(new URL('../', import.meta.url));
+const rootIndex = args.indexOf('--root');
+if (rootIndex !== -1) {
+  assert(args[rootIndex + 1], 'Missing Stage generator input root');
+  root = resolve(args[rootIndex + 1]);
+  args.splice(rootIndex, 2);
+}
 assert.ok(args.length === 0 || (args.length === 1 && ['--write', '--check'].includes(args[0])));
+const read = path => JSON.parse(readFileSync(resolve(root, path), 'utf8'));
 // The STRPOS adoption changes current expression-dependent source identities,
 // not the canonical bytes or validity of their retained predecessor bodies.
 const history = read('portability/corpus/historical/pre-strpos-stage-identities.json');
@@ -173,7 +182,7 @@ for (const [path, content] of [
   ['src/program_references/program_definition.generated_test.mbt', definitionTests],
   ['src/pipeline_check_context/local_body_identity.generated_test.mbt', unitBodyTests],
 ]) {
-  const url = new URL('../' + path, import.meta.url);
+  const url = resolve(root, path);
   if (args[0] === '--write') writeFileSync(url, content);
   else assert.equal(readFileSync(url, 'utf8'), content, `stale generated file: ${path}`);
 }
