@@ -287,8 +287,8 @@ test "invalid decimal metadata is refused before contract issuance" {
 test "missing lossless carriers stay explicit and never become string or float" {
   for
     kind in [
-      "INTEGER", "INT64", "BYTES", "TIME", "DATETIME", "TIMESTAMP", "BIGNUMERIC",
-      "GEOGRAPHY", "INTERVAL", "RANGE", "future-provider-type",
+      "BYTES", "TIME", "DATETIME", "TIMESTAMP", "BIGNUMERIC", "GEOGRAPHY", "INTERVAL",
+      "RANGE", "future-provider-type",
     ] {
     let value = describe([field("value", kind)])
     assert_eq(column_type(description_column(value, 0).unwrap()), kind)
@@ -347,7 +347,7 @@ test "nested unsupported fields cannot issue a partial record schema" {
       "record",
       "STRUCT",
       mode=Some("REPEATED"),
-      children=Some([field("good", "STRING"), field("large", "INT64")]),
+      children=Some([field("good", "STRING"), field("binary", "BYTES")]),
     ),
   ])
   assert_true(column_contract(description_column(value, 0).unwrap()) is None)
@@ -406,12 +406,12 @@ test "duplicate field names are refused at every nesting level" {
 test "unsupported column need not corrupt an independent selected supported column" {
   let value = describe([
     field("supported", "STRING"),
-    field("unavailable", "INT64"),
+    field("unavailable", "BYTES"),
   ])
   assert_true(prepare_read_projection(value, ["supported"], limits()) is Ok(_))
   assert_true(
     prepare_read_projection(value, ["supported", "unavailable"], limits())
-    is Err(UnsupportedColumn("unavailable", "INT64")),
+    is Err(UnsupportedColumn("unavailable", "BYTES")),
   )
 }
 

@@ -53,7 +53,9 @@ fn bigquery_fields() -> Array[Json] {
 }
 
 ///|
-fn bigquery_read_description() -> @bigquery_catalog.TableDescription {
+fn bigquery_read_description(
+  fields? : Array[Json]? = None,
+) -> @bigquery_catalog.TableDescription {
   let body = Json::object(
     Map([
       ("kind", "bigquery#table".to_json()),
@@ -69,7 +71,12 @@ fn bigquery_read_description() -> @bigquery_catalog.TableDescription {
           ]),
         ),
       ),
-      ("schema", Json::object(Map([("fields", bigquery_fields().to_json())]))),
+      (
+        "schema",
+        Json::object(
+          Map([("fields", fields.unwrap_or(bigquery_fields()).to_json())]),
+        ),
+      ),
     ]),
   )
   @bigquery_catalog.project_table_description(
@@ -82,9 +89,11 @@ fn bigquery_read_description() -> @bigquery_catalog.TableDescription {
 ///|
 fn bigquery_read_preparation(
   query_text? : String = "SELECT ACCOUNT_ID, ACTIVE_USERS, TREND FROM bigquery.usage_30d",
+  description? : @bigquery_catalog.TableDescription? = None,
 ) -> Result[@bigquery_read.PreparedRead, @bigquery_read.ReadIssue] raise {
+  let description = description.unwrap_or(bigquery_read_description())
   let declared = @bigquery_catalog.prepare_read_projection(
-    bigquery_read_description(),
+    description,
     ["ACCOUNT_ID", "ACTIVE_USERS", "TREND"],
     bigquery_description_limits(),
   ).unwrap()
@@ -220,7 +229,7 @@ fn bigquery_read_preparation(
   ).unwrap()
   let (query, evidence) = query_evidence_test_bodies()
   @bigquery_read.prepare_declared_read(
-    bigquery_read_description(),
+    description,
     declaration,
     requirement,
     @identity.stringify_value(query, 100000, 10000, 100),
@@ -258,6 +267,7 @@ fn bigquery_row(account : String, users : String, trend : Json) -> Json {
 ///|
 fn bigquery_body(
   rows : Array[Json],
+  schema_fields? : Array[Json]? = None,
   token? : String? = None,
   total? : String = "2",
   job? : String = "original_job-1",
@@ -275,7 +285,12 @@ fn bigquery_body(
       ),
     ),
     ("jobComplete", true.to_json()),
-    ("schema", Json::object(Map([("fields", bigquery_fields().to_json())]))),
+    (
+      "schema",
+      Json::object(
+        Map([("fields", schema_fields.unwrap_or(bigquery_fields()).to_json())]),
+      ),
+    ),
     ("totalRows", total.to_json()),
     ("rows", rows.to_json()),
   ])
