@@ -78,6 +78,46 @@ function fixture(t,{inventory=true,changeImage=false,publicNode=false,source=fal
   }};
 }
 
+test('ordinary unselected public imports preserve original process loader registration',t=>{
+  for(const publicNode of [false,true]){
+    const f=fixture(t,{publicNode});const result=f.run(
+      'import assert from"node:assert/strict";import Module from"node:module";'+
+      'const names=["registerHooks","register"],before=names.map(name=>Object.getOwnPropertyDescriptor(Module,name));'+
+      'await import('+JSON.stringify(publicNode?'@actql/node':'@actql/local-node')+');'+
+      'for(let i=0;i<names.length;i++)assert.deepEqual(Object.getOwnPropertyDescriptor(Module,names[i]),before[i]);'+
+      'assert.equal(Module.createRequire(import.meta.url).cache['+
+      JSON.stringify(join(f.root,'adapters/host-node/node-public-initial-control-bootstrap.cjs'))+'],undefined);');
+    assert.equal(result.status,0,result.stderr);
+  }
+});
+
+test('ordinary Remote and connected Local leave the Local bootstrap unselected',t=>{
+  const f=fixture(t,{publicNode:true});const result=f.run(
+    'import assert from"node:assert/strict";import Module from"node:module";'+
+    'const names=["registerHooks","register"],before=names.map(name=>Object.getOwnPropertyDescriptor(Module,name));'+
+    'const{connect}=await import("@actql/node");let observed=0;'+
+    'for(const raw of [{mode:"remote",get installation(){observed++;throw Error("Unselected");}},'+
+    '{mode:"local",endpoint:"https://host.example/",get profile(){observed++;throw Error("Unselected");}}])assert.equal(connect(raw),undefined);'+
+    'assert.equal(observed,0);'+
+    'for(let i=0;i<names.length;i++)assert.deepEqual(Object.getOwnPropertyDescriptor(Module,names[i]),before[i]);'+
+    'assert.equal(Module.createRequire(import.meta.url).cache['+
+    JSON.stringify(join(f.root,'adapters/host-node/node-public-initial-control-bootstrap.cjs'))+'],undefined);');
+  assert.equal(result.status,0,result.stderr);
+});
+
+test('ordinary selected Local still captures loader custody before original input',t=>{
+  const f=fixture(t,{publicNode:true});const result=f.run(
+    'import assert from"node:assert/strict";import Module from"node:module";'+
+    'const before=Object.getOwnPropertyDescriptor(Module,"registerHooks");'+
+    'const{connect}=await import("@actql/node");'+
+    'assert.deepEqual(Object.getOwnPropertyDescriptor(Module,"registerHooks"),before);'+
+    'const client=await connect({mode:"local",installation:{directory:".actql"},profile:"mock"});'+
+    'const after=Object.getOwnPropertyDescriptor(Module,"registerHooks");'+
+    'assert.notStrictEqual(after.value,before.value);assert.equal(after.writable,false);assert.equal(after.configurable,false);'+
+    'assert.equal(client.input.profile,"mock");assert.equal((await client.scope.close()).pending,false);');
+  assert.equal(result.status,0,result.stderr);
+});
+
 test('ordinary import acquires its installed prefix before original bounded input and never refills a generation',t=>{
   const f=fixture(t);const result=f.run(
     'import assert from"node:assert/strict";import{connect}from"@actql/local-node";'+
