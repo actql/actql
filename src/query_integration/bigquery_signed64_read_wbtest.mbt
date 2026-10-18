@@ -17,75 +17,7 @@ fn bigquery_signed64_preparation() -> @bigquery_read.PreparedRead raise {
     description=Some(
       bigquery_read_description(fields=Some(bigquery_signed64_fields())),
     ),
-  ).unwrap() catch {
-    @program_check.LocalConstructionFailure::Source(cause) =>
-      match cause {
-        Requests(_) => fail("BigQuery Signed64 source request admission")
-        RequestForm(_) => fail("BigQuery Signed64 request form")
-        Checks(_) => fail("BigQuery Signed64 checked source")
-        Identity(_) => fail("BigQuery Signed64 original identity")
-        Declarations(_) => fail("BigQuery Signed64 declaration")
-        Registration(_) => fail("BigQuery Signed64 registration")
-        SourceView(Program(Program(Pipeline(stage, issue)))) =>
-          fail(
-            "BigQuery Signed64 pipeline " +
-            stage.to_string() +
-            ": " +
-            @debug.to_string(issue.kind),
-          )
-        SourceView(Program(Registration(stage, issue))) =>
-          fail(
-            "BigQuery Signed64 registration " +
-            stage.to_string() +
-            ": " +
-            @debug.to_string(issue),
-          )
-        SourceView(Program(Program(issue))) =>
-          match issue {
-            LocalInput(_, _) => fail("BigQuery Signed64 Program LocalInput")
-            Import(_, _) => fail("BigQuery Signed64 Program Import")
-            Results(_, _) => fail("BigQuery Signed64 Program Results")
-            Order(stage, PipelineOrder(issue)) =>
-              fail(
-                "BigQuery Signed64 order pipeline " +
-                stage.to_string() +
-                ": " +
-                @debug.to_string(issue.kind),
-              )
-            Order(stage, ProducerOrder(issue)) =>
-              fail(
-                "BigQuery Signed64 producer order " +
-                stage.to_string() +
-                ": " +
-                @debug.to_string(issue.issue.kind),
-              )
-            Order(stage, ResultOrder(issue)) =>
-              fail(
-                "BigQuery Signed64 result order " +
-                stage.to_string() +
-                ": " +
-                @debug.to_string(issue.kind),
-              )
-            Ports(_, _) => fail("BigQuery Signed64 Program Ports")
-            TableInputs(_, _) => fail("BigQuery Signed64 Program TableInputs")
-            Wiring(_) => fail("BigQuery Signed64 Program Wiring")
-            _ => fail("BigQuery Signed64 Program registration or limits")
-          }
-        SourceView(Program(ForeignSource)) =>
-          fail("BigQuery Signed64 foreign Source")
-        SourceView(Program(ForeignPartition(stage))) =>
-          fail("BigQuery Signed64 foreign partition " + stage.to_string())
-        SourceView(Program(BudgetExceeded)) =>
-          fail("BigQuery Signed64 Program budget")
-        SourceView(Program(_)) =>
-          fail("BigQuery Signed64 Source view environment or calendar")
-        SourceView(Binding(_)) => fail("BigQuery Signed64 Source view Binding")
-        SourceView(Context(_)) => fail("BigQuery Signed64 Source view Context")
-        SourceView(_) => fail("BigQuery Signed64 Source view limits")
-        _ => fail("BigQuery Signed64 source capacity or declaration inventory")
-      }
-    other => raise other
-  }
+  ).unwrap()
 }
 
 ///|
