@@ -7,16 +7,18 @@ fn initialize_native_local_client_custody(
   adoption : Bytes,
   settings? : NativeLocalConfigurationSelection? = None,
   initial_signing? : NativeLocalInitialSigningCapture? = None,
+  bootstrap? : NativeClientJournalBootstrapAccess? = None,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  if database.transaction_fenced() {
+  let reads = bootstrap_journal_reads(bootstrap)
+  if client_journal_transaction_fenced(database, reads) {
     return Err(Fenced)
   }
-  match database.begin_immediate() {
+  match client_journal_transaction_operation(database, JournalBegin, reads) {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
   let result = initialize_native_local_client_rows(
-    database, crypto, adoption, settings, initial_signing,
+    database, crypto, adoption, settings, initial_signing, bootstrap,
   )
   let result = match result {
     Ok(_) =>
@@ -28,18 +30,20 @@ fn initialize_native_local_client_custody(
   }
   match result {
     Ok(_) =>
-      match database.commit() {
+      match
+        client_journal_transaction_operation(database, JournalCommit, reads) {
         Ok(_) => Ok(())
         Err(_) => {
-          database.fence_transactions()
+          fence_client_journal_transactions(database, reads)
           Err(TransactionUnknown)
         }
       }
     Err(issue) =>
-      match database.rollback() {
+      match
+        client_journal_transaction_operation(database, JournalRollback, reads) {
         Ok(_) => Err(issue)
         Err(_) => {
-          database.fence_transactions()
+          fence_client_journal_transactions(database, reads)
           Err(TransactionUnknown)
         }
       }
@@ -53,6 +57,7 @@ fn initialize_native_local_client_rows(
   adoption : Bytes,
   settings : NativeLocalConfigurationSelection?,
   initial_signing : NativeLocalInitialSigningCapture?,
+  bootstrap : NativeClientJournalBootstrapAccess?,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   // Refuse preexisting or partially lost custody before generating any key.
   for
@@ -67,66 +72,82 @@ fn initialize_native_local_client_rows(
       "client_local_installation_custody", "client_local_installation_originals",
       "client_worker_provisioning_custody", "client_worker_provisioning",
     ] {
-    match database.scan_after(record_namespace, "") {
+    match
+      scan_client_journal_value(
+        database,
+        record_namespace,
+        "",
+        bootstrap_journal_reads(bootstrap),
+      ) {
       Err(@sqlite.NotFound) => ()
       Ok(_) => return Err(CustodyLost)
       Err(issue) => return Err(Physical(issue))
     }
   }
-  match initialize_local_read_evidence(database, adoption) {
+  match initialize_local_read_evidence(database, adoption, bootstrap~) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  match initialize_local_grant_originals(database, adoption) {
+  match initialize_local_grant_originals(database, adoption, bootstrap~) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
   let installation = match initial_signing {
-    None => initialize_local_installation_originals(database, adoption)
-    Some(_) => check_empty_local_installation_originals(database)
+    None =>
+      initialize_local_installation_originals(database, adoption, bootstrap~)
+    Some(_) => check_empty_local_installation_originals(database, bootstrap~)
   }
   match installation {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  match initialize_native_client_epoch_in_transaction(database, crypto) {
+  match
+    initialize_native_client_epoch_in_transaction(database, crypto, bootstrap~) {
     Ok(_) => ()
     Err(issue) => return Err(Epoch(issue))
   }
   if initial_signing is Some(original) {
-    let body = match original.control_body(database, crypto, adoption) {
+    let body = match
+      original.control_body(
+        database,
+        crypto,
+        adoption,
+        reads=bootstrap_journal_reads(bootstrap),
+      ) {
       Err(issue) => return Err(issue)
       Ok(value) => value
     }
-    match insert_local_installation_control(database, body) {
+    match insert_local_installation_control(database, body, bootstrap~) {
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
   }
-  match initialize_local_worker_provisioning(database, adoption, crypto) {
+  match
+    initialize_local_worker_provisioning(database, adoption, crypto, bootstrap~) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  match initialize_native_client_run_journal(database) {
+  match initialize_native_client_run_journal(database, bootstrap~) {
     Ok(_) => ()
     Err(issue) => return Err(Journal(issue))
   }
-  match initialize_native_client_submitted_intents(database) {
+  match initialize_native_client_submitted_intents(database, bootstrap~) {
     Ok(_) => ()
     Err(issue) => return Err(Journal(issue))
   }
-  match initialize_native_client_submitted_names(database) {
+  match initialize_native_client_submitted_names(database, bootstrap~) {
     Ok(_) => ()
     Err(issue) => return Err(Journal(issue))
   }
   if settings is Some(settings) {
-    match settings.persist(database) {
+    match settings.persist(database, bootstrap~) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
   }
-  database
-  .insert("client_local_adoption", "adoption", adoption)
+  insert_bootstrap_journal_value(
+    database, "client_local_adoption", "adoption", adoption, bootstrap,
+  )
   .map(_ => ())
   .map_err(issue => Physical(issue))
 }

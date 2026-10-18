@@ -1,0 +1,1054 @@
+///|
+// Selected by the trusted installer before its first covered acquisition. The
+// complete simultaneous candidate is separate from the Crypto-only selection;
+// none of these declarations provides business execution or permission.
+priv struct LocalCommandPreparationProfile {
+  source : String
+  recipe : Bytes
+  arena_bytes : Int64
+  control_bytes : Int64
+  host_limits : @initial_resources.LedgerLimits
+  read_domain_bytes : Int64
+  read_domain_limits : @initial_resources.LedgerLimits
+  sqlite_domain_bytes : Int64
+  sqlite_domain_limits : @initial_resources.LedgerLimits
+  read_budget : @initial_arena.InstalledArenaOriginalReadBudget
+  consumer_retained_bytes : Int64
+  consumer_execution_bytes : Int64
+  sqlite_heap_bytes : Int64
+  crypto_heap_bytes : Int64
+  diagnostic_ceiling : Int
+}
+
+///|
+priv enum LocalCommandPreparationIssue {
+  CommandInvalidProfile
+  CommandUnavailable
+  CommandBacking(Int)
+  CommandHost(@initial_bootstrap.NativeBootstrapIssue)
+  CommandDomain(@initial_bootstrap.NativeBackedExecutionIssue)
+  CommandRead(@initial_arena.InstalledArenaOriginalReadIssue)
+  CommandSqlite(@initial_arena.InstalledArenaSqliteIssue)
+  CommandPair(@initial_arena.InstalledArenaLocalHostResourcesIssue)
+  CommandRuntime(@local_host.NativeLocalPackagedRuntimeIssue)
+  CommandComponent(@initial_arena.InstalledArenaCryptoIssue)
+  CommandReadCrypto(@initial_arena.InstalledArenaLocalHostCryptoIssue)
+  CommandSignature(@local_crypto.NativeSignatureIssue)
+  CommandJournal(@local_host.NativeLocalJournalCaptureIssue)
+  CommandAdoption(@local_host.NativeLocalAdoptionIssue)
+  CommandCapture(@local_host.NativeLocalAdoptionCaptureIssue)
+  CommandApplication(String)
+  CommandFilesystem(@files.NativeBoundedTextIssue)
+  CommandFilesystemCleanup(@local_filesystem.NativeFilesystemIssue)
+}
+
+///|
+priv suberror LocalCommandPreparationStop {
+  LocalCommandPreparationStop(LocalCommandPreparationIssue)
+}
+
+///|
+fn[T] command_preparation_value(
+  result : Result[T, LocalCommandPreparationIssue],
+) -> T raise LocalCommandPreparationStop {
+  match result {
+    Ok(value) => value
+    Err(issue) => raise LocalCommandPreparationStop(issue)
+  }
+}
+
+///|
+// A caller retention record in the existing installer, not a replacement
+// Host/Journal/Resource Owner. Publish this original before acquiring anything.
+priv struct LocalCommandPreparationOriginal {
+  profile : LocalCommandPreparationProfile
+  mut backing : InitialCryptoBacking?
+  mut host : @initial_arena.InstalledArenaHost?
+  mut backing_scope : @initial_arena.InstalledArenaBackingBorrow?
+  mut backing_entered : Bool
+  mut read_domain : @initial_arena.InstalledArenaDomain?
+  mut sqlite_domain : @initial_arena.InstalledArenaDomain?
+  mut read : @initial_arena.InstalledArenaOriginalRead?
+  mut consumer : @initial_arena.InstalledArenaOriginalReadConsumer?
+  mut sqlite : @initial_arena.InstalledArenaSqliteLibrary?
+  mut pair : @initial_arena.InstalledArenaLocalHostResources?
+  mut runtime : @local_host.NativeLocalPackagedRuntime?
+  mut crypto_path : String
+  mut component : @initial_arena.InstalledArenaCryptoComponent?
+  mut outer_library : @local_crypto.Library?
+  mut inner_library : @local_crypto.Library?
+  mut product : @local_host.NativeLocalProductConfigurationCapture?
+  mut adoption : @local_host.NativeLocalAdoptionCapture?
+  mut selected_root : @local_filesystem.Root?
+  mut selected_root_failure : @local_filesystem.NativeRootOpenFailure?
+  mut journal : @local_host.NativeLocalJournalCapture?
+  mut journal_read_open : Bool
+  mut reply_outcome : Result[String, String]?
+  mut read_failure : @files.NativeBoundedTextFailure?
+  mut phase_open : Bool
+  mut standalone_cleanup_open : Bool
+  mut primary : LocalCommandPreparationIssue?
+  mut closing : Bool
+  mut closed : Bool
+}
+
+///|
+fn prepare_local_command_preparation_original(
+  profile : LocalCommandPreparationProfile,
+) -> Result[LocalCommandPreparationOriginal, LocalCommandPreparationIssue] {
+  if profile.source.length() != 40 ||
+    profile.recipe.length() != 32 ||
+    profile.arena_bytes <= 0L ||
+    profile.control_bytes <= 0L ||
+    profile.read_domain_bytes <= 0L ||
+    profile.sqlite_domain_bytes <= 0L ||
+    profile.read_domain_bytes > profile.arena_bytes ||
+    profile.sqlite_domain_bytes >
+    profile.arena_bytes - profile.read_domain_bytes ||
+    profile.host_limits.execution_bytes != profile.arena_bytes ||
+    profile.read_domain_limits.execution_bytes > profile.read_domain_bytes ||
+    profile.sqlite_domain_limits.execution_bytes > profile.sqlite_domain_bytes ||
+    profile.consumer_retained_bytes <= 0L ||
+    profile.consumer_execution_bytes <= 0L ||
+    profile.crypto_heap_bytes <= 0L ||
+    profile.sqlite_heap_bytes <= 0L ||
+    profile.diagnostic_ceiling <= 0 ||
+    profile.diagnostic_ceiling > 4096 {
+    return Err(CommandInvalidProfile)
+  }
+  Ok({
+    profile,
+    backing: None,
+    host: None,
+    backing_scope: None,
+    backing_entered: false,
+    read_domain: None,
+    sqlite_domain: None,
+    read: None,
+    consumer: None,
+    sqlite: None,
+    pair: None,
+    runtime: None,
+    crypto_path: "",
+    component: None,
+    outer_library: None,
+    inner_library: None,
+    product: None,
+    adoption: None,
+    selected_root: None,
+    selected_root_failure: None,
+    journal: None,
+    journal_read_open: false,
+    reply_outcome: None,
+    read_failure: None,
+    phase_open: false,
+    standalone_cleanup_open: false,
+    primary: None,
+    closing: false,
+    closed: false,
+  })
+}
+
+///|
+fn LocalCommandPreparationOriginal::retain_primary(
+  self : LocalCommandPreparationOriginal,
+  issue : LocalCommandPreparationIssue,
+) -> Unit {
+  if self.primary is None {
+    self.primary = Some(issue)
+  }
+}
+
+///|
+// Only the one physical constructor is attempted. Every partial domain/read/
+// Library is retained before the next call; a failure does not select a retry.
+fn LocalCommandPreparationOriginal::acquire(
+  self : LocalCommandPreparationOriginal,
+  root : String,
+  source : String,
+  platform : String,
+  manifest_digest : String,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  if self.host is Some(_) ||
+    self.closing ||
+    self.closed ||
+    self.primary is Some(_) ||
+    source != self.profile.source {
+    return Err(CommandUnavailable)
+  }
+  let result = match self.acquire_physical_read() {
+    Err(issue) => Err(issue)
+    Ok(_) => self.acquire_runtime(root, source, platform, manifest_digest)
+  }
+  if result is Err(issue) {
+    self.retain_primary(issue)
+  }
+  result
+}
+
+///|
+// Called only after the bounded original Command parse returns successfully.
+// Help, version and parse failure must never construct this physical original.
+fn LocalCommandPreparationOriginal::acquire_physical_read(
+  self : LocalCommandPreparationOriginal,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  if self.host is Some(_) ||
+    self.closing ||
+    self.closed ||
+    self.primary is Some(_) {
+    return Err(CommandUnavailable)
+  }
+  // Publish the caller record before the C backing constructor. The same
+  // external receiver is retained before inspecting a partial open result;
+  // failed return cannot become permission for a second backing acquisition.
+  if self.backing is Some(_) {
+    return Err(CommandUnavailable)
+  }
+  self.backing = Some(initial_crypto_backing_open(self.profile.arena_bytes))
+  let backing = self.backing.unwrap()
+  try {
+    if !backing.current() {
+      let issue = CommandBacking(backing.acquisition_issue())
+      self.retain_primary(issue)
+      return Err(issue)
+    }
+    let profile = self.profile
+    let host = command_preparation_value(
+      @initial_arena.prepare_installed_arena_host(
+        profile.source,
+        profile.recipe,
+        1L,
+        profile.arena_bytes,
+        profile.host_limits,
+        profile.control_bytes,
+      ).map_err(issue => CommandHost(issue)),
+    )
+    self.host = Some(host)
+    command_preparation_value(
+      host.acquire_fd(backing.descriptor()).map_err(issue => CommandHost(issue)),
+    )
+    let scope = command_preparation_value(
+      host.borrow_backing().map_err(issue => CommandHost(issue)),
+    )
+    self.backing_scope = Some(scope)
+    command_preparation_value(
+      host
+      .enter_backing_borrow_scope(scope)
+      .map_err(issue => CommandHost(issue)),
+    )
+    self.backing_entered = true
+    let acquired = command_preparation_value(
+      host
+      .prepare_domain(
+        scope,
+        backing.descriptor(),
+        profile.read_domain_bytes,
+        profile.read_domain_limits,
+      )
+      .map_err(issue => CommandDomain(issue)),
+    )
+    let read_domain = match acquired {
+      PreparedDomain(value) => value
+      PendingDomain(value, issue) => {
+        self.read_domain = Some(value)
+        return Err(CommandDomain(issue))
+      }
+    }
+    self.read_domain = Some(read_domain)
+    command_preparation_value(
+      host.transfer_domain(read_domain).map_err(issue => CommandDomain(issue)),
+    )
+    let acquired = command_preparation_value(
+      host
+      .prepare_domain(
+        scope,
+        backing.descriptor(),
+        profile.sqlite_domain_bytes,
+        profile.sqlite_domain_limits,
+      )
+      .map_err(issue => CommandDomain(issue)),
+    )
+    let sqlite_domain = match acquired {
+      PreparedDomain(value) => value
+      PendingDomain(value, issue) => {
+        self.sqlite_domain = Some(value)
+        return Err(CommandDomain(issue))
+      }
+    }
+    self.sqlite_domain = Some(sqlite_domain)
+    command_preparation_value(
+      host.transfer_domain(sqlite_domain).map_err(issue => CommandDomain(issue)),
+    )
+    command_preparation_value(
+      host
+      .leave_backing_borrow_scope(scope)
+      .map_err(issue => CommandHost(issue)),
+    )
+    self.backing_entered = false
+    command_preparation_value(
+      host.return_backing_borrow(scope).map_err(issue => CommandHost(issue)),
+    )
+    self.backing_scope = None
+    command_preparation_value(
+      host
+      .prepare_domain_read(read_domain)
+      .map_err(issue => CommandDomain(issue)),
+    )
+    command_preparation_value(
+      host
+      .prepare_domain_read(sqlite_domain)
+      .map_err(issue => CommandDomain(issue)),
+    )
+    let acquired = command_preparation_value(
+      host
+      .prepare_domain_original_read(read_domain, profile.read_budget)
+      .map_err(issue => CommandRead(issue)),
+    )
+    let read = match acquired {
+      ReadyOriginalRead(value) => value
+      PendingOriginalRead(value, issue) => {
+        self.read = Some(value)
+        return Err(CommandRead(issue))
+      }
+    }
+    self.read = Some(read)
+    Ok(())
+  } catch {
+    LocalCommandPreparationStop(issue) => {
+      self.retain_primary(issue)
+      Err(issue)
+    }
+  }
+}
+
+///|
+// The same already acquired Read admits the full original Runtime. Its
+// allocations remain in that same domain when the one consumer pair is bound;
+// no second backing, Host, Read claim, or refill is constructed here.
+fn LocalCommandPreparationOriginal::acquire_runtime(
+  self : LocalCommandPreparationOriginal,
+  root : String,
+  source : String,
+  platform : String,
+  manifest_digest : String,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  if self.closing ||
+    self.closed ||
+    self.primary is Some(_) ||
+    self.runtime is Some(_) ||
+    self.pair is Some(_) ||
+    source != self.profile.source {
+    return Err(CommandUnavailable)
+  }
+  guard self.host is Some(host) &&
+    self.read is Some(read) &&
+    self.sqlite_domain is Some(sqlite_domain) else {
+    return Err(CommandUnavailable)
+  }
+  let profile = self.profile
+  try {
+    let runtime = match
+      @local_host.open_native_local_packaged_runtime_in_original_read(
+        Some((host, read)),
+        root,
+        source,
+        platform,
+        manifest_digest,
+        profile.diagnostic_ceiling,
+      ) {
+      Ok(value) => value
+      Err(Pending(value, issue)) => {
+        self.runtime = Some(value)
+        return Err(CommandRuntime(issue))
+      }
+      Err(Refused(issue)) => return Err(CommandRuntime(issue))
+    }
+    self.runtime = Some(runtime)
+    let (sqlite_path, crypto_path) = command_preparation_value(
+      runtime.library_paths().map_err(issue => CommandRuntime(issue)),
+    )
+    self.crypto_path = crypto_path
+    let acquired = command_preparation_value(
+      host
+      .prepare_sqlite_library(
+        sqlite_domain,
+        sqlite_path,
+        profile.sqlite_heap_bytes,
+        profile.diagnostic_ceiling,
+      )
+      .map_err(issue => CommandSqlite(issue)),
+    )
+    let sqlite = match acquired {
+      ReadySqlite(value) => value
+      PendingSqlite(value, issue) => {
+        self.sqlite = Some(value)
+        return Err(CommandSqlite(issue))
+      }
+    }
+    self.sqlite = Some(sqlite)
+    let pair = command_preparation_value(
+      host
+      .bind_local_host_resources(read, sqlite)
+      .map_err(issue => CommandPair(issue)),
+    )
+    self.pair = Some(pair)
+    let consumer = command_preparation_value(
+      host
+      .prepare_local_host_read_consumer(
+        pair,
+        profile.consumer_retained_bytes,
+        profile.consumer_execution_bytes,
+      )
+      .map_err(issue => CommandPair(issue)),
+    )
+    self.consumer = Some(consumer)
+    // This fixed registration belongs to the selected outer control lifetime,
+    // before any entry of the one consuming phase. It is not another Read quote.
+    self.component = Some(
+      command_preparation_value(
+        host
+        .prepare_local_host_read_crypto_control(pair, read)
+        .map_err(issue => CommandReadCrypto(issue)),
+      ),
+    )
+    command_preparation_value(
+      runtime
+      .bind_original_host_resources(pair)
+      .map_err(issue => CommandRuntime(issue)),
+    )
+    Ok(())
+  } catch {
+    LocalCommandPreparationStop(issue) => Err(issue)
+  }
+}
+
+///|
+fn LocalCommandPreparationOriginal::enter(
+  self : LocalCommandPreparationOriginal,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  if self.closing || self.closed || self.primary is Some(_) || self.phase_open {
+    return Err(CommandUnavailable)
+  }
+  guard self.host is Some(host) && self.pair is Some(pair) else {
+    return Err(CommandUnavailable)
+  }
+  guard self.runtime is Some(runtime) else { return Err(CommandUnavailable) }
+  match runtime.check_current() {
+    Err(issue) => {
+      self.retain_primary(CommandRuntime(issue))
+      return Err(CommandRuntime(issue))
+    }
+    Ok(_) => ()
+  }
+  match host.enter_local_host_phase(pair, @initial_arena.HostRead) {
+    Err(issue) => Err(CommandPair(issue))
+    Ok(_) => {
+      self.phase_open = true
+      Ok(())
+    }
+  }
+}
+
+///|
+fn LocalCommandPreparationOriginal::leave(
+  self : LocalCommandPreparationOriginal,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  if !self.phase_open {
+    return Ok(())
+  }
+  guard self.host is Some(host) && self.pair is Some(pair) else {
+    return Err(CommandUnavailable)
+  }
+  match host.leave_local_host_phase(pair) {
+    Err(issue) => Err(CommandPair(issue))
+    Ok(_) => {
+      self.phase_open = false
+      Ok(())
+    }
+  }
+}
+
+///|
+// Only inside this original Read phase. The real typed component enforces
+// constructor thread/current context and keeps every partial Library receiver.
+fn LocalCommandPreparationOriginal::library(
+  self : LocalCommandPreparationOriginal,
+  inner : Bool,
+) -> Result[@local_crypto.Library, LocalCommandPreparationIssue] {
+  if (!self.phase_open && !self.journal_read_open) ||
+    self.closing ||
+    self.closed ||
+    self.primary is Some(_) {
+    return Err(CommandUnavailable)
+  }
+  let retained = if inner { self.inner_library } else { self.outer_library }
+  if retained is Some(library) {
+    return Ok(library)
+  }
+  guard self.host is Some(host) &&
+    self.pair is Some(pair) &&
+    self.read is Some(read) &&
+    self.runtime is Some(_) else {
+    return Err(CommandUnavailable)
+  }
+  try {
+    if self.outer_library is None && self.inner_library is None {
+      // Read only the already captured path. Runtime current owns its own phase
+      // and must have been checked before entry; nested Runtime calls refuse.
+      let path = self.crypto_path
+      let acquired = command_preparation_value(
+        host
+        .prepare_local_host_read_crypto(
+          pair,
+          read,
+          path,
+          self.profile.crypto_heap_bytes,
+          self.profile.diagnostic_ceiling,
+        )
+        .map_err(issue => CommandReadCrypto(issue)),
+      )
+      match acquired {
+        ReadyCrypto(value) => self.component = Some(value)
+        PendingCrypto(value, issue) => {
+          self.component = Some(value)
+          self.retain_primary(CommandComponent(issue))
+          return Err(CommandComponent(issue))
+        }
+      }
+    }
+    let component = command_preparation_value(
+      host
+      .current_crypto_component(self.component.unwrap())
+      .map_err(issue => CommandComponent(issue)),
+    )
+    let acquired = command_preparation_value(
+      component.new_library().map_err(issue => CommandSignature(issue)),
+    )
+    let (library, issue) = match acquired {
+      ReadyCryptoLibrary(value) => (value, None)
+      PendingCryptoLibrary(value, issue) =>
+        (value, Some(CommandSignature(issue)))
+    }
+    if inner {
+      self.inner_library = Some(library)
+    } else {
+      self.outer_library = Some(library)
+    }
+    match issue {
+      None => Ok(library)
+      Some(issue) => {
+        self.retain_primary(issue)
+        Err(issue)
+      }
+    }
+  } catch {
+    LocalCommandPreparationStop(issue) => {
+      self.retain_primary(issue)
+      Err(issue)
+    }
+  }
+}
+
+///|
+// The same Reader keeps its partial Root/failure. A returned String is still a
+// managed material alias and must retire before this command's Read can close.
+fn LocalCommandPreparationOriginal::text_file(
+  self : LocalCommandPreparationOriginal,
+  root : String,
+  name : String,
+  maximum : Int64,
+) -> Result[String, LocalCommandPreparationIssue] {
+  if (!self.phase_open && !self.journal_read_open) ||
+    self.closing ||
+    self.closed ||
+    self.primary is Some(_) {
+    return Err(CommandUnavailable)
+  }
+  match
+    @files.read_bounded_text_file_in_current_read_context_with_custody(
+      root,
+      name,
+      maximum,
+      self.profile.diagnostic_ceiling,
+    ) {
+    Ok(text) => Ok(text)
+    Err(failure) => {
+      self.read_failure = Some(failure)
+      let issue = CommandFilesystem(failure.issue())
+      self.retain_primary(issue)
+      Err(issue)
+    }
+  }
+}
+
+///|
+// Drop no original on cleanup failure. Runtime and Journal each own their own
+// full scope brackets; Library/Reader aliases are released only inside the
+// same original Read cleanup. A closed carrier is not a final physical ACK.
+fn LocalCommandPreparationOriginal::close_checked(
+  self : LocalCommandPreparationOriginal,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  if self.closed {
+    return Ok(())
+  }
+  self.closing = true
+  try {
+    command_preparation_value(self.leave())
+    if self.standalone_cleanup_open {
+      guard self.host is Some(host) && self.read is Some(read) else {
+        return Err(CommandUnavailable)
+      }
+      command_preparation_value(
+        host
+        .leave_domain_original_read(read)
+        .map_err(issue => CommandRead(issue)),
+      )
+      self.standalone_cleanup_open = false
+    }
+    if self.journal_read_open {
+      return Err(CommandUnavailable)
+    }
+    if self.journal is Some(journal) {
+      command_preparation_value(
+        journal
+        .finish_pending_original_scope()
+        .map_err(issue => CommandAdoption(issue)),
+      )
+    }
+    if self.runtime is Some(runtime) {
+      command_preparation_value(
+        runtime.close().map_err(issue => CommandRuntime(issue)),
+      )
+    }
+    if self.journal is Some(journal) {
+      let reply = journal.close()
+      if reply.issue() is Some(issue) {
+        return Err(CommandJournal(issue))
+      }
+    }
+    if self.host is Some(host) {
+      // An incomplete physical domain acquisition can retain the original
+      // backing borrow before any Read/Runtime/Library ever existed.
+      if self.backing_scope is Some(scope) {
+        if self.backing_entered {
+          command_preparation_value(
+            host
+            .leave_backing_borrow_scope(scope)
+            .map_err(issue => CommandHost(issue)),
+          )
+          self.backing_entered = false
+        }
+        command_preparation_value(
+          host.return_backing_borrow(scope).map_err(issue => CommandHost(issue)),
+        )
+        self.backing_scope = None
+      }
+      if self.read is Some(read) {
+        if self.pair is Some(pair) {
+          command_preparation_value(
+            host
+            .enter_local_host_cleanup(pair, @initial_arena.HostRead)
+            .map_err(issue => CommandPair(issue)),
+          )
+          self.phase_open = true
+        } else if !self.standalone_cleanup_open {
+          command_preparation_value(
+            host
+            .enter_domain_original_read_cleanup(read)
+            .map_err(issue => CommandRead(issue)),
+          )
+          self.standalone_cleanup_open = true
+        }
+        if self.read_failure is Some(failure) {
+          command_preparation_value(
+            failure
+            .retry_cleanup()
+            .map_err(issue => CommandFilesystemCleanup(issue)),
+          )
+          self.read_failure = None
+        }
+        if self.adoption is Some(adoption) {
+          let reply = adoption.close()
+          if reply.issue() is Some(issue) {
+            return Err(CommandCapture(issue))
+          }
+          if !adoption.descriptor_cleanup_acknowledged() {
+            return Err(CommandUnavailable)
+          }
+        }
+        if self.product is Some(product) {
+          command_preparation_value(
+            product.close().map_err(issue => CommandAdoption(issue)),
+          )
+        }
+        if self.selected_root_failure is Some(failure) {
+          command_preparation_value(
+            failure
+            .retry_cleanup()
+            .map_err(issue => CommandFilesystemCleanup(issue)),
+          )
+          self.selected_root_failure = None
+        }
+        if self.selected_root is Some(root) {
+          command_preparation_value(
+            root.close().map_err(issue => CommandFilesystemCleanup(issue)),
+          )
+          self.selected_root = None
+        }
+        if self.inner_library is Some(library) {
+          command_preparation_value(
+            library.close_checked().map_err(issue => CommandSignature(issue)),
+          )
+          self.inner_library = None
+        }
+        if self.outer_library is Some(library) {
+          command_preparation_value(
+            library.close_checked().map_err(issue => CommandSignature(issue)),
+          )
+          self.outer_library = None
+        }
+        // These closed records still retain Read-managed aliases. Keep them
+        // through their real close and then retire our own last references.
+        self.journal = None
+        self.adoption = None
+        self.product = None
+        self.reply_outcome = None
+        self.runtime = None
+        self.crypto_path = ""
+        if self.component is Some(component) {
+          command_preparation_value(
+            host
+            .close_crypto_component(component)
+            .map_err(issue => CommandComponent(issue)),
+          )
+          self.component = None
+        }
+        if self.pair is Some(_) {
+          command_preparation_value(self.leave())
+        } else if self.standalone_cleanup_open {
+          command_preparation_value(
+            host
+            .leave_domain_original_read(read)
+            .map_err(issue => CommandRead(issue)),
+          )
+          self.standalone_cleanup_open = false
+        }
+      }
+      if self.pair is Some(pair) {
+        command_preparation_value(
+          host
+          .close_local_host_resources(pair)
+          .map_err(issue => CommandPair(issue)),
+        )
+        self.pair = None
+        self.consumer = None
+        self.read = None
+        self.sqlite = None
+      } else {
+        if self.sqlite is Some(sqlite) {
+          command_preparation_value(
+            host
+            .close_sqlite_library(sqlite)
+            .map_err(issue => CommandSqlite(issue)),
+          )
+          self.sqlite = None
+        }
+        if self.read is Some(read) {
+          command_preparation_value(
+            host
+            .close_domain_original_read(read)
+            .map_err(issue => CommandRead(issue)),
+          )
+          self.read = None
+        }
+      }
+      if self.read_domain is Some(domain) {
+        command_preparation_value(
+          host
+          .close_domain_after_owner_ack(domain)
+          .map_err(issue => CommandDomain(issue)),
+        )
+        self.read_domain = None
+      }
+      if self.sqlite_domain is Some(domain) {
+        command_preparation_value(
+          host
+          .close_domain_after_owner_ack(domain)
+          .map_err(issue => CommandDomain(issue)),
+        )
+        self.sqlite_domain = None
+      }
+      command_preparation_value(
+        host.try_close().map_err(issue => CommandHost(issue)),
+      )
+      self.host = None
+    }
+    if self.backing is Some(backing) {
+      if !backing.close_checked() {
+        return Err(CommandBacking(backing.acquisition_issue()))
+      }
+      self.backing = None
+    }
+    self.closed = true
+    Ok(())
+  } catch {
+    LocalCommandPreparationStop(issue) => Err(issue)
+  }
+}
+
+///|
+// Publish the caller's original outcome before the Native Owner attempts its
+// scope leave. A failed exchange keeps both that outcome and the original
+// capture; neither presentation success nor an application error releases it.
+fn LocalCommandPreparationOriginal::read_command(
+  self : LocalCommandPreparationOriginal,
+  operation : (
+    @local_host.NativeLocalHostConnection,
+    @local_host.NativeLocalJournalCapture,
+  ) -> Result[String, String],
+) -> Result[String, LocalCommandPreparationIssue] {
+  if self.closing ||
+    self.closed ||
+    self.phase_open ||
+    self.journal_read_open ||
+    self.primary is Some(_) ||
+    self.reply_outcome is Some(_) {
+    return Err(CommandUnavailable)
+  }
+  guard self.journal is Some(journal) else { return Err(CommandUnavailable) }
+  let executed = journal.with_original_read(fn(host) {
+    self.journal_read_open = true
+    self.reply_outcome = Some(operation(host, journal))
+    self.journal_read_open = false
+  })
+  match executed {
+    Err(issue) => {
+      self.retain_primary(CommandAdoption(issue))
+      Err(CommandAdoption(issue))
+    }
+    Ok(_) =>
+      match self.reply_outcome {
+        Some(Ok(body)) => Ok(body)
+        Some(Err(message)) => {
+          // A retained application message must not keep this Read alive
+          // after its reply alias retires. The original/copy overlap belongs
+          // to the declared caller-control inventory, not Host.control_bytes.
+          let primary_message = command_control_copy_text(message)
+          self.retain_primary(CommandApplication(primary_message))
+          Err(CommandApplication(primary_message))
+        }
+        None => Err(CommandUnavailable)
+      }
+  }
+}
+
+///|
+// The trusted command snapshots selection inside its actual Read. The same
+// captured Product originals are rechecked; this never synthesizes a missing
+// installation marker, creates a replacement selection, or skips its claim.
+fn LocalCommandPreparationOriginal::stage_product(
+  self : LocalCommandPreparationOriginal,
+  parent : String,
+  name : String,
+  originals : Array[(String, Bytes)]?,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  if !self.phase_open || self.closing || self.closed || self.primary is Some(_) {
+    return Err(CommandUnavailable)
+  }
+  try {
+    let product = match self.product {
+      Some(original) => original
+      None => {
+        let crypto = command_preparation_value(self.library(false))
+        let original = command_preparation_value(
+          @local_host.prepare_native_local_product_configuration_capture_in_current_read_context(
+            parent,
+            name,
+            crypto,
+            self.profile.diagnostic_ceiling,
+            originals~,
+          ).map_err(issue => CommandAdoption(issue)),
+        )
+        self.product = Some(original)
+        original
+      }
+    }
+    command_preparation_value(
+      product.open().map_err(issue => CommandAdoption(issue)),
+    )
+    |> ignore
+    command_preparation_value(
+      product.stage_configuration().map_err(issue => CommandAdoption(issue)),
+    )
+    Ok(())
+  } catch {
+    LocalCommandPreparationStop(issue) => {
+      self.retain_primary(issue)
+      Err(issue)
+    }
+  }
+}
+
+///|
+// Retain this independently opened discovery Root before inspecting ownership.
+// A matching path, decoded configuration or another Root cannot close it.
+fn LocalCommandPreparationOriginal::select_configuration_root(
+  self : LocalCommandPreparationOriginal,
+  path : String,
+) -> Result[@local_filesystem.Root, LocalCommandPreparationIssue] {
+  if !self.phase_open ||
+    self.closing ||
+    self.closed ||
+    self.primary is Some(_) ||
+    self.selected_root is Some(_) ||
+    self.selected_root_failure is Some(_) {
+    return Err(CommandUnavailable)
+  }
+  match
+    @local_filesystem.open_private_root_in_current_read_context_with_custody(
+      path,
+      self.profile.diagnostic_ceiling,
+    ) {
+    Ok(root) => {
+      self.selected_root = Some(root)
+      Ok(root)
+    }
+    Err(failure) => {
+      self.selected_root_failure = Some(failure)
+      let issue = CommandFilesystemCleanup(failure.issue())
+      self.retain_primary(issue)
+      Err(issue)
+    }
+  }
+}
+
+///|
+// The same original holder is published before acquiring Roots, Lock or key
+// material. Only explicit initialization selects the original initial branch;
+// existing-only commands never manufacture absent installation originals.
+fn LocalCommandPreparationOriginal::prepare_adoption(
+  self : LocalCommandPreparationOriginal,
+  input : @local_host.NativeLocalExistingAdoptionInput,
+  initialize : Bool,
+) -> Result[
+  @local_host.NativeLocalAdoptionSession,
+  LocalCommandPreparationIssue,
+] {
+  if !self.phase_open ||
+    self.closing ||
+    self.closed ||
+    self.primary is Some(_) ||
+    self.adoption is Some(_) {
+    return Err(CommandUnavailable)
+  }
+  try {
+    let crypto = command_preparation_value(self.library(true))
+    let selected = if initialize {
+      @local_host.prepare_native_local_initial_adoption_capture_in_current_read_context(
+        input,
+        crypto,
+        self.profile.diagnostic_ceiling,
+      )
+    } else {
+      @local_host.prepare_native_local_existing_adoption_capture_in_current_read_context(
+        input,
+        crypto,
+        self.profile.diagnostic_ceiling,
+      )
+    }
+    let capture = command_preparation_value(
+      selected.map_err(issue => CommandAdoption(issue)),
+    )
+    self.adoption = Some(capture)
+    if capture.open().issue() is Some(issue) {
+      self.retain_primary(CommandCapture(issue))
+      return Err(CommandCapture(issue))
+    }
+    match capture.original_session() {
+      Some(session) => Ok(session)
+      None => Err(CommandUnavailable)
+    }
+  } catch {
+    LocalCommandPreparationStop(issue) => {
+      self.retain_primary(issue)
+      Err(issue)
+    }
+  }
+}
+
+///|
+// Retain the same Journal before its first Read/SQL exchange. Material is
+// generated only by the same explicitly eligible original Session, never by
+// restoring a path or reissuing a key after failure/Unknown.
+fn LocalCommandPreparationOriginal::open_adopted_journal(
+  self : LocalCommandPreparationOriginal,
+  initialize_signing : Bool,
+  options : LocalInitialSigningAdoptionOptions,
+) -> Result[@local_host.NativeLocalHostConnection, LocalCommandPreparationIssue] {
+  if !self.phase_open ||
+    self.closing ||
+    self.closed ||
+    self.primary is Some(_) ||
+    self.journal is Some(_) {
+    return Err(CommandUnavailable)
+  }
+  guard self.adoption is Some(adoption) &&
+    self.host is Some(host) &&
+    self.pair is Some(pair) &&
+    self.read is Some(read) else {
+    return Err(CommandUnavailable)
+  }
+  try {
+    let journal = if initialize_signing {
+      let session = adoption.original_session().unwrap()
+      let crypto = command_preparation_value(self.library(true))
+      let material = command_preparation_value(
+        session
+        .create_initial_signing_material(crypto)
+        .map_err(original => CommandAdoption(original.issue())),
+      )
+      command_preparation_value(
+        adoption
+        .capture_initial_journal_with_original_resources(
+          host,
+          pair,
+          read,
+          material,
+          @run_host.client_local_default_signing_bootstrap_policy(),
+          options.ttl_ms,
+          options.max_records,
+          options.max_snapshot_bytes,
+        )
+        .map_err(issue => CommandCapture(issue)),
+      )
+    } else {
+      command_preparation_value(
+        adoption
+        .capture_journal_with_original_resources(
+          host,
+          pair,
+          read,
+          options.ttl_ms,
+          options.max_records,
+          options.max_snapshot_bytes,
+        )
+        .map_err(issue => CommandCapture(issue)),
+      )
+    }
+    self.journal = Some(journal)
+    command_preparation_value(self.leave())
+    if journal.open().issue() is Some(issue) {
+      self.retain_primary(CommandJournal(issue))
+      return Err(CommandJournal(issue))
+    }
+    match journal.original_host() {
+      Some(original) => Ok(original)
+      None => Err(CommandUnavailable)
+    }
+  } catch {
+    LocalCommandPreparationStop(issue) => {
+      self.retain_primary(issue)
+      Err(issue)
+    }
+  }
+}

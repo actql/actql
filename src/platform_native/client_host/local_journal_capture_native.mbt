@@ -31,6 +31,11 @@ struct NativeLocalJournalCapture {
   session : NativeLocalAdoptionSession
   library : @sqlite.Library?
   original_resources : NativeLocalJournalOriginalResources?
+  initial_signing : (
+    NativeLocalInitialSigningMaterial,
+    @host.ClientLocalSigningBootstrapPolicy,
+  )?
+  mut read_operation_issue : NativeLocalAdoptionIssue?
   mut opening_database : @sqlite.Database?
   mut opening_inspection : @journal.CoordinatorInitializationCleanup?
   crypto : @crypto.Library
@@ -65,6 +70,8 @@ pub fn prepare_native_local_journal_capture(
     session,
     library: Some(library),
     original_resources: None,
+    initial_signing: None,
+    read_operation_issue: None,
     opening_database: None,
     opening_inspection: None,
     crypto,
@@ -138,6 +145,10 @@ pub fn NativeLocalJournalCapture::check_current(
 ) -> NativeLocalJournalCaptureReply {
   let issue = if self.closing {
     Some(JournalCaptureClosed)
+  } else if self.read_operation_issue is Some(original) {
+    // A failed preparation exchange is cleanup-only. A later observation may
+    // not erase that first failure by attempting the protected fence again.
+    Some(JournalAdoption(original))
   } else {
     match self.opening {
       JournalNotAttempted => Some(JournalNotOpened)

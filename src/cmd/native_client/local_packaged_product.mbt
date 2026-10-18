@@ -57,6 +57,27 @@ fn local_product_selected_location(
 }
 
 ///|
+// An explicit original state directory does not consult or copy HOME. The
+// absent selection obtains exactly one bounded original before path validation.
+fn local_product_location_with_home(
+  state_directory : String?,
+  read_home : () -> String? raise ClientStop,
+) -> LocalProductLocation raise ClientStop {
+  let home = match state_directory {
+    Some(_) => None
+    None => read_home()
+  }
+  local_product_selected_location(state_directory, home)
+}
+
+///|
+fn local_product_original_location(
+  state_directory : String?,
+) -> LocalProductLocation raise ClientStop {
+  local_product_location_with_home(state_directory, local_product_bounded_home)
+}
+
+///|
 fn local_product_operation(operation : String) -> Bool {
   [
     "adopt", "connect", "upgrade-policy", "lookup-policy-upgrade", "check", "explain",
@@ -160,6 +181,9 @@ fn execute_native_local_product(
   if !(matches.sources.get("config-root") is Some(@argparse.Default)) {
     stop("ExplicitLocalRootRequiresConfiguration")
   }
+  if command_preparation_invocation.val is Some(original) {
+    return original.execute_product_check(matches, operation)
+  }
   let context = @env.get_env_var("ACTQL_NATIVE_LOCAL_RUNTIME").unwrap_or_else(() => {
     stop("PackagedLocalRuntimeUnavailable")
   })
@@ -187,10 +211,7 @@ fn execute_native_local_packaged_operation(
   if !(matches.sources.get("config-root") is Some(@argparse.Default)) {
     stop("ExplicitLocalRootRequiresConfiguration")
   }
-  let location = local_product_selected_location(
-    optional(matches, "state-dir"),
-    @env.get_env_var("HOME"),
-  )
+  let location = local_product_original_location(optional(matches, "state-dir"))
   let parent = @local_filesystem.open_root(location.parent_path).unwrap_or_else(() => {
       stop("LocalProductHomeUnavailable")
     },

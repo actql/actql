@@ -21,6 +21,13 @@ typedef struct {
   char *copy;
   int descriptors[2];
   int output_descriptor;
+  int private_index_attempted;
+  int private_index_created;
+  int private_index_identity_observed;
+  int private_index_ready;
+  int private_index_close_unknown;
+  int private_index_descriptor;
+  struct stat private_index_identity;
   struct stat identities[2];
   int count;
   int ready;
@@ -61,6 +68,8 @@ static int inspection_remove(const char *path) {
 }
 
 static int inspection_close(actql_journal_inspection *owner) {
+  // A consumed close cannot be retried through a possibly reused number.
+  if (owner->private_index_close_unknown) return 0;
   if (owner->output_descriptor >= 0) {
     if (close(owner->output_descriptor) != 0) {
       inspection_error(owner, "close inspection copy failed");
@@ -78,6 +87,22 @@ static int inspection_close(actql_journal_inspection *owner) {
     }
   }
   if (owner->copy != NULL) {
+    if (owner->private_index_attempted && !owner->absent) {
+      char *path = inspection_suffix(owner->copy, "-shm");
+      if (path == NULL) return 0;
+      struct stat current;
+      int status = lstat(path, &current);
+      int same = owner->private_index_created &&
+        (!owner->private_index_identity_observed || (status == 0 &&
+        current.st_dev == owner->private_index_identity.st_dev &&
+        current.st_ino == owner->private_index_identity.st_ino));
+      int missing = status != 0 && errno == ENOENT;
+      free(path);
+      if (!same && !missing) {
+        inspection_error(owner, "private inspection index replaced");
+        return 0;
+      }
+    }
     const char *suffixes[] = {"", "-wal", "-shm", "-journal"};
     for (int index = 0; index < 4; index++) {
       char *path = inspection_suffix(owner->copy, suffixes[index]);
@@ -109,6 +134,73 @@ static int inspection_close(actql_journal_inspection *owner) {
   return 1;
 }
 
+// Only the captured private copy may select the read-only heap-index route.
+// The original source DB/WAL and the generic inspection constructor are not
+// changed. SQLite receives a read-only connection, never this writing FD.
+int32_t actql_journal_inspection_prepare_private_index(
+    actql_journal_inspection *owner) {
+  if (owner->private_index_attempted || !owner->ready) return 0;
+  owner->private_index_attempted = 1;
+  if (owner->absent) return 1;
+  char *path = inspection_suffix(owner->copy, "-shm");
+  if (path == NULL) {
+    inspection_error(owner, "private inspection index allocation failed");
+    return 0;
+  }
+  int descriptor = open(path, O_RDWR | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC,
+                        0600);
+  if (descriptor < 0) {
+    free(path);
+    inspection_error(owner, "create private inspection index failed");
+    return 0;
+  }
+  owner->private_index_created = 1;
+  owner->private_index_descriptor = descriptor;
+  // Confirmed open custody precedes the first stat. A stat failure still
+  // consumes exactly this original close; it does not require a later identity.
+  int observed = fstat(descriptor, &owner->private_index_identity) == 0 &&
+    S_ISREG(owner->private_index_identity.st_mode) &&
+    owner->private_index_identity.st_size == 0 &&
+    owner->private_index_identity.st_nlink == 1;
+  owner->private_index_identity_observed = observed;
+  int close_result = close(descriptor);
+  if (close_result != 0) {
+    owner->private_index_close_unknown = 1;
+    inspection_error(owner, "private inspection index close unknown");
+  } else if (!observed) {
+    owner->private_index_descriptor = -1;
+    inspection_error(owner, "inspect private inspection index failed");
+  } else {
+    owner->private_index_descriptor = -1;
+    struct stat current;
+    owner->private_index_ready = lstat(path, &current) == 0 &&
+      inspection_same(&current, &owner->private_index_identity);
+    if (!owner->private_index_ready)
+      inspection_error(owner, "private inspection index changed");
+  }
+  free(path);
+  return owner->private_index_ready;
+}
+
+int32_t actql_journal_inspection_private_index_ready(
+    actql_journal_inspection *owner) {
+  if (!owner->ready || !owner->private_index_attempted ||
+      owner->private_index_close_unknown) return 0;
+  if (owner->absent) return 1;
+  if (!owner->private_index_ready) return 0;
+  char *path = inspection_suffix(owner->copy, "-shm");
+  if (path == NULL) {
+    inspection_error(owner, "private inspection index allocation failed");
+    return 0;
+  }
+  struct stat current;
+  int ready = lstat(path, &current) == 0 &&
+    inspection_same(&current, &owner->private_index_identity);
+  free(path);
+  if (!ready) inspection_error(owner, "private inspection index changed");
+  return ready;
+}
+
 static void inspection_finalize(void *value) {
   actql_journal_inspection *owner = value;
   (void)inspection_close(owner);
@@ -126,6 +218,7 @@ static void *inspection_open_bounded(
   memset(owner, 0, sizeof(*owner));
   owner->descriptors[0] = owner->descriptors[1] = -1;
   owner->output_descriptor = -1;
+  owner->private_index_descriptor = -1;
   if (max_snapshot_bytes < 0 || length <= 0 ||
       memchr(path, 0, (size_t)length) != NULL) {
     inspection_error(owner, "invalid inspection path");

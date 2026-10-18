@@ -6,6 +6,16 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+#if defined(__APPLE__)
+#include <crt_externs.h>
+// The selected pinned libmoonbitrun.o supplies this mimalloc size query.
+// It is the same allocator used before the derived Read context is entered.
+extern size_t mi_good_size(size_t size);
+#endif
+
+#include "../../platform_native/host_bootstrap/command_input.h"
 #include <sys/time.h>
 #include <time.h>
 
@@ -110,4 +120,171 @@ int32_t actql_native_client_status_watch_progress(moonbit_bytes_t bytes, int32_t
   if (length < 0 || length > 65537) return 0;
   return fwrite(bytes, 1, (size_t)length, stderr) == (size_t)length &&
     fflush(stderr) == 0;
+}
+
+// Build metadata only. The trusted Local producer pins this immutable literal
+// to its exact compiled source; it is not installation/current authority. A raw
+// preargument constructor may borrow it without a Moon String allocation. The
+// ordinary unselected diagnostic build supplies no synthetic replacement pin.
+const char *actql_native_client_selected_source(void) {
+#ifdef ACTQL_NATIVE_CLIENT_SOURCE_SHA
+  static const char source[] = ACTQL_NATIVE_CLIENT_SOURCE_SHA;
+  if (sizeof(source) != 41) return NULL;
+  for (size_t i = 0; i < 40; ++i) {
+    if (!((source[i] >= '0' && source[i] <= '9') ||
+          (source[i] >= 'a' && source[i] <= 'f'))) return NULL;
+  }
+  return source;
+#else
+  return NULL;
+#endif
+}
+
+// The OS argv and launcher marker stay in their original process lifetime.
+// This private observation performs no managed copy or physical acquisition.
+// Once selected or refused it cannot restart against changed process inputs.
+static bool actql_command_input_attempted;
+static int actql_command_input_status = ACTQL_COMMAND_INPUT_INVALID;
+static const char *actql_command_input_source;
+static const char *actql_command_input_context;
+static actql_bootstrap_command_preparation_observation actql_command_input;
+// Partial initial-control inventory, not capacity or an allocation receipt.
+// These are the selected pinned mimalloc usable classes for the original raw argv,
+// worst-case UTF16 decode/trim overlap, and every growing argv ref buffer.
+static int64_t actql_command_argument_classes[4];
+
+#if defined(__APPLE__)
+static bool actql_command_add_class(int64_t *sum, size_t request) {
+  size_t quoted = mi_good_size(request);
+  if (quoted < request || quoted > INT64_MAX ||
+      *sum > INT64_MAX - (int64_t)quoted) return false;
+  *sum += (int64_t)quoted;
+  return true;
+}
+
+static bool actql_command_quote_arguments(int argc, const char *const *argv) {
+  int64_t values[4] = {0};
+  const size_t header = sizeof(struct moonbit_object);
+  if (argc <= 0 || (size_t)argc > (SIZE_MAX-header)/sizeof(void *) ||
+      !actql_command_add_class(&values[0], header+(size_t)argc*sizeof(void *)))
+    return false;
+  for (int index = 0; index < argc; ++index) {
+    size_t bytes = strlen(argv[index]);
+    if (bytes > (SIZE_MAX-header)/2-1 ||
+        !actql_command_add_class(&values[1], header+bytes+1) ||
+        !actql_command_add_class(&values[2], header+2*(bytes+1)) ||
+        !actql_command_add_class(&values[2], header+2*(bytes+1))) return false;
+  }
+  // Pinned env_native uses an empty Array then push. Its ref buffers begin
+  // at eight and double; retain the conservative sum of all generations.
+  size_t capacity = 8;
+  for (;;) {
+    if (capacity > (SIZE_MAX-header)/sizeof(void *) ||
+        !actql_command_add_class(&values[3], header+capacity*sizeof(void *)))
+      return false;
+    if (capacity >= (size_t)argc) break;
+    if (capacity > SIZE_MAX/2) return false;
+    capacity *= 2;
+  }
+  memcpy(actql_command_argument_classes, values, sizeof(values));
+  return true;
+}
+#endif
+
+int32_t actql_native_client_measure_prearguments(
+    int32_t maximum_arguments, int32_t maximum_argument_bytes,
+    int32_t maximum_storage_bytes, int32_t maximum_context_bytes) {
+  if (actql_command_input_attempted) return actql_command_input_status;
+  actql_command_input_attempted = true;
+  const char *context = getenv("ACTQL_NATIVE_LOCAL_RUNTIME");
+  if (context == NULL) {
+    actql_command_input_status = ACTQL_COMMAND_INPUT_NOT_SELECTED;
+    return actql_command_input_status;
+  }
+  if (maximum_arguments <= 0 || maximum_argument_bytes <= 0 ||
+      maximum_storage_bytes <= 0 || maximum_context_bytes <= 0)
+    return actql_command_input_status;
+#if defined(__APPLE__)
+  const char *source = actql_native_client_selected_source();
+  actql_command_input_status = actql_bootstrap_measure_command_preparation(
+      source, context, *_NSGetArgc(), (const char *const *)*_NSGetArgv(),
+      (size_t)maximum_arguments, (size_t)maximum_argument_bytes,
+      (size_t)maximum_storage_bytes, (size_t)maximum_context_bytes,
+      &actql_command_input);
+  if (actql_command_input_status == ACTQL_COMMAND_INPUT_OK &&
+      !actql_command_quote_arguments(*_NSGetArgc(),
+          (const char *const *)*_NSGetArgv()))
+    actql_command_input_status = ACTQL_COMMAND_INPUT_INVALID;
+  if (actql_command_input_status == ACTQL_COMMAND_INPUT_OK) {
+    actql_command_input_source = source;
+    actql_command_input_context = context;
+  }
+#endif
+  return actql_command_input_status;
+}
+
+int32_t actql_native_client_preargument_count(void) {
+  return actql_command_input_status == ACTQL_COMMAND_INPUT_OK
+      ? (int32_t)actql_command_input.input.arguments : -1;
+}
+int32_t actql_native_client_preargument_storage_bytes(void) {
+  return actql_command_input_status == ACTQL_COMMAND_INPUT_OK
+      ? (int32_t)actql_command_input.input.storage_bytes : -1;
+}
+int32_t actql_native_client_preargument_context_bytes(void) {
+  return actql_command_input_status == ACTQL_COMMAND_INPUT_OK
+      ? (int32_t)actql_command_input.context_bytes : -1;
+}
+
+// The 40-byte compiler literal is part of the declared initial control graph.
+// The bounded context copy is also initial control, before physical acquisition.
+// Neither copied value is installation/current/admission authority.
+int32_t actql_native_client_copy_preargument_source(
+    moonbit_bytes_t bytes, int32_t length) {
+  if (actql_command_input_status != ACTQL_COMMAND_INPUT_OK || length != 40 ||
+      actql_command_input_source == NULL) return 0;
+  memcpy(bytes, actql_command_input_source, 40);
+  return 1;
+}
+int32_t actql_native_client_copy_preargument_context(
+    moonbit_bytes_t bytes, int32_t length) {
+  if (actql_command_input_status != ACTQL_COMMAND_INPUT_OK || length <= 0 ||
+      (size_t)length != actql_command_input.context_bytes ||
+      actql_command_input_context == NULL) return 0;
+  memcpy(bytes, actql_command_input_context, (size_t)length);
+  return 1;
+}
+
+// Closed private selectors: raw reference array, raw Bytes, simultaneous
+// UTF16 temporary+result upper bound, all argv growth backings. Record objects,
+// parser/maps/rendering and later physical overlap remain separate terms.
+int64_t actql_native_client_preargument_class_bytes(int32_t field) {
+  if (actql_command_input_status != ACTQL_COMMAND_INPUT_OK ||
+      field < 0 || field >= 4) return -1;
+  return actql_command_argument_classes[field];
+}
+
+// A caller-lifetime barrier only. The opaque managed record is not inspected,
+// stored, released or interpreted as physical custody or an acknowledgement.
+void actql_native_client_keep_initial_command_control(const void *original) {
+  const void *volatile observed = original;
+  (void)observed;
+}
+
+// One selected HOME observation, not an environment traversal or authority.
+// The existing path predicate bounds decoded UTF16 to 4096 units. At most
+// three UTF8 bytes per such unit, plus one optional BOM, preserves that domain.
+// Scan before copying; malformed/oversized input cannot cause an unbounded
+// managed environment copy. The caller owns this fixed output workspace.
+int32_t actql_native_client_copy_bounded_home(moonbit_bytes_t bytes,
+                                             int32_t length) {
+  const int32_t maximum = 4096 * 3 + 3;
+  if (length != maximum) return -2;
+  const char *original = getenv("HOME");
+  if (original == NULL) return -1;
+  int32_t size = 0;
+  while (size <= maximum && original[size] != '\0') ++size;
+  if (size > maximum) return -2;
+  memcpy(bytes, original, (size_t)size);
+  return size;
 }

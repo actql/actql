@@ -73,6 +73,9 @@ fn text_file(
   name : String,
   maximum : Int64,
 ) -> String raise ClientStop {
+  if command_preparation_invocation.val is Some(original) {
+    return command_preparation_result(original.text_file(root, name, maximum))
+  }
   if initial_crypto_invocation.val is Some(original) && original.scope_open {
     return local_initial_crypto_text_file(original, root, name, maximum)
   }
@@ -1384,14 +1387,26 @@ fn execute_and_write_native_reply(
 
 ///|
 fn main {
-  let matches = command().parse() catch {
+  // Observe the original OS input before Command construction/default_argv.
+  // These selected Darwin input ceilings include argv0 and terminal bytes;
+  // they are not the initial-control or physical-capacity admission itself.
+  // No physical original exists on help/version or argument failure.
+  let selected_arguments = match
+    command_preargument_bound(1048576, 1048576, 1048576, 8192) {
+    Ok(selected) => selected
+    Err(_) => {
+      fail_command("LocalCommandArgumentsUnavailable")
+      abort("native Client original argument failure")
+    }
+  }
+  let control = parse_native_initial_command(selected_arguments) catch {
     error => {
       fail_command(error.to_string())
       abort("native Client argument failure")
     }
   }
   let failed = try {
-    execute_and_write_native_reply(matches)
+    control.consume_matches(execute_and_write_native_reply)
     false
   } catch {
     ClientStop(message) => {
@@ -1402,7 +1417,9 @@ fn main {
   }
   // stdout/flush, Library, component, context/domain/map, Host and FD retirement
   // are separate facts. An output or process exit never substitutes for ACK.
-  if !local_finish_initial_crypto() {
+  let crypto_closed = local_finish_initial_crypto()
+  command_initial_control_keep_alive(control)
+  if !crypto_closed {
     fail_command("InitialCryptoCleanupPending")
   }
   if failed {

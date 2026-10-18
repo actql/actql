@@ -177,15 +177,21 @@ fn execute_native_local_adoption(
   child : @argparse.Matches,
   packaged_runtime? : @local_host.NativeLocalPackagedRuntime? = None,
   initial_crypto? : InitialCryptoOriginal? = None,
+  preparation? : LocalCommandPreparationOriginal? = None,
 ) -> String raise ClientStop {
   let root = required(matches, "config-root")
   let name = required(matches, "config-file")
   let input_root = local_document_root(matches, root)
   // Refuse an untrusted discovery root before loading configuration-selected
   // physical libraries. The adoption Owner rechecks all original generations.
-  let selected_root = @local_filesystem.open_private_root(root).unwrap_or_else(() => {
-    stop("LocalConfigurationRootUntrusted")
-  })
+  let selected_root = match preparation {
+    Some(original) =>
+      command_preparation_result(original.select_configuration_root(root))
+    None =>
+      @local_filesystem.open_private_root(root).unwrap_or_else(() => {
+        stop("LocalConfigurationRootUntrusted")
+      })
+  }
   let root_ownership = selected_root
     .private_ownership()
     .unwrap_or_else(() => stop("LocalConfigurationRootUntrusted"))
@@ -252,6 +258,24 @@ fn execute_native_local_adoption(
   let selected_reviewer = local_selected_effect_reviewer_original(
     root, settings,
   )
+  if preparation is Some(original) {
+    if operation != "check" {
+      stop("LocalCommandPreparationOperationUnavailable")
+    }
+    let additional : Array[(String, Bytes)] = []
+    for
+      selected in [
+        selected_source, selected_run, selected_read, selected_reviewer,
+      ] {
+      if selected is Some(value) {
+        additional.push(value)
+      }
+    }
+    return original.execute_adopted_check(
+      settings, root, name, configuration, environment_file, environment, selected_files,
+      additional, input_root, child,
+    )
+  }
   let (sqlite_path, crypto_path) = match packaged_runtime {
     None => (settings.sqlite_library, settings.signature_library)
     Some(runtime) =>
