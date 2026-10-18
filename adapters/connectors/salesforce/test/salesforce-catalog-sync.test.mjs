@@ -38,7 +38,8 @@ import {createSalesforceCliSecretResolver} from '../site/salesforce-cli-secret.m
 import {readSalesforceManagedQuery,
   readSalesforceQuery} from
   '../site/salesforce-query-read.mjs';
-import {sendRawSalesforceSingleRecord, writeSalesforceSingleRecord} from
+import {projectSalesforceSingleObservation, sendRawSalesforceSingleRecord,
+  writeSalesforceSingleRecord} from
   '../site/salesforce-single-write.mjs';
 import {observeSalesforceSingleTarget, observeSalesforceTargetSet} from
   '../site/salesforce-target-observation.mjs';
@@ -1016,8 +1017,8 @@ test('Salesforce request CID binds the exact HTTPS upsert request-target',
           authorityScopeCid, callerRequestId: `exact-target-${name}`,
           maxEntryBytes: 4096});
         child.after(() => ledger.close());
-        // The shared physical owner retains the raw response. Provider
-        // interpretation is exercised by the Site codec tests separately.
+        // The shared physical owner first retains the raw response; the
+        // existing vendor codec then interprets those stored bytes.
         const result = await captureClaimedEffectResponse({ledger, claim, requestCid,
           execute: () => sendRawSalesforceSingleRecord({
             moon: salesforceMoon, request: outbound,
@@ -1026,6 +1027,12 @@ test('Salesforce request CID binds the exact HTTPS upsert request-target',
             credential: setup.credential,
             limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
               maxNodes: 32, maxDepth: 5},
+          }),
+          projectStored: stored => projectSalesforceSingleObservation({
+            moon: salesforceMoon, request: outbound,
+            observation: Object.freeze({useCid: stored.credentialUseCid,
+              statusCode: stored.statusCode, body: stored.responseBytes}),
+            limits: {maxResponseBytes: 1024, maxNodes: 32, maxDepth: 5},
           }),
         });
         assert.equal(result.claimed, true);
