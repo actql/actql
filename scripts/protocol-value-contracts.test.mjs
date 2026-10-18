@@ -103,9 +103,14 @@ test('original Text enum vectors and the Values dependency retain independently 
   }
   assert.equal(new Set(ids).size,ids.length,'absence/order/repetitions/empty preserve distinct originals');
   const aoa=JSON.parse(readFileSync('spec/contracts/actql-aoa.json','utf8'));
-  const expected=vectors.valuesExecution;
+  const previous=vectors.valuesExecution;
+  verifyIdentity(previous.body,previous.cid,previous.canonicalPreimage);
+  const expected=JSON.parse(readFileSync('portability/corpus/signed64-identities.json','utf8')).valuesExecution;
   verifyIdentity(aoa.execution_contracts['REL.values'],expected.cid,expected.canonicalPreimage);
   assert.deepEqual(aoa.execution_contracts['REL.values'],expected.body);
+  assert.equal(expected.body.semantics.text_enumeration,previous.body.semantics.text_enumeration);
+  assert.deepEqual(expected.body.params_schema.$defs.value_contract.oneOf.slice(0,-1),
+    previous.body.params_schema.$defs.value_contract.oneOf);
 });
 
 

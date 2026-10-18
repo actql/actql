@@ -9472,7 +9472,7 @@ const schemas = {
                               "additionalProperties": false,
                               "properties": {
                                 "contract_schema_cid": {
-                                  "const": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
+                                  "const": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
                                 },
                                 "kind": {
                                   "const": "parameter_declaration"
@@ -11357,7 +11357,7 @@ const schemas = {
                               "additionalProperties": false,
                               "properties": {
                                 "contract_schema_cid": {
-                                  "const": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
+                                  "const": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
                                 },
                                 "kind": {
                                   "const": "parameter_declaration"
@@ -13165,7 +13165,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e"
+            "const": "sha256:c28bcb20f68716729b44361b4879d77f33e3af813a951e5f8bf48fb58d197278"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -13753,7 +13753,7 @@ const schemas = {
                               "additionalProperties": false,
                               "properties": {
                                 "contract_schema_cid": {
-                                  "const": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
+                                  "const": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
                                 },
                                 "kind": {
                                   "const": "parameter_declaration"
@@ -15638,7 +15638,7 @@ const schemas = {
                               "additionalProperties": false,
                               "properties": {
                                 "contract_schema_cid": {
-                                  "const": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
+                                  "const": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
                                 },
                                 "kind": {
                                   "const": "parameter_declaration"
@@ -17464,7 +17464,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e"
+            "const": "sha256:c28bcb20f68716729b44361b4879d77f33e3af813a951e5f8bf48fb58d197278"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -17510,7 +17510,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e"
+            "const": "sha256:c28bcb20f68716729b44361b4879d77f33e3af813a951e5f8bf48fb58d197278"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -18448,6 +18448,22 @@ const schemas = {
             "minLength": 1
           }
         }
+      },
+      {
+        "type": "object",
+        "required": [
+          "type",
+          "nullable"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "int64"
+          },
+          "nullable": {
+            "type": "boolean"
+          }
+        }
       }
     ]
   },
@@ -19213,8 +19229,8 @@ const optionalRequestFields = {
   }
 };
 
-export const checkReasonSchemaCid = "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e";
-export const checkOutcomeSchemaCid = "sha256:988a8893ede0e64a351f077f28c7b7c82a9b2988467b8eb8a02755ad3530ca7b";
+export const checkReasonSchemaCid = "sha256:c28bcb20f68716729b44361b4879d77f33e3af813a951e5f8bf48fb58d197278";
+export const checkOutcomeSchemaCid = "sha256:f0f8c4e3b39072e4b5d091c2aceb9443c0f7f81a8bdfa8d583ba947112bdec47";
 export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
 export const runStateProtocol = Object.freeze({version: "actql-run-state/0.1", statuses: Object.freeze(["preparing","running","waiting_checkpoint","resuming","needs_reconciliation","succeeded","failed","cancelled"])});
 function finiteWireNumber(value) {

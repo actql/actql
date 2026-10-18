@@ -151,7 +151,7 @@
     "schema": {
       "file": "spec/contracts/actql-protocol-schemas.json",
       "pointer": "/schemas/canonical_value_contract",
-      "cid": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
+      "cid": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
     },
     "admission": "all_supplied_bodies_including_unused_exact_checked_grammar_no_author_defaults_or_JSON_Schema_conversion",
     "ownership": "retain_exact_registry_envelope_and_environment_not_only_bare_body_cid",
@@ -1167,6 +1167,37 @@
       "propagation": "identity_preserving_paths_retain_constraint_transforming_Text_may_drop_only_sound_derived_output_never_original_admission",
       "provider": "retain_schema_constraint_or_report_unavailable_never_strip_to_accept",
       "compatibility": "enum_absent_bytes_and_existing_absent_bounds_behavior_unchanged"
+    },
+    "signed64": {
+      "grammar": {
+        "type": "object",
+        "required": [
+          "type",
+          "nullable"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "int64"
+          },
+          "nullable": {
+            "type": "boolean"
+          }
+        }
+      },
+      "domain": {
+        "minimum": "-9223372036854775808",
+        "maximum": "9223372036854775807"
+      },
+      "wire": "schema_directed_canonical_decimal_String_0_or_optional_minus_nonzero_digit_then_digits_in_full_signed64_range",
+      "rejection": "JSON_Number_plus_negative_zero_leading_zero_whitespace_fraction_exponent_or_out_of_range_never_round_or_relabel",
+      "identity": "distinct_complete_checked_int64_contract_and_typed_value_not_wire_Text_Number_or_Decimal",
+      "assignment": "same_leaf_and_existing_nullability_recursive_structure_no_implicit_numeric_or_Text_coercion",
+      "equality_order_keys": "exact_signed_integer_correspondence_retain_original_type_capture_and_existing_null_semantics",
+      "operations": "existing_data_and_same_domain_relational_rules_no_implicit_arithmetic_overload",
+      "provider": "exact_constraint_support_or_unavailable_no_schema_erasure",
+      "authority": "type_or_value_admission_is_not_permission_currentness_funding_or_reference_issuance",
+      "compatibility": "legacy_Number_Decimal_Text_bodies_value_bytes_and_numeric_literal_meaning_unchanged"
     }
   },
   "carrier_contract_bodies": {
@@ -2522,7 +2553,7 @@
       "expression_contract": {
         "path": "spec/contracts/actql-expressions.json",
         "pointer": "",
-        "cid": "sha256:e7645d18471d4436b7542302adce28303a8a634ce29e9f5fd849f5cee8d1159e"
+        "cid": "sha256:ed54dd0a56f4bfc7811a600db137ae5b32b24c2819a81ab69c7c5f06d349da7b"
       }
     }
   },

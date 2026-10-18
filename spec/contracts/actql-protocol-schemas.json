@@ -1,8 +1,8 @@
 {
   "version": "actql-protocol-schema-registry/0.1",
-  "registry_cid": "sha256:c6be35229d5a85665f223ee9a2683c0f5e54c32b033bdee01a4a58779eec0daa",
+  "registry_cid": "sha256:01ffc01cf448ecc21caebdb2e02706b243e7ede8997ed2130801fa747f0370cf",
   "schema_cids": {
-    "model_task": "sha256:f0b78bb09840a99b56f6fe910be33b9f51dfcc6349834aa44bcc1b5de1e87a7f",
+    "model_task": "sha256:27cb211cc9578f9b5fac27dc3d75c5236b13eebe501224b14f21eafbccda2d25",
     "contract_ref": "sha256:a149fa3216f6e15bfaca58a886f7a3e6a269b0109fe7b9ccca1c402c1a103e94",
     "contract_envelope": "sha256:12b59aa2fd993c1d540f8cc80f658760f17ee9f179d8d12cb5f037127b8ae6fe",
     "resource_ref": "sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac",
@@ -10,20 +10,20 @@
     "observation_facts": "sha256:bb63f5ddcba12a33225cc5fefc2ddf69ceed007524cb890d96004363b4ad0db4",
     "event_delivery_evidence": "sha256:e9e5f043206fdf00720bbd14f12a765796b3686a4485505f77ba0a2533767582",
     "source_view": "sha256:d6952a589192f22a335237629da2babd794b3b7f9a0c51d674d05146a5ea8d74",
-    "command_contract": "sha256:aea4b2e2c370116591ff1d3f2193cf5a246ca289daae4c8b628060bd97ed85d1",
-    "connector_catalog": "sha256:c76767b08b674271d50923cd0ab5ffe47c8ae5eec1b6fe55a96faee9af84795b",
+    "command_contract": "sha256:ebbbe68a8945e0674624f2214c09a338a6bfd7f4d8dad9d72b44da2ecbdeebd7",
+    "connector_catalog": "sha256:ee75f1a758c61e3dc90b082cba81fef3982abf506a260af6a8175340a762b565",
     "lock": "sha256:02e3693c855d6137ac1fee89705a2a11824cf6607ea593b3ee7786263f49bdd4",
     "effect_outcome": "sha256:9b2a918f994cd00147d4acd038639534dd767ff7f4e119b5a5fb43b9463592b1",
-    "author_value_contract": "sha256:ddc5515cc80aacf27e0e80c75667717efa89db934f668fc626cc239b630ee45a",
-    "canonical_value_contract": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c",
+    "author_value_contract": "sha256:6347c77a776b71f32be8996374db8b093c00de89eba14da8f4dc384a8c9cc7c7",
+    "canonical_value_contract": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1",
     "content_ref": "sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d",
     "content_availability_evidence": "sha256:784203dbc5f95925f83f57c0ff3230abef8bac867768bbe90b26f622fb2d867d",
-    "model_task_v02": "sha256:4d573d3b4ef25cfe72ad6d8c7bd1c9b13296e14801ea829f839f2461137c5734",
+    "model_task_v02": "sha256:d85dccc92c1e0f5cf254e011456d26f9964e8f700854498c008717b4c9ee97b2",
     "model_provider_defaults": "sha256:35258db20dca538d6889ac34789becea8c4a62858127848b1419d19a93b144e6",
-    "notion_database_read_declaration": "sha256:39426e9830ffa735632156dcebdfd8d456c164f3087bd7e3697d0f41edc1bc55",
+    "notion_database_read_declaration": "sha256:0d709d113a8dd2d7add4300fa8af2d7e52c3430b7570b1151e07bc8d97cfda9a",
     "notion_database_read_snapshot": "sha256:06577e00887cc24dae6de8bc67156e9782b4c4516d01bf50c509060f78948cfc",
-    "notion_database_read_declarations": "sha256:1bae79fa45a3cd055d58f9f9860f90fe2c2d3839396b932e6d8e65ae22de3c83",
-    "notion_public_connection": "sha256:2bf010f67678837163c6954e842acfde3c3a2d30ea29be4eff43cc56b7c30cb8"
+    "notion_database_read_declarations": "sha256:94611a22395804046e5c094a0118253555ec1c3e3c1a733d254c8c469655cd9b",
+    "notion_public_connection": "sha256:27697ec49a183cdc95b361df1f480a39613afed5eed44b2cb5c6f45eb8aede88"
   },
   "schemas": {
     "model_task": {
@@ -17279,7 +17279,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:8eafaa1fb7f80b59721c06f2a1003d3f61b6808e8a6f4ba8bc709cb8a807e3e5",
+  "artifact_registry_cid": "sha256:370ecc4621411b0c38bc28371b2ff1ded846a13def2ef597d7eb11e038d9f6f8",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -17289,7 +17289,7 @@
     "observation_set": "sha256:a2a967e39998c2d2037b035d81aab0eb5dce50b308c6d0c08f8b88512307f59c",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:1233ea18fefe024c7ededda918ace41c0a0ece305a0fae2699b047179c708924",
+    "executable_plan": "sha256:491b0ce6f65ae6102978e6bd8af7ed7fb3c23653c61c34e976e9527773605b9b",
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
@@ -17313,7 +17313,7 @@
     "verified_checkpoint_resolution": "sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76",
     "result_manifest": "sha256:bd718c411677e83cdf33258176d09c6dd690789b3cc7bb897cbff2b629290e02",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:c2ccbe439bebe37794c2771b5435a788d8315d4a1543c52d3cae6856fc315714",
+    "plan_document": "sha256:49ca9c601eb06ec139bce46a881c46cffb9fd920d6f37c29e04232dac714140a",
     "plan_result": "sha256:692b481d25e23400f0f81e0ddade946aba2dafca4dd2f1fe6c22c7e15e5122c1",
     "run_state": "sha256:3fbfc2cc5a79449fd05fce58e0fad25f6eef0ecde8314a222417a2e233db28c2",
     "captured_run": "sha256:a37894cfc6919e1562be6b44293871f349085e6b94e27281eec26b7af8d0514c",
@@ -17334,8 +17334,8 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:988a8893ede0e64a351f077f28c7b7c82a9b2988467b8eb8a02755ad3530ca7b",
-    "check_reason": "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e",
+    "check_outcome": "sha256:f0f8c4e3b39072e4b5d091c2aceb9443c0f7f81a8bdfa8d583ba947112bdec47",
+    "check_reason": "sha256:c28bcb20f68716729b44361b4879d77f33e3af813a951e5f8bf48fb58d197278",
     "model_provider_binding": "sha256:a4a37e0016403b483aa267dca7aae6c682940d2b23343b95defbcac2a1ca92b3",
     "model_invocation_scope": "sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3",
     "content_generation": "sha256:a8e96d9a2a9d9e721f69b30da117dc0cdeca4c864cb21747b5551a9853fe037c",
@@ -34435,6 +34435,22 @@
                           }
                         }
                       }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "type"
+                      ],
+                      "properties": {
+                        "type": {
+                          "const": "int64"
+                        },
+                        "nullable": {
+                          "type": "boolean",
+                          "default": false
+                        }
+                      }
                     }
                   ]
                 },
@@ -35304,6 +35320,22 @@
                           "items": {
                             "type": "string"
                           }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "type",
+                        "nullable"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "type": {
+                          "const": "int64"
+                        },
+                        "nullable": {
+                          "type": "boolean"
                         }
                       }
                     }
@@ -36266,6 +36298,26 @@
                             "additionalProperties": {
                               "$ref": "#/$defs/parameter_type"
                             }
+                          },
+                          "default": {},
+                          "meta": {
+                            "$ref": "#/$defs/meta"
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "type"
+                        ],
+                        "properties": {
+                          "type": {
+                            "const": "int64"
+                          },
+                          "nullable": {
+                            "type": "boolean",
+                            "default": false
                           },
                           "default": {},
                           "meta": {
@@ -66087,6 +66139,22 @@
                               }
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "type"
+                          ],
+                          "properties": {
+                            "type": {
+                              "const": "int64"
+                            },
+                            "nullable": {
+                              "type": "boolean",
+                              "default": false
+                            }
+                          }
                         }
                       ]
                     },
@@ -66956,6 +67024,22 @@
                               "items": {
                                 "type": "string"
                               }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "type",
+                            "nullable"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "type": {
+                              "const": "int64"
+                            },
+                            "nullable": {
+                              "type": "boolean"
                             }
                           }
                         }
@@ -67918,6 +68002,26 @@
                                 "additionalProperties": {
                                   "$ref": "#/$defs/parameter_type"
                                 }
+                              },
+                              "default": {},
+                              "meta": {
+                                "$ref": "#/$defs/meta"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "type"
+                            ],
+                            "properties": {
+                              "type": {
+                                "const": "int64"
+                              },
+                              "nullable": {
+                                "type": "boolean",
+                                "default": false
                               },
                               "default": {},
                               "meta": {
@@ -87715,7 +87819,7 @@
                                 ],
                                 "properties": {
                                   "contract_schema_cid": {
-                                    "const": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
+                                    "const": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
                                   },
                                   "kind": {
                                     "const": "parameter_declaration"
@@ -89603,7 +89707,7 @@
                                 ],
                                 "properties": {
                                   "contract_schema_cid": {
-                                    "const": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
+                                    "const": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
                                   },
                                   "kind": {
                                     "const": "parameter_declaration"
@@ -91230,7 +91334,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e"
+              "const": "sha256:c28bcb20f68716729b44361b4879d77f33e3af813a951e5f8bf48fb58d197278"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -92002,7 +92106,7 @@
                                 ],
                                 "properties": {
                                   "contract_schema_cid": {
-                                    "const": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
+                                    "const": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
                                   },
                                   "kind": {
                                     "const": "parameter_declaration"
@@ -93890,7 +93994,7 @@
                                 ],
                                 "properties": {
                                   "contract_schema_cid": {
-                                    "const": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
+                                    "const": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
                                   },
                                   "kind": {
                                     "const": "parameter_declaration"
@@ -95535,7 +95639,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e"
+              "const": "sha256:c28bcb20f68716729b44361b4879d77f33e3af813a951e5f8bf48fb58d197278"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -95581,7 +95685,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:b68ddf82e07cefaf18e98e652f5763661371bf5ffa626134967c6c17bb2fd20e"
+              "const": "sha256:c28bcb20f68716729b44361b4879d77f33e3af813a951e5f8bf48fb58d197278"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -95860,7 +95964,7 @@
                   ],
                   "properties": {
                     "contract_schema_cid": {
-                      "const": "sha256:2eeca1588b33cf19cfdbd1891820a6657ccd5a80cade9c159784d2e744cbbe6c"
+                      "const": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
                     },
                     "kind": {
                       "const": "parameter_declaration"
@@ -98231,7 +98335,7 @@
           "const": 0.005
         },
         "arithmetic_margin": {
-          "const": 1e-06
+          "const": 0.000001
         },
         "grid_margin_scaled": {
           "const": 1e-10

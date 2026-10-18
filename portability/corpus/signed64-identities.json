@@ -1,0 +1,1124 @@
+{
+  "version": "actql-value-contract-vectors/0.1",
+  "contracts": [
+    {
+      "id": "signed64-nonnull",
+      "contract": {
+        "type": "int64",
+        "nullable": false
+      },
+      "canonicalPreimage": "{\"nullable\":false,\"type\":\"int64\"}",
+      "cid": "sha256:fc30374e28e6988a3a1e743d71e5140c916d8344aa78efd16a70d6f0b764652c"
+    },
+    {
+      "id": "signed64-nullable",
+      "contract": {
+        "type": "int64",
+        "nullable": true
+      },
+      "canonicalPreimage": "{\"nullable\":true,\"type\":\"int64\"}",
+      "cid": "sha256:c67f8289c48c8d30a10d016e3361441d09248a68619b042a75414bae54b6f582"
+    },
+    {
+      "id": "legacy-number",
+      "contract": {
+        "type": "number",
+        "nullable": false
+      },
+      "canonicalPreimage": "{\"nullable\":false,\"type\":\"number\"}",
+      "cid": "sha256:8a7be765d273ccfa06d916976f27fcb0404d814371e72c058502335b51b9bd3d"
+    },
+    {
+      "id": "legacy-text",
+      "contract": {
+        "type": "string",
+        "nullable": false
+      },
+      "canonicalPreimage": "{\"nullable\":false,\"type\":\"string\"}",
+      "cid": "sha256:bdb64e23ec74c82b8da488c92f0c81139ace557178683385384878c79eb17ce3"
+    },
+    {
+      "id": "legacy-decimal19",
+      "contract": {
+        "type": "decimal",
+        "nullable": false,
+        "precision": 19,
+        "scale": 0
+      },
+      "canonicalPreimage": "{\"nullable\":false,\"precision\":19,\"scale\":0,\"type\":\"decimal\"}",
+      "cid": "sha256:41f2570e5fada92f67f18178114632c2bd731cd48e433982f1a16b83efc3bbec"
+    }
+  ],
+  "canonicalGrammar": {
+    "cid": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1",
+    "canonicalPreimage": "{\"$defs\":{\"value_contract\":{\"oneOf\":[{\"additionalProperties\":false,\"allOf\":[{\"if\":{\"properties\":{\"precision\":{\"const\":1}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":1}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":2}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":2}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":3}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":3}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":4}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":4}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":5}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":5}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":6}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":6}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":7}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":7}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":8}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":8}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":9}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":9}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":10}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":10}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":11}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":11}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":12}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":12}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":13}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":13}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":14}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":14}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":15}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":15}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":16}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":16}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":17}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":17}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":18}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":18}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":19}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":19}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":20}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":20}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":21}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":21}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":22}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":22}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":23}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":23}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":24}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":24}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":25}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":25}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":26}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":26}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":27}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":27}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":28}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":28}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":29}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":29}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":30}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":30}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":31}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":31}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":32}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":32}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":33}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":33}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":34}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":34}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":35}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":35}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":36}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":36}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":37}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":37}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":38}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":38}}}}],\"properties\":{\"nullable\":{\"type\":\"boolean\"},\"precision\":{\"maximum\":38,\"minimum\":1,\"type\":\"integer\"},\"scale\":{\"maximum\":38,\"minimum\":0,\"type\":\"integer\"},\"type\":{\"const\":\"decimal\"}},\"required\":[\"type\",\"nullable\",\"precision\",\"scale\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"enum\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"max_codepoints\":{\"minimum\":0,\"type\":\"integer\"},\"max_utf8_bytes\":{\"minimum\":0,\"type\":\"integer\"},\"min_length\":{\"minimum\":0,\"type\":\"integer\"},\"nullable\":{\"type\":\"boolean\"},\"type\":{\"const\":\"string\"}},\"required\":[\"type\",\"nullable\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"nullable\":{\"type\":\"boolean\"},\"type\":{\"enum\":[\"number\",\"boolean\",\"timestamp\",\"date\",\"json\"]}},\"required\":[\"type\",\"nullable\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"items\":{\"$ref\":\"#/$defs/value_contract\"},\"max_items\":{\"minimum\":0,\"type\":\"integer\"},\"nullable\":{\"type\":\"boolean\"},\"type\":{\"const\":\"array\"}},\"required\":[\"type\",\"nullable\",\"items\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"additional_properties\":{\"const\":false},\"fields\":{\"additionalProperties\":{\"$ref\":\"#/$defs/value_contract\"},\"propertyNames\":{\"pattern\":\"^(?!__cid$)(?!__actql_)(?![\\\\s\\\\S]*\\\\.)(?=[\\\\s\\\\S]*\\\\S)[\\\\s\\\\S]+$\"},\"type\":\"object\"},\"nullable\":{\"type\":\"boolean\"},\"type\":{\"const\":\"object\"}},\"required\":[\"type\",\"nullable\",\"additional_properties\",\"fields\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"dimensions\":{\"minimum\":1,\"type\":\"integer\"},\"element_type\":{\"const\":\"f32\"},\"nullable\":{\"type\":\"boolean\"},\"type\":{\"const\":\"vector\"}},\"required\":[\"type\",\"nullable\",\"dimensions\",\"element_type\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"nullable\":{\"type\":\"boolean\"},\"resource_kind\":{\"minLength\":1,\"type\":\"string\"},\"type\":{\"const\":\"resource_ref\"}},\"required\":[\"type\",\"nullable\",\"resource_kind\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"media_type\":{\"minLength\":1,\"type\":\"string\"},\"nullable\":{\"type\":\"boolean\"},\"type\":{\"const\":\"content_ref\"}},\"required\":[\"type\",\"nullable\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"nullable\":{\"type\":\"boolean\"},\"type\":{\"const\":\"int64\"}},\"required\":[\"type\",\"nullable\"],\"type\":\"object\"}]}},\"$id\":\"https://smooth.dev/schemas/actql/value-contract-0.1.json\",\"$ref\":\"#/$defs/value_contract\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\"}"
+  },
+  "valuesExecution": {
+    "body": {
+      "version": "actql-rel-values-execution/0.1",
+      "operation": "REL.values",
+      "inputs": [],
+      "output": "relation",
+      "dependencies": {
+        "canonical_value_contract": {
+          "path": "spec/contracts/actql-protocol-schemas.json",
+          "pointer": "/schemas/canonical_value_contract",
+          "cid": "sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1"
+        }
+      },
+      "params_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://smooth.dev/schemas/actql/rel-values-params-0.1.json",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schema",
+          "rows"
+        ],
+        "properties": {
+          "schema": {
+            "type": "object",
+            "minProperties": 1,
+            "propertyNames": {
+              "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+            },
+            "additionalProperties": {
+              "$ref": "#/$defs/value_contract"
+            }
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/wire_value"
+              }
+            }
+          }
+        },
+        "$defs": {
+          "value_contract": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "type",
+                  "nullable",
+                  "precision",
+                  "scale"
+                ],
+                "properties": {
+                  "type": {
+                    "const": "decimal"
+                  },
+                  "nullable": {
+                    "type": "boolean"
+                  },
+                  "precision": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 38
+                  },
+                  "scale": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 38
+                  }
+                },
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 1
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 1
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 2
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 2
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 3
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 3
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 4
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 4
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 5
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 5
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 6
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 6
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 7
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 7
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 8
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 8
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 9
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 9
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 10
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 10
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 11
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 11
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 12
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 12
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 13
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 13
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 14
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 14
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 15
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 15
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 16
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 16
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 17
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 17
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 18
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 18
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 19
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 19
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 20
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 20
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 21
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 21
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 22
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 22
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 23
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 23
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 24
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 24
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 25
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 25
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 26
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 26
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 27
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 27
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 28
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 28
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 29
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 29
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 30
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 30
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 31
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 31
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 32
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 32
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 33
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 33
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 34
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 34
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 35
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 35
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 36
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 36
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 37
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 37
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "precision": {
+                          "const": 38
+                        }
+                      },
+                      "required": [
+                        "precision"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "scale": {
+                          "maximum": 38
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "type",
+                  "nullable"
+                ],
+                "properties": {
+                  "type": {
+                    "const": "string"
+                  },
+                  "nullable": {
+                    "type": "boolean"
+                  },
+                  "min_length": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "max_codepoints": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "max_utf8_bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "enum": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "type",
+                  "nullable"
+                ],
+                "properties": {
+                  "type": {
+                    "enum": [
+                      "number",
+                      "boolean",
+                      "timestamp",
+                      "date"
+                    ]
+                  },
+                  "nullable": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "type",
+                  "nullable",
+                  "items"
+                ],
+                "properties": {
+                  "type": {
+                    "const": "array"
+                  },
+                  "nullable": {
+                    "type": "boolean"
+                  },
+                  "items": {
+                    "$ref": "#/$defs/value_contract"
+                  },
+                  "max_items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "type",
+                  "nullable",
+                  "additional_properties",
+                  "fields"
+                ],
+                "properties": {
+                  "type": {
+                    "const": "object"
+                  },
+                  "nullable": {
+                    "type": "boolean"
+                  },
+                  "additional_properties": {
+                    "const": false
+                  },
+                  "fields": {
+                    "type": "object",
+                    "propertyNames": {
+                      "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+                    },
+                    "additionalProperties": {
+                      "$ref": "#/$defs/value_contract"
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "type",
+                  "nullable",
+                  "dimensions",
+                  "element_type"
+                ],
+                "properties": {
+                  "type": {
+                    "const": "vector"
+                  },
+                  "nullable": {
+                    "type": "boolean"
+                  },
+                  "dimensions": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "element_type": {
+                    "const": "f32"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "type",
+                  "nullable"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "type": {
+                    "const": "int64"
+                  },
+                  "nullable": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            ]
+          },
+          "wire_value": {
+            "oneOf": [
+              {
+                "type": [
+                  "null",
+                  "boolean",
+                  "number",
+                  "string"
+                ]
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/wire_value"
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/$defs/wire_value"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "semantics": {
+        "schema_form": "nonempty_field_map_of_complete_checked_constructible_contracts",
+        "cells": "bound_typed_wire_values_without_cell_wrappers",
+        "quotation": "remove_exact_singleton_literal_once_before_execution_params",
+        "parameter_resolution": "resolve_only_authored_cell_root_holes_before_execution_params",
+        "business_objects": "never_reinterpret_param_or_literal_members",
+        "row_fields": "exact_declared_set_including_nullable_fields",
+        "values": "recursive_declared_type_admission_without_cast_repair_or_rounding",
+        "strings": "preserve_well_formed_unicode_scalar_sequence_without_NFC_or_line_break_repair",
+        "object_member_names": "NFC_then_LF_reject_noncanonical_names_and_collisions",
+        "string_extents": "retained_unicode_scalars_and_UTF8_bytes",
+        "decimal": "canonical_fixed_scale_string_under_declared_precision_and_scale",
+        "empty_rows": "retain_declared_schema",
+        "row_order": "retain_occurrence_order",
+        "row_multiplicity": "retain_all_occurrences",
+        "object_key_order": "canonical_utf16_order_not_row_order",
+        "publication": "validate_all_rows_and_resolved_limits_before_publication",
+        "recursive_resources": {
+          "selected_root_types": [
+            "array",
+            "object",
+            "vector"
+          ],
+          "bytes": "sum_canonical_typed_wire_cell_bytes_across_all_occurrences_including_null_without_double_counting_nested_containers",
+          "byte_exclusions": [
+            "scalar_typed_cells",
+            "row_keys",
+            "row_wrappers",
+            "rows_wrapper",
+            "schema"
+          ],
+          "host_byte_ceiling": "max_nested_value_bytes",
+          "depth": "declared_cell_type_scalar_0_vector_1_array_1_plus_items_object_1_plus_max_fields",
+          "depth_excludes": [
+            "row_wrapper",
+            "rows_wrapper"
+          ],
+          "host_depth_ceiling": "max_nested_value_depth",
+          "empty_or_null": "type_depth_still_checked_zero_selected_cells_have_zero_bytes",
+          "failure": "atomic_before_any_consumer_without_truncation"
+        },
+        "unsupported_backend": "reject_runnable_plan_without_exact_registered_contract_support",
+        "text_enumeration": "exact_original_vector_membership_intersected_with_retained_extents_preserve_nullable_and_empty_duplicates_order_no_constraint_stripping_or_authority",
+        "int64": "canonical_signed_decimal_String_in_full_signed64_range_distinct_logical_type_no_JSON_Number_or_implicit_coercion"
+      }
+    },
+    "canonicalPreimage": "{\"dependencies\":{\"canonical_value_contract\":{\"cid\":\"sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1\",\"path\":\"spec/contracts/actql-protocol-schemas.json\",\"pointer\":\"/schemas/canonical_value_contract\"}},\"inputs\":[],\"operation\":\"REL.values\",\"output\":\"relation\",\"params_schema\":{\"$defs\":{\"value_contract\":{\"oneOf\":[{\"additionalProperties\":false,\"allOf\":[{\"if\":{\"properties\":{\"precision\":{\"const\":1}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":1}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":2}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":2}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":3}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":3}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":4}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":4}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":5}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":5}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":6}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":6}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":7}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":7}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":8}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":8}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":9}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":9}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":10}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":10}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":11}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":11}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":12}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":12}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":13}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":13}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":14}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":14}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":15}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":15}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":16}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":16}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":17}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":17}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":18}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":18}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":19}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":19}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":20}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":20}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":21}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":21}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":22}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":22}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":23}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":23}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":24}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":24}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":25}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":25}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":26}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":26}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":27}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":27}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":28}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":28}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":29}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":29}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":30}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":30}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":31}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":31}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":32}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":32}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":33}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":33}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":34}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":34}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":35}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":35}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":36}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":36}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":37}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":37}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":38}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":38}}}}],\"properties\":{\"nullable\":{\"type\":\"boolean\"},\"precision\":{\"maximum\":38,\"minimum\":1,\"type\":\"integer\"},\"scale\":{\"maximum\":38,\"minimum\":0,\"type\":\"integer\"},\"type\":{\"const\":\"decimal\"}},\"required\":[\"type\",\"nullable\",\"precision\",\"scale\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"enum\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"},\"max_codepoints\":{\"maximum\":9007199254740991,\"minimum\":0,\"type\":\"integer\"},\"max_utf8_bytes\":{\"maximum\":9007199254740991,\"minimum\":0,\"type\":\"integer\"},\"min_length\":{\"maximum\":9007199254740991,\"minimum\":0,\"type\":\"integer\"},\"nullable\":{\"type\":\"boolean\"},\"type\":{\"const\":\"string\"}},\"required\":[\"type\",\"nullable\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"nullable\":{\"type\":\"boolean\"},\"type\":{\"enum\":[\"number\",\"boolean\",\"timestamp\",\"date\"]}},\"required\":[\"type\",\"nullable\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"items\":{\"$ref\":\"#/$defs/value_contract\"},\"max_items\":{\"maximum\":9007199254740991,\"minimum\":0,\"type\":\"integer\"},\"nullable\":{\"type\":\"boolean\"},\"type\":{\"const\":\"array\"}},\"required\":[\"type\",\"nullable\",\"items\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"additional_properties\":{\"const\":false},\"fields\":{\"additionalProperties\":{\"$ref\":\"#/$defs/value_contract\"},\"propertyNames\":{\"pattern\":\"^(?!__cid$)(?!__actql_)(?![\\\\s\\\\S]*\\\\.)(?=[\\\\s\\\\S]*\\\\S)[\\\\s\\\\S]+$\"},\"type\":\"object\"},\"nullable\":{\"type\":\"boolean\"},\"type\":{\"const\":\"object\"}},\"required\":[\"type\",\"nullable\",\"additional_properties\",\"fields\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"dimensions\":{\"minimum\":1,\"type\":\"integer\"},\"element_type\":{\"const\":\"f32\"},\"nullable\":{\"type\":\"boolean\"},\"type\":{\"const\":\"vector\"}},\"required\":[\"type\",\"nullable\",\"dimensions\",\"element_type\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"nullable\":{\"type\":\"boolean\"},\"type\":{\"const\":\"int64\"}},\"required\":[\"type\",\"nullable\"],\"type\":\"object\"}]},\"wire_value\":{\"oneOf\":[{\"type\":[\"null\",\"boolean\",\"number\",\"string\"]},{\"items\":{\"$ref\":\"#/$defs/wire_value\"},\"type\":\"array\"},{\"additionalProperties\":{\"$ref\":\"#/$defs/wire_value\"},\"type\":\"object\"}]}},\"$id\":\"https://smooth.dev/schemas/actql/rel-values-params-0.1.json\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"additionalProperties\":false,\"properties\":{\"rows\":{\"items\":{\"additionalProperties\":{\"$ref\":\"#/$defs/wire_value\"},\"type\":\"object\"},\"type\":\"array\"},\"schema\":{\"additionalProperties\":{\"$ref\":\"#/$defs/value_contract\"},\"minProperties\":1,\"propertyNames\":{\"pattern\":\"^(?!__cid$)(?!__actql_)(?![\\\\s\\\\S]*\\\\.)(?=[\\\\s\\\\S]*\\\\S)[\\\\s\\\\S]+$\"},\"type\":\"object\"}},\"required\":[\"schema\",\"rows\"],\"type\":\"object\"},\"semantics\":{\"business_objects\":\"never_reinterpret_param_or_literal_members\",\"cells\":\"bound_typed_wire_values_without_cell_wrappers\",\"decimal\":\"canonical_fixed_scale_string_under_declared_precision_and_scale\",\"empty_rows\":\"retain_declared_schema\",\"int64\":\"canonical_signed_decimal_String_in_full_signed64_range_distinct_logical_type_no_JSON_Number_or_implicit_coercion\",\"object_key_order\":\"canonical_utf16_order_not_row_order\",\"object_member_names\":\"NFC_then_LF_reject_noncanonical_names_and_collisions\",\"parameter_resolution\":\"resolve_only_authored_cell_root_holes_before_execution_params\",\"publication\":\"validate_all_rows_and_resolved_limits_before_publication\",\"quotation\":\"remove_exact_singleton_literal_once_before_execution_params\",\"recursive_resources\":{\"byte_exclusions\":[\"scalar_typed_cells\",\"row_keys\",\"row_wrappers\",\"rows_wrapper\",\"schema\"],\"bytes\":\"sum_canonical_typed_wire_cell_bytes_across_all_occurrences_including_null_without_double_counting_nested_containers\",\"depth\":\"declared_cell_type_scalar_0_vector_1_array_1_plus_items_object_1_plus_max_fields\",\"depth_excludes\":[\"row_wrapper\",\"rows_wrapper\"],\"empty_or_null\":\"type_depth_still_checked_zero_selected_cells_have_zero_bytes\",\"failure\":\"atomic_before_any_consumer_without_truncation\",\"host_byte_ceiling\":\"max_nested_value_bytes\",\"host_depth_ceiling\":\"max_nested_value_depth\",\"selected_root_types\":[\"array\",\"object\",\"vector\"]},\"row_fields\":\"exact_declared_set_including_nullable_fields\",\"row_multiplicity\":\"retain_all_occurrences\",\"row_order\":\"retain_occurrence_order\",\"schema_form\":\"nonempty_field_map_of_complete_checked_constructible_contracts\",\"string_extents\":\"retained_unicode_scalars_and_UTF8_bytes\",\"strings\":\"preserve_well_formed_unicode_scalar_sequence_without_NFC_or_line_break_repair\",\"text_enumeration\":\"exact_original_vector_membership_intersected_with_retained_extents_preserve_nullable_and_empty_duplicates_order_no_constraint_stripping_or_authority\",\"unsupported_backend\":\"reject_runnable_plan_without_exact_registered_contract_support\",\"values\":\"recursive_declared_type_admission_without_cast_repair_or_rounding\"},\"version\":\"actql-rel-values-execution/0.1\"}",
+    "cid": "sha256:96c7925a693801dcb3bce9f3e2da9b4fd9ed39e517af90cbac0e1adbee5ad2ae"
+  },
+  "inheritedBarrier": {
+    "priorCid": "sha256:ebae25fecbef6a2c79bdaa971f977d4bdcfb4c4c677b25bc9de6ec67354872e9",
+    "currentCid": "sha256:85c2e4115a2d1f4dd09884838a9c15222cfbc659e2074fa2a1990c354c0eb5d7",
+    "canonicalPreimage": "{\"author_profile_options\":false,\"barrier_schema\":{\"$defs\":{\"value_contract\":{\"oneOf\":[{\"additionalProperties\":false,\"allOf\":[{\"if\":{\"properties\":{\"precision\":{\"const\":1}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":1}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":2}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":2}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":3}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":3}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":4}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":4}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":5}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":5}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":6}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":6}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":7}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":7}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":8}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":8}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":9}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":9}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":10}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":10}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":11}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":11}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":12}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":12}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":13}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":13}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":14}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":14}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":15}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":15}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":16}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":16}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":17}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":17}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":18}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":18}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":19}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":19}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":20}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":20}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":21}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":21}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":22}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":22}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":23}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":23}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":24}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":24}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":25}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":25}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":26}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":26}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":27}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":27}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":28}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":28}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":29}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":29}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":30}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":30}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":31}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":31}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":32}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":32}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":33}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":33}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":34}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":34}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":35}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":35}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":36}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":36}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":37}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":37}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":38}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":38}}}}],\"properties\":{\"nullable\":{\"type\":\"boolean\"},\"precision\":{\"maximum\":38,\"minimum\":1,\"type\":\"integer\"},\"scale\":{\"maximum\":38,\"minimum\":0,\"type\":\"integer\"},\"type\":{\"const\":\"decimal\"}},\"required\":[\"type\",\"nullable\",\"precision\",\"scale\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"max_codepoints\":{\"minimum\":0,\"type\":\"integer\"},\"max_utf8_bytes\":{\"minimum\":0,\"type\":\"integer\"},\"min_length\":{\"minimum\":0,\"type\":\"integer\"},\"nullable\":{\"type\":\"boolean\"},\"type\":{\"const\":\"string\"}},\"required\":[\"type\",\"nullable\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"nullable\":{\"type\":\"boolean\"},\"type\":{\"enum\":[\"number\",\"boolean\",\"timestamp\",\"date\",\"json\"]}},\"required\":[\"type\",\"nullable\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"items\":{\"$ref\":\"#/$defs/value_contract\"},\"max_items\":{\"minimum\":0,\"type\":\"integer\"},\"nullable\":{\"type\":\"boolean\"},\"type\":{\"const\":\"array\"}},\"required\":[\"type\",\"nullable\",\"items\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"additional_properties\":{\"const\":false},\"fields\":{\"additionalProperties\":{\"$ref\":\"#/$defs/value_contract\"},\"propertyNames\":{\"pattern\":\"^(?!__cid$)(?!__actql_)(?!.*\\\\.)(?=.*\\\\S).+$\"},\"type\":\"object\"},\"nullable\":{\"type\":\"boolean\"},\"type\":{\"const\":\"object\"}},\"required\":[\"type\",\"nullable\",\"additional_properties\",\"fields\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"dimensions\":{\"minimum\":1,\"type\":\"integer\"},\"element_type\":{\"const\":\"f32\"},\"nullable\":{\"type\":\"boolean\"},\"type\":{\"const\":\"vector\"}},\"required\":[\"type\",\"nullable\",\"dimensions\",\"element_type\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"nullable\":{\"type\":\"boolean\"},\"resource_kind\":{\"minLength\":1,\"type\":\"string\"},\"type\":{\"const\":\"resource_ref\"}},\"required\":[\"type\",\"nullable\",\"resource_kind\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"media_type\":{\"minLength\":1,\"type\":\"string\"},\"nullable\":{\"type\":\"boolean\"},\"type\":{\"const\":\"content_ref\"}},\"required\":[\"type\",\"nullable\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"nullable\":{\"type\":\"boolean\"},\"type\":{\"const\":\"int64\"}},\"required\":[\"type\",\"nullable\"],\"type\":\"object\"}]}},\"$id\":\"https://smooth.dev/schemas/actql-text-time-evaluation-barrier-0.1.json\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"additionalProperties\":false,\"properties\":{\"barrier_cid\":{\"pattern\":\"^sha256:[a-f0-9]{64}$\",\"type\":\"string\"},\"barrier_id\":{\"minLength\":1,\"type\":\"string\"},\"evaluations\":{\"items\":{\"$id\":\"https://smooth.dev/schemas/actql-text-time-evaluation-envelope-0.1.json\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"additionalProperties\":false,\"properties\":{\"arguments_cid\":{\"pattern\":\"^sha256:[a-f0-9]{64}$\",\"type\":\"string\"},\"envelope_cid\":{\"pattern\":\"^sha256:[a-f0-9]{64}$\",\"type\":\"string\"},\"host_policy_profile_cid\":{\"pattern\":\"^sha256:[a-f0-9]{64}$\",\"type\":\"string\"},\"input\":{\"additionalProperties\":false,\"properties\":{\"evidence_cid\":{\"pattern\":\"^sha256:[a-f0-9]{64}$\",\"type\":\"string\"},\"max_codepoints\":{\"minimum\":0,\"type\":\"integer\"},\"max_utf8_bytes\":{\"minimum\":0,\"type\":\"integer\"},\"source\":{\"enum\":[\"value_contract\",\"literal\",\"runtime_preflight\"]}},\"required\":[\"source\",\"max_codepoints\",\"max_utf8_bytes\",\"evidence_cid\"],\"type\":\"object\"},\"max_output_bytes\":{\"minimum\":0,\"type\":\"integer\"},\"max_replacements\":{\"minimum\":0,\"type\":\"integer\"},\"operation\":{\"enum\":[\"split_part\",\"substring\",\"utf8_truncate\",\"try_number\",\"parse_timestamp\",\"format_timestamp\",\"regex_match\",\"regex_extract\",\"regex_replace\",\"nfkc\",\"case_fold\",\"try_timestamp\"]},\"pattern\":{\"additionalProperties\":false,\"properties\":{\"ast_cid\":{\"pattern\":\"^sha256:[a-f0-9]{64}$\",\"type\":\"string\"},\"max_pattern_bytes\":{\"minimum\":0,\"type\":\"integer\"}},\"required\":[\"ast_cid\",\"max_pattern_bytes\"],\"type\":\"object\"},\"replacement\":{\"additionalProperties\":false,\"properties\":{\"ast_cid\":{\"pattern\":\"^sha256:[a-f0-9]{64}$\",\"type\":\"string\"},\"capture_reference_count\":{\"minimum\":0,\"type\":\"integer\"},\"literal_utf8_bytes\":{\"minimum\":0,\"type\":\"integer\"},\"max_capture_index\":{\"maximum\":99,\"minimum\":0,\"type\":\"integer\"}},\"required\":[\"ast_cid\",\"literal_utf8_bytes\",\"capture_reference_count\",\"max_capture_index\"],\"type\":\"object\"},\"semantic_step_id\":{\"minLength\":1,\"type\":\"string\"},\"verification\":{\"enum\":[\"plan\",\"unit_preflight\"]},\"version\":{\"const\":\"actql-text-time-evaluation-envelope/0.1\"}},\"required\":[\"version\",\"semantic_step_id\",\"operation\",\"arguments_cid\",\"input\",\"max_output_bytes\",\"verification\",\"host_policy_profile_cid\",\"envelope_cid\"],\"type\":\"object\"},\"minItems\":1,\"type\":\"array\"},\"expressions\":{\"additionalProperties\":{\"$id\":\"https://smooth.dev/schemas/actql-text-time-expression-0.1.json\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"split_part\":{\"additionalProperties\":false,\"properties\":{\"delimiter\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"index\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minimum\":0,\"type\":\"integer\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"value\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"value\",\"delimiter\",\"index\"],\"type\":\"object\"}},\"required\":[\"split_part\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"nfkc\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"nfkc\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"case_fold\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"case_fold\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"substring\":{\"additionalProperties\":false,\"properties\":{\"length\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minimum\":0,\"type\":\"integer\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"start\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minimum\":0,\"type\":\"integer\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"value\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"value\",\"start\",\"length\"],\"type\":\"object\"}},\"required\":[\"substring\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"utf8_truncate\":{\"additionalProperties\":false,\"properties\":{\"max_bytes\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minimum\":1,\"type\":\"integer\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"value\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"value\",\"max_bytes\"],\"type\":\"object\"}},\"required\":[\"utf8_truncate\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"try_number\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"value\"],\"type\":\"object\"}},\"required\":[\"try_number\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"parse_timestamp\":{\"additionalProperties\":false,\"properties\":{\"pattern\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"value\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"value\",\"pattern\"],\"type\":\"object\"}},\"required\":[\"parse_timestamp\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"try_timestamp\":{\"additionalProperties\":false,\"properties\":{\"pattern\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"value\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"value\",\"pattern\"],\"type\":\"object\"}},\"required\":[\"try_timestamp\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"format_timestamp\":{\"additionalProperties\":false,\"properties\":{\"pattern\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"value\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"value\",\"pattern\"],\"type\":\"object\"}},\"required\":[\"format_timestamp\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"regex_match\":{\"additionalProperties\":false,\"properties\":{\"flags\":{\"additionalProperties\":false,\"properties\":{\"literal\":{\"items\":{\"enum\":[\"m\",\"s\"]},\"type\":\"array\",\"uniqueItems\":true}},\"required\":[\"literal\"],\"type\":\"object\"},\"pattern\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"value\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"value\",\"pattern\"],\"type\":\"object\"}},\"required\":[\"regex_match\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"regex_extract\":{\"additionalProperties\":false,\"properties\":{\"capture\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minimum\":0,\"type\":\"integer\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"flags\":{\"additionalProperties\":false,\"properties\":{\"literal\":{\"items\":{\"enum\":[\"m\",\"s\"]},\"type\":\"array\",\"uniqueItems\":true}},\"required\":[\"literal\"],\"type\":\"object\"},\"pattern\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"value\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"value\",\"pattern\",\"capture\"],\"type\":\"object\"}},\"required\":[\"regex_extract\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"regex_replace\":{\"additionalProperties\":false,\"properties\":{\"flags\":{\"additionalProperties\":false,\"properties\":{\"literal\":{\"items\":{\"enum\":[\"m\",\"s\"]},\"type\":\"array\",\"uniqueItems\":true}},\"required\":[\"literal\"],\"type\":\"object\"},\"pattern\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"replacement\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"type\":\"string\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"value\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"value\",\"pattern\",\"replacement\"],\"type\":\"object\"}},\"required\":[\"regex_replace\"],\"type\":\"object\"}]},\"minProperties\":1,\"type\":\"object\"},\"host_policy_profile_cid\":{\"pattern\":\"^sha256:[a-f0-9]{64}$\",\"type\":\"string\"},\"input_contract_cid\":{\"pattern\":\"^sha256:[a-f0-9]{64}$\",\"type\":\"string\"},\"input_ref\":{\"minLength\":1,\"type\":\"string\"},\"output_contract_cid\":{\"pattern\":\"^sha256:[a-f0-9]{64}$\",\"type\":\"string\"},\"output_contracts\":{\"additionalProperties\":{\"$ref\":\"#/$defs/value_contract\"},\"minProperties\":1,\"type\":\"object\"},\"output_ref\":{\"minLength\":1,\"type\":\"string\"},\"version\":{\"const\":\"actql-text-time-evaluation-barrier/0.1\"}},\"required\":[\"version\",\"barrier_id\",\"input_ref\",\"output_ref\",\"expressions\",\"output_contracts\",\"evaluations\",\"input_contract_cid\",\"output_contract_cid\",\"host_policy_profile_cid\",\"barrier_cid\"],\"type\":\"object\"},\"barrier_schema_cid\":\"sha256:44d5fccfc562b1292224b6d8920dc8c56e59bf3066417bd50c2b942545b07ac7\",\"bound_derivation\":{\"case_fold\":{\"max_output_bytes\":\"max_output_codepoints*4\",\"max_output_codepoints\":\"input.max_codepoints*4\",\"unicode_data_cid\":\"sha256:4a84a6d133b6282a5d50ba743ef8cab3fc87d4ccc91612663c5fc0d02f705dd4\"},\"format_timestamp\":{\"max_output_bytes\":\"sum(canonical-pattern-token-widths-and-literal-utf8-bytes)\"},\"input\":{\"literal\":\"exact-nfc-scalar-and-utf8-extent\",\"runtime_bound\":\"host-ceiling-bound-unit-preflight\",\"value_contract\":\"declared-string-extent-or-fixed-time-extent\"},\"nfkc\":{\"max_output_bytes\":\"max_output_codepoints*4\",\"max_output_codepoints\":\"input.max_codepoints*18\",\"unicode_data_cid\":\"sha256:4a84a6d133b6282a5d50ba743ef8cab3fc87d4ccc91612663c5fc0d02f705dd4\"},\"overflow\":\"reject-checked-plan\",\"parse_timestamp\":{\"max_output_bytes\":24},\"regex_extract\":{\"max_output_bytes\":\"input.max_utf8_bytes\"},\"regex_match\":{\"max_output_bytes\":5},\"regex_replace\":{\"max_output_bytes\":\"input.max_utf8_bytes+max_replacements*(replacement.literal_utf8_bytes+replacement.capture_reference_count*input.max_utf8_bytes)\",\"max_replacements\":\"input.max_codepoints+1\",\"zero_width_match\":\"advances-one-unicode-scalar\"},\"split_part\":{\"max_output_bytes\":\"input.max_utf8_bytes\"},\"substring\":{\"max_output_bytes\":\"min(input.max_utf8_bytes,length*4)\"},\"try_number\":{\"max_output_bytes\":32},\"try_timestamp\":{\"max_output_bytes\":24,\"null\":\"input-parse-failure-only\"},\"unresolved\":\"reject-checked-plan\",\"utf8_truncate\":{\"max_output_bytes\":\"min(input.max_utf8_bytes,max_bytes)\"},\"version\":\"actql-text-time-bound-laws/0.1\"},\"contract_maturity\":\"final\",\"data_contract_cids\":{\"regex_grammar_cid\":\"sha256:460873332aa4731fb4631a293e798ce089516ffc058c544253c1d5d3b9c6f6a1\",\"timestamp_pattern_grammar_cid\":\"sha256:0bf21470f9609e414e597a5cdc599764677bc92e479073f9d9924fdaba88ba72\",\"unicode_data_cid\":\"sha256:8e4b432a6b975be3876db964d8c9cf2a623b1f08b914dc6f852912cad5325332\"},\"evaluation_envelope_schema\":{\"$id\":\"https://smooth.dev/schemas/actql-text-time-evaluation-envelope-0.1.json\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"additionalProperties\":false,\"properties\":{\"arguments_cid\":{\"pattern\":\"^sha256:[a-f0-9]{64}$\",\"type\":\"string\"},\"envelope_cid\":{\"pattern\":\"^sha256:[a-f0-9]{64}$\",\"type\":\"string\"},\"host_policy_profile_cid\":{\"pattern\":\"^sha256:[a-f0-9]{64}$\",\"type\":\"string\"},\"input\":{\"additionalProperties\":false,\"properties\":{\"evidence_cid\":{\"pattern\":\"^sha256:[a-f0-9]{64}$\",\"type\":\"string\"},\"max_codepoints\":{\"minimum\":0,\"type\":\"integer\"},\"max_utf8_bytes\":{\"minimum\":0,\"type\":\"integer\"},\"source\":{\"enum\":[\"value_contract\",\"literal\",\"runtime_preflight\"]}},\"required\":[\"source\",\"max_codepoints\",\"max_utf8_bytes\",\"evidence_cid\"],\"type\":\"object\"},\"max_output_bytes\":{\"minimum\":0,\"type\":\"integer\"},\"max_replacements\":{\"minimum\":0,\"type\":\"integer\"},\"operation\":{\"enum\":[\"split_part\",\"substring\",\"utf8_truncate\",\"try_number\",\"parse_timestamp\",\"format_timestamp\",\"regex_match\",\"regex_extract\",\"regex_replace\",\"nfkc\",\"case_fold\",\"try_timestamp\"]},\"pattern\":{\"additionalProperties\":false,\"properties\":{\"ast_cid\":{\"pattern\":\"^sha256:[a-f0-9]{64}$\",\"type\":\"string\"},\"max_pattern_bytes\":{\"minimum\":0,\"type\":\"integer\"}},\"required\":[\"ast_cid\",\"max_pattern_bytes\"],\"type\":\"object\"},\"replacement\":{\"additionalProperties\":false,\"properties\":{\"ast_cid\":{\"pattern\":\"^sha256:[a-f0-9]{64}$\",\"type\":\"string\"},\"capture_reference_count\":{\"minimum\":0,\"type\":\"integer\"},\"literal_utf8_bytes\":{\"minimum\":0,\"type\":\"integer\"},\"max_capture_index\":{\"maximum\":99,\"minimum\":0,\"type\":\"integer\"}},\"required\":[\"ast_cid\",\"literal_utf8_bytes\",\"capture_reference_count\",\"max_capture_index\"],\"type\":\"object\"},\"semantic_step_id\":{\"minLength\":1,\"type\":\"string\"},\"verification\":{\"enum\":[\"plan\",\"unit_preflight\"]},\"version\":{\"const\":\"actql-text-time-evaluation-envelope/0.1\"}},\"required\":[\"version\",\"semantic_step_id\",\"operation\",\"arguments_cid\",\"input\",\"max_output_bytes\",\"verification\",\"host_policy_profile_cid\",\"envelope_cid\"],\"type\":\"object\"},\"evaluation_envelope_schema_cid\":\"sha256:168fa3b40dd267423f0cbf0b350e9fbab589f094afb400f9f83a2dad22171ba9\",\"input_carriers\":[\"relation\"],\"kind\":\"pure-scalar-profile\",\"output_carrier\":\"relation\",\"profile_id\":\"actql-text-time/0.1\",\"public_expressions\":[\"split_part\",\"substring\",\"utf8_truncate\",\"try_number\",\"parse_timestamp\",\"format_timestamp\",\"regex_match\",\"regex_extract\",\"regex_replace\",\"nfkc\",\"case_fold\",\"try_timestamp\"],\"reference_support\":\"contract_only\",\"semantics\":{\"ambiguous_local_time\":\"not-applicable\",\"nonexistent_local_time\":\"not-applicable\",\"normalization\":\"NFC-before-measurement\",\"regex_backtracking_features\":false,\"regex_capture_numbering\":\"zero-whole-match-one-first-group\",\"regex_empty_match_advance\":\"one-unicode-scalar\",\"regex_engine\":\"actql-regex-grammar/0.1\",\"regex_flags\":[\"m\",\"s\"],\"regex_match\":\"leftmost-first\",\"regex_replacement_capture\":\"$$-literal-dollar-and-$1..$99-capture\",\"regex_shorthand_classes\":\"ASCII-exact-with-scalar-complements\",\"text_index\":\"zero-based-unicode-scalar-index\",\"timestamp_missing_time\":\"ActQL-defined-zero-not-host-default\",\"timestamp_pattern_contract\":\"actql-timestamp-pattern/0.1\",\"timestamp_pattern_tokens\":[\"yyyy\",\"MM\",\"dd\",\"HH\",\"mm\",\"ss\",\"SSS\"],\"timezone_database\":\"none-UTC-only\",\"unicode\":\"unicode/16.0\",\"unicode_domain\":\"unicode-scalar-values-no-unpaired-surrogates\"},\"source_schema\":{\"$id\":\"https://smooth.dev/schemas/actql-text-time-expression-0.1.json\",\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"split_part\":{\"additionalProperties\":false,\"properties\":{\"delimiter\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"index\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minimum\":0,\"type\":\"integer\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"value\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"value\",\"delimiter\",\"index\"],\"type\":\"object\"}},\"required\":[\"split_part\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"nfkc\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"nfkc\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"case_fold\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"case_fold\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"substring\":{\"additionalProperties\":false,\"properties\":{\"length\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minimum\":0,\"type\":\"integer\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"start\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minimum\":0,\"type\":\"integer\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"value\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"value\",\"start\",\"length\"],\"type\":\"object\"}},\"required\":[\"substring\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"utf8_truncate\":{\"additionalProperties\":false,\"properties\":{\"max_bytes\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minimum\":1,\"type\":\"integer\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"value\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"value\",\"max_bytes\"],\"type\":\"object\"}},\"required\":[\"utf8_truncate\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"try_number\":{\"additionalProperties\":false,\"properties\":{\"value\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"value\"],\"type\":\"object\"}},\"required\":[\"try_number\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"parse_timestamp\":{\"additionalProperties\":false,\"properties\":{\"pattern\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"value\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"value\",\"pattern\"],\"type\":\"object\"}},\"required\":[\"parse_timestamp\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"try_timestamp\":{\"additionalProperties\":false,\"properties\":{\"pattern\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"value\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"value\",\"pattern\"],\"type\":\"object\"}},\"required\":[\"try_timestamp\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"format_timestamp\":{\"additionalProperties\":false,\"properties\":{\"pattern\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"value\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"value\",\"pattern\"],\"type\":\"object\"}},\"required\":[\"format_timestamp\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"regex_match\":{\"additionalProperties\":false,\"properties\":{\"flags\":{\"additionalProperties\":false,\"properties\":{\"literal\":{\"items\":{\"enum\":[\"m\",\"s\"]},\"type\":\"array\",\"uniqueItems\":true}},\"required\":[\"literal\"],\"type\":\"object\"},\"pattern\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"value\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"value\",\"pattern\"],\"type\":\"object\"}},\"required\":[\"regex_match\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"regex_extract\":{\"additionalProperties\":false,\"properties\":{\"capture\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minimum\":0,\"type\":\"integer\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"flags\":{\"additionalProperties\":false,\"properties\":{\"literal\":{\"items\":{\"enum\":[\"m\",\"s\"]},\"type\":\"array\",\"uniqueItems\":true}},\"required\":[\"literal\"],\"type\":\"object\"},\"pattern\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"value\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"value\",\"pattern\",\"capture\"],\"type\":\"object\"}},\"required\":[\"regex_extract\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"regex_replace\":{\"additionalProperties\":false,\"properties\":{\"flags\":{\"additionalProperties\":false,\"properties\":{\"literal\":{\"items\":{\"enum\":[\"m\",\"s\"]},\"type\":\"array\",\"uniqueItems\":true}},\"required\":[\"literal\"],\"type\":\"object\"},\"pattern\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"replacement\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"literal\":{\"type\":\"string\"}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]},\"value\":{\"oneOf\":[{\"additionalProperties\":false,\"properties\":{\"field\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"field\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"literal\":{}},\"required\":[\"literal\"],\"type\":\"object\"},{\"additionalProperties\":false,\"properties\":{\"$param\":{\"minLength\":1,\"type\":\"string\"}},\"required\":[\"$param\"],\"type\":\"object\"}]}},\"required\":[\"value\",\"pattern\",\"replacement\"],\"type\":\"object\"}},\"required\":[\"regex_replace\"],\"type\":\"object\"}]},\"source_schema_cid\":\"sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1\",\"version\":\"actql-profile-contract/0.1\"}"
+  },
+  "wireExamples": {
+    "qualification": "Independent exact domain/wire examples; checked Value supplier acceptance is separate",
+    "acceptedDecimalStrings": [
+      "-9223372036854775808",
+      "-1",
+      "0",
+      "1",
+      "9007199254740992",
+      "9007199254740993",
+      "9223372036854775807"
+    ],
+    "rejectedDecimalStrings": [
+      "-9223372036854775809",
+      "9223372036854775808",
+      "-0",
+      "+1",
+      "01",
+      "-01",
+      "1.0",
+      "1e0",
+      " 1",
+      "1 ",
+      ""
+    ],
+    "rejectedJSONTypes": [
+      0,
+      1,
+      true,
+      false,
+      {},
+      []
+    ],
+    "nullableNullSeparate": true
+  }
+}

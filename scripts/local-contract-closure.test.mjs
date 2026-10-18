@@ -53,10 +53,12 @@ test('inherited text/time dependency edges resolve through explicit roles', () =
   assert.equal(bodies.unicode_semantics.data_cid, textTimeBase.bound_derivation.case_fold.unicode_data_cid);
 });
 
-test('the inherited text/time dependency resolves to its adopted ContentRef body', () => {
+test('the inherited text/time dependency preserves original ContentRef bytes beside its signed64 declaration extension', () => {
   const expected = 'sha256:ebae25fecbef6a2c79bdaa971f977d4bdcfb4c4c677b25bc9de6ec67354872e9';
-  assert.equal(read('spec/contracts/actql-expressions.json').inherited_text_time_profile_cid, expected);
-  assert.equal(machineCid(textTimeBase), expected);
+  const vectors = read('portability/corpus/signed64-identities.json').inheritedBarrier;
+  assert.equal(vectors.priorCid, expected);
+  assert.equal(read('spec/contracts/actql-expressions.json').inherited_text_time_profile_cid, vectors.currentCid);
+  verifyIdentity(textTimeBase, vectors.currentCid, vectors.canonicalPreimage);
   assert.equal(Object.hasOwn(textTimeBase, 'contract_cid'), false);
   for (const key of ['source_schema', 'evaluation_envelope_schema', 'barrier_schema']) {
     assert.equal(machineCid(textTimeBase[key]), textTimeBase[key + '_cid']);

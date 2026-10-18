@@ -168,8 +168,8 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-read-collection.json#/schemas/collection_execution sha256:ecec7bddd86ceddbcae23bec38f4ed2b2bc556c6b5a2b03367ac3a918a2c717e
 ../../../spec/contracts/actql-read-collection.json#/schemas/collection_execution_state sha256:06233f48ac77835af9d446ec3027958d5a2b2b411403fa06074a90b01ce6f412
 ../../../spec/contracts/actql-read-collection.json#/schemas/collection_execution_evidence sha256:fffc7a866c73f77a5d1bbe1cacef1f01fe7eb937bb2480e3c233259c10c7d87a
-../../../spec/contracts/actql-read-collection.json#/schemas/collection_union_contract sha256:53e3cc24e663f8fa4b84506f77743e5a632ce3e0062fe89f936a104b811b816f
-../../../spec/contracts/actql-read-collection.json#/schemas/collection_integration_binding sha256:9b6f873d6da2062f63ffeaaa690dde63bd90de18747a7a2a69ebfea5044646b8
+../../../spec/contracts/actql-read-collection.json#/schemas/collection_union_contract sha256:67a7c6aa3920e6a8b329762babc3c90c7749cf4ba995e0e916d6853a0f040cb1
+../../../spec/contracts/actql-read-collection.json#/schemas/collection_integration_binding sha256:be6d881566eb00618ca7ee840ce0e203870a3a4f71aa06f50dbdd0d0ee77b82e
 ../../../spec/contracts/actql-read-collection.json#/schemas/collection_inputs sha256:1a17c5a8795ecada711e9fbee0ca4b5b159c10cf6b5a005965af705e67c5c9ae
 ../../../spec/contracts/actql-read-collection.json#/laws sha256:017718057ac839a8db9727fff36302971a9e3e677faa70c591a5e6f027a46d0f
 ```
