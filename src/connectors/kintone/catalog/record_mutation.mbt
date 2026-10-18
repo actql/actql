@@ -121,6 +121,7 @@ pub fn match_original_record_target_revision(
 /// A protocol candidate under one original App/Form, never a dispatch claim.
 /// Ordered IDs and required revisions retain their exact original strings.
 pub struct RecordDeleteRequest {
+  priv mut self : RecordDeleteRequest?
   priv targets : Array[OriginalRecordTarget]
   priv document : @encode.EncodedDocument
 }
@@ -230,7 +231,13 @@ pub fn prepare_record_delete_request(
     }
     @encode.end_array(writer)
     @encode.end_object(writer)
-    Ok({ targets: targets.copy(), document: @encode.finish_document(writer), })
+    let result : RecordDeleteRequest = {
+      self: None,
+      targets: targets.copy(),
+      document: @encode.finish_document(writer),
+    }
+    result.self = Some(result)
+    Ok(result)
   } catch {
     _ => {
       @encode.cancel_writer(writer)
@@ -440,6 +447,7 @@ pub fn recheck_record_delete_records(
 /// An HTTP response observation for this original request. This is neither
 /// an Effect commit nor cleanup ACK; lost replies have no constructor here.
 pub struct RecordDeleteAcknowledgement {
+  priv mut self : RecordDeleteAcknowledgement?
   priv request : RecordDeleteRequest
   response_sha256 : String
 }
@@ -504,5 +512,24 @@ pub fn project_record_delete_acknowledgement(
     @decode.object_length(root) == Some(0) else {
     return Err(InvalidResponse)
   }
-  Ok({ request, response_sha256: @sha.hex(bytes), })
+  let result : RecordDeleteAcknowledgement = {
+    self: None,
+    request,
+    response_sha256: @sha.hex(bytes),
+  }
+  result.self = Some(result)
+  Ok(result)
+}
+
+///|
+/// Nominal DATA provenance only, not a dispatch or current authorization.
+pub fn record_delete_request_is_original(value : RecordDeleteRequest) -> Bool {
+  value.self is Some(original) && physical_equal(original, value)
+}
+
+///|
+pub fn record_delete_acknowledgement_is_original(
+  value : RecordDeleteAcknowledgement,
+) -> Bool {
+  value.self is Some(original) && physical_equal(original, value)
 }

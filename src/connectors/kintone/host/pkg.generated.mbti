@@ -33,6 +33,8 @@ pub fn prepare_record_update_mapping(RecordDeclaration, String, Array[@client_ro
 
 pub fn project_record_create_preview_outcome(RecordCreateMapping, @catalog.RecordCreateRequest, @catalog.RecordCreateAcknowledgement, @run_publication.EffectPreviewIdentity, Int, Int, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[RecordCreatePreviewOutcome, RecordCreateOutcomeIssue]
 
+pub fn project_record_delete_preview_outcome(RecordDeleteMapping, @catalog.RecordDeleteRequest, @catalog.RecordDeleteAcknowledgement, @run_publication.EffectPreviewIdentity, Int, Int, @catalog.RecordValueLimits, @catalog.RecordMutationLimits) -> Result[RecordDeletePreviewOutcome, RecordDeleteOutcomeIssue]
+
 pub fn recheck_record_read_form(RecordRead, Bytes, @catalog.FormFieldLimits) -> Result[Unit, RecordReadIssue]
 
 pub fn record_create_mapping(RecordCreateMapping) -> @client_row_source_host.RowMapping
@@ -55,6 +57,8 @@ pub fn record_declaration(RecordDeclaration) -> @client_row_source_host.RowDecla
 
 pub fn record_delete_mapping(RecordDeleteMapping) -> @client_row_source_host.RowMapping
 
+pub fn record_delete_mapping_is_original(RecordDeleteMapping) -> Bool
+
 pub fn record_delete_mapping_matches_declaration(RecordDeleteMapping, RecordDeclaration) -> Bool
 
 pub fn record_delete_mapping_matches_request(RecordDeleteMapping, @catalog.RecordDeleteRequest) -> Bool
@@ -64,6 +68,14 @@ pub fn record_delete_preview_before_wire(RecordDeletePreview) -> String
 pub fn record_delete_preview_identity(RecordDeletePreview) -> String
 
 pub fn record_delete_preview_matches(RecordDeletePreview, RecordDeleteMapping, @catalog.OriginalRecordTarget) -> Bool
+
+pub fn record_delete_preview_outcome_matches(RecordDeletePreviewOutcome, RecordDeleteMapping, @catalog.RecordDeleteRequest, @run_publication.EffectPreviewIdentity, Int, Int) -> Bool
+
+pub fn record_delete_preview_outcome_response_sha256(RecordDeletePreviewOutcome) -> String
+
+pub fn record_delete_preview_outcome_row_cid(RecordDeletePreviewOutcome) -> String
+
+pub fn record_delete_preview_outcome_wire(RecordDeletePreviewOutcome) -> String
 
 pub fn record_delete_preview_version_cid(RecordDeletePreview) -> String
 
@@ -131,7 +143,20 @@ pub struct RecordDeleteMapping {
   // private fields
 }
 
+pub enum RecordDeleteOutcomeIssue {
+  MappingMismatch
+  ForeignPreview
+  Response(@catalog.RecordMutationIssue)
+  Before(RecordReadIssue)
+  Encoding
+  Preview(@run_publication.EffectRowOutcomeIssue)
+}
+
 pub struct RecordDeletePreview {
+  // private fields
+}
+
+pub struct RecordDeletePreviewOutcome {
   // private fields
 }
 
