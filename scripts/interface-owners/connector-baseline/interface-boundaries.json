@@ -12710,7 +12710,7 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d2c4d6127f3451996ac483d245ac69e330d645b49ae86d675e13afc2ace0ad9c",
+      "sha256": "577c474e65590438976541050e7108ad71e20f91d72c23a9a024dd5767a075f5",
       "role": "connector-semantics",
       "owner": "Salesforce bounded retained Catalog and exact prepared request recovery; no restored current, credential, dispatch or response authority",
       "exports": [
