@@ -169,13 +169,13 @@ int main(int argc,char **argv) {
     step("last original aliases permit separate context ACKs and data-only pair release");
     moonbit_decref(read);moonbit_decref(prd);moonbit_decref(prh);
     moonbit_decref(sql);moonbit_decref(srd);moonbit_decref(srh);
+    REQUIRE(actql_backing_return_into(h,loan,&br)==0);
+    REQUIRE(actql_backing_finish_returned_data(&bh,&loan,&br)==0);
     REQUIRE(actql_domain_close_into(h,rd,&dr)==0 && actql_domain_issue_family(dr)==0);
     REQUIRE(actql_domain_finish_closed_data(&rh,&rd,&dr)==0);
     REQUIRE(actql_domain_close_into(h,sd,&dr)==0 && actql_domain_issue_family(dr)==0);
     REQUIRE(actql_domain_finish_closed_data(&sqh,&sd,&dr)==0);
     REQUIRE(actql_host_resources_capacity_scalar(h,1)==initial);
-    REQUIRE(actql_backing_return_into(h,loan,&br)==0);
-    REQUIRE(actql_backing_finish_returned_data(&bh,&loan,&br)==0);
     moonbit_decref(h2);
     REQUIRE(actql_control_try_close_and_drop(&h,&cr)==0 && !h && !cr);
     REQUIRE(close(fd)==0);
