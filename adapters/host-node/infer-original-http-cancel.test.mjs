@@ -6,10 +6,14 @@ import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {once} from 'node:events';
 import {setImmediate as turn} from 'node:timers/promises';
-import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import {pathToFileURL} from 'node:url';
 import {createOriginalUndiciFetch} from '../../packages/provider-ai-sdk/_internal/original-undici-transport.mjs';
 import {originalSdkCommonFixture} from './infer-original-sdk-common.fixture.mjs';
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
+
+const moon=await import(process.env.ACTQL_INFER_ORIGINAL_RUNTIME===undefined
+  ? new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url).href
+  : pathToFileURL(process.env.ACTQL_INFER_ORIGINAL_RUNTIME).href);
 
 async function until(read,accept) {
   for(let index=0;index<500;index++){
