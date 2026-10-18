@@ -130,11 +130,16 @@ pub fn read_notion_database_read_declaration(
     Ok(value) => value
     Err(issue) => return Err(Metadata(issue))
   }
-  read_notion_database_read_declaration_cursor(original_bytes, original, limits, {
-    work: limits.max_work,
-    nodes: limits.contracts.max_nodes,
-    text: limits.contracts.max_text_bytes,
-  })
+  read_notion_database_read_declaration_cursor(
+    original_bytes,
+    original,
+    limits,
+    {
+      work: limits.max_work,
+      nodes: limits.contracts.max_nodes,
+      text: limits.contracts.max_text_bytes,
+    },
+  )
 }
 
 ///|

@@ -60,7 +60,8 @@ pub fn read_notion_database_read_declarations(
   let declarations = []
   for resource_alias in aliases {
     if resource_alias.is_empty() ||
-      @admitted.text_value(resource_alias, limits.metadata.max_name_bytes) is None {
+      @admitted.text_value(resource_alias, limits.metadata.max_name_bytes)
+      is None {
       return Err(InvalidDeclaration)
     }
     if !read_contract_spend(budget, 1) ||
@@ -69,7 +70,8 @@ pub fn read_notion_database_read_declarations(
     }
     let cursor = @decode.lookup(root, resource_alias).unwrap()
     let span = @decode.cursor_span(cursor)
-    if span.start_byte < 0 || span.end_byte < span.start_byte ||
+    if span.start_byte < 0 ||
+      span.end_byte < span.start_byte ||
       span.end_byte > original_bytes.length() {
       return Err(InvalidDeclaration)
     }
@@ -77,8 +79,9 @@ pub fn read_notion_database_read_declarations(
     if !read_contract_spend(budget, length) {
       return Err(BudgetExceeded)
     }
-    let value_bytes = Bytes::makei(length, index =>
-      original_bytes[span.start_byte + index])
+    let value_bytes = Bytes::makei(length, index => {
+      original_bytes[span.start_byte + index]
+    })
     let declaration = match
       read_notion_database_read_declaration_cursor(
         value_bytes, cursor, limits, budget,
@@ -115,7 +118,8 @@ pub fn notion_database_read_declarations_alias_at(
   index : Int,
 ) -> String? {
   if !notion_database_read_declarations_is_original(declarations) ||
-    index < 0 || index >= declarations.aliases.length() {
+    index < 0 ||
+    index >= declarations.aliases.length() {
     None
   } else {
     Some(declarations.aliases[index])
@@ -128,7 +132,8 @@ pub fn notion_database_read_declarations_at(
   index : Int,
 ) -> NotionDatabaseReadDeclaration? {
   if !notion_database_read_declarations_is_original(declarations) ||
-    index < 0 || index >= declarations.declarations.length() {
+    index < 0 ||
+    index >= declarations.declarations.length() {
     None
   } else {
     Some(declarations.declarations[index])

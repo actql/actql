@@ -174,12 +174,22 @@ test "Notion public database map shares aggregate work and keeps whole input bou
     is Ok(_),
   )
   let nested = b"{\"a\":{\"id\":\"db\"}}"
-  assert_true(read_notion_database_read_declarations(nested, {
-    ..limits, metadata: { ..limits.metadata, max_depth: 1, },
-  }, 1) is Err(_))
-  assert_true(read_notion_database_read_declarations(nested, {
-    ..limits, metadata: { ..limits.metadata, max_depth: 2, },
-  }, 1) is Ok(_))
+  assert_true(
+    read_notion_database_read_declarations(
+      nested,
+      { ..limits, metadata: { ..limits.metadata, max_depth: 1, }, },
+      1,
+    )
+    is Err(_),
+  )
+  assert_true(
+    read_notion_database_read_declarations(
+      nested,
+      { ..limits, metadata: { ..limits.metadata, max_depth: 2, }, },
+      1,
+    )
+    is Ok(_),
+  )
 }
 
 ///|
