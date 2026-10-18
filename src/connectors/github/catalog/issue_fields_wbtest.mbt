@@ -7,7 +7,7 @@ fn field_connection(
 ) -> String {
   let item = if field == "assignees" { "login" } else { "name" }
   let nodes : Array[Json] = values.map(value => {
-    let fields : Map[String, Json] = {}
+    let fields : Map[String, Json] = Map([])
     fields[item] = value.to_json()
     Json::object(fields)
   })
@@ -72,10 +72,12 @@ test "nested Issue fields finish only after exact original repository Issue and 
   let request = issue_page_read_next_request(read, 100).unwrap().unwrap()
   assert_true(request.contains("query ActqlIssueAssignees("))
   let parsed = @json.parse(request) catch { _ => abort("invalid request JSON") }
-  guard parsed is Json::object(root) else { abort("request not object") }
+  guard parsed is Object(root) else { abort("request not object") }
   let expected : Json = {
-    "id": "R_A".to_json(), "number": 7.to_json(),
-    "first": 100.to_json(), "after": "A0".to_json(),
+    "id": "R_A".to_json(),
+    "number": Json::number(7.0),
+    "first": Json::number(100.0),
+    "after": "A0".to_json(),
   }
   assert_eq(root.get("variables"), Some(expected))
 
