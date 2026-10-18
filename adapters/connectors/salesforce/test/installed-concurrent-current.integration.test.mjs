@@ -52,8 +52,9 @@ test('installed concurrent refreshes retain their own Catalog when the first fin
             rechecks.length = 0;
             holdNextResolution = true;
             const firstFlight = stage.apply.refreshPreflight(input);
-            // Retain the rejection until the original pending refresh is joined.
-            void firstFlight.catch(() => {});
+            const firstSettled = firstFlight.then(value => ({value}),
+              error => ({error, failed: true}));
+            let firstOutcome;
             let second;
             try {
               await firstEntered;
@@ -66,8 +67,12 @@ test('installed concurrent refreshes retain their own Catalog when the first fin
               rechecks.length = 0;
             } finally {
               releaseFirst();
+              // Even a later refresh failure must join this original pending
+              // operation before the fixture's Host and Site can close.
+              firstOutcome = await firstSettled;
             }
-            const first = await firstFlight;
+            if (firstOutcome.failed) throw firstOutcome.error;
+            const first = firstOutcome.value;
             completionOrder.push('first');
             firstCatalog = rechecks.at(-1)?.observation;
             assert.ok(firstCatalog);
