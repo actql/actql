@@ -243,7 +243,7 @@ test('a captured but unevaluated CJS image does not gain post-entry module prove
 test('post-load capture cannot adopt a cache preseed without original Source handoff', t => {
   const f = fixture(t, {'original.cjs': 'module.exports={value:"original-cache"};'});
   const result = f.run('throw new Error("MustNotReachEntry");', [
-    'const Module=require("node:module"), filename=require("node:path").join(root,"original.cjs");',
+    'const Module=require("node:module"), filename=require.resolve(require("node:path").join(root,"original.cjs"));',
     'const fake=new Module(filename);fake.filename=filename;fake.loaded=true;fake.exports={value:"fake"};',
     'Module._cache[filename]=fake;',
     'originalImageLoader.captureLoadedModules();',

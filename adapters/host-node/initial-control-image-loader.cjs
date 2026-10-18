@@ -185,6 +185,18 @@ function installInitialControlImageLoader(groups) {
       assertCurrent();
       const original = nativeApply(nativeMapGet, images, [result.url]);
       if (original === undefined) fail('UncapturedInitialControlImage');
+      if (loadedCaptured && (original.format === 'commonjs' || original.format === 'json')) {
+        const filename = fileURLToPath(original.url);
+        let initialized = false;
+        for (let index = 0; index < loadedModules.length; index++) {
+          const held = loadedModules[index];
+          if (held.filename === filename && held.module !== undefined) initialized = true;
+        }
+        // Node can hand Source to its ESM CJS translator before publishing the
+        // new Module cache entry. Refuse here, before that compilation, rather
+        // than treating a later current check as pre-entry provenance.
+        if (!initialized) { invalidated = true; fail('InitialControlImageLoaderChanged'); }
+      }
       if ((original.format === 'commonjs' || original.format === 'json') &&
           !nativeApply(nativeMapHas, delivered, [result.url])) {
         const property = descriptor(stockCache, fileURLToPath(result.url));
