@@ -868,6 +868,15 @@ approved Preview and the existing Unknown/non-resend decision remain mandatory
 in the consuming Host. DELETE keeps empty changes/body and absent after-state;
 the same physical limitations as the original request still apply.
 
+The private Node `restoreOwnedGcsObjectMutationRequest` caller forwards that
+same retained raw response, its separate SHA-256 guard, original status/headers,
+canonical changes, exact body and request CID. It rejects incomplete inputs and
+shared byte backing before the typed bridge. The existing Core reader, rather
+than JavaScript parsing, hashing or re-encoding, checks provider meaning and
+the original request identity. Its new locally owned request cannot borrow the
+old live child's target/current view. Missing ABI refuses; no fallback read,
+fresh marker, dispatch claim or resend is attempted.
+
 Retained bytes and header/intent/body Strings overlap hash workspace, bounded
 metadata and Value decoder trees, before/after maps, canonical writers,
 reconstructed request preimages and escaped request projections. The original
