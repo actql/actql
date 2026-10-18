@@ -8,6 +8,7 @@ import * as moon from '../../../../_build/js/release/build/connectors/salesforce
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {installSalesforceAuthorization} from '../host/installed-salesforce-site.mjs';
+import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
 import * as targets from '../site/salesforce-target-observation.mjs';
 import {openSalesforceEffectSiteFixture} from './salesforce-effect-site.fixture.mjs';
 
@@ -184,4 +185,19 @@ test('Account target original rejects other object profiles before target I/O', 
     ...f.options(), request: f.makeRequest('Test_Record__c', 'a00000000000001'),
   }), {code: 'SalesforceAccountConditionalProfileUnavailable'});
   assert.equal(f.setup.seen.length, before);
+});
+
+test('Account target original refuses an earlier confirmed response substituted for a different use', async t => {
+  const f = await fixture(t);
+  let raw;
+  const first = await targets.observeSalesforceAccountConditionalTarget({...f.options(),
+    async callResource(options) { raw = await callHttpsCredentialResource(options); return raw; }});
+  targets.withSalesforceAccountTargetOriginal(first, f.originals, () => {});
+  const substituted = await targets.observeSalesforceAccountConditionalTarget({...f.options(),
+    async callResource() { return raw; }});
+  assert.throws(() => targets.withSalesforceAccountTargetOriginal(substituted, f.originals, () => {}),
+    {code: 'SalesforceAccountConditionalRepresentationUnavailable'});
+  targets.withSalesforceAccountTargetOriginal(first, f.originals, () => {});
+  assert.equal(f.setup.journal.inspect(first.useCid).outcome, 'succeeded');
+  assert.equal(f.count(), 1);
 });

@@ -1,5 +1,5 @@
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {invokeScopedCredentialOperation, ownInvocationContext,
+import {invocationBindingsMatch, invokeScopedCredentialOperation, ownInvocationContext,
   ownInvocationLimits} from
   '../../../host-common/owned-invocation-context.mjs';
 import {callHttpsCredentialResource, withHttpsCredentialRunResponseOriginal} from
@@ -59,6 +59,10 @@ async function observeSingleTarget({
        moon.salesforceSingleWriteRequestGrantOperation(request) !== 'salesforce:record:update')) {
     fail('SalesforceAccountConditionalProfileUnavailable');
   }
+  const useProjection = accountConditional ? context.credential.control.useProjection : undefined;
+  const grantIdentity = accountConditional ? context.credential.control.identity : undefined;
+  const expectedGrantCid = accountConditional
+    ? Reflect.apply(grantIdentity, context.credential.control, [context.authorization.grant]) : undefined;
   signal?.throwIfAborted();
   const response = await invokeScopedCredentialOperation({
     authorization: context.authorization,
@@ -95,6 +99,8 @@ async function observeSingleTarget({
   if (accountConditional) {
     accountTargetOriginals.set(observed, {moon, request, currentCatalog,
       control: context.credential.control, journal: context.credential.journal,
+      scope: context.scope, expectedGrantCid, expectedUseId: context.authorization.useId,
+      useProjection,
       response, signal, failure: undefined, facts: undefined});
   }
   return observed;
@@ -130,12 +136,18 @@ export function withSalesforceAccountTargetOriginal(observed, originals, consume
       original.signal?.throwIfAborted();
       return withHttpsCredentialRunResponseOriginal(original.response,
         original.control, original.journal, credentialFacts => {
+          const use = Reflect.apply(original.useProjection, original.control, [credentialFacts.use]);
           const {requestRepresentation: sent, responseRepresentation: received} = credentialFacts;
           const values = name => original.response.headers
             .filter(pair => pair[0] === name).map(pair => pair[1]);
           const etags = values('etag');
           const encodings = values('content-encoding');
           if (observed.record === undefined || observed.statusCode !== 200 ||
+              credentialFacts.response !== original.response ||
+              credentialFacts.scope.operation !== 'salesforce:record:observe' ||
+              !invocationBindingsMatch(credentialFacts.scope, original.scope) ||
+              use[0] !== original.response.useCid || use[1] !== original.expectedGrantCid ||
+              use[2] !== original.expectedUseId ||
               credentialFacts.method !== 'GET' ||
               credentialFacts.path !== original.moon.salesforceSingleWriteRequestPath(original.request) ||
               credentialFacts.requestBodyBytes !== 0 ||
