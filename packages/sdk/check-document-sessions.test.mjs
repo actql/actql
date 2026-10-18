@@ -11,7 +11,8 @@ const profile = {version: 'actql-client-host/0.1', mode: 'remote', owner: 'remot
 const reply = bytes => ({version: 'actql-check-outcome/0.1',
   reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid,
   outcome: 'completed', report: {context_ref: 'ctx:fixture', scope: {kind: 'bound_input'},
-    verdict: 'invalid', inputs: [{document_id: 'source', kind: 'text', revision, byte_length: bytes}],
+    verdict: 'invalid', runnable: {verdict: 'no', reasons: [{code: 'query_syntax_invalid'}]},
+    inputs: [{document_id: 'source', kind: 'text', revision, byte_length: bytes}],
     reasons: [{code: 'query_syntax_invalid', location: {kind: 'text', document_id: 'source', revision,
       start_byte: bytes, end_byte: bytes, precision: 'exact'}}], requirements: [],
     coverage: {limits: [], unresolved: []}}});
