@@ -213,6 +213,28 @@ export function prepareInstalledMockSourcePreparation(originals, originalSourceI
   return retained.flight;
 }
 
+// Same existing Common intent admission/identity as the receiving Host. This
+// selected Source path avoids creating a separate native WebCrypto operation;
+// its Root checks the original receipt and registered frozen body first.
+export function sourceManagedSubmittedIntentCid(originals, originalSourceInstallation, body) {
+  assertSourceManagedHostPreparation(originals);
+  assertSourceManagedPreparationCurrent(originalSourceInstallation, originals);
+  const moon = originals.installation.projectRuntime;
+  const wire = canonicalValueJson({kind: body.kind, input: body.input,
+    parameters: body.parameters,
+    ...(Object.hasOwn(body, 'stopBefore') ? {stopBefore: body.stopBefore} : {}),
+    ...(Object.hasOwn(body, 'readOnly') ? {readOnly: body.readOnly} : {})}, {dataKeys: true});
+  const intent = moon.clientSubmittedIntent(wire, 1048576, 65536, 64);
+  if (intent === undefined) throw clientOperationError('NodeSourceManagedIntentUnavailable');
+  const cid = moon.clientSubmittedIntentCid(intent);
+  assertSourceManagedHostPreparation(originals);
+  assertSourceManagedPreparationCurrent(originalSourceInstallation, originals);
+  if (typeof cid !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(cid)) {
+    throw clientOperationError('InvalidHostRuntimeResult');
+  }
+  return cid;
+}
+
 const bytesCid = bytes => `sha256:${createHash('sha256')
   .update(bytes).digest('hex')}`;
 const publicKeyCid = value => bytesCid(createPublicKey(value).export({

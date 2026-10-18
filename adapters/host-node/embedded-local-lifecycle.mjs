@@ -310,6 +310,14 @@ export function createEmbeddedHostRegistry(sameInstallation) {
           if (sealed || opened.closing) throw closing();
           return sourcePreparation.bindSourceRequest(receipt, body, request);
         },
+        intentCid(receipt, body) {
+          if (sealed || opened.closing) throw closing();
+          if (!sourceProducers.has(receipt)) {
+            throw Object.assign(new Error('ForeignInstalledSourceProducer'),
+              {code: 'ForeignInstalledSourceProducer'});
+          }
+          return sourcePreparation.intentCid(receipt, body);
+        },
         finishSourceProducer(receipt, terminal) {
           const producer = sourceProducers.get(receipt);
           if (producer === undefined) {

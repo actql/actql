@@ -17,6 +17,8 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local'
     maxRows: 256, maxBatchRows: 3, maxBatchRetainedValueBytes: 4096}};
 
 async function fixture(receiver, perform) {
+  // Protocol fixture only; exact Common identities have independent vectors.
+  receiver.intentCid ??= () => cid('d');
   let storeCloses = 0, sends = 0;
   const port = {[sourcePreparationPort]: receiver, async perform(operation, request) {
     if (operation === 'connect') return profile;
