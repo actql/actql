@@ -21,8 +21,11 @@ schema field order and field contracts come from Common canonical encoding.
 connector registration, version, evidence and capacity checks.
 
 Supported contracts are exact decimal (precision up to 38), finite number,
-string, Boolean and JSON, with the original nullable flag. Temporal and binary
-columns remain explicitly unsupported; they are not disguised as string or JSON.
+string, Boolean, JSON, Date and UTC Timestamp for TIMESTAMP_LTZ, with the
+original nullable flag. TIME, TIMESTAMP_NTZ, retained-offset TIMESTAMP_TZ and
+binary columns remain explicitly unsupported; they are not disguised as string
+or JSON. The read Statement selects the corresponding output formats from its
+original projected Contracts. These read carriers do not add write bindings.
 Their metadata may coexist with a projection selecting other supported columns.
 The original precision, scale and character maximum remain metadata, rather than
 new scalar semantics or a claim about physical allocation.
@@ -86,7 +89,7 @@ carriers; they are not converted to arbitrary text, JSON or a rounded number.
   response or Unknown resolution.
 - Resources: explicit column, name, output byte, node and depth bounds are logical
   limits. They do not fund a VM, provider buffer or process allocation.
-- Extension: unsupported temporal/binary contracts remain named refusals pending
+- Extension: unfinished civil/retained-offset temporal and binary contracts remain named refusals pending
   the existing Common type owner; no implicit string or JSON conversion is used.
 - Verification: independent white-box vectors exercise original identity,
   partitions, target spelling, exact decimal38, canonical schema CID, Common
