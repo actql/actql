@@ -45,10 +45,12 @@ fn NativeLocalJournalCapture::inspect_original_retained_journal(
       })
   }
   if original.interrupted {
-    return Err(match audit {
-      Err(issue) => issue
-      Ok(_) => OriginalResourceScopePending
-    })
+    return Err(
+      match audit {
+        Err(issue) => issue
+        Ok(_) => OriginalResourceScopePending
+      },
+    )
   }
   // Preserve the original post-audit source check even on a semantic refusal.
   let refusal = match audit {

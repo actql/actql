@@ -189,16 +189,23 @@ fn cancellation_custody(
   max_records : Int,
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[(Int, Int64), NativeClientRunJournalIssue] {
-  let marker = match read_client_journal_value(database, "client_cancel_custody", "issued", reads) {
+  let marker = match
+    read_client_journal_value(
+      database, "client_cancel_custody", "issued", reads,
+    ) {
     Ok(value) => value
     Err(@sqlite.NotFound) => return Err(CustodyLost)
     Err(issue) => return Err(Physical(issue))
   }
-  match scan_client_journal_value(database, "client_cancel_custody", "", reads) {
+  match
+    scan_client_journal_value(database, "client_cancel_custody", "", reads) {
     Ok(row) if row.key == "issued" => ()
     _ => return Err(CustodyLost)
   }
-  match scan_client_journal_value(database, "client_cancel_custody", "issued", reads) {
+  match
+    scan_client_journal_value(
+      database, "client_cancel_custody", "issued", reads,
+    ) {
     Err(@sqlite.NotFound) => ()
     _ => return Err(CustodyLost)
   }
@@ -213,7 +220,8 @@ fn cancellation_custody(
   let mut cursor = ""
   let mut observed = 0
   while true {
-    let row = match scan_client_journal_value(database, "client_cancellations", cursor, reads) {
+    let row = match
+      scan_client_journal_value(database, "client_cancellations", cursor, reads) {
       Ok(value) => value
       Err(@sqlite.NotFound) => break
       Err(issue) => return Err(Physical(issue))
@@ -227,7 +235,13 @@ fn cancellation_custody(
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
-    let original = match read_client_journal_value(database, "client_cancel_originals", row.key, reads) {
+    let original = match
+      read_client_journal_value(
+        database,
+        "client_cancel_originals",
+        row.key,
+        reads,
+      ) {
       Ok(value) => value
       _ => return Err(CustodyLost)
     }
@@ -245,9 +259,12 @@ fn cancellation_custody(
       return Err(CustodyLost)
     }
     let run = match
-      read_client_journal_value(database, 
+      read_client_journal_value(
+        database,
         "client_runs",
-        @host.client_request_scope_cid(value.request), reads) {
+        @host.client_request_scope_cid(value.request),
+        reads,
+      ) {
       Ok(value) => value
       _ => return Err(CustodyLost)
     }
@@ -272,7 +289,9 @@ fn cancellation_custody(
   let mut originals = 0
   while true {
     let row = match
-      scan_client_journal_value(database, "client_cancel_originals", original_cursor, reads) {
+      scan_client_journal_value(
+        database, "client_cancel_originals", original_cursor, reads,
+      ) {
       Ok(value) => value
       Err(@sqlite.NotFound) => break
       Err(issue) => return Err(Physical(issue))
@@ -281,7 +300,13 @@ fn cancellation_custody(
     if originals > count || row.revision != 0L {
       return Err(CustodyLost)
     }
-    match read_client_journal_value(database, "client_cancellations", row.key, reads) {
+    match
+      read_client_journal_value(
+        database,
+        "client_cancellations",
+        row.key,
+        reads,
+      ) {
       Ok(_) => ()
       _ => return Err(CustodyLost)
     }

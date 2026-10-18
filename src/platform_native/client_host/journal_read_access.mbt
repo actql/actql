@@ -6,9 +6,18 @@ priv struct NativeClientJournalReadAccess {
   database : @sqlite.Database
   schema : () -> Int
   census : () -> Int64
-  transaction : (NativeClientJournalTransactionOperation) -> Result[Unit, @sqlite.NativeSqliteIssue]
-  read : (String, String) -> Result[@sqlite.NativeJournalValue, @sqlite.NativeSqliteIssue]
-  scan : (String, String) -> Result[@sqlite.NativeJournalEntry, @sqlite.NativeSqliteIssue]
+  transaction : (NativeClientJournalTransactionOperation) -> Result[
+    Unit,
+    @sqlite.NativeSqliteIssue,
+  ]
+  read : (String, String) -> Result[
+    @sqlite.NativeJournalValue,
+    @sqlite.NativeSqliteIssue,
+  ]
+  scan : (String, String) -> Result[
+    @sqlite.NativeJournalEntry,
+    @sqlite.NativeSqliteIssue,
+  ]
 }
 
 ///|

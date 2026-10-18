@@ -53,9 +53,9 @@ fn NativeLocalHostConnection::check_binding_sqlite_original(
   self : NativeLocalHostConnection,
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  match self.session.settings.check_retained(self.database, reads=reads) {
+  match self.session.settings.check_retained(self.database, reads~) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  local_adoption_row(self.database, self.adoption_body, reads=reads)
+  local_adoption_row(self.database, self.adoption_body, reads~)
 }

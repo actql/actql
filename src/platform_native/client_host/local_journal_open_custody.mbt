@@ -170,7 +170,8 @@ fn retry_local_journal_inspection_cleanup(
   issue : NativeLocalAdoptionIssue,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   match original_local_journal_inspection_cleanup(issue) {
-    Some(original) => original.retry().map_err(issue => InspectionCleanup(issue))
+    Some(original) =>
+      original.retry().map_err(issue => InspectionCleanup(issue))
     None => Ok(())
   }
 }
@@ -184,8 +185,10 @@ fn original_local_journal_inspection_cleanup(
     Inspection(
       Inspection(@journal.InitializationCleanupPending(_, _, original), _)
     ) => Some(original)
-    DatabasePending(_, original) => original_local_journal_inspection_cleanup(original)
-    OriginalResourceLeave(Some(original), _) => original_local_journal_inspection_cleanup(original)
+    DatabasePending(_, original) =>
+      original_local_journal_inspection_cleanup(original)
+    OriginalResourceLeave(Some(original), _) =>
+      original_local_journal_inspection_cleanup(original)
     _ => None
   }
 }
@@ -195,7 +198,8 @@ fn NativeLocalJournalOpenFailure::close_inspection_database(
   self : NativeLocalJournalOpenFailure,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   match original_local_journal_inspection_cleanup(self.original_issue) {
-    Some(original) => original.close_database().map_err(issue => InspectionCleanup(issue))
+    Some(original) =>
+      original.close_database().map_err(issue => InspectionCleanup(issue))
     None => Ok(())
   }
 }
@@ -205,7 +209,8 @@ fn NativeLocalJournalOpenFailure::close_inspection_snapshot(
   self : NativeLocalJournalOpenFailure,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   match original_local_journal_inspection_cleanup(self.original_issue) {
-    Some(original) => original.close_snapshot().map_err(issue => InspectionCleanup(issue))
+    Some(original) =>
+      original.close_snapshot().map_err(issue => InspectionCleanup(issue))
     None => Ok(())
   }
 }

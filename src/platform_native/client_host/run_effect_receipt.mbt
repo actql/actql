@@ -7,7 +7,8 @@ fn read_client_effect_receipt(
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[@publication.PublicationContract, NativeClientRunJournalIssue] {
   guard entry.outcome_receipt_cid is Some(cid) else { return Err(CustodyLost) }
-  let stored = match read_client_journal_value(database, "client_effect_row_receipt", cid, reads) {
+  let stored = match
+    read_client_journal_value(database, "client_effect_row_receipt", cid, reads) {
     Ok(value) if value.revision == 0L => value
     Err(issue) if !(issue is @sqlite.NotFound) => return Err(Physical(issue))
     _ => return Err(CustodyLost)

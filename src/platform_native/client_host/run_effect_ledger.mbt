@@ -43,9 +43,12 @@ fn confirm_effect_ledger_custody(
   record : NativeClientRunRecord,
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
-  let stored = read_client_journal_value(database, 
+  let stored = read_client_journal_value(
+    database,
     "client_effect_custody",
-    @host.client_request_scope_cid(record.request), reads)
+    @host.client_request_scope_cid(record.request),
+    reads,
+  )
   if record.checkpoint is None {
     return match stored {
       Err(@sqlite.NotFound) => Ok(())
@@ -54,7 +57,7 @@ fn confirm_effect_ledger_custody(
     }
   }
   let (body, responses) = match
-    effect_ledger_custody_with_responses(database, record, reads=reads) {
+    effect_ledger_custody_with_responses(database, record, reads~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

@@ -17,8 +17,12 @@ fn read_client_effect_response_record(
 ) -> Result[NativeClientEffectResponseRecord?, NativeClientRunJournalIssue] {
   match
     (
-      read_client_journal_value(database, "client_effect_response_meta", dispatch_cid, reads),
-      read_client_journal_value(database, "client_effect_response_bytes", dispatch_cid, reads),
+      read_client_journal_value(
+        database, "client_effect_response_meta", dispatch_cid, reads,
+      ),
+      read_client_journal_value(
+        database, "client_effect_response_bytes", dispatch_cid, reads,
+      ),
     ) {
     (Err(@sqlite.NotFound), Err(@sqlite.NotFound)) => Ok(None)
     (Ok(meta), Ok(body)) if meta.revision == 0L && body.revision == 0L => {
@@ -63,7 +67,7 @@ fn effect_ledger_custody_with_responses(
   for entry in checkpoint.effect_ledger {
     let state = @effect.effect_ledger_entry_state_code(entry)
     if state >= 2 && state <= 4 {
-      let receipt = match read_client_effect_receipt(database, entry, reads=reads) {
+      let receipt = match read_client_effect_receipt(database, entry, reads~) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -77,7 +81,7 @@ fn effect_ledger_custody_with_responses(
         }) else {
         return Err(CustodyLost)
       }
-      match read_client_effect_response_record(database, dispatch_cid, reads=reads) {
+      match read_client_effect_response_record(database, dispatch_cid, reads~) {
         Ok(Some(_)) => ()
         Err(issue) => return Err(issue)
         _ => return Err(CustodyLost)
@@ -91,7 +95,7 @@ fn effect_ledger_custody_with_responses(
       continue
     }
     let cid = @effect.effect_ledger_entry_cid(entry)
-    match read_client_effect_response_record(database, cid, reads=reads) {
+    match read_client_effect_response_record(database, cid, reads~) {
       Ok(Some(response)) => {
         body += "\nresponse\n" +
           cid +
