@@ -41,10 +41,13 @@ fn effect_ledger_custody_body(record : NativeClientRunRecord) -> Bytes? {
 fn confirm_effect_ledger_custody(
   database : @sqlite.Database,
   record : NativeClientRunRecord,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
-  let stored = database.read(
+  let stored = read_client_journal_value(
+    database,
     "client_effect_custody",
     @host.client_request_scope_cid(record.request),
+    reads,
   )
   if record.checkpoint is None {
     return match stored {
@@ -54,7 +57,7 @@ fn confirm_effect_ledger_custody(
     }
   }
   let (body, responses) = match
-    effect_ledger_custody_with_responses(database, record) {
+    effect_ledger_custody_with_responses(database, record, reads~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

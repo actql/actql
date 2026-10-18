@@ -175,21 +175,64 @@ pub fn NativeLocalAdoptionCapture::capture_journal(
   max_records : Int,
   max_snapshot_bytes : Int64,
 ) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
+  let session = match self.journal_capture_session() {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let journal = prepare_native_local_journal_capture(
+    session,
+    library,
+    self.crypto,
+    ttl_ms,
+    max_records,
+    max_snapshot_bytes,
+  )
+  self.journal = Some(journal)
+  Ok(journal)
+}
+
+///|
+// Both entrances retain the original child before returning it. Parent aliases
+// then close/observe that same child, never the Session around a still-open DB.
+fn NativeLocalAdoptionCapture::journal_capture_session(
+  self : NativeLocalAdoptionCapture,
+) -> Result[NativeLocalAdoptionSession, NativeLocalAdoptionCaptureIssue] {
   if self.closing {
     return Err(AdoptionCaptureClosed)
   }
   if self.journal is Some(_) {
     return Err(AdoptionJournalAlreadyCaptured)
   }
-  let session = match self.opening {
+  match self.opening {
     AdoptionNotAttempted => return Err(AdoptionNotOpened)
     AdoptionOpenUnconfirmed => return Err(AdoptionOpeningUnconfirmed)
     AdoptionRefused => return Err(AdoptionOriginal(self.original.issue()))
-    AdoptionAcquired(session) => session
+    AdoptionAcquired(session) => Ok(session)
   }
-  let journal = prepare_native_local_journal_capture(
+}
+
+///|
+/// Bind the already acquired Session to the same claimed resource pair once.
+/// Uses this original capture's Crypto and retains the Journal before exposing
+/// it. No caller Library, second claim or replacement child is selected.
+pub fn NativeLocalAdoptionCapture::capture_journal_with_original_resources(
+  self : NativeLocalAdoptionCapture,
+  host : @arena.InstalledArenaHost,
+  resources : @arena.InstalledArenaLocalHostResources,
+  read : @arena.InstalledArenaOriginalRead,
+  ttl_ms : Double,
+  max_records : Int,
+  max_snapshot_bytes : Int64,
+) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
+  let session = match self.journal_capture_session() {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let journal = prepare_native_local_journal_capture_with_original_resources(
     session,
-    library,
+    host,
+    resources,
+    read,
     self.crypto,
     ttl_ms,
     max_records,
