@@ -6,6 +6,7 @@
 const freeze = Object.freeze, descriptor = Object.getOwnPropertyDescriptor, create = Object.create;
 const hasOwn = Object.hasOwn, keys = Reflect.ownKeys, apply = Reflect.apply;
 const NativeError = Error, NativeWeakMap = WeakMap, NativeWeakSet = WeakSet, NativeMap = Map;
+const NativePromise = Promise, promiseResolve = Promise.resolve, promiseThen = Promise.prototype.then;
 const weakGet = WeakMap.prototype.get, weakSet = WeakMap.prototype.set;
 const generationHas = WeakSet.prototype.has, generationAdd = WeakSet.prototype.add;
 const mapGet = Map.prototype.get, mapSet = Map.prototype.set;
@@ -43,15 +44,18 @@ const completed = value => reference(value) &&
   descriptor(value, 'pending')?.value === false;
 
 // operational is held only by the selected preload, never obtained from a
-// caller packet. Its two captured functions retain the selected source,
+// caller packet. Its captured functions retain the selected source,
 // backend, recipe and original envelope, including escaped preparation aliases.
 // No per-object lease, reserve, allocation or business-Run permission is issued
 // here. An absent complete operational original refuses before caller reads.
 function createInitialControlInstallationOwner(operational) {
   const assertOperational = operational === undefined ? undefined : own(operational, 'assertCurrent');
   const closeOperational = operational === undefined ? undefined : own(operational, 'close');
+  const prepareProperty = operational === undefined ? undefined : descriptor(operational, 'prepare');
+  const prepareOperational = prepareProperty === undefined ? undefined : own(operational, 'prepare');
   if (operational !== undefined &&
-      (typeof assertOperational !== 'function' || typeof closeOperational !== 'function')) unavailable();
+      (typeof assertOperational !== 'function' || typeof closeOperational !== 'function' ||
+       prepareProperty !== undefined && typeof prepareOperational !== 'function')) unavailable();
   const scopes = new NativeWeakMap();
   const generations = new NativeWeakSet();
 
@@ -179,13 +183,7 @@ function createInitialControlInstallationOwner(operational) {
     state.flight = flight;
     return flight;
   }
-  function begin(originals) {
-    if (assertOperational === undefined) unavailable();
-    const held = snapshot(originals);
-    if (apply(generationHas, generations, [held.generation])) foreign();
-    // Consume before the original current callback: it may reenter this Owner.
-    // A refused attempt cannot recycle this generation into a second issue.
-    apply(generationAdd, generations, [held.generation]);
+  function issue(held) {
     apply(assertOperational, operational, [held]);
     const state = {originals: held, children: new NativeMap(), closing: false, closed: false,
       flight: undefined, firstError: undefined, lastError: undefined};
@@ -194,6 +192,25 @@ function createInitialControlInstallationOwner(operational) {
       status() { return observation(state); }, close() { return close(scope); }});
     apply(weakSet, scopes, [scope, state]);
     return scope;
+  }
+  function begin(originals) {
+    if (assertOperational === undefined) unavailable();
+    const held = snapshot(originals);
+    if (apply(generationHas, generations, [held.generation])) foreign();
+    // Snapshot and consume before module initialization or any original current
+    // callback can await or reenter. Caller packet mutation cannot replace one
+    // of the five originals while the actual supplier's flight is pending.
+    apply(generationAdd, generations, [held.generation]);
+    if (prepareOperational === undefined) return issue(held);
+    // Only the preload's captured operational original can initialize its
+    // selected Host namespace. That original owns the single initialization
+    // flight and any partial/Unknown cleanup duty; no provisional scope, copied
+    // authority or second cleanup Owner is issued here. Preserve its rejection
+    // and original cleanupHandle without wrapping, retrying or treating Promise
+    // settlement as physical cleanup. Current is checked after initialization.
+    const prepared = apply(prepareOperational, operational, [held]);
+    return apply(promiseThen, apply(promiseResolve, NativePromise, [prepared]),
+      [() => issue(held)]);
   }
   return freeze({begin, assertCurrent});
 }
