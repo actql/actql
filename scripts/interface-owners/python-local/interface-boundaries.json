@@ -1,6 +1,6 @@
 {
-  "source": "7a3c2c5c5579d41d0ead93eb2dbedbc52a6ce224",
-  "syntaxProjectionSha256": "756720d5d6c93843db6b574924cbaea4f8b0d282897bfe229c129e93982b1602",
+  "source": "9301c985ec87bd28bb4eccf8f2d65d0859609b08",
+  "syntaxProjectionSha256": "4a31ecaf4ac9e25c4558a6363ef836ef44d22cbc792e2ae1cd9c05bbdc05c888",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -53,7 +53,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_shim_abi.py",
-      "sha256": "df3d418b43d97141d6d55ab3b1c85d406f5bbb5f0bb3ec2700c321ad78e20871",
+      "sha256": "e8c35677d724fae14032bf6300dd52c0de0e61d942b305099b76b9f7f8cc9862",
       "generator": {
         "path": "scripts/generate-local-native-shim-bindings.py",
         "anchor": "def render("
@@ -28652,6 +28652,41 @@
           "async": false
         },
         {
+          "async": false,
+          "name": "_OriginalDomainCustody/_prepare",
+          "parameters": [
+            "cls",
+            "owner",
+            "scope",
+            "descriptor",
+            "functions",
+            "initial",
+            "size",
+            "work",
+            "attempts",
+            "holdings",
+            "transfer",
+            "retained",
+            "execution"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalDomainCustody/_prepare_initial_original",
+          "parameters": [
+            "cls",
+            "owner",
+            "scope",
+            "descriptor",
+            "functions",
+            "work",
+            "attempts",
+            "holdings",
+            "transfer"
+          ]
+        },
+        {
+          "async": false,
           "name": "_OriginalDomainCustody/_prepare_original",
           "parameters": [
             "cls",
@@ -28666,8 +28701,7 @@
             "transfer",
             "retained",
             "execution"
-          ],
-          "async": false
+          ]
         },
         {
           "name": "_OriginalDomainCustody/_prepare_read_context",
@@ -28796,7 +28830,7 @@
           "async": false
         }
       ],
-      "sha256": "1be43dcb840a205ef355afddaec01a642c57f1422b793a2aa1499082f89013db",
+      "sha256": "4b022edb0d32a72d689ca931e580b974fea3a44b2cd8679ad158f113ea7cd9b8",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -28812,6 +28846,8 @@
             "_OriginalDomainCustody/_fact",
             "_OriginalDomainCustody/_mark_unknown",
             "_OriginalDomainCustody/_physical_scope",
+            "_OriginalDomainCustody/_prepare",
+            "_OriginalDomainCustody/_prepare_initial_original",
             "_OriginalDomainCustody/_prepare_original",
             "_OriginalDomainCustody/_prepare_read_context",
             "_OriginalDomainCustody/_project_original_material",
@@ -28858,6 +28894,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_domain_custody.py",
+                "anchor": "def _prepare_initial_original("
               }
             ],
             "identity": [
@@ -28962,6 +29002,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_domain_custody.py",
                 "anchor": "class _OriginalDomainCustody:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_initial_domain.py",
+                "anchor": "test_lost_prepare_retains_original_reply_and_blocks_cleanup_replay"
               }
             ]
           }
@@ -36484,7 +36528,7 @@
           "async": false
         }
       ],
-      "sha256": "df3d418b43d97141d6d55ab3b1c85d406f5bbb5f0bb3ec2700c321ad78e20871",
+      "sha256": "e8c35677d724fae14032bf6300dd52c0de0e61d942b305099b76b9f7f8cc9862",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [

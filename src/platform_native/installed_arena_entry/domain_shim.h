@@ -8,6 +8,14 @@ typedef struct _M0TP45actql5actql16platform__native25installed__arena__control20
 typedef struct _M0TP45actql5actql16platform__native25installed__arena__control25InstalledArenaDomainReply actql_domain_reply;
 typedef actql_domain_reply *(*actql_domain_prepare_fn)(actql_control_host *, actql_backing_loan *,
     int32_t, int64_t, int32_t, int32_t, int32_t, int64_t, int64_t, int64_t);
+/* Actual regular Source3979b7f2 C SHA256
+ * 2b5165f7cde3a4f692072a2d6d948c548926bef1bb8c8e8e6fb637ac538df1ad.
+ * The first-domain callback borrows host/scope and owns its returned reply. */
+typedef actql_domain_reply *(*actql_domain_initial_prepare_fn)(actql_control_host *,
+    actql_backing_loan *, int32_t, int32_t, int32_t, int32_t, int64_t);
+void actql_native_control_register_initial_domain_root(actql_domain_initial_prepare_fn);
+int actql_domain_prepare_initial_into(actql_control_host *, actql_backing_loan *,
+    int32_t, int32_t, int32_t, int32_t, int64_t, actql_domain_reply **);
 typedef actql_domain_reply *(*actql_domain_operation_fn)(actql_control_host *, actql_domain *);
 typedef actql_control_host *(*actql_domain_original_fn)(actql_domain_reply *);
 typedef actql_domain *(*actql_domain_handle_fn)(actql_domain_reply *);

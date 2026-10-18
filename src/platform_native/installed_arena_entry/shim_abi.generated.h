@@ -12,6 +12,7 @@
 #include "sqlite_shim.h"
 #include "sqlite_database_shim.h"
 #include "packaged_product_shim.h"
+#include "runtime_initialization_shim.h"
 #include "local_journal_shim.h"
 #include "local_host_resources_shim.h"
 int actql_backing_borrow_into(actql_control_host * host, actql_backing_reply ** reply_slot);
@@ -41,6 +42,9 @@ int32_t actql_control_issue_family(actql_control_reply * reply);
 int32_t actql_control_operation(actql_control_reply * reply);
 int actql_control_originals_into(actql_control_reply * reply, actql_control_host ** original_slot, actql_control_host ** retained_slot);
 int actql_control_prepare_utf16_into(const uint16_t * source, int32_t source_units, const uint8_t * recipe, int32_t recipe_bytes, int64_t generation, int64_t bytes, int32_t planning, int32_t attempts, int32_t holdings, int64_t transfer, int64_t retained, int64_t execution, int64_t envelope, actql_control_reply ** reply_slot);
+int actql_control_runtime_current(actql_control_runtime_origin * original);
+int actql_control_runtime_initialize_into(actql_control_runtime_origin ** slot);
+int actql_control_runtime_roots_state(void);
 int actql_control_try_close_and_drop(actql_control_host ** original_slot, actql_control_reply ** pending_slot);
 int actql_domain_close_into(actql_control_host * host, actql_domain * domain, actql_domain_reply ** slot);
 int actql_domain_copy_material(actql_domain_reply * reply, actql_control_host * host, actql_domain * domain, unsigned char * source, unsigned char * recipe, int64_t * scalars);
@@ -53,6 +57,7 @@ int32_t actql_domain_issue_family(actql_domain_reply * reply);
 int actql_domain_leave_into(actql_control_host * host, actql_domain * domain, actql_domain_reply ** slot);
 int32_t actql_domain_operation(actql_domain_reply * reply);
 int actql_domain_originals_into(actql_domain_reply * reply, actql_control_host ** host, actql_domain ** domain);
+int actql_domain_prepare_initial_into(actql_control_host * host, actql_backing_loan * scope, int32_t fd, int32_t work, int32_t attempts, int32_t holdings, int64_t transfer, actql_domain_reply ** slot);
 int actql_domain_prepare_into(actql_control_host * host, actql_backing_loan * scope, int32_t fd, int64_t bytes, int32_t work, int32_t attempts, int32_t holdings, int64_t transfer, int64_t retained, int64_t execution, actql_domain_reply ** slot);
 int actql_domain_project_into(actql_control_host * host, actql_domain * domain, actql_domain_reply ** slot);
 int actql_domain_read_cleanup_into(actql_control_host * host, actql_domain * domain, actql_domain_reply ** reply);

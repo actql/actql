@@ -103,6 +103,31 @@ class _OriginalDomainCustody:
                           functions: _OriginalDomainFunctions, *, size: int,
                           work: int, attempts: int, holdings: int, transfer: int,
                           retained: int, execution: int) -> _OriginalDomainCustody:
+        return cls._prepare(owner, scope, descriptor, functions, initial=False,
+            size=size, work=work, attempts=attempts, holdings=holdings,
+            transfer=transfer, retained=retained, execution=execution)
+
+    @classmethod
+    def _prepare_initial_original(cls, owner: _OriginalControlCustody,
+                                  scope: _OriginalBackingCustody, descriptor: _OriginalDescriptor,
+                                  functions: _OriginalDomainFunctions, *, work: int,
+                                  attempts: int, holdings: int, transfer: int) -> _OriginalDomainCustody:
+        """Ask the same Native Owner for its first domain, without guessing bytes.
+
+        The new export is mandatory only for this explicit path. Its ordinary
+        reply, persistent slots, known refusals and partial cleanup are shared
+        with declared-size preparation; no scalar fallback or second acquire.
+        """
+        return cls._prepare(owner, scope, descriptor, functions, initial=True,
+            size=0, work=work, attempts=attempts, holdings=holdings,
+            transfer=transfer, retained=0, execution=0)
+
+    @classmethod
+    def _prepare(cls, owner: _OriginalControlCustody,
+                 scope: _OriginalBackingCustody, descriptor: _OriginalDescriptor,
+                 functions: _OriginalDomainFunctions, *, initial: bool, size: int,
+                 work: int, attempts: int, holdings: int, transfer: int,
+                 retained: int, execution: int) -> _OriginalDomainCustody:
         if (type(owner) is not _OriginalControlCustody or type(scope) is not _OriginalBackingCustody
                 or type(functions) is not _OriginalDomainFunctions or scope._owner is not owner
                 or functions.library is not owner._functions.library
@@ -114,6 +139,11 @@ class _OriginalDomainCustody:
                 or any(type(x) is not int or not -(2**31) <= x <= 2**31 - 1 for x in (work, attempts, holdings))
                 or any(type(x) is not int or not -(2**63) <= x <= 2**63 - 1 for x in (size, transfer, retained, execution))):
             raise ValueError('Original Native domain inputs are unavailable')
+        # Resolve the new ABI before registration/foreign custody. A missing
+        # first-domain port never falls back to declared sizes or consumes one.
+        prepare = bind_native(functions.library, 'actql_domain_prepare_initial_into') if initial else functions.prepare
+        arguments = ((work, attempts, holdings, transfer) if initial else
+                     (size, work, attempts, holdings, transfer, retained, execution))
         # Only ABI representability is checked here. Core validates the declared
         # limits and original physical scope; Python creates no quota or grant.
         domain = cls.__new__(cls)
@@ -133,8 +163,8 @@ class _OriginalDomainCustody:
             raise ValueError('Original Native Host is retired')
         known: _OriginalDomainError | None = None
         try:
-            domain._status(functions.prepare(owner._original, scope._loan, descriptor.value,
-                size, work, attempts, holdings, transfer, retained, execution, byref(domain._reply)))
+            domain._status(prepare(owner._original, scope._loan, descriptor.value,
+                *arguments, byref(domain._reply)))
             domain._status(functions.originals(domain._reply, byref(domain._host), byref(domain._domain)))
             if domain._host.value is None or domain._host.value != owner._original.value:
                 raise domain._mark_unknown()

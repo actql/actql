@@ -671,3 +671,35 @@ pub fn[T] NativeHostBootstrap::capacity_usage(
 ) -> @resources.SharedCapacityUsage {
   @resources.shared_capacity_usage(self.capacity)
 }
+
+///|
+/// Accounting candidate for the first payload only, never a physical maximum
+/// or allocation grant. The caller must still use the same allocator's actual
+/// acquisition and retain its partial/refused result. Hidden physical use or
+/// fragmentation is not inferred absent from these logical observations.
+pub fn[T] NativeHostBootstrap::initial_payload_capacity(
+  self : NativeHostBootstrap[T],
+  original : T,
+) -> Result[Int64, NativeBootstrapIssue] {
+  match self.require_current(original) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if !self.children.is_empty() || !self.delegations.is_empty() {
+    return Err(AlreadyConsumed)
+  }
+  guard self.control is Some(control) else { return Err(Unavailable) }
+  let actual = control_bytes_ffi(self.backing)
+  let allocation = @resources.shared_allocation_usage(control)
+  let usage = self.capacity_usage()
+  if actual <= 0L ||
+    allocation.bytes != actual ||
+    allocation.retiring ||
+    allocation.released ||
+    usage.closing ||
+    usage.allocated != actual ||
+    usage.capacity <= actual {
+    return Err(Unavailable)
+  }
+  Ok(usage.capacity - actual)
+}
