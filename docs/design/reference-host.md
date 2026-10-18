@@ -157,6 +157,9 @@ fixed markers use one original FD and only their exact closed body plus one
 byte. Each isolated SQLite inspection pins a combined DB/WAL extent of at most
 64 MiB before making any copy; its same source, isolated copy, sequential 64 KiB
 buffer and actual SQLite connection coexist until that child's own cleanup.
+The whole memory declaration adds that 64 KiB copy buffer and a separate 1 MiB
+allowance for simultaneous and retained fixed-marker backing; pinned/copy file
+extents remain a distinct physical-storage vector, not reclaimed heap credit.
 Larger valid retained state is inspection Unavailable, not corrupt, truncated,
 deleted or permission to bypass classification. These work limits do not fund
 stored business records or authorize another database, Source or metadata read.

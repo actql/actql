@@ -22,7 +22,7 @@ const limits = freeze({imageFiles: 2048, packages: 64, dependencyEdges: 512,
   // creating their isolated copy. The source and copy coexist; their original
   // FDs/Dir/SQLite connection and pending close remain with that child Owner.
   journalInspectionBytes: 64 * MiB, journalInspectionEntries: 100000,
-  journalCopyReadBufferBytes: 65536,
+  journalCopyReadBufferBytes: 65536, journalMarkerBackingBytes: MiB,
   // Actual selected V8 heap ceiling is read by the early runtime original;
   // these distinct native/compiler terms are declared runtime assumptions.
   // They are not obtained from heap usage, a source CID or an unused arena.
@@ -56,11 +56,13 @@ function declareInitialControlPhaseEnvelope(heapCeilingBytes) {
   const moduleNativeBytes = limits.imageFiles * limits.moduleNativeBytes;
   const sourceBackingBytes = limits.sourceBytes + limits.imageFiles * 16384;
   const nativeBytes = limits.fixedNativeBytes + compilerBytes + moduleNativeBytes;
+  const journalExternalBytes = limits.journalCopyReadBufferBytes + limits.journalMarkerBackingBytes;
   const bytes = heapCeilingBytes + nativeBytes + sourceBackingBytes +
-    limits.preparationExternalBytes;
+    limits.preparationExternalBytes + journalExternalBytes;
   if (!integer(bytes)) unavailable();
   return freeze({limits, heapCeilingBytes, compilerBytes, moduleNativeBytes, sourceBackingBytes,
-    nativeBytes, preparationExternalBytes: limits.preparationExternalBytes, bytes,
+    nativeBytes, preparationExternalBytes: limits.preparationExternalBytes,
+    journalExternalBytes, bytes,
     journalInspection: freeze({pinnedSourceBytes: limits.journalInspectionBytes,
       isolatedCopyBytes: limits.journalInspectionBytes,
       readBufferBytes: limits.journalCopyReadBufferBytes,

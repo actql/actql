@@ -21,7 +21,8 @@ test('finite disposition includes simultaneous managed, native, compiler and ful
   assert.equal(selected.declaration.sourceBackingBytes, 167772160);
   assert.equal(selected.declaration.nativeBytes, 2550136832);
   assert.equal(selected.declaration.preparationExternalBytes, 408944640);
-  assert.equal(selected.declaration.bytes, 3127902208);
+  assert.equal(selected.declaration.journalExternalBytes, 1114112);
+  assert.equal(selected.declaration.bytes, 3129016320);
   assert.equal(selected.limits.generations, 1);
   assert.equal(selected.limits.preparations, 1);
   assert.equal(selected.limits.opaqueCallerAliases, 0);
