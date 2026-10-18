@@ -117,3 +117,11 @@ test('a release representation getter cannot be acquired as ordinary image DATA'
   Object.defineProperty(value.images[0], 'npmRelease', {get() {reads++; return {bytes: 256};}});
   assert.throws(() => inspect(value, 1024), unavailable); assert.equal(reads, 0);
 });
+
+test('an invalid original extent refuses before numeric conversion of manifest alternatives', () => {
+  const value = inventory(); let conversions = 0;
+  value.images = [{path: 'package.json', bytes: {valueOf() {conversions++; return 128;}},
+    npmRelease: {bytes: 256}}];
+  assert.throws(() => inspect(value, 1024), unavailable);
+  assert.equal(conversions, 0);
+});
