@@ -27267,7 +27267,7 @@
     {
       "module": "adapters/host-node/infer-trusted-node-preload.cjs",
       "responsibilityFacet": "primary",
-      "sha256": "a49db1346c75cf399a1e8806ef84ce90b3f514baad60ac30de885b187ad94fc1",
+      "sha256": "bab31c3fddd39106a25d702076a3cf1704deb28980da8ebda403207cb3cb050d",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -27620,6 +27620,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Ancestor public preload wrappers publish their same immutable null-prototype"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "anchor": "// The actual startup resolves its optional SDK from that SAME consumer"
               }
             ],
             "ownership": [
@@ -27890,6 +27894,14 @@
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
                 "anchor": "the actual selected public preload consumes generated inventory without issuing a Scope"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "optional SDK custody follows the actual consumer resolution rather than a nested Local copy"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "failed namespace initialization keeps the same original cause and never recompiles or retries"
               }
             ]
           }
@@ -29454,7 +29466,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-package-custody.cjs",
-      "sha256": "5374343f3a5f587557869279257a8dd08dcb5f8519579d2ebf6b8bd7f5b519ba",
+      "sha256": "222c006936fea6b1e96e32c5767e567930f598dfec12b74104d578c4621260d4",
       "exports": [
         "commonjs:captureInitialControlPackageCustody"
       ],
@@ -29463,7 +29475,8 @@
           "name": "captureInitialControlPackageCustody",
           "parameters": [
             "inventory",
-            "localRoot"
+            "localRoot",
+            "consumerEntry"
           ],
           "async": false
         },
@@ -29581,7 +29594,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/initial-control-package-custody.cjs",
-                "anchor": "function captureInitialControlPackageCustody(inventory, localRoot)"
+                "anchor": "function captureInitialControlPackageCustody(inventory, localRoot, consumerEntry)"
               }
             ],
             "identity": [
@@ -29592,6 +29605,10 @@
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
                 "anchor": "a package identity mismatch refuses even when its captured files match the DATA facts"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "anchor": "// The actual startup resolves its optional SDK from that SAME consumer"
               }
             ],
             "ownership": [
@@ -29654,6 +29671,14 @@
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mjs",
                 "anchor": "uncaptured Host dependencies cannot acquire package-image coverage"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "optional SDK custody follows the actual consumer resolution rather than a nested Local copy"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "anchor": "failed namespace initialization keeps the same original cause and never recompiles or retries"
               }
             ]
           }
