@@ -1,10 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {readFile, writeFile} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {createRequire} from 'node:module';
-import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import * as actual from './node-source-managed-installation.mjs';
 
 test('the actual absent Source issuer refuses without observing caller originals', async () => {
@@ -23,8 +22,8 @@ test('the actual absent Source issuer refuses without observing caller originals
 // startup, Resource issuer, original Source capacity or real Host positive.
 async function fixture(t) {
   const root = fileURLToPath(new URL('../../', import.meta.url));
-  const scratch = await createOwnedScratch({parent: join(root, '_build'),
-    prefix: 'source-forward-controls-', label: 'Source forwarder explicit ports'});
+  await mkdir(join(root, '_build'), {recursive:true});
+  const scratch = {path: await mkdtemp(join(root, '_build/source-forward-controls-'))};
   await writeFile(join(scratch.path, 'infer-trusted-node-preload.cjs'), 'module.exports={};\n');
   const owner = createRequire(import.meta.url)(join(scratch.path, 'infer-trusted-node-preload.cjs'));
   const originals = Object.freeze({}), installation = Object.freeze({}), receipt = Object.freeze({});
